@@ -1,0 +1,145 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap');
+
+:root{
+  --brand-amber: #f59e0b;
+  --brand-amber-600: #d97706;
+  --brand-deep: #065f46; /* deep green for food accent */
+  --brand-muted: #6b7280;
+  --ui-card: #ffffff;
+  --bg-soft: #fffaf0;
+  --base-font: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+}
+
+body{ font-family: var(--base-font), sans-serif; background: linear-gradient(180deg, #fffaf6 0%, #f8fafc 100%); }
+
+/* Slightly bolder header text for premium look */
+header .text-sm{ font-weight:600 }
+
+/* apply brand color utilities */
+.text-amber-700{ color: var(--brand-amber-600) }
+.bg-amber-500{ background: linear-gradient(90deg, var(--brand-amber), #f59e0b) }
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Global page background: soft light-gray gradient */
+.bg-page{
+  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+}
+
+/* Premium container */
+.container-premium{
+  max-width: 1100px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+/* Card shadows and rounded */
+.card-soft {
+  border-radius: 18px;
+  box-shadow: 0 12px 30px rgba(15,23,42,0.06);
+}
+
+/* Slightly larger touch targets on small screens */
+@media (max-width: 640px) {
+  .sm-touch-target { padding: 10px 14px; }
+}
+
+/* Improve filter readability */
+.filter-pill { border-radius: 9999px; }
+
+/* Tighter grid for premium spacing */
+@media (min-width: 1024px) {
+  .premium-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (min-width: 640px) and (max-width: 1023px) {
+  .premium-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+.premium-grid { display: grid; gap: 1.25rem; grid-template-columns: repeat(1, minmax(0, 1fr)); }
+
+/* Glass header and subtle shadow */
+.shadow-header{
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06); /* subtle navy shadow */
+}
+
+/* Soft card shadows */
+.soft-card{
+  box-shadow: 0 8px 30px rgba(15, 23, 42, 0.06);
+}
+.soft-shadow-sm{
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.05);
+}
+
+.backdrop-blur-sm{backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);}
+
+/* Improve header typography scale on small screens */
+header h1{letter-spacing:-0.02em}
+
+/* Selection styling: use brand red so selection matches UI */
+::selection{background:#ef4444; color:#ffffff;}
+
+/* Hide native scrollbar for overflow-x areas */
+.no-scrollbar::-webkit-scrollbar{height:8px}
+.no-scrollbar::-webkit-scrollbar-track{background:transparent}
+.no-scrollbar::-webkit-scrollbar-thumb{background:transparent}
+.no-scrollbar{ -ms-overflow-style: none; scrollbar-width: none;}
+.no-scrollbar::-webkit-scrollbar{display:none}
+
+/* Category scroller: show a subtle thin scrollbar (used by CategoryTabs) */
+.category-scrollbar::-webkit-scrollbar{height:8px}
+.category-scrollbar::-webkit-scrollbar-track{background:transparent}
+.category-scrollbar::-webkit-scrollbar-thumb{background:rgba(15,23,42,0.12);border-radius:9999px}
+.category-scrollbar:hover::-webkit-scrollbar-thumb{background:rgba(15,23,42,0.18)}
+.category-scrollbar{ -ms-overflow-style: auto; scrollbar-width: thin; scrollbar-color: rgba(15,23,42,0.12) transparent;}
+
+/* Add-to-cart bounce animation */
+@keyframes addBounce {
+  0% { transform: translateY(0) scale(1); }
+  30% { transform: translateY(-6px) scale(1.08); }
+  60% { transform: translateY(0) scale(0.98); }
+  100% { transform: translateY(0) scale(1); }
+}
+.animate-add-bounce { animation: addBounce 600ms cubic-bezier(.2,.8,.2,1); }
+
+/* Flying dot animation */
+.flying-dot{
+  position:fixed;
+  width:18px;
+  height:18px;
+  border-radius:50%;
+  background:linear-gradient(135deg,#ef4444,#dc2626);
+  z-index:9999;
+  pointer-events:none;
+  transform:translate(0,0) scale(1);
+  transition:transform 0.7s cubic-bezier(.2,.8,.2,1), opacity 0.5s ease;
+  opacity:0.95;
+  box-shadow:0 6px 18px rgba(0,0,0,0.15);
+}
+
+/* faster pulse for badge */
+@keyframes pulseFast {
+  0%{transform:scale(1)}
+  50%{transform:scale(1.2)}
+  100%{transform:scale(1)}
+}
+.animate-pulse-fast{animation:pulseFast 0.7s ease-in-out}
+
+/* Toast fade */
+.toast-enter{opacity:0; transform:translateY(8px)}
+.toast-enter-active{opacity:1; transform:translateY(0); transition:all 250ms ease}
+.toast-exit{opacity:1}
+.toast-exit-active{opacity:0; transition:opacity 200ms ease}
+
+/* Hero pattern overlay (subtle food texture) */
+.hero-pattern{background-image: radial-gradient(rgba(255,255,255,0.02) 1px, transparent 1px); background-size: 24px 24px;}
+
+/* Subtle food image overlay (SVG data URI) - very low contrast so it reads as texture */
+.hero-food{
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'><text x='6' y='70' font-size='56' fill='%23ffffff' fill-opacity='0.08'>🍽</text></svg>");
+  background-repeat: repeat;
+  background-size: 120px 120px;
+  background-position: center;
+}

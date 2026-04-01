@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120" role="img" aria-labelledby="logoTitle">
+  <title id="logoTitle">Bro & Bro Cafe Logo</title>
+  <defs>
+    <linearGradient id="g1" x1="0" x2="1">
+      <stop offset="0" stop-color="#f87171"/>
+      <stop offset="1" stop-color="#dc2626"/>
+    </linearGradient>
+  </defs>
+  <rect width="120" height="120" rx="20" fill="url(#g1)" />
+  <g transform="translate(18,18)" fill="#fff">
+    <path d="M18 6c-3.3 0-6 2.7-6 6v18h4V12c0-1.1.9-2 2-2s2 .9 2 2v18h4V12c0-3.3-2.7-6-6-6z"/>
+    <path d="M54 6c-3.3 0-6 2.7-6 6v18h4V12c0-1.1.9-2 2-2s2 .9 2 2v18h4V12c0-3.3-2.7-6-6-6z"/>
+  </g>
+  <text x="60" y="98" text-anchor="middle" fill="#fff" font-family="Inter, sans-serif" font-weight="700" font-size="14">Bro & Bro</text>
+</svg>
+
