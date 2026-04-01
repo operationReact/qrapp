@@ -1,0 +1,14 @@
+{
+  "id": "qrapp-environment",
+  "name": "qrapp-local",
+  "values": [
+    { "key": "baseUrl", "value": "http://localhost:8080", "enabled": true },
+    { "key": "adminUsername", "value": "admin", "enabled": true },
+    { "key": "adminPassword", "value": "admin", "enabled": true },
+    { "key": "adminAuth", "value": "", "enabled": true },
+    { "key": "orderId", "value": "1", "enabled": true },
+    { "key": "webhookSignature", "value": "", "enabled": true }
+  ],
+  "timestamp": 0
+}
+

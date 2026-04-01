@@ -1,0 +1,15 @@
+spring:
+  profiles: mysql
+  datasource:
+    url: jdbc:mysql://localhost:3306/qr_app
+    username: root
+    password: password
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+
+razorpay:
+  key: ${RAZORPAY_KEY:YOUR_KEY}
+  secret: ${RAZORPAY_SECRET:YOUR_SECRET}
+  webhookSecret: ${RAZORPAY_WEBHOOK_SECRET:YOUR_WEBHOOK_SECRET}
