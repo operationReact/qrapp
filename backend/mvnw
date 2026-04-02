@@ -1,16 +1,7 @@
 #!/bin/sh
-# Placeholder mvnw wrapper after migration to Gradle.
-# If a Gradle wrapper exists, delegate to it. Otherwise print instructions.
-
-SCRIPT_DIR="$(cd "$(dirname "$0")" >/dev/null 2>&1 && pwd)"
-if [ -x "$SCRIPT_DIR/../gradlew" ]; then
-  exec "$SCRIPT_DIR/../gradlew" "$@"
-elif [ -x "$SCRIPT_DIR/gradlew" ]; then
-  exec "$SCRIPT_DIR/gradlew" "$@"
-else
-  echo "This repository has been migrated from Maven to Gradle."
-  echo "Please generate a Gradle wrapper and use './gradlew <task>' to build."
-  echo "If you have Gradle installed, you can run: 'gradle wrapper' in the project root to create the wrapper." >&2
-  exit 1
-fi
+# REMOVED: Maven wrapper replaced by Gradle during migration.
+# Delete this file from the repository:
+#   git rm backend/mvnw && git commit -m "Remove mvnw after Gradle migration"
+# Build with Gradle using the wrapper: ./gradlew :backend:bootJar
+exit 1
 

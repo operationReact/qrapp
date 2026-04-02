@@ -2,7 +2,10 @@
 plugins {
     id 'java'
     id 'org.springframework.boot' version '3.2.4'
-    id 'io.spring.dependency-management' version '1.1.3'
+    // Removed the standalone io.spring.dependency-management plugin because
+    // the Spring Boot Gradle plugin provides dependency management and the
+    // older standalone plugin is incompatible with Gradle 9 (causes
+    // NoSuchMethodError referencing LenientConfiguration.getArtifacts(Spec)).
     id 'maven-publish'
 }
 
@@ -29,15 +32,15 @@ repositories {
 }
 
 dependencies {
-    // Razorpay Java SDK: prefer remote artifact, but if a vendor JAR exists at
-    // backend/lib/razorpay-java-1.6.0.jar use it as a file dependency to support
-    // air-gapped or offline CI environments.
-    def razorpayJar = file("${projectDir}/lib/razorpay-java-1.6.0.jar")
-    if (razorpayJar.exists()) {
-        implementation files(razorpayJar)
-    } else {
-        implementation 'com.razorpay:razorpay-java:1.6.0'
-    }
+    // Provide Spring Boot BOM as a platform so versions for Spring artifacts are available
+    implementation platform('org.springframework.boot:spring-boot-dependencies:3.2.4')
+
+    // NOTE: The project previously used the Razorpay Java SDK (com.razorpay:razorpay-java:1.6.0)
+    // resolved from Razorpay's repository. This codebase does not use the SDK classes (it
+    // implements Razorpay HTTP calls directly), so the dependency has been omitted to avoid
+    // build failures when the Razorpay repository is not accessible. If you need the SDK,
+    // either place backend/lib/razorpay-java-1.6.0.jar and add it as a file dependency here,
+    // or re-add the remote dependency and ensure network access to repo.razorpay.com.
 
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     implementation 'org.springframework.boot:spring-boot-starter-web'

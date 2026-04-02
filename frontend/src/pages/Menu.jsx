@@ -71,7 +71,7 @@ export default function Menu() {
                 <div className="container-premium py-3">
                     <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 rounded p-3 text-sm">
                         Backend unreachable — frontend is using local sample data. Start the backend to use live data.
-                        <div className="mt-2 font-mono text-xs bg-white p-2 rounded">cd backend; .\mvnw.cmd spring-boot:run</div>
+                        <div className="mt-2 font-mono text-xs bg-white p-2 rounded">cd backend; ./gradlew bootRun (or gradle bootRun)</div>
                         {offlineMessage && (
                             <div className="mt-2 text-xs text-red-600">{offlineMessage}</div>
                         )}
