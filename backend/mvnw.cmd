@@ -8,22 +8,11 @@
 @REM "License"); you may not use this file except in compliance
 @REM with the License.  You may obtain a copy of the License at
 @echo off
-REM Placeholder mvnw.cmd after migrating repository to Gradle.
-REM If gradlew.bat exists, delegate to it; otherwise print instructions.
-
-SET SCRIPT_DIR=%~dp0
-IF EXIST "%SCRIPT_DIR%\..\gradlew.bat" (
-  "%SCRIPT_DIR%\..\gradlew.bat" %*
-  EXIT /B %ERRORLEVEL%
-) ELSE IF EXIST "%SCRIPT_DIR%\gradlew.bat" (
-  "%SCRIPT_DIR%\gradlew.bat" %*
-  EXIT /B %ERRORLEVEL%
-) ELSE (
-  ECHO This repository has been migrated from Maven to Gradle.
-  ECHO Please generate a Gradle wrapper and use "gradlew.bat <task>" to build.
-  ECHO If you have Gradle installed, run: gradle wrapper
-  EXIT /B 1
-)
+REM REMOVED: Maven wrapper replaced by Gradle during migration.
+REM Delete this file from the repository:
+REM   git rm backend/mvnw.cmd && git commit -m "Remove mvnw.cmd after Gradle migration"
+REM Build with Gradle using the wrapper: .\gradlew.bat :backend:bootJar
+EXIT /B 1
   IF "%%A"=="MVN_CMD" (set __MVNW_CMD__=%%B) ELSE IF "%%B"=="" (echo %%A) ELSE (echo %%A=%%B)
 )
 @SET PSModulePath=%__MVNW_PSMODULEP_SAVE%

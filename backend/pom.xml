@@ -1,8 +1,8 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-		 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-		 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
-	<!-- THIS POM HAS BEEN REPLACED DURING MIGRATION TO GRADLE -->
-	<!-- Minimal placeholder to avoid XML parsing errors by tools that still
-		 inspect pom.xml. The real build is defined in Gradle: backend/build.gradle -->
-</project>
+<!-- Removed: project migrated to Gradle. Delete this file from the repository. -->
+<!-- To remove the POM from git locally and in CI, run:
+	 git rm backend/pom.xml
+	 git commit -m "Remove Maven POM after migration to Gradle"
+	 git push
+-->
+
+<!-- Build is now Gradle-based. Use ./gradlew :backend:bootJar to build the backend. -->
