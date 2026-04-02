@@ -12,28 +12,30 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - uses: actions/setup-java@v4
+      - name: Setup Java
+        uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Build
+      - name: Build JAR
         run: |
           cd backend
           mvn clean package -DskipTests
 
-      - name: Upload
+      - name: Upload to VPS
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.HOST }}
           username: root
           key: ${{ secrets.SSH_KEY }}
           source: "backend/target/*.jar"
-          target: "/home/ubuntu/app"
+          target: "/home/ubuntu/app/app.jar"
 
-      - name: Restart
+      - name: Restart Backend
         uses: appleboy/ssh-action@v0.1.7
         with:
           host: ${{ secrets.HOST }}
@@ -41,5 +43,5 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           script: |
             pm2 delete backend || true
-            pm2 start "java -jar /home/ubuntu/app/*.jar" --name backend
+            pm2 start "java -jar /home/ubuntu/app/app.jar" --name backend
             pm2 save
