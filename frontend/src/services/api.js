@@ -1,9 +1,30 @@
 import axios from "axios";
 
-// Prefer VITE_API_URL from Vite env when present, fallback to production VPS URL
-const API = axios.create({
-    baseURL: import.meta?.env?.VITE_API_URL || "https://api.broandbro.in",
-});
+// Resolve API base URL:
+// 1) Prefer VITE_API_URL injected at build/dev time
+// 2) If not present, when running in a browser on localhost use http://localhost:8080
+// 3) Otherwise fall back to production URL
+const resolvedBase = (() => {
+    const vite = import.meta?.env?.VITE_API_URL;
+    if (vite) return vite;
+    try {
+        const host = (typeof window !== 'undefined' && window.location && window.location.hostname) || '';
+        if (host.includes('localhost') || host === '127.0.0.1') {
+            return 'http://localhost:8080';
+        }
+    } catch (e) {
+        // ignore
+    }
+    return 'https://api.broandbro.in';
+})();
+
+const API = axios.create({ baseURL: resolvedBase });
+
+// Helpful debug during development to confirm which backend URL is used
+if (typeof window !== 'undefined' && window.location && window.location.hostname.includes('localhost')) {
+    // eslint-disable-next-line no-console
+    console.debug('[api] using backend base URL:', resolvedBase);
+}
 
 // --- simple in-memory cache for GET requests (used for wallet balance)
 const cache = new Map(); // key -> { ts, data }
