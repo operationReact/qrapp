@@ -146,97 +146,97 @@ export default function Wallet() {
   const numericAmount = balance == null ? '—' : (Number(balance)/100).toFixed(2);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gray-50">
 
-      {/* Header */}
-      <div className="sticky top-0 bg-white z-10 p-4 border-b">
-        <div className="flex items-center justify-between">
-          <h1 className="text-lg font-semibold">Wallet</h1>
-          <button onClick={fetchAll} className="text-sm text-gray-600">Refresh</button>
-        </div>
-      </div>
-
-      {/* Content container */}
-      <div className="p-4 space-y-5">
-        {/* Balance panel (mobile-first stacked) */}
-        <div className="rounded-2xl p-5 bg-white shadow">
-          <div className="text-sm text-gray-500">Available balance</div>
-          <div className="mt-2 flex items-end gap-3">
-            <div className="flex flex-col items-center justify-center w-20 h-20 rounded-lg bg-amber-50 border border-amber-100">
-              <div className="text-xs text-amber-600">₹</div>
-              <div className="text-2xl font-extrabold text-amber-700">{numericAmount}</div>
-            </div>
-            <div>
-              <div className="text-sm text-gray-600">Balance</div>
-              <div className="text-lg font-semibold">{loading ? '...' : formattedBalance}</div>
-            </div>
-          </div>
-
-          {/* Add money - full width input + CTA */}
-          <div className="mt-4">
-            <label className="text-xs text-gray-500">Add money (₹)</label>
-            <div className="mt-2 flex gap-2">
-              <input
-                type="number"
-                inputMode="numeric"
-                value={addAmount}
-                onChange={(e) => setAddAmount(e.target.value)}
-                placeholder="Enter amount"
-                className="flex-1 rounded-xl border px-3 py-3 outline-none"
-              />
-              <button onClick={handleAddMoney} disabled={adding} className="px-4 py-3 rounded-xl bg-amber-500 text-white font-semibold min-w-[96px]">
-                {adding ? 'Processing' : 'Add'}
-              </button>
-            </div>
-          </div>
-
-          {/* Quick amounts - horizontally scrollable for mobile */}
-          <div className="mt-4">
-            <div className="text-sm text-gray-600 mb-2">Quick amounts</div>
-            <div className="flex gap-3 overflow-x-auto pb-1">
-              {[50,100,200,500,1000].map(a => (
-                <button key={a} onClick={() => { setAddAmount(String(a)); handleAddMoney(); }} className="flex-none px-4 py-2 rounded-full bg-gray-100">₹{a}</button>
-              ))}
-            </div>
+        {/* Header */}
+        <div className="sticky top-0 bg-white z-10 p-4 border-b">
+          <div className="flex items-center justify-between">
+            <h1 className="text-lg font-semibold">Wallet</h1>
+            <button onClick={fetchAll} className="text-sm text-gray-600">Refresh</button>
           </div>
         </div>
 
-        {/* Transactions */}
-        <div>
-          <h2 className="text-sm font-semibold text-gray-700 mb-3">Recent transactions</h2>
-          {loading ? (
-            <div className="p-4 bg-white rounded-xl text-center text-gray-500">Loading...</div>
-          ) : transactions.length === 0 ? (
-            <div className="p-6 bg-white rounded-xl text-center text-gray-400">No transactions yet</div>
-          ) : (
-            <div className="space-y-3">
-              {transactions.map(tx => (
-                <div key={tx.id} className="flex items-center justify-between bg-white p-4 rounded-xl shadow-sm">
-                  <div>
-                    <div className="font-medium text-gray-800">{tx.type === 'CREDIT' ? 'Money added' : 'Payment'}</div>
-                    <div className="text-xs text-gray-500">{new Date(tx.createdAt).toLocaleString()}</div>
-                  </div>
-                  <div className={`font-semibold ${tx.type === 'CREDIT' ? 'text-green-600' : 'text-red-600'}`}>{tx.type === 'CREDIT' ? '+' : '-'}₹{(tx.amount/100).toFixed(2)}</div>
+        {/* Content container */}
+        <div className="p-4 space-y-5">
+          {/* Balance panel (mobile-first stacked) */}
+          <div className="rounded-2xl p-5 bg-white shadow">
+            <div className="text-sm text-gray-500">Available balance</div>
+            <div className="mt-2 flex items-end gap-3">
+              <div className="flex flex-col items-center justify-center w-20 h-20 rounded-lg bg-amber-50 border border-amber-100">
+                <div className="text-xs text-amber-600">₹</div>
+                <div className="text-2xl font-extrabold text-amber-700">{numericAmount}</div>
+              </div>
+              <div>
+                <div className="text-sm text-gray-600">Balance</div>
+                <div className="text-lg font-semibold">{loading ? '...' : formattedBalance}</div>
+              </div>
+            </div>
+
+            {/* Add money - full width input + CTA */}
+            <div className="mt-4">
+              <label className="text-xs text-gray-500">Add money (₹)</label>
+              <div className="mt-2 flex gap-2">
+                <input
+                    type="number"
+                    inputMode="numeric"
+                    value={addAmount}
+                    onChange={(e) => setAddAmount(e.target.value)}
+                    placeholder="Enter amount"
+                    className="flex-1 rounded-xl border px-3 py-3 outline-none"
+                />
+                <button onClick={handleAddMoney} disabled={adding} className="px-4 py-3 rounded-xl bg-amber-500 text-white font-semibold min-w-[96px]">
+                  {adding ? 'Processing' : 'Add'}
+                </button>
+              </div>
+            </div>
+
+            {/* Quick amounts - horizontally scrollable for mobile */}
+            <div className="mt-4">
+              <div className="text-sm text-gray-600 mb-2">Quick amounts</div>
+              <div className="flex gap-3 overflow-x-auto pb-1">
+                {[50,100,200,500,1000].map(a => (
+                    <button key={a} onClick={() => { setAddAmount(String(a)); handleAddMoney(); }} className="flex-none px-4 py-2 rounded-full bg-gray-100">₹{a}</button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Transactions */}
+          <div>
+            <h2 className="text-sm font-semibold text-gray-700 mb-3">Recent transactions</h2>
+            {loading ? (
+                <div className="p-4 bg-white rounded-xl text-center text-gray-500">Loading...</div>
+            ) : transactions.length === 0 ? (
+                <div className="p-6 bg-white rounded-xl text-center text-gray-400">No transactions yet</div>
+            ) : (
+                <div className="space-y-3">
+                  {transactions.map(tx => (
+                      <div key={tx.id} className="flex items-center justify-between bg-white p-4 rounded-xl shadow-sm">
+                        <div>
+                          <div className="font-medium text-gray-800">{tx.type === 'CREDIT' ? 'Money added' : 'Payment'}</div>
+                          <div className="text-xs text-gray-500">{new Date(tx.createdAt).toLocaleString()}</div>
+                        </div>
+                        <div className={`font-semibold ${tx.type === 'CREDIT' ? 'text-green-600' : 'text-red-600'}`}>{tx.type === 'CREDIT' ? '+' : '-'}₹{(tx.amount/100).toFixed(2)}</div>
+                      </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Bottom fixed action bar on mobile for quick access (Add only) */}
-      <div className="fixed left-0 right-0 bottom-0 p-3 bg-white/80 backdrop-blur-md border-t sm:hidden">
-        <div className="max-w-4xl mx-auto flex gap-3">
-          <button onClick={() => { const v = prompt('Enter amount to add (₹)'); if (v) { setAddAmount(v); handleAddMoney(); } }} className="flex-1 py-3 rounded-xl bg-amber-500 text-white font-semibold">Add</button>
-        </div>
-      </div>
-
-      {/* TOAST */}
-      {toast.message && (
-          <div className="fixed bottom-20 left-1/2 -translate-x-1/2 bg-black text-white px-4 py-2 rounded-lg">
-            {toast.message}
+            )}
           </div>
-      )}
-    </div>
+        </div>
+
+        {/* Bottom fixed action bar on mobile for quick access (Add only) */}
+        <div className="fixed left-0 right-0 bottom-0 p-3 bg-white/80 backdrop-blur-md border-t sm:hidden">
+          <div className="max-w-4xl mx-auto flex gap-3">
+            <button onClick={() => { const v = prompt('Enter amount to add (₹)'); if (v) { setAddAmount(v); handleAddMoney(); } }} className="flex-1 py-3 rounded-xl bg-amber-500 text-white font-semibold">Add</button>
+          </div>
+        </div>
+
+        {/* TOAST */}
+        {toast.message && (
+            <div className="fixed bottom-20 left-1/2 -translate-x-1/2 bg-black text-white px-4 py-2 rounded-lg">
+              {toast.message}
+            </div>
+        )}
+      </div>
   );
 }
