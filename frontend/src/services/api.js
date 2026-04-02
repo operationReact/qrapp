@@ -1,7 +1,8 @@
 import axios from "axios";
 
+// Prefer VITE_API_URL from Vite env when present, fallback to production VPS URL
 const API = axios.create({
-    baseURL: "http://localhost:8080",
+    baseURL: import.meta?.env?.VITE_API_URL || "https://api.broandbro.in",
 });
 
 // --- simple in-memory cache for GET requests (used for wallet balance)

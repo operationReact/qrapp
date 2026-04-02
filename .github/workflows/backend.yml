@@ -5,40 +5,41 @@ on:
     branches: [ "main" ]
     paths:
       - 'backend/**'
+  workflow_dispatch:
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
-      - name: Setup Java
-        uses: actions/setup-java@v3
+      - uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Build Backend
+      - name: Build
         run: |
           cd backend
           mvn clean package -DskipTests
 
-      - name: Copy JAR to VPS
+      - name: Upload
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.HOST }}
-          username: ubuntu
+          username: root
           key: ${{ secrets.SSH_KEY }}
           source: "backend/target/*.jar"
-          target: "/home/ubuntu/"
+          target: "/home/ubuntu/app"
 
-      - name: Restart Backend
+      - name: Restart
         uses: appleboy/ssh-action@v0.1.7
         with:
           host: ${{ secrets.HOST }}
-          username: ubuntu
+          username: root
           key: ${{ secrets.SSH_KEY }}
           script: |
-            pm2 restart backend || pm2 start "java -jar /home/ubuntu/app.jar" --name backend
+            pm2 delete backend || true
+            pm2 start "java -jar /home/ubuntu/app/*.jar" --name backend
+            pm2 save
