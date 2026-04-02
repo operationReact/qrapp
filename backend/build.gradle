@@ -1,0 +1,95 @@
+// Gradle build converted from existing pom.xml
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '3.2.4'
+    id 'io.spring.dependency-management' version '1.1.3'
+    id 'maven-publish'
+}
+
+group = 'com.broandbro'
+version = '0.0.1-SNAPSHOT'
+
+// Use the Java toolchain to target Java 17
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+}
+
+ext {
+    lombokVersion = '1.18.44'
+}
+
+repositories {
+    maven { url 'https://s3.amazonaws.com/razorpay-maven/' }
+    // Official Razorpay repository (may be unreachable from some networks)
+    maven { url 'https://repo.razorpay.com/maven2/' }
+    mavenCentral()
+    maven { url 'https://jitpack.io' }
+}
+
+dependencies {
+    // Razorpay Java SDK: prefer remote artifact, but if a vendor JAR exists at
+    // backend/lib/razorpay-java-1.6.0.jar use it as a file dependency to support
+    // air-gapped or offline CI environments.
+    def razorpayJar = file("${projectDir}/lib/razorpay-java-1.6.0.jar")
+    if (razorpayJar.exists()) {
+        implementation files(razorpayJar)
+    } else {
+        implementation 'com.razorpay:razorpay-java:1.6.0'
+    }
+
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+
+    runtimeOnly 'com.mysql:mysql-connector-j'
+    runtimeOnly 'org.postgresql:postgresql'
+    runtimeOnly 'com.h2database:h2'
+
+    // JSON library used by Razorpay SDK wrapper
+    implementation 'org.json:json:20230618'
+
+    // Lombok: compileOnly + annotationProcessor to match original pom
+    compileOnly "org.projectlombok:lombok:${lombokVersion}"
+    annotationProcessor "org.projectlombok:lombok:${lombokVersion}"
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+}
+
+tasks.withType(JavaCompile) {
+    options.encoding = 'UTF-8'
+    options.release = 17
+}
+
+// Keep the jar produced by bootJar as the runnable artifact
+bootJar {
+    archiveBaseName.set('qrapp')
+}
+
+
+// Publishing helper: if a vendor JAR exists in backend/lib, allow publishing it to mavenLocal
+def razorpayJar = file("${projectDir}/lib/razorpay-java-1.6.0.jar")
+if (razorpayJar.exists()) {
+    publishing {
+        publications {
+            razorpayVendor(MavenPublication) {
+                groupId = 'com.razorpay'
+                artifactId = 'razorpay-java'
+                version = '1.6.0'
+                artifact razorpayJar
+            }
+        }
+        repositories {
+            mavenLocal()
+        }
+    }
+
+    tasks.register('publishRazorpayToMavenLocal') {
+        group = 'publishing'
+        description = 'Publish vendor razorpay JAR to the local Maven repository (mavenLocal)'
+        dependsOn tasks.named('publishRazorpayVendorPublicationToMavenLocal')
+    }
+}

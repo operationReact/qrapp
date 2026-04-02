@@ -1,0 +1,3 @@
+// Subproject-level settings removed. The root `settings.gradle` under
+// the repository root is now authoritative for the multi-project build.
+// This file is kept as a no-op placeholder after migrating from Maven to Gradle.
