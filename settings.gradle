@@ -1,0 +1,8 @@
+// Root Gradle settings: single place for project module configuration.
+rootProject.name = 'qrapp'
+include 'backend'
+
+// NOTE: This project has been migrated from Maven to Gradle. Remove/ignore any
+// subproject `settings.gradle` files (e.g. `backend/settings.gradle`) so the
+// root settings remain authoritative.
+
