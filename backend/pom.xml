@@ -39,6 +39,13 @@
 			<id>razorpay-s3</id>
 			<url>https://s3.amazonaws.com/razorpay-maven/</url>
 		</repository>
+		<!-- Official Razorpay Maven repository (add as another fallback). If your CI still cannot
+		     resolve the artifact, either vendor the JAR into the build agent or install it into
+		     an internal Nexus/Artifactory. -->
+		<repository>
+			<id>razorpay-public</id>
+			<url>https://repo.razorpay.com/maven2/</url>
+		</repository>
 		<repository>
 			<id>jitpack.io</id>
 			<url>https://jitpack.io</url>
@@ -150,5 +157,46 @@
 			</plugin>
 		</plugins>
 	</build>
+
+	<!-- Optional profile to install a vendor JAR of razorpay-java from project-local lib/ directory.
+	     Use when the artifact/version is not available from remote repos (CI or air-gapped agents).
+	     Activate with -Dinstall.razorpay=true and ensure the file exists at backend/lib/razorpay-java-1.6.0.jar
+	-->
+	<profiles>
+		<profile>
+			<id>install-razorpay-jar</id>
+			<activation>
+				<property>
+					<name>install.razorpay</name>
+					<value>true</value>
+				</property>
+			</activation>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-install-plugin</artifactId>
+						<version>3.1.0</version>
+						<executions>
+							<execution>
+								<id>install-razorpay-jar</id>
+								<phase>initialize</phase>
+								<goals>
+									<goal>install-file</goal>
+								</goals>
+								<configuration>
+									<file>${project.basedir}/lib/razorpay-java-1.6.0.jar</file>
+									<groupId>com.razorpay</groupId>
+									<artifactId>razorpay-java</artifactId>
+									<version>1.6.0</version>
+									<packaging>jar</packaging>
+								</configuration>
+							</execution>
+						</executions>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
 
 </project>
