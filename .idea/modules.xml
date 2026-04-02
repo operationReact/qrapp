@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/qrapp.iml" filepath="$PROJECT_DIR$/.idea/qrapp.iml" />
+      <module fileurl="file://$PROJECT_DIR$/backend/qrapp.iml" filepath="$PROJECT_DIR$/backend/qrapp.iml" />
     </modules>
   </component>
 </project>

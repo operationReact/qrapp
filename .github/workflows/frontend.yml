@@ -29,5 +29,6 @@ jobs:
         with:
           publish-dir: "./frontend/dist"
           production-branch: main
-          netlify-auth-token: nfp_2Wia9WRSAej8CQkbWtjCpw8KaJbTN6Hxa0ed
-          netlify-site-id: 841a08f9-b26c-4573-9a79-4076f325431b
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
