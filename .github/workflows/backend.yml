@@ -21,7 +21,7 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      # 🔥 Build with PROD profile + env variables using Gradle
+      # ✅ Build JAR using Gradle
       - name: Build JAR
         uses: gradle/gradle-build-action@v2
         with:
@@ -35,15 +35,26 @@ jobs:
           RAZORPAY_KEY: ${{ secrets.RAZORPAY_KEY }}
           RAZORPAY_SECRET: ${{ secrets.RAZORPAY_SECRET }}
 
-      # ➕ Rename the produced JAR to a deterministic name to avoid wildcard issues
+      # ✅ Rename JAR to deterministic name
       - name: Rename JAR to app.jar
         run: |
           cd backend/build/libs
+          ls -l
           JAR_FILE=$(ls *.jar | head -n 1)
-          echo "Renaming $JAR_FILE to app.jar"
           mv "$JAR_FILE" app.jar
+          ls -l
 
-      # ✅ Upload JAR (use deterministic filename)
+      # 🔥 Clean old JAR on VPS
+      - name: Clean VPS app folder
+        uses: appleboy/ssh-action@v0.1.7
+        with:
+          host: ${{ secrets.HOST }}
+          username: root
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            rm -f /home/ubuntu/app/app.jar
+
+      # ✅ Upload new JAR
       - name: Upload to VPS
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -53,7 +64,7 @@ jobs:
           source: "backend/build/libs/app.jar"
           target: "/home/ubuntu/app/"
 
-      # 🔥 Restart backend safely (use app.jar)
+      # 🚀 Restart backend safely
       - name: Restart Backend
         uses: appleboy/ssh-action@v0.1.7
         with:
@@ -62,8 +73,16 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           script: |
             cd /home/ubuntu/app
-            # Stop and remove existing process (if exists), then start the new JAR
+            echo "Files in app directory:"
+            ls -l
+
+            if [ ! -f app.jar ]; then
+              echo "ERROR: app.jar not found!"
+              exit 1
+            fi
+
             pm2 stop backend || true
             pm2 delete backend || true
-            pm2 start "java -jar app.jar --spring.profiles.active=prod" --name backend
+
+            pm2 start "java -jar /home/ubuntu/app/app.jar --spring.profiles.active=prod" --name backend
             pm2 save
