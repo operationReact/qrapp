@@ -21,20 +21,38 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
+      # 🔥 Build with PROD profile + env variables
       - name: Build JAR
         run: |
           cd backend
           mvn clean package -DskipTests
+        env:
+          SPRING_PROFILES_ACTIVE: prod
+          SPRING_DATASOURCE_URL: ${{ secrets.SPRING_DATASOURCE_URL }}
+          SPRING_DATASOURCE_USERNAME: ${{ secrets.SPRING_DATASOURCE_USERNAME }}
+          SPRING_DATASOURCE_PASSWORD: ${{ secrets.SPRING_DATASOURCE_PASSWORD }}
+          RAZORPAY_KEY: ${{ secrets.RAZORPAY_KEY }}
+          RAZORPAY_SECRET: ${{ secrets.RAZORPAY_SECRET }}
 
+      # ➕ Rename the produced JAR to a deterministic name to avoid wildcard issues
+      - name: Rename JAR to app.jar
+        run: |
+          cd backend/target
+          JAR_FILE=$(ls *.jar | head -n 1)
+          echo "Renaming $JAR_FILE to app.jar"
+          mv "$JAR_FILE" app.jar
+
+      # ✅ Upload JAR (use deterministic filename)
       - name: Upload to VPS
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.HOST }}
           username: root
           key: ${{ secrets.SSH_KEY }}
-          source: "backend/target/*.jar"
-          target: "/home/ubuntu/app/app.jar"
+          source: "backend/target/app.jar"
+          target: "/home/ubuntu/app/"
 
+      # 🔥 Restart backend safely (use app.jar)
       - name: Restart Backend
         uses: appleboy/ssh-action@v0.1.7
         with:
@@ -42,6 +60,9 @@ jobs:
           username: root
           key: ${{ secrets.SSH_KEY }}
           script: |
+            cd /home/ubuntu/app
+            # Stop and remove existing process (if exists), then start the new JAR
+            pm2 stop backend || true
             pm2 delete backend || true
-            pm2 start "java -jar /home/ubuntu/app/app.jar" --name backend
+            pm2 start "java -jar app.jar --spring.profiles.active=prod" --name backend
             pm2 save
