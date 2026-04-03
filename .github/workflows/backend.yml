@@ -66,6 +66,13 @@ jobs:
           JAR_FILE=$(ls *.jar | head -n 1)
           mv "$JAR_FILE" app.jar
 
+      # ✅ Create checksum for jar (used to verify upload integrity)
+      - name: Create SHA256 checksum for app.jar
+        run: |
+          cd backend/build/libs
+          # create a checksum file compatible with `sha256sum -c`
+          sha256sum app.jar > app.jar.sha256
+
       # 🧹 Clean VPS folder (safe reset)
       - name: Clean VPS app folder
         uses: appleboy/ssh-action@v0.1.7
@@ -78,19 +85,26 @@ jobs:
             rm -f /home/ubuntu/app/app.jar
 
       # ✅ Upload JAR (FIXED)
-      - name: Upload to VPS
+      - name: Upload JAR to VPS
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.HOST }}
           username: root
           key: ${{ secrets.SSH_KEY }}
+          # upload the jar directly to the final path to avoid path/strip issues
           source: "backend/build/libs/app.jar"
-          target: "/home/ubuntu/app/"
+          target: "/home/ubuntu/app/app.jar"
           overwrite: true
-          # Remove leading path components (backend/build/libs) when extracting on the server
-          # so the uploaded file lands as /home/ubuntu/app/app.jar instead of
-          # /home/ubuntu/app/backend/build/libs/app.jar which caused the "app.jar not found" error.
-          strip_components: 3
+
+      - name: Upload checksum to VPS
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.HOST }}
+          username: root
+          key: ${{ secrets.SSH_KEY }}
+          source: "backend/build/libs/app.jar.sha256"
+          target: "/home/ubuntu/app/app.jar.sha256"
+          overwrite: true
 
       # 🚀 Restart backend
       - name: Restart Backend
@@ -107,6 +121,18 @@ jobs:
             if [ ! -f app.jar ]; then
               echo "ERROR: app.jar not found!"
               exit 1
+            fi
+
+            # If checksum is present, verify integrity before starting
+            if [ -f app.jar.sha256 ]; then
+              echo "Verifying app.jar checksum:"
+              cat app.jar.sha256
+              sha256sum -c app.jar.sha256 || (
+                echo "ERROR: checksum verification failed for app.jar";
+                exit 1
+              )
+            else
+              echo "WARNING: checksum file not found; skipping verification"
             fi
 
             pm2 stop backend || true
