@@ -85,6 +85,7 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           source: "backend/build/libs/app.jar"
           target: "/home/ubuntu/app/"
+          overwrite: true
 
       # 🚀 Restart backend safely
       - name: Restart Backend
