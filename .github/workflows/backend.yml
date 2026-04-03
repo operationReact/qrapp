@@ -95,10 +95,12 @@ jobs:
           host: ${{ secrets.HOST }}
           username: root
           key: ${{ secrets.SSH_KEY }}
-          # upload the jar directly to the final path to avoid path/strip issues
+          # upload the jar into the app folder; use strip_components to ensure only the file is placed
           source: "backend/build/libs/app.jar"
-          target: "/home/ubuntu/app/app.jar"
+          target: "/home/ubuntu/app/"
           overwrite: true
+          rm: true
+          strip_components: 3
           timeout: 120s
 
       - name: Upload checksum to VPS
@@ -108,8 +110,10 @@ jobs:
           username: root
           key: ${{ secrets.SSH_KEY }}
           source: "backend/build/libs/app.jar.sha256"
-          target: "/home/ubuntu/app/app.jar.sha256"
+          target: "/home/ubuntu/app/"
           overwrite: true
+          rm: true
+          strip_components: 3
           timeout: 120s
 
       # 🚀 Restart backend
@@ -126,7 +130,40 @@ jobs:
           script: |
             cd /home/ubuntu/app
             echo "Files in app directory:"
-            ls -lh
+            ls -lha
+
+            # Sometimes the scp action mistakenly creates a directory named app.jar or app.jar.sha256
+            # (observed when tar extraction created a directory). If that happened, attempt to recover
+            # the actual file from inside the directory and replace the directory with the file.
+            if [ -d app.jar ]; then
+              echo "Detected app.jar is a directory — attempting recovery. Contents:"
+              ls -lha app.jar || true
+              candidate=$(find app.jar -type f -maxdepth 3 -print -quit || true)
+              if [ -n "$candidate" ]; then
+                echo "Found candidate file inside app.jar dir: $candidate"
+                mv "$candidate" app.jar.tmp || true
+                rm -rf app.jar
+                mv app.jar.tmp app.jar || true
+                echo "Recovered app.jar from directory"
+              else
+                echo "No file found inside app.jar directory to recover"
+              fi
+            fi
+
+            if [ -d app.jar.sha256 ]; then
+              echo "Detected app.jar.sha256 is a directory — attempting recovery. Contents:"
+              ls -lha app.jar.sha256 || true
+              candidate_sha=$(find app.jar.sha256 -type f -maxdepth 3 -print -quit || true)
+              if [ -n "$candidate_sha" ]; then
+                echo "Found candidate checksum inside app.jar.sha256 dir: $candidate_sha"
+                mv "$candidate_sha" app.jar.sha256.tmp || true
+                rm -rf app.jar.sha256
+                mv app.jar.sha256.tmp app.jar.sha256 || true
+                echo "Recovered app.jar.sha256 from directory"
+              else
+                echo "No file found inside app.jar.sha256 directory to recover"
+              fi
+            fi
 
             if [ ! -f app.jar ]; then
               echo "ERROR: app.jar not found!"
