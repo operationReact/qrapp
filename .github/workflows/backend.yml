@@ -80,6 +80,10 @@ jobs:
           host: ${{ secrets.HOST }}
           username: root
           key: ${{ secrets.SSH_KEY }}
+          # increase timeouts to tolerate transient network/connectivity issues
+          timeout: 120s
+          command_timeout: 10m
+          sync: true
           script: |
             mkdir -p /home/ubuntu/app
             rm -f /home/ubuntu/app/app.jar
@@ -95,6 +99,7 @@ jobs:
           source: "backend/build/libs/app.jar"
           target: "/home/ubuntu/app/app.jar"
           overwrite: true
+          timeout: 120s
 
       - name: Upload checksum to VPS
         uses: appleboy/scp-action@v0.1.7
@@ -105,6 +110,7 @@ jobs:
           source: "backend/build/libs/app.jar.sha256"
           target: "/home/ubuntu/app/app.jar.sha256"
           overwrite: true
+          timeout: 120s
 
       # 🚀 Restart backend
       - name: Restart Backend
@@ -113,6 +119,10 @@ jobs:
           host: ${{ secrets.HOST }}
           username: root
           key: ${{ secrets.SSH_KEY }}
+          # increase timeouts to tolerate intermittent connectivity
+          timeout: 120s
+          command_timeout: 10m
+          sync: true
           script: |
             cd /home/ubuntu/app
             echo "Files in app directory:"
