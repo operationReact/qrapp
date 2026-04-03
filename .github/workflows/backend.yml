@@ -5,6 +5,7 @@ on:
     branches: [ "main" ]
     paths:
       - 'backend/**'
+      - 'frontend/**'
   workflow_dispatch:
 
 jobs:
@@ -20,6 +21,27 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
+
+      # Build frontend and inject production API URL so the static bundle targets the correct backend
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install and build frontend (production)
+        working-directory: ./frontend
+        env:
+          VITE_API_URL: 'https://api.broandbro.in'
+        run: |
+          npm ci
+          npm run build
+
+      - name: Copy frontend dist into backend static resources
+        run: |
+          # ensure backend static dir exists and is clean
+          mkdir -p backend/src/main/resources/static
+          rm -rf backend/src/main/resources/static/*
+          cp -a frontend/dist/. backend/src/main/resources/static/
 
       # ✅ Build JAR using Gradle
       - name: Build JAR
