@@ -85,7 +85,6 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           source: "backend/build/libs/app.jar"
           target: "/home/ubuntu/app/"
-          strip_components: 3
 
       # 🚀 Restart backend safely
       - name: Restart Backend
