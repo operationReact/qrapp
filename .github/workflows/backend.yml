@@ -86,6 +86,7 @@ jobs:
           source: "backend/build/libs/app.jar"
           target: "/home/ubuntu/app/"
           overwrite: true
+          strip_components: 3
 
       # 🚀 Restart backend safely
       - name: Restart Backend
