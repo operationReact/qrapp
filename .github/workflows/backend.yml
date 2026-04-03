@@ -87,6 +87,10 @@ jobs:
           source: "backend/build/libs/app.jar"
           target: "/home/ubuntu/app/"
           overwrite: true
+          # Remove leading path components (backend/build/libs) when extracting on the server
+          # so the uploaded file lands as /home/ubuntu/app/app.jar instead of
+          # /home/ubuntu/app/backend/build/libs/app.jar which caused the "app.jar not found" error.
+          strip_components: 3
 
       # 🚀 Restart backend
       - name: Restart Backend
