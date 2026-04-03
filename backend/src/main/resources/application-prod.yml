@@ -4,8 +4,9 @@ server:
 spring:
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://aws-1-ap-northeast-1.pooler.supabase.com:5432/postgres}
-    username: ${SPRING_DATASOURCE_USERNAME:postgres.yoxxgeiwbekdvczedotg&password}
-    password: ${SPRING_DATASOURCE_PASSWORD:BroApp#2025}
+    # Don't keep credentials in files. Require env vars on the server.
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
