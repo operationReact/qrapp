@@ -16,18 +16,20 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # ✅ Java setup
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
 
-      # Build frontend and inject production API URL so the static bundle targets the correct backend
+      # ✅ Node FIXED (important)
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
 
+      # ✅ Build frontend
       - name: Install and build frontend (production)
         working-directory: ./frontend
         env:
@@ -36,14 +38,14 @@ jobs:
           npm ci
           npm run build
 
+      # ✅ Copy frontend into backend
       - name: Copy frontend dist into backend static resources
         run: |
-          # ensure backend static dir exists and is clean
           mkdir -p backend/src/main/resources/static
           rm -rf backend/src/main/resources/static/*
           cp -a frontend/dist/. backend/src/main/resources/static/
 
-      # ✅ Build JAR using Gradle
+      # ✅ Build JAR
       - name: Build JAR
         uses: gradle/gradle-build-action@v2
         with:
@@ -57,16 +59,14 @@ jobs:
           RAZORPAY_KEY: ${{ secrets.RAZORPAY_KEY }}
           RAZORPAY_SECRET: ${{ secrets.RAZORPAY_SECRET }}
 
-      # ✅ Rename JAR to deterministic name
+      # ✅ Rename JAR
       - name: Rename JAR to app.jar
         run: |
           cd backend/build/libs
-          ls -l
           JAR_FILE=$(ls *.jar | head -n 1)
           mv "$JAR_FILE" app.jar
-          ls -l
 
-      # 🔥 Clean old JAR on VPS
+      # 🧹 Clean VPS folder (safe reset)
       - name: Clean VPS app folder
         uses: appleboy/ssh-action@v0.1.7
         with:
@@ -74,9 +74,10 @@ jobs:
           username: root
           key: ${{ secrets.SSH_KEY }}
           script: |
+            mkdir -p /home/ubuntu/app
             rm -f /home/ubuntu/app/app.jar
 
-      # ✅ Upload new JAR
+      # ✅ Upload JAR (FIXED)
       - name: Upload to VPS
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -86,9 +87,8 @@ jobs:
           source: "backend/build/libs/app.jar"
           target: "/home/ubuntu/app/"
           overwrite: true
-          strip_components: 3
 
-      # 🚀 Restart backend safely
+      # 🚀 Restart backend
       - name: Restart Backend
         uses: appleboy/ssh-action@v0.1.7
         with:
@@ -98,7 +98,7 @@ jobs:
           script: |
             cd /home/ubuntu/app
             echo "Files in app directory:"
-            ls -l
+            ls -lh
 
             if [ ! -f app.jar ]; then
               echo "ERROR: app.jar not found!"
@@ -107,6 +107,7 @@ jobs:
 
             pm2 stop backend || true
             pm2 delete backend || true
+
             pm2 start "SPRING_DATASOURCE_URL='${{ secrets.SPRING_DATASOURCE_URL }}' \
             SPRING_DATASOURCE_USERNAME='${{ secrets.SPRING_DATASOURCE_USERNAME }}' \
             SPRING_DATASOURCE_PASSWORD='${{ secrets.SPRING_DATASOURCE_PASSWORD }}' \
@@ -114,5 +115,5 @@ jobs:
             RAZORPAY_SECRET='${{ secrets.RAZORPAY_SECRET }}' \
             APP_CORS_ALLOWED_ORIGINS='${{ secrets.APP_CORS_ALLOWED_ORIGINS }}' \
             java -jar app.jar --spring.profiles.active=prod" --name backend
-  
+
             pm2 save
