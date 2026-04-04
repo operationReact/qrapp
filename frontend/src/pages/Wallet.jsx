@@ -1,242 +1,500 @@
-import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import {
+    ArrowPathIcon,
+    BanknotesIcon,
+    ClockIcon,
+    CreditCardIcon,
+    FunnelIcon,
+    SparklesIcon,
+} from '@heroicons/react/24/outline';
+import Navbar from '../components/Navbar';
 import { useUserAuth } from '../context/UserAuthContext';
-import { walletCreateOrder, walletVerifyPayment, walletGetBalance, walletGetTransactions } from '../services/api';
+import { clearWalletCache, walletCreateOrder, walletGetOverview, walletGetTransactions, walletVerifyPayment } from '../services/api';
 
-// Simple toast helper
 function useToast() {
-  const [message, setMessage] = useState(null);
-  useEffect(() => {
-    if (!message) return;
-    const t = setTimeout(() => setMessage(null), 3500);
-    return () => clearTimeout(t);
-  }, [message]);
-  const show = useCallback((m) => setMessage(m), []);
-  return useMemo(() => ({ message, show }), [message, show]);
+    const [message, setMessage] = useState(null);
+    useEffect(() => {
+        if (!message) return;
+        const t = setTimeout(() => setMessage(null), 3200);
+        return () => clearTimeout(t);
+    }, [message]);
+    return {
+        message,
+        show: useCallback((value) => setMessage(value), []),
+    };
 }
 
-// Load Razorpay script dynamically
 function loadRazorpayScript(src = 'https://checkout.razorpay.com/v1/checkout.js') {
-  return new Promise((resolve, reject) => {
-    if (window.Razorpay) return resolve(true);
-    const script = document.createElement('script');
-    script.src = src;
-    script.onload = () => resolve(true);
-    script.onerror = () => reject(new Error('Razorpay SDK failed to load'));
-    document.body.appendChild(script);
-  });
+    return new Promise((resolve, reject) => {
+        if (window.Razorpay) {
+            resolve(true);
+            return;
+        }
+        const script = document.createElement('script');
+        script.src = src;
+        script.onload = () => resolve(true);
+        script.onerror = () => reject(new Error('Razorpay SDK failed to load'));
+        document.body.appendChild(script);
+    });
+}
+
+const QUICK_AMOUNTS = [100, 250, 500, 1000, 2000];
+const FILTERS = [
+    { key: 'ALL', label: 'All' },
+    { key: 'CREDIT', label: 'Credits' },
+    { key: 'DEBIT', label: 'Debits' },
+    { key: 'PENDING', label: 'Pending' },
+];
+
+const currencyFormatter = new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR',
+    maximumFractionDigits: 2,
+});
+
+const compactCurrencyFormatter = new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR',
+    notation: 'compact',
+    maximumFractionDigits: 1,
+});
+
+function formatCurrencyFromPaise(value, compact = false) {
+    const amount = Number(value || 0) / 100;
+    return compact ? compactCurrencyFormatter.format(amount) : currencyFormatter.format(amount);
+}
+
+function formatTransactionTitle(tx) {
+    if (tx.description) return tx.description;
+    if (tx.type === 'CREDIT') return 'Wallet top-up';
+    if (tx.orderId) return `Order #${tx.orderId} payment`;
+    return 'Wallet payment';
 }
 
 export default function Wallet() {
-  const [balance, setBalance] = useState(null);
-  const [transactions, setTransactions] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [adding, setAdding] = useState(false);
-  const [addAmount, setAddAmount] = useState('');
-  const toast = useToast();
-  const { show } = toast; // stable function reference
-  const mounted = useRef(true);
-  const navigate = useNavigate();
-  const { setUser } = useUserAuth();
+    const navigate = useNavigate();
+    const mounted = useRef(true);
+    const { user, setUser } = useUserAuth();
+    const toast = useToast();
 
-  const fetchAll = useCallback(async () => {
-    setLoading(true);
-    // If not authenticated, redirect to login and don't call backend
-    const raw = localStorage.getItem('userCreds');
-    const creds = raw ? JSON.parse(raw) : null;
-    if (!creds || !creds.token) {
-      setLoading(false);
-      show('Please login to access wallet');
-      navigate('/login');
-      return;
-    }
-    try {
-      const b = await walletGetBalance();
-      const t = await walletGetTransactions({ page: 0, size: 20 });
-      if (!mounted.current) return;
-      setBalance(b.data?.balance ?? 0);
-      setTransactions(t.data?.content ?? t.data ?? []);
-    } catch (err) {
-      const status = err?.response?.status;
-      if (status === 401) {
-        // token invalid/expired — clear user and redirect to login
-        if (setUser) setUser(null);
-        show('Session expired. Please login again');
-        navigate('/login');
-        return;
-      }
-      console.error('Wallet load failed', err?.message || err);
-      show('Failed to load wallet');
-    } finally {
-      if (mounted.current) setLoading(false);
-    }
-  }, [show, navigate, setUser]);
+    const [overview, setOverview] = useState(null);
+    const [transactions, setTransactions] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
+    const [loadingMore, setLoadingMore] = useState(false);
+    const [page, setPage] = useState(0);
+    const [hasMore, setHasMore] = useState(false);
+    const [filter, setFilter] = useState('ALL');
+    const [addAmount, setAddAmount] = useState('500');
+    const [adding, setAdding] = useState(false);
+    const [error, setError] = useState('');
 
-  useEffect(() => {
-    mounted.current = true;
-    fetchAll();
-    return () => { mounted.current = false; }
-  }, [fetchAll]);
+    const fetchWallet = useCallback(async (nextPage = 0, append = false) => {
+        const [overviewResp, transactionResp] = await Promise.all([
+            walletGetOverview(),
+            walletGetTransactions({ page: nextPage, size: 10 }),
+        ]);
 
-  async function handleAddMoney() {
-    if (!addAmount || Number(addAmount) <= 0) return show('Enter a valid amount');
-    setAdding(true);
-    try {
-      // convert to paise (assuming INR) — expect user to input rupees
-      const amountPaise = Math.round(Number(addAmount) * 100);
-      const resp = await walletCreateOrder({ amount: amountPaise });
-      const orderId = resp.data?.razorpayOrderId;
-      if (!orderId) { show('No order id from server'); return; }
+        if (!mounted.current) return;
 
-      await loadRazorpayScript();
+        const nextOverview = overviewResp?.data || null;
+        const transactionPage = transactionResp?.data || {};
+        const content = Array.isArray(transactionPage?.content) ? transactionPage.content : [];
 
-      const key = import.meta?.env?.VITE_RAZORPAY_KEY || window?.RAZORPAY_KEY_ID || undefined;
-      const options = {
-        key,
-        order_id: orderId,
-        amount: amountPaise,
-        currency: 'INR',
-        name: 'Bro & Bro',
-        description: 'Add money to wallet',
-        handler: async function (response) {
-          try {
-            // send payment details to backend for verification
-            await walletVerifyPayment({
-              razorpayOrderId: response.razorpay_order_id,
-              razorpayPaymentId: response.razorpay_payment_id,
-              razorpaySignature: response.razorpay_signature
-            });
-            show('Wallet credited');
-            await fetchAll();
-          } catch (e) {
-            console.error('verify failed', e);
-            show('Payment verification failed');
-          }
+        setOverview(nextOverview);
+        setTransactions((current) => (append ? [...current, ...content] : content));
+        setPage(transactionPage?.number ?? nextPage);
+        setHasMore(Boolean(transactionPage && !transactionPage.last && content.length > 0));
+    }, []);
+
+    const loadInitialWallet = useCallback(async () => {
+        if (!user?.token) {
+            navigate('/login', { state: { from: '/wallet' } });
+            return;
         }
-      };
 
-      if (!key) {
-        show('Razorpay key not configured. Set VITE_RAZORPAY_KEY or window.RAZORPAY_KEY_ID');
-        return;
-      }
+        setLoading(true);
+        setError('');
+        try {
+            clearWalletCache();
+            await fetchWallet(0, false);
+        } catch (err) {
+            const status = err?.response?.status;
+            if (status === 401) {
+                setUser?.(null);
+                navigate('/login', { state: { from: '/wallet' } });
+                return;
+            }
+            setError(typeof err?.response?.data === 'string' ? err.response.data : 'Failed to load wallet details.');
+        } finally {
+            if (mounted.current) setLoading(false);
+        }
+    }, [fetchWallet, navigate, setUser, user?.token]);
 
-      const rzp = new window.Razorpay(options);
-      rzp.on('payment.failed', function (response) {
-        console.error('payment.failed', response);
-        show('Payment failed');
-      });
-      rzp.open();
+    useEffect(() => {
+        mounted.current = true;
+        loadInitialWallet();
+        return () => {
+            mounted.current = false;
+        };
+    }, [loadInitialWallet]);
 
-    } catch (err) {
-      const status = err?.response?.status;
-      if (status === 401) {
-        if (setUser) setUser(null);
-        show('Session expired. Please login again');
-        navigate('/login');
-        return;
-      }
-      console.error('Payment init failed', err?.message || err);
-      show('Failed to initiate payment');
-    } finally {
-      if (mounted.current) setAdding(false);
+    const handleRefresh = async () => {
+        setRefreshing(true);
+        setError('');
+        try {
+            clearWalletCache();
+            await fetchWallet(0, false);
+            toast.show('Wallet refreshed');
+        } catch (err) {
+            setError(typeof err?.response?.data === 'string' ? err.response.data : 'Unable to refresh wallet right now.');
+        } finally {
+            if (mounted.current) setRefreshing(false);
+        }
+    };
+
+    const handleLoadMore = async () => {
+        if (!hasMore || loadingMore) return;
+        setLoadingMore(true);
+        try {
+            await fetchWallet(page + 1, true);
+        } catch (err) {
+            toast.show(typeof err?.response?.data === 'string' ? err.response.data : 'Could not load more transactions');
+        } finally {
+            if (mounted.current) setLoadingMore(false);
+        }
+    };
+
+    const filteredTransactions = useMemo(() => {
+        if (filter === 'ALL') return transactions;
+        if (filter === 'PENDING') return transactions.filter((tx) => tx.status === 'PENDING');
+        return transactions.filter((tx) => tx.type === filter);
+    }, [filter, transactions]);
+
+    const balance = Number(overview?.balance ?? 0);
+    const totalCredited = Number(overview?.totalCredited ?? 0);
+    const totalDebited = Number(overview?.totalDebited ?? 0);
+    const pendingAmount = Number(overview?.pendingAmount ?? 0);
+
+    async function handleAddMoney() {
+        const amountRupees = Number(addAmount);
+        if (!Number.isFinite(amountRupees) || amountRupees < 1) {
+            toast.show('Enter at least ₹1 to add money');
+            return;
+        }
+
+        setAdding(true);
+        setError('');
+        try {
+            const amountPaise = Math.round(amountRupees * 100);
+            const response = await walletCreateOrder({ amount: amountPaise });
+            const order = response?.data || {};
+            const orderId = order.razorpayOrderId;
+
+            if (!orderId) {
+                throw new Error('Missing wallet order id from server');
+            }
+
+            if (order.mock) {
+                await walletVerifyPayment({
+                    razorpayOrderId: orderId,
+                    razorpayPaymentId: `mock_pay_${Date.now()}`,
+                    razorpaySignature: 'mock_signature',
+                });
+                await fetchWallet(0, false);
+                toast.show('Wallet credited in demo mode');
+                return;
+            }
+
+            await loadRazorpayScript();
+
+            const rzp = new window.Razorpay({
+                key: order.keyId,
+                order_id: orderId,
+                amount: order.amount,
+                currency: order.currency || 'INR',
+                name: 'Bro & Bro',
+                description: 'Add money to wallet',
+                handler: async (paymentResponse) => {
+                    try {
+                        await walletVerifyPayment({
+                            razorpayOrderId: paymentResponse.razorpay_order_id,
+                            razorpayPaymentId: paymentResponse.razorpay_payment_id,
+                            razorpaySignature: paymentResponse.razorpay_signature,
+                        });
+                        await fetchWallet(0, false);
+                        toast.show('Wallet credited successfully');
+                    } catch (verifyError) {
+                        console.error('wallet verify failed', verifyError);
+                        toast.show('Payment verification failed');
+                    }
+                },
+            });
+
+            rzp.on('payment.failed', (paymentError) => {
+                console.error('wallet payment failed', paymentError);
+                toast.show('Payment failed. Please try again.');
+            });
+
+            rzp.open();
+        } catch (err) {
+            console.error('wallet top-up failed', err);
+            setError(typeof err?.response?.data === 'string' ? err.response.data : err?.message || 'Unable to add money right now.');
+        } finally {
+            if (mounted.current) setAdding(false);
+        }
     }
-  }
 
-  const formattedBalance = balance == null ? '—' : `₹ ${(Number(balance)/100).toFixed(2)}`;
-  const numericAmount = balance == null ? '—' : (Number(balance)/100).toFixed(2);
+    return (
+        <div className="min-h-screen bg-page">
+            <Navbar />
 
-  return (
-      <div className="min-h-screen bg-gray-50">
+            <main className="container-premium py-4 sm:py-6">
+                <div className="mx-auto max-w-6xl space-y-6">
+                    <section className="overflow-hidden rounded-[2rem] bg-gradient-to-br from-amber-500 via-amber-400 to-orange-400 text-white shadow-xl">
+                        <div className="grid gap-6 p-6 sm:p-8 lg:grid-cols-[1.2fr,0.8fr]">
+                            <div>
+                                <div className="inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-xs font-semibold tracking-wide text-white/90">
+                                    <SparklesIcon className="h-4 w-4" />
+                                    Smart wallet for faster checkout
+                                </div>
+                                <h1 className="mt-4 text-3xl font-bold sm:text-4xl">Wallet</h1>
+                                <p className="mt-2 max-w-xl text-sm text-white/85 sm:text-base">
+                                    Add money, monitor recent activity, and use your wallet for one-tap checkout on mobile.
+                                </p>
 
-        {/* Header */}
-        <div className="sticky top-0 bg-white z-10 p-4 border-b">
-          <div className="flex items-center justify-between">
-            <h1 className="text-lg font-semibold">Wallet</h1>
-            <button onClick={fetchAll} className="text-sm text-gray-600">Refresh</button>
-          </div>
-        </div>
+                                <div className="mt-6 flex flex-wrap items-end gap-4">
+                                    <div>
+                                        <div className="text-sm text-white/80">Available balance</div>
+                                        <div className="mt-2 text-4xl font-black sm:text-5xl">{loading ? '...' : formatCurrencyFromPaise(balance)}</div>
+                                    </div>
+                                    {overview?.lastTransactionAt && (
+                                        <div className="rounded-2xl bg-white/15 px-4 py-3 text-sm">
+                                            <div className="text-white/70">Last activity</div>
+                                            <div className="mt-1 font-semibold text-white">
+                                                {new Date(overview.lastTransactionAt).toLocaleString()}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
 
-        {/* Content container */}
-        <div className="p-4 space-y-5">
-          {/* Balance panel (mobile-first stacked) */}
-          <div className="rounded-2xl p-5 bg-white shadow">
-            <div className="text-sm text-gray-500">Available balance</div>
-            <div className="mt-2 flex items-end gap-3">
-              <div className="flex flex-col items-center justify-center w-20 h-20 rounded-lg bg-amber-50 border border-amber-100">
-                <div className="text-xs text-amber-600">₹</div>
-                <div className="text-2xl font-extrabold text-amber-700">{numericAmount}</div>
-              </div>
-              <div>
-                <div className="text-sm text-gray-600">Balance</div>
-                <div className="text-lg font-semibold">{loading ? '...' : formattedBalance}</div>
-              </div>
-            </div>
+                            <div className="rounded-[1.75rem] bg-white/95 p-5 text-gray-900 shadow-sm backdrop-blur">
+                                <div className="flex items-center justify-between gap-3">
+                                    <div>
+                                        <div className="text-sm font-semibold text-gray-900">Add money</div>
+                                        <div className="mt-1 text-xs text-gray-500">Top up securely and use your wallet at checkout.</div>
+                                    </div>
+                                    <CreditCardIcon className="h-8 w-8 text-amber-500" />
+                                </div>
 
-            {/* Add money - full width input + CTA */}
-            <div className="mt-4">
-              <label className="text-xs text-gray-500">Add money (₹)</label>
-              <div className="mt-2 flex gap-2">
-                <input
-                    type="number"
-                    inputMode="numeric"
-                    value={addAmount}
-                    onChange={(e) => setAddAmount(e.target.value)}
-                    placeholder="Enter amount"
-                    className="flex-1 rounded-xl border px-3 py-3 outline-none"
-                />
-                <button onClick={handleAddMoney} disabled={adding} className="px-4 py-3 rounded-xl bg-amber-500 text-white font-semibold min-w-[96px]">
-                  {adding ? 'Processing' : 'Add'}
-                </button>
-              </div>
-            </div>
+                                <label className="mt-5 block text-sm font-medium text-gray-700">Amount (₹)</label>
+                                <div className="mt-2 flex flex-col gap-3 sm:flex-row">
+                                    <input
+                                        type="number"
+                                        min="1"
+                                        inputMode="numeric"
+                                        value={addAmount}
+                                        onChange={(event) => setAddAmount(event.target.value)}
+                                        className="w-full rounded-2xl border border-gray-200 px-4 py-3 text-base outline-none transition focus:border-amber-400"
+                                        placeholder="Enter amount"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={handleAddMoney}
+                                        disabled={adding}
+                                        className="rounded-2xl bg-amber-500 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-amber-600 disabled:cursor-not-allowed disabled:opacity-70"
+                                    >
+                                        {adding ? 'Processing...' : 'Add money'}
+                                    </button>
+                                </div>
 
-            {/* Quick amounts - horizontally scrollable for mobile */}
-            <div className="mt-4">
-              <div className="text-sm text-gray-600 mb-2">Quick amounts</div>
-              <div className="flex gap-3 overflow-x-auto pb-1">
-                {[50,100,200,500,1000].map(a => (
-                    <button key={a} onClick={() => { setAddAmount(String(a)); handleAddMoney(); }} className="flex-none px-4 py-2 rounded-full bg-gray-100">₹{a}</button>
-                ))}
-              </div>
-            </div>
-          </div>
+                                <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
+                                    {QUICK_AMOUNTS.map((amount) => (
+                                        <button
+                                            key={amount}
+                                            type="button"
+                                            onClick={() => setAddAmount(String(amount))}
+                                            className="whitespace-nowrap rounded-full border border-amber-200 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-700 transition hover:bg-amber-100"
+                                        >
+                                            ₹{amount}
+                                        </button>
+                                    ))}
+                                </div>
 
-          {/* Transactions */}
-          <div>
-            <h2 className="text-sm font-semibold text-gray-700 mb-3">Recent transactions</h2>
-            {loading ? (
-                <div className="p-4 bg-white rounded-xl text-center text-gray-500">Loading...</div>
-            ) : transactions.length === 0 ? (
-                <div className="p-6 bg-white rounded-xl text-center text-gray-400">No transactions yet</div>
-            ) : (
-                <div className="space-y-3">
-                  {transactions.map(tx => (
-                      <div key={tx.id} className="flex items-center justify-between bg-white p-4 rounded-xl shadow-sm">
-                        <div>
-                          <div className="font-medium text-gray-800">{tx.type === 'CREDIT' ? 'Money added' : 'Payment'}</div>
-                          <div className="text-xs text-gray-500">{new Date(tx.createdAt).toLocaleString()}</div>
+                                <div className="mt-4 rounded-2xl bg-gray-50 px-4 py-3 text-xs text-gray-500">
+                                    If Razorpay keys are not configured outside production, demo mode top-ups still work for local testing.
+                                </div>
+                            </div>
                         </div>
-                        <div className={`font-semibold ${tx.type === 'CREDIT' ? 'text-green-600' : 'text-red-600'}`}>{tx.type === 'CREDIT' ? '+' : '-'}₹{(tx.amount/100).toFixed(2)}</div>
-                      </div>
-                  ))}
+                    </section>
+
+                    {error && (
+                        <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                            {error}
+                        </div>
+                    )}
+
+                    <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                        <div className="rounded-3xl border border-gray-100 bg-white p-5 shadow-sm">
+                            <div className="flex items-center justify-between gap-3">
+                                <div>
+                                    <div className="text-xs uppercase tracking-wide text-gray-400">Total added</div>
+                                    <div className="mt-2 text-2xl font-bold text-gray-900">{loading ? '...' : formatCurrencyFromPaise(totalCredited, true)}</div>
+                                </div>
+                                <div className="rounded-2xl bg-green-50 p-3 text-green-600">
+                                    <BanknotesIcon className="h-6 w-6" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="rounded-3xl border border-gray-100 bg-white p-5 shadow-sm">
+                            <div className="flex items-center justify-between gap-3">
+                                <div>
+                                    <div className="text-xs uppercase tracking-wide text-gray-400">Total spent</div>
+                                    <div className="mt-2 text-2xl font-bold text-gray-900">{loading ? '...' : formatCurrencyFromPaise(totalDebited, true)}</div>
+                                </div>
+                                <div className="rounded-2xl bg-red-50 p-3 text-red-500">
+                                    <CreditCardIcon className="h-6 w-6" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="rounded-3xl border border-gray-100 bg-white p-5 shadow-sm">
+                            <div className="flex items-center justify-between gap-3">
+                                <div>
+                                    <div className="text-xs uppercase tracking-wide text-gray-400">Pending</div>
+                                    <div className="mt-2 text-2xl font-bold text-gray-900">{loading ? '...' : formatCurrencyFromPaise(pendingAmount, true)}</div>
+                                </div>
+                                <div className="rounded-2xl bg-yellow-50 p-3 text-yellow-600">
+                                    <ClockIcon className="h-6 w-6" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="rounded-3xl border border-gray-100 bg-white p-5 shadow-sm">
+                            <div className="flex items-center justify-between gap-3">
+                                <div>
+                                    <div className="text-xs uppercase tracking-wide text-gray-400">Usage count</div>
+                                    <div className="mt-2 text-2xl font-bold text-gray-900">{loading ? '...' : Number(overview?.successfulDebitsCount ?? 0)}</div>
+                                </div>
+                                <div className="rounded-2xl bg-amber-50 p-3 text-amber-600">
+                                    <SparklesIcon className="h-6 w-6" />
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section className="rounded-[2rem] border border-gray-100 bg-white p-5 shadow-sm sm:p-6">
+                        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                            <div>
+                                <h2 className="text-xl font-semibold text-gray-900">Recent activity</h2>
+                                <p className="mt-1 text-sm text-gray-500">Track top-ups and wallet payments in one place.</p>
+                            </div>
+                            <div className="flex flex-wrap items-center gap-2">
+                                <div className="flex items-center gap-2 rounded-full border border-gray-200 bg-gray-50 px-3 py-2 text-xs font-medium text-gray-600">
+                                    <FunnelIcon className="h-4 w-4" />
+                                    Filter
+                                </div>
+                                {FILTERS.map((item) => (
+                                    <button
+                                        key={item.key}
+                                        type="button"
+                                        onClick={() => setFilter(item.key)}
+                                        className={`rounded-full px-4 py-2 text-sm font-semibold transition ${filter === item.key ? 'bg-amber-500 text-white shadow-sm' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                                    >
+                                        {item.label}
+                                    </button>
+                                ))}
+                                <button
+                                    type="button"
+                                    onClick={handleRefresh}
+                                    disabled={refreshing}
+                                    className="inline-flex items-center gap-2 rounded-full border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:opacity-70"
+                                >
+                                    <ArrowPathIcon className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+                                    Refresh
+                                </button>
+                            </div>
+                        </div>
+
+                        {loading ? (
+                            <div className="mt-6 rounded-3xl bg-gray-50 px-6 py-14 text-center text-gray-500">Loading wallet activity...</div>
+                        ) : filteredTransactions.length === 0 ? (
+                            <div className="mt-6 rounded-3xl border border-dashed border-gray-200 bg-gray-50 px-6 py-14 text-center">
+                                <div className="text-5xl">📭</div>
+                                <div className="mt-4 text-lg font-semibold text-gray-900">No transactions yet</div>
+                                <div className="mt-2 text-sm text-gray-500">Top up your wallet to see credits and wallet checkout activity here.</div>
+                            </div>
+                        ) : (
+                            <div className="mt-6 space-y-3">
+                                {filteredTransactions.map((tx) => {
+                                    const isCredit = tx.type === 'CREDIT';
+                                    const statusClass = tx.status === 'SUCCESS'
+                                        ? 'bg-green-100 text-green-700'
+                                        : tx.status === 'PENDING'
+                                            ? 'bg-yellow-100 text-yellow-700'
+                                            : 'bg-red-100 text-red-700';
+                                    return (
+                                        <article key={tx.id} className="rounded-3xl border border-gray-100 bg-gray-50 px-4 py-4 sm:px-5">
+                                            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                                                <div className="min-w-0">
+                                                    <div className="flex flex-wrap items-center gap-2">
+                                                        <h3 className="text-sm font-semibold text-gray-900 sm:text-base">{formatTransactionTitle(tx)}</h3>
+                                                        <span className={`rounded-full px-3 py-1 text-[11px] font-semibold ${statusClass}`}>{tx.status}</span>
+                                                        {tx.orderId && (
+                                                            <span className="rounded-full bg-gray-200 px-3 py-1 text-[11px] font-medium text-gray-700">
+                                                                Order #{tx.orderId}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <div className="mt-2 text-xs text-gray-500 sm:text-sm">
+                                                        {tx.createdAt ? new Date(tx.createdAt).toLocaleString() : 'Timestamp unavailable'}
+                                                    </div>
+                                                    {(tx.referenceId || tx.providerOrderId) && (
+                                                        <div className="mt-2 truncate text-xs text-gray-400">
+                                                            Ref: {tx.referenceId || tx.providerOrderId}
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                <div className="text-left sm:text-right">
+                                                    <div className={`text-lg font-bold ${isCredit ? 'text-green-600' : 'text-red-500'}`}>
+                                                        {isCredit ? '+' : '-'}{formatCurrencyFromPaise(tx.amount)}
+                                                    </div>
+                                                    {typeof tx.balanceAfter === 'number' && (
+                                                        <div className="mt-1 text-xs text-gray-500">Balance after: {formatCurrencyFromPaise(tx.balanceAfter)}</div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </article>
+                                    );
+                                })}
+                            </div>
+                        )}
+
+                        {hasMore && filter === 'ALL' && (
+                            <div className="mt-5 text-center">
+                                <button
+                                    type="button"
+                                    onClick={handleLoadMore}
+                                    disabled={loadingMore}
+                                    className="rounded-2xl border border-gray-200 px-5 py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:opacity-70"
+                                >
+                                    {loadingMore ? 'Loading more...' : 'Load more'}
+                                </button>
+                            </div>
+                        )}
+                    </section>
+                </div>
+            </main>
+
+            {toast.message && (
+                <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-full bg-gray-900 px-4 py-3 text-sm font-medium text-white shadow-xl">
+                    {toast.message}
                 </div>
             )}
-          </div>
         </div>
-
-        {/* Bottom fixed action bar on mobile for quick access (Add only) */}
-        <div className="fixed left-0 right-0 bottom-0 p-3 bg-white/80 backdrop-blur-md border-t sm:hidden">
-          <div className="max-w-4xl mx-auto flex gap-3">
-            <button onClick={() => { const v = prompt('Enter amount to add (₹)'); if (v) { setAddAmount(v); handleAddMoney(); } }} className="flex-1 py-3 rounded-xl bg-amber-500 text-white font-semibold">Add</button>
-          </div>
-        </div>
-
-        {/* TOAST */}
-        {toast.message && (
-            <div className="fixed bottom-20 left-1/2 -translate-x-1/2 bg-black text-white px-4 py-2 rounded-lg">
-              {toast.message}
-            </div>
-        )}
-      </div>
-  );
+    );
 }

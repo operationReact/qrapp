@@ -251,11 +251,12 @@ public class DataLoader implements CommandLineRunner {
         }
 
         List<Order> orders = new ArrayList<>();
-        orders.add(order(users.get(0).getPhone(), OrderStatus.COMPLETED, "PAID", "order_mock_001", LocalDateTime.now().minusHours(5)));
-        orders.add(order(users.get(0).getPhone(), OrderStatus.READY, "PAID", "order_mock_002", LocalDateTime.now().minusHours(2)));
+        orders.add(order(users.get(0).getId(), users.get(0).getPhone(), OrderStatus.COMPLETED, "PAID", "order_mock_001", LocalDateTime.now().minusHours(5)));
+        orders.add(order(users.get(0).getId(), users.get(0).getPhone(), OrderStatus.READY, "PAID", "order_mock_002", LocalDateTime.now().minusHours(2)));
 
         String secondPhone = users.size() > 1 ? users.get(1).getPhone() : users.get(0).getPhone();
-        orders.add(order(secondPhone, OrderStatus.PLACED, "PENDING", "order_mock_003", LocalDateTime.now().minusMinutes(30)));
+        Long secondUserId = users.size() > 1 ? users.get(1).getId() : users.get(0).getId();
+        orders.add(order(secondUserId, secondPhone, OrderStatus.PLACED, "PENDING", "order_mock_003", LocalDateTime.now().minusMinutes(30)));
 
         List<Order> saved = orderRepository.saveAll(orders);
         log.info("Seeded {} mock orders", saved.size());
@@ -308,8 +309,9 @@ public class DataLoader implements CommandLineRunner {
         return item;
     }
 
-    private Order order(String phone, OrderStatus status, String paymentStatus, String razorpayOrderId, LocalDateTime createdAt) {
+    private Order order(Long userId, String phone, OrderStatus status, String paymentStatus, String razorpayOrderId, LocalDateTime createdAt) {
         Order order = new Order();
+        order.setUserId(userId);
         order.setPhone(phone);
         order.setStatus(status);
         order.setPaymentStatus(paymentStatus);

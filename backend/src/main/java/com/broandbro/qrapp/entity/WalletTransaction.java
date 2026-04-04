@@ -37,6 +37,18 @@ public class WalletTransaction {
     @Column(name = "reference_id", length = 128)
     private String referenceId; // e.g., razorpay_payment_id or custom reference
 
+    @Column(name = "provider_order_id", length = 128)
+    private String providerOrderId;
+
+    @Column(name = "order_id")
+    private Long orderId;
+
+    @Column(name = "description", length = 255)
+    private String description;
+
+    @Column(name = "balance_after")
+    private Long balanceAfter;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 

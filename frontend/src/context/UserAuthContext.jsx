@@ -1,4 +1,6 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+/* eslint-disable react-refresh/only-export-components */
+import { createContext, useContext, useState, useEffect } from 'react';
+import PropTypes from 'prop-types';
 import { setUserAuth } from '../services/api';
 
 const UserAuthContext = createContext(null);
@@ -21,11 +23,21 @@ export const UserAuthProvider = ({ children }) => {
         }
     }, [user]);
 
+    useEffect(() => {
+        const handleLogout = () => setUser(null);
+        window.addEventListener('auth:logout', handleLogout);
+        return () => window.removeEventListener('auth:logout', handleLogout);
+    }, []);
+
     return (
         <UserAuthContext.Provider value={{ user, setUser }}>
             {children}
         </UserAuthContext.Provider>
     );
+};
+
+UserAuthProvider.propTypes = {
+    children: PropTypes.node,
 };
 
 export const useUserAuth = () => useContext(UserAuthContext);

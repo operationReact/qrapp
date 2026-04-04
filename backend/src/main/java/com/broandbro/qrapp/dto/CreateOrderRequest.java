@@ -1,5 +1,6 @@
 package com.broandbro.qrapp.dto;
 
+import com.broandbro.qrapp.enums.PaymentMethod;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -13,6 +14,8 @@ import java.util.List;
 public class CreateOrderRequest {
     @NotBlank
     private String phone;
+
+    private PaymentMethod paymentMethod;
 
     @NotEmpty
     @Valid

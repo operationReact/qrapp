@@ -54,6 +54,10 @@ export function CartProvider({ children }) {
         setCart(cart.filter(i => i.id !== id));
     };
 
+    const clearCart = () => {
+        setCart([]);
+    };
+
     const getTotal = () =>
         cart.reduce((sum, i) => sum + i.price * i.quantity, 0);
 
@@ -62,7 +66,7 @@ export function CartProvider({ children }) {
     const toggleDrawer = () => setDrawerOpen(v => !v);
 
     return (
-        <CartContext.Provider value={{ cart, addItem, decreaseItem, removeItem, getTotal, drawerOpen, openDrawer, closeDrawer, toggleDrawer, addCount, lastAdded }}>
+        <CartContext.Provider value={{ cart, addItem, decreaseItem, removeItem, clearCart, getTotal, drawerOpen, openDrawer, closeDrawer, toggleDrawer, addCount, lastAdded }}>
             {children}
         </CartContext.Provider>
     );

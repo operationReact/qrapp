@@ -13,6 +13,8 @@ import AdminOrders from "./pages/AdminOrders";
 import { UserAuthProvider } from "./context/UserAuthContext";
 import UserLogin from "./pages/UserLogin";
 import Register from "./pages/Register";
+import Profile from "./pages/Profile";
+import MyOrders from "./pages/MyOrders";
 import PropTypes from 'prop-types';
 
 
@@ -38,6 +40,8 @@ function App() {
                                 <Route path="/" element={<Menu />} />
                                 <Route path="/wallet" element={<Wallet />} />
                                 <Route path="/cart" element={<Cart />} />
+                                <Route path="/orders" element={<MyOrders />} />
+                                <Route path="/profile" element={<Profile />} />
                                 <Route path="/success" element={<Success />} />
 
                                 <Route path="/login" element={<UserLogin />} />

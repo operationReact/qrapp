@@ -11,6 +11,10 @@ public record WalletTransactionSummaryDto(
         TransactionType type,
         TransactionStatus status,
         String referenceId,
+        String providerOrderId,
+        Long orderId,
+        String description,
+        Long balanceAfter,
         Instant createdAt
 ) {
 }

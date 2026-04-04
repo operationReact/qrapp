@@ -22,7 +22,6 @@ const API = axios.create({ baseURL: resolvedBase });
 
 // Helpful debug during development to confirm which backend URL is used
 if (typeof window !== 'undefined' && window.location && window.location.hostname.includes('localhost')) {
-    // eslint-disable-next-line no-console
     console.debug('[api] using backend base URL:', resolvedBase);
 }
 
@@ -42,6 +41,22 @@ function getCache(key) {
 function setCache(key, data) {
     cache.set(key, { ts: Date.now(), data });
 }
+
+function clearCacheByPrefix(prefix) {
+    Array.from(cache.keys())
+        .filter((key) => key.startsWith(prefix))
+        .forEach((key) => cache.delete(key));
+}
+
+export const clearWalletCache = () => {
+    clearCacheByPrefix('GET:/api/wallet/');
+};
+
+export const notifyWalletUpdated = () => {
+    if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('wallet:updated'));
+    }
+};
 
 // --- dedupe pending requests to avoid firing the same request multiple times
 const pending = new Map(); // key -> promise
@@ -99,7 +114,11 @@ export const setUserAuth = (token) => {
     if (token) {
         API.defaults.headers.common['Authorization'] = `Bearer ${token}`;
         // also persist in localStorage so new tabs pick it up
-        try { localStorage.setItem('userCreds', JSON.stringify({ token })); } catch(e){ console.debug('setUserAuth localStorage write failed', e); }
+        try {
+            const raw = localStorage.getItem('userCreds');
+            const existing = raw ? JSON.parse(raw) : {};
+            localStorage.setItem('userCreds', JSON.stringify({ ...existing, token }));
+        } catch(e){ console.debug('setUserAuth localStorage write failed', e); }
     } else {
         try { localStorage.removeItem('userCreds'); } catch(e){ console.debug('setUserAuth localStorage remove failed', e); }
         delete API.defaults.headers.common['Authorization'];
@@ -108,6 +127,8 @@ export const setUserAuth = (token) => {
 
 export const loginUser = (credentials) => API.post('/auth/login', credentials);
 export const getCurrentUser = () => API.get('/auth/me');
+export const updateCurrentUser = (data) => API.put('/auth/me', data);
+export const getMyOrders = () => API.get('/orders/me');
 
 // getMenu: optionally accepts { isVeg: true|false }
 export const getMenu = (opts = {}) => {
@@ -140,6 +161,19 @@ export const walletGetBalance = () => {
     });
 };
 
+export const walletGetOverview = () => {
+    const key = 'GET:/api/wallet/overview';
+    const cached = getCache(key);
+    if (cached) {
+        return Promise.resolve({ data: cached });
+    }
+    return dedupeRequest(key, async () => {
+        const resp = await API.get('/api/wallet/overview');
+        setCache(key, resp.data);
+        return resp;
+    });
+};
+
 // synchronous helper to read cached wallet balance if available (returns raw data or null)
 export const getCachedWalletBalance = () => {
     return getCache('GET:/api/wallet/balance');
@@ -160,8 +194,18 @@ export const walletGetTransactions = ({ page = 0, size = 20 } = {}) => {
     });
 };
 export const walletCreateOrder = (data) => API.post('/api/wallet/create-order', data);
-export const walletVerifyPayment = (data) => API.post('/api/wallet/verify-payment', data);
-export const walletPay = (data) => API.post('/api/wallet/pay', data);
+export const walletVerifyPayment = async (data) => {
+    const resp = await API.post('/api/wallet/verify-payment', data);
+    clearWalletCache();
+    notifyWalletUpdated();
+    return resp;
+};
+export const walletPay = async (data) => {
+    const resp = await API.post('/api/wallet/pay', data);
+    clearWalletCache();
+    notifyWalletUpdated();
+    return resp;
+};
 export const createMenuItem = (data) => {
     // If caller passed FormData, send multipart/form-data
     if (data instanceof FormData) {

@@ -4,6 +4,7 @@ import com.broandbro.qrapp.dto.CreateRazorpayOrderRequest;
 import com.broandbro.qrapp.dto.CreateRazorpayOrderResponse;
 import com.broandbro.qrapp.dto.VerifyPaymentRequest;
 import com.broandbro.qrapp.dto.WalletBalanceResponse;
+import com.broandbro.qrapp.dto.WalletOverviewResponse;
 import com.broandbro.qrapp.dto.WalletPayRequest;
 import com.broandbro.qrapp.dto.WalletTransactionSummaryDto;
 import com.broandbro.qrapp.entity.User;
@@ -21,8 +22,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
-import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -38,7 +39,8 @@ public class WalletService {
     }
 
     public Wallet getOrCreateWallet(User user) {
-        return walletRepository.findByUser(user).orElseGet(() -> {
+        User currentUser = validateCurrentUser(user);
+        return walletRepository.findByUserId(currentUser.getId()).orElseGet(() -> {
             Wallet wallet = Wallet.builder().user(user).balance(0L).build();
             return walletRepository.save(wallet);
         });
@@ -50,51 +52,84 @@ public class WalletService {
         return new WalletBalanceResponse(wallet.getBalance());
     }
 
-    public Page<WalletTransactionSummaryDto> getTransactions(User user, Pageable pageable) {
-        if (user == null || user.getId() == null) {
-            return Page.empty(pageable);
-        }
+    @Transactional(readOnly = true)
+    public WalletOverviewResponse getOverview(User user) {
+        Wallet wallet = getOrCreateWallet(user);
+        Long walletId = wallet.getId();
+        Long totalCredited = txRepository.sumAmountByWalletIdAndTypeAndStatus(walletId, TransactionType.CREDIT, TransactionStatus.SUCCESS);
+        Long totalDebited = txRepository.sumAmountByWalletIdAndTypeAndStatus(walletId, TransactionType.DEBIT, TransactionStatus.SUCCESS);
+        Long pendingAmount = txRepository.sumAmountByWalletIdAndStatus(walletId, TransactionStatus.PENDING);
+        long successfulCreditsCount = txRepository.countByWallet_IdAndTypeAndStatus(walletId, TransactionType.CREDIT, TransactionStatus.SUCCESS);
+        long successfulDebitsCount = txRepository.countByWallet_IdAndTypeAndStatus(walletId, TransactionType.DEBIT, TransactionStatus.SUCCESS);
 
+        return new WalletOverviewResponse(
+                wallet.getBalance(),
+                totalCredited,
+                totalDebited,
+                pendingAmount,
+                successfulCreditsCount,
+                successfulDebitsCount,
+                txRepository.findLatestCreatedAtByWalletId(walletId)
+        );
+    }
+
+    public Page<WalletTransactionSummaryDto> getTransactions(User user, Pageable pageable) {
         Wallet wallet = getOrCreateWallet(user);
         return txRepository.findSummariesByWalletId(wallet.getId(), pageable);
     }
 
     public CreateRazorpayOrderResponse createRazorpayOrder(User user, CreateRazorpayOrderRequest req) {
-        String receipt = "wallet_" + user.getId() + "_" + UUID.randomUUID();
+        User currentUser = validateCurrentUser(user);
+        long amount = validateAmount(req.getAmount());
+        String receipt = "wallet_" + currentUser.getId() + "_" + UUID.randomUUID();
         String orderId = razorpayService.createOrder(req.getAmount(), "INR", receipt);
 
-        Wallet wallet = getOrCreateWallet(user);
+        Wallet wallet = getOrCreateWallet(currentUser);
         WalletTransaction transaction = WalletTransaction.builder()
                 .wallet(wallet)
-                .amount(req.getAmount())
+                .amount(amount)
                 .type(TransactionType.CREDIT)
                 .status(TransactionStatus.PENDING)
+                .providerOrderId(orderId)
                 .referenceId(orderId)
+                .description("Wallet top-up initiated")
                 .build();
         txRepository.save(transaction);
-        return new CreateRazorpayOrderResponse(orderId);
+        return new CreateRazorpayOrderResponse(
+                orderId,
+                razorpayService.getKeyId(),
+                amount,
+                "INR",
+                razorpayService.isMockOrderId(orderId)
+        );
     }
 
     @Transactional
     public void verifyPaymentAndCredit(User user, VerifyPaymentRequest req) {
-        Optional<WalletTransaction> existing = txRepository.findByReferenceId(req.getRazorpayPaymentId());
-        if (existing.isPresent() && existing.get().getStatus() == TransactionStatus.SUCCESS) {
-            throw new DuplicateTransactionException("Payment already processed");
-        }
+        User currentUser = validateCurrentUser(user);
+        txRepository.findByReferenceId(req.getRazorpayPaymentId())
+                .filter(existing -> existing.getStatus() == TransactionStatus.SUCCESS)
+                .ifPresent(existing -> {
+                    throw new DuplicateTransactionException("Payment already processed");
+                });
 
         boolean valid = razorpayService.verifySignature(req.getRazorpayOrderId(), req.getRazorpayPaymentId(), req.getRazorpaySignature());
-        if (!valid) {
-            txRepository.findByReferenceId(req.getRazorpayOrderId()).ifPresent(tx -> {
-                tx.setStatus(TransactionStatus.FAILED);
-                txRepository.save(tx);
-            });
-            throw new IllegalArgumentException("Invalid signature");
+        WalletTransaction pending = txRepository.findByProviderOrderId(req.getRazorpayOrderId())
+                .orElseThrow(() -> new IllegalArgumentException("Order not found"));
+
+        if (!pending.getWallet().getUser().getId().equals(currentUser.getId())) {
+            throw new IllegalArgumentException("Wallet transaction does not belong to the current user");
         }
 
-        WalletTransaction pending = txRepository.findByReferenceId(req.getRazorpayOrderId())
-                .orElseThrow(() -> new IllegalArgumentException("Order not found"));
         if (pending.getStatus() == TransactionStatus.SUCCESS) {
             return;
+        }
+
+        if (!valid) {
+            pending.setStatus(TransactionStatus.FAILED);
+            pending.setDescription("Wallet top-up failed verification");
+            txRepository.save(pending);
+            throw new IllegalArgumentException("Invalid signature");
         }
 
         Wallet wallet = pending.getWallet();
@@ -103,35 +138,70 @@ public class WalletService {
 
         pending.setStatus(TransactionStatus.SUCCESS);
         pending.setReferenceId(req.getRazorpayPaymentId());
+        pending.setDescription("Wallet top-up successful");
+        pending.setBalanceAfter(wallet.getBalance());
         txRepository.save(pending);
-        evictWalletCache(user);
+        evictWalletCache(currentUser);
+    }
+
+    @Transactional(readOnly = true)
+    public void ensureSufficientBalance(User user, long amount) {
+        Wallet wallet = getOrCreateWallet(user);
+        if (wallet.getBalance() < amount) {
+            throw new InsufficientBalanceException("Insufficient balance");
+        }
     }
 
     @Transactional
     public void payFromWallet(User user, WalletPayRequest req) {
         Wallet wallet = getOrCreateWallet(user);
-        if (wallet.getBalance() < req.getAmount()) {
+        executeWalletDebit(user, wallet, validateAmount(req.getAmount()), req.getOrderId(), req.getDescription());
+    }
+
+    @Transactional
+    public void payForOrder(User user, Long orderId, long amount) {
+        Wallet wallet = getOrCreateWallet(user);
+        executeWalletDebit(user, wallet, validateAmount(amount), orderId, "Order #" + orderId + " paid from wallet");
+    }
+
+    @CacheEvict(value = "walletBalance", key = "#user.id", condition = "#user != null && #user.id != null")
+    public void evictWalletCache(User user) {
+        // Annotation-driven cache eviction only.
+    }
+
+    private void executeWalletDebit(User user, Wallet wallet, long amount, Long orderId, String description) {
+        if (wallet.getBalance() < amount) {
             throw new InsufficientBalanceException("Insufficient balance");
         }
 
-        wallet.setBalance(wallet.getBalance() - req.getAmount());
+        wallet.setBalance(wallet.getBalance() - amount);
         walletRepository.save(wallet);
 
         WalletTransaction transaction = WalletTransaction.builder()
                 .wallet(wallet)
-                .amount(req.getAmount())
+                .amount(amount)
                 .type(TransactionType.DEBIT)
                 .status(TransactionStatus.SUCCESS)
                 .referenceId("wallet_payment_" + UUID.randomUUID())
+                .orderId(orderId)
+                .description(StringUtils.hasText(description) ? description.trim() : "Wallet payment")
+                .balanceAfter(wallet.getBalance())
                 .build();
         txRepository.save(transaction);
         evictWalletCache(user);
     }
 
-    @CacheEvict(value = "walletBalance", key = "#user.id", condition = "#user != null && #user.id != null")
-    public void evictWalletCache(User user) {
-        if (user != null && user.getId() != null) {
-            user.getId();
+    private User validateCurrentUser(User user) {
+        if (user == null || user.getId() == null) {
+            throw new IllegalArgumentException("User authentication required");
         }
+        return user;
+    }
+
+    private long validateAmount(Long amount) {
+        if (amount == null || amount <= 0) {
+            throw new IllegalArgumentException("Amount must be greater than zero");
+        }
+        return amount;
     }
 }
