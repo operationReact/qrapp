@@ -10,6 +10,5 @@ public class CreateRazorpayOrderResponse {
     private String keyId;
     private Long amount;
     private String currency;
-    private boolean mock;
 }
 

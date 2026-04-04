@@ -92,7 +92,6 @@ class WalletApiTest {
 
         when(razorpayService.createOrder(anyLong(), anyString(), anyString())).thenReturn("order_wallet_123");
         when(razorpayService.getKeyId()).thenReturn("rzp_test_123");
-        when(razorpayService.isEnabled()).thenReturn(true);
         when(razorpayService.verifySignature("order_wallet_123", "pay_wallet_123", "sig_wallet_123")).thenReturn(true);
 
         mockMvc.perform(post("/api/wallet/create-order")
@@ -101,8 +100,7 @@ class WalletApiTest {
                         .content(objectMapper.writeValueAsString(Map.of("amount", 5000))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.razorpayOrderId").value("order_wallet_123"))
-                .andExpect(jsonPath("$.keyId").value("rzp_test_123"))
-                .andExpect(jsonPath("$.mock").value(false));
+                .andExpect(jsonPath("$.keyId").value("rzp_test_123"));
 
         mockMvc.perform(post("/api/wallet/verify-payment")
                         .header("Authorization", "Bearer token-wallet-topup")

@@ -1,16 +1,32 @@
 import axios from "axios";
 
+function isPrivateOrLocalHostname(hostname) {
+    if (!hostname) return false;
+    if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '0.0.0.0') return true;
+    if (/^10\./.test(hostname)) return true;
+    if (/^192\.168\./.test(hostname)) return true;
+    if (/^172\.(1[6-9]|2\d|3[0-1])\./.test(hostname)) return true;
+    return hostname.endsWith('.local');
+}
+
 // Resolve API base URL:
 // 1) Prefer VITE_API_URL injected at build/dev time
-// 2) If not present, when running in a browser on localhost use http://localhost:8080
-// 3) Otherwise fall back to production URL
+// 2) If not present, when running in a browser on localhost/LAN/private IP use the same host on port 8080
+// 3) If deployed on the same origin, use the current origin
+// 4) Otherwise fall back to production URL
 const resolvedBase = (() => {
     const vite = import.meta?.env?.VITE_API_URL;
     if (vite) return vite;
     try {
-        const host = (typeof window !== 'undefined' && window.location && window.location.hostname) || '';
-        if (host.includes('localhost') || host === '127.0.0.1') {
-            return 'http://localhost:8080';
+        const location = typeof window !== 'undefined' ? window.location : null;
+        const host = location?.hostname || '';
+        const protocol = location?.protocol || 'http:';
+        const port = location?.port || '';
+        if (isPrivateOrLocalHostname(host)) {
+            return `${protocol}//${host}:8080`;
+        }
+        if (location?.origin && port !== '5173' && port !== '4173') {
+            return location.origin;
         }
     } catch (e) {
         // ignore

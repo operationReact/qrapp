@@ -196,15 +196,8 @@ export default function Wallet() {
                 throw new Error('Missing wallet order id from server');
             }
 
-            if (order.mock) {
-                await walletVerifyPayment({
-                    razorpayOrderId: orderId,
-                    razorpayPaymentId: `mock_pay_${Date.now()}`,
-                    razorpaySignature: 'mock_signature',
-                });
-                await fetchWallet(0, false);
-                toast.show('Wallet credited in demo mode');
-                return;
+            if (!order.keyId) {
+                throw new Error('Missing Razorpay key from server');
             }
 
             await loadRazorpayScript();
@@ -227,14 +220,20 @@ export default function Wallet() {
                         toast.show('Wallet credited successfully');
                     } catch (verifyError) {
                         console.error('wallet verify failed', verifyError);
-                        toast.show('Payment verification failed');
+                        const message = typeof verifyError?.response?.data === 'string'
+                            ? verifyError.response.data
+                            : verifyError?.message || 'Payment verification failed';
+                        setError(message);
+                        toast.show(message);
                     }
                 },
             });
 
             rzp.on('payment.failed', (paymentError) => {
                 console.error('wallet payment failed', paymentError);
-                toast.show('Payment failed. Please try again.');
+                const message = paymentError?.error?.description || 'Payment failed. Please try again.';
+                setError(message);
+                toast.show(message);
             });
 
             rzp.open();
@@ -324,7 +323,7 @@ export default function Wallet() {
                                 </div>
 
                                 <div className="mt-4 rounded-2xl bg-gray-50 px-4 py-3 text-xs text-gray-500">
-                                    If Razorpay keys are not configured outside production, demo mode top-ups still work for local testing.
+                                    Wallet top-ups use live Razorpay checkout. Configure valid Razorpay credentials on the server before enabling this flow.
                                 </div>
                             </div>
                         </div>

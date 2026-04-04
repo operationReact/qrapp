@@ -78,11 +78,12 @@ public class WalletService {
         return txRepository.findSummariesByWalletId(wallet.getId(), pageable);
     }
 
+    @Transactional
     public CreateRazorpayOrderResponse createRazorpayOrder(User user, CreateRazorpayOrderRequest req) {
         User currentUser = validateCurrentUser(user);
         long amount = validateAmount(req.getAmount());
         String receipt = "wallet_" + currentUser.getId() + "_" + UUID.randomUUID();
-        String orderId = razorpayService.createOrder(req.getAmount(), "INR", receipt);
+        String orderId = razorpayService.createOrder(amount, "INR", receipt);
 
         Wallet wallet = getOrCreateWallet(currentUser);
         WalletTransaction transaction = WalletTransaction.builder()
@@ -92,15 +93,14 @@ public class WalletService {
                 .status(TransactionStatus.PENDING)
                 .providerOrderId(orderId)
                 .referenceId(orderId)
-                .description("Wallet top-up initiated")
+                .description("Wallet top-up initiated via Razorpay")
                 .build();
         txRepository.save(transaction);
         return new CreateRazorpayOrderResponse(
                 orderId,
                 razorpayService.getKeyId(),
                 amount,
-                "INR",
-                razorpayService.isMockOrderId(orderId)
+                "INR"
         );
     }
 

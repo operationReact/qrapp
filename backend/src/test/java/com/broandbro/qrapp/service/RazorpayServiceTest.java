@@ -10,23 +10,22 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class RazorpayServiceTest {
 
     @Test
-    void createOrderUsesMockModeWhenCredentialsArePlaceholders() {
+    void createOrderFailsWhenCredentialsArePlaceholders() {
         RazorpayProperties properties = new RazorpayProperties();
         properties.setKey("YOUR_KEY");
         properties.setSecret("YOUR_SECRET");
 
         RazorpayService service = new RazorpayService(properties, new MockEnvironment());
 
-        String orderId = service.createOrder(5000L, "INR", "wallet_test_receipt");
-
         assertThat(service.isEnabled()).isFalse();
-        assertThat(service.isMockModeEnabled()).isTrue();
-        assertThat(service.isMockOrderId(orderId)).isTrue();
-        assertThat(service.verifySignature(orderId, "mock_pay_123", "mock_signature")).isTrue();
+        assertThatThrownBy(() -> service.createOrder(5000L, "INR", "wallet_test_receipt"))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Razorpay is not configured");
+        assertThat(service.verifySignature("order_test_123", "pay_test_123", "sig_test_123")).isFalse();
     }
 
     @Test
-    void createOrderFallsBackToMockWhenLiveOrderCreationFailsOutsideProduction() {
+    void createOrderFailsWhenLiveOrderCreationFailsOutsideProduction() {
         RazorpayProperties properties = new RazorpayProperties();
         properties.setKey("rzp_test_bad_key");
         properties.setSecret("rzp_test_bad_secret");
@@ -38,10 +37,11 @@ class RazorpayServiceTest {
             }
         };
 
-        String orderId = service.createOrder(5000L, "INR", "wallet_test_receipt");
-
         assertThat(service.isEnabled()).isTrue();
-        assertThat(service.isMockOrderId(orderId)).isTrue();
+        assertThatThrownBy(() -> service.createOrder(5000L, "INR", "wallet_test_receipt"))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("Failed to create Razorpay order")
+                .hasCauseInstanceOf(RuntimeException.class);
     }
 
     @Test
