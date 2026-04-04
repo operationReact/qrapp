@@ -5,6 +5,9 @@ import com.broandbro.qrapp.repository.MenuRepository;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -35,7 +38,6 @@ import java.util.UUID;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 import org.springframework.web.bind.annotation.RequestHeader;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -47,6 +49,11 @@ import jakarta.servlet.http.HttpServletRequest;
 public class MenuController {
 
     private static final Logger log = LoggerFactory.getLogger(MenuController.class);
+    private static final int DEFAULT_MENU_PAGE = 0;
+    private static final int DEFAULT_MENU_SIZE = 200;
+    private static final int MAX_MENU_SIZE = 200;
+    private static final int DEFAULT_RECOMMENDED_LIMIT = 6;
+    private static final int MAX_RECOMMENDED_LIMIT = 24;
 
     private final MenuRepository repo;
 
@@ -65,19 +72,34 @@ public class MenuController {
     }
 
     @GetMapping
-    public List<MenuItem> getMenu(@RequestParam(value = "isVeg", required = false) Boolean isVeg) {
-        List<MenuItem> all = repo.findAll();
-        if (isVeg == null) return all;
-        if (isVeg) {
-            return all.stream().filter(mi -> Boolean.TRUE.equals(mi.getIsVeg())).collect(Collectors.toList());
-        } else {
-            return all.stream().filter(mi -> !Boolean.TRUE.equals(mi.getIsVeg())).collect(Collectors.toList());
-        }
+    @Cacheable(cacheNames = "menu", key = "T(java.lang.String).format('%s|%s|%s|%s|%s|%s', #isVeg, #category, #recommended, #available, #page, #size)")
+    public List<MenuItem> getMenu(
+            @RequestParam(value = "isVeg", required = false) Boolean isVeg,
+            @RequestParam(value = "category", required = false) String category,
+            @RequestParam(value = "recommended", required = false) Boolean recommended,
+            @RequestParam(value = "available", required = false) Boolean available,
+            @RequestParam(value = "page", defaultValue = "0") Integer page,
+            @RequestParam(value = "size", defaultValue = "200") Integer size
+    ) {
+        // Normalise blank category to null so the JPQL IS NULL check works correctly
+        String cat = (category == null || category.isBlank()) ? null : category.trim();
+        int safePage = page == null ? DEFAULT_MENU_PAGE : Math.max(0, page);
+        int safeSize = size == null ? DEFAULT_MENU_SIZE : Math.max(1, Math.min(size, MAX_MENU_SIZE));
+        return repo.findByFilters(isVeg, cat, recommended, available, PageRequest.of(safePage, safeSize));
+    }
+
+    @GetMapping("/recommended")
+    @Cacheable(cacheNames = "menuRecommended", key = "#limit == null ? 'default' : #limit")
+    public List<MenuItem> getRecommendedMenu(@RequestParam(value = "limit", required = false) Integer limit) {
+        int safeLimit = limit == null ? DEFAULT_RECOMMENDED_LIMIT : Math.max(1, Math.min(limit, MAX_RECOMMENDED_LIMIT));
+        // LIMIT is now applied in SQL via Pageable — no full table load in Java
+        return repo.findTopRecommended(PageRequest.of(0, safeLimit));
     }
 
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("hasRole('ADMIN')")
     @ResponseStatus(HttpStatus.CREATED)
+    @CacheEvict(cacheNames = {"menu", "menuRecommended"}, allEntries = true)
     public MenuItem addMenuItem(@Valid @RequestBody MenuItem item) {
         // Ensure id is null so a new entity is created rather than updated
         item.setId(null);
@@ -87,12 +109,14 @@ public class MenuController {
     // New multipart/form-data POST handler so admin can upload an image when creating an item
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasRole('ADMIN')")
+    @CacheEvict(cacheNames = {"menu", "menuRecommended"}, allEntries = true)
     public ResponseEntity<?> addMenuItemMultipart(
             @RequestPart("name") String name,
             @RequestPart(value = "price", required = false) String priceStr,
             @RequestPart(value = "category", required = false) String category,
             @RequestPart(value = "description", required = false) String description,
             @RequestPart(value = "available", required = false) String availableStr,
+            @RequestPart(value = "recommended", required = false) String recommendedStr,
             @RequestPart(value = "tag", required = false) String tag,
             @RequestPart(value = "isVeg", required = false) String isVegStr,
             @RequestPart(value = "image", required = false) MultipartFile image
@@ -113,6 +137,7 @@ public class MenuController {
             item.setCategory(category);
             item.setDescription(description);
             item.setAvailable(availableStr == null || Boolean.parseBoolean(availableStr));
+            item.setRecommended(Boolean.parseBoolean(recommendedStr));
             item.setTag(tag);
             if (isVegStr != null) {
                 item.setIsVeg(Boolean.parseBoolean(isVegStr));
@@ -137,6 +162,7 @@ public class MenuController {
     // --- Flexible single PUT handler (handles JSON, multipart, raw bytes) ---
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
+    @CacheEvict(cacheNames = {"menu", "menuRecommended"}, allEntries = true)
     public ResponseEntity<?> updateMenuItemFlexible(
             @PathVariable Long id,
             HttpServletRequest request,
@@ -157,6 +183,7 @@ public class MenuController {
                     String category = mreq.getParameter("category");
                     String description = mreq.getParameter("description");
                     String availableStr = mreq.getParameter("available");
+                    String recommendedStr = mreq.getParameter("recommended");
                     String tag = mreq.getParameter("tag");
                     String isVegStr = mreq.getParameter("isVeg");
 
@@ -167,6 +194,7 @@ public class MenuController {
                     if (category != null) existing.setCategory(category);
                     if (description != null) existing.setDescription(description);
                     if (availableStr != null) existing.setAvailable(Boolean.parseBoolean(availableStr));
+                    if (recommendedStr != null) existing.setRecommended(Boolean.parseBoolean(recommendedStr));
                     if (tag != null) existing.setTag(tag);
                     if (isVegStr != null) existing.setIsVeg(Boolean.parseBoolean(isVegStr));
 
@@ -209,6 +237,11 @@ public class MenuController {
                     boolean av = a instanceof Boolean ? (Boolean)a : Boolean.parseBoolean(String.valueOf(a));
                     existing.setAvailable(av);
                 }
+                if (payload.containsKey("recommended")) {
+                    Object r = payload.get("recommended");
+                    boolean rec = r instanceof Boolean ? (Boolean) r : Boolean.parseBoolean(String.valueOf(r));
+                    existing.setRecommended(rec);
+                }
                 if (payload.containsKey("tag")) existing.setTag((String) payload.getOrDefault("tag", existing.getTag()));
                 if (payload.containsKey("isVeg")) {
                     Object v = payload.get("isVeg");
@@ -246,6 +279,7 @@ public class MenuController {
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
+    @CacheEvict(cacheNames = {"menu", "menuRecommended"}, allEntries = true)
     public ResponseEntity<?> deleteMenuItem(@PathVariable Long id) {
         if (!repo.existsById(id)) {
             return ResponseEntity.notFound().build();

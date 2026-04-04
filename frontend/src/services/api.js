@@ -114,7 +114,13 @@ export const getMenu = (opts = {}) => {
     const params = {};
     if (typeof opts.isVeg === 'boolean') params.isVeg = opts.isVeg;
     if (opts.category) params.category = opts.category;
+    if (typeof opts.recommended === 'boolean') params.recommended = opts.recommended;
+    if (typeof opts.available === 'boolean') params.available = opts.available;
     return API.get("/menu", { params });
+};
+export const getRecommendedMenu = ({ limit = 6 } = {}) => {
+    const safeLimit = Number.isFinite(limit) ? Math.max(1, Math.min(50, Number(limit))) : 6;
+    return API.get('/menu/recommended', { params: { limit: safeLimit } });
 };
 export const createOrder = (data) => API.post("/orders", data);
 // Wallet APIs
@@ -140,12 +146,14 @@ export const getCachedWalletBalance = () => {
 };
 
 // walletGetTransactions: dedupe + short cache to avoid repeated transaction DB reads
-export const walletGetTransactions = () => {
-    const key = 'GET:/api/wallet/transactions';
+export const walletGetTransactions = ({ page = 0, size = 20 } = {}) => {
+    const safePage = Number.isFinite(page) ? Math.max(0, Number(page)) : 0;
+    const safeSize = Number.isFinite(size) ? Math.max(1, Math.min(50, Number(size))) : 20;
+    const key = `GET:/api/wallet/transactions?page=${safePage}&size=${safeSize}`;
     const cached = getCache(key);
     if (cached) return Promise.resolve({ data: cached });
     return dedupeRequest(key, async () => {
-        const resp = await API.get('/api/wallet/transactions');
+        const resp = await API.get('/api/wallet/transactions', { params: { page: safePage, size: safeSize } });
         // cache briefly
         setCache(key, resp.data);
         return resp;

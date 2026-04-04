@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useCart } from "../context/CartContext";
-import { createOrder, getCurrentUser, getMenu } from "../services/api";
+import { createOrder, getCurrentUser, getRecommendedMenu } from "../services/api";
 import Navbar from "../components/Navbar";
 import { useUserAuth } from "../context/UserAuthContext";
 import { useNavigate } from "react-router-dom";
@@ -22,15 +22,9 @@ export default function Cart() {
         async function fetchRecommended() {
             setRecLoading(true);
             try {
-                // Prefer a dedicated 'Recommended' category maintained by admin
-                const res = await getMenu({ category: 'Recommended' });
-                let items = res.data || [];
-                // Fallback: if none returned, load top 6 items and filter out ones already in cart
-                if (!items || items.length === 0) {
-                    const all = await getMenu();
-                    const idsInCart = new Set(cart.map(i => i.id));
-                    items = (all.data || []).filter(i => !idsInCart.has(i.id)).slice(0, 6);
-                }
+                const res = await getRecommendedMenu({ limit: 12 });
+                const idsInCart = new Set(cart.map(i => i.id));
+                const items = (res.data || []).filter(i => !idsInCart.has(i.id)).slice(0, 6);
                 if (mounted) setRecommended(items);
             } catch (e) {
                 console.debug('Failed to fetch recommended', e);

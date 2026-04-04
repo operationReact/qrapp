@@ -52,10 +52,10 @@ export default function Wallet() {
     }
     try {
       const b = await walletGetBalance();
-      const t = await walletGetTransactions();
+      const t = await walletGetTransactions({ page: 0, size: 20 });
       if (!mounted.current) return;
       setBalance(b.data?.balance ?? 0);
-      setTransactions(t.data ?? []);
+      setTransactions(t.data?.content ?? t.data ?? []);
     } catch (err) {
       const status = err?.response?.status;
       if (status === 401) {

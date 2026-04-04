@@ -52,6 +52,7 @@ export default function AdminDashboard() {
     const [imageFile, setImageFile] = useState(null);
     const [previewUrl, setPreviewUrl] = useState('');
     const [available, setAvailable] = useState(true);
+    const [recommended, setRecommended] = useState(false);
     const [tag, setTag] = useState('');
     const [isVeg, setIsVeg] = useState(false);
     const [creating, setCreating] = useState(false);
@@ -142,6 +143,7 @@ export default function AdminDashboard() {
                 fd.append('category', category.trim() || 'Misc');
                 fd.append('description', description.trim());
                 fd.append('available', String(available));
+                fd.append('recommended', String(recommended));
                 fd.append('tag', tag.trim());
                 fd.append('isVeg', String(!!isVeg));
                 fd.append('image', imageFile);
@@ -154,6 +156,7 @@ export default function AdminDashboard() {
                     description: description.trim(),
                     imageUrl: imageUrl.trim(),
                     available,
+                    recommended,
                     tag: tag.trim(),
                     isVeg: !!isVeg,
                 };
@@ -162,7 +165,7 @@ export default function AdminDashboard() {
             const m = await getMenu(); setMenu(m.data || []);
             setCreateSuccess('Menu item created');
             // clear form
-            setName(''); setPrice(''); setCategory('Misc'); setDescription(''); setImageUrl(''); setImageFile(null); setPreviewUrl(''); setAvailable(true);
+            setName(''); setPrice(''); setCategory('Misc'); setDescription(''); setImageUrl(''); setImageFile(null); setPreviewUrl(''); setAvailable(true); setRecommended(false);
             setTag(''); setIsVeg(false);
             // auto clear success after a short while
             setTimeout(() => setCreateSuccess(null), 3000);
@@ -357,6 +360,11 @@ export default function AdminDashboard() {
                                         <input type="checkbox" checked={isVeg} onChange={e => setIsVeg(e.target.checked)} className="ml-2" />
                                     </div>
 
+                                    <div className="flex items-center gap-2">
+                                        <label className="block text-sm font-medium">Recommended</label>
+                                        <input type="checkbox" checked={recommended} onChange={e => setRecommended(e.target.checked)} className="ml-2" />
+                                    </div>
+
                                     <div className="md:col-span-3">
                                         <label className="block text-sm font-medium">Description</label>
                                         <textarea value={description} onChange={e => setDescription(e.target.value)} className="mt-1 block w-full border rounded px-3 py-2" rows={3} placeholder="Optional description" />
@@ -389,7 +397,7 @@ export default function AdminDashboard() {
 
                                     <div className="md:col-span-3 flex items-center space-x-3 mt-3">
                                         <button type="submit" disabled={creating} className="px-4 py-2 bg-brand-600 text-white rounded">{creating ? 'Creating...' : 'Create Item'}</button>
-                                        <button type="button" onClick={() => { setName(''); setPrice(''); setCategory('Misc'); setDescription(''); setImageUrl(''); setImageFile(null); setPreviewUrl(''); setAvailable(true); setTag(''); setIsVeg(false); setCreateError(null); setCreateSuccess(null); }} className="px-3 py-2 bg-gray-100 rounded">Reset</button>
+                                        <button type="button" onClick={() => { setName(''); setPrice(''); setCategory('Misc'); setDescription(''); setImageUrl(''); setImageFile(null); setPreviewUrl(''); setAvailable(true); setRecommended(false); setTag(''); setIsVeg(false); setCreateError(null); setCreateSuccess(null); }} className="px-3 py-2 bg-gray-100 rounded">Reset</button>
                                     </div>
                                 </form>
                             </div>
@@ -407,7 +415,10 @@ export default function AdminDashboard() {
                                                         <div className="text-sm text-gray-600">{m.category}</div>
                                                         <div className="mt-1">₹{m.price}</div>
                                                         <div className="mt-2 text-sm">{m.description}</div>
-                                                        <div className="mt-2 text-sm">{m.available ? <span className="text-green-600">Available</span> : <span className="text-red-600">Unavailable</span>}</div>
+                                                        <div className="mt-2 text-sm flex items-center gap-2">
+                                                            {m.available ? <span className="text-green-600">Available</span> : <span className="text-red-600">Unavailable</span>}
+                                                            {m.recommended ? <span className="px-2 py-0.5 rounded bg-amber-100 text-amber-700 text-xs">Recommended</span> : null}
+                                                        </div>
                                                     </div>
                                                 </div>
                                                 <div className="flex flex-col gap-2 ml-4 items-end">
@@ -426,6 +437,23 @@ export default function AdminDashboard() {
                                                             }
                                                         }} />
                                                     </div>
+
+                                                    <button
+                                                        onClick={async () => {
+                                                            const next = !m.recommended;
+                                                            setMenu(prev => prev.map(i => i.id === m.id ? { ...i, recommended: next } : i));
+                                                            try {
+                                                                await updateMenuItem(m.id, { recommended: next });
+                                                            } catch (err) {
+                                                                console.error('recommended toggle failed', err);
+                                                                setMenu(prev => prev.map(i => i.id === m.id ? { ...i, recommended: !next } : i));
+                                                                alert(err?.response?.data?.message || 'Failed to update recommendation');
+                                                            }
+                                                        }}
+                                                        className={`px-3 py-1 rounded text-white ${m.recommended ? 'bg-amber-500' : 'bg-gray-500'}`}
+                                                    >
+                                                        {m.recommended ? 'Recommended' : 'Mark Recommended'}
+                                                    </button>
 
                                                     <div className="flex flex-col gap-2">
                                                         <button onClick={() => handleEditClick(m)} className="px-3 py-1 bg-yellow-400 rounded">Edit</button>

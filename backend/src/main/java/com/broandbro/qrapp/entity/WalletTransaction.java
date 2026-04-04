@@ -8,7 +8,7 @@ import lombok.*;
 import java.time.Instant;
 
 @Entity
-@Table(name = "wallet_transactions", indexes = {@Index(columnList = "reference_id")})
+@Table(name = "wallet_transactions")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -37,7 +37,7 @@ public class WalletTransaction {
     @Column(name = "reference_id", length = 128)
     private String referenceId; // e.g., razorpay_payment_id or custom reference
 
-    @Column(nullable = false)
+    @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
     @PrePersist

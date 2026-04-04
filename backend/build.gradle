@@ -43,14 +43,16 @@ dependencies {
     // or re-add the remote dependency and ensure network access to repo.razorpay.com.
 
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-cache'
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-security'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'org.flywaydb:flyway-core'
+    implementation 'com.github.ben-manes.caffeine:caffeine'
 
-    runtimeOnly 'com.mysql:mysql-connector-j'
+    // Only PostgreSQL is required at runtime for this project
     runtimeOnly 'org.postgresql:postgresql'
-    runtimeOnly 'com.h2database:h2'
 
     // JSON library used by Razorpay SDK wrapper
     implementation 'org.json:json:20230618'
@@ -60,11 +62,19 @@ dependencies {
     annotationProcessor "org.projectlombok:lombok:${lombokVersion}"
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.security:spring-security-test'
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testRuntimeOnly 'com.h2database:h2'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
 tasks.withType(JavaCompile) {
     options.encoding = 'UTF-8'
     options.release = 17
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
 }
 
 // Keep the jar produced by bootJar as the runnable artifact

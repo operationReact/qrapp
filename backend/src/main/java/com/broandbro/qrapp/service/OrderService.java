@@ -4,7 +4,6 @@ import com.broandbro.qrapp.dto.CreateOrderRequest;
 import com.broandbro.qrapp.entity.Order;
 import com.broandbro.qrapp.entity.OrderItem;
 import com.broandbro.qrapp.enums.OrderStatus;
-import com.broandbro.qrapp.repository.MenuRepository;
 import com.broandbro.qrapp.repository.OrderItemRepository;
 import com.broandbro.qrapp.repository.OrderRepository;
 import lombok.RequiredArgsConstructor;
@@ -19,7 +18,6 @@ public class OrderService {
 
     private final OrderRepository orderRepo;
     private final OrderItemRepository orderItemRepo;
-    private final MenuRepository menuRepo;
     private final WhatsAppService whatsappService;
 
     public Order createOrder(CreateOrderRequest req) {
@@ -46,11 +44,7 @@ public class OrderService {
      * Calculate total amount (in smallest currency unit, e.g., paise) for the order by summing menu item prices.
      */
     public int calculateAmountForOrder(Long orderId) {
-        double total = orderItemRepo.findAll()
-                .stream()
-                .filter(oi -> orderId.equals(oi.getOrderId()))
-                .mapToDouble(oi -> menuRepo.findById(oi.getItemId()).map(menuItem -> menuItem.getPrice() * oi.getQuantity()).orElse(0.0))
-                .sum();
+        double total = orderItemRepo.calculateOrderTotal(orderId);
 
         if (total <= 0.0) return 0;
         return (int) Math.round(total * 100);
@@ -69,10 +63,7 @@ public class OrderService {
 
     @Transactional
     public void markOrderPaidByRazorpayOrderId(String razorpayOrderId) {
-        Order order = orderRepo.findAll()
-                .stream()
-                .filter(o -> razorpayOrderId.equals(o.getRazorpayOrderId()))
-                .findFirst()
+        Order order = orderRepo.findByRazorpayOrderId(razorpayOrderId)
                 .orElseThrow();
 
         order.setPaymentStatus("PAID");

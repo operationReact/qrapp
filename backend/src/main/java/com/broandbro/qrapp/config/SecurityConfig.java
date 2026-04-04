@@ -10,15 +10,17 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
-@EnableMethodSecurity(prePostEnabled = true)
+@EnableMethodSecurity
 public class SecurityConfig {
 
     private static final Logger log = LoggerFactory.getLogger(SecurityConfig.class);
@@ -53,7 +55,7 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-            .csrf().disable()
+            .csrf(AbstractHttpConfigurer::disable)
             .authorizeHttpRequests(auth -> auth
                 // allow login endpoint for admins to authenticate
                 .requestMatchers(HttpMethod.POST, "/admin/login").permitAll()
@@ -67,11 +69,11 @@ public class SecurityConfig {
                 // other admin endpoints require admin
                 .requestMatchers("/admin/**").hasRole("ADMIN")
                 .requestMatchers("/webhook/**").permitAll()
-                .requestMatchers(HttpMethod.GET, "/menu").permitAll()
+                .requestMatchers(HttpMethod.GET, "/menu", "/menu/**").permitAll()
                 .requestMatchers("/orders").permitAll()
                 .anyRequest().authenticated()
             )
-            .httpBasic();
+            .httpBasic(Customizer.withDefaults());
         return http.build();
     }
 }

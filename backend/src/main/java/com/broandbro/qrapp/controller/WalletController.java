@@ -3,6 +3,8 @@ package com.broandbro.qrapp.controller;
 import com.broandbro.qrapp.dto.*;
 import com.broandbro.qrapp.entity.User;
 import com.broandbro.qrapp.service.WalletService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -32,10 +34,15 @@ public class WalletController {
     }
 
     @GetMapping("/transactions")
-    public ResponseEntity<?> transactions() {
+    public ResponseEntity<Page<WalletTransactionSummaryDto>> transactions(
+            @RequestParam(value = "page", defaultValue = "0") Integer page,
+            @RequestParam(value = "size", defaultValue = "20") Integer size
+    ) {
         System.out.println("[WalletController] GET /api/wallet/transactions called");
         User u = getCurrentUser();
-        return ResponseEntity.ok(walletService.getTransactions(u));
+        int safePage = page == null ? 0 : Math.max(0, page);
+        int safeSize = size == null ? 20 : Math.max(1, Math.min(size, 50));
+        return ResponseEntity.ok(walletService.getTransactions(u, PageRequest.of(safePage, safeSize)));
     }
 
     @PostMapping("/create-order")
