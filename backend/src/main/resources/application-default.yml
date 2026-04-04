@@ -33,6 +33,6 @@ spring:
 
 # Default profile: require explicit Razorpay credentials instead of silently using a bundled test account.
 razorpay:
-  key: ${RAZORPAY_KEY:YOUR_KEY}
-  secret: ${RAZORPAY_SECRET:YOUR_SECRET}
-  webhookSecret: ${RAZORPAY_WEBHOOK_SECRET:YOUR_WEBHOOK_SECRET}
+  key: ${RAZORPAY_KEY:rzp_test_SXoONgvkn7mSte}
+  secret: ${RAZORPAY_SECRET:cT115GamOarfQX8BhxVmIwj9}
+  webhookSecret: ${RAZORPAY_WEBHOOK_SECRET:rzp_test_mock_webhook_secret}
