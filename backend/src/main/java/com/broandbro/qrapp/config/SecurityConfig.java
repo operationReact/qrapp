@@ -1,5 +1,6 @@
 package com.broandbro.qrapp.config;
 
+import com.broandbro.qrapp.security.TokenAuthFilter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -10,15 +11,18 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 
 @Configuration
-@EnableMethodSecurity(prePostEnabled = true)
+@EnableMethodSecurity
 public class SecurityConfig {
 
     private static final Logger log = LoggerFactory.getLogger(SecurityConfig.class);
@@ -51,27 +55,24 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain filterChain(HttpSecurity http, TokenAuthFilter tokenAuthFilter) throws Exception {
         http
-            .csrf().disable()
+            .csrf(AbstractHttpConfigurer::disable)
             .authorizeHttpRequests(auth -> auth
                 // allow login endpoint for admins to authenticate
                 .requestMatchers(HttpMethod.POST, "/admin/login").permitAll()
                 // allow public auth endpoints for users
-                .requestMatchers("/auth/**").permitAll()
-                // TEMP: allow wallet endpoints during local dev to avoid 401 while debugging auth/token issues
-                // Remove or restrict this in production — wallet endpoints should normally require a valid token.
-                .requestMatchers("/api/wallet/**").permitAll()
+                .requestMatchers(HttpMethod.POST, "/auth/register", "/auth/login").permitAll()
                 // POST /menu only for admin
                 .requestMatchers(HttpMethod.POST, "/menu").hasRole("ADMIN")
                 // other admin endpoints require admin
                 .requestMatchers("/admin/**").hasRole("ADMIN")
                 .requestMatchers("/webhook/**").permitAll()
-                .requestMatchers(HttpMethod.GET, "/menu").permitAll()
-                .requestMatchers("/orders").permitAll()
+                .requestMatchers(HttpMethod.GET, "/menu", "/menu/**").permitAll()
                 .anyRequest().authenticated()
             )
-            .httpBasic();
+            .addFilterBefore(tokenAuthFilter, BasicAuthenticationFilter.class)
+            .httpBasic(Customizer.withDefaults());
         return http.build();
     }
 }

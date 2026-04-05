@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import { useState, useEffect, useRef } from "react";
 
 export default function SearchBar({ onSearch = () => {} }) {
@@ -7,7 +8,7 @@ export default function SearchBar({ onSearch = () => {} }) {
     useEffect(() => {
         const t = setTimeout(() => onSearch(value), 300);
         return () => clearTimeout(t);
-    }, [value]);
+    }, [value, onSearch]);
 
     return (
         <div className="relative">
@@ -30,3 +31,7 @@ export default function SearchBar({ onSearch = () => {} }) {
         </div>
     );
 }
+
+SearchBar.propTypes = {
+    onSearch: PropTypes.func,
+};

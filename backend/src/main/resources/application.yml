@@ -1,18 +1,48 @@
 server:
   port: 8080
 
-# Default to in-memory H2 to avoid attempting remote DB when running locally
+# Default datasource: PostgreSQL. Use environment variables to override in CI or other environments.
 spring:
+  cache:
+    type: caffeine
+    cache-names: walletBalance,menu,menuRecommended
+    caffeine:
+      spec: maximumSize=500,expireAfterWrite=60s
   datasource:
-    url: jdbc:h2:mem:qrapp;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
-    driver-class-name: org.h2.Driver
-    username: sa
-    password:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://aws-1-ap-northeast-1.pooler.supabase.com:5432/postgres}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres.yoxxgeiwbekdvczedotg}
+    password: ${SPRING_DATASOURCE_PASSWORD:BroApp#2025}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      pool-name: ${SPRING_DATASOURCE_HIKARI_POOL_NAME:QrAppHikariPool}
+      maximum-pool-size: ${SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE:4}
+      minimum-idle: ${SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE:0}
+      idle-timeout: ${SPRING_DATASOURCE_HIKARI_IDLE_TIMEOUT:60000}
+      max-lifetime: ${SPRING_DATASOURCE_HIKARI_MAX_LIFETIME:540000}
+      connection-timeout: ${SPRING_DATASOURCE_HIKARI_CONNECTION_TIMEOUT:5000}
+      validation-timeout: ${SPRING_DATASOURCE_HIKARI_VALIDATION_TIMEOUT:3000}
+      keepalive-time: ${SPRING_DATASOURCE_HIKARI_KEEPALIVE_TIME:0}
+      connection-init-sql: "SET statement_timeout = '8s'"
+  flyway:
+    enabled: ${SPRING_FLYWAY_ENABLED:true}
+    baseline-on-migrate: ${SPRING_FLYWAY_BASELINE_ON_MIGRATE:true}
+    baseline-version: ${SPRING_FLYWAY_BASELINE_VERSION:1}
+    lock-retry-count: ${SPRING_FLYWAY_LOCK_RETRY_COUNT:180}
   jpa:
     hibernate:
-      ddl-auto: update
-    show-sql: true
-    database-platform: org.hibernate.dialect.H2Dialect
+      ddl-auto: validate
+    show-sql: false
+    open-in-view: false
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    properties:
+      hibernate:
+        default_batch_fetch_size: 50
+        jdbc:
+          fetch_size: 50
+        session:
+          events:
+            log:
+              LOG_QUERIES_SLOWER_THAN_MS: 500
 
 # Allowed CORS origins (comma-separated). Defaults to frontend dev server.
 app:

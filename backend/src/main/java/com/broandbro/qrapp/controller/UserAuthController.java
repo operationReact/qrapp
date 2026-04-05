@@ -1,11 +1,14 @@
 package com.broandbro.qrapp.controller;
 
 import com.broandbro.qrapp.dto.RegisterRequest;
-import com.broandbro.qrapp.dto.LoginResponse;
+import com.broandbro.qrapp.dto.UpdateProfileRequest;
 import com.broandbro.qrapp.dto.UserResponse;
+import com.broandbro.qrapp.entity.User;
 import com.broandbro.qrapp.service.UserService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -36,17 +39,35 @@ public class UserAuthController {
     }
 
     @GetMapping("/me")
-    public ResponseEntity<?> me(@RequestHeader(value = "Authorization", required = false) String auth) {
-        // expecting Bearer <token>
-        if (auth == null || !auth.startsWith("Bearer ")) return ResponseEntity.status(401).build();
-        String token = auth.substring(7);
-        var u = userService.findByToken(token);
-        return u.map(user -> {
-            UserResponse r = new UserResponse();
-            r.setId(user.getId());
-            r.setPhone(user.getPhone());
-            r.setName(user.getName());
-            return ResponseEntity.ok(r);
-        }).orElseGet(() -> ResponseEntity.status(401).build());
+    public ResponseEntity<?> me(Authentication authentication) {
+        User currentUser = resolveCurrentUser(authentication);
+        if (currentUser == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        UserResponse r = new UserResponse();
+        r.setId(currentUser.getId());
+        r.setPhone(currentUser.getPhone());
+        r.setName(currentUser.getName());
+        return ResponseEntity.ok(r);
+    }
+
+    @PutMapping("/me")
+    public ResponseEntity<?> updateProfile(@RequestBody UpdateProfileRequest req, Authentication authentication) {
+        User currentUser = resolveCurrentUser(authentication);
+        if (currentUser == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        try {
+            return ResponseEntity.ok(userService.updateProfile(currentUser.getPhone(), req));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.badRequest().body(ex.getMessage());
+        }
+    }
+
+    private User resolveCurrentUser(Authentication authentication) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return null;
+        }
+        return userService.findByPhone(authentication.getName()).orElse(null);
     }
 }

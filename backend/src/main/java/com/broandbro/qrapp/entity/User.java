@@ -5,7 +5,7 @@ import lombok.*;
 import java.time.Instant;
 
 @Entity
-@Table(name = "users", indexes = {@Index(columnList = "phone", unique = true)})
+@Table(name = "users")
 @Getter
 @Setter
 @NoArgsConstructor

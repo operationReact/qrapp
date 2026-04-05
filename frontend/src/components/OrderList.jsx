@@ -1,4 +1,4 @@
-import React from 'react';
+import PropTypes from 'prop-types';
 
 export default function OrderList({ orders = [], onUpdateStatus = () => {} }) {
     if (!orders || orders.length === 0) {
@@ -28,3 +28,9 @@ export default function OrderList({ orders = [], onUpdateStatus = () => {} }) {
         </div>
     );
 }
+
+OrderList.propTypes = {
+    orders: PropTypes.array,
+    onUpdateStatus: PropTypes.func,
+};
+

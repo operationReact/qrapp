@@ -10,9 +10,12 @@ import StickyCartBar from "./components/StickyCartBar";
 import AdminDashboard from "./pages/AdminDashboard";
 import { AdminAuthProvider } from "./context/AdminAuthContext";
 import AdminOrders from "./pages/AdminOrders";
+import AdminLogin from "./pages/AdminLogin";
 import { UserAuthProvider } from "./context/UserAuthContext";
 import UserLogin from "./pages/UserLogin";
 import Register from "./pages/Register";
+import Profile from "./pages/Profile";
+import MyOrders from "./pages/MyOrders";
 import PropTypes from 'prop-types';
 
 
@@ -38,11 +41,14 @@ function App() {
                                 <Route path="/" element={<Menu />} />
                                 <Route path="/wallet" element={<Wallet />} />
                                 <Route path="/cart" element={<Cart />} />
+                                <Route path="/orders" element={<MyOrders />} />
+                                <Route path="/profile" element={<Profile />} />
                                 <Route path="/success" element={<Success />} />
 
                                 <Route path="/login" element={<UserLogin />} />
                                 <Route path="/register" element={<Register />} />
 
+                                <Route path="/admin/login" element={<AdminLogin />} />
                                 <Route path="/admin" element={<AdminDashboard />} />
                                 <Route path="/admin/orders" element={<AdminOrders />} />
                             </Routes>

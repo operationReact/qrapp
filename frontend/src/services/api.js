@@ -1,16 +1,31 @@
 import axios from "axios";
 
+function isPrivateOrLocalHostname(hostname) {
+    if (!hostname) return false;
+    if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '0.0.0.0') return true;
+    if (/^10\./.test(hostname)) return true;
+    if (/^192\.168\./.test(hostname)) return true;
+    if (/^172\.(1[6-9]|2\d|3[0-1])\./.test(hostname)) return true;
+    return hostname.endsWith('.local');
+}
+
 // Resolve API base URL:
 // 1) Prefer VITE_API_URL injected at build/dev time
-// 2) If not present, when running in a browser on localhost use http://localhost:8080
-// 3) Otherwise fall back to production URL
+// 2) If not present, when running in a browser on localhost/LAN/private IP use the same host on port 8080
+// 3) If the app itself is being served by the production API host, use the current origin
+// 4) Otherwise fall back to the public production API URL
 const resolvedBase = (() => {
     const vite = import.meta?.env?.VITE_API_URL;
     if (vite) return vite;
     try {
-        const host = (typeof window !== 'undefined' && window.location && window.location.hostname) || '';
-        if (host.includes('localhost') || host === '127.0.0.1') {
-            return 'http://localhost:8080';
+        const location = typeof window !== 'undefined' ? window.location : null;
+        const host = location?.hostname || '';
+        const protocol = location?.protocol || 'http:';
+        if (isPrivateOrLocalHostname(host)) {
+            return `${protocol}//${host}:8080`;
+        }
+        if (location?.origin && host === 'api.broandbro.in') {
+            return location.origin;
         }
     } catch (e) {
         // ignore
@@ -22,7 +37,6 @@ const API = axios.create({ baseURL: resolvedBase });
 
 // Helpful debug during development to confirm which backend URL is used
 if (typeof window !== 'undefined' && window.location && window.location.hostname.includes('localhost')) {
-    // eslint-disable-next-line no-console
     console.debug('[api] using backend base URL:', resolvedBase);
 }
 
@@ -42,6 +56,22 @@ function getCache(key) {
 function setCache(key, data) {
     cache.set(key, { ts: Date.now(), data });
 }
+
+function clearCacheByPrefix(prefix) {
+    Array.from(cache.keys())
+        .filter((key) => key.startsWith(prefix))
+        .forEach((key) => cache.delete(key));
+}
+
+export const clearWalletCache = () => {
+    clearCacheByPrefix('GET:/api/wallet/');
+};
+
+export const notifyWalletUpdated = () => {
+    if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('wallet:updated'));
+    }
+};
 
 // --- dedupe pending requests to avoid firing the same request multiple times
 const pending = new Map(); // key -> promise
@@ -99,7 +129,11 @@ export const setUserAuth = (token) => {
     if (token) {
         API.defaults.headers.common['Authorization'] = `Bearer ${token}`;
         // also persist in localStorage so new tabs pick it up
-        try { localStorage.setItem('userCreds', JSON.stringify({ token })); } catch(e){ console.debug('setUserAuth localStorage write failed', e); }
+        try {
+            const raw = localStorage.getItem('userCreds');
+            const existing = raw ? JSON.parse(raw) : {};
+            localStorage.setItem('userCreds', JSON.stringify({ ...existing, token }));
+        } catch(e){ console.debug('setUserAuth localStorage write failed', e); }
     } else {
         try { localStorage.removeItem('userCreds'); } catch(e){ console.debug('setUserAuth localStorage remove failed', e); }
         delete API.defaults.headers.common['Authorization'];
@@ -108,13 +142,21 @@ export const setUserAuth = (token) => {
 
 export const loginUser = (credentials) => API.post('/auth/login', credentials);
 export const getCurrentUser = () => API.get('/auth/me');
+export const updateCurrentUser = (data) => API.put('/auth/me', data);
+export const getMyOrders = () => API.get('/orders/me');
 
 // getMenu: optionally accepts { isVeg: true|false }
 export const getMenu = (opts = {}) => {
     const params = {};
     if (typeof opts.isVeg === 'boolean') params.isVeg = opts.isVeg;
     if (opts.category) params.category = opts.category;
+    if (typeof opts.recommended === 'boolean') params.recommended = opts.recommended;
+    if (typeof opts.available === 'boolean') params.available = opts.available;
     return API.get("/menu", { params });
+};
+export const getRecommendedMenu = ({ limit = 6 } = {}) => {
+    const safeLimit = Number.isFinite(limit) ? Math.max(1, Math.min(50, Number(limit))) : 6;
+    return API.get('/menu/recommended', { params: { limit: safeLimit } });
 };
 export const createOrder = (data) => API.post("/orders", data);
 // Wallet APIs
@@ -134,26 +176,51 @@ export const walletGetBalance = () => {
     });
 };
 
+export const walletGetOverview = () => {
+    const key = 'GET:/api/wallet/overview';
+    const cached = getCache(key);
+    if (cached) {
+        return Promise.resolve({ data: cached });
+    }
+    return dedupeRequest(key, async () => {
+        const resp = await API.get('/api/wallet/overview');
+        setCache(key, resp.data);
+        return resp;
+    });
+};
+
 // synchronous helper to read cached wallet balance if available (returns raw data or null)
 export const getCachedWalletBalance = () => {
     return getCache('GET:/api/wallet/balance');
 };
 
 // walletGetTransactions: dedupe + short cache to avoid repeated transaction DB reads
-export const walletGetTransactions = () => {
-    const key = 'GET:/api/wallet/transactions';
+export const walletGetTransactions = ({ page = 0, size = 20 } = {}) => {
+    const safePage = Number.isFinite(page) ? Math.max(0, Number(page)) : 0;
+    const safeSize = Number.isFinite(size) ? Math.max(1, Math.min(50, Number(size))) : 20;
+    const key = `GET:/api/wallet/transactions?page=${safePage}&size=${safeSize}`;
     const cached = getCache(key);
     if (cached) return Promise.resolve({ data: cached });
     return dedupeRequest(key, async () => {
-        const resp = await API.get('/api/wallet/transactions');
+        const resp = await API.get('/api/wallet/transactions', { params: { page: safePage, size: safeSize } });
         // cache briefly
         setCache(key, resp.data);
         return resp;
     });
 };
 export const walletCreateOrder = (data) => API.post('/api/wallet/create-order', data);
-export const walletVerifyPayment = (data) => API.post('/api/wallet/verify-payment', data);
-export const walletPay = (data) => API.post('/api/wallet/pay', data);
+export const walletVerifyPayment = async (data) => {
+    const resp = await API.post('/api/wallet/verify-payment', data);
+    clearWalletCache();
+    notifyWalletUpdated();
+    return resp;
+};
+export const walletPay = async (data) => {
+    const resp = await API.post('/api/wallet/pay', data);
+    clearWalletCache();
+    notifyWalletUpdated();
+    return resp;
+};
 export const createMenuItem = (data) => {
     // If caller passed FormData, send multipart/form-data
     if (data instanceof FormData) {
@@ -162,12 +229,28 @@ export const createMenuItem = (data) => {
     }
     return API.post("/menu", data);
 };
-export const getOrdersAdmin = ({ page = 0, size = 10, status } = {}) => {
+export const getOrdersAdmin = ({
+    page = 0,
+    size = 10,
+    status,
+    paymentStatus,
+    priority,
+    query,
+    liveOnly,
+} = {}) => {
     const params = { page, size };
     if (status) params.status = status;
+    if (paymentStatus) params.paymentStatus = paymentStatus;
+    if (priority) params.priority = priority;
+    if (query) params.query = query;
+    if (typeof liveOnly === 'boolean') params.liveOnly = liveOnly;
     return API.get('/admin/orders', { params });
 };
 export const updateOrderStatusAdmin = (id, data) => API.patch(`/admin/orders/${id}/status`, data);
+export const updateAdminOrder = (id, data) => API.patch(`/admin/orders/${id}`, data);
+export const getAdminOrder = (id) => API.get(`/admin/orders/${id}`);
+export const getAdminOrderDashboard = ({ liveLimit = 12 } = {}) => API.get('/admin/orders/dashboard', { params: { liveLimit } });
+export const getLiveOrdersAdmin = ({ limit = 12 } = {}) => API.get('/admin/orders/live', { params: { limit } });
 export const updateMenuItem = (id, data) => {
     if (data instanceof FormData) {
         // Let browser set the multipart Content-Type with boundary

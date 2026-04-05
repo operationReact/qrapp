@@ -12,6 +12,7 @@ export default function MenuItemEditModal({ item, onClose, onSuccess, onPreviewC
         description: '',
         imageUrl: '',
         available: true,
+        recommended: false,
         tag: '',
         isVeg: false,
         imageFile: null,
@@ -30,6 +31,7 @@ export default function MenuItemEditModal({ item, onClose, onSuccess, onPreviewC
                 description: item.description || '',
                 imageUrl: item.imageUrl || '',
                 available: item.available == null ? true : !!item.available,
+                recommended: !!item.recommended,
                 tag: item.tag || '',
                 isVeg: !!item.isVeg,
                 imageFile: null,
@@ -113,6 +115,7 @@ export default function MenuItemEditModal({ item, onClose, onSuccess, onPreviewC
                 fd.append('category', form.category.trim());
                 fd.append('description', form.description.trim());
                 fd.append('available', String(!!form.available));
+                fd.append('recommended', String(!!form.recommended));
                 fd.append('tag', form.tag.trim());
                 fd.append('isVeg', String(!!form.isVeg));
                 fd.append('image', form.imageFile);
@@ -125,6 +128,7 @@ export default function MenuItemEditModal({ item, onClose, onSuccess, onPreviewC
                     description: form.description.trim(),
                     imageUrl: form.imageUrl ? form.imageUrl.trim() : item.imageUrl || '',
                     available: !!form.available,
+                    recommended: !!form.recommended,
                     tag: form.tag.trim(),
                     isVeg: !!form.isVeg
                 };
@@ -203,6 +207,11 @@ export default function MenuItemEditModal({ item, onClose, onSuccess, onPreviewC
                                 <button type="button" onClick={toggleAvailable} role="switch" aria-checked={form.available} className={`w-12 h-7 flex items-center rounded-full p-1 transition-colors ${form.available ? 'bg-green-500' : 'bg-gray-300'}`}>
                                     <span className={`w-5 h-5 bg-white rounded-full shadow transform transition-transform ${form.available ? 'translate-x-5' : ''}`} />
                                 </button>
+                            </label>
+
+                            <label className="flex items-center">
+                                <input type="checkbox" checked={form.recommended} onChange={handleChange('recommended')} className="mr-2" />
+                                <span className="text-sm">Recommended</span>
                             </label>
 
                             <label className="flex items-center">

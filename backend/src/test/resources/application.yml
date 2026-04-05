@@ -1,0 +1,23 @@
+spring:
+  cache:
+    type: simple
+  datasource:
+    url: jdbc:h2:mem:qrapp;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;DB_CLOSE_DELAY=-1
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  flyway:
+    enabled: false
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    open-in-view: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+razorpay:
+  key: test-key
+  secret: test-secret
+  webhookSecret: test-webhook
+

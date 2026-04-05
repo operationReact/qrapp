@@ -12,12 +12,11 @@
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel target="17">
-      <module name="qrapp" target="1.5" />
+      <module name="backend" target="1.5" />
     </bytecodeTargetLevel>
   </component>
   <component name="JavacSettings">
     <option name="ADDITIONAL_OPTIONS_OVERRIDE">
-      <module name="qrapp" options="" />
       <module name="qrapp.backend" options="-parameters" />
       <module name="qrapp.backend.main" options="-parameters" />
       <module name="qrapp.backend.test" options="-parameters" />

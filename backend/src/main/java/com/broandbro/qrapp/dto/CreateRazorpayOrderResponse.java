@@ -7,5 +7,8 @@ import lombok.Data;
 @AllArgsConstructor
 public class CreateRazorpayOrderResponse {
     private String razorpayOrderId;
+    private String keyId;
+    private Long amount;
+    private String currency;
 }
 

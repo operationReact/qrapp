@@ -12,9 +12,7 @@ public class FilterConfig {
     public FilterRegistrationBean<TokenAuthFilter> tokenFilter(TokenAuthFilter filter) {
         FilterRegistrationBean<TokenAuthFilter> reg = new FilterRegistrationBean<>();
         reg.setFilter(filter);
-        reg.addUrlPatterns("/*");
-        // Ensure filter order runs early
-        reg.setOrder(1);
+        reg.setEnabled(false);
         return reg;
     }
 }

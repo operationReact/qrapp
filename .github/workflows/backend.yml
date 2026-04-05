@@ -63,7 +63,13 @@ jobs:
       - name: Rename JAR to app.jar
         run: |
           cd backend/build/libs
-          JAR_FILE=$(ls *.jar | head -n 1)
+          JAR_FILE=$(find . -maxdepth 1 -type f -name 'qrapp-*.jar' ! -name '*-plain.jar' | sort | head -n 1)
+          if [ -z "$JAR_FILE" ]; then
+            echo "ERROR: runnable boot JAR not found in backend/build/libs"
+            ls -lha
+            exit 1
+          fi
+          rm -f app.jar app.jar.sha256
           mv "$JAR_FILE" app.jar
 
       # ✅ Create checksum for jar (used to verify upload integrity)
@@ -86,33 +92,19 @@ jobs:
           sync: true
           script: |
             mkdir -p /home/ubuntu/app
-            rm -f /home/ubuntu/app/app.jar
+            rm -rf /home/ubuntu/app/app.jar /home/ubuntu/app/app.jar.sha256
 
-      # ✅ Upload JAR (FIXED)
-      - name: Upload JAR to VPS
+      # ✅ Upload deploy artifacts in one shot so nothing gets deleted between uploads
+      - name: Upload app artifacts to VPS
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.HOST }}
           username: root
           key: ${{ secrets.SSH_KEY }}
-          # upload the jar into the app folder; use strip_components to ensure only the file is placed
-          source: "backend/build/libs/app.jar"
+          # upload both files together so the checksum upload cannot delete app.jar
+          source: "backend/build/libs/app.jar,backend/build/libs/app.jar.sha256"
           target: "/home/ubuntu/app/"
           overwrite: true
-          rm: true
-          strip_components: 3
-          timeout: 120s
-
-      - name: Upload checksum to VPS
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.HOST }}
-          username: root
-          key: ${{ secrets.SSH_KEY }}
-          source: "backend/build/libs/app.jar.sha256"
-          target: "/home/ubuntu/app/"
-          overwrite: true
-          rm: true
           strip_components: 3
           timeout: 120s
 
