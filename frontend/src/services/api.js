@@ -12,8 +12,8 @@ function isPrivateOrLocalHostname(hostname) {
 // Resolve API base URL:
 // 1) Prefer VITE_API_URL injected at build/dev time
 // 2) If not present, when running in a browser on localhost/LAN/private IP use the same host on port 8080
-// 3) If deployed on the same origin, use the current origin
-// 4) Otherwise fall back to production URL
+// 3) If the app itself is being served by the production API host, use the current origin
+// 4) Otherwise fall back to the public production API URL
 const resolvedBase = (() => {
     const vite = import.meta?.env?.VITE_API_URL;
     if (vite) return vite;
@@ -21,11 +21,10 @@ const resolvedBase = (() => {
         const location = typeof window !== 'undefined' ? window.location : null;
         const host = location?.hostname || '';
         const protocol = location?.protocol || 'http:';
-        const port = location?.port || '';
         if (isPrivateOrLocalHostname(host)) {
             return `${protocol}//${host}:8080`;
         }
-        if (location?.origin && port !== '5173' && port !== '4173') {
+        if (location?.origin && host === 'api.broandbro.in') {
             return location.origin;
         }
     } catch (e) {
