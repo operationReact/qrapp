@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types';
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAdminAuth } from '../context/AdminAuthContext';
 import { getAdminOrderDashboard, getOrdersAdmin, updateAdminOrder } from '../services/api';
 
@@ -46,6 +46,7 @@ function summarizeItems(order) {
 
 export default function AdminOrderOperations({ embedded = false }) {
     const navigate = useNavigate();
+    const location = useLocation();
     const { setAdmin } = useAdminAuth();
 
     const [dashboard, setDashboard] = useState(null);
@@ -123,7 +124,7 @@ export default function AdminOrderOperations({ embedded = false }) {
         } catch (err) {
             if (err?.response?.status === 401 || err?.response?.status === 403) {
                 setAdmin(null);
-                navigate('/admin/login');
+                navigate('/login', { replace: true, state: { from: location.pathname } });
                 return;
             }
             console.error(err);
@@ -157,7 +158,7 @@ export default function AdminOrderOperations({ embedded = false }) {
         } catch (err) {
             if (err?.response?.status === 401 || err?.response?.status === 403) {
                 setAdmin(null);
-                navigate('/admin/login');
+                navigate('/login', { replace: true, state: { from: location.pathname } });
                 return;
             }
             console.error(err);

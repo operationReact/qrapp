@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import PropTypes from 'prop-types';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { createMenuItem, deleteMenuItem, getMenu, updateMenuItem } from '../services/api';
 import { useAdminAuth } from '../context/AdminAuthContext';
 import MenuItemEditModal from '../components/MenuItemEditModal';
@@ -49,6 +49,7 @@ function resetMenuForm(setters) {
 
 export default function AdminDashboard() {
     const navigate = useNavigate();
+    const location = useLocation();
     const { admin, setAdmin } = useAdminAuth();
 
     const [menu, setMenu] = useState([]);
@@ -74,9 +75,9 @@ export default function AdminDashboard() {
 
     useEffect(() => {
         if (!admin?.username || !admin?.password) {
-            navigate('/admin/login');
+            navigate('/login', { replace: true, state: { from: location.pathname } });
         }
-    }, [admin, navigate]);
+    }, [admin, location.pathname, navigate]);
 
     async function loadMenu() {
         setLoadingMenu(true);
@@ -86,7 +87,7 @@ export default function AdminDashboard() {
         } catch (err) {
             if (err?.response?.status === 401 || err?.response?.status === 403) {
                 setAdmin(null);
-                navigate('/admin/login');
+                navigate('/login', { replace: true, state: { from: location.pathname } });
                 return;
             }
             console.error(err);
@@ -176,7 +177,7 @@ export default function AdminDashboard() {
             console.error(err);
             if (err?.response?.status === 401 || err?.response?.status === 403) {
                 setAdmin(null);
-                navigate('/admin/login');
+                navigate('/login', { replace: true, state: { from: location.pathname } });
                 return;
             }
             setCreateError(err?.response?.data?.message || err?.response?.data || 'Failed to create menu item');
@@ -217,7 +218,7 @@ export default function AdminDashboard() {
                                 Signed in as <strong className="text-slate-900">{admin?.username}</strong>
                             </div>
                             <button onClick={() => navigate('/admin/orders')} className="touch-button rounded-2xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50">Open full orders page</button>
-                            <button onClick={() => { setAdmin(null); navigate('/admin/login'); }} className="touch-button rounded-2xl bg-slate-900 px-4 py-3 text-sm font-medium text-white transition hover:bg-slate-800">Sign out</button>
+                            <button onClick={() => { setAdmin(null); navigate('/login'); }} className="touch-button rounded-2xl bg-slate-900 px-4 py-3 text-sm font-medium text-white transition hover:bg-slate-800">Sign out</button>
                         </div>
                     </div>
                 </header>
