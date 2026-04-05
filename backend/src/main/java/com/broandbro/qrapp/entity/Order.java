@@ -1,5 +1,6 @@
 package com.broandbro.qrapp.entity;
 
+import com.broandbro.qrapp.enums.OrderPriority;
 import com.broandbro.qrapp.enums.PaymentMethod;
 import com.broandbro.qrapp.enums.OrderStatus;
 import jakarta.persistence.*;
@@ -11,7 +12,7 @@ import java.time.LocalDateTime;
 @Table(name = "orders")
 @Data
 public class Order {
-    @Id @GeneratedValue
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column(name = "phone")
@@ -36,6 +37,28 @@ public class Order {
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
+
+    @Column(name = "last_status_changed_at")
+    private LocalDateTime lastStatusChangedAt;
+
+    @Column(name = "started_at")
+    private LocalDateTime startedAt;
+
+    @Column(name = "ready_at")
+    private LocalDateTime readyAt;
+
+    @Column(name = "completed_at")
+    private LocalDateTime completedAt;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "priority")
+    private OrderPriority priority;
+
+    @Column(name = "admin_note", length = 1000)
+    private String adminNote;
+
+    @Column(name = "assigned_admin")
+    private String assignedAdmin;
 
     // Explicit getter to ensure callers can use getId() even if Lombok is not processed
     public Long getId() {

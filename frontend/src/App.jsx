@@ -10,6 +10,7 @@ import StickyCartBar from "./components/StickyCartBar";
 import AdminDashboard from "./pages/AdminDashboard";
 import { AdminAuthProvider } from "./context/AdminAuthContext";
 import AdminOrders from "./pages/AdminOrders";
+import AdminLogin from "./pages/AdminLogin";
 import { UserAuthProvider } from "./context/UserAuthContext";
 import UserLogin from "./pages/UserLogin";
 import Register from "./pages/Register";
@@ -47,6 +48,7 @@ function App() {
                                 <Route path="/login" element={<UserLogin />} />
                                 <Route path="/register" element={<Register />} />
 
+                                <Route path="/admin/login" element={<AdminLogin />} />
                                 <Route path="/admin" element={<AdminDashboard />} />
                                 <Route path="/admin/orders" element={<AdminOrders />} />
                             </Routes>

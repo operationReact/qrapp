@@ -230,12 +230,28 @@ export const createMenuItem = (data) => {
     }
     return API.post("/menu", data);
 };
-export const getOrdersAdmin = ({ page = 0, size = 10, status } = {}) => {
+export const getOrdersAdmin = ({
+    page = 0,
+    size = 10,
+    status,
+    paymentStatus,
+    priority,
+    query,
+    liveOnly,
+} = {}) => {
     const params = { page, size };
     if (status) params.status = status;
+    if (paymentStatus) params.paymentStatus = paymentStatus;
+    if (priority) params.priority = priority;
+    if (query) params.query = query;
+    if (typeof liveOnly === 'boolean') params.liveOnly = liveOnly;
     return API.get('/admin/orders', { params });
 };
 export const updateOrderStatusAdmin = (id, data) => API.patch(`/admin/orders/${id}/status`, data);
+export const updateAdminOrder = (id, data) => API.patch(`/admin/orders/${id}`, data);
+export const getAdminOrder = (id) => API.get(`/admin/orders/${id}`);
+export const getAdminOrderDashboard = ({ liveLimit = 12 } = {}) => API.get('/admin/orders/dashboard', { params: { liveLimit } });
+export const getLiveOrdersAdmin = ({ limit = 12 } = {}) => API.get('/admin/orders/live', { params: { limit } });
 export const updateMenuItem = (id, data) => {
     if (data instanceof FormData) {
         // Let browser set the multipart Content-Type with boundary

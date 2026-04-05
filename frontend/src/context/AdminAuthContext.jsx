@@ -1,4 +1,6 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+/* eslint-disable react-refresh/only-export-components */
+import PropTypes from 'prop-types';
+import { createContext, useContext, useState, useEffect } from 'react';
 import { setAdminAuth } from '../services/api';
 
 const AdminAuthContext = createContext(null);
@@ -29,4 +31,8 @@ export const AdminAuthProvider = ({ children }) => {
 };
 
 export const useAdminAuth = () => useContext(AdminAuthContext);
+
+AdminAuthProvider.propTypes = {
+    children: PropTypes.node,
+};
 
