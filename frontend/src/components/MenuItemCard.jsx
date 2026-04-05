@@ -23,9 +23,9 @@ export default function MenuItemCard({ item, onEdit, onDelete }) {
     const veg = item.isVeg === true || item.isVeg === 'true' || item.isVeg === 1 || item.isVeg === '1';
 
     return (
-        <article className="group bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300">
+        <article className="group overflow-hidden rounded-[1.5rem] bg-white shadow-md transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl">
 
-            <div className="relative w-full h-56 sm:h-48 md:h-56 lg:h-48 overflow-hidden bg-gray-100">
+            <div className="relative h-48 w-full overflow-hidden bg-gray-100 sm:h-52 lg:h-48">
                 {imageSrc && !imgError ? (
                     <img
                         src={imageSrc}
@@ -44,45 +44,48 @@ export default function MenuItemCard({ item, onEdit, onDelete }) {
 
                 {/* veg/non-veg badge */}
                 <div className="absolute top-3 left-3 flex items-center gap-2">
-                    <span className={`inline-flex items-center justify-center w-8 h-8 rounded-full ring-1 ring-white ${veg ? 'bg-green-600' : 'bg-red-600'} text-white text-xs`}>{veg ? 'V' : 'N'}</span>
+                    <span className={`inline-flex h-8 w-8 items-center justify-center rounded-full text-xs text-white ring-1 ring-white ${veg ? 'bg-green-600' : 'bg-red-600'}`}>{veg ? 'V' : 'N'}</span>
                     <span className="hidden sm:inline text-white text-xs font-medium drop-shadow">{veg ? 'Veg' : 'Non-Veg'}</span>
                 </div>
 
                 {/* name in image */}
                 <div className="absolute left-3 bottom-3 text-white">
-                    <h3 className="text-sm sm:text-base font-semibold drop-shadow">{item.name}</h3>
+                    <h3 className="line-clamp-2 text-sm font-semibold drop-shadow sm:text-base">{item.name}</h3>
                 </div>
             </div>
 
-            <div className="p-4 space-y-2">
-                <p className="text-xs text-gray-500 line-clamp-2 h-12">{item.description || 'Delicious choice'}</p>
+            <div className="space-y-3 p-4">
+                <p className="h-10 line-clamp-2 text-xs text-gray-500 sm:h-12">{item.description || 'Delicious choice'}</p>
 
-                <div className="flex items-center justify-between">
-                    <div className="flex items-baseline gap-2">
-                        <span className="text-lg sm:text-xl font-extrabold text-gray-900">₹{item.price}</span>
-                        <span className="text-xs text-gray-400">{item.tag || ''}</span>
+                <div className="flex items-end justify-between gap-3">
+                    <div className="min-w-0">
+                        <div className="flex flex-wrap items-baseline gap-2">
+                            <span className="text-lg font-extrabold text-gray-900 sm:text-xl">₹{item.price}</span>
+                            {item.tag && <span className="text-xs font-medium text-amber-600">{item.tag}</span>}
+                        </div>
+                        <div className="mt-1 text-[11px] uppercase tracking-wide text-gray-400">Tap to add instantly</div>
                     </div>
 
                     {/* CTA */}
                     {qty === 0 ? (
                         <button
                             onClick={() => addItem(item)}
-                            className="bg-gradient-to-r from-red-500 to-pink-500 text-white px-4 py-2 rounded-full text-sm shadow hover:from-red-600 hover:to-pink-600 transition"
+                            className="touch-button rounded-full bg-gradient-to-r from-red-500 to-pink-500 px-4 py-2 text-sm font-semibold text-white shadow transition hover:from-red-600 hover:to-pink-600"
                         >
                             Add
                         </button>
                     ) : (
-                        <div className="flex items-center gap-2 bg-gray-100 rounded-full px-2 py-1">
+                        <div className="flex items-center gap-1 rounded-full bg-gray-100 px-1.5 py-1">
                             <button
                                 onClick={() => decreaseItem(item)}
-                                className="w-8 h-8 flex items-center justify-center text-gray-700"
+                                className="flex h-9 w-9 items-center justify-center rounded-full text-lg text-gray-700"
                             >
                                 −
                             </button>
-                            <span className="text-sm font-medium">{qty}</span>
+                            <span className="min-w-[1.5rem] text-center text-sm font-medium">{qty}</span>
                             <button
                                 onClick={() => addItem(item)}
-                                className="w-8 h-8 flex items-center justify-center text-gray-700"
+                                className="flex h-9 w-9 items-center justify-center rounded-full text-lg text-gray-700"
                             >
                                 +
                             </button>

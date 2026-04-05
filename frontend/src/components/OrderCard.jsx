@@ -32,31 +32,31 @@ export default function OrderCard({ order, onUpdateStatus }) {
     };
 
     return (
-        <article className="border rounded-lg p-4 mb-4">
-            <div className="flex justify-between">
+        <article className="mb-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                     <div className={`px-2 py-1 rounded-full text-xs font-medium ${STATUS_COLORS[rawStatus] || STATUS_COLORS[status] || 'bg-gray-100 text-gray-800'}`}>{status}</div>
                     <div className="text-sm text-gray-500">Order ID: {id}</div>
                 </div>
-                <div className="text-right">
+                <div className="text-left sm:text-right">
                     <div className="text-lg font-semibold">₹{total}</div>
                 </div>
             </div>
-            <div className="mt-2">
+            <div className="mt-3 space-y-2">
                 {items.map(it => (
-                    <div key={it.id} className="flex justify-between py-1">
+                    <div key={it.id} className="flex flex-col gap-1 rounded-xl bg-gray-50 px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
                         <div>{it.name} x {it.quantity || it.qty || 1}</div>
                         <div className="text-gray-500">₹{(it.price || 0) * (it.quantity || it.qty || 1)}</div>
                     </div>
                 ))}
             </div>
-            <div className="mt-4 flex gap-2">
+            <div className="mt-4 flex flex-wrap gap-2">
                 {nextActions.map(a => (
-                    <button key={a} onClick={() => doUpdate(a)} disabled={loading} className={`px-3 py-1 rounded ${loading ? 'opacity-50 cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700'}`} aria-label={`Mark order ${id} ${a}`}>
+                    <button key={a} onClick={() => doUpdate(a)} disabled={loading} className={`touch-button rounded-xl px-3 py-2 text-sm font-medium ${loading ? 'cursor-not-allowed opacity-50' : 'bg-blue-600 text-white hover:bg-blue-700'}`} aria-label={`Mark order ${id} ${a}`}>
                         {loading ? 'Saving...' : `Mark ${a}`}
                     </button>
                 ))}
-                <button onClick={() => doUpdate('COMPLETED')} disabled={loading || status === 'COMPLETED'} className={`px-3 py-1 rounded ${loading || status === 'COMPLETED' ? 'opacity-50 cursor-not-allowed' : 'bg-gray-200'}`} aria-label={`Mark order ${id} COMPLETED`}>
+                <button onClick={() => doUpdate('COMPLETED')} disabled={loading || status === 'COMPLETED'} className={`touch-button rounded-xl px-3 py-2 text-sm font-medium ${loading || status === 'COMPLETED' ? 'cursor-not-allowed opacity-50' : 'bg-gray-200'}`} aria-label={`Mark order ${id} COMPLETED`}>
                     Mark COMPLETED
                 </button>
             </div>

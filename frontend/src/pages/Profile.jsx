@@ -109,13 +109,13 @@ export default function Profile() {
     };
 
     return (
-        <div className="min-h-screen bg-page">
+        <div className="page-shell bg-page">
             <Navbar />
 
             <main className="container-premium py-6">
-                <div className="mx-auto max-w-3xl space-y-6">
+                <div className="mx-auto max-w-3xl space-y-5 sm:space-y-6">
                     <div>
-                        <h1 className="text-3xl font-bold text-gray-900">Edit profile</h1>
+                        <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">Edit profile</h1>
                         <p className="mt-2 text-sm text-gray-500">Keep your account details updated so your orders and payments stay smooth.</p>
                     </div>
 
@@ -137,7 +137,7 @@ export default function Profile() {
                         </div>
                     </div>
 
-                    <section className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
+                    <section className="rounded-3xl border border-gray-100 bg-white p-5 shadow-sm sm:p-6">
                         {loading ? (
                             <div className="py-10 text-center text-gray-500">Loading profile...</div>
                         ) : (
@@ -217,14 +217,14 @@ export default function Profile() {
                                     <button
                                         type="button"
                                         onClick={() => navigate('/orders')}
-                                        className="rounded-2xl border border-gray-200 px-5 py-3 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+                                        className="touch-button rounded-2xl border border-gray-200 px-5 py-3 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
                                     >
                                         View my orders
                                     </button>
                                     <button
                                         type="submit"
                                         disabled={saving}
-                                        className="rounded-2xl bg-amber-500 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-amber-600 disabled:cursor-not-allowed disabled:opacity-70"
+                                        className="touch-button rounded-2xl bg-amber-500 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-amber-600 disabled:cursor-not-allowed disabled:opacity-70"
                                     >
                                         {saving ? 'Saving changes...' : 'Save profile'}
                                     </button>

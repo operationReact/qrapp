@@ -149,59 +149,61 @@ export default function MenuItemEditModal({ item, onClose, onSuccess, onPreviewC
     if (!item) return null;
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg w-full max-w-2xl p-6 mx-4 shadow-lg">
-                <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold">Edit menu item</h3>
-                    <button onClick={() => { if (onPreviewChange) onPreviewChange(''); onClose(); }} className="text-gray-500">✕</button>
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-3 sm:items-center sm:p-4">
+            <div className="max-h-[90vh] w-full max-w-2xl overflow-hidden rounded-[1.75rem] bg-white shadow-lg">
+                <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4 sm:px-6">
+                    <h3 className="text-lg font-semibold text-gray-900">Edit menu item</h3>
+                    <button onClick={() => { if (onPreviewChange) onPreviewChange(''); onClose(); }} className="rounded-full bg-gray-100 px-3 py-2 text-sm font-medium text-gray-500">✕</button>
                 </div>
 
-                {error && <div className="text-red-600 mb-3">{error}</div>}
+                <div className="max-h-[calc(90vh-4.5rem)] overflow-y-auto px-5 py-4 sm:px-6 sm:py-5">
+
+                {error && <div className="mb-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">{error}</div>}
 
                 <form onSubmit={handleSubmit}>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         <div>
                             <label className="block text-sm font-medium">Name</label>
-                            <input value={form.name} onChange={handleChange('name')} className="mt-1 block w-full border rounded px-3 py-2" />
+                            <input value={form.name} onChange={handleChange('name')} className="mt-1 block w-full rounded-2xl border border-gray-200 px-3 py-3" />
                         </div>
 
                         <div>
                             <label className="block text-sm font-medium">Price</label>
-                            <input value={form.price} onChange={handleChange('price')} className="mt-1 block w-full border rounded px-3 py-2" />
+                            <input value={form.price} onChange={handleChange('price')} className="mt-1 block w-full rounded-2xl border border-gray-200 px-3 py-3" />
                         </div>
 
                         <div>
                             <label className="block text-sm font-medium">Category</label>
-                            <input value={form.category} onChange={handleChange('category')} className="mt-1 block w-full border rounded px-3 py-2" />
+                            <input value={form.category} onChange={handleChange('category')} className="mt-1 block w-full rounded-2xl border border-gray-200 px-3 py-3" />
                         </div>
 
                         <div>
                             <label className="block text-sm font-medium">Tag</label>
-                            <input value={form.tag} onChange={handleChange('tag')} className="mt-1 block w-full border rounded px-3 py-2" />
+                            <input value={form.tag} onChange={handleChange('tag')} className="mt-1 block w-full rounded-2xl border border-gray-200 px-3 py-3" />
                         </div>
 
                         <div className="md:col-span-2">
                             <label className="block text-sm font-medium">Description</label>
-                            <textarea value={form.description} onChange={handleChange('description')} className="mt-1 block w-full border rounded px-3 py-2" rows={3} />
+                            <textarea value={form.description} onChange={handleChange('description')} className="mt-1 block w-full rounded-2xl border border-gray-200 px-3 py-3" rows={3} />
                         </div>
 
                         <div>
                             <label className="block text-sm font-medium">Image</label>
-                            <input type="file" accept="image/*" onChange={handleFileChange} className="mt-1 block w-full" />
+                            <input type="file" accept="image/*" onChange={handleFileChange} className="mt-1 block w-full text-sm" />
                             <div className="mt-2 text-xs text-gray-500">Leave blank to keep current image. Max 5MB.</div>
                             {form.previewUrl ? (
                                 <div className="mt-2 flex items-center gap-3">
-                                    <img src={form.previewUrl.startsWith('http') ? form.previewUrl : computeImageSrc(form.previewUrl)} alt={form.name} className="w-24 h-24 object-cover rounded" />
-                                    <button type="button" onClick={handleRemoveFile} className="px-2 py-1 bg-gray-100 rounded">Remove</button>
+                                    <img src={form.previewUrl.startsWith('http') ? form.previewUrl : computeImageSrc(form.previewUrl)} alt={form.name} className="h-24 w-24 rounded-2xl object-cover" />
+                                    <button type="button" onClick={handleRemoveFile} className="rounded-xl bg-gray-100 px-3 py-2 text-sm font-medium text-gray-700">Remove</button>
                                 </div>
                             ) : (form.imageUrl ? (
                                 <div className="mt-2">
-                                    <img src={form.imageUrl.startsWith('http') ? form.imageUrl : computeImageSrc(form.imageUrl)} alt={form.name} className="w-24 h-24 object-cover rounded" />
+                                    <img src={form.imageUrl.startsWith('http') ? form.imageUrl : computeImageSrc(form.imageUrl)} alt={form.name} className="h-24 w-24 rounded-2xl object-cover" />
                                 </div>
                             ) : null)}
                         </div>
 
-                        <div className="flex items-center gap-4">
+                        <div className="flex flex-col gap-4 rounded-2xl border border-gray-100 bg-gray-50 p-4 sm:flex-row sm:items-center sm:justify-between">
                             <label className="flex items-center space-x-3">
                                 <span className="text-sm">Available</span>
                                 <button type="button" onClick={toggleAvailable} role="switch" aria-checked={form.available} className={`w-12 h-7 flex items-center rounded-full p-1 transition-colors ${form.available ? 'bg-green-500' : 'bg-gray-300'}`}>
@@ -221,11 +223,12 @@ export default function MenuItemEditModal({ item, onClose, onSuccess, onPreviewC
                         </div>
                     </div>
 
-                    <div className="mt-4 flex items-center gap-3">
-                        <button type="submit" disabled={submitting} className="px-4 py-2 bg-brand-600 text-white rounded">{submitting ? 'Saving...' : 'Save changes'}</button>
-                        <button type="button" onClick={() => { if (onPreviewChange) onPreviewChange(''); onClose(); }} className="px-3 py-2 bg-gray-100 rounded">Cancel</button>
+                    <div className="mt-4 flex flex-col-reverse gap-3 sm:flex-row sm:items-center">
+                        <button type="submit" disabled={submitting} className="touch-button rounded-2xl bg-brand-600 px-4 py-3 text-sm font-semibold text-white">{submitting ? 'Saving...' : 'Save changes'}</button>
+                        <button type="button" onClick={() => { if (onPreviewChange) onPreviewChange(''); onClose(); }} className="touch-button rounded-2xl bg-gray-100 px-4 py-3 text-sm font-medium text-gray-700">Cancel</button>
                     </div>
                 </form>
+                </div>
             </div>
         </div>
     );

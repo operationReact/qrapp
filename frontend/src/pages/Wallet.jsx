@@ -246,7 +246,7 @@ export default function Wallet() {
     }
 
     return (
-        <div className="min-h-screen bg-page">
+        <div className="page-shell bg-page">
             <Navbar />
 
             <main className="container-premium py-4 sm:py-6">
@@ -263,7 +263,7 @@ export default function Wallet() {
                                     Add money, monitor recent activity, and use your wallet for one-tap checkout on mobile.
                                 </p>
 
-                                <div className="mt-6 flex flex-wrap items-end gap-4">
+                                <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-end">
                                     <div>
                                         <div className="text-sm text-white/80">Available balance</div>
                                         <div className="mt-2 text-4xl font-black sm:text-5xl">{loading ? '...' : formatCurrencyFromPaise(balance)}</div>
@@ -303,13 +303,13 @@ export default function Wallet() {
                                         type="button"
                                         onClick={handleAddMoney}
                                         disabled={adding}
-                                        className="rounded-2xl bg-amber-500 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-amber-600 disabled:cursor-not-allowed disabled:opacity-70"
+                                        className="touch-button rounded-2xl bg-amber-500 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-amber-600 disabled:cursor-not-allowed disabled:opacity-70"
                                     >
                                         {adding ? 'Processing...' : 'Add money'}
                                     </button>
                                 </div>
 
-                                <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
+                                <div className="mt-4 flex gap-2 overflow-x-auto pb-1 no-scrollbar">
                                     {QUICK_AMOUNTS.map((amount) => (
                                         <button
                                             key={amount}
@@ -401,7 +401,7 @@ export default function Wallet() {
                                         key={item.key}
                                         type="button"
                                         onClick={() => setFilter(item.key)}
-                                        className={`rounded-full px-4 py-2 text-sm font-semibold transition ${filter === item.key ? 'bg-amber-500 text-white shadow-sm' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                                        className={`touch-button rounded-full px-4 py-2 text-sm font-semibold transition ${filter === item.key ? 'bg-amber-500 text-white shadow-sm' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
                                     >
                                         {item.label}
                                     </button>
@@ -410,7 +410,7 @@ export default function Wallet() {
                                     type="button"
                                     onClick={handleRefresh}
                                     disabled={refreshing}
-                                    className="inline-flex items-center gap-2 rounded-full border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:opacity-70"
+                                    className="touch-button inline-flex items-center gap-2 rounded-full border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:opacity-70"
                                 >
                                     <ArrowPathIcon className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
                                     Refresh

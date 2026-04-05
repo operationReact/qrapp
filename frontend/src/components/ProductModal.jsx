@@ -18,27 +18,27 @@ export default function ProductModal({ item, onClose }) {
     const imageSrc = computeImageSrc(item.imageUrl);
 
     return (
-        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center">
+        <div className="fixed inset-0 z-50 flex items-end justify-center p-3 md:items-center md:p-4">
             <div className="absolute inset-0 bg-black/40" onClick={onClose}></div>
 
-            <div className="bg-white rounded-t-xl w-full md:rounded-lg md:max-w-md md:w-full z-10 p-4 md:p-6">
+            <div className="z-10 max-h-[90vh] w-full overflow-y-auto rounded-[1.75rem] bg-white p-4 shadow-xl md:max-w-md md:p-6">
                 {imageSrc && (
-                    <img loading="lazy" src={imageSrc} alt={item.name} className="w-full h-40 md:h-56 object-cover rounded-md mb-4 opacity-0 transition-opacity duration-500" onLoad={(e)=> e.currentTarget.classList.remove('opacity-0')} />
+                    <img loading="lazy" src={imageSrc} alt={item.name} className="mb-4 h-44 w-full rounded-2xl object-cover opacity-0 transition-opacity duration-500 md:h-56" onLoad={(e)=> e.currentTarget.classList.remove('opacity-0')} />
                 )}
                 <h3 className="text-xl font-semibold">{item.name}</h3>
                 <p className="text-sm text-gray-600">{item.description}</p>
 
-                <div className="flex items-center gap-3 mt-4">
-                    <button onClick={() => setQty(q => Math.max(1, q - 1))} className="px-4 py-2 bg-gray-200 rounded-md transition-transform duration-150 active:scale-95">-</button>
-                    <div className="px-4">{qty}</div>
-                    <button onClick={() => setQty(q => q + 1)} className="px-4 py-2 bg-gray-200 rounded-md transition-transform duration-150 active:scale-95">+</button>
+                <div className="mt-4 flex items-center gap-3">
+                    <button onClick={() => setQty(q => Math.max(1, q - 1))} className="flex h-11 w-11 items-center justify-center rounded-xl bg-gray-200 text-lg transition-transform duration-150 active:scale-95">-</button>
+                    <div className="min-w-[2rem] px-2 text-center text-base font-semibold">{qty}</div>
+                    <button onClick={() => setQty(q => q + 1)} className="flex h-11 w-11 items-center justify-center rounded-xl bg-gray-200 text-lg transition-transform duration-150 active:scale-95">+</button>
 
-                    <div className="ml-auto font-semibold">₹{item.price * qty}</div>
+                    <div className="ml-auto text-lg font-semibold">₹{item.price * qty}</div>
                 </div>
 
-                <div className="mt-4 flex flex-col md:flex-row gap-2">
-                    <button onClick={() => { for (let i=0;i<qty;i++) addItem(item); onClose(); }} className="w-full bg-brand-600 text-white py-3 rounded-md transition-transform duration-150 active:scale-95">Add & Close</button>
-                    <button onClick={onClose} className="w-full md:w-auto border py-3 rounded-md transition-transform duration-150 active:scale-95">Cancel</button>
+                <div className="mt-4 flex flex-col gap-2 md:flex-row">
+                    <button onClick={() => { for (let i=0;i<qty;i++) addItem(item); onClose(); }} className="touch-button w-full rounded-2xl bg-brand-600 py-3 text-sm font-semibold text-white transition-transform duration-150 active:scale-95">Add & Close</button>
+                    <button onClick={onClose} className="touch-button w-full rounded-2xl border border-gray-200 py-3 text-sm font-medium text-gray-700 transition-transform duration-150 active:scale-95 md:w-auto md:px-5">Cancel</button>
                 </div>
             </div>
         </div>

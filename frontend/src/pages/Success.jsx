@@ -6,11 +6,11 @@ export default function Success() {
     const orderId = location.state?.orderId;
 
     return (
-        <div className="min-h-screen bg-page px-4 py-10 sm:px-6">
+        <div className="page-shell bg-page px-4 py-8 sm:px-6 sm:py-10">
             <div className="mx-auto flex min-h-[70vh] max-w-2xl items-center justify-center">
-                <div className="w-full rounded-[2rem] border border-gray-100 bg-white p-8 text-center shadow-xl sm:p-10">
+                <div className="w-full rounded-[2rem] border border-gray-100 bg-white p-6 text-center shadow-xl sm:p-10">
                     <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-green-100 text-4xl">✅</div>
-                    <h2 className="mt-6 text-3xl font-bold text-gray-900">Order placed successfully</h2>
+                    <h2 className="mt-6 text-2xl font-bold text-gray-900 sm:text-3xl">Order placed successfully</h2>
                     <p className="mt-3 text-sm text-gray-500 sm:text-base">
                         Thanks for ordering — we’re preparing your food and will keep your order status updated.
                     </p>

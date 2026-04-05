@@ -61,21 +61,22 @@ export default function UserLogin() {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-page">
-            <div className="w-full max-w-md bg-white rounded shadow p-6">
-                <h1 className="text-2xl font-bold mb-4">Sign in</h1>
-                {error && <div className="mb-3 text-red-600">{error}</div>}
+        <div className="page-shell flex min-h-screen items-center justify-center bg-page px-3 py-6 sm:px-4">
+            <div className="w-full max-w-md rounded-[1.75rem] bg-white p-5 shadow-xl sm:p-6">
+                <h1 className="mb-2 text-2xl font-bold text-gray-900">Sign in</h1>
+                <p className="mb-4 text-sm text-gray-500">Continue to your menu, wallet, and order history.</p>
+                {error && <div className="mb-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">{error}</div>}
                 <form onSubmit={submit}>
                     <label className="block mb-2">
                         <span className="text-sm font-medium">Phone or username</span>
-                        <input value={identifier} onChange={e => setIdentifier(e.target.value)} required className="mt-1 block w-full border rounded px-3 py-2" placeholder="e.g. 1234567890 or admin" />
+                        <input value={identifier} onChange={e => setIdentifier(e.target.value)} required className="mt-1 block w-full rounded-2xl border border-gray-200 px-4 py-3" placeholder="e.g. 1234567890 or admin" />
                     </label>
                     <label className="block mb-4">
                         <span className="text-sm font-medium">Password</span>
-                        <input type="password" value={password} onChange={e => setPassword(e.target.value)} required className="mt-1 block w-full border rounded px-3 py-2" />
+                        <input type="password" value={password} onChange={e => setPassword(e.target.value)} required className="mt-1 block w-full rounded-2xl border border-gray-200 px-4 py-3" />
                     </label>
-                    <div className="flex items-center justify-between mb-3">
-                        <button type="submit" disabled={loading} className="px-4 py-2 bg-brand-600 text-white rounded">
+                    <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <button type="submit" disabled={loading} className="touch-button rounded-2xl bg-brand-600 px-4 py-3 text-sm font-semibold text-white">
                             {loading ? 'Signing in...' : 'Sign in'}
                         </button>
                         <Link to="/" className="text-sm text-gray-600">Back to menu</Link>

@@ -8,9 +8,35 @@
   --ui-card: #ffffff;
   --bg-soft: #fffaf0;
   --base-font: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+  --app-header-height: 72px;
+  --app-safe-bottom: env(safe-area-inset-bottom, 0px);
 }
 
-body{ font-family: var(--base-font), sans-serif; background: linear-gradient(180deg, #fffaf6 0%, #f8fafc 100%); }
+html { scroll-behavior: smooth; }
+
+body{
+  font-family: var(--base-font), sans-serif;
+  background: linear-gradient(180deg, #fffaf6 0%, #f8fafc 100%);
+  min-width: 320px;
+  overflow-x: hidden;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+input,
+select,
+textarea {
+  font-size: 16px;
+}
 
 /* Slightly bolder header text for premium look */
 header .text-sm{ font-weight:600 }
@@ -33,8 +59,40 @@ header .text-sm{ font-weight:600 }
   max-width: 1100px;
   margin-left: auto;
   margin-right: auto;
-  padding-left: 1rem;
-  padding-right: 1rem;
+  padding-left: 0.875rem;
+  padding-right: 0.875rem;
+}
+
+@media (min-width: 640px) {
+  .container-premium {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
+
+.page-shell {
+  min-height: 100vh;
+  padding-bottom: calc(1rem + var(--app-safe-bottom));
+}
+
+.page-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+@media (min-width: 640px) {
+  .page-stack {
+    gap: 1.5rem;
+  }
+}
+
+.sheet-safe-bottom {
+  padding-bottom: calc(1rem + var(--app-safe-bottom));
+}
+
+.touch-button {
+  min-height: 44px;
 }
 
 /* Card shadows and rounded */

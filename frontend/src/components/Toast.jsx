@@ -32,9 +32,9 @@ export default function Toast() {
     if (!text) return null;
 
     return (
-        <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 md:right-6 md:left-auto z-50 pointer-events-none">
+        <div className="pointer-events-none fixed bottom-24 left-1/2 z-50 w-[calc(100vw-1.5rem)] max-w-sm -translate-x-1/2 md:bottom-6 md:left-auto md:right-6 md:w-auto md:max-w-none md:translate-x-0">
             <div
-                className={`pointer-events-auto flex items-center gap-3 bg-brand-600 text-white px-4 py-3 rounded-lg shadow-lg transform transition-all duration-300 ease-out ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
+                className={`pointer-events-auto flex items-center gap-3 rounded-2xl bg-brand-600 px-4 py-3 text-white shadow-lg transition-all duration-300 ease-out ${visible ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}
                 role="status"
                 aria-live="polite"
             >
@@ -55,9 +55,9 @@ export default function Toast() {
                     </g>
                 </svg>
 
-                <div className="flex flex-col">
+                <div className="min-w-0 flex flex-col">
                     <span className="font-medium">Item added to cart</span>
-                    <span className="text-sm text-white/90">{text}</span>
+                    <span className="truncate text-sm text-white/90">{text}</span>
                 </div>
             </div>
         </div>
