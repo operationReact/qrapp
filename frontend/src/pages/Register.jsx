@@ -43,25 +43,26 @@ export default function Register() {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-page">
-            <div className="w-full max-w-md bg-white rounded shadow p-6">
-                <h1 className="text-2xl font-bold mb-4">Create account</h1>
-                {error && <div className="mb-3 text-red-600">{error}</div>}
+        <div className="page-shell flex min-h-screen items-center justify-center bg-page px-3 py-6 sm:px-4">
+            <div className="w-full max-w-md rounded-[1.75rem] bg-white p-5 shadow-xl sm:p-6">
+                <h1 className="mb-2 text-2xl font-bold text-gray-900">Create account</h1>
+                <p className="mb-4 text-sm text-gray-500">Register once to track orders and use wallet checkout faster.</p>
+                {error && <div className="mb-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">{error}</div>}
                 <form onSubmit={submit}>
                     <label className="block mb-2">
                         <span className="text-sm font-medium">Phone</span>
-                        <input value={phone} onChange={e => setPhone(e.target.value)} required className="mt-1 block w-full border rounded px-3 py-2" />
+                        <input value={phone} onChange={e => setPhone(e.target.value)} required className="mt-1 block w-full rounded-2xl border border-gray-200 px-4 py-3" />
                     </label>
                     <label className="block mb-2">
                         <span className="text-sm font-medium">Name (optional)</span>
-                        <input value={name} onChange={e => setName(e.target.value)} className="mt-1 block w-full border rounded px-3 py-2" />
+                        <input value={name} onChange={e => setName(e.target.value)} className="mt-1 block w-full rounded-2xl border border-gray-200 px-4 py-3" />
                     </label>
                     <label className="block mb-4">
                         <span className="text-sm font-medium">Password</span>
-                        <input type="password" value={password} onChange={e => setPassword(e.target.value)} required className="mt-1 block w-full border rounded px-3 py-2" />
+                        <input type="password" value={password} onChange={e => setPassword(e.target.value)} required className="mt-1 block w-full rounded-2xl border border-gray-200 px-4 py-3" />
                     </label>
-                    <div className="flex items-center justify-between">
-                        <button type="submit" disabled={loading} className="px-4 py-2 bg-brand-600 text-white rounded">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <button type="submit" disabled={loading} className="touch-button rounded-2xl bg-brand-600 px-4 py-3 text-sm font-semibold text-white">
                             {loading ? 'Creating...' : 'Create account'}
                         </button>
                         <button type="button" onClick={() => navigate('/login')} className="text-sm text-gray-600">Back to sign in</button>

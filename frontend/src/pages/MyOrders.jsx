@@ -47,14 +47,14 @@ export default function MyOrders() {
     const activeOrders = useMemo(() => orders.filter((order) => !['COMPLETED'].includes(order.status)), [orders]);
 
     return (
-        <div className="min-h-screen bg-page">
+        <div className="page-shell bg-page">
             <Navbar />
 
             <main className="container-premium py-6">
                 <div className="mx-auto max-w-4xl space-y-6">
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
                         <div>
-                            <h1 className="text-3xl font-bold text-gray-900">My orders</h1>
+                            <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">My orders</h1>
                             <p className="text-sm text-gray-500">Review live order status, see what you ordered, and revisit recent purchases.</p>
                         </div>
                         <div className="rounded-2xl bg-white px-4 py-3 shadow-sm border border-gray-100">
@@ -95,7 +95,7 @@ export default function MyOrders() {
                                 const createdAt = order.createdAt ? new Date(order.createdAt) : null;
                                 const statusClass = STATUS_STYLES[order.status] || 'bg-gray-100 text-gray-700';
                                 return (
-                                    <article key={order.id} className="rounded-3xl border border-gray-100 bg-white p-5 shadow-sm">
+                                    <article key={order.id} className="rounded-3xl border border-gray-100 bg-white p-4 shadow-sm sm:p-5">
                                         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                                             <div>
                                                 <div className="flex flex-wrap items-center gap-3">
@@ -112,7 +112,7 @@ export default function MyOrders() {
                                                 </div>
                                             </div>
 
-                                            <div className="rounded-2xl bg-amber-50 px-4 py-3 text-right">
+                                            <div className="rounded-2xl bg-amber-50 px-4 py-3 text-left md:text-right">
                                                 <div className="text-xs uppercase tracking-wide text-amber-700">Total</div>
                                                 <div className="mt-1 text-xl font-bold text-amber-900">₹{Number(order.total || 0).toFixed(2)}</div>
                                             </div>

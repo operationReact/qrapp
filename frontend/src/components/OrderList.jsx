@@ -8,19 +8,19 @@ export default function OrderList({ orders = [], onUpdateStatus = () => {} }) {
     return (
         <div className="grid grid-cols-1 gap-4">
             {orders.map(order => (
-                <div key={order.id} className="bg-white p-4 rounded shadow">
-                    <div className="flex items-center justify-between">
+                <div key={order.id} className="rounded-2xl bg-white p-4 shadow-sm">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <div>
                             <div className="font-bold">Order #{order.id}</div>
                             <div className="text-sm text-gray-600">Status: {order.status}</div>
                         </div>
-                        <div className="flex items-center gap-2">
-                            <button onClick={() => onUpdateStatus(order.id, 'PREPARING')} className="px-2 py-1 bg-gray-100 rounded">Preparing</button>
-                            <button onClick={() => onUpdateStatus(order.id, 'READY')} className="px-2 py-1 bg-gray-100 rounded">Ready</button>
-                            <button onClick={() => onUpdateStatus(order.id, 'COMPLETED')} className="px-2 py-1 bg-gray-100 rounded">Complete</button>
+                        <div className="flex flex-wrap items-center gap-2">
+                            <button onClick={() => onUpdateStatus(order.id, 'PREPARING')} className="touch-button rounded-xl bg-gray-100 px-3 py-2 text-sm font-medium text-gray-700">Preparing</button>
+                            <button onClick={() => onUpdateStatus(order.id, 'READY')} className="touch-button rounded-xl bg-gray-100 px-3 py-2 text-sm font-medium text-gray-700">Ready</button>
+                            <button onClick={() => onUpdateStatus(order.id, 'COMPLETED')} className="touch-button rounded-xl bg-gray-100 px-3 py-2 text-sm font-medium text-gray-700">Complete</button>
                         </div>
                     </div>
-                    <div className="mt-2 text-sm text-gray-700">
+                    <div className="mt-3 text-sm text-gray-700">
                         Items: {(order.items || []).map(i => `${i.name} x${i.quantity}`).join(', ')}
                     </div>
                 </div>

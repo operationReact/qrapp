@@ -203,28 +203,28 @@ export default function AdminDashboard() {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-100 py-6">
+        <div className="page-shell bg-gradient-to-b from-slate-50 via-white to-slate-100 py-4 sm:py-6">
             <div className="mx-auto w-full max-w-7xl px-3 sm:px-4">
-                <header className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                <header className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
                     <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
                         <div>
                             <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-600">Bro & Bro Admin</p>
-                            <h1 className="mt-2 text-3xl font-bold text-slate-900">Professional control desk</h1>
+                            <h1 className="mt-2 text-2xl font-bold text-slate-900 sm:text-3xl">Professional control desk</h1>
                             <p className="mt-2 max-w-3xl text-sm text-slate-600">Run the restaurant from one place: manage live orders, move every order through the kitchen workflow, catch delayed handoffs, and keep the menu polished.</p>
                         </div>
-                        <div className="flex flex-wrap items-center gap-3">
+                        <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center">
                             <div className="rounded-2xl bg-slate-100 px-4 py-3 text-sm text-slate-600">
                                 Signed in as <strong className="text-slate-900">{admin?.username}</strong>
                             </div>
-                            <button onClick={() => navigate('/admin/orders')} className="rounded-2xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50">Open full orders page</button>
-                            <button onClick={() => { setAdmin(null); navigate('/admin/login'); }} className="rounded-2xl bg-slate-900 px-4 py-3 text-sm font-medium text-white transition hover:bg-slate-800">Sign out</button>
+                            <button onClick={() => navigate('/admin/orders')} className="touch-button rounded-2xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50">Open full orders page</button>
+                            <button onClick={() => { setAdmin(null); navigate('/admin/login'); }} className="touch-button rounded-2xl bg-slate-900 px-4 py-3 text-sm font-medium text-white transition hover:bg-slate-800">Sign out</button>
                         </div>
                     </div>
                 </header>
 
-                <nav className="mt-6 flex flex-wrap gap-3">
-                    <button onClick={() => setActiveView('orders')} className={`rounded-2xl px-5 py-3 text-sm font-semibold transition ${activeView === 'orders' ? 'bg-brand-600 text-white shadow-sm' : 'bg-white text-slate-600 shadow-sm ring-1 ring-slate-200 hover:bg-slate-50'}`}>Order operations</button>
-                    <button onClick={() => setActiveView('menu')} className={`rounded-2xl px-5 py-3 text-sm font-semibold transition ${activeView === 'menu' ? 'bg-brand-600 text-white shadow-sm' : 'bg-white text-slate-600 shadow-sm ring-1 ring-slate-200 hover:bg-slate-50'}`}>Menu management</button>
+                <nav className="mt-6 grid gap-3 sm:flex sm:flex-wrap">
+                    <button onClick={() => setActiveView('orders')} className={`touch-button rounded-2xl px-5 py-3 text-sm font-semibold transition ${activeView === 'orders' ? 'bg-brand-600 text-white shadow-sm' : 'bg-white text-slate-600 shadow-sm ring-1 ring-slate-200 hover:bg-slate-50'}`}>Order operations</button>
+                    <button onClick={() => setActiveView('menu')} className={`touch-button rounded-2xl px-5 py-3 text-sm font-semibold transition ${activeView === 'menu' ? 'bg-brand-600 text-white shadow-sm' : 'bg-white text-slate-600 shadow-sm ring-1 ring-slate-200 hover:bg-slate-50'}`}>Menu management</button>
                 </nav>
 
                 <div className="mt-6 space-y-6">
@@ -232,7 +232,7 @@ export default function AdminDashboard() {
 
                     {activeView === 'menu' && (
                         <section className="space-y-6">
-                            <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                            <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
                                 <div className="flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
                                     <div>
                                         <h2 className="text-2xl font-bold text-slate-900">Menu management</h2>
@@ -301,9 +301,9 @@ export default function AdminDashboard() {
                                             <input value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} className="mt-2 block w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm" placeholder="https://..." />
                                         </label>
 
-                                        <div className="md:col-span-2 xl:col-span-3 flex flex-wrap items-center gap-3">
-                                            <button type="submit" disabled={creating} className="rounded-2xl bg-brand-600 px-5 py-3 text-sm font-medium text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-50">{creating ? 'Creating…' : 'Create item'}</button>
-                                            <button type="button" onClick={() => { resetMenuForm({ setName, setPrice, setCategory, setDescription, setImageUrl, setImageFile, setPreviewUrl, setAvailable, setRecommended, setTag, setIsVeg }); setCreateError(null); setCreateSuccess(null); }} className="rounded-2xl border border-slate-200 px-5 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-100">Reset</button>
+                                        <div className="md:col-span-2 xl:col-span-3 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+                                            <button type="submit" disabled={creating} className="touch-button rounded-2xl bg-brand-600 px-5 py-3 text-sm font-medium text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-50">{creating ? 'Creating…' : 'Create item'}</button>
+                                            <button type="button" onClick={() => { resetMenuForm({ setName, setPrice, setCategory, setDescription, setImageUrl, setImageFile, setPreviewUrl, setAvailable, setRecommended, setTag, setIsVeg }); setCreateError(null); setCreateSuccess(null); }} className="touch-button rounded-2xl border border-slate-200 px-5 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-100">Reset</button>
                                         </div>
                                     </form>
                                 </div>
@@ -316,7 +316,7 @@ export default function AdminDashboard() {
 
                                 {!loadingMenu && menu.map((item) => (
                                     <div key={item.id} className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-                                        <div className="flex items-start justify-between gap-4">
+                                        <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                                             <div className="flex items-start gap-4">
                                                 {item.imageUrl ? (
                                                     <img src={item.imageUrl.startsWith('http://') || item.imageUrl.startsWith('https://') ? item.imageUrl : `${API.defaults.baseURL}${item.imageUrl}`} alt={item.name} className="h-20 w-20 rounded-2xl object-cover" />
@@ -338,7 +338,7 @@ export default function AdminDashboard() {
                                                 </div>
                                             </div>
 
-                                            <div className="flex flex-col items-end gap-2">
+                                            <div className="flex flex-col gap-2 xl:items-end">
                                                 <AvailabilityToggle item={item} onToggle={async (id, next) => {
                                                     setMenu((prev) => prev.map((current) => current.id === id ? { ...current, available: next } : current));
                                                     try {

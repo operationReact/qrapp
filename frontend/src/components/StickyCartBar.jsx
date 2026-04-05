@@ -17,10 +17,9 @@ export default function StickyCartBar() {
     const totalPrice = getTotal();
 
     const handleViewCart = () => {
-        if (window.innerWidth < 768) {
+        if (location.pathname === '/') {
             openDrawer();
         } else {
-            // close off-canvas first to avoid overlay on the cart page
             closeDrawer();
             navigate('/cart');
         }
@@ -30,22 +29,21 @@ export default function StickyCartBar() {
 
     return (
         <div className="fixed bottom-0 left-0 right-0 z-50 pointer-events-auto">
-            {/* full-width background with rounded top and safe-area padding */}
-            <div className="bg-white shadow-lg rounded-t-2xl border-t border-gray-100 pb-[env(safe-area-inset-bottom)]">
+            <div className="rounded-t-[1.5rem] border-t border-gray-100 bg-white shadow-lg pb-[env(safe-area-inset-bottom)]">
                 <div className="w-full px-3 sm:px-4 md:mx-auto md:max-w-4xl lg:max-w-5xl xl:max-w-6xl">
-                    <div className="p-3 min-h-[72px] flex items-center">
-                        <div className="flex items-center justify-between w-full gap-3">
-                            <div className="flex items-center gap-3">
-                                <div className="bg-brand-600 text-white rounded-full w-10 h-10 flex items-center justify-center font-semibold text-base">{totalItems}</div>
+                    <div className="flex min-h-[72px] items-center py-3">
+                        <div className="flex w-full items-center justify-between gap-3">
+                            <div className="flex min-w-0 items-center gap-3">
+                                <div className="flex h-10 w-10 flex-none items-center justify-center rounded-full bg-brand-600 text-base font-semibold text-white">{totalItems}</div>
 
-                                <div>
-                                    <div className="text-sm text-gray-500">Items</div>
-                                    <div className="text-base font-semibold">₹{totalPrice}</div>
+                                <div className="min-w-0">
+                                    <div className="text-xs uppercase tracking-wide text-gray-400">Items in cart</div>
+                                    <div className="truncate text-base font-semibold text-gray-900">₹{totalPrice}</div>
                                 </div>
                             </div>
 
-                            <div className="flex items-center gap-2 w-full md:w-auto">
-                                <button onClick={handleViewCart} aria-label="View cart" className="w-full md:w-auto bg-brand-600 text-white px-6 py-3 rounded-2xl shadow-md hover:bg-brand-700 transition-transform duration-150 active:scale-95 text-lg font-semibold">View Cart</button>
+                            <div className="flex w-auto items-center gap-2">
+                                <button onClick={handleViewCart} aria-label="View cart" className="touch-button rounded-2xl bg-brand-600 px-5 py-3 text-sm font-semibold text-white shadow-md transition-transform duration-150 active:scale-95 sm:px-6">View cart</button>
                             </div>
                         </div>
                     </div>

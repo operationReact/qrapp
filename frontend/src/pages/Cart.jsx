@@ -185,17 +185,17 @@ export default function Cart() {
     };
 
     return (
-        <div className="min-h-screen bg-page">
+        <div className="page-shell bg-page">
             <Navbar />
 
             <main className="container-premium py-4 sm:py-6">
-                <div className="mx-auto max-w-6xl space-y-6">
+                <div className="mx-auto max-w-6xl space-y-5 sm:space-y-6">
                     <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
                         <div>
-                            <h2 className="text-3xl font-bold text-gray-900">Your cart</h2>
+                            <h2 className="text-2xl font-bold text-gray-900 sm:text-3xl">Your cart</h2>
                             <p className="mt-2 text-sm text-gray-500">Review your order, choose a payment option, and checkout in just a few taps.</p>
                         </div>
-                        <div className="rounded-3xl border border-amber-100 bg-white px-5 py-4 shadow-sm">
+                        <div className="w-full rounded-3xl border border-amber-100 bg-white px-5 py-4 shadow-sm sm:w-auto">
                             <div className="text-xs uppercase tracking-wide text-gray-400">Items in cart</div>
                             <div className="mt-1 text-2xl font-bold text-gray-900">{cart.length}</div>
                         </div>
@@ -213,7 +213,7 @@ export default function Cart() {
                     )}
 
                     {cart.length > 0 && (
-                        <div className="grid gap-6 xl:grid-cols-[1.55fr,0.95fr]">
+                        <div className="grid gap-5 xl:grid-cols-[1.55fr,0.95fr] xl:gap-6">
                             <section className="space-y-4">
                                 {cart.map(item => (
                                     <article
@@ -221,19 +221,19 @@ export default function Cart() {
                                         className="rounded-3xl border border-gray-100 bg-white p-4 shadow-sm"
                                     >
                                         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                                            <div className="flex items-center gap-4">
+                                            <div className="flex items-center gap-3 sm:gap-4">
                                                 <div className="flex h-16 w-16 flex-none items-center justify-center rounded-2xl bg-amber-50 text-2xl">🍽️</div>
-                                                <div>
-                                                    <div className="font-semibold text-gray-900">{item.name}</div>
+                                                <div className="min-w-0">
+                                                    <div className="truncate font-semibold text-gray-900">{item.name}</div>
                                                     <div className="mt-1 text-sm text-gray-500">₹{Number(item.price || 0).toFixed(2)} each</div>
                                                 </div>
                                             </div>
 
                                             <div className="flex flex-wrap items-center justify-between gap-3 sm:justify-end">
                                                 <div className="inline-flex items-center rounded-2xl border border-amber-100 bg-amber-50/70 px-2 py-1">
-                                                    <button onClick={() => decreaseItem(item)} className="rounded-xl px-3 py-2 text-lg font-semibold text-amber-700 transition active:scale-95">−</button>
+                                                    <button onClick={() => decreaseItem(item)} className="touch-button rounded-xl px-3 py-2 text-lg font-semibold text-amber-700 transition active:scale-95">−</button>
                                                     <div className="min-w-[2rem] text-center text-sm font-semibold text-gray-900">{item.quantity}</div>
-                                                    <button onClick={() => addItem(item)} className="rounded-xl px-3 py-2 text-lg font-semibold text-amber-700 transition active:scale-95">+</button>
+                                                    <button onClick={() => addItem(item)} className="touch-button rounded-xl px-3 py-2 text-lg font-semibold text-amber-700 transition active:scale-95">+</button>
                                                 </div>
 
                                                 <div className="text-right">
@@ -253,12 +253,12 @@ export default function Cart() {
 
                             <aside className="space-y-4 xl:sticky xl:top-24 xl:self-start">
                                 <section className="rounded-3xl border border-gray-100 bg-white p-5 shadow-sm">
-                                    <div className="flex items-start justify-between gap-4">
+                                    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                                         <div>
                                             <div className="text-sm font-semibold text-gray-900">Checkout summary</div>
                                             <div className="mt-1 text-xs text-gray-500">Choose how you want to pay for this order.</div>
                                         </div>
-                                        <div className="rounded-2xl bg-amber-50 px-4 py-3 text-right">
+                                        <div className="rounded-2xl bg-amber-50 px-4 py-3 text-left sm:text-right">
                                             <div className="text-xs uppercase tracking-wide text-amber-700">Total</div>
                                             <div className="mt-1 text-2xl font-bold text-amber-900">₹{total.toFixed(2)}</div>
                                         </div>
@@ -342,13 +342,13 @@ export default function Cart() {
                         {recLoading && <div className="mt-4 text-sm text-gray-500">Loading recommendations...</div>}
 
                         {!recLoading && recommended && recommended.length > 0 && (
-                            <div className="mt-4 flex gap-3 overflow-x-auto pb-2 category-scrollbar">
+                                <div className="mt-4 flex gap-3 overflow-x-auto pb-2 category-scrollbar">
                                 {recommended.map(it => (
-                                    <div key={it.id} className="min-w-[220px] rounded-3xl border border-gray-100 bg-gray-50 p-4 shadow-sm">
+                                            <div key={it.id} className="min-w-[200px] rounded-3xl border border-gray-100 bg-gray-50 p-4 shadow-sm sm:min-w-[220px]">
                                         <div className="mb-3 flex h-24 items-center justify-center rounded-2xl bg-white text-3xl">🥗</div>
                                         <div className="font-semibold text-gray-900">{it.name}</div>
                                         <div className="mt-1 text-sm text-gray-500">₹{Number(it.price || 0).toFixed(2)}</div>
-                                        <button onClick={() => addItem(it)} className="mt-4 w-full rounded-2xl bg-amber-500 py-3 text-sm font-semibold text-white transition hover:bg-amber-600">Add to cart</button>
+                                                <button onClick={() => addItem(it)} className="touch-button mt-4 w-full rounded-2xl bg-amber-500 py-3 text-sm font-semibold text-white transition hover:bg-amber-600">Add to cart</button>
                                     </div>
                                 ))}
                             </div>
