@@ -1,45 +1,46 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import API, { loginUser } from '../services/api';
 import { useUserAuth } from '../context/UserAuthContext';
 import { useAdminAuth } from '../context/AdminAuthContext';
 
 export default function UserLogin() {
     const navigate = useNavigate();
+    const location = useLocation();
     const { user, setUser } = useUserAuth();
     const { admin, setAdmin } = useAdminAuth();
 
-    const [identifier, setIdentifier] = useState(''); // phone or username
+    const [identifier, setIdentifier] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
 
+    const returnPath = typeof location.state?.from === 'string' ? location.state.from : null;
+
     useEffect(() => {
         if (user && user.token) {
-            navigate('/');
+            navigate(returnPath && !returnPath.startsWith('/admin') ? returnPath : '/');
         }
-        // if admin logged in, go to admin dashboard
         if (admin && admin.username && admin.password) {
-            navigate('/admin');
+            navigate(returnPath && returnPath.startsWith('/admin') ? returnPath : '/admin');
         }
-    }, [user, admin, navigate]);
+    }, [user, admin, navigate, returnPath]);
 
     const submit = async (e) => {
         e.preventDefault();
         setError(null);
         setLoading(true);
         const id = (identifier || '').trim();
+        const isAdminLogin = id.toLowerCase() === 'admin';
         try {
-            if (id.toLowerCase() === 'admin') {
-                // admin login flow
+            if (isAdminLogin) {
                 await API.post('/admin/login', { username: id, password });
-                // success - save credentials in admin context (AdminAuthContext will set axios basic auth and persist)
+                setUser(null);
                 setAdmin({ username: id, password });
-                navigate('/admin');
+                navigate(returnPath && returnPath.startsWith('/admin') ? returnPath : '/admin');
                 return;
             }
 
-            // normal user flow: treat identifier as phone
             const res = await loginUser({ phone: id, password });
             const data = res.data || {};
             const token = data.token;
@@ -48,12 +49,12 @@ export default function UserLogin() {
                 setLoading(false);
                 return;
             }
+            setAdmin(null);
             setUser({ token, info: data.user || { phone: id } });
-            navigate('/');
+            navigate(returnPath && !returnPath.startsWith('/admin') ? returnPath : '/');
         } catch (err) {
             console.error('login failed', err);
-            // Distinguish admin vs user errors
-            if (id.toLowerCase() === 'admin') setError('Invalid admin username or password');
+            if (isAdminLogin) setError('Invalid admin username or password');
             else setError('Invalid phone or password');
         } finally {
             setLoading(false);
@@ -63,12 +64,14 @@ export default function UserLogin() {
     return (
         <div className="page-shell flex min-h-screen items-center justify-center bg-page px-3 py-6 sm:px-4">
             <div className="w-full max-w-md rounded-[1.75rem] bg-white p-5 shadow-xl sm:p-6">
-                <h1 className="mb-2 text-2xl font-bold text-gray-900">Sign in</h1>
-                <p className="mb-4 text-sm text-gray-500">Continue to your menu, wallet, and order history.</p>
+                <div className="mb-4">
+                    <h1 className="mb-2 text-2xl font-bold text-gray-900">Login</h1>
+                    <p className="text-sm text-gray-500">Enter your phone number to sign in. If the username is <span className="font-semibold text-gray-700">admin</span>, you will be taken to the admin dashboard after successful login.</p>
+                </div>
                 {error && <div className="mb-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">{error}</div>}
                 <form onSubmit={submit}>
                     <label className="block mb-2">
-                        <span className="text-sm font-medium">Phone or username</span>
+                        <span className="text-sm font-medium">Phone number / username</span>
                         <input value={identifier} onChange={e => setIdentifier(e.target.value)} required className="mt-1 block w-full rounded-2xl border border-gray-200 px-4 py-3" placeholder="e.g. 1234567890 or admin" />
                     </label>
                     <label className="block mb-4">
