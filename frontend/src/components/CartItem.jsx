@@ -27,7 +27,7 @@ export default function CartItem({ item, removeItem, addItem, decreaseItem }) {
       <div className="relative aspect-square w-full rounded-lg overflow-hidden bg-gray-100">
         {imageSrc && !imgError ? (
           <img
-            src={item.imageSrc}
+            src={imageSrc}
             alt={item.name}
             onError={() => setImgError(true)}
             className="size-16 object-cover rounded-md"
