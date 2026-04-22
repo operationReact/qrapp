@@ -5,7 +5,6 @@ import {
   Bars3Icon,
   ClipboardDocumentListIcon,
   PencilSquareIcon,
-  ShoppingCartIcon,
   Squares2X2Icon,
   WalletIcon,
   XMarkIcon,
@@ -18,7 +17,6 @@ import {
   getCachedWalletBalance,
   clearWalletCache,
 } from "../services/api";
-import { Button } from "./ui/button";
 import { Cart, User } from "@boxicons/react";
 
 export default function Navbar() {
@@ -140,34 +138,19 @@ export default function Navbar() {
   ];
 
   return (
-    <header className="sticky top-0 z-50 py-4 bg-linear-to-t bg-white">
+    <header className="pt-4 pb-2">
       <div className="container-premium flex min-h-[72px] items-center justify-between gap-3">
         <Link to="/" className="flex min-w-0 items-center gap-3">
-          <img src="/brand/main.svg" alt="Bro & Bro Logo" className="w-14"/>
+          <img src="/brand/main.svg" alt="Bro & Bro Logo" className="w-14" />
         </Link>
 
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex items-center gap-2.5 sm:gap-3">
           {!admin && user && (
             <Link
               to="/wallet"
-              className="flex items-center gap-2 rounded-full bg-amber-500 px-3 py-2 text-white shadow-md"
+              className="flex items-center gap-1 rounded-full border-2 border-amber-200 bg-linear-to-b from-[#FFEFBD] to-[#FEEE70] p-2 text-black"
             >
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <circle
-                  cx="12"
-                  cy="12"
-                  r="9"
-                  fill="#fff2cc"
-                  stroke="#f59e0b"
-                  strokeWidth="1"
-                />
-              </svg>
+              <img src="/coin.png" alt="Coin" className="size-6" />
               <span className="max-w-[5.5rem] truncate text-xs font-semibold sm:max-w-none sm:text-sm">
                 {loadingBalance
                   ? "..."
@@ -178,7 +161,9 @@ export default function Navbar() {
             </Link>
           )}
 
-          <button size="icon-lg" variant="ghost"
+          <button
+            size="icon-lg"
+            variant="ghost"
             onClick={() => {
               if (shouldOpenCartDrawer) {
                 openDrawer();
@@ -201,7 +186,7 @@ export default function Navbar() {
               to="/login"
               className="rounded-full aspect-square grid place-items-center bg-neutral-100 border border-neutral-200 shadow-red-500/6 size-10 text-sm font-medium"
             >
-              <User pack="filled" className="size-6 fill-red-800/80"/>
+              <User pack="filled" className="size-6 fill-red-800/80" />
             </Link>
           )}
 

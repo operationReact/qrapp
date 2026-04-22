@@ -17,14 +17,17 @@
     --color-brand-700: "#b91c1c";
     --color-brand-800: "#991b1b";
     --color-brand-900: "#7f1d1d";
+
     --color-accent-50: "#ecfdf5";
     --color-accent-100: "#d1fae5";
     --color-accent-200: "#a7f3d0";
+    --color-accent-400: #22a108;
     --color-accent-500: "#2f855a";
     --color-accent-700: "#2f855a";
 
-    --font-sans: "Instrument Sans",
-        system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue";
+    --font-sans:
+        "Instrument Sans", system-ui, -apple-system, "Segoe UI", Roboto,
+        "Helvetica Neue";
 }
 
 /* UPDATE TAILWIND CONTAINER STYLES */
@@ -34,7 +37,6 @@
 }
 
 :root {
-    --page-gradient: linear-gradient(180deg, #ffd8de 0%, #fff 40%);
     --brand-amber: #f59e0b;
     --brand-amber-600: #d97706;
     --brand-deep: #065f46;
@@ -45,7 +47,7 @@
     --base-font:
         "Instrument Sans", system-ui, -apple-system, "Segoe UI", Roboto,
         "Helvetica Neue", Arial;
-    --app-header-height: 104px;
+    --app-header-height: 96;
     --app-safe-bottom: env(safe-area-inset-bottom, 0px);
 
     /* SHADCN COLOR TOKENS */
@@ -88,6 +90,8 @@ html {
 }
 
 body {
+    --page-gradient-color: #ffd8de;
+    --page-gradient: linear-gradient(180deg, var(--page-gradient-color) 0%, #fff 40%);
     font-family: var(--base-font), sans-serif;
     min-width: 320px;
     min-height: 100vh;
@@ -96,13 +100,13 @@ body {
     font-style: normal;
     position: relative;
 
-    &::before{
+    &::before {
         content: "";
         position: absolute;
         height: 600px;
-        inset:0 0 0;
+        inset: 0 0 0;
         z-index: -10;
-        background: linear-gradient(180deg, #ffd8de 0%, #fff 40%);
+        background: var(--page-gradient);
     }
 }
 
@@ -139,7 +143,7 @@ header .text-sm {
 
 /* Global page background: soft light-gray gradient */
 .bg-page {
-    background: var(--page-gradient)
+    background: var(--page-gradient);
 }
 
 /* Premium container */
@@ -379,10 +383,8 @@ header h1 {
 
 /* Hero pattern overlay (subtle food texture) */
 .hero-pattern {
-    background-image: radial-gradient(
-        rgba(255, 255, 255, 0.02) 1px,
-        transparent 1px
-    );
+    background-image: radial-gradient(rgba(255, 255, 255, 0.02) 1px,
+            transparent 1px);
     background-size: 24px 24px;
 }
 
@@ -470,14 +472,17 @@ header h1 {
         --sidebar-border: oklch(1 0 0 / 10%);
         --sidebar-ring: oklch(0.552 0.016 285.938);
     }
+
     * {
         /*@apply border-border outline-ring/50;*/
         @apply border-border outline-ring/50;
     }
+
     body {
         /*@apply bg-background text-foreground;*/
         @apply bg-background text-foreground;
     }
+
     html {
         @apply font-sans;
     }
@@ -485,7 +490,7 @@ header h1 {
 
 @theme inline {
     --font-heading: var(--font-sans);
-    --font-sans: "Geist Variable", sans-serif;
+    --font-sans: var(--base-font), sans-serif;
     --color-sidebar-ring: var(--sidebar-ring);
     --color-sidebar-border: var(--sidebar-border);
     --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
