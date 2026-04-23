@@ -16,6 +16,11 @@ import MenuItemCard from "@/components/MenuItemCard";
 import { Button } from "@/components/ui/button";
 import { CaretDown, Receipt } from "@boxicons/react";
 import { ChevronRight } from "lucide-react";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+} from "@/components/ui/carousel";
 
 function loadRazorpayScript(
   src = "https://checkout.razorpay.com/v1/checkout.js",
@@ -421,29 +426,18 @@ export default function Cart() {
             )}
 
             {!recLoading && recommended && recommended.length > 0 && (
-              <div className="mt-4 flex gap-3 overflow-x-auto pb-2 category-scrollbar">
-                {recommended.map((it) => (
-                  <MenuItemCard key={it.id} item={it} />
-                  // <div
-                  //   key={it.id}
-                  //   className="min-w-[200px] rounded-3xl border border-gray-100 bg-gray-50 p-4 shadow-sm sm:min-w-[220px]"
-                  // >
-                  //   <div className="mb-3 flex h-24 items-center justify-center rounded-2xl bg-white text-3xl">
-                  //     🥗
-                  //   </div>
-                  //   <div className="font-semibold text-gray-900">{it.name}</div>
-                  //   <div className="mt-1 text-sm text-gray-500">
-                  //     ₹{Number(it.price || 0).toFixed(2)}
-                  //   </div>
-                  //   <button
-                  //     onClick={() => addItem(it)}
-                  //     className="touch-button mt-4 w-full rounded-2xl bg-amber-500 py-3 text-sm font-semibold text-white transition hover:bg-amber-600"
-                  //   >
-                  //     Add to cart
-                  //   </button>
-                  // </div>
-                ))}
-              </div>
+              <Carousel className="pb-2">
+                <CarouselContent>
+                  {recommended.map((it) => (
+                    <CarouselItem
+                      key={it.id}
+                      className="basis-1/2 sm:basis-1/3 md:basis-1/4"
+                    >
+                      <MenuItemCard item={it} />
+                    </CarouselItem>
+                  ))}
+                </CarouselContent>
+              </Carousel>
             )}
           </section>
 
@@ -473,7 +467,7 @@ export default function Cart() {
                       <span className="text-muted-foreground flex items-center font-medium">
                         Balance: ₹{walletBalance || 0}
                       </span>
-                     )}
+                    )}
                   </Button>
                   <Button
                     size="lg"
