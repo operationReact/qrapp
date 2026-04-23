@@ -14,7 +14,7 @@ import { useNavigate } from "react-router-dom";
 import CartItem from "@/components/CartItem";
 import MenuItemCard from "@/components/MenuItemCard";
 import { Button } from "@/components/ui/button";
-import { CaretDown, CaretRight, Receipt } from "@boxicons/react";
+import { CaretDown, Receipt } from "@boxicons/react";
 import { ChevronRight } from "lucide-react";
 
 function loadRazorpayScript(
@@ -237,7 +237,7 @@ export default function Cart() {
         <div className="mx-auto max-w-6xl space-y-4 sm:space-y-6">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <h2 className="text-2xl font-semibold sm:text-3xl">Checkout</h2>
+              <h1 className="text-2xl font-semibold sm:text-3xl">Checkout</h1>
               {/* <p className="mt-1 text-md text-muted-foreground">Review your order, choose a payment option, and checkout in just a few taps.</p>*/}
             </div>
             {/* <div className="w-full rounded-3xl border border-amber-100 bg-white px-5 py-4 shadow-sm sm:w-auto">
@@ -423,25 +423,25 @@ export default function Cart() {
             {!recLoading && recommended && recommended.length > 0 && (
               <div className="mt-4 flex gap-3 overflow-x-auto pb-2 category-scrollbar">
                 {recommended.map((it) => (
-                  // <MenuItemCard key={it.id} item={it} />
-                  <div
-                    key={it.id}
-                    className="min-w-[200px] rounded-3xl border border-gray-100 bg-gray-50 p-4 shadow-sm sm:min-w-[220px]"
-                  >
-                    <div className="mb-3 flex h-24 items-center justify-center rounded-2xl bg-white text-3xl">
-                      🥗
-                    </div>
-                    <div className="font-semibold text-gray-900">{it.name}</div>
-                    <div className="mt-1 text-sm text-gray-500">
-                      ₹{Number(it.price || 0).toFixed(2)}
-                    </div>
-                    <button
-                      onClick={() => addItem(it)}
-                      className="touch-button mt-4 w-full rounded-2xl bg-amber-500 py-3 text-sm font-semibold text-white transition hover:bg-amber-600"
-                    >
-                      Add to cart
-                    </button>
-                  </div>
+                  <MenuItemCard key={it.id} item={it} />
+                  // <div
+                  //   key={it.id}
+                  //   className="min-w-[200px] rounded-3xl border border-gray-100 bg-gray-50 p-4 shadow-sm sm:min-w-[220px]"
+                  // >
+                  //   <div className="mb-3 flex h-24 items-center justify-center rounded-2xl bg-white text-3xl">
+                  //     🥗
+                  //   </div>
+                  //   <div className="font-semibold text-gray-900">{it.name}</div>
+                  //   <div className="mt-1 text-sm text-gray-500">
+                  //     ₹{Number(it.price || 0).toFixed(2)}
+                  //   </div>
+                  //   <button
+                  //     onClick={() => addItem(it)}
+                  //     className="touch-button mt-4 w-full rounded-2xl bg-amber-500 py-3 text-sm font-semibold text-white transition hover:bg-amber-600"
+                  //   >
+                  //     Add to cart
+                  //   </button>
+                  // </div>
                 ))}
               </div>
             )}

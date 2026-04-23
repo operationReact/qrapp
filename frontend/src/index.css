@@ -91,7 +91,11 @@ html {
 
 body {
     --page-gradient-color: #ffd8de;
-    --page-gradient: linear-gradient(180deg, var(--page-gradient-color) 0%, #fff 40%);
+    --page-gradient: linear-gradient(
+        180deg,
+        var(--page-gradient-color) 0%,
+        #fff 40%
+    );
     font-family: var(--base-font), sans-serif;
     min-width: 320px;
     min-height: 100vh;
@@ -108,6 +112,15 @@ body {
         z-index: -10;
         background: var(--page-gradient);
     }
+}
+
+.bg-gradient-wallet:before {
+    background: linear-gradient(180deg, #ffeeb6 0%, #fff 40%);
+    content: "";
+    position: absolute;
+    height: 600px;
+    inset: 0 0 0;
+    z-index: -10;
 }
 
 #root {
@@ -383,8 +396,10 @@ header h1 {
 
 /* Hero pattern overlay (subtle food texture) */
 .hero-pattern {
-    background-image: radial-gradient(rgba(255, 255, 255, 0.02) 1px,
-            transparent 1px);
+    background-image: radial-gradient(
+        rgba(255, 255, 255, 0.02) 1px,
+        transparent 1px
+    );
     background-size: 24px 24px;
 }
 
