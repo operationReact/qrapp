@@ -111,9 +111,9 @@ export default function Menu() {
       .filter(Boolean)
       .join(" ")
       .toLowerCase();
-    if (category !== "All" && item.category !== category) return false;
+    if (category !== "all" && item.category !== category) return false;
     if (vegFilter === "veg" && !isVeg) return false;
-    if (vegFilter === "nonveg" && isVeg) return false;
+    if (vegFilter === "non-veg" && isVeg) return false;
     if (
       searchQuery.trim() &&
       !haystack.includes(searchQuery.trim().toLowerCase())

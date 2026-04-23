@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { InfinityIcon, Drumstick, Carrot } from "lucide-react";
 import {
