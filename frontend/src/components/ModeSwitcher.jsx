@@ -20,7 +20,7 @@ import {
 const BUTTON_MODE_ICON = {
   all: BoxIconInfinity,
   veg: BoxIconCarrot,
-  "non-veg": BoxIconDrumstick,
+  "nonveg": BoxIconDrumstick,
 };
 
 const MODES = [
@@ -39,7 +39,7 @@ const MODES = [
     activeIconColor: "#34C759",
   },
   {
-    id: "non-veg",
+    id: "nonveg",
     icon: Drumstick,
     description: "Non-Veg",
     color: "#FF3B30",
@@ -48,6 +48,7 @@ const MODES = [
 ];
 
 export default function ModeSwitcher({ activeMode, switchMode }) {
+  console.log({activeMode})
   const activeIdx = MODES.findIndex((m) => m.id === activeMode);
   const currentMode = MODES[activeIdx];
 
