@@ -6,6 +6,23 @@ import CategoryTabs from "../components/CategoryTabs";
 import SegmentedFilter from "../components/SegmentedFilter";
 import MenuItemCard from "../components/MenuItemCard";
 import { Carrot } from "@boxicons/react";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+} from "@/components/ui/carousel";
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from "@/components/ui/drawer";
+import { Button } from "@/components/ui/button";
+import ModeSwitcher from "../components/ModeSwitcher";
 
 // Small mock dataset used when backend is unreachable so the UI can be inspected
 const SAMPLE_MENU = [
@@ -105,6 +122,12 @@ export default function Menu() {
     return true;
   });
 
+  const groups = filtered.reduce((acc, item) => {
+    acc[item.category] = acc[item.category] || [];
+    acc[item.category].push(item);
+    return acc;
+  }, {});
+
   return (
     <div className="page-shell">
       <Navbar />
@@ -142,38 +165,29 @@ export default function Menu() {
         </div>
       )}
 
-      <div className="sticky top-[var(--app-header-height)] z-40 border-b border-gray-200 bg-white/95 backdrop-blur-sm">
+      <div className="border-b">
         <div className="container-premium py-3">
           <div className="flex gap-4 w-full">
             <SearchBar onSearch={setSearchQuery} />
+            <ModeSwitcher activeMode={vegFilter} switchMode={setVegFilter} />
             {/* change with switch mode component*/}
-            <button className="flex flex-col justify-center rounded-2xl">
-              <span className="size-10 bg-green-600 rounded-full grid place-items-center">
-                <Carrot pack="filled" className="size-6 fill-white" />
-              </span>
-              <span className="text-xs mt-0.5 font-semibold tracking-wider">
-                VEG
-              </span>
-            </button>
-            {/* <div className="space-y-3 rounded-[1.5rem] border border-gray-100 bg-gray-50/70 p-3">
-              <SegmentedFilter value={vegFilter} onChange={setVegFilter} />
-              <CategoryTabs
-                categories={categories}
-                active={category}
-                onChange={setCategory}
-              />
-            </div>*/}
           </div>
+          {/* <div className="space-y-3 p-3">
+            <SegmentedFilter value={vegFilter} onChange={setVegFilter} />
+            <CategoryTabs
+              categories={categories}
+              active={category}
+              onChange={setCategory}
+            />
+          </div>*/}
         </div>
       </div>
 
       <main className="container-premium py-5 sm:py-6">
         <div className="page-stack">
           {/* HEADER */}
-          <div className="space-y-2">
-            <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">
-              Menu
-            </h1>
+          <div className="space-y-2 sr-only">
+            <h1 className="text-2xl font-bold sm:text-3xl">Menu</h1>
             <p className="text-gray-500 text-sm">
               Browse and order directly from your table
             </p>
@@ -199,11 +213,25 @@ export default function Menu() {
           )}
 
           {/* ITEMS */}
-          <div className="premium-grid">
-            {filtered.map((item) => (
-              <MenuItemCard key={item.id} item={item} />
-            ))}
-          </div>
+          {Object.entries(groups).map(([category, items]) => (
+            <div className="premium-grid" key={category}>
+              <h2 className="text-xl font-semibold sm:text-2xl">
+                {category || "Specials"}
+              </h2>
+              <Carousel>
+                <CarouselContent className="pr-8">
+                  {items.map((item) => (
+                    <CarouselItem
+                      key={item.id}
+                      className="basis-1/2 sm:basis-1/3 md:basis-1/4"
+                    >
+                      <MenuItemCard item={item} />
+                    </CarouselItem>
+                  ))}
+                </CarouselContent>
+              </Carousel>
+            </div>
+          ))}
         </div>
       </main>
     </div>
