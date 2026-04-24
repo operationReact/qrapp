@@ -426,7 +426,7 @@ export default function Cart() {
             )}
 
             {!recLoading && recommended && recommended.length > 0 && (
-              <Carousel className="pb-2">
+              <Carousel className="mt-2">
                 <CarouselContent>
                   {recommended.map((it) => (
                     <CarouselItem
