@@ -576,7 +576,7 @@ export default function Wallet() {
                             <h3 className="text-sm capitalize font-semibold sm:text-base">
                               {formatTransactionTitle(tx)}
                             </h3>
-                            <div>
+                            <div className="space-x-1">
                               <span
                                 className={`rounded-md px-3 py-1 text-sm font-semibold ${statusClass}`}
                               >
