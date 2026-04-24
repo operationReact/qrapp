@@ -197,7 +197,7 @@ export default function Navbar() {
                 onClick={() => setMenuOpen((open) => !open)}
                 aria-label="Open account menu"
                 aria-expanded={menuOpen}
-                className="flex items-center justify-center gap-2 rounded-full border bg-white size-11 sm:size-fit sm:px-2 sm:py-1.5 text-sm font-medium text-gray-700"
+                className="flex items-center justify-center gap-2 rounded-full border border-red-100 sm:border-none bg-white size-11 sm:size-fit sm:px-2 sm:py-1.5 text-sm font-medium text-gray-700"
               >
                 <span className="hidden md:inline text-sm">Account</span>
                 <span className="flex items-center size-full sm:size-7 justify-center rounded-full bg-red-200 sm:bg-red-100 text-xs font-bold text-red-700">
