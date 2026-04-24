@@ -197,26 +197,21 @@ export default function Navbar() {
                 onClick={() => setMenuOpen((open) => !open)}
                 aria-label="Open account menu"
                 aria-expanded={menuOpen}
-                className="flex items-center gap-2 rounded-full border border-amber-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm"
+                className="flex items-center justify-center gap-2 rounded-full border bg-white size-11 sm:size-fit sm:px-2 sm:py-1.5 text-sm font-medium text-gray-700"
               >
-                {menuOpen ? (
-                  <XMarkIcon className="h-5 w-5" />
-                ) : (
-                  <Bars3Icon className="h-5 w-5" />
-                )}
-                <span className="hidden md:inline">Account</span>
-                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-amber-100 text-xs font-bold text-amber-700">
-                  {initials}
+                <span className="hidden md:inline text-sm">Account</span>
+                <span className="flex items-center size-full sm:size-7 justify-center rounded-full bg-red-200 sm:bg-red-100 text-xs font-bold text-red-700">
+                  {menuOpen ? <XMarkIcon className="h-5 w-5" /> : "A"}
                 </span>
               </button>
 
               {menuOpen && (
                 <div className="absolute z-41 right-0 mt-3 w-[min(21rem,calc(100vw-1.5rem))] overflow-hidden rounded-3xl border border-amber-100 bg-white shadow-2xl">
-                  <div className="border-b border-amber-50 bg-amber-50/70 px-4 py-4">
+                  <div className="border-b border-red-50 bg-red-50/70 px-4 py-4">
                     <div className="text-sm font-semibold text-gray-900">
                       {userName}
                     </div>
-                    <div className="mt-1 text-xs text-gray-500">
+                    <div className="mt-1 text-xs text-muted-foreground">
                       {userSecondary}
                     </div>
                   </div>
@@ -229,12 +224,12 @@ export default function Navbar() {
                         onClick={() => setMenuOpen(false)}
                         className="flex items-start gap-3 rounded-xl px-3 py-3 text-sm transition hover:bg-amber-50"
                       >
-                        <Icon className="mt-0.5 h-5 w-5 flex-none text-amber-600" />
+                        <Icon className="mt-0.5 h-5 w-5 flex-none text-red-600" />
                         <span>
                           <span className="block font-semibold text-gray-900">
                             {label}
                           </span>
-                          <span className="block text-xs text-gray-500">
+                          <span className="block text-xs text-muted-foreground">
                             {description}
                           </span>
                         </span>
@@ -251,7 +246,7 @@ export default function Navbar() {
                         <span className="block font-semibold text-gray-900">
                           Logout
                         </span>
-                        <span className="block text-xs text-gray-500">
+                        <span className="block text-xs text-muted-foreground">
                           Sign out of your account safely
                         </span>
                       </span>
