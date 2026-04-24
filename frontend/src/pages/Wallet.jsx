@@ -556,7 +556,7 @@ export default function Wallet() {
                 </div>
               </div>
             ) : (
-              <div className="mt-6 space-y-3">
+              <div className="mt-6">
                 {filteredTransactions.map((tx) => {
                   const isCredit = tx.type === "CREDIT";
                   const statusClass =
@@ -568,7 +568,7 @@ export default function Wallet() {
                   return (
                     <article
                       key={tx.id}
-                      className="border-b last:border-b-0 space-y-3 py-2 sm:px-5"
+                      className="border-b last:border-b-0 space-y-3 py-2"
                     >
                       <div className="flex gap-4 items-start justify-between">
                         <div className="min-w-0">
@@ -596,7 +596,7 @@ export default function Wallet() {
                           )}*/}
                         </div>
 
-                        <div className="text-left sm:text-right">
+                        <div className="text-right">
                           <div
                             className={`text-lg font-bold ${isCredit ? "text-green-600" : "text-red-500"}`}
                           >
