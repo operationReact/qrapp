@@ -568,22 +568,22 @@ export default function Wallet() {
                   return (
                     <article
                       key={tx.id}
-                      className="border border-gray-100 bg-gray-50 space-y-4 px-4 py-4 sm:px-5"
+                      className="border-b last:border-b-0 space-y-3 py-2 sm:px-5"
                     >
-                      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="flex gap-4 items-start justify-between">
                         <div className="min-w-0">
-                          <div className="flex flex-wrap items-center gap-2">
+                          <div className="flex flex-col gap-1">
                             <h3 className="text-sm capitalize font-semibold sm:text-base">
                               {formatTransactionTitle(tx)}
                             </h3>
                             <div>
                               <span
-                                className={`rounded-md px-3 py-1 text-[11px] font-semibold ${statusClass}`}
+                                className={`rounded-md px-3 py-1 text-sm font-semibold ${statusClass}`}
                               >
                                 {tx.status}
                               </span>
                               {tx.orderId && (
-                                <span className="rounded-md bg-gray-100 px-3 py-1 text-[11px] font-medium">
+                                <span className="rounded-md bg-gray-100 px-3 py-1 text-sm font-medium">
                                   Order #{tx.orderId}
                                 </span>
                               )}
@@ -604,7 +604,7 @@ export default function Wallet() {
                             {formatCurrencyFromPaise(tx.amount)}
                           </div>
                           {typeof tx.balanceAfter === "number" && (
-                            <div className="mt-1 text-xs text-gray-500">
+                            <div className="mt-1 text-xs text-muted-foreground">
                               Balance after:{" "}
                               {formatCurrencyFromPaise(tx.balanceAfter)}
                             </div>
