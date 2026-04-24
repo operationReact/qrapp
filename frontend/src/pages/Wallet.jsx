@@ -23,8 +23,17 @@ import {
   CreditCard,
   CreditCardAlt,
   CurrencyNote,
+  MenuFilter,
+  RefreshCcw,
   SparklesAlt,
+  WalletAlt,
 } from "@boxicons/react";
+import { Button, buttonVariants } from "@/components/ui/button";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+} from "@/components/ui/carousel";
 
 function useToast() {
   const [message, setMessage] = useState(null);
@@ -131,10 +140,10 @@ export default function Wallet() {
   }, []);
 
   const loadInitialWallet = useCallback(async () => {
-    if (!user?.token) {
-        navigate('/login', { state: { from: '/wallet' } });
-        return;
-    }
+    // if (!user?.token) {
+    //     navigate('/login', { state: { from: '/wallet' } });
+    //     return;
+    // }
 
     setLoading(true);
     setError("");
@@ -406,14 +415,14 @@ export default function Wallet() {
           </div>
 
           <section className="grid gap-3 grid-cols-2 xl:grid-cols-4">
-            <div className="rounded-xl border bg-white p-5 shadow-sm shadow-gray-200/50">
+            <div className="rounded-xl border bg-white p-4 shadow-sm shadow-gray-200/50">
               <div className="flex items-center gap-3">
                 <CurrencyNote
                   pack="filled"
                   className="size-12 text-green-600"
                 />
                 <div>
-                  <div className="text-sm capitalize text-muted-foreground font-medium">
+                  <div className="text-xs sm:text-sm capitalize text-muted-foreground font-medium">
                     Total Added
                   </div>
                   <div className="mt-0 text-2xl font-bold">
@@ -425,7 +434,7 @@ export default function Wallet() {
               </div>
             </div>
 
-            <div className="rounded-xl border bg-white p-5 shadow-sm shadow-gray-200/50">
+            <div className="rounded-xl border bg-white p-4 shadow-sm shadow-gray-200/50">
               <div className="flex items-center gap-3">
                 <CreditCardAlt pack="filled" className="size-12 text-red-500" />
                 <div>
@@ -441,7 +450,7 @@ export default function Wallet() {
               </div>
             </div>
 
-            <div className="rounded-xl border bg-white p-5 shadow-sm shadow-gray-200/50">
+            <div className="rounded-xl border bg-white p-4 shadow-sm shadow-gray-200/50">
               <div className="flex items-center gap-3">
                 <Clock pack="filled" className="size-12 text-yellow-600" />
                 <div>
@@ -457,7 +466,7 @@ export default function Wallet() {
               </div>
             </div>
 
-            <div className="rounded-xl border bg-white p-5 shadow-sm shadow-gray-200/50">
+            <div className="rounded-xl border bg-white p-4 shadow-sm shadow-gray-200/50">
               <div className="flex items-center gap-3">
                 <SparklesAlt pack="filled" className="size-12 text-amber-600" />
                 <div>
@@ -474,43 +483,61 @@ export default function Wallet() {
             </div>
           </section>
 
-          <section className="rounded-[2rem] border border-gray-100 bg-white p-5 shadow-sm sm:p-6">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <section className="rounded-2xl border bg-white shadow-sm p-4">
+            <div className="space-y-4 md:space-y-0 md:flex justify-between items-center gap-4 flex-wrap">
               <div>
-                <h2 className="text-xl font-semibold text-gray-900">
-                  Recent activity
-                </h2>
-                <p className="mt-1 text-sm text-gray-500">
+                <h2 className="text-xl font-semibold">Activity</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
                   Track top-ups and wallet payments in one place.
                 </p>
               </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <div className="flex items-center gap-2 rounded-full border border-gray-200 bg-gray-50 px-3 py-2 text-xs font-medium text-gray-600">
-                  <FunnelIcon className="h-4 w-4" />
-                  Filter
-                </div>
-                {FILTERS.map((item) => (
-                  <button
-                    key={item.key}
-                    type="button"
-                    onClick={() => setFilter(item.key)}
-                    className={`touch-button rounded-full px-4 py-2 text-sm font-semibold transition ${filter === item.key ? "bg-amber-500 text-white shadow-sm" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}
-                  >
-                    {item.label}
-                  </button>
-                ))}
-                <button
-                  type="button"
-                  onClick={handleRefresh}
-                  disabled={refreshing}
-                  className="touch-button inline-flex items-center gap-2 rounded-full border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:opacity-70"
-                >
-                  <ArrowPathIcon
-                    className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`}
-                  />
-                  Refresh
-                </button>
-              </div>
+              <Carousel>
+                <CarouselContent>
+                  <CarouselItem className="basis-auto">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      data-icon="inline-start"
+                      size="sm"
+                      className="pointer-events-none pl-1"
+                    >
+                      <MenuFilter className="size-4" />
+                      Filter
+                    </Button>
+                  </CarouselItem>
+
+                  {FILTERS.map((item) => (
+                    <CarouselItem key={item.key} className="basis-auto pl-1">
+                      <Button
+                        size="sm"
+                        variant={filter === item.key ? "default" : "outline"}
+                        className={`rounded-md ${filter === item.key && "font-medium!"}`}
+                        type="button"
+                        onClick={() => setFilter(item.key)}
+                      >
+                        {item.label}
+                      </Button>
+                    </CarouselItem>
+                  ))}
+
+                  <CarouselItem className="basis-auto pl-1">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      data-icon="inline-start"
+                      onClick={handleRefresh}
+                      disabled={refreshing}
+                      className="rounded-md!"
+                    >
+                      <RefreshCcw
+                        className={`size-4 ${refreshing ? "animate-spin" : ""}`}
+                      />
+                      Refresh
+                    </Button>
+                  </CarouselItem>
+                </CarouselContent>
+              </Carousel>
             </div>
 
             {loading ? (
@@ -518,12 +545,12 @@ export default function Wallet() {
                 Loading wallet activity...
               </div>
             ) : filteredTransactions.length === 0 ? (
-              <div className="mt-6 rounded-3xl border border-dashed border-gray-200 bg-gray-50 px-6 py-14 text-center">
-                <div className="text-5xl">📭</div>
-                <div className="mt-4 text-lg font-semibold text-gray-900">
-                  No transactions yet
+              <div className="mt-6 rounded-3xl border border-dashed border-gray-200 bg-gray-50/50 px-6 py-14 text-center">
+                <WalletAlt pack="filled" className="size-24 mx-auto" />
+                <div className="mt-4 text-lg font-semibold ">
+                  No Transactions Yet!
                 </div>
-                <div className="mt-2 text-sm text-gray-500">
+                <div className="mt-2 text-sm text-muted-foreground">
                   Top up your wallet to see credits and wallet checkout activity
                   here.
                 </div>
@@ -541,35 +568,32 @@ export default function Wallet() {
                   return (
                     <article
                       key={tx.id}
-                      className="rounded-3xl border border-gray-100 bg-gray-50 px-4 py-4 sm:px-5"
+                      className="border border-gray-100 bg-gray-50 space-y-4 px-4 py-4 sm:px-5"
                     >
                       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                         <div className="min-w-0">
                           <div className="flex flex-wrap items-center gap-2">
-                            <h3 className="text-sm font-semibold text-gray-900 sm:text-base">
+                            <h3 className="text-sm capitalize font-semibold sm:text-base">
                               {formatTransactionTitle(tx)}
                             </h3>
-                            <span
-                              className={`rounded-full px-3 py-1 text-[11px] font-semibold ${statusClass}`}
-                            >
-                              {tx.status}
-                            </span>
-                            {tx.orderId && (
-                              <span className="rounded-full bg-gray-200 px-3 py-1 text-[11px] font-medium text-gray-700">
-                                Order #{tx.orderId}
+                            <div>
+                              <span
+                                className={`rounded-md px-3 py-1 text-[11px] font-semibold ${statusClass}`}
+                              >
+                                {tx.status}
                               </span>
-                            )}
+                              {tx.orderId && (
+                                <span className="rounded-md bg-gray-100 px-3 py-1 text-[11px] font-medium">
+                                  Order #{tx.orderId}
+                                </span>
+                              )}
+                            </div>
                           </div>
-                          <div className="mt-2 text-xs text-gray-500 sm:text-sm">
-                            {tx.createdAt
-                              ? new Date(tx.createdAt).toLocaleString()
-                              : "Timestamp unavailable"}
-                          </div>
-                          {(tx.referenceId || tx.providerOrderId) && (
+                          {/* {(tx.referenceId || tx.providerOrderId) && (
                             <div className="mt-2 truncate text-xs text-gray-400">
                               Ref: {tx.referenceId || tx.providerOrderId}
                             </div>
-                          )}
+                          )}*/}
                         </div>
 
                         <div className="text-left sm:text-right">
@@ -586,6 +610,12 @@ export default function Wallet() {
                             </div>
                           )}
                         </div>
+                      </div>
+
+                      <div className="mt-2 text-xs text-muted-foreground sm:text-sm">
+                        {tx.createdAt
+                          ? new Date(tx.createdAt).toLocaleString()
+                          : "Timestamp unavailable"}
                       </div>
                     </article>
                   );
