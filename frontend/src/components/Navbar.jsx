@@ -148,7 +148,7 @@ export default function Navbar() {
           {!admin && user && (
             <Link
               to="/wallet"
-              className="flex items-center gap-1 rounded-full border-2 border-amber-200 bg-linear-to-b from-[#FFEFBD] to-[#FEEE70] p-2 text-black"
+              className="flex items-center gap-1 h-11 rounded-full border-2 border-amber-200 bg-linear-to-b from-[#FFEFBD] to-[#FEEE70] p-2 text-black"
             >
               <img src="/coin.png" alt="Coin" className="size-6" />
               <span className="max-w-[5.5rem] truncate text-sm font-semibold sm:max-w-none">
@@ -184,9 +184,9 @@ export default function Navbar() {
           {!admin && !user && (
             <Link
               to="/login"
-              className="rounded-full aspect-square grid place-items-center bg-neutral-100 border border-neutral-200 shadow-red-500/6 size-10 text-sm font-medium"
+              className="rounded-full aspect-square grid place-items-center bg-red-50 border border-red-100 size-11 text-sm font-medium"
             >
-              <User pack="filled" className="size-6 fill-red-800/80" />
+              <User pack="filled" className="size-6 fill-red-500" />
             </Link>
           )}
 
@@ -206,10 +206,10 @@ export default function Navbar() {
               </button>
 
               {menuOpen && (
-                <div className="absolute z-41 right-0 mt-3 w-[min(21rem,calc(100vw-1.5rem))] overflow-hidden rounded-3xl border border-amber-100 bg-white shadow-2xl">
+                <div className="absolute z-41 right-0 mt-3 w-[min(21rem,calc(100vw-1.5rem))] overflow-hidden rounded-3xl border border-red-100 bg-white shadow-2xl">
                   <div className="border-b border-red-50 bg-red-50/70 px-4 py-4">
-                    <div className="text-sm font-semibold text-gray-900">
-                      {userName}
+                    <div className="text-base font-semibold">
+                      @{userName}
                     </div>
                     <div className="mt-1 text-xs text-muted-foreground">
                       {userSecondary}
@@ -222,11 +222,11 @@ export default function Navbar() {
                         key={to}
                         to={to}
                         onClick={() => setMenuOpen(false)}
-                        className="flex items-start gap-3 rounded-xl px-3 py-3 text-sm transition hover:bg-amber-50"
+                        className="flex items-start gap-3 rounded-xl px-3 py-3 text-sm transition hover:bg-red-50"
                       >
                         <Icon className="mt-0.5 h-5 w-5 flex-none text-red-600" />
                         <span>
-                          <span className="block font-semibold text-gray-900">
+                          <span className="block font-semibold capitalize">
                             {label}
                           </span>
                           <span className="block text-xs text-muted-foreground">
@@ -243,7 +243,7 @@ export default function Navbar() {
                     >
                       <ArrowRightOnRectangleIcon className="mt-0.5 h-5 w-5 flex-none text-red-500" />
                       <span>
-                        <span className="block font-semibold text-gray-900">
+                        <span className="block font-semibold">
                           Logout
                         </span>
                         <span className="block text-xs text-muted-foreground">

@@ -254,7 +254,7 @@ export default function Cart() {
           {cart.length === 0 && (
             <div className="rounded-2xl border bg-white px-6 py-12 text-center shadow-sm">
               <svg
-                className="size-40 mx-auto"
+                className="size-30 mx-auto"
                 xmlns="http://www.w3.org/2000/svg"
                 width="24"
                 height="24"
