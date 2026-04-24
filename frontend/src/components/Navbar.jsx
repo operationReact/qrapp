@@ -207,12 +207,12 @@ export default function Navbar() {
 
               {menuOpen && (
                 <div className="absolute z-41 right-0 mt-3 w-[min(21rem,calc(100vw-1.5rem))] overflow-hidden rounded-3xl border border-red-100 bg-white shadow-2xl">
-                  <div className="border-b border-red-50 bg-red-50/70 px-4 py-4">
+                  <div className="border-b border-red-50 bg-red-50 px-4 py-4">
                     <div className="text-base font-semibold">
-                      @{userName}
+                      {userName}
                     </div>
                     <div className="mt-1 text-xs text-muted-foreground">
-                      {userSecondary}
+                      @{userSecondary}
                     </div>
                   </div>
 
