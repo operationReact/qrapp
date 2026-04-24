@@ -1,13 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  ArrowPathIcon,
-  BanknotesIcon,
-  ClockIcon,
-  CreditCardIcon,
-  FunnelIcon,
-  SparklesIcon,
-} from "@heroicons/react/24/outline";
 import Navbar from "../components/Navbar";
 import { useUserAuth } from "../context/UserAuthContext";
 import {
@@ -20,7 +12,6 @@ import {
 import { Activity } from "lucide-react";
 import {
   Clock,
-  CreditCard,
   CreditCardAlt,
   CurrencyNote,
   MenuFilter,
@@ -28,7 +19,7 @@ import {
   SparklesAlt,
   WalletAlt,
 } from "@boxicons/react";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import {
   Carousel,
   CarouselContent,
@@ -140,10 +131,10 @@ export default function Wallet() {
   }, []);
 
   const loadInitialWallet = useCallback(async () => {
-    // if (!user?.token) {
-    //     navigate('/login', { state: { from: '/wallet' } });
-    //     return;
-    // }
+    if (!user?.token) {
+        navigate('/login', { state: { from: '/wallet' } });
+        return;
+    }
 
     setLoading(true);
     setError("");
