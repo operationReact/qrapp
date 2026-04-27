@@ -506,7 +506,7 @@ export default function Cart() {
                           <FieldLabel htmlFor="wallet">
                             <Field
                               orientation="horizontal"
-                              data-disabled={!user?.token || walletLoading}
+                              data-disabled={!user?.token || walletLoading || !walletCanCoverOrder}
                             >
                               <FieldContent className="flex flex-row gap-2 items-start">
                                 <img
@@ -539,7 +539,7 @@ export default function Cart() {
                                         >
                                           <Link to="/wallet">
                                             <Plus data-icon="inline-start" />{" "}
-                                            Top up now
+                                            Top up instantly
                                           </Link>
                                         </Badge>
                                       )}
@@ -550,7 +550,7 @@ export default function Cart() {
                               <RadioGroupItem
                                 value="WALLET"
                                 id="wallet"
-                                disabled={!user?.token || walletLoading}
+                                disabled={!user?.token || walletLoading || !walletCanCoverOrder}
                               />
                             </Field>
                           </FieldLabel>
