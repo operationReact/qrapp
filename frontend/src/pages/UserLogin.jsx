@@ -4,7 +4,7 @@ import API, { loginUser } from "../services/api";
 import { useUserAuth } from "../context/UserAuthContext";
 import { useAdminAuth } from "../context/AdminAuthContext";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, CaretLeft, ChevronLeft } from "@boxicons/react";
+import { ChevronLeft } from "@boxicons/react";
 
 export default function UserLogin() {
   const navigate = useNavigate();
@@ -97,9 +97,9 @@ export default function UserLogin() {
         </div>
         <div className="rounded-2xl p-4 sm:p-6 sm:shadow-lg sm:shadow-red-300/10 h-fit sm:bg-white/20">
           <img
-            src="/login-banner.jpg"
+            src="/login-banner-2.jpg"
             alt="Your Easy Access To Delicious Meals"
-            className="w-full rounded-[14px] overflow-hidden"
+            className="w-full border border-muted rounded-[14px] overflow-hidden"
           />
           <div className="mb-2 mt-4">
             <h1 className="text-2xl font-semibold">Login Your Account</h1>
@@ -120,7 +120,7 @@ export default function UserLogin() {
                 value={identifier}
                 onChange={(e) => setIdentifier(e.target.value)}
                 required
-                className="mt-1 block w-full rounded-xl border border-gray-200 px-4 py-3 focus:ring-2 focus:ring-red-500 focus:border-transparent focus-visible:outline-transparent"
+                className="mt-1 block w-full rounded-xl border border-gray-200 px-4 py-3 focus:ring-2 focus:ring-primary focus:border-transparent focus-visible:outline-transparent"
                 placeholder="e.g. 1234567890 or admin"
               />
             </label>
@@ -133,7 +133,7 @@ export default function UserLogin() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="mt-1 block w-full rounded-xl border border-gray-200 px-4 py-3 focus:ring-2 focus:ring-red-500 focus:border-transparent focus-visible:outline-transparent"
+                className="mt-1 block w-full rounded-xl border border-gray-200 px-4 py-3 focus:ring-2 focus:ring-primary focus:border-transparent focus-visible:outline-transparent"
               />
             </label>
             <div className="flex flex-col gap-2 justify-center">

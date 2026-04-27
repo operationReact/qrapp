@@ -12,9 +12,9 @@ export default function SearchBar({ onSearch = () => {} }) {
   }, [value, onSearch]);
 
   return (
-    <div className="relative w-full flex items-center rounded-xl border-2 border-red-500 bg-white px-3 h-14">
+    <div className="relative w-full flex items-center rounded-xl border-2 border-primary bg-white px-3 h-14">
       <label className="pr-2">
-        <Search className="size-7 fill-red-500" />
+        <Search className="size-7 fill-primary" />
       </label>
       <input
         ref={inputRef}

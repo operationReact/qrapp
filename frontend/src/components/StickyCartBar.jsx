@@ -36,7 +36,7 @@ export default function StickyCartBar() {
           <div className="flex min-h-[72px] items-center py-3">
             <div className="flex w-full items-center justify-between gap-3">
               <div className="flex min-w-0 items-center gap-3">
-                <div className="flex h-10 w-10 relative bg-red-50 flex-none items-center justify-center rounded-full text-base font-semibold text-red-500">
+                <div className="flex h-10 w-10 relative bg-primary-foreground/50 flex-none items-center justify-center rounded-full text-base font-semibold text-primary">
                   <Cart pack="filled" />
                   <span className="absolute bg-white rounded-full w-8 grid place-items-center -bottom-2 border border-muted text-xs text-black">{totalItems}</span>
                 </div>

@@ -15,49 +15,54 @@ import UserLogin from "./pages/UserLogin";
 import Register from "./pages/Register";
 import Profile from "./pages/Profile";
 import MyOrders from "./pages/MyOrders";
-import PropTypes from 'prop-types';
-
+import PropTypes from "prop-types";
+import { PreferencesProvider } from "./context/PreferencesContext";
 
 function SafeAreaWrapper({ children }) {
-    const { cart } = useCart();
-    const style = cart && cart.length > 0 ? { paddingBottom: 'calc(72px + env(safe-area-inset-bottom))' } : undefined;
-    return <div style={style}>{children}</div>;
+  const { cart } = useCart();
+  const style =
+    cart && cart.length > 0
+      ? { paddingBottom: "calc(72px + env(safe-area-inset-bottom))" }
+      : undefined;
+  return <div style={style}>{children}</div>;
 }
 
 SafeAreaWrapper.propTypes = {
-    children: PropTypes.node
+  children: PropTypes.node,
 };
 
 function App() {
-    return (
-        <CartProvider>
-            <AdminAuthProvider>
-                <UserAuthProvider>
-                    <BrowserRouter>
-                        <OffCanvasCart />
-                        <SafeAreaWrapper>
-                            <Routes>
-                                <Route path="/" element={<Menu />} />
-                                <Route path="/wallet" element={<Wallet />} />
-                                <Route path="/cart" element={<Cart />} />
-                                <Route path="/orders" element={<MyOrders />} />
-                                <Route path="/profile" element={<Profile />} />
-                                <Route path="/success" element={<Success />} />
+  return (
+    <CartProvider>
+      <AdminAuthProvider>
+        <PreferencesProvider>
+          <UserAuthProvider>
+            <BrowserRouter>
+              <OffCanvasCart />
+              <SafeAreaWrapper>
+                <Routes>
+                  <Route path="/" element={<Menu />} />
+                  <Route path="/wallet" element={<Wallet />} />
+                  <Route path="/cart" element={<Cart />} />
+                  <Route path="/orders" element={<MyOrders />} />
+                  <Route path="/profile" element={<Profile />} />
+                  <Route path="/success" element={<Success />} />
 
-                                <Route path="/login" element={<UserLogin />} />
-                                <Route path="/register" element={<Register />} />
+                  <Route path="/login" element={<UserLogin />} />
+                  <Route path="/register" element={<Register />} />
 
-                                <Route path="/admin" element={<AdminDashboard />} />
-                                <Route path="/admin/orders" element={<AdminOrders />} />
-                            </Routes>
-                        </SafeAreaWrapper>
-                        <Toast />
-                        <StickyCartBar />
-                    </BrowserRouter>
-                </UserAuthProvider>
-            </AdminAuthProvider>
-        </CartProvider>
-    );
+                  <Route path="/admin" element={<AdminDashboard />} />
+                  <Route path="/admin/orders" element={<AdminOrders />} />
+                </Routes>
+              </SafeAreaWrapper>
+              <Toast />
+              <StickyCartBar />
+            </BrowserRouter>
+          </UserAuthProvider>
+        </PreferencesProvider>
+      </AdminAuthProvider>
+    </CartProvider>
+  );
 }
 
 export default App;

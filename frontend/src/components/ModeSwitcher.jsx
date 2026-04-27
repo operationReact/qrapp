@@ -16,11 +16,12 @@ import {
   Infinite as BoxIconInfinity,
   TurkeyMeat as BoxIconDrumstick,
 } from "@boxicons/react";
+import { usePreferences } from "@/context/PreferencesContext";
 
 const BUTTON_MODE_ICON = {
   all: BoxIconInfinity,
   veg: BoxIconCarrot,
-  "nonveg": BoxIconDrumstick,
+  nonveg: BoxIconDrumstick,
 };
 
 const MODES = [
@@ -47,9 +48,11 @@ const MODES = [
   },
 ];
 
-export default function ModeSwitcher({ activeMode, switchMode }) {
-  console.log({activeMode})
-  const activeIdx = MODES.findIndex((m) => m.id === activeMode);
+export default function ModeSwitcher() {
+  const { preferences, setPreferences } = usePreferences();
+
+  const activeMode = preferences.segmentedFilter;
+  const activeIdx = MODES.findIndex((m) => m.id === preferences.segmentedFilter);
   const currentMode = MODES[activeIdx];
 
   const pillWidth = 340;
@@ -121,7 +124,7 @@ export default function ModeSwitcher({ activeMode, switchMode }) {
                   return (
                     <button
                       key={mode.id}
-                      onClick={() => switchMode(mode.id)}
+                      onClick={() => setPreferences({ ...preferences, segmentedFilter: mode.id })}
                       className="absolute top-0 bottom-0 flex items-center justify-center cursor-pointer outline-none group"
                       style={{
                         left: `${targetX}px`,

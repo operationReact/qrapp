@@ -71,9 +71,9 @@ export default function Register() {
         </div>
         <div className="rounded-2xl p-4 sm:p-6 sm:shadow-lg sm:shadow-red-300/10 h-fit sm:bg-white/20">
           <img
-            src="/login-banner.jpg"
+            src="/login-banner-2.jpg"
             alt="Your Easy Access To Delicious Meals"
-            className="w-full rounded-[14px] overflow-hidden"
+            className="w-full border border-muted rounded-[14px] overflow-hidden"
           />
           <h1 className="mb-2 mt-4 text-2xl font-semibold">Create Account</h1>
           {/* <p className="mb-4 text-sm text-gray-500">Register to track orders and use wallet checkout faster.</p> */}
@@ -92,7 +92,7 @@ export default function Register() {
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 required
-                className="mt-1 block w-full rounded-xl border border-gray-200 px-4 py-3 focus:ring-2 focus:ring-red-500 focus:border-transparent focus-visible:outline-transparent"
+                className="mt-1 block w-full rounded-xl border border-gray-200 px-4 py-3 focus:ring-2 focus:ring-primary focus:border-transparent focus-visible:outline-transparent"
               />
             </label>
             <label className="block mb-2">
@@ -102,7 +102,7 @@ export default function Register() {
               <input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="mt-1 block w-full rounded-xl border border-gray-200 px-4 py-3 focus:ring-2 focus:ring-red-500 focus:border-transparent focus-visible:outline-transparent"
+                className="mt-1 block w-full rounded-xl border border-gray-200 px-4 py-3 focus:ring-2 focus:ring-primary focus:border-transparent focus-visible:outline-transparent"
               />
             </label>
             <label className="block mb-6">
@@ -114,14 +114,14 @@ export default function Register() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="mt-1 block w-full rounded-xl border border-gray-200 px-4 py-3 focus:ring-2 focus:ring-red-500 focus:border-transparent focus-visible:outline-transparent"
+                className="mt-1 block w-full rounded-xl border border-gray-200 px-4 py-3 focus:ring-2 focus:ring-primary focus:border-transparent focus-visible:outline-transparent"
               />
             </label>
             <div className="flex flex-col gap-2">
               <Button
                 type="submit"
                 disabled={loading}
-                className="bg-red-500 h-12 font-medium!"
+                className="h-12 font-medium!"
               >
                 {loading ? "Creating..." : "Create Account"}
               </Button>

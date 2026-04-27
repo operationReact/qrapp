@@ -10,6 +10,7 @@ import {
   CarouselItem,
 } from "@/components/ui/carousel";
 import ModeSwitcher from "../components/ModeSwitcher";
+import { usePreferences } from "@/context/PreferencesContext";
 
 // Small mock dataset used when backend is unreachable so the UI can be inspected
 const SAMPLE_MENU = [
@@ -45,11 +46,14 @@ const SAMPLE_MENU = [
 export default function Menu() {
   const [menu, setMenu] = useState([]);
   const [category, setCategory] = useState("All");
-  const [vegFilter, setVegFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [offline, setOffline] = useState(false);
   const [offlineMessage, setOfflineMessage] = useState("");
+
+  // local vegFilter replaced with context for respecting preferences across the app
+  const { preferences } = usePreferences();
+  const vegFilter = preferences.segmentedFilter;
 
   const fetchMenu = useCallback(async () => {
     setLoading(true);
@@ -156,8 +160,7 @@ export default function Menu() {
         <div className="container-premium py-3">
           <div className="flex gap-4 w-full">
             <SearchBar onSearch={setSearchQuery} />
-            <ModeSwitcher activeMode={vegFilter} switchMode={setVegFilter} />
-            {/* change with switch mode component*/}
+            <ModeSwitcher />
           </div>
         </div>
       </div>

@@ -59,7 +59,7 @@ export default function CartItem({ item, removeItem, addItem, decreaseItem }) {
         <div className="mt-0 text-sm text-muted-foreground">₹{item.price}</div>
         <button
           onClick={() => removeItem(item.id)}
-          className="text-sm! rounded font-medium! text-red-500 transition-transform duration-150 active:scale-95"
+          className="text-sm! rounded font-medium! text-primary transition-transform duration-150 active:scale-95"
         >
           Remove
         </button>

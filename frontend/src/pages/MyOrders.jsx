@@ -162,14 +162,14 @@ export default function MyOrders() {
 
                       <div className="flex flex-col gap-2">
                         <div className="space-x-1 order-2 sm:order-1">
-                          <Button
+                          {/* <Button
                             variant="link"
                             className="border-primary"
                             size="icon-lg"
                           >
                             <ArrowUpRightStroke className="size-5" />{" "}
                             <span className="sr-only">View Order Details</span>
-                          </Button>
+                          </Button>*/}
                           <Drawer>
                             <DrawerTrigger asChild>
                               <Button variant="outline" size="icon-lg">

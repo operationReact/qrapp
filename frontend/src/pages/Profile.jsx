@@ -169,7 +169,7 @@ export default function Profile() {
                         <input
                           value={form.name}
                           onChange={handleChange("name")}
-                          className="mt-1 block w-full rounded-xl border border-gray-200 px-4 py-3 focus:ring-2 focus:ring-red-500 focus:border-transparent focus-visible:outline-transparent"
+                          className="mt-1 block w-full rounded-xl border border-gray-200 px-4 py-3 focus:ring-2 focus:ring-primary focus:border-transparent focus-visible:outline-transparent"
                           placeholder="Enter Your Name"
                         />
                       </label>
@@ -181,7 +181,7 @@ export default function Profile() {
                         <input
                           value={form.phone}
                           onChange={handleChange("phone")}
-                          className="mt-1 block w-full rounded-xl border border-gray-200 px-4 py-3 focus:ring-2 focus:ring-red-500 focus:border-transparent focus-visible:outline-transparent"
+                          className="mt-1 block w-full rounded-xl border border-gray-200 px-4 py-3 focus:ring-2 focus:ring-primary focus:border-transparent focus-visible:outline-transparent"
                           placeholder="e.g. 1234567890"
                         />
                       </label>
@@ -202,7 +202,7 @@ export default function Profile() {
                         <input
                           value={form.currentPassword}
                           onChange={handleChange("currentPassword")}
-                          className="mt-1 block w-full rounded-xl border border-gray-200 px-4 py-3 focus:ring-2 focus:ring-red-500 focus:border-transparent focus-visible:outline-transparent"
+                          className="mt-1 block w-full rounded-xl border border-gray-200 px-4 py-3 focus:ring-2 focus:ring-primary focus:border-transparent focus-visible:outline-transparent"
                           placeholder="Current Password"
                         />
                       </label>
@@ -215,7 +215,7 @@ export default function Profile() {
                           type="password"
                           value={form.newPassword}
                           onChange={handleChange("newPassword")}
-                          className="mt-1 block w-full rounded-xl border border-gray-200 px-4 py-3 focus:ring-2 focus:ring-red-500 focus:border-transparent focus-visible:outline-transparent"
+                          className="mt-1 block w-full rounded-xl border border-gray-200 px-4 py-3 focus:ring-2 focus:ring-primary focus:border-transparent focus-visible:outline-transparent"
                           placeholder="Set New Password"
                         />
                       </label>
@@ -228,7 +228,7 @@ export default function Profile() {
                           type="password"
                           value={form.confirmPassword}
                           onChange={handleChange("confirmPassword")}
-                          className="mt-1 block w-full rounded-xl border border-gray-200 px-4 py-3 focus:ring-2 focus:ring-red-500 focus:border-transparent focus-visible:outline-transparent"
+                          className="mt-1 block w-full rounded-xl border border-gray-200 px-4 py-3 focus:ring-2 focus:ring-primary focus:border-transparent focus-visible:outline-transparent"
                           placeholder="Confirm Password"
                         />
                       </label>

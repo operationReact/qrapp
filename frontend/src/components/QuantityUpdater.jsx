@@ -10,7 +10,7 @@ export default function QuantityUpdater({
   return (
     <div
       className={cn(
-        `flex bg-white ease-out rounded-lg duration-200 items-center justify-between w-full h-full border border-red-100`,
+        `flex bg-white ease-out rounded-lg duration-200 items-center justify-between w-full h-full border border-primary-foreground`,
         className,
       )}
     >

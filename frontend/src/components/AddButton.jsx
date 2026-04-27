@@ -7,7 +7,7 @@ export default function ItemActionButton({ qty, onAdd, onDecrease }) {
     <div className="tabular-nums rounded-lg overflow-hidden shrink-0 h-10">
       <Button
         variant="outline"
-        className="rounded-lg w-full h-full bg-white font-semibold! border border-red-100"
+        className="rounded-lg w-full h-full bg-white font-semibold! border border-primary-foreground"
         onClick={onAdd}
         disabled={qty > 0}
       >
