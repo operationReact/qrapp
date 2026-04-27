@@ -53,7 +53,7 @@ export default function MenuItemCard({ item, onEdit, onDelete }) {
 
         {/* name in image */}
         <div className="absolute left-0 bottom-0 right-0 px-2 py-2 flex justify-between items-baseline gap-0.5">
-          <h3 className="line-clamp-1 text-md font-semibold drop-shadow leading-6 sm:text-lg text-white">
+          <h3 className="line-clamp-1 text-md font-medium drop-shadow leading-6 sm:text-lg text-white">
             {item.name}
           </h3>
 
@@ -66,8 +66,8 @@ export default function MenuItemCard({ item, onEdit, onDelete }) {
         </div>
       </div>
 
-      <div className="space-y-1 py-4">
-        <p className="line-clamp-2 capitalize text-muted-foreground">
+      <div className="space-y-1 py-2">
+        <p className="line-clamp-2 capitalize text-sm text-muted-foreground">
           {item.description || "Delicious choice"}
         </p>
 

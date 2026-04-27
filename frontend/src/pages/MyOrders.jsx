@@ -127,7 +127,7 @@ export default function MyOrders() {
           )}
 
           {!loading && !error && orders.length > 0 && (
-            <div className="space-y-4">
+            <div className="space-y-2">
               {orders.map((order) => {
                 const createdAt = order.createdAt
                   ? new Date(order.createdAt)
