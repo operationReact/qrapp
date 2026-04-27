@@ -55,9 +55,9 @@ export default function ModeSwitcher({ activeMode, switchMode }) {
   const pillWidth = 340;
   const pillHeight = 80;
   const knobSize = 64;
-  const padding = (pillHeight - knobSize) / 2; // Exact uniform padding: 8px
+  const padding = (pillHeight - knobSize) / 2;
 
-  // Calculate precise horizontal points for the knob
+  // Calculate horizontal positions for the knob
   // Start: 8px, End: 340 - 64 - 8 = 268px. Middle: (8 + 268) / 2 = 138px.
   const firstPos = padding;
   const lastPos = pillWidth - knobSize - padding;

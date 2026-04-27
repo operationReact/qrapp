@@ -3,25 +3,12 @@ import { getMenu } from "../services/api";
 import Navbar from "../components/Navbar";
 import SearchBar from "../components/SearchBar";
 import CategoryTabs from "../components/CategoryTabs";
-import SegmentedFilter from "../components/SegmentedFilter";
 import MenuItemCard from "../components/MenuItemCard";
-import { Carrot } from "@boxicons/react";
 import {
   Carousel,
   CarouselContent,
   CarouselItem,
 } from "@/components/ui/carousel";
-import {
-  Drawer,
-  DrawerClose,
-  DrawerContent,
-  DrawerDescription,
-  DrawerFooter,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerTrigger,
-} from "@/components/ui/drawer";
-import { Button } from "@/components/ui/button";
 import ModeSwitcher from "../components/ModeSwitcher";
 
 // Small mock dataset used when backend is unreachable so the UI can be inspected
@@ -172,15 +159,15 @@ export default function Menu() {
             <ModeSwitcher activeMode={vegFilter} switchMode={setVegFilter} />
             {/* change with switch mode component*/}
           </div>
-          {/* <div className="space-y-3 p-3">
-            <SegmentedFilter value={vegFilter} onChange={setVegFilter} />
-            <CategoryTabs
-              categories={categories}
-              active={category}
-              onChange={setCategory}
-            />
-          </div>*/}
         </div>
+      </div>
+
+      <div className="container-premium mt-4">
+        <CategoryTabs
+          categories={categories}
+          active={category}
+          onChange={setCategory}
+        />
       </div>
 
       <main className="container-premium py-5 sm:py-6">
@@ -214,7 +201,7 @@ export default function Menu() {
 
           {/* ITEMS */}
           {Object.entries(groups).map(([category, items]) => (
-            <div className="premium-grid" key={category}>
+            <div className="premium-grid" key={category} id={category.toLowerCase()}>
               <h2 className="text-xl font-semibold sm:text-2xl">
                 {category || "Specials"}
               </h2>

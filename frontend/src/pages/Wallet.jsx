@@ -483,8 +483,8 @@ export default function Wallet() {
                 </p>
               </div>
               <Carousel>
-                <CarouselContent>
-                  <CarouselItem className="basis-auto">
+                <CarouselContent className="-ml-1">
+                  <CarouselItem className="basis-auto pl-1">
                     <Button
                       type="button"
                       variant="outline"
