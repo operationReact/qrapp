@@ -139,9 +139,9 @@ export default function MyOrders() {
                 return (
                   <article
                     key={order.id}
-                    className="border p-4 bg-white first:pt-0 rounded-2xl"
+                    className="border p-4 bg-white rounded-2xl"
                   >
-                    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="flex gap-4 items-start justify-between">
                       <div>
                         <div>
                           <h2 className="text-lg font-semibold">
@@ -163,7 +163,7 @@ export default function MyOrders() {
                       </div>
 
                       <div className="flex flex-col gap-2">
-                        <div className="space-x-1 order-2 w-fit ml-auto sm:w-auto sm:ml-0 sm:order-1">
+                        <div className="space-x-1 order-2 sm:order-1">
                           <Button
                             variant="link"
                             className="border-primary"
