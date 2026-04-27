@@ -127,7 +127,7 @@ export default function MyOrders() {
           )}
 
           {!loading && !error && orders.length > 0 && (
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2">
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
               {orders.map((order) => {
                 const createdAt = order.createdAt
                   ? new Date(order.createdAt)
@@ -161,7 +161,7 @@ export default function MyOrders() {
                       </div>
 
                       <div className="flex flex-col gap-2">
-                        <div className="space-x-1 order-2 sm:order-1">
+                        <div className="text-right order-2 sm:order-1">
                           {/* <Button
                             variant="link"
                             className="border-primary"
@@ -231,7 +231,7 @@ export default function MyOrders() {
                             </DrawerContent>
                           </Drawer>
                         </div>
-                        <div className="text-xl font-semibold text-right sm:text-left">
+                        <div className="text-xl font-semibold text-right">
                           ₹{Number(order.total || 0).toFixed(2)}
                         </div>
                       </div>
