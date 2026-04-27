@@ -44,8 +44,8 @@ export default function MyOrders() {
 
     async function loadOrders() {
       if (!user?.token) {
-          navigate('/login', { state: { from: '/orders' } });
-          return;
+        navigate("/login", { state: { from: "/orders" } });
+        return;
       }
 
       try {
@@ -196,14 +196,14 @@ export default function MyOrders() {
                                         <div className="flex items-center gap-2">
                                           <div className="text-sm">
                                             <span>{item.quantity}x</span>{" "}
-                                            {item.name}
+                                            {item.name || "Menu Item"}
                                           </div>
                                           <Badge variant="green-outline">
                                             {item.isVeg === true
                                               ? "• Veg"
                                               : item.isVeg === false
                                                 ? "• Non-veg"
-                                                : ""}
+                                                : "All"}
                                           </Badge>
                                         </div>
                                         <div className="text-sm font-semibold">
