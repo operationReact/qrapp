@@ -137,7 +137,7 @@ export default function MyOrders() {
                 return (
                   <article
                     key={order.id}
-                    className="border p-4 bg-white rounded-2xl"
+                    className="border p-4 bg-white hover:bg-white/80 rounded-2xl"
                   >
                     <div className="flex gap-4 items-start justify-between">
                       <div>
