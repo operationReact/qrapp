@@ -43,10 +43,10 @@ export default function MyOrders() {
     let mounted = true;
 
     async function loadOrders() {
-      // if (!user?.token) {
-      //     navigate('/login', { state: { from: '/orders' } });
-      //     return;
-      // }
+      if (!user?.token) {
+          navigate('/login', { state: { from: '/orders' } });
+          return;
+      }
 
       try {
         const response = await getMyOrders();
