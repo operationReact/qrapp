@@ -127,7 +127,7 @@ export default function MyOrders() {
           )}
 
           {!loading && !error && orders.length > 0 && (
-            <div className="space-y-2">
+            <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-2">
               {orders.map((order) => {
                 const createdAt = order.createdAt
                   ? new Date(order.createdAt)
@@ -148,7 +148,7 @@ export default function MyOrders() {
                           <Badge className={statusClass}>
                             <Archive pack="filled" /> {order.status}
                           </Badge>
-                          <Badge variant="outline">
+                          <Badge variant="outline" className="ml-1">
                             <Rupee pack="filled" />{" "}
                             {order.paymentStatus || "Pending"}
                           </Badge>
