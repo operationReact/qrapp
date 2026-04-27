@@ -5,7 +5,6 @@ import { getMyOrders } from "../services/api";
 import { useUserAuth } from "../context/UserAuthContext";
 import {
   Archive,
-  ArrowUpRight,
   ArrowUpRightStroke,
   Cabinet,
   FoodMenu,
@@ -18,7 +17,6 @@ import {
   Drawer,
   DrawerClose,
   DrawerContent,
-  DrawerDescription,
   DrawerFooter,
   DrawerHeader,
   DrawerTitle,
@@ -26,10 +24,10 @@ import {
 } from "@/components/ui/drawer";
 
 const STATUS_STYLES = {
-  PLACED: "bg-yellow-100 text-yellow-800",
-  PREPARING: "bg-blue-100 text-blue-800",
-  READY: "bg-green-100 text-green-800",
-  COMPLETED: "bg-gray-100 text-gray-700",
+  PLACED: "bg-yellow-50 text-yellow-800",
+  PREPARING: "bg-blue-50 text-blue-800",
+  READY: "bg-green-50 text-green-800",
+  COMPLETED: "bg-gray-50 text-gray-700",
 };
 
 export default function MyOrders() {
@@ -135,7 +133,7 @@ export default function MyOrders() {
                   ? new Date(order.createdAt)
                   : null;
                 const statusClass =
-                  STATUS_STYLES[order.status] || "bg-gray-100 text-gray-700";
+                  STATUS_STYLES[order.status] || "bg-gray-50 text-gray-700";
                 return (
                   <article
                     key={order.id}
@@ -147,7 +145,7 @@ export default function MyOrders() {
                           <h2 className="text-lg font-semibold">
                             Order #{order.id}
                           </h2>
-                          <Badge className="bg-yellow-50 text-yellow-800">
+                          <Badge className={statusClass}>
                             <Archive pack="filled" /> {order.status}
                           </Badge>
                           <Badge variant="outline">
@@ -233,7 +231,7 @@ export default function MyOrders() {
                             </DrawerContent>
                           </Drawer>
                         </div>
-                        <div className="text-xl font-semibold">
+                        <div className="text-xl font-semibold text-right sm:text-left">
                           ₹{Number(order.total || 0).toFixed(2)}
                         </div>
                       </div>
