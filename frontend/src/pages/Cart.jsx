@@ -1,5 +1,27 @@
+import CartItem from "@/components/CartItem";
+import MenuItemCard from "@/components/MenuItemCard";
+import { Button } from "@/components/ui/button";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+} from "@/components/ui/carousel";
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from "@/components/ui/drawer";
+import { CaretDown, Plus, Receipt } from "@boxicons/react";
+import { ChevronRight } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import Navbar from "../components/Navbar";
 import { useCart } from "../context/CartContext";
+import { useUserAuth } from "../context/UserAuthContext";
 import {
   clearWalletCache,
   createOrder,
@@ -8,19 +30,15 @@ import {
   notifyWalletUpdated,
   walletGetBalance,
 } from "../services/api";
-import Navbar from "../components/Navbar";
-import { useUserAuth } from "../context/UserAuthContext";
-import { useNavigate } from "react-router-dom";
-import CartItem from "@/components/CartItem";
-import MenuItemCard from "@/components/MenuItemCard";
-import { Button } from "@/components/ui/button";
-import { CaretDown, Receipt } from "@boxicons/react";
-import { ChevronRight } from "lucide-react";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-} from "@/components/ui/carousel";
+  Field,
+  FieldContent,
+  FieldDescription,
+  FieldLabel,
+  FieldTitle,
+} from "@/components/ui/field";
+import { Badge } from "@/components/ui/badge";
 
 function loadRazorpayScript(
   src = "https://checkout.razorpay.com/v1/checkout.js",
@@ -452,26 +470,132 @@ export default function Cart() {
                 </div>
 
                 <div className="flex gap-6 box-content h-[72px]! justify-between items-center py-2">
-                  <Button
-                    variant="outline"
-                    className="sm:w-1/2 pr-8 h-full w-1/2 max-w-2xs flex flex-col gap-0 justify-center items-start"
-                  >
-                    <div className="text-muted-foreground flex items-center font-medium">
-                      Pay using <CaretDown className="size-4" />
-                    </div>
-                    <div className="font-semibold">
-                      {paymentMethod === "WALLET" ? "Bro Wallet" : "Razorpay"}
-                    </div>
+                  <Drawer>
+                    <DrawerTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="sm:w-1/2 pr-8 h-full w-1/2 max-w-2xs flex flex-col gap-0 justify-center items-start"
+                      >
+                        <div className="text-muted-foreground flex items-center font-medium">
+                          Pay using <CaretDown className="size-4" />
+                        </div>
+                        <div className="font-semibold">
+                          {paymentMethod === "WALLET"
+                            ? "Bro Wallet"
+                            : "Razorpay"}
+                        </div>
 
-                    {paymentMethod === "WALLET" && (
-                      <span className="text-muted-foreground flex items-center font-medium">
-                        Balance: ₹{walletBalance || 0}
-                      </span>
-                    )}
-                  </Button>
+                        {paymentMethod === "WALLET" && (
+                          <span className="text-muted-foreground flex items-center font-medium">
+                            Balance: ₹{walletBalance || 0}
+                          </span>
+                        )}
+                      </Button>
+                    </DrawerTrigger>
+                    <DrawerContent className="max-w-md mx-auto">
+                      <DrawerHeader>
+                        <DrawerTitle className="text-xl font-semibold">
+                          Pay Using
+                        </DrawerTitle>
+                      </DrawerHeader>
+                      <div className="p-4">
+                        <RadioGroup
+                          defaultValue="RAZORPAY"
+                          onChange={(e) => setPaymentMethod(e.target.value)}
+                        >
+                          <FieldLabel htmlFor="wallet">
+                            <Field
+                              orientation="horizontal"
+                              data-disabled={!user?.token || walletLoading}
+                            >
+                              <FieldContent className="flex flex-row gap-2 items-start">
+                                <img
+                                  src="/coin.png"
+                                  alt="wallet"
+                                  className="size-11"
+                                />
+                                <div className="flex flex-col gap-0.5">
+                                  <FieldTitle>Bro Wallet</FieldTitle>
+                                  <FieldDescription>
+                                    {walletLoading
+                                      ? "Checking wallet balance..."
+                                      : hasWalletBalance
+                                        ? `Available balance: ₹${(walletBalance / 100).toFixed(2)}`
+                                        : "Login to use your wallet balance"}
+                                    {!walletCanCoverOrder && user?.token && (
+                                      <div className="mt-1 mb-1.5 text-xs text-red-700">
+                                        Your wallet doesn't have enough balance
+                                        for this order yet.
+                                      </div>
+                                    )}
+                                    <span className={`w-fit block`}>
+                                      {walletCanCoverOrder ? (
+                                        ""
+                                      ) : (
+                                        <Badge
+                                          asChild
+                                          variant="secondary"
+                                          className="ml-auto"
+                                        >
+                                          <Link to="/wallet">
+                                            <Plus data-icon="inline-start" />{" "}
+                                            Top up now
+                                          </Link>
+                                        </Badge>
+                                      )}
+                                    </span>
+                                  </FieldDescription>
+                                </div>
+                              </FieldContent>
+                              <RadioGroupItem
+                                value="WALLET"
+                                id="wallet"
+                                disabled={!user?.token || walletLoading}
+                              />
+                            </Field>
+                          </FieldLabel>
+                          <FieldLabel htmlFor="razorpay">
+                            <Field orientation="horizontal">
+                              <FieldContent className="flex flex-row gap-2">
+                                <img
+                                  src="/razorpay.svg"
+                                  alt="razorpay"
+                                  className="size-11"
+                                />
+                                <div>
+                                  <FieldTitle>Razorpay</FieldTitle>
+                                  <FieldDescription>
+                                    Use UPI, cards, or net banking at checkout.
+                                  </FieldDescription>
+                                </div>
+                              </FieldContent>
+                              <RadioGroupItem value="RAZORPAY" id="razorpay" />
+                            </Field>
+                          </FieldLabel>
+                        </RadioGroup>
+                      </div>
+
+                      <DrawerFooter>
+                        <DrawerClose asChild>
+                          <Button
+                            size="lg"
+                            className="w-full h-12 font-medium!"
+                          >
+                            Pay Using{" "}
+                            <span className="font-semibold">
+                              {paymentMethod === "WALLET"
+                                ? "Wallet"
+                                : "Razorpay"}
+                            </span>
+                          </Button>
+                        </DrawerClose>
+                      </DrawerFooter>
+                    </DrawerContent>
+                  </Drawer>
                   <Button
                     size="lg"
                     onClick={handleCheckout}
+                    disabled={submitting}
                     className="sm:w-1/2 h-full max-w-2xs font-medium!"
                   >
                     Place Order <ChevronRight className="size-5" />
