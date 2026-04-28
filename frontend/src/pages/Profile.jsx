@@ -254,7 +254,7 @@ export default function Profile() {
                   size="lg"
                   type="submit"
                   disabled={saving}
-                  className="h-12 w-full sm:max-w-[148px] font-medium!"
+                  className="h-12 text-sm! w-full sm:max-w-37 font-medium!"
                 >
                   {saving ? "Saving Changes..." : "Update Profile"}
                 </Button>
