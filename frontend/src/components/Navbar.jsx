@@ -207,7 +207,7 @@ export default function Navbar() {
           {!admin && !user && (
             <Link
               to="/login"
-              className="rounded-full transition-colors aspect-square grid place-items-center bg-primary-foreground border border-primary/5 size-11 text-sm font-medium"
+              className="rounded-full transition-colors aspect-square grid place-items-center bg-white border border-primary/5 size-11 text-sm font-medium"
             >
               <User pack="filled" className="size-6 fill-primary" />
             </Link>
@@ -223,7 +223,7 @@ export default function Navbar() {
                 className="flex items-center justify-center gap-2 rounded-full border border-primary/5 sm:border-none bg-white size-11 sm:size-fit sm:px-2 sm:py-1.5 text-sm font-medium text-gray-700"
               >
                 <span className="hidden md:inline text-sm">Account</span>
-                <span className="flex items-center size-full sm:size-7 justify-center rounded-full bg-primary/10 sm:bg-primary/5 text-xs font-bold text-primary">
+                <span className="flex items-center size-full sm:size-7 justify-center rounded-full bg-white sm:bg-primary/5 text-xs font-bold text-primary">
                   {menuOpen ? <XMarkIcon className="h-5 w-5" /> : "A"}
                 </span>
               </button>

@@ -38,7 +38,7 @@ export default function MenuItemCard({ item, onEdit, onDelete }) {
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
           />
         ) : (
-          <div className="w-full h-full flex items-center rounded-lg justify-center text-5xl bg-linear-to-br from-red-50 to-red-100">
+          <div className="w-full h-full flex items-center rounded-lg justify-center text-5xl bg-linear-to-br from-primary/25 to-primary">
             <img src="/brand/white.png" alt="Bro Logo" className="opacity-20 size-1/2 animate-pulse"/>
           </div>
         )}
