@@ -229,7 +229,7 @@ export default function Navbar() {
               </button>
 
               {menuOpen && (
-                <div className="absolute z-41 right-0 mt-3 w-[min(21rem,calc(100vw-1.5rem))] overflow-hidden rounded-3xl border border-primary-foreground bg-white shadow-xl shadow-gray-100">
+                <div className="absolute z-41 right-0 mt-3 w-[min(21rem,calc(100vw-1.5rem))] overflow-hidden rounded-3xl border border-primary-foreground bg-white shadow-xl shadow-zinc-900/10">
                   <div className="border-b border-primary/10 bg-linear-to-bl from-primary/10 to-white px-4 py-4">
                     <div className="text-base font-semibold">{userName}</div>
                     <div className="mt-1 text-sm text-muted-foreground">
