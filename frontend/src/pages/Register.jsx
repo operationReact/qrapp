@@ -5,6 +5,8 @@ import { setUserAuth } from "../services/api";
 import { useUserAuth } from "../context/UserAuthContext";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { Field, FieldContent, FieldLabel } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
 import { ChevronLeft } from "@boxicons/react";
 
 export default function Register() {
@@ -82,55 +84,58 @@ export default function Register() {
               {error}
             </div>
           )}
-          <form onSubmit={submit}>
-            <label className="block mb-2">
-              <span className="text-sm font-medium text-zinc-600">
-                Phone Number
-              </span>
-              <input
-                ref={firstFormField}
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                required
-                className="mt-1 block w-full rounded-xl border border-gray-200 px-4 py-3 focus:ring-2 focus:ring-primary focus:border-transparent focus-visible:outline-transparent"
-              />
-            </label>
-            <label className="block mb-2">
-              <span className="text-sm font-medium text-zinc-600">
-                Name (optional)
-              </span>
-              <input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="mt-1 block w-full rounded-xl border border-gray-200 px-4 py-3 focus:ring-2 focus:ring-primary focus:border-transparent focus-visible:outline-transparent"
-              />
-            </label>
-            <label className="block mb-6">
-              <span className="text-sm font-medium text-zinc-600">
-                Password
-              </span>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className="mt-1 block w-full rounded-xl border border-gray-200 px-4 py-3 focus:ring-2 focus:ring-primary focus:border-transparent focus-visible:outline-transparent"
-              />
-            </label>
-            <div className="flex flex-col gap-2">
+          <form onSubmit={submit} className="space-y-3">
+            <Field>
+              <FieldLabel>Phone Number</FieldLabel>
+              <FieldContent>
+                <Input
+                  ref={firstFormField}
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  required
+                  placeholder="1234567890"
+                  className="h-12"
+                />
+              </FieldContent>
+            </Field>
+            <Field>
+              <FieldLabel>Name (optional)</FieldLabel>
+              <FieldContent>
+                <Input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Your Name"
+                  className="h-12"
+                />
+              </FieldContent>
+            </Field>
+            <Field>
+              <FieldLabel>Password</FieldLabel>
+              <FieldContent>
+                <Input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  className="h-12"
+                />
+              </FieldContent>
+            </Field>
+            <div className="flex mt-5 flex-col gap-2">
               <Button
                 type="submit"
                 disabled={loading}
-                className="h-12 font-medium!"
+                className="h-12 text-sm! font-medium!"
               >
                 {loading ? "Creating..." : "Create Account"}
               </Button>
-              <Link
-                to="/login"
-                className="text-zinc-600 font-medium hover:underline focus-visible:underline rounded-xl px-4 py-4 text-center"
+              <Button
+                asChild
+                variant="ghost"
+                className="h-12"
               >
-                Already Have An Account?
-              </Link>
+                <Link to="/login">Already Have An Account?</Link>
+              </Button>
             </div>
           </form>
         </div>

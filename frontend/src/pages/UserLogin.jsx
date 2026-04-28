@@ -4,6 +4,8 @@ import API, { loginUser } from "../services/api";
 import { useUserAuth } from "../context/UserAuthContext";
 import { useAdminAuth } from "../context/AdminAuthContext";
 import { Button } from "@/components/ui/button";
+import { Field, FieldContent, FieldLabel } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
 import { ChevronLeft } from "@boxicons/react";
 
 export default function UserLogin() {
@@ -23,8 +25,8 @@ export default function UserLogin() {
   // Focus the first input field on mounting the component - UX CHOICE
   const firstFormField = useRef(null);
   useEffect(() => {
-    firstFormField.current?.focus()
-  },[])
+    firstFormField.current?.focus();
+  }, []);
 
   useEffect(() => {
     if (user && user.token) {
@@ -110,47 +112,45 @@ export default function UserLogin() {
               {error}
             </div>
           )}
-          <form onSubmit={submit}>
-            <label className="block mb-2">
-              <span className="text-sm font-medium text-zinc-600">
-                Phone Number / Username
-              </span>
-              <input
-                ref={firstFormField}
-                value={identifier}
-                onChange={(e) => setIdentifier(e.target.value)}
-                required
-                className="mt-1 block w-full rounded-xl border border-gray-200 px-4 py-3 focus:ring-2 focus:ring-primary focus:border-transparent focus-visible:outline-transparent"
-                placeholder="e.g. 1234567890 or admin"
-              />
-            </label>
-            <label className="block mb-6">
-              <span className="text-sm font-medium text-zinc-600">
-                Password
-              </span>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className="mt-1 block w-full rounded-xl border border-gray-200 px-4 py-3 focus:ring-2 focus:ring-primary focus:border-transparent focus-visible:outline-transparent"
-              />
-            </label>
-            <div className="flex flex-col gap-2 justify-center">
+          <form onSubmit={submit} className="space-y-3">
+            <Field>
+              <FieldLabel>Phone Number / Username</FieldLabel>
+              <FieldContent>
+                <Input
+                  ref={firstFormField}
+                  value={identifier}
+                  onChange={(e) => setIdentifier(e.target.value)}
+                  required
+                  placeholder="e.g. 1234567890 or admin"
+                  className="h-12"
+                />
+              </FieldContent>
+            </Field>
+            <Field>
+              <FieldLabel>Password</FieldLabel>
+              <FieldContent>
+                <Input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="h-12"
+                  required
+                />
+              </FieldContent>
+            </Field>
+            <div className="flex mt-5 flex-col gap-2 justify-center">
               <Button
                 type="submit"
                 disabled={loading}
-                className="h-12 font-medium!"
+                className="h-12 font-medium! text-sm!"
               >
                 {loading ? "Signing in..." : "Sign In"}
               </Button>
               {/* <Link to="/" className="text-sm text-gray-600">Back to menu</Link> */}
-              <Link
-                to="/register"
-                className="text-zinc-600 font-medium hover:underline focus-visible:underline rounded-xl px-4 py-4 text-center"
-              >
-                Create An Account
-              </Link>
+
+              <Button asChild variant="ghost" className="h-12 font-medium!">
+                <Link to="/register">Create An Account</Link>
+              </Button>
             </div>
           </form>
         </div>

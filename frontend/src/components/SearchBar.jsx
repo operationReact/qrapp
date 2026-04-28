@@ -1,6 +1,9 @@
-import { Search } from "@boxicons/react";
+import { Search, X } from "@boxicons/react";
 import PropTypes from "prop-types";
 import { useState, useEffect, useRef } from "react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { InputGroup, InputGroupAddon, InputGroupInput } from "./ui/input-group";
 
 export default function SearchBar({ onSearch = () => {} }) {
   const [value, setValue] = useState("");
@@ -12,27 +15,31 @@ export default function SearchBar({ onSearch = () => {} }) {
   }, [value, onSearch]);
 
   return (
-    <div className="relative w-full flex items-center rounded-xl border-2 border-primary bg-white px-3 h-14">
-      <label className="pr-2">
-        <Search className="size-7 fill-primary" />
-      </label>
-      <input
+    <InputGroup className="h-14 border-primary ring-1 ring-primary focus-within:border-primary! focus-within:ring-1! focus-within:ring-primary!">
+      <InputGroupInput
         ref={inputRef}
         value={value}
         onChange={(e) => setValue(e.target.value)}
         placeholder="Search dishes..."
-        className="w-full pr-12 text-sm font-medium! outline-none transition"
+        className="w-full pr-12 border-0 focus-visible:ring-0"
       />
 
+      <InputGroupAddon>
+        <Search className="size-7 fill-primary" />
+      </InputGroupAddon>
+
       {value && (
-        <button
+        <Button
+          type="button"
+          size="icon"
+          variant="ghost"
           onClick={() => setValue("")}
-          className="absolute right-3 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-gray-100 text-sm text-gray-500"
+          className="absolute right-1 h-8 w-8 hover:bg-gray-100"
         >
-          ✕
-        </button>
+          <X className="size-4" />
+        </Button>
       )}
-    </div>
+    </InputGroup>
   );
 }
 

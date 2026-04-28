@@ -30,6 +30,12 @@
         "Helvetica Neue";
 }
 
+@layer base {
+  button, [role="button"] {
+    cursor: pointer;
+  }
+}
+
 /* UPDATE TAILWIND CONTAINER STYLES */
 @utility container {
     margin-inline: auto;

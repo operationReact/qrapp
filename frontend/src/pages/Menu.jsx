@@ -156,7 +156,7 @@ export default function Menu() {
         </div>
       )}
 
-      <div className="border-b">
+      <div className="border-b border-b-muted">
         <div className="container-premium py-3">
           <div className="flex gap-4 w-full">
             <SearchBar onSearch={setSearchQuery} />

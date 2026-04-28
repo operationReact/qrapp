@@ -5,6 +5,16 @@ import { getCurrentUser, updateCurrentUser } from "../services/api";
 import { useUserAuth } from "../context/UserAuthContext";
 import { LockKeyhole, Menu, Shield } from "@boxicons/react";
 import { Button } from "@/components/ui/button";
+import {
+  Field,
+  FieldContent,
+  FieldDescription,
+  FieldGroup,
+  FieldLabel,
+  FieldLegend,
+  FieldSet,
+} from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -141,112 +151,115 @@ export default function Profile() {
 
           <section className="rounded-2xl border bg-white shadow-sm">
             {loading ? (
-              <div className="py-10 text-center text-muted-foreground">
-                Loading Profile...
-              </div>
+            <div className="py-10 text-center text-muted-foreground">
+              Loading Profile...
+            </div>
             ) : (
-              <form onSubmit={handleSubmit}>
-                <div className="p-4 sm:py-6 space-y-2">
-                  {error && (
-                    <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                      {error}
-                    </div>
-                  )}
+            <form onSubmit={handleSubmit}>
+              <div className="p-4 sm:py-6 space-y-2">
+                {error && (
+                  <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                    {error}
+                  </div>
+                )}
 
-                  {success && (
-                    <div className="rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
-                      {success}
-                    </div>
-                  )}
+                {success && (
+                  <div className="rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+                    {success}
+                  </div>
+                )}
 
-                  <div>
-                    <div className="font-medium">Personal Information</div>
-                    <div className="grid mt-2 gap-0 md:gap-4 md:grid-cols-2">
-                      <label className="block mb-2">
-                        <span className="text-sm font-medium text-zinc-600">
-                          Name
-                        </span>
-                        <input
+                <FieldSet>
+                  <FieldLegend>Personal Information</FieldLegend>
+                  <FieldGroup className="grid gap-4 md:grid-cols-2">
+                    <Field>
+                      <FieldLabel>Name</FieldLabel>
+                      <FieldContent>
+                        <Input
                           value={form.name}
                           onChange={handleChange("name")}
-                          className="mt-1 block w-full rounded-xl border border-gray-200 px-4 py-3 focus:ring-2 focus:ring-primary focus:border-transparent focus-visible:outline-transparent"
                           placeholder="Enter Your Name"
+                          className="h-12"
                         />
-                      </label>
+                      </FieldContent>
+                    </Field>
 
-                      <label className="block mb-2">
-                        <span className="text-sm font-medium text-zinc-600">
-                          Phone Number
-                        </span>
-                        <input
+                    <Field>
+                      <FieldLabel>Phone Number</FieldLabel>
+                      <FieldContent>
+                        <Input
                           value={form.phone}
                           onChange={handleChange("phone")}
-                          className="mt-1 block w-full rounded-xl border border-gray-200 px-4 py-3 focus:ring-2 focus:ring-primary focus:border-transparent focus-visible:outline-transparent"
                           placeholder="e.g. 1234567890"
+                          className="h-12"
                         />
-                      </label>
-                    </div>
-                  </div>
+                      </FieldContent>
+                    </Field>
+                  </FieldGroup>
+                </FieldSet>
 
-                  <div className="mt-4">
-                    <div className="font-medium">Change Password</div>
-                    <div className="mt-1 text-sm text-muted-foreground">
-                      {passwordHint}
-                    </div>
+                <FieldSet className="mt-4">
+                  <FieldLegend className="font-medium">
+                    Change Password
+                  </FieldLegend>
+                  <FieldDescription className="mt-1 text-sm text-muted-foreground">
+                    {passwordHint}
+                  </FieldDescription>
 
-                    <div className="mt-2 grid gap-0 md:gap-4 md:grid-cols-3">
-                      <label className="block mb-2">
-                        <span className="text-sm font-medium text-zinc-600">
-                          Current Password
-                        </span>
-                        <input
+                  <FieldGroup className="grid gap-4 md:grid-cols-3">
+                    <Field>
+                      <FieldLabel>Current Password</FieldLabel>
+                      <FieldContent>
+                        <Input
+                          type="password"
                           value={form.currentPassword}
                           onChange={handleChange("currentPassword")}
-                          className="mt-1 block w-full rounded-xl border border-gray-200 px-4 py-3 focus:ring-2 focus:ring-primary focus:border-transparent focus-visible:outline-transparent"
                           placeholder="Current Password"
+                          className="h-12"
                         />
-                      </label>
+                      </FieldContent>
+                    </Field>
 
-                      <label className="block mb-2">
-                        <span className="text-sm font-medium text-zinc-600">
-                          New Password
-                        </span>
-                        <input
+                    <Field>
+                      <FieldLabel>New Password</FieldLabel>
+                      <FieldContent>
+                        <Input
                           type="password"
                           value={form.newPassword}
                           onChange={handleChange("newPassword")}
-                          className="mt-1 block w-full rounded-xl border border-gray-200 px-4 py-3 focus:ring-2 focus:ring-primary focus:border-transparent focus-visible:outline-transparent"
                           placeholder="Set New Password"
+                          className="h-12"
                         />
-                      </label>
+                      </FieldContent>
+                    </Field>
 
-                      <label className="block mb-2">
-                        <span className="text-sm font-medium text-zinc-600">
-                          Confirm Password
-                        </span>
-                        <input
+                    <Field>
+                      <FieldLabel>Confirm Password</FieldLabel>
+                      <FieldContent>
+                        <Input
                           type="password"
                           value={form.confirmPassword}
                           onChange={handleChange("confirmPassword")}
-                          className="mt-1 block w-full rounded-xl border border-gray-200 px-4 py-3 focus:ring-2 focus:ring-primary focus:border-transparent focus-visible:outline-transparent"
                           placeholder="Confirm Password"
+                          className="h-12"
                         />
-                      </label>
-                    </div>
-                  </div>
-                </div>
+                      </FieldContent>
+                    </Field>
+                  </FieldGroup>
+                </FieldSet>
+              </div>
 
-                <div className="p-4 flex justify-end border-t">
-                  <Button
-                    size="lg"
-                    type="submit"
-                    disabled={saving}
-                    className="h-12 w-full sm:max-w-[148px] font-medium!"
-                  >
-                    {saving ? "Saving Changes..." : "Update Profile"}
-                  </Button>
-                </div>
-              </form>
+              <div className="p-4 flex justify-end border-t">
+                <Button
+                  size="lg"
+                  type="submit"
+                  disabled={saving}
+                  className="h-12 w-full sm:max-w-[148px] font-medium!"
+                >
+                  {saving ? "Saving Changes..." : "Update Profile"}
+                </Button>
+              </div>
+            </form>
             )}
           </section>
 
