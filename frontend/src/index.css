@@ -101,12 +101,20 @@ body {
         --page-gradient-start: oklch(0.9167 0.0441 7.54);
         --primary-foreground: var(--color-red-100);
         --primary: var(--color-red-500);
+
+        .login-banner{
+            content: url("/login-banner.jpg");
+        }
     }
 
     &[data-segmented-filter="veg"] {
         --page-gradient-start: oklch(0.9673 0.0497 156.91);
         --primary-foreground: var(--color-green-100);
         --primary: var(--color-accent-400);
+
+        .login-banner{
+            content: url("/login-banner-green.jpg");
+        }
     }
 
     font-family: var(--base-font), sans-serif;

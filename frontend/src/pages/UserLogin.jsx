@@ -99,9 +99,9 @@ export default function UserLogin() {
         </div>
         <div className="rounded-2xl p-4 sm:p-6 sm:shadow-lg sm:shadow-red-300/10 h-fit sm:bg-white/20">
           <img
-            src="/login-banner-2.jpg"
+            src="/login-banner.jpg"
             alt="Your Easy Access To Delicious Meals"
-            className="w-full border border-muted rounded-[14px] overflow-hidden"
+            className="w-full border border-muted login-banner rounded-[14px] overflow-hidden"
           />
           <div className="mb-2 mt-4">
             <h1 className="text-2xl font-semibold">Login Your Account</h1>
