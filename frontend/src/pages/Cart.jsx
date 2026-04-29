@@ -190,7 +190,6 @@ export default function Cart() {
           },
         });
         return;
-        CartItem;
       }
 
       const { payment } = res.data;
@@ -280,7 +279,7 @@ export default function Cart() {
                 viewBox="0 0 24 24"
               >
                 <path
-                  className="fill-red-500"
+                  className="fill-primary"
                   d="m11.73 5.32-1.41 1.41 1.77 1.77-1.77 1.77 1.41 1.41 1.77-1.77 1.77 1.77 1.41-1.41-1.77-1.77 1.77-1.77-1.41-1.41-1.77 1.77z"
                 ></path>
                 <path d="M17.31 14H9.72L5.95 2.68A1 1 0 0 0 5 2H2v2h2.28l3.54 10.63A2 2 0 0 0 9.72 16h7.59a2 2 0 0 0 1.87-1.3l2.76-7.35-1.87-.7zM10 18a2 2 0 1 0 0 4 2 2 0 1 0 0-4m7 0a2 2 0 1 0 0 4 2 2 0 1 0 0-4"></path>
