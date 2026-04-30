@@ -65,6 +65,6 @@ logging:
 
 # Don't keep secrets in files - supply via environment variables or secret manager
 razorpay:
-  key: ${RAZORPAY_KEY:rzp_test_SXoONgvkn7mSte}
-  secret: ${RAZORPAY_SECRET:cT115GamOarfQX8BhxVmIwj9}
+  key: ${RAZORPAY_KEY:rzp_live_SjoDXPub6QyGmK}
+  secret: ${RAZORPAY_SECRET:ce48RVyeGMJlGlbbUckKAU7l}
   webhookSecret: ${RAZORPAY_WEBHOOK_SECRET:rzp_test_mock_webhook_secret}
