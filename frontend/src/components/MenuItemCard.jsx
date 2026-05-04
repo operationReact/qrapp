@@ -39,7 +39,11 @@ export default function MenuItemCard({ item, onEdit, onDelete }) {
           />
         ) : (
           <div className="w-full h-full flex items-center rounded-lg justify-center text-5xl bg-linear-to-br from-primary/25 to-primary">
-            <img src="/brand/white.png" alt="Bro Logo" className="opacity-20 size-1/2 animate-pulse"/>
+            <img
+              src="/brand/white.png"
+              alt="Bro Logo"
+              className="opacity-20 size-1/2 animate-pulse"
+            />
           </div>
         )}
 
@@ -47,8 +51,13 @@ export default function MenuItemCard({ item, onEdit, onDelete }) {
         <div className="absolute left-0 right-0 bottom-0 bg-linear-[rgba(27,30,36,0)_0%,_rgb(27,30,36)_84.21%)] h-22" />
 
         {/* veg/non-veg badge */}
-        <div title={veg ? "Veg" : "Non Veg"} className={`absolute top-2 left-2 p-1 border-2 bg-white rounded-md size-6 flex items-center gap-2 ${veg ? 'border-accent-400' : 'border-red-600'}`}>
-            <span className={`size-full rounded-full ${veg ? 'bg-accent-400' : 'bg-red-600'}`}></span>
+        <div
+          title={veg ? "Veg" : "Non Veg"}
+          className={`absolute top-2 left-2 p-1 border-2 bg-white rounded-md size-6 flex items-center gap-2 ${veg ? "border-accent-400" : "border-red-600"}`}
+        >
+          <span
+            className={`size-full rounded-full ${veg ? "bg-accent-400" : "bg-red-600"}`}
+          ></span>
         </div>
 
         {/* name in image */}
@@ -66,28 +75,17 @@ export default function MenuItemCard({ item, onEdit, onDelete }) {
         </div>
       </div>
 
-      <div className="space-y-1 py-2">
-        <p className="line-clamp-2 capitalize text-sm text-muted-foreground">
-          {item.description || "Delicious choice"}
-        </p>
-
-        <div className="flex items-end justify-between gap-3">
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-baseline gap-2">
-              <span className="text-xl font-bold sm:text-xl">
-                ₹{item.price}
-              </span>
-              {item.tag && (
-                <span className="text-xs font-medium text-red-600">
-                  {item.tag}
-                </span>
-              )}
-            </div>
-            {/* <div className="mt-1 text-[11px] uppercase tracking-wide text-gray-400">
-              Tap to add instantly
-            </div>*/}
-          </div>
+      <div className="space-y-1 py-2 flex justify-between gap-2 items-start">
+        <div className="flex-1">
+          {item.tag && (
+            <span className="text-xs font-medium text-red-600">{item.tag}</span>
+          )}
+          <p className="line-clamp-2 capitalize text-sm text-muted-foreground">
+            {item.description || "Delicious choice"}
+          </p>
         </div>
+
+        <span className="font-semibold text-lg sm:text-xl">₹{item.price}</span>
 
         {admin && (
           <div className="flex gap-2 mt-2">

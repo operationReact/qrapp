@@ -9,6 +9,7 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from "@/components/ui/drawer";
+import { cn } from "@/lib/utils";
 import { Archive, FoodMenu, Rupee } from "@boxicons/react";
 
 const STATUS_STYLES = {
@@ -67,16 +68,27 @@ export default function OrderCard({ order }) {
                     {(order.items || []).map((item, index) => (
                       <li
                         key={`${index}-${order.id}-${item.name}`}
-                        className="py-1 border-b last:border-b-0"
+                        className="py-1.5"
                       >
                         <div className="flex gap-3 items-center justify-between">
                           <div className="flex items-center gap-2">
+                            <Badge
+                              className={cn(
+                                ` bg-transparent border-2 rounded-sm font-medium p-1`,
+                                item.isVeg
+                                  ? "text-accent-400 border-accent-400"
+                                  : "text-red-500 border-red-500",
+                              )}
+                            >
+                              <span>{item.isVeg ? "VEG" : "NONVEG/NA"}</span>
+                            </Badge>
                             <div className="text-sm">
-                              <span>{item.quantity}x</span>
-                              {item.isVeg ? "Veg" : "Non Veg"}
+                              <span className="font-medium group-hover/order-item:text-primary transition duration-100">
+                                {item.quantity}x •{" "}
+                              </span>
+                              {item.isVeg ? "Veg " : "Non Veg "}
                               {item.name || "Menu Item"}
                             </div>
-                            <Badge variant="green-outline">{}</Badge>
                           </div>
                           <div className="text-sm font-semibold">
                             ₹

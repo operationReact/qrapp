@@ -38,14 +38,16 @@ export default function StickyCartBar() {
               <div className="flex min-w-0 items-center gap-3">
                 <div className="flex h-10 w-10 relative bg-primary-foreground/50 flex-none items-center justify-center rounded-full text-base font-semibold text-primary">
                   <Cart pack="filled" />
-                  <span className="absolute bg-white rounded-full w-8 grid place-items-center -bottom-2 border border-muted text-xs text-black">{totalItems}</span>
+                  <span className="absolute bg-white rounded-full w-8 grid place-items-center -bottom-2 border border-muted text-xs text-black">
+                    {totalItems}
+                  </span>
                 </div>
                 <div className="min-w-0">
                   <div className="text-xs font-medium tracking-wide text-muted-foreground">
                     Items in cart
                   </div>
                   <div className="truncate text-base font-semibold">
-                    ₹{totalPrice}
+                    ₹{totalPrice.toFixed(2)}
                   </div>
                 </div>
               </div>

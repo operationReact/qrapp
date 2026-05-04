@@ -1,4 +1,4 @@
-import AdminOrderOperations from '../components/AdminOrderOperations';
+import AdminOrderOperations from '../../components/AdminOrderOperations';
 
 export default function AdminOrders() {
     return (

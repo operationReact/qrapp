@@ -1,7 +1,7 @@
-import { useEffect, useState, useRef } from "react";
-import PropTypes from "prop-types";
-import { updateMenuItem } from "../services/api";
-import API from "../services/api";
+import { useState, useEffect, useRef } from "react";
+import { Navigate, useLocation, useNavigate } from "react-router-dom";
+import { useAdminAuth } from "../../context/AdminAuthContext";
+import API, { createMenuItem } from "../../services/api";
 import { Button } from "@/components/ui/button";
 import {
   Field,
@@ -15,61 +15,161 @@ import {
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { X } from "lucide-react";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import { X } from "@boxicons/react";
+import AdminHeader from "@/components/admin/AdminHeader";
 
-export default function MenuItemEditModal({
-  item,
-  onClose,
-  onSuccess,
-  onPreviewChange,
-}) {
-  const previewRef = useRef(null);
-  const imageFieldRef = useRef(null);
+export default function AdminMenuManager() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { admin, setAdmin } = useAdminAuth();
 
   const [form, setForm] = useState({
     name: "",
     price: "",
-    category: "",
+    category: "Misc",
     description: "",
     imageUrl: "",
+    tag: "",
     available: true,
     recommended: false,
-    tag: "",
     isVeg: false,
-    imageFile: null,
-    previewUrl: "",
   });
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState(null);
 
-  useEffect(() => {
-    if (item) {
-      const initialPreview = item.imageUrl || "";
-      setForm({
-        name: item.name || "",
-        price: item.price != null ? String(item.price) : "",
-        category: item.category || "",
-        description: item.description || "",
-        imageUrl: item.imageUrl || "",
-        available: item.available == null ? true : !!item.available,
-        recommended: !!item.recommended,
-        tag: item.tag || "",
-        isVeg: !!item.isVeg,
-        imageFile: null,
-        previewUrl: initialPreview,
-      });
-      // ensure previewRef is synced to existing url when initialized
-      previewRef.current = initialPreview || null;
-      setError(null);
-      if (onPreviewChange) onPreviewChange(initialPreview);
+  const [imageFile, setImageFile] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState("");
+  const [creating, setCreating] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
+  const imageFieldRef = useRef(null);
+
+  const handleChange = (key) => (event) => {
+    setError("");
+    setSuccess("");
+    const value = event.target ? event.target.value : event;
+    setForm((current) => ({ ...current, [key]: value }));
+  };
+
+  const handleSwitchChange = (key) => (checked) => {
+    setError("");
+    setSuccess("");
+    setForm((current) => ({ ...current, [key]: checked }));
+  };
+
+  const handleFileChange = (event) => {
+    const file = event.target.files && event.target.files[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setError("Please select a valid image file");
+      return;
     }
-  }, [item, onPreviewChange]);
+    if (file.size > 5 * 1024 * 1024) {
+      setError("Image must be 5MB or smaller");
+      return;
+    }
+    if (previewUrl?.startsWith("blob:")) {
+      try {
+        URL.revokeObjectURL(previewUrl);
+      } catch (err) {
+        console.warn(err);
+      }
+    }
+    setImageFile(file);
+    setPreviewUrl(URL.createObjectURL(file));
+    setError("");
+  };
+
+  const handleRemoveFile = () => {
+    if (previewUrl?.startsWith("blob:")) {
+      try {
+        URL.revokeObjectURL(previewUrl);
+        imageFieldRef.current.value = "";
+      } catch (err) {
+        console.warn(err);
+      }
+    }
+    setImageFile(null);
+    setPreviewUrl("");
+  };
+
+  const resetForm = () => {
+    setForm({
+      name: "",
+      price: "",
+      category: "Misc",
+      description: "",
+      imageUrl: "",
+      tag: "",
+      available: true,
+      recommended: false,
+      isVeg: false,
+    });
+    handleRemoveFile();
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setError("");
+    setSuccess("");
+
+    if (!form.name.trim()) {
+      setError("Name is required.");
+      return;
+    }
+    if (!form.price || Number.isNaN(Number(form.price))) {
+      setError("Valid price is required.");
+      return;
+    }
+
+    setCreating(true);
+    try {
+      if (imageFile) {
+        const formData = new FormData();
+        formData.append("name", form.name.trim());
+        formData.append("price", String(Number(form.price)));
+        formData.append("category", form.category.trim() || "Misc");
+        formData.append("description", form.description.trim());
+        formData.append("available", String(form.available));
+        formData.append("recommended", String(form.recommended));
+        formData.append("tag", form.tag.trim());
+        formData.append("isVeg", String(Boolean(form.isVeg)));
+        formData.append("image", imageFile);
+        await createMenuItem(formData);
+      } else {
+        await createMenuItem({
+          name: form.name.trim(),
+          price: Number(form.price),
+          category: form.category.trim() || "Misc",
+          description: form.description.trim(),
+          imageUrl: form.imageUrl.trim(),
+          available: form.available,
+          recommended: form.recommended,
+          tag: form.tag.trim(),
+          isVeg: Boolean(form.isVeg),
+        });
+      }
+      setSuccess("Menu item created successfully");
+      resetForm();
+      window.setTimeout(() => setSuccess(""), 3000);
+    } catch (err) {
+      console.error(err);
+      if (err?.response?.status === 401 || err?.response?.status === 403) {
+        setAdmin(null);
+        navigate("/login", {
+          replace: true,
+          state: { from: location.pathname },
+        });
+        return;
+      }
+      setError(
+        err?.response?.data?.message ||
+          err?.response?.data ||
+          "Failed to create menu item",
+      );
+    } finally {
+      setCreating(false);
+    }
+  };
 
   const computeImageSrc = (url) => {
     if (!url) return null;
@@ -79,142 +179,32 @@ export default function MenuItemEditModal({
     return `${base}${url}`;
   };
 
-  const handleChange = (key) => (e) => {
-    const value =
-      e.target.type === "checkbox" ? e.target.checked : e.target.value;
-    setForm((f) => ({ ...f, [key]: value }));
-  };
-
-  const validate = () => {
-    if (!form.name.trim()) return "Name is required";
-    if (form.price === "" || isNaN(Number(form.price)))
-      return "Valid price is required";
-    return null;
-  };
-
-  // handle file selection and preview
-  const handleFileChange = (e) => {
-    const file = e.target.files && e.target.files[0];
-    if (!file) return;
-    // basic validation
-    if (!file.type.startsWith("image/")) {
-      setError("Please select a valid image file");
-      return;
-    }
-    const MAX_BYTES = 5 * 1024 * 1024; // 5MB
-    if (file.size > MAX_BYTES) {
-      setError("Image must be 5MB or smaller");
-      return;
-    }
-    // revoke previous preview if any
-    if (
-      previewRef.current &&
-      typeof previewRef.current === "string" &&
-      previewRef.current.startsWith("blob:")
-    ) {
-      try {
-        URL.revokeObjectURL(previewRef.current);
-      } catch {
-        /* ignore */
-      }
-    }
-    const preview = URL.createObjectURL(file);
-    previewRef.current = preview;
-    setForm((f) => ({ ...f, imageFile: file, previewUrl: preview }));
-    setError(null);
-    if (onPreviewChange) onPreviewChange(preview);
-  };
-
-  const handleRemoveFile = () => {
-    if (
-      previewRef.current &&
-      typeof previewRef.current === "string" &&
-      previewRef.current.startsWith("blob:")
-    ) {
-      try {
-        URL.revokeObjectURL(previewRef.current);
-        imageFieldRef.current.value = ""
-      } catch {
-        /* ignore */
-      }
-    }
-    previewRef.current = null;
-    setForm((f) => ({ ...f, imageFile: null, previewUrl: "" }));
-    if (onPreviewChange) onPreviewChange("");
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    const v = validate();
-    if (v) {
-      setError(v);
-      return;
-    }
-
-    setSubmitting(true);
-    setError(null);
-    try {
-      // If an image file is selected, send multipart/form-data
-      let res;
-      if (form.imageFile) {
-        const fd = new FormData();
-        fd.append("name", form.name.trim());
-        fd.append("price", String(Number(form.price)));
-        fd.append("category", form.category.trim());
-        fd.append("description", form.description.trim());
-        fd.append("available", String(!!form.available));
-        fd.append("recommended", String(!!form.recommended));
-        fd.append("tag", form.tag.trim());
-        fd.append("isVeg", String(!!form.isVeg));
-        fd.append("image", form.imageFile);
-        res = await updateMenuItem(item.id, fd);
-      } else {
-        const payload = {
-          name: form.name.trim(),
-          price: Number(form.price),
-          category: form.category.trim(),
-          description: form.description.trim(),
-          imageUrl: form.imageUrl ? form.imageUrl.trim() : item.imageUrl || "",
-          available: !!form.available,
-          recommended: !!form.recommended,
-          tag: form.tag.trim(),
-          isVeg: !!form.isVeg,
-        };
-        res = await updateMenuItem(item.id, payload);
-      }
-
-      const updated = res?.data || { ...item, ...form };
-      if (onSuccess) onSuccess(updated);
-      onClose();
-    } catch (err) {
-      console.error("update failed", err);
-      setError(err?.response?.data?.message || "Failed to update");
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  if (!item) return null;
+  if (!admin?.username || !admin?.password) {
+    return (
+      <Navigate to={"/login"} replace state={{ from: location.pathname }} />
+    );
+  }
 
   return (
-    <Sheet
-      open={!!item}
-      onOpenChange={(open) => {
-        if (!open) {
-          if (onPreviewChange) onPreviewChange("");
-          onClose();
-        }
-      }}
-    >
-      <SheetContent className="overflow-y-auto p-0 sm:max-w-2xl">
-        <SheetHeader>
-          <SheetTitle>Edit Item</SheetTitle>
-        </SheetHeader>
-        <form className="px-4" onSubmit={handleSubmit}>
-          <div className="space-y-2">
+    <>
+      <AdminHeader
+        title="Menu Management"
+        description="Create a new menu item to be instantly available to your customers."
+        className="mb-6"
+      />
+
+      <section>
+        <form onSubmit={handleSubmit}>
+          <div className="px-4 pb-4 space-y-2">
             {error && (
               <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                 {error}
+              </div>
+            )}
+
+            {success && (
+              <div className="rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+                {success}
               </div>
             )}
 
@@ -223,7 +213,7 @@ export default function MenuItemEditModal({
               <FieldDescription className="mt-1 text-sm text-muted-foreground">
                 The essential information customers will see.
               </FieldDescription>
-              <FieldGroup className="mt-4 grid gap-4 md:grid-cols-2">
+              <FieldGroup className="grid gap-4 md:grid-cols-2">
                 <Field>
                   <FieldLabel>Name</FieldLabel>
                   <FieldContent>
@@ -295,15 +285,15 @@ export default function MenuItemEditModal({
                 Upload an image or provide an external link.
               </FieldDescription>
 
-              <FieldGroup className="mt-4 grid gap-4 md:grid-cols-2">
+              <FieldGroup className="grid gap-4 md:grid-cols-2">
                 <Field>
                   <FieldLabel>Upload Image</FieldLabel>
                   <FieldContent>
                     <div className="flex items-center gap-4">
                       <Input
                         type="file"
-                        ref={imageFieldRef}
                         accept="image/*"
+                        ref={imageFieldRef}
                         onChange={handleFileChange}
                         className="flex-1 cursor-pointer file:cursor-pointer file:border-0 file:bg-transparent file:text-sm file:font-medium h-12 pt-3 text-sm!"
                       />
@@ -322,21 +312,21 @@ export default function MenuItemEditModal({
                       onChange={handleChange("imageUrl")}
                       placeholder="https://..."
                       className="h-12 text-sm!"
-                      disabled={!!form.imageFile}
+                      disabled={!!imageFile}
                     />
                   </FieldContent>
                 </Field>
 
-                {(form.previewUrl || form.imageUrl) && (
+                {(previewUrl || form.imageUrl) && (
                   <div className="md:col-span-2 flex flex-col items-start gap-3">
                     <span className="text-sm font-medium">Preview</span>
                     <div className="relative">
                       <img
-                        src={form.previewUrl || computeImageSrc(form.imageUrl)}
+                        src={previewUrl || computeImageSrc(form.imageUrl)}
                         alt="Preview"
                         className="h-32 w-32 rounded-2xl object-cover shadow-sm border"
                       />
-                      {form.previewUrl && (
+                      {previewUrl && (
                         <Button
                           variant="outline"
                           size="icon"
@@ -359,96 +349,77 @@ export default function MenuItemEditModal({
                 Configure the item's availability and tags.
               </FieldDescription>
 
-              <FieldGroup className="mt-4 md:max-w-sm">
+              <FieldGroup className="md:max-w-sm">
                 <Field className="md:max-w-sm" orientation="horizontal">
                   <FieldContent>
-                    <FieldLabel htmlFor="available-edit">Available</FieldLabel>
+                    <FieldLabel htmlFor="available">Available</FieldLabel>
                     <FieldDescription>
                       Show this item on the menu
                     </FieldDescription>
                   </FieldContent>
                   <Switch
-                    id="available-edit"
+                    id="available"
                     checked={form.available}
-                    onCheckedChange={(c) =>
-                      handleChange("available")({
-                        target: { type: "checkbox", checked: c },
-                      })
-                    }
+                    onCheckedChange={handleSwitchChange("available")}
                   />
                 </Field>
 
                 <Field className="md:max-w-sm" orientation="horizontal">
                   <FieldContent>
-                    <FieldLabel htmlFor="recommended-edit">
-                      Recommended
-                    </FieldLabel>
+                    <FieldLabel htmlFor="recommended">Recommended</FieldLabel>
                     <FieldDescription>
                       Show this item in recommendations
                     </FieldDescription>
                   </FieldContent>
                   <Switch
-                    id="recommended-edit"
+                    id="recommended"
                     checked={form.recommended}
-                    onCheckedChange={(c) =>
-                      handleChange("recommended")({
-                        target: { type: "checkbox", checked: c },
-                      })
-                    }
+                    onCheckedChange={handleSwitchChange("recommended")}
                   />
                 </Field>
 
                 <Field className="md:max-w-sm" orientation="horizontal">
                   <FieldContent className="space-y-0.5">
-                    <FieldLabel htmlFor="isVeg-edit">Veg Item</FieldLabel>
+                    <FieldLabel htmlFor="isVeg">Veg Item</FieldLabel>
                     <FieldDescription>
                       Mark as strictly vegetarian
                     </FieldDescription>
                   </FieldContent>
                   <Switch
-                    id="isVeg-edit"
+                    id="isVeg"
                     checked={form.isVeg}
-                    onCheckedChange={(c) =>
-                      handleChange("isVeg")({
-                        target: { type: "checkbox", checked: c },
-                      })
-                    }
+                    onCheckedChange={handleSwitchChange("isVeg")}
                   />
                 </Field>
               </FieldGroup>
             </FieldSet>
           </div>
-          <div className="py-4 flex gap-3 justify-end border-t rounded-b-lg mt-6">
+
+          <div className="p-4 flex gap-3 justify-end border-t">
             <Button
               size="lg"
               type="button"
               variant="outline"
               onClick={() => {
-                if (onPreviewChange) onPreviewChange("");
-                onClose();
+                resetForm();
+                setError("");
+                setSuccess("");
               }}
               className="h-12 text-sm! w-full sm:max-w-37 font-medium!"
             >
-              Cancel
+              Reset
             </Button>
             <Button
               size="lg"
               type="submit"
-              disabled={submitting}
+              disabled={creating}
               className="h-12 text-sm! w-full sm:max-w-37 font-medium!"
             >
-              {submitting ? "Saving..." : "Save Changes"}
+              {creating ? "Creating Item..." : "Create Menu Item"}
             </Button>
           </div>
         </form>
-      </SheetContent>
-    </Sheet>
+      </section>
+    </>
   );
 }
-
-MenuItemEditModal.propTypes = {
-  item: PropTypes.object,
-  onClose: PropTypes.func.isRequired,
-  onSuccess: PropTypes.func,
-  onPreviewChange: PropTypes.func,
-};

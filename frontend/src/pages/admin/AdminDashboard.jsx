@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
 import PropTypes from 'prop-types';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { createMenuItem, deleteMenuItem, getMenu, updateMenuItem } from '../services/api';
-import { useAdminAuth } from '../context/AdminAuthContext';
-import MenuItemEditModal from '../components/MenuItemEditModal';
-import ConfirmDialog from '../components/ConfirmDialog';
-import AdminOrderOperations from '../components/AdminOrderOperations';
-import API from '../services/api';
+import { createMenuItem, deleteMenuItem, getMenu, updateMenuItem } from '../../services/api';
+import { useAdminAuth } from '../../context/AdminAuthContext';
+import MenuItemEditModal from '../../components/MenuItemEditModal';
+import ConfirmDialog from '../../components/ConfirmDialog';
+import AdminOrderOperations from '../../components/AdminOrderOperations';
+import API from '../../services/api';
 
 function AvailabilityToggle({ item, onToggle }) {
     const [toggling, setToggling] = useState(false);
@@ -223,15 +223,15 @@ export default function AdminDashboard() {
                     </div>
                 </header>
 
-                <nav className="mt-6 grid gap-3 sm:flex sm:flex-wrap">
+                {/*<nav className="mt-6 grid gap-3 sm:flex sm:flex-wrap">
                     <button onClick={() => setActiveView('orders')} className={`touch-button rounded-2xl px-5 py-3 text-sm font-semibold transition ${activeView === 'orders' ? 'bg-brand-600 text-white shadow-sm' : 'bg-white text-slate-600 shadow-sm ring-1 ring-slate-200 hover:bg-slate-50'}`}>Order operations</button>
                     <button onClick={() => setActiveView('menu')} className={`touch-button rounded-2xl px-5 py-3 text-sm font-semibold transition ${activeView === 'menu' ? 'bg-brand-600 text-white shadow-sm' : 'bg-white text-slate-600 shadow-sm ring-1 ring-slate-200 hover:bg-slate-50'}`}>Menu management</button>
-                </nav>
+                </nav>*/}
 
                 <div className="mt-6 space-y-6">
-                    {activeView === 'orders' && <AdminOrderOperations embedded />}
+                    <AdminOrderOperations embedded />
 
-                    {activeView === 'menu' && (
+                    {/* activeView === 'menu' && (
                         <section className="space-y-6">
                             <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
                                 <div className="flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
@@ -374,7 +374,7 @@ export default function AdminDashboard() {
                                 ))}
                             </div>
                         </section>
-                    )}
+                    )*/}
                 </div>
 
                 <MenuItemEditModal item={editingItem} onClose={() => setEditingItem(null)} onSuccess={handleEditSuccess} />
