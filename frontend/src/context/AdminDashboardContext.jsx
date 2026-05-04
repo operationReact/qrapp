@@ -13,7 +13,6 @@ import {
   updateAdminOrder,
   getAdminOrder,
 } from "../services/api";
-import orders from "../pages/admin/order-data"
 
 const AdminDashboardContext = createContext(null);
 
@@ -23,7 +22,7 @@ export const AdminDashboardProvider = ({ children }) => {
   const { setAdmin } = useAdminAuth();
 
   const [ordersPage, setOrdersPage] = useState({
-    content: orders.content,
+    content: [],
     totalPages: 0,
     totalElements: 0,
     number: 0,
