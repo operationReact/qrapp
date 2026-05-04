@@ -73,7 +73,10 @@ export default function MenuItemEditModal({
 
   const computeImageSrc = (url) => {
     if (!url) return null;
-    if (url.startsWith("http://") || url.startsWith("https://")) return url;
+    if (
+      ["http://", "https://", "blob:"].some((prefix) => url.startsWith(prefix))
+    )
+      return url;
     const base =
       API && API.defaults && API.defaults.baseURL ? API.defaults.baseURL : "";
     return `${base}${url}`;
@@ -133,7 +136,7 @@ export default function MenuItemEditModal({
     ) {
       try {
         URL.revokeObjectURL(previewRef.current);
-        imageFieldRef.current.value = ""
+        imageFieldRef.current.value = "";
       } catch {
         /* ignore */
       }
@@ -332,7 +335,7 @@ export default function MenuItemEditModal({
                     <span className="text-sm font-medium">Preview</span>
                     <div className="relative">
                       <img
-                        src={form.previewUrl || computeImageSrc(form.imageUrl)}
+                        src={computeImageSrc(form.previewUrl || form.imageUrl)}
                         alt="Preview"
                         className="h-32 w-32 rounded-2xl object-cover shadow-sm border"
                       />
