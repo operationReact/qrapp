@@ -9,7 +9,6 @@ import Toast from "./components/Toast";
 import StickyCartBar from "./components/StickyCartBar";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import { AdminAuthProvider } from "./context/AdminAuthContext";
-import AdminOrders from "./pages/admin/AdminOrders";
 import { UserAuthProvider } from "./context/UserAuthContext";
 import UserLogin from "./pages/UserLogin";
 import Register from "./pages/Register";
@@ -21,7 +20,7 @@ import AdminLayout from "./pages/admin/AdminLayout";
 import { TooltipProvider } from "./components/ui/tooltip";
 import OperationalQueue from "./pages/admin/OperationalQueue";
 import SelectedOrder from "./pages/admin/SelectedOrder";
-
+import ServiceBoard from "./pages/admin/ServiceBoard";
 import AdminMenuPage from "./pages/admin/AdminMenuPage";
 import AdminMenuManager from "./pages/admin/AdminMenuManager";
 
@@ -63,7 +62,7 @@ function App() {
                       <Route index element={<AdminDashboard />} />
                       <Route path="menu" element={<AdminMenuPage />} />
                       <Route path="manage-menu" element={<AdminMenuManager />} />
-                      <Route path="service-board" element={<AdminOrders />} />
+                      <Route path="service-board" element={<ServiceBoard />} />
                       <Route
                         path="operational-queue"
                         element={<OperationalQueue />}

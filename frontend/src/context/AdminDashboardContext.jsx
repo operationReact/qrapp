@@ -12,6 +12,7 @@ import {
   getOrdersAdmin,
   updateAdminOrder,
   getAdminOrder,
+  getAdminOrderDashboard,
 } from "../services/api";
 
 const AdminDashboardContext = createContext(null);
@@ -27,6 +28,19 @@ export const AdminDashboardProvider = ({ children }) => {
     totalElements: 0,
     number: 0,
   });
+  const [dashboard, setDashboard] = useState({
+    totalOrders: 0,
+    liveOrders: 0,
+    placedOrders: 0,
+    preparingOrders: 0,
+    readyOrders: 0,
+    completedToday: 0,
+    delayedOrders: 0,
+    paidOrders: 0,
+    averageFulfillmentMinutes: 0.0,
+    liveOrdersQueue: [],
+  });
+
   const [page, setPage] = useState(0);
   const [size, setSize] = useState(10);
   const [filters, setFilters] = useState({
@@ -63,6 +77,10 @@ export const AdminDashboardProvider = ({ children }) => {
           query: filters.query || undefined,
           liveOnly: filters.liveOnly || undefined,
         });
+        const dashboardRes = await getAdminOrderDashboard({ liveLimit: 12 });
+
+        setDashboard(dashboardRes?.data);
+
         setOrdersPage(
           ordersRes.data || {
             content: [],
@@ -92,6 +110,11 @@ export const AdminDashboardProvider = ({ children }) => {
 
   useEffect(() => {
     loadData();
+  }, []);
+
+  useEffect(() => {
+    const timer = setInterval(() => loadData({ quiet: true }), 15000);
+    return () => clearInterval(timer);
   }, [loadData]);
 
   const fetchOrder = useCallback(async (orderId) => {
@@ -144,6 +167,7 @@ export const AdminDashboardProvider = ({ children }) => {
   const value = useMemo(
     () => ({
       ordersPage,
+      dashboard,
       page,
       setPage,
       size,
@@ -161,6 +185,7 @@ export const AdminDashboardProvider = ({ children }) => {
     }),
     [
       ordersPage,
+      dashboard,
       page,
       size,
       filters,

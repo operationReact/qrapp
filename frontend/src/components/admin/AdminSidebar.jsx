@@ -10,13 +10,21 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { useAdminAuth } from "@/context/AdminAuthContext";
+import { useAdminDashboard } from "@/context/AdminDashboardContext";
 import { Dashboard, FoodMenu } from "@boxicons/react";
 import { Boxes, CakeSlice, FolderKanban, LogOutIcon } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useResolvedPath } from "react-router-dom";
+import { Badge } from "../ui/badge";
+import { Button } from "../ui/button";
+import { ButtonGroup } from "../ui/button-group";
 
 export function AdminSidebar() {
   const { setAdmin } = useAdminAuth();
   const navigate = useNavigate();
+  const { pathname } = useResolvedPath();
+
+  const { refreshing, loadData } = useAdminDashboard();
+
   return (
     <Sidebar>
       <SidebarHeader>
@@ -35,7 +43,6 @@ export function AdminSidebar() {
                   alt="Bro and Bro Admin"
                   className="size-10!"
                 />
-                {/* <span className="font-semibold uppercase text-xs tracking-widest text-zinc-700">Admin Panel</span> */}
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -49,41 +56,40 @@ export function AdminSidebar() {
                 asChild
                 tooltip="Dashboard"
                 className="text-sm! font-medium! text-zinc-700"
+                isActive={pathname === "/admin"}
               >
                 <Link to="/admin">
-                  <Dashboard />
+                  <Dashboard className="text-primary" />
                   <span>Dashboard</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
-
-            {/* <SidebarMenuItem className="flex items-center gap-2"> */}
-            {/*   <SidebarMenuButton */}
-            {/*     tooltip="Quick Create" */}
-            {/*     className="min-w-8 text-sm! rounded-lg font-medium! border border-primary-foreground bg-linear-to-br from-primary/20 to-primary/5 text-primary duration-200 ease-linear hover:bg-primary/90 hover:text-primary-foreground active:bg-primary/90 active:text-primary-foreground" */}
-            {/*   > */}
-            {/*     <PlusCircle pack="filled" /> */}
-            {/*     <span>Create Menu</span> */}
-            {/*   </SidebarMenuButton> */}
-            {/* </SidebarMenuItem> */}
           </SidebarMenu>
         </SidebarGroup>
         <SidebarGroup className="group-data-[collapsible=icon]:hidden">
           <SidebarGroupLabel>Menu</SidebarGroupLabel>
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild className="text-zinc-700 font-medium">
+              <SidebarMenuButton
+                asChild
+                className="text-zinc-700 font-medium"
+                isActive={pathname === "/admin/menu"}
+              >
                 <Link to={"/admin/menu"}>
-                  <CakeSlice />
+                  <CakeSlice className="text-primary" />
                   <span>Menu</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
 
             <SidebarMenuItem>
-              <SidebarMenuButton asChild className="text-zinc-700 font-medium">
+              <SidebarMenuButton
+                asChild
+                className="text-zinc-700 font-medium"
+                isActive={pathname === "/admin/manage-menu"}
+              >
                 <Link to={"/admin/manage-menu"}>
-                  <FoodMenu />
+                  <FoodMenu className="text-primary" />
                   <span>Manage Menu</span>
                 </Link>
               </SidebarMenuButton>
@@ -95,17 +101,25 @@ export function AdminSidebar() {
           <SidebarGroupLabel>Orders</SidebarGroupLabel>
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild className="text-zinc-700 font-medium">
+              <SidebarMenuButton
+                asChild
+                className="text-zinc-700 font-medium"
+                isActive={pathname === "/admin/service-board"}
+              >
                 <Link to={"/admin/service-board"}>
-                  <FolderKanban />
+                  <FolderKanban className="text-primary" />
                   <span>Service Board</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild className="text-zinc-700 font-medium">
+              <SidebarMenuButton
+                asChild
+                className="text-zinc-700 font-medium"
+                isActive={pathname.startsWith("/admin/operational-queue")}
+              >
                 <Link to={"/admin/operational-queue"}>
-                  <Boxes />
+                  <Boxes className="text-primary" />
                   <span>Operational Queue</span>
                 </Link>
               </SidebarMenuButton>
@@ -116,6 +130,27 @@ export function AdminSidebar() {
       <SidebarFooter>
         <SidebarMenu>
           <SidebarGroup>
+            <SidebarMenuItem className="mb-2">
+              <ButtonGroup>
+                <Badge className=" bg-zinc-100 h-7 justify-start w-full">
+                  <div
+                    className={`size-2 rounded-full animate-pulse ${refreshing ? "bg-amber-500" : "bg-emerald-500"}`}
+                  />
+                  <span className="text-xs font-medium text-slate-600">
+                    {refreshing ? "Updating..." : "Live Sync"}
+                  </span>
+                </Badge>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => loadData({ quiet: true })}
+                  disabled={refreshing}
+                  className="font-medium! text-sm!"
+                >
+                  Refresh
+                </Button>
+              </ButtonGroup>
+            </SidebarMenuItem>
             <SidebarMenuItem>
               <SidebarMenuButton
                 asChild

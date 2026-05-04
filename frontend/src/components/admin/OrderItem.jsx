@@ -90,41 +90,36 @@ function summarizeItems(order) {
     .join(", ");
 }
 
-export default function OrderItem({ order, selected }) {
+export default function OrderItem({ order }) {
   return (
-    <Link
-      to={`/admin/operational-queue/${order.id}`}
-      className={cn(
-        `w-full my-1 inline-block first:mt-0 p-2 transition-colors duration-100 text-left border border-transparent rounded-xl`,
-        selected
-          ? "hover:bg-zinc-100 border-zinc-200 bg-zinc-100/80"
-          : "hover:bg-zinc-100",
-      )}
-    >
+    <article className={cn(`text-left`)}>
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div className="w-full">
-          <div className="flex gap-2 items-center justify-between">
-            <div className="flex gap-2 items-center">
+          <div className="flex gap-2 items-start justify-between">
+            <div className="flex flex-wrap gap-2 items-center">
               <span className="text-base font-medium">Order #{order.id}</span>
-              <Badge
-                variant="outline"
-                className={toneForStatus(order.status).tone}
-              >
-                <Archive pack="filled" />
-                {toneForStatus(order.status).label}
-              </Badge>
-              <Badge
-                variant="outline"
-                className={toneForPriority(order.priority).tone}
-              >
-                {toneForPriority(order.priority).label}
-              </Badge>
-              {order.delayed && (
-                <Badge variant="destructive">
-                  <AlarmExclamation pack="filled" /> Delayed
+              <div className="flex gap-1">
+                <Badge
+                  variant="outline"
+                  className={toneForStatus(order.status).tone}
+                >
+                  <Archive pack="filled" />
+                  {toneForStatus(order.status).label}
                 </Badge>
-              )}
-            </div>{" "}
+                <Badge
+                  variant="outline"
+                  className={toneForPriority(order.priority).tone}
+                >
+                  {toneForPriority(order.priority).label}
+                </Badge>
+                {order.delayed && (
+                  <Badge variant="destructive">
+                    <AlarmExclamation pack="filled" /> Delayed
+                  </Badge>
+                )}
+              </div>
+            </div>
+
             <div className="text-base font-semibold">
               {formatCurrency(order.total)}
             </div>
@@ -146,14 +141,12 @@ export default function OrderItem({ order, selected }) {
         </Badge>
         <Badge variant="ghost">
           <ClockDashedHalf />
-          <span>
-            {order.stageAgeMinutes} min in stage
-          </span>
+          <span>{order.stageAgeMinutes} min in stage</span>
         </Badge>
       </div>
       <div className="mt-3 border bg-white rounded-lg px-4 py-2 text-sm text-slate-700">
         {summarizeItems(order)}
       </div>
-    </Link>
+    </article>
   );
 }

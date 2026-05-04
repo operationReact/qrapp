@@ -51,8 +51,7 @@ export default function AdminMenuPage() {
     setEditingItem(null);
   };
 
-  const handleDeleteConfirm = async () => {
-    if (!deletingItem) return;
+  const handleDeleteConfirm = async (deletingItem) => {
     try {
       await deleteMenuItem(deletingItem.id);
       setMenu((prev) => prev.filter((item) => item.id !== deletingItem.id));
@@ -149,7 +148,7 @@ export default function AdminMenuPage() {
               key={item.id}
               item={item}
               onEdit={() => setEditingItem(item)}
-              onDelete={() => setDeletingItem(item)}
+              onDelete={(item) => handleDeleteConfirm(item)}
               onToggleAvailable={handleToggleAvailable}
               onToggleRecommended={handleToggleRecommended}
             />
@@ -177,15 +176,6 @@ export default function AdminMenuPage() {
         onClose={() => setEditingItem(null)}
         onSuccess={handleEditSuccess}
       />
-
-      {deletingItem && (
-        <ConfirmDialog
-          title="Delete menu item"
-          message={`Are you sure you want to delete "${deletingItem.name}"?`}
-          onCancel={() => setDeletingItem(null)}
-          onConfirm={handleDeleteConfirm}
-        />
-      )}
     </>
   );
 }

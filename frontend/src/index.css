@@ -28,10 +28,21 @@
     --font-sans:
         "Instrument Sans", system-ui, -apple-system, "Segoe UI", Roboto,
         "Helvetica Neue";
+
+    @keyframes alarm {
+        0%,
+        100% {
+            transform: rotate(-15deg);
+        }
+        50% {
+            transform: rotate(15deg);
+        }
+    }
+
+    --animate-alarm: alarm 0.2s ease-in-out infinite;
 }
 
 @layer base {
-
     button:not([disabled]),
     [role="button"]:not([disabled]) {
         cursor: pointer;
@@ -118,8 +129,7 @@ body {
         }
     }
 
-    font-family: var(--base-font),
-    sans-serif;
+    font-family: var(--base-font), sans-serif;
     min-width: 320px;
     min-height: 100vh;
     overflow-x: hidden;
@@ -133,9 +143,11 @@ body {
         height: 600px;
         inset: 0 0 0;
         z-index: -10;
-        background: linear-gradient(180deg,
-                var(--page-gradient-start) 0%,
-                #fff 40%);
+        background: linear-gradient(
+            180deg,
+            var(--page-gradient-start) 0%,
+            #fff 40%
+        );
         transition: background 0.5s;
     }
 }
@@ -422,8 +434,10 @@ header h1 {
 
 /* Hero pattern overlay (subtle food texture) */
 .hero-pattern {
-    background-image: radial-gradient(rgba(255, 255, 255, 0.02) 1px,
-            transparent 1px);
+    background-image: radial-gradient(
+        rgba(255, 255, 255, 0.02) 1px,
+        transparent 1px
+    );
     background-size: 24px 24px;
 }
 

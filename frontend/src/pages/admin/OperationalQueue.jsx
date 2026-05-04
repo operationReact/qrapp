@@ -19,8 +19,8 @@ import { Navigate, Outlet } from "react-router-dom";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ButtonGroup } from "@/components/ui/button-group";
 import { Button } from "@/components/ui/button";
-import React from "react";
-import { useParams } from "react-router-dom";
+import React, { useEffect } from "react";
+import { useParams, Link } from "react-router-dom";
 import {
   Popover,
   PopoverContent,
@@ -31,15 +31,28 @@ import OrderItem from "@/components/admin/OrderItem";
 import { useAdminDashboard } from "@/context/AdminDashboardContext";
 import AdminHeader from "@/components/admin/AdminHeader";
 import { useAdminAuth } from "@/context/AdminAuthContext";
+import { cn } from "@/lib/utils";
 
 export default function OperationalQueue() {
-  const { ordersPage, page, setPage, size, setSize, filters, setFilters } =
-    useAdminDashboard();
+  const {
+    ordersPage,
+    page,
+    setPage,
+    size,
+    setSize,
+    filters,
+    setFilters,
+    loadData,
+  } = useAdminDashboard();
 
   const params = useParams();
   const selectedOrderId = params?.orderId ? Number(params.orderId) : undefined;
 
   const { admin } = useAdminAuth();
+
+  useEffect(() => {
+    loadData({ quiet: true });
+  }, []);
 
   if (!admin?.username || !admin?.password) {
     return (
@@ -216,11 +229,18 @@ export default function OperationalQueue() {
             )}
             {(ordersPage.content || []).map((order) => {
               return (
-                <OrderItem
+                <Link
                   key={order.id}
-                  order={order}
-                  selected={order.id === selectedOrderId}
-                />
+                  to={`/admin/operational-queue/${order.id}`}
+                  className={cn(
+                    "block rounded-lg transition-colors my-1 first:mt-0 p-3 border border-transparent",
+                    order.id === selectedOrderId
+                      ? "bg-zinc-100 border-zinc-200"
+                      : "",
+                  )}
+                >
+                  <OrderItem key={order.id} order={order} />
+                </Link>
               );
             })}
           </ScrollArea>

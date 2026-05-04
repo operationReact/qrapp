@@ -6,6 +6,17 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Edit2, Trash2, Star, Eye, EyeOff } from "lucide-react";
 import { Field, FieldLabel } from "../ui/field";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "../ui/alert-dialog";
 
 export default function AdminMenuItem({
   item,
@@ -107,7 +118,9 @@ export default function AdminMenuItem({
           <h3 className="line-clamp-1 text-lg font-semibold drop-shadow leading-tight text-white">
             {item.name}
           </h3>
-          {item.tag && <Badge className="bg-white text-black">{item.tag}</Badge>}
+          {item.tag && (
+            <Badge className="bg-white text-black">{item.tag}</Badge>
+          )}
         </div>
       </div>
 
@@ -121,7 +134,7 @@ export default function AdminMenuItem({
               {item.description || "No description added yet."}
             </p>
           </div>
-            <span className="text-2xl font-bold">₹{item.price}</span>
+          <span className="text-2xl font-bold">₹{item.price}</span>
         </div>
 
         <div className="pt-4 border-t grid gap-3 p-2 pb-0">
@@ -155,14 +168,29 @@ export default function AdminMenuItem({
             Edit
           </Button>
 
-          <Button
-            variant="destructive"
-            className="flex-1 rounded-md text-sm! font-medium! h-9"
-            onClick={() => onDelete(item)}
-          >
-            <Trash2 className="size-4" />
-            Delete
-          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="destructive"
+                className="flex-1 rounded-md text-sm! font-medium! h-9"
+              >
+                <Trash2 className="size-4" />
+                Delete
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will permanently delete <span className="font-medium">{item.name}</span>
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel className="text-sm! font-medium! rounded-md!">Cancel</AlertDialogCancel>
+                <AlertDialogAction className="text-sm! font-medium! rounded-md!" onClick={() => onDelete(item)}>Yes, Delete</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </div>
     </article>
