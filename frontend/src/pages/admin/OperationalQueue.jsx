@@ -252,9 +252,9 @@ export default function OperationalQueue() {
             <div className="flex flex-wrap items-center gap-2">
               <Select
                 value={size}
-                onChange={(e) => {
+                onValueChange={(size) => {
                   setPage(0);
-                  setSize(Number(e.target.value));
+                  setSize(Number(size));
                 }}
                 className="rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700"
               >
@@ -264,6 +264,7 @@ export default function OperationalQueue() {
                 <SelectContent>
                   <SelectGroup>
                     <SelectLabel>Items Per Page</SelectLabel>
+                    <SelectItem value={1}>1 / page</SelectItem>
                     <SelectItem value={10}>10 / page</SelectItem>
                     <SelectItem value={20}>20 / page</SelectItem>
                     <SelectItem value={30}>30 / page</SelectItem>

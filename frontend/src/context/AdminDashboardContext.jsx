@@ -110,7 +110,16 @@ export const AdminDashboardProvider = ({ children }) => {
 
   useEffect(() => {
     loadData();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    page,
+    size,
+    filters.status,
+    filters.paymentStatus,
+    filters.priority,
+    filters.query,
+    filters.liveOnly,
+  ]);
 
   useEffect(() => {
     const timer = setInterval(() => loadData({ quiet: true }), 15000);
