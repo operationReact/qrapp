@@ -29,16 +29,16 @@ export default function MenuItemCard({ item, onEdit, onDelete }) {
 
   return (
     <article className="group overflow-hidden">
-      <div className="relative aspect-square w-full rounded-lg overflow-hidden bg-gray-100">
+      <div className="relative aspect-square w-full">
         {imageSrc && !imgError ? (
           <img
             src={imageSrc}
             alt={item.name}
             onError={() => setImgError(true)}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            className="w-full h-full object-cover rounded-2xl"
           />
         ) : (
-          <div className="w-full h-full flex items-center rounded-lg justify-center text-5xl bg-linear-to-br from-primary/25 to-primary">
+          <div className="w-full rounded-2xl overflow-hidden h-full flex items-center justify-center text-5xl bg-linear-to-br from-primary/25 to-primary">
             <img
               src="/brand/white.png"
               alt="Bro Logo"
@@ -48,23 +48,16 @@ export default function MenuItemCard({ item, onEdit, onDelete }) {
         )}
 
         {/* subtle gradient overlay */}
-        <div className="absolute left-0 right-0 bottom-0 bg-linear-[rgba(27,30,36,0)_0%,_rgb(27,30,36)_84.21%)] h-22" />
+        {/* <div className="absolute left-0 right-0 bottom-0 bg-linear-[rgba(27,30,36,0)_0%,_rgb(27,30,36)_84.21%)] h-22" /> */}
 
-        {/* veg/non-veg badge */}
-        <div
-          title={veg ? "Veg" : "Non Veg"}
-          className={`absolute top-2 left-2 p-1 border-2 bg-white rounded-md size-6 flex items-center gap-2 ${veg ? "border-accent-400" : "border-red-600"}`}
-        >
+        <div className="absolute left-0 bottom-0 right-0 px-2 py-2 flex justify-end items-baseline">
           <span
-            className={`size-full rounded-full ${veg ? "bg-accent-400" : "bg-red-600"}`}
-          ></span>
-        </div>
-
-        {/* name in image */}
-        <div className="absolute left-0 bottom-0 right-0 px-2 py-2 flex justify-between items-baseline gap-0.5">
-          <h3 className="line-clamp-1 text-md font-medium drop-shadow leading-6 sm:text-lg text-white">
-            {item.name}
-          </h3>
+            className="bg-white font-bold rounded-tr-xl absolute bottom-0 left-0 px-2 py-0.5 sm:py-1 sm:text-xl text-black
+            before:absolute before:left-0 before:top-0 before:bg-red-500 before:size-4 before:-translate-y-full before:rounded-bl-sm before:shadow-[0px_7px_white] before:bg-transparent
+            after:absolute after:right-0 after:bottom-0 after:bg-red-500 after:size-4 after:translate-x-full after:rounded-bl-sm after:shadow-[0px_7px_white] after:bg-transparent"
+          >
+            ₹{item.price.toFixed(0)}
+          </span>
 
           {/* CTA */}
           <ItemActionButton
@@ -73,19 +66,29 @@ export default function MenuItemCard({ item, onEdit, onDelete }) {
             onDecrease={() => decreaseItem(item)}
           />
         </div>
+
+        {/* veg/non-veg badge */}
+        <div
+          title={veg ? "Veg" : "Non Veg"}
+          className={`absolute top-2 left-2 p-1.5 border-2 bg-white rounded-md size-6 flex items-center gap-2 ${veg ? "border-accent-400" : "border-red-600"}`}
+        >
+          <span
+            className={`size-full rounded-full ${veg ? "bg-accent-400" : "bg-red-600"}`}
+          ></span>
+        </div>
       </div>
 
-      <div className="space-y-1 py-2 flex justify-between gap-2 items-start">
-        <div className="flex-1">
-          {item.tag && (
-            <span className="text-xs font-medium text-red-600">{item.tag}</span>
-          )}
-          <p className="line-clamp-2 capitalize text-sm text-muted-foreground">
-            {item.description || "Delicious choice"}
-          </p>
-        </div>
-
-        <span className="font-semibold text-lg sm:text-xl">₹{item.price}</span>
+      <div className="py-2">
+        {/* name in image */}
+        {item.tag && (
+          <span className="text-xs font-medium text-primary">{item.tag}</span>
+        )}
+        <h3 className="text-balance text-md font-semibold leading-5 sm:text-lg text-zinc-800">
+          {item.name}
+        </h3>
+        <p className="line-clamp-2 mt-1 capitalize text-xs text-muted-foreground">
+          {item.description || "Delicious choice"}
+        </p>
 
         {admin && (
           <div className="flex gap-2 mt-2">

@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "motion/react";
-import { InfinityIcon, Drumstick, Carrot } from "lucide-react";
+import { Drumstick, Carrot } from "lucide-react";
 import {
   Drawer,
   DrawerClose,
@@ -13,13 +13,27 @@ import {
 import { Button } from "./ui/button";
 import {
   Carrot as BoxIconCarrot,
-  Infinite as BoxIconInfinity,
   TurkeyMeat as BoxIconDrumstick,
 } from "@boxicons/react";
 import { usePreferences } from "@/context/PreferencesContext";
 
+function AllEnabledIcon({ size }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 21 19"
+      xmlns="http://www.w3.org/2000/svg"
+      fill="currentColor"
+    >
+      <path d="M9.45019 9C10.031 9.0002 10.5 9.44679 10.5 10C10.5 10.3733 10.2826 10.6929 9.96777 10.8662L10.6611 11.8535C12.3898 12.347 13.6562 13.8605 13.6562 15.667H15.0566C15.0566 13.367 13.516 11.4068 11.3672 10.6602C12.5711 9.45349 14.3287 8.82687 16.1416 9.04688C18.7172 9.36703 20.7954 11.4672 20.9844 13.9404C21.0473 14.7801 20.9149 15.5998 20.5791 16.3662C19.8862 17.9662 18.1989 19 16.2881 19H10.8564C8.74973 18.9732 7.04199 17.3329 7.04199 15.333C7.04212 13.9133 7.90289 12.7004 9.14843 12.0938L8.70117 11.4531C8.51918 11.5865 8.30162 11.667 8.05664 11.667H8.0498C7.46901 11.6669 7.00018 11.2201 7 10.667C7 10.3391 7.16481 10.0484 7.41992 9.86621C7.4285 9.86008 7.43751 9.85452 7.44629 9.84863C7.51666 9.80151 7.59311 9.7621 7.6748 9.73242C7.68021 9.73045 7.68596 9.72943 7.6914 9.72754C7.71109 9.72074 7.73075 9.7137 7.75097 9.70801C7.76581 9.70381 7.78079 9.69987 7.7959 9.69629C7.8451 9.68469 7.89557 9.67565 7.94726 9.6709C7.98097 9.66777 8.01522 9.66701 8.0498 9.66699L8.15332 9.67188C8.19935 9.67624 8.24432 9.68353 8.28808 9.69336C8.2979 9.69556 8.30769 9.69773 8.31738 9.7002C8.36015 9.71108 8.40152 9.72461 8.4414 9.74023C8.46943 9.63978 8.51393 9.54588 8.57129 9.46094C8.57882 9.44967 8.58673 9.43869 8.59472 9.42773C8.6172 9.39722 8.64115 9.36771 8.66699 9.33984C8.68257 9.32289 8.69909 9.30692 8.71582 9.29102C8.73226 9.27551 8.75009 9.26153 8.76758 9.24707C8.79511 9.22416 8.82356 9.2027 8.85351 9.18262C8.86048 9.17795 8.86693 9.17248 8.87402 9.16797L8.875 9.16895C9.04015 9.06399 9.23694 9 9.45019 9Z" />
+      <path d="M10.9893 1.83496L12.6113 0.212891L13.6103 1.21094L13.5889 1.21875L11.9668 2.84082H13.8018V4.25684H12.2295C12.3215 4.54712 12.3847 4.84473 12.3848 5.15625C12.3848 6.46572 11.7963 7.67626 10.7822 8.4834C10.4852 8.23581 10.1179 8.07089 9.72265 8.01855C9.43912 7.96549 8.72949 7.97813 8.15918 8.45312C8.07478 8.52063 7.99459 8.59371 7.92187 8.67383C7.44615 8.70322 6.93079 8.62721 6.5 9C5.88012 9.53642 6.00586 10.543 6.00586 10.543L6 10.667L6.01074 10.8789C6.03288 11.0889 6.08829 11.2866 6.16992 11.4688L3 13.5078C2.68131 13.7131 2.31232 13.8125 1.95117 13.8125C1.44853 13.8124 0.945581 13.6212 0.570309 13.2461C-0.0739376 12.6017 -0.187726 11.5744 0.307614 10.8096L5.09668 3.36426C5.88281 2.14642 7.22127 1.41728 8.67285 1.41699C8.98439 1.41699 9.28293 1.48024 9.57324 1.57227V0H10.9893V1.83496Z" />
+    </svg>
+  );
+}
+
 const BUTTON_MODE_ICON = {
-  all: BoxIconInfinity,
+  all: AllEnabledIcon,
   veg: BoxIconCarrot,
   nonveg: BoxIconDrumstick,
 };
@@ -27,21 +41,21 @@ const BUTTON_MODE_ICON = {
 const MODES = [
   {
     id: "all",
-    icon: InfinityIcon,
+    icon: AllEnabledIcon,
     description: "All",
-    color: "#FFFFFF",
+    color: "#F8F8F8",
     activeIconColor: "#000000",
   },
   {
     id: "veg",
-    icon: Carrot,
+    icon: BoxIconCarrot,
     description: "Veg",
     color: "#34C759",
     activeIconColor: "#34C759",
   },
   {
     id: "nonveg",
-    icon: Drumstick,
+    icon: BoxIconDrumstick,
     description: "Non-Veg",
     color: "#FF3B30",
     activeIconColor: "#FF3B30",
@@ -52,7 +66,9 @@ export default function ModeSwitcher() {
   const { preferences, setPreferences } = usePreferences();
 
   const activeMode = preferences.segmentedFilter;
-  const activeIdx = MODES.findIndex((m) => m.id === preferences.segmentedFilter);
+  const activeIdx = MODES.findIndex(
+    (m) => m.id === preferences.segmentedFilter,
+  );
   const currentMode = MODES[activeIdx];
 
   const pillWidth = 340;
@@ -72,14 +88,16 @@ export default function ModeSwitcher() {
     <Drawer>
       <DrawerTrigger asChild>
         <motion.button
-          className={`size-14 aspect-square transition-colors rounded-full grid place-items-center ${activeMode === "all" ? "border-2 border-black" : ""}`}
-          style={{ backgroundColor: currentMode.color }}
+          className={`transition-colors bg-white/20 py-0.5 px-2 text-xs! font-bold! tracking-wider uppercase rounded-full flex items-center justify-center h-11 gap-1`}
+          style={{
+            border: `2px solid ${currentMode.color}`,
+            color: activeMode !== "veg" ? currentMode.activeIconColor : "white",
+            backgroundColor: activeMode === "veg" ? currentMode.color : "white",
+          }}
           layoutId={activeMode}
         >
-          <ActiveModeIcon
-            pack="filled"
-            className={`size-6 ${activeMode === "all" ? "fill-black" : "fill-white"}`}
-          />
+          <ActiveModeIcon pack="filled" size={24} className={`size-6`} />
+          <span>{currentMode.description}</span>
         </motion.button>
       </DrawerTrigger>
       <DrawerContent className="max-w-md mx-auto">
@@ -105,11 +123,9 @@ export default function ModeSwitcher() {
               <motion.div
                 animate={{
                   x: firstPos + activeIdx * step,
-                  borderColor: activeMode === "all" ? "#000000" : "transparent",
-                  borderWidth: activeMode === "all" ? "3px" : "0px",
                 }}
                 transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                className="absolute left-0 w-[64px] h-[64px] bg-white rounded-full z-10 shadow-[0_4px_12px_rgba(0,0,0,0.12)] flex items-center justify-center pointer-events-none"
+                className="absolute left-0 size-[64px] bg-white rounded-full z-10 shadow-[0_4px_12px_rgba(0,0,0,0.09)] flex items-center justify-center pointer-events-none"
               />
 
               {/* Icon Buttons */}
@@ -124,7 +140,12 @@ export default function ModeSwitcher() {
                   return (
                     <button
                       key={mode.id}
-                      onClick={() => setPreferences({ ...preferences, segmentedFilter: mode.id })}
+                      onClick={() =>
+                        setPreferences({
+                          ...preferences,
+                          segmentedFilter: mode.id,
+                        })
+                      }
                       className="absolute top-0 bottom-0 flex items-center justify-center cursor-pointer outline-none group"
                       style={{
                         left: `${targetX}px`,
@@ -142,7 +163,7 @@ export default function ModeSwitcher() {
                         }}
                         transition={{ duration: 0.3 }}
                       >
-                        <Icon size={32} strokeWidth={isActive ? 2.5 : 2} />
+                        <Icon size={32} className="size-[32px]" pack="filled" />
                       </motion.div>
                     </button>
                   );

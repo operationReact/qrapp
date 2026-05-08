@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/carousel";
 import ModeSwitcher from "../components/ModeSwitcher";
 import { usePreferences } from "@/context/PreferencesContext";
+import MobileMenu from "@/components/MobileMenu";
 
 // Small mock dataset used when backend is unreachable so the UI can be inspected
 const SAMPLE_MENU = [
@@ -120,8 +121,9 @@ export default function Menu() {
   }, {});
 
   return (
-    <div className="page-shell">
+    <div className="page-shell pb-mobile-nav! md:pb-[initial]!">
       <Navbar />
+      <MobileMenu/>
       {/* Backend offline banner (non-technical user friendly) */}
       {offline && (
         <div className="container-premium py-3">
@@ -160,7 +162,7 @@ export default function Menu() {
         <div className="container-premium py-3">
           <div className="flex gap-4 w-full">
             <SearchBar onSearch={setSearchQuery} />
-            <ModeSwitcher />
+            {/* <ModeSwitcher /> */}
           </div>
         </div>
       </div>
@@ -204,11 +206,15 @@ export default function Menu() {
 
           {/* ITEMS */}
           {Object.entries(groups).map(([category, items]) => (
-            <div className="premium-grid" key={category} id={category.toLowerCase()}>
+            <div
+              className="premium-grid"
+              key={category}
+              id={category.toLowerCase()}
+            >
               <h2 className="text-xl font-semibold sm:text-2xl">
                 {category || "Specials"}
               </h2>
-              <Carousel>
+              <Carousel opts={{ dragFree: true }}>
                 <CarouselContent className="pr-8">
                   {items.map((item) => (
                     <CarouselItem

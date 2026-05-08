@@ -10,24 +10,24 @@ export default function QuantityUpdater({
   return (
     <div
       className={cn(
-        `flex bg-white ease-out rounded-lg duration-200 items-center justify-between w-full h-full border border-primary-foreground`,
+        `grid grid-cols-[32px_6px_32px] h-8 place-items-center bg-white ease-out rounded-lg duration-200 w-32px border border-primary-foreground`,
         className,
       )}
     >
       <button
         onClick={onDecrease}
-        className="flex w-8 h-full aspect-square items-center justify-center text-lg text-gray-600"
+        className="flex size-full items-center justify-center text-lg text-gray-600"
         disabled={qty === 0}
       >
-        <MinusIcon className="size-5" />
+        <MinusIcon className="size-4" />
       </button>
-      <span className="min-w-6 text-center text-base font-semibold">{qty}</span>
+      <span className="text-center text-sm font-semibold">{qty}</span>
       <button
         disabled={qty === 0}
         onClick={onIncrease}
-        className="flex w-8 h-full aspect-square items-center justify-center text-lg text-gray-600"
+        className="flex size-full aspect-square justify-center items-center text-lg text-gray-600"
       >
-        <PlusIcon className="size-5" />
+        <PlusIcon className="size-4" />
       </button>
     </div>
   );

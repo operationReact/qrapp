@@ -65,7 +65,7 @@ export default function CartItem({ item, removeItem, addItem, decreaseItem }) {
         </button>
       </div>
 
-      <div className="gap-0 justify-self-end">
+      <div className="gap-0 justify-self-end grid place-items-end">
         <div className="text-right text-lg font-bold mb-1">
           ₹{(Number(item.price || 0) * Number(item.quantity || 0)).toFixed(2)}
         </div>

@@ -19,12 +19,14 @@ import {
   SparklesAlt,
   WalletAlt,
 } from "@boxicons/react";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Carousel,
   CarouselContent,
   CarouselItem,
 } from "@/components/ui/carousel";
+import { Separator } from "@/components/ui/separator";
+import AddMoneyForm from "@/components/wallet/AddMoneyForm";
 
 function useToast() {
   const [message, setMessage] = useState(null);
@@ -104,9 +106,7 @@ export default function Wallet() {
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(false);
   const [filter, setFilter] = useState("ALL");
-  const [addAmount, setAddAmount] = useState("500");
-  const [adding, setAdding] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(null);
 
   const fetchWallet = useCallback(async (nextPage = 0, append = false) => {
     const [overviewResp, transactionResp] = await Promise.all([
@@ -132,8 +132,8 @@ export default function Wallet() {
 
   const loadInitialWallet = useCallback(async () => {
     if (!user?.token) {
-        navigate('/login', { state: { from: '/wallet' } });
-        return;
+      navigate("/login", { state: { from: "/wallet" } });
+      return;
     }
 
     setLoading(true);
@@ -212,81 +212,6 @@ export default function Wallet() {
   const totalDebited = Number(overview?.totalDebited ?? 0);
   const pendingAmount = Number(overview?.pendingAmount ?? 0);
 
-  async function handleAddMoney() {
-    const amountRupees = Number(addAmount);
-    if (!Number.isFinite(amountRupees) || amountRupees < 1) {
-      toast.show("Enter at least ₹1 to add money");
-      return;
-    }
-
-    setAdding(true);
-    setError("");
-    try {
-      const amountPaise = Math.round(amountRupees * 100);
-      const response = await walletCreateOrder({ amount: amountPaise });
-      const order = response?.data || {};
-      const orderId = order.razorpayOrderId;
-
-      if (!orderId) {
-        throw new Error("Missing wallet order id from server");
-      }
-
-      if (!order.keyId) {
-        throw new Error("Missing Razorpay key from server");
-      }
-
-      await loadRazorpayScript();
-
-      const rzp = new window.Razorpay({
-        key: order.keyId,
-        order_id: orderId,
-        amount: order.amount,
-        currency: order.currency || "INR",
-        name: "Bro & Bro",
-        description: "Add money to wallet",
-        handler: async (paymentResponse) => {
-          try {
-            await walletVerifyPayment({
-              razorpayOrderId: paymentResponse.razorpay_order_id,
-              razorpayPaymentId: paymentResponse.razorpay_payment_id,
-              razorpaySignature: paymentResponse.razorpay_signature,
-            });
-            await fetchWallet(0, false);
-            toast.show("Wallet credited successfully");
-          } catch (verifyError) {
-            console.error("wallet verify failed", verifyError);
-            const message =
-              typeof verifyError?.response?.data === "string"
-                ? verifyError.response.data
-                : verifyError?.message || "Payment verification failed";
-            setError(message);
-            toast.show(message);
-          }
-        },
-      });
-
-      rzp.on("payment.failed", (paymentError) => {
-        console.error("wallet payment failed", paymentError);
-        const message =
-          paymentError?.error?.description ||
-          "Payment failed. Please try again.";
-        setError(message);
-        toast.show(message);
-      });
-
-      rzp.open();
-    } catch (err) {
-      console.error("wallet top-up failed", err);
-      setError(
-        typeof err?.response?.data === "string"
-          ? err.response.data
-          : err?.message || "Unable to add money right now.",
-      );
-    } finally {
-      if (mounted.current) setAdding(false);
-    }
-  }
-
   return (
     <div className="page-shell bg-gradient-wallet">
       <Navbar />
@@ -295,10 +220,6 @@ export default function Wallet() {
         <div className="mx-auto space-y-6">
           <section className="overflow-hidden rounded-[2rem]">
             <div className="grid place-items-center gap-6">
-              {/* <div className="inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-xs font-semibold tracking-wide text-white/90">
-                  <SparklesIcon className="h-4 w-4" />
-                  Smart wallet for faster checkout
-                </div>*/}
               <h1 className="mt-4 text-3xl font-bold sm:text-4xl">
                 <span className="sr-only">Bro Wallet</span>
                 <img
@@ -307,13 +228,9 @@ export default function Wallet() {
                   className="h-[31px] mx-auto"
                 />
               </h1>
-              {/* <p className="mt-2 max-w-xl text-sm text-white/85 sm:text-base">
-                  Add money, monitor recent activity, and use your wallet for
-                  one-tap checkout on mobile.
-                </p>*/}
 
               <div className="mt-6 mb-4 flex items-center flex-col gap-4 sm:flex-row rounded-4xl sm:items-start w-full">
-                <img src="/coin.png" alt="Coin" className="mx-auto" />
+                <img src="/coin.png" alt="Coin" className="mx-auto shrink-0 grow-0 size-[128px]" />
                 <div className="w-full">
                   <div className="text-sm rounded-full font-semibold text-muted-foreground text-center sm:text-start">
                     Available Balance
@@ -321,7 +238,7 @@ export default function Wallet() {
                   <div className="mt-2 text-5xl font-bold text-center sm:text-start">
                     {loading ? "..." : formatCurrencyFromPaise(balance)}
                   </div>
-                  {overview?.lastTransactionAt ? (
+                  {overview?.lastTransactionAt && (
                     <div className="rounded-xl bg-amber-100/70 border border-amber-100 mx-auto sm:mx-0 w-fit text-center text-muted-foreground max-w-75 px-4 py-3 text-sm mt-4">
                       <Activity className="inline-block size-4 mr-1" /> Last
                       Activity on{" "}
@@ -329,7 +246,15 @@ export default function Wallet() {
                         {new Date(overview.lastTransactionAt).toLocaleString()}
                       </span>
                     </div>
-                  ) : (
+                  )}
+
+                  {!loading && error && (
+                    <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 mt-4 w-fit">
+                      {error}
+                    </div>
+                  )}
+
+                  {!loading && !overview && !error && (
                     <div className="rounded-xl bg-neutral-100/70 border mx-auto w-fit sm:mx-0 text-center sm:text-start text-muted-foreground max-w-75 px-4 py-3 text-sm mt-4">
                       <Activity className="inline-block size-4 mr-2" />
                       Activity Record Not Available
@@ -340,70 +265,7 @@ export default function Wallet() {
             </div>
           </section>
 
-          <div className="rounded-2xl bg-white p-5 shadow-sm">
-            <div className="mb-5 flex gap-4">
-              <img
-                src="/coin-plus.svg"
-                alt="Plus"
-                className="size-11 shrink-0"
-              />
-              <div>
-                <h3 className="text-sm sm:text-base font-bold">Add Money</h3>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Top up securely and use your wallet at checkout.
-                </p>
-              </div>
-            </div>
-            <label className="sr-only mt-5 block text-sm font-medium text-gray-700">
-              Amount (₹)
-            </label>
-            <div className="mt-2 flex flex-col gap-3">
-              <input
-                type="number"
-                min="1"
-                inputMode="numeric"
-                value={addAmount}
-                onChange={(event) => setAddAmount(event.target.value)}
-                className="w-full rounded-xl border-2 border-gray-200 px-4 py-3 text-base outline-none transition focus:border-[#F3CE4D]"
-                placeholder="Amount (₹)"
-              />
-              <div className="mt-0 flex gap-2 overflow-x-auto pb-1 no-scrollbar">
-                {QUICK_AMOUNTS.map((amount) => (
-                  <button
-                    key={amount}
-                    type="button"
-                    onClick={() => setAddAmount(String(amount))}
-                    className="whitespace-nowrap rounded-lg border text-muted-foreground px-4 py-2 text-sm font-medium! hover:bg-amber-50 hover:border-amber-200 hover:text-black"
-                  >
-                    ₹{amount}
-                  </button>
-                ))}
-              </div>
-              <button
-                type="button"
-                onClick={handleAddMoney}
-                disabled={adding}
-                className="touch-button rounded-xl bg-[#F3CE4D] px-5 py-3 text-sm font-semibold! text-black shadow-sm transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-70"
-              >
-                {adding ? "Processing..." : "Add Money"}
-              </button>
-            </div>
-
-            <div className="mt-4 text-center px-4 py-3 text-sm text-muted-foreground">
-              Payments secured by{" "}
-              <img
-                src="/razorpay-icon.svg"
-                alt="Razorpay"
-                className="inline-block h-4"
-              />
-            </div>
-
-            {error && (
-              <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                {error}
-              </div>
-            )}
-          </div>
+          <AddMoneyForm onSuccess={async () => await fetchWallet(0, false)} />
 
           <section className="grid gap-3 grid-cols-2 xl:grid-cols-4">
             <div className="rounded-xl border bg-white p-4 shadow-sm shadow-gray-200/50">
@@ -482,27 +344,28 @@ export default function Wallet() {
                   Track top-ups and wallet payments in one place.
                 </p>
               </div>
-              <Carousel>
+              <Carousel opts={{ dragFree: true }}>
                 <CarouselContent className="-ml-1">
                   <CarouselItem className="basis-auto pl-1">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      data-icon="inline-start"
-                      size="sm"
-                      className="pointer-events-none pl-1"
+                    <div
+                      className={buttonVariants({
+                        variant: "outline",
+                        className:
+                          "rounded-md! pointer-events-none text-sm! font-medium! pl-1",
+                        size: "sm",
+                      })}
                     >
-                      <MenuFilter className="size-4" />
+                      <MenuFilter />
                       Filter
-                    </Button>
+                    </div>
                   </CarouselItem>
 
                   {FILTERS.map((item) => (
                     <CarouselItem key={item.key} className="basis-auto pl-1">
                       <Button
                         size="sm"
-                        variant={filter === item.key ? "default" : "outline"}
-                        className={`rounded-md ${filter === item.key && "font-medium!"}`}
+                        variant={filter === item.key ? "black" : "outline"}
+                        className={`rounded-md text-sm! font-medium!`}
                         type="button"
                         onClick={() => setFilter(item.key)}
                       >
@@ -519,7 +382,7 @@ export default function Wallet() {
                       data-icon="inline-start"
                       onClick={handleRefresh}
                       disabled={refreshing}
-                      className="rounded-md!"
+                      className="rounded-md! text-sm! font-medium!"
                     >
                       <RefreshCcw
                         className={`size-4 ${refreshing ? "animate-spin" : ""}`}

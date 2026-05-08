@@ -25,24 +25,41 @@
     --color-accent-500: "#2f855a";
     --color-accent-700: "#2f855a";
 
+    --spacing-mobile-nav: var(--app-mobile-menu-height);
+
     --font-sans:
         "Instrument Sans", system-ui, -apple-system, "Segoe UI", Roboto,
         "Helvetica Neue";
 
     @keyframes alarm {
+
         0%,
         100% {
             transform: rotate(-15deg);
         }
+
         50% {
             transform: rotate(15deg);
         }
     }
 
     --animate-alarm: alarm 0.2s ease-in-out infinite;
+
+    @keyframes marquee {
+        0% {
+            transform: translateX(0%);
+        }
+
+        100% {
+            transform: translateX(-50%);
+        }
+    }
+
+    --animate-marquee: marquee 5s linear infinite;
 }
 
 @layer base {
+
     button:not([disabled]),
     [role="button"]:not([disabled]) {
         cursor: pointer;
@@ -67,6 +84,7 @@
         "Instrument Sans", system-ui, -apple-system, "Segoe UI", Roboto,
         "Helvetica Neue", Arial;
     --app-header-height: 96;
+    --app-mobile-menu-height: 65.8px;
     --app-safe-bottom: env(safe-area-inset-bottom, 0px);
 
     /* SHADCN COLOR TOKENS */
@@ -129,7 +147,8 @@ body {
         }
     }
 
-    font-family: var(--base-font), sans-serif;
+    font-family: var(--base-font),
+    sans-serif;
     min-width: 320px;
     min-height: 100vh;
     overflow-x: hidden;
@@ -143,11 +162,9 @@ body {
         height: 600px;
         inset: 0 0 0;
         z-index: -10;
-        background: linear-gradient(
-            180deg,
-            var(--page-gradient-start) 0%,
-            #fff 40%
-        );
+        background: linear-gradient(180deg,
+                var(--page-gradient-start) 0%,
+                #fff 40%);
         transition: background 0.5s;
     }
 }
@@ -183,15 +200,6 @@ header .text-sm {
     font-weight: 600;
 }
 
-/* apply brand color utilities */
-.text-amber-700 {
-    color: var(--brand-amber-600);
-}
-
-.bg-amber-500 {
-    background: linear-gradient(90deg, var(--brand-amber), #f59e0b);
-}
-
 /* Global page background: soft light-gray gradient */
 .bg-page {
     background: var(--page-gradient);
@@ -200,16 +208,13 @@ header .text-sm {
 /* Premium container */
 .container-premium {
     max-width: 1100px;
-    margin-left: auto;
-    margin-right: auto;
-    padding-left: 0.875rem;
-    padding-right: 0.875rem;
+    margin-inline: auto;
+    padding-inline: 0.875rem;
 }
 
 @media (min-width: 640px) {
     .container-premium {
-        padding-left: 1rem;
-        padding-right: 1rem;
+        padding-inline: 1rem;
     }
 }
 
@@ -434,10 +439,8 @@ header h1 {
 
 /* Hero pattern overlay (subtle food texture) */
 .hero-pattern {
-    background-image: radial-gradient(
-        rgba(255, 255, 255, 0.02) 1px,
-        transparent 1px
-    );
+    background-image: radial-gradient(rgba(255, 255, 255, 0.02) 1px,
+            transparent 1px);
     background-size: 24px 24px;
 }
 

@@ -39,6 +39,7 @@ import {
   FieldTitle,
 } from "@/components/ui/field";
 import { Badge } from "@/components/ui/badge";
+import MobileMenu from "@/components/MobileMenu";
 
 function loadRazorpayScript(
   src = "https://checkout.razorpay.com/v1/checkout.js",
@@ -254,6 +255,7 @@ export default function Cart() {
   return (
     <div className="page-shell bg-page">
       <Navbar />
+      {/* <MobileMenu/> */}
 
       <main className="container-premium py-4 sm:py-6">
         <div className="mx-auto max-w-6xl space-y-4 sm:space-y-6">
@@ -262,10 +264,6 @@ export default function Cart() {
               <h1 className="text-2xl font-semibold sm:text-3xl">Checkout</h1>
               {/* <p className="mt-1 text-md text-muted-foreground">Review your order, choose a payment option, and checkout in just a few taps.</p>*/}
             </div>
-            {/* <div className="w-full rounded-3xl border border-amber-100 bg-white px-5 py-4 shadow-sm sm:w-auto">
-                            <div className="text-xs uppercase tracking-wide text-gray-400">Items in cart</div>
-                            <div className="mt-1 text-2xl font-bold text-gray-900">{cart.length}</div>
-                        </div>*/}
           </div>
 
           {cart.length === 0 && (
@@ -313,126 +311,13 @@ export default function Cart() {
                   />
                 ))}
               </section>
-
-              {/* <aside className="space-y-4 xl:sticky xl:top-24 xl:self-start">
-                <section className="rounded-3xl border border-gray-100 bg-white p-5 shadow-sm">
-                  <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                    <div>
-                      <div className="text-sm font-semibold text-gray-900">
-                        Checkout summary
-                      </div>
-                      <div className="mt-1 text-xs text-gray-500">
-                        Choose how you want to pay for this order.
-                      </div>
-                    </div>
-                    <div className="rounded-2xl bg-amber-50 px-4 py-3 text-left sm:text-right">
-                      <div className="text-xs uppercase tracking-wide text-amber-700">
-                        Total
-                      </div>
-                      <div className="mt-1 text-2xl font-bold text-amber-900">
-                        ₹{total.toFixed(2)}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="mt-5 space-y-3">
-                    <button
-                      type="button"
-                      onClick={() => setPaymentMethod("WALLET")}
-                      disabled={!user?.token || walletLoading}
-                      className={`w-full rounded-2xl border px-4 py-4 text-left transition ${paymentMethod === "WALLET" ? "border-amber-400 bg-amber-50 shadow-sm" : "border-gray-200 bg-white"} ${!user?.token ? "cursor-not-allowed opacity-60" : ""}`}
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <div className="font-semibold text-gray-900">
-                            Pay with wallet
-                          </div>
-                          <div className="mt-1 text-sm text-gray-500">
-                            {walletLoading
-                              ? "Checking wallet balance..."
-                              : hasWalletBalance
-                                ? `Available balance: ₹${(walletBalance / 100).toFixed(2)}`
-                                : "Login to use your wallet balance"}
-                          </div>
-                        </div>
-                        <span
-                          className={`rounded-full px-3 py-1 text-xs font-semibold ${walletCanCoverOrder ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"}`}
-                        >
-                          {walletCanCoverOrder ? "Ready" : "Top up needed"}
-                        </span>
-                      </div>
-                      {!walletCanCoverOrder && user?.token && (
-                        <div className="mt-3 text-xs text-amber-700">
-                          Your wallet doesn’t have enough balance for this order
-                          yet.
-                        </div>
-                      )}
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setPaymentMethod("RAZORPAY")}
-                      className={`w-full rounded-2xl border px-4 py-4 text-left transition ${paymentMethod === "RAZORPAY" ? "border-amber-400 bg-amber-50 shadow-sm" : "border-gray-200 bg-white"}`}
-                    >
-                      <div className="font-semibold text-gray-900">
-                        Pay online with Razorpay
-                      </div>
-                      <div className="mt-1 text-sm text-gray-500">
-                        Use UPI, cards, or net banking at checkout.
-                      </div>
-                    </button>
-                  </div>
-
-                  {!user && (
-                    <div className="mt-4 rounded-2xl border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-800">
-                      Login is required to complete checkout and use your
-                      wallet.
-                    </div>
-                  )}
-
-                  <button
-                    onClick={handleCheckout}
-                    disabled={
-                      submitting ||
-                      (paymentMethod === "WALLET" && !walletCanCoverOrder)
-                    }
-                    className="mt-5 w-full rounded-2xl bg-amber-500 px-5 py-4 text-sm font-semibold text-white shadow-sm transition hover:bg-amber-600 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {submitting
-                      ? "Processing..."
-                      : paymentMethod === "WALLET"
-                        ? "Pay with wallet"
-                        : "Pay now"}
-                  </button>
-                </section>
-
-                <section className="rounded-3xl border border-gray-100 bg-white p-5 shadow-sm">
-                  <div className="text-sm font-semibold text-gray-900">
-                    Need more balance?
-                  </div>
-                  <div className="mt-1 text-sm text-gray-500">
-                    You can top up instantly from your wallet page and come
-                    right back to checkout.
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => navigate("/wallet")}
-                    className="mt-4 rounded-2xl border border-amber-200 px-4 py-3 text-sm font-semibold text-amber-700 transition hover:bg-amber-50"
-                  >
-                    Open wallet
-                  </button>
-                </section>
-              </aside>*/}
             </div>
           )}
 
-          <section className="rounded-2xl bg-white shadow-sm p-4">
+          <section className="rounded-2xl bg-white shadow-sm p-4 mb-12">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <h4 className="text-lg font-semibold">Add Ons</h4>
-                {/* <p className="text-sm text-gray-500">
-                  Round out your meal with customer favourites.
-                </p>*/}
               </div>
             </div>
 
@@ -443,12 +328,12 @@ export default function Cart() {
             )}
 
             {!recLoading && recommended && recommended.length > 0 && (
-              <Carousel className="mt-2">
+              <Carousel opts={{ dragFree: true }} className="mt-2">
                 <CarouselContent>
                   {recommended.map((it) => (
                     <CarouselItem
                       key={it.id}
-                      className="basis-1/2 sm:basis-1/3 md:basis-1/4"
+                      className="basis-1/2 sm:basis-1/3 md:basis-1/4 lg:basis-1/5"
                     >
                       <MenuItemCard item={it} />
                     </CarouselItem>
@@ -465,7 +350,9 @@ export default function Cart() {
                   <div className="text-muted-foreground flex gap-2 items-center font-medium">
                     <Receipt pack="filled" /> Total
                   </div>
-                  <div className="font-bold text-lg">₹{getTotal()}</div>
+                  <div className="font-bold text-lg">
+                    ₹{getTotal().toFixed(2)}
+                  </div>
                 </div>
 
                 <div className="flex gap-6 box-content h-[72px]! justify-between items-center py-2">
@@ -484,14 +371,17 @@ export default function Cart() {
                             : "Razorpay"}
                         </div>
 
-                        {paymentMethod === "WALLET" && (
-                          <span className="text-muted-foreground flex items-center font-medium">
-                            Balance: ₹{walletBalance || 0}
+                        {/* {paymentMethod === "WALLET" && (
+                          <span className="text-muted-foreground text-xs flex items-center font-medium">
+                            Balance: ₹{((walletBalance || 0) / 100).toFixed(2)}
                           </span>
-                        )}
+                        )}*/}
                       </Button>
                     </DrawerTrigger>
-                    <DrawerContent className="max-w-md mx-auto">
+                    <DrawerContent
+                      aria-describedby="change-payment-title"
+                      className="max-w-md mx-auto"
+                    >
                       <DrawerHeader>
                         <DrawerTitle className="text-xl font-semibold">
                           Pay Using
@@ -499,13 +389,17 @@ export default function Cart() {
                       </DrawerHeader>
                       <div className="p-4">
                         <RadioGroup
-                          defaultValue="RAZORPAY"
-                          onChange={(e) => setPaymentMethod(e.target.value)}
+                          defaultValue={paymentMethod}
+                          onValueChange={(value) => setPaymentMethod(value)}
                         >
                           <FieldLabel htmlFor="wallet">
                             <Field
                               orientation="horizontal"
-                              data-disabled={!user?.token || walletLoading || !walletCanCoverOrder}
+                              data-disabled={
+                                !user?.token ||
+                                walletLoading ||
+                                !walletCanCoverOrder
+                              }
                             >
                               <FieldContent className="flex flex-row gap-2 items-start">
                                 <img
@@ -522,10 +416,10 @@ export default function Cart() {
                                         ? `Available balance: ₹${(walletBalance / 100).toFixed(2)}`
                                         : "Login to use your wallet balance"}
                                     {!walletCanCoverOrder && user?.token && (
-                                      <div className="mt-1 mb-1.5 text-xs text-red-700">
+                                      <span className="mt-1 block mb-1.5 text-xs text-red-700">
                                         Your wallet doesn't have enough balance
                                         for this order yet.
-                                      </div>
+                                      </span>
                                     )}
                                     <span className={`w-fit block`}>
                                       {walletCanCoverOrder ? (
@@ -549,7 +443,11 @@ export default function Cart() {
                               <RadioGroupItem
                                 value="WALLET"
                                 id="wallet"
-                                disabled={!user?.token || walletLoading || !walletCanCoverOrder}
+                                disabled={
+                                  !user?.token ||
+                                  walletLoading ||
+                                  !walletCanCoverOrder
+                                }
                               />
                             </Field>
                           </FieldLabel>

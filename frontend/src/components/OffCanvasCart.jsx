@@ -83,7 +83,7 @@ export default function OffCanvasCart() {
             <div className="text-muted-foreground flex gap-2 items-center font-medium">
               <Receipt pack="filled" /> Total
             </div>
-            <div className="font-bold text-lg">₹{getTotal()}</div>
+            <div className="font-bold text-lg">₹{getTotal().toFixed(2)}</div>
           </div>
 
           <Button

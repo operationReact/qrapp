@@ -23,6 +23,7 @@ import SelectedOrder from "./pages/admin/SelectedOrder";
 import ServiceBoard from "./pages/admin/ServiceBoard";
 import AdminMenuPage from "./pages/admin/AdminMenuPage";
 import AdminMenuManager from "./pages/admin/AdminMenuManager";
+import MobileMenu from "./components/MobileMenu";
 
 function SafeAreaWrapper({ children }) {
   const { cart } = useCart();

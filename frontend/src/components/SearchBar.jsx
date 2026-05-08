@@ -15,13 +15,13 @@ export default function SearchBar({ onSearch = () => {} }) {
   }, [value, onSearch]);
 
   return (
-    <InputGroup className="h-14 border-primary ring-1 ring-primary focus-within:border-primary! focus-within:ring-1! focus-within:ring-primary!">
+    <InputGroup className="h-12 border-1 sm:h-14 bg-primary/5 focus-within:bg-white border-primary-foreground focus:border-primary focus:ring-1 focus:ring-primary focus-within:border-primary! focus-within:ring-1! focus-within:ring-primary!">
       <InputGroupInput
         ref={inputRef}
         value={value}
         onChange={(e) => setValue(e.target.value)}
         placeholder="Search dishes..."
-        className="w-full pr-12 border-0 focus-visible:ring-0"
+        className="w-full font-medium! pr-12 border-0 focus-visible:ring-0"
       />
 
       <InputGroupAddon>

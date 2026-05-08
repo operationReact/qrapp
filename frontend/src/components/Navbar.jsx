@@ -1,23 +1,32 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
-import {
-  ArrowRightOnRectangleIcon,
-  Bars3Icon,
-  ClipboardDocumentListIcon,
-  PencilSquareIcon,
-  Squares2X2Icon,
-  WalletIcon,
-  XMarkIcon,
-} from "@heroicons/react/24/outline";
 import { useUserAuth } from "../context/UserAuthContext";
 import { useAdminAuth } from "../context/AdminAuthContext";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   walletGetBalance,
   getCachedWalletBalance,
   clearWalletCache,
 } from "../services/api";
-import { Cart, User } from "@boxicons/react";
+import {
+  Archive,
+  ArrowOutRightCircleHalf,
+  Cart,
+  Dashboard,
+  Edit,
+  User,
+  Wallet,
+} from "@boxicons/react";
+import { useIsMobile } from "@/hooks/use-mobile";
+import ModeSwitcher from "./ModeSwitcher";
+import { Separator } from "./ui/separator";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "./ui/dropdown-menu";
 
 export default function Navbar() {
   const { cart, openDrawer, closeDrawer } = useCart();
@@ -25,21 +34,16 @@ export default function Navbar() {
   const { admin } = useAdminAuth();
   const [walletBalance, setWalletBalance] = useState(null);
   const [loadingBalance, setLoadingBalance] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const menuRef = useRef(null);
   const navigate = useNavigate();
   const location = useLocation();
   const shouldOpenCartDrawer = location.pathname !== "/cart";
 
-  const userName = useMemo(
-    () => user?.info?.name?.trim() || user?.info?.phone || "Account",
-    [user],
-  );
-  const userSecondary = useMemo(() => user?.info?.phone || "Signed in", [user]);
   const initials = useMemo(() => {
     const source = (user?.info?.name || user?.info?.phone || "A").trim();
     return source.slice(0, 1).toUpperCase();
   }, [user]);
+
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     let mounted = true;
@@ -77,63 +81,36 @@ export default function Navbar() {
     };
   }, [user]);
 
-  useEffect(() => {
-    setMenuOpen(false);
-  }, [location.pathname]);
-
-  useEffect(() => {
-    if (!menuOpen) return undefined;
-
-    const handleClickOutside = (event) => {
-      if (menuRef.current && !menuRef.current.contains(event.target)) {
-        setMenuOpen(false);
-      }
-    };
-
-    const handleEscape = (event) => {
-      if (event.key === "Escape") {
-        setMenuOpen(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    document.addEventListener("keydown", handleEscape);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-      document.removeEventListener("keydown", handleEscape);
-    };
-  }, [menuOpen]);
-
   const logout = () => {
-    setMenuOpen(false);
     setUser(null);
     navigate("/login");
   };
 
   const menuItems = [
     {
-      to: "/orders",
-      label: "My orders",
-      description: "Track active and past orders",
-      icon: ClipboardDocumentListIcon,
+      to: "/profile",
+      label: "Profile",
+      description: "Update your name, phone, and password",
+      icon: Edit,
     },
     {
-      to: "/profile",
-      label: "Edit profile",
-      description: "Update your name, phone, and password",
-      icon: PencilSquareIcon,
+      to: "/orders",
+      label: "Orders",
+      description: "Track active and past orders",
+      icon: Archive,
     },
+
     {
       to: "/wallet",
       label: "Wallet",
       description: "Check balance and transactions",
-      icon: WalletIcon,
+      icon: Wallet,
     },
     {
       to: "/",
-      label: "Browse menu",
+      label: "Menu",
       description: "Go back to the food menu",
-      icon: Squares2X2Icon,
+      icon: Dashboard,
     },
   ];
 
@@ -184,27 +161,29 @@ export default function Navbar() {
             </Link>
           )}
 
-          <button
-            size="icon-lg"
-            variant="ghost"
-            onClick={() => {
-              if (shouldOpenCartDrawer) {
-                openDrawer();
-              } else {
-                closeDrawer();
-                navigate("/cart");
-              }
-            }}
-            aria-label="Open cart"
-            className="relative rounded-2xl"
-          >
-            <Cart pack="filled" className="size-7" />
-            <span className="absolute -left-1 -bottom-1 align-middle size-5 rounded-full aspect-square grid place-items-center text-center text-[13px] font-semibold bg-primary text-secondary">
-              {cart.length}
-            </span>
-          </button>
+          {!isMobile && (
+            <button
+              size="icon-lg"
+              variant="ghost"
+              onClick={() => {
+                if (shouldOpenCartDrawer) {
+                  openDrawer();
+                } else {
+                  closeDrawer();
+                  navigate("/cart");
+                }
+              }}
+              aria-label="Open cart"
+              className="relative rounded-2xl"
+            >
+              <Cart pack="filled" className="size-7" />
+              <span className="absolute -left-1 -bottom-1 align-middle size-5 rounded-full aspect-square grid place-items-center text-center text-[12px] font-semibold bg-primary text-secondary">
+                {cart.length}
+              </span>
+            </button>
+          )}
 
-          {!admin && !user && (
+          {!isMobile && !admin && !user && (
             <Link
               to="/login"
               className="rounded-full transition-colors aspect-square grid place-items-center bg-white border border-primary/5 size-11 text-sm font-medium"
@@ -213,70 +192,57 @@ export default function Navbar() {
             </Link>
           )}
 
-          {!admin && user && (
-            <div className="relative" ref={menuRef}>
-              <button
-                type="button"
-                onClick={() => setMenuOpen((open) => !open)}
-                aria-label="Open account menu"
-                aria-expanded={menuOpen}
-                className="flex items-center justify-center gap-2 rounded-full border border-primary/5 sm:border-none bg-white size-11 sm:size-fit sm:px-2 sm:py-1.5 text-sm font-medium text-gray-700"
+          {!isMobile && !admin && user && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  aria-label="Open account menu"
+                  className="size-11 flex items-center aspect-square aria-expanded:ring aria-expanded:ring-primary/40 transition-colors justify-center rounded-full bg-white text-xs font-medium! text-primary"
+                >
+                  {initials}
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                className="w-60 rounded-lg shadow"
+                align="end"
               >
-                <span className="hidden md:inline text-sm">Account</span>
-                <span className="flex items-center size-full sm:size-7 justify-center rounded-full bg-white sm:bg-primary/5 text-xs font-bold text-primary">
-                  {menuOpen ? <XMarkIcon className="h-5 w-5" /> : "A"}
-                </span>
-              </button>
-
-              {menuOpen && (
-                <div className="absolute z-41 right-0 mt-3 w-[min(21rem,calc(100vw-1.5rem))] overflow-hidden rounded-3xl border border-primary-foreground bg-white shadow-xl shadow-zinc-900/10">
-                  <div className="border-b border-primary/10 bg-linear-to-bl from-primary/10 to-white px-4 py-4">
-                    <div className="text-base font-semibold">{userName}</div>
-                    <div className="mt-1 text-sm text-muted-foreground">
-                      @{userSecondary}
-                    </div>
-                  </div>
-
-                  <div className="p-2">
-                    {menuItems.map(({ to, label, description, icon: Icon }) => (
-                      <Link
-                        key={to}
-                        to={to}
-                        onClick={() => setMenuOpen(false)}
-                        className="flex items-start gap-3 rounded-xl px-3 py-3 text-sm hover:bg-primary-foreground/40"
-                      >
-                        <Icon className="mt-0.5 h-5 w-5 flex-none text-primary" />
-                        <span>
-                          <span className="block font-medium capitalize">
-                            {label}
-                          </span>
-                          <span className="block text-xs font-medium text-muted-foreground">
-                            {description}
-                          </span>
+                {menuItems.map(({ to, label, description, icon: Icon }) => (
+                  <DropdownMenuItem
+                    key={to}
+                    asChild
+                    className="items-start hover:bg-primary-foreground/40 focus:bg-primary-foreground/40!"
+                  >
+                    <Link key={to} to={to}>
+                      <Icon className="size-5 mt-1 text-primary! fill-primary" />
+                      <span className="grid gap-px">
+                        <span className="text-sm font-medium text-foreground">
+                          {label}
                         </span>
-                      </Link>
-                    ))}
-
-                    <button
-                      type="button"
-                      onClick={logout}
-                      className="mt-1 flex w-full items-start gap-3 rounded-xl px-3 py-3 text-left hover:bg-primary-foreground/40"
-                    >
-                      <ArrowRightOnRectangleIcon className="mt-0.5 h-5 w-5 flex-none text-primary" />
-                      <span>
-                        <span className="block font-medium! text-sm">
-                          Logout
-                        </span>
-                        <span className="block text-xs font-medium text-muted-foreground">
-                          Sign out of your account safely
+                        <span className="text-xs text-muted-foreground">
+                          {description}
                         </span>
                       </span>
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
+                    </Link>
+                  </DropdownMenuItem>
+                ))}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={logout}
+                  className="hover:bg-red-100 h-10 border border-red-100 focus:bg-red-100! font-medium! focus:text-red-500"
+                >
+                  <ArrowOutRightCircleHalf className="text-red-500 fill-red-500" />{" "}
+                  Log out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
+
+          <Separator
+            orientation="vertical"
+            className="h-10 bg-primary/20 my-auto hidden md:block"
+          />
+          <ModeSwitcher />
         </div>
       </div>
     </header>

@@ -4,13 +4,13 @@ import { Carousel, CarouselContent, CarouselItem } from "./ui/carousel";
 
 export default function CategoryTabs({ categories, active, onChange }) {
   return (
-    <Carousel>
+    <Carousel opts={{ dragFree: true }}>
       <CarouselContent className={"-ml-1.5"}>
         {categories.map((cat) => (
           <CarouselItem className="basis-auto pl-1.5" key={cat}>
             <Button
               variant={active === cat ? "black" : "outline"}
-              className="rounded-md"
+              className={`rounded-md text-sm! font-medium! ${!active && "bg-transparent" }`}
               onClick={() => onChange(cat)}
             >
               {cat}

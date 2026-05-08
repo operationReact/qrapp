@@ -264,7 +264,6 @@ export default function OperationalQueue() {
                 <SelectContent>
                   <SelectGroup>
                     <SelectLabel>Items Per Page</SelectLabel>
-                    <SelectItem value={1}>1 / page</SelectItem>
                     <SelectItem value={10}>10 / page</SelectItem>
                     <SelectItem value={20}>20 / page</SelectItem>
                     <SelectItem value={30}>30 / page</SelectItem>
