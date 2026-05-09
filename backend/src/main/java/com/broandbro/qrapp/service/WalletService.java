@@ -82,7 +82,7 @@ public class WalletService {
     public CreateRazorpayOrderResponse createRazorpayOrder(User user, CreateRazorpayOrderRequest req) {
         User currentUser = validateCurrentUser(user);
         long amount = validateAmount(req.getAmount());
-        String receipt = "wallet_" + currentUser.getId() + "_" + UUID.randomUUID();
+        String receipt = "wallet_" + currentUser.getId();       
         String orderId = razorpayService.createOrder(amount, "INR", receipt);
 
         Wallet wallet = getOrCreateWallet(currentUser);
