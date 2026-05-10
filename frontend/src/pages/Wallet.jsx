@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/carousel";
 import { Separator } from "@/components/ui/separator";
 import AddMoneyForm from "@/components/wallet/AddMoneyForm";
+import { Badge } from "@/components/ui/badge";
 
 function useToast() {
   const [message, setMessage] = useState(null);
@@ -431,15 +432,15 @@ export default function Wallet() {
                               {formatTransactionTitle(tx)}
                             </h3>
                             <div className="space-x-1">
-                              <span
-                                className={`rounded-md px-3 py-1 text-sm font-semibold ${statusClass}`}
+                              <Badge
+                                className={`font-medium! ${statusClass} capitalize`}
                               >
-                                {tx.status}
-                              </span>
+                                {tx.status.toLowerCase()}
+                              </Badge>
                               {tx.orderId && (
-                                <span className="rounded-md bg-gray-100 px-3 py-1 text-sm font-medium">
+                                <Badge className="bg-gray-100 text-gray-700 font-medium">
                                   Order #{tx.orderId}
-                                </span>
+                                </Badge>
                               )}
                             </div>
                           </div>
@@ -479,14 +480,16 @@ export default function Wallet() {
 
             {hasMore && filter === "ALL" && (
               <div className="mt-5 text-center">
-                <button
+                <Button
                   type="button"
+                  size="lg"
+                  variant="outline"
                   onClick={handleLoadMore}
                   disabled={loadingMore}
-                  className="rounded-2xl border border-gray-200 px-5 py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:opacity-70"
+                  className="text-sm! font-medium! rounded-lg"
                 >
                   {loadingMore ? "Loading more..." : "Load more"}
-                </button>
+                </Button>
               </div>
             )}
           </section>
