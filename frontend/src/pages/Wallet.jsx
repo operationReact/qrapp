@@ -12,6 +12,7 @@ import {
 import { Activity } from "lucide-react";
 import {
   Clock,
+  Copy,
   CreditCardAlt,
   CurrencyNote,
   MenuFilter,
@@ -231,7 +232,11 @@ export default function Wallet() {
               </h1>
 
               <div className="mt-6 mb-4 flex items-center flex-col gap-4 sm:flex-row rounded-4xl sm:items-start w-full">
-                <img src="/coin.png" alt="Coin" className="mx-auto shrink-0 grow-0 size-[128px]" />
+                <img
+                  src="/coin.png"
+                  alt="Coin"
+                  className="mx-auto shrink-0 grow-0 size-[128px]"
+                />
                 <div className="w-full">
                   <div className="text-sm rounded-full font-semibold text-muted-foreground text-center sm:text-start">
                     Available Balance
@@ -368,7 +373,16 @@ export default function Wallet() {
                         variant={filter === item.key ? "black" : "outline"}
                         className={`rounded-md text-sm! font-medium!`}
                         type="button"
-                        onClick={() => setFilter(item.key)}
+                        onClick={() => {
+                          if ("startViewTransition" in document) {
+                            document.startViewTransition(() => {
+                              setFilter(item.key);
+                            });
+                            return;
+                          }
+
+                          setFilter(item.key);
+                        }}
                       >
                         {item.label}
                       </Button>
@@ -423,6 +437,9 @@ export default function Wallet() {
                   return (
                     <article
                       key={tx.id}
+                      style={{
+                        viewTransitionName: `txn-${tx.referenceId || tx.providerOrderId}`,
+                      }}
                       className="border-b last:border-b-0 space-y-3 py-2"
                     >
                       <div className="flex gap-4 items-start justify-between">
@@ -444,11 +461,6 @@ export default function Wallet() {
                               )}
                             </div>
                           </div>
-                          {/* {(tx.referenceId || tx.providerOrderId) && (
-                            <div className="mt-2 truncate text-xs text-gray-400">
-                              Ref: {tx.referenceId || tx.providerOrderId}
-                            </div>
-                          )}*/}
                         </div>
 
                         <div className="text-right">
@@ -467,10 +479,33 @@ export default function Wallet() {
                         </div>
                       </div>
 
-                      <div className="mt-2 text-xs text-muted-foreground sm:text-sm">
-                        {tx.createdAt
-                          ? new Date(tx.createdAt).toLocaleString()
-                          : "Timestamp unavailable"}
+                      <div className="mt-2 space-x-2 text-xs text-muted-foreground sm:text-sm">
+                        <span>
+                          {tx.createdAt
+                            ? new Date(tx.createdAt).toLocaleString("en-IN", {
+                                dateStyle: "long",
+                                timeStyle: "medium",
+                              })
+                            : "Timestamp unavailable"}
+                        </span>
+                        <span>•</span>
+                        {(tx.referenceId || tx.providerOrderId) && (
+                          <Badge asChild variant="secondary">
+                            <Button
+                              onClick={() => {
+                                navigator.clipboard.writeText(
+                                  tx.referenceId || tx.providerOrderId,
+                                );
+                                toast.show("Transaction Id copied");
+                              }}
+                            >
+                              <Copy /> Transaction Id
+                              <span className="sr-only">
+                                {tx.referenceId || tx.providerOrderId}
+                              </span>
+                            </Button>
+                          </Badge>
+                        )}
                       </div>
                     </article>
                   );

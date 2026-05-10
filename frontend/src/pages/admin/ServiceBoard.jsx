@@ -9,10 +9,11 @@ import {
   ChevronRight,
   ClockDashedHalf,
   Package,
-  PlayCircle
+  PlayCircle,
 } from "@boxicons/react";
 import { useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
+import { motion } from "motion/react";
 
 const STATUS_META = {
   PLACED: {
@@ -164,42 +165,45 @@ export default function ServiceBoard() {
                     </div>
                   ) : (
                     orders.map((order) => (
-                      <div
+                      <motion.div
+                        layoutId={`board-order-${order.id}`}
                         key={order.id}
-                        className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm hover:border-slate-300 transition-all flex flex-col"
                       >
-                        <div className="w-full">
-                          <div className="flex gap-2 flex-wrap items-center justify-between">
-                            <div className="flex gap-2 items-center">
-                              <Link
-                                to={`/admin/operational-queue/${order.id}`}
-                                className="text-base font-medium hover:text-primary transition-colors"
-                              >
-                                Order #{order.id}
-                              </Link>
-                              <Badge
-                                variant="outline"
-                                className={toneForPriority(order.priority).tone}
-                              >
-                                {toneForPriority(order.priority).label}
-                              </Badge>
-                              {order.delayed && (
-                                <Badge variant="destructive">
-                                  <AlarmExclamation pack="filled" /> Delayed
+                        <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm hover:border-slate-300 transition-all flex flex-col">
+                          <div className="w-full">
+                            <div className="flex gap-2 flex-wrap items-center justify-between">
+                              <div className="flex gap-2 items-center">
+                                <Link
+                                  to={`/admin/operational-queue/${order.id}`}
+                                  className="text-base font-medium hover:text-primary transition-colors"
+                                >
+                                  Order #{order.id}
+                                </Link>
+                                <Badge
+                                  variant="outline"
+                                  className={
+                                    toneForPriority(order.priority).tone
+                                  }
+                                >
+                                  {toneForPriority(order.priority).label}
                                 </Badge>
-                              )}
+                                {order.delayed && (
+                                  <Badge variant="destructive">
+                                    <AlarmExclamation pack="filled" /> Delayed
+                                  </Badge>
+                                )}
+                              </div>
+                              <div className="text-base font-semibold">
+                                {formatCurrency(order.total)}
+                              </div>
                             </div>
-                            <div className="text-base font-semibold">
-                              {formatCurrency(order.total)}
+                            <div className="mt-2 text-sm text-slate-500">
+                              {order.phone} • {formatDateTime(order.createdAt)}
                             </div>
                           </div>
-                          <div className="mt-2 text-sm text-slate-500">
-                            {order.phone} • {formatDateTime(order.createdAt)}
-                          </div>
-                        </div>
 
-                        <div className="flex flex-wrap items-center gap-2 mt-2">
-                          {/* <Badge
+                          <div className="flex flex-wrap items-center gap-2 mt-2">
+                            {/* <Badge
                               className={
                                 toneForPaymentStatus(
                                   order.paymentStatus || "PENDING",
@@ -213,37 +217,40 @@ export default function ServiceBoard() {
                                 ).label
                               }
                             </Badge>*/}
-                          <Badge variant="ghost" className="h-auto">
-                            <ClockDashedHalf />
-                            {order.stageAgeMinutes} min in stage
-                          </Badge>
-                        </div>
+                            <Badge variant="ghost" className="h-auto">
+                              <ClockDashedHalf />
+                              {order.stageAgeMinutes} min in stage
+                            </Badge>
+                          </div>
 
-                        <div className="mt-3 border bg-slate-50/50 rounded-xl px-3 py-2 text-sm text-slate-700 italic">
-                          {summarizeItems(order)}
-                        </div>
+                          <div className="mt-3 border bg-slate-50/50 rounded-xl px-3 py-2 text-sm text-slate-700 italic">
+                            {summarizeItems(order)}
+                          </div>
 
-                        <div className="mt-2 pt-2 flex flex-wrap gap-2">
-                          {(order.availableTransitions || [])
-                            .slice(0, 2)
-                            .map((nextStatus) => (
-                              <Button
-                                key={`${order.id}-${nextStatus}`}
-                                size="sm"
-                                variant="outline"
-                                className="font-medium! text-sm!"
-                                onClick={() =>
-                                  handleOrderUpdate(order.id, {
-                                    status: nextStatus,
-                                  })
-                                }
-                              >
-                                Move to {toneForStatus(nextStatus).label}
-                                <ChevronRight />
-                              </Button>
-                            ))}
+                          <div className="mt-2 pt-2 flex flex-wrap gap-2">
+                            {(order.availableTransitions || [])
+                              .slice(0, 2)
+                              .map((nextStatus) => (
+                                <Button
+                                  key={`${order.id}-${nextStatus}`}
+                                  size="sm"
+                                  variant="outline"
+                                  className="font-medium! text-sm!"
+                                  onClick={() =>
+                                    document.startViewTransition(() => {
+                                      handleOrderUpdate(order.id, {
+                                        status: nextStatus,
+                                      });
+                                    })
+                                  }
+                                >
+                                  Move to {toneForStatus(nextStatus).label}
+                                  <ChevronRight />
+                                </Button>
+                              ))}
+                          </div>
                         </div>
-                      </div>
+                      </motion.div>
                     ))
                   )}
                 </div>

@@ -49,21 +49,24 @@ export default function MyOrders() {
     };
   }, [navigate, user?.token]);
 
-  const groupedOrders = (orders || []).reduce((group, order) => {
-    if (!group[order.status]) {
-      group[order.status] = [];
-    }
+  const groupedOrders = (orders || []).reduce(
+    (group, order) => {
+      if (!group[order.status]) {
+        group[order.status] = [];
+      }
 
-    group[order.status] = [...group[order.status], order];
-    return group;
-  }, {});
+      group[order.status] = [...group[order.status], order];
+      return group;
+    },
+    { ALL: orders },
+  );
 
   const statuses = Object.keys(groupedOrders);
 
   return (
     <div className="page-shell pb-mobile-nav! md:pb-[initial]!">
       <Navbar />
-      <MobileMenu/>
+      <MobileMenu />
 
       <main className="container-premium py-6">
         <div className="mx-auto space-y-6">
@@ -110,19 +113,17 @@ export default function MyOrders() {
 
           {!loading && !error && orders.length > 0 && (
             <Tabs defaultValue={Object.keys(groupedOrders)[0]}>
-              {statuses.length > 1 ? (
-                <TabsList>
-                  {statuses.map((status) => (
-                    <TabsTrigger
-                      className="text-sm! font-medium! capitalize"
-                      key={status}
-                      value={status}
-                    >
-                      {status.toLowerCase()}
-                    </TabsTrigger>
-                  ))}
-                </TabsList>
-              ) : null}
+              <TabsList>
+                {statuses.map((status) => (
+                  <TabsTrigger
+                    className="text-sm! font-medium! capitalize"
+                    key={status}
+                    value={status}
+                  >
+                    {status.toLowerCase()}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
 
               {Object.entries(groupedOrders).map(([status, statusOrders]) => (
                 <TabsContent
