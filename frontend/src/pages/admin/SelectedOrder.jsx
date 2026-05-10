@@ -76,15 +76,6 @@ function toneForPriority(priority) {
   return PRIORITY_META[priority] || PRIORITY_META.NORMAL;
 }
 
-// function summarizeItems(order) {
-//   const items = order?.items || [];
-//   if (!items.length) return "No items attached";
-//   return items
-//     .slice(0, 3)
-//     .map((item) => `${item.name || "Item"} ×${item.quantity}`)
-//     .join(", ");
-// }
-
 export default function SelectedOrder() {
   const params = useParams();
   const selectedOrderId = params?.orderId;
@@ -230,6 +221,7 @@ export default function SelectedOrder() {
               <InputGroupTextarea
                 onChange={(e) => setNoteDraft(e.target.value)}
                 rows={4}
+                value={noteDraft}
                 className="text-sm!"
                 placeholder="Capture service instructions, escalation details, or pickup notes for the team."
               />

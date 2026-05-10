@@ -7,6 +7,7 @@ import { Cabinet } from "@boxicons/react";
 import OrderCard from "@/components/orders/OrderCard";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import MobileMenu from "@/components/MobileMenu";
 
 export default function MyOrders() {
   const navigate = useNavigate();
@@ -60,8 +61,9 @@ export default function MyOrders() {
   const statuses = Object.keys(groupedOrders);
 
   return (
-    <div className="page-shell">
+    <div className="page-shell pb-mobile-nav! md:pb-[initial]!">
       <Navbar />
+      <MobileMenu/>
 
       <main className="container-premium py-6">
         <div className="mx-auto space-y-6">
