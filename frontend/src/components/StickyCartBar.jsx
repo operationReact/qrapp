@@ -4,6 +4,19 @@ import { useAdminAuth } from "../context/AdminAuthContext";
 import { Button } from "./ui/button";
 import { Cart } from "@boxicons/react";
 
+const pluralRules = new Intl.PluralRules("en-US");
+
+function pluralOf(count) {
+  const rule = pluralRules.select(count);
+
+  const words = {
+    one: "item",
+    other: "items",
+  };
+
+  return `${count} ${words[rule]}`;
+}
+
 const stickyCartBarVisibleRoutes = ["/", "/search"];
 
 export default function StickyCartBar() {
@@ -13,7 +26,8 @@ export default function StickyCartBar() {
   const { admin } = useAdminAuth();
 
   // Only show the sticky cart bar on the landing page (home)
-  if (location && !stickyCartBarVisibleRoutes.includes(location.pathname)) return null;
+  if (location && !stickyCartBarVisibleRoutes.includes(location.pathname))
+    return null;
 
   if (admin) return null;
 
@@ -34,7 +48,7 @@ export default function StickyCartBar() {
   return (
     <div className="fixed inset-x-0 bottom-0 pb-mobile-nav md:px-2.5 md:pb-2.5 z-39 pointer-events-auto">
       <div className="rounded-t-2xl max-w-md md:rounded-3xl md:max-w-1/2 mx-auto border border-b-0 md:border-b border-gray-200 bg-white pb-[env(safe-area-inset-bottom)]">
-        <div className="w-full px-3 sm:px-4 md:mx-auto md:max-w-4xl lg:max-w-5xl xl:max-w-6xl">
+        <div className="w-full px-8 sm:px-4 md:mx-auto md:max-w-4xl lg:max-w-5xl xl:max-w-6xl">
           <div className="flex md:min-h-[72px] items-center md:py-3">
             <div className="flex w-full items-center justify-between gap-3 py-2 md:py-0">
               <div className="flex min-w-0 items-center gap-3">
@@ -46,7 +60,7 @@ export default function StickyCartBar() {
                 </div>
                 <div className="min-w-0 flex gap-1 md:flex-col items-baseline">
                   <div className="text-xs font-medium order-1 md:order-0 md:tracking-wide text-muted-foreground">
-                    <span>{totalItems}</span> Item in cart
+                    <span>{pluralOf(totalItems)}</span> in cart
                   </div>
                   <div className="truncate text-sm md:text-base font-semibold">
                     ₹{totalPrice.toFixed(2)}{" "}
