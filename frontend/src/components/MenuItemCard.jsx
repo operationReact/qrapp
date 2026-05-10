@@ -3,7 +3,7 @@ import { useCart } from "../context/CartContext";
 import { useAdminAuth } from "../context/AdminAuthContext";
 import PropTypes from "prop-types";
 import API from "../services/api";
-import ItemActionButton from "./AddButton";
+import MenuItemActionButton from "./MenuItemActionButton";
 
 export default function MenuItemCard({ item, onEdit, onDelete }) {
   const { cart, addItem, decreaseItem } = useCart();
@@ -60,7 +60,7 @@ export default function MenuItemCard({ item, onEdit, onDelete }) {
           </span>
 
           {/* CTA */}
-          <ItemActionButton
+          <MenuItemActionButton
             qty={qty}
             onAdd={() => addItem(item)}
             onDecrease={() => decreaseItem(item)}

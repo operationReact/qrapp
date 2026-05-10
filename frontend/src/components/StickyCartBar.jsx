@@ -4,6 +4,8 @@ import { useAdminAuth } from "../context/AdminAuthContext";
 import { Button } from "./ui/button";
 import { Cart } from "@boxicons/react";
 
+const stickyCartBarVisibleRoutes = ["/", "/search"];
+
 export default function StickyCartBar() {
   const { cart, getTotal, openDrawer, closeDrawer } = useCart();
   const navigate = useNavigate();
@@ -11,7 +13,7 @@ export default function StickyCartBar() {
   const { admin } = useAdminAuth();
 
   // Only show the sticky cart bar on the landing page (home)
-  if (location && location.pathname !== "/") return null;
+  if (location && !stickyCartBarVisibleRoutes.includes(location.pathname)) return null;
 
   if (admin) return null;
 
@@ -37,7 +39,7 @@ export default function StickyCartBar() {
             <div className="flex w-full items-center justify-between gap-3 py-2 md:py-0">
               <div className="flex min-w-0 items-center gap-3">
                 <div className="hidden md:flex size-6 md:size-10 relative bg-primary-foreground/50 flex-none items-center justify-center rounded-full text-base font-semibold text-primary">
-                  <Cart pack="filled" className="size-6"/>
+                  <Cart pack="filled" className="size-6" />
                   <span className="absolute hidden md:grid bg-white rounded-full w-8 grid place-items-center -bottom-2 border border-muted text-xs text-black">
                     {totalItems}
                   </span>
@@ -47,7 +49,10 @@ export default function StickyCartBar() {
                     <span>{totalItems}</span> Item in cart
                   </div>
                   <div className="truncate text-sm md:text-base font-semibold">
-                    ₹{totalPrice.toFixed(2)} <span className="text-muted-foreground md:hidden text-sm">/</span>
+                    ₹{totalPrice.toFixed(2)}{" "}
+                    <span className="text-muted-foreground md:hidden text-sm">
+                      /
+                    </span>
                   </div>
                 </div>
               </div>

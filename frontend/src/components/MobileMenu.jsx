@@ -194,15 +194,15 @@ export default function MobileMenu() {
       {items.slice(0, -1).map((item) => {
         const isActive = location.pathname === item.path;
         return (
-          <button
+          <Link
             key={item.key}
-            onClick={() => navigate(item.path)}
+            to={item.path}
             className={cn(
               `flex flex-col items-center transition-transform flex-1 focus:outline-none after:absolute after:scale-y-0 after:top-0 after:w-12 after:h-0.5 after:rounded-b-xl after:bg-primary`,
               isActive && "after:scale-y-100",
             )}
+            viewTransition
             aria-label={item.label}
-            tabIndex={0}
           >
             <item.icon
               pack={isActive ? "filled" : "outline"}
@@ -213,7 +213,7 @@ export default function MobileMenu() {
             >
               {item.label}
             </span>
-          </button>
+          </Link>
         );
       })}
 

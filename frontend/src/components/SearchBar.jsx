@@ -5,10 +5,34 @@ import { Button } from "@/components/ui/button";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "./ui/input-group";
 import { useDebounce } from "@/hooks/useDebounce";
 
-export default function SearchBar({ onSearch = () => {} }) {
+export default function SearchBar({ onSearch = () => { }, autoFocus = false }) {
   const [value, setValue] = useState("");
   const inputRef = useRef();
   const searchQuery = useDebounce(value, 300);
+
+  const placeholders = [
+    "oats, chicken or momos",
+    "bestsellers",
+    "pizzas, pastas, south specials",
+    "combo meal"
+  ];
+
+  const [placeholder, setPlaceholder] = useState(placeholders[0]);
+
+ /* UPDATE PLACEHOLDER OF SEARCH FIELD EVERY 3 SECOND*/ 
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setPlaceholder((placeholder) => {
+        const current = placeholders.findIndex((p) => p === placeholder);
+
+        return current < placeholders.length - 1
+          ? placeholders[current + 1]
+          : placeholders[0];
+      });
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     onSearch(searchQuery);
@@ -20,8 +44,9 @@ export default function SearchBar({ onSearch = () => {} }) {
         ref={inputRef}
         value={value}
         onChange={(e) => setValue(e.target.value)}
-        placeholder="Search dishes..."
-        className="w-full font-medium! pr-12 border-0 focus-visible:ring-0"
+        placeholder={`Search "${placeholder}"`}
+        className="w-full text-sm! font-medium! pr-12 border-0 focus-visible:ring-0"
+        autoFocus={autoFocus}
       />
 
       <InputGroupAddon>

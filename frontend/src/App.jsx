@@ -23,7 +23,7 @@ import SelectedOrder from "./pages/admin/SelectedOrder";
 import ServiceBoard from "./pages/admin/ServiceBoard";
 import AdminMenuPage from "./pages/admin/AdminMenuPage";
 import AdminMenuManager from "./pages/admin/AdminMenuManager";
-import MobileMenu from "./components/MobileMenu";
+import Search from "./pages/Search";
 
 function SafeAreaWrapper({ children }) {
   const { cart } = useCart();
@@ -51,6 +51,7 @@ function App() {
                   <Routes>
                     <Route path="/" element={<Menu />} />
                     <Route path="/wallet" element={<Wallet />} />
+                    <Route path="/search" element={<Search />} />
                     <Route path="/cart" element={<Cart />} />
                     <Route path="/orders" element={<MyOrders />} />
                     <Route path="/profile" element={<Profile />} />

@@ -1,8 +1,10 @@
 import PropTypes from "prop-types";
 import { Button } from "./ui/button";
 import { Carousel, CarouselContent, CarouselItem } from "./ui/carousel";
+import { Link } from "react-router-dom";
 
-export default function CategoryTabs({ categories, active, onChange }) {
+export default function CategoryTabs({ categories, active }) {
+  console.log({ active, categories });
   return (
     <Carousel opts={{ dragFree: true }}>
       <CarouselContent className={"-ml-1.5"}>
@@ -10,10 +12,10 @@ export default function CategoryTabs({ categories, active, onChange }) {
           <CarouselItem className="basis-auto pl-1.5" key={cat}>
             <Button
               variant={active === cat ? "black" : "outline"}
-              className={`rounded-md text-sm! font-medium! ${!active && "bg-transparent" }`}
-              onClick={() => onChange(cat)}
+              className={`rounded-md text-sm! font-medium! ${!active && "bg-transparent"}`}
+              asChild
             >
-              {cat}
+              <a href={`/#${cat}`}>{cat}</a>
             </Button>
           </CarouselItem>
         ))}

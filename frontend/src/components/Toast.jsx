@@ -1,5 +1,7 @@
+import { useResolvedPath } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import { useEffect, useRef, useState } from "react";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export default function Toast() {
   const { lastAdded } = useCart();
@@ -7,6 +9,10 @@ export default function Toast() {
   const [text, setText] = useState(null);
   const rafRef = useRef(null);
   const hideTimerRef = useRef(null);
+  const { pathname } = useResolvedPath();
+
+  const isMobile = useIsMobile();
+  const raiseBottomForCheckoutBar = isMobile && pathname === "/cart";
 
   useEffect(() => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
@@ -32,7 +38,10 @@ export default function Toast() {
   if (!text) return null;
 
   return (
-    <div className="pointer-events-none fixed bottom-mobile-nav md:bottom-24 inset-x-0 mx-auto z-50 md:w-[calc(100vw-1.5rem)] max-w-md md:bottom-6 md:left-auto md:right-6 md:w-auto md:max-w-none md:translate-x-0">
+    <div
+      style={{ bottom: raiseBottomForCheckoutBar ? "140px" : undefined }}
+      className="pointer-events-none fixed bottom-mobile-nav md:bottom-24 inset-x-0 mx-auto z-50 md:w-[calc(100vw-1.5rem)] max-w-md md:bottom-6 md:left-auto md:right-6 md:w-auto md:max-w-none md:translate-x-0"
+    >
       <div
         className={`pointer-events-auto bg-white min-h-[52.8px] md:min-h-[auto] flex gap-3 rounded-t-2xl md:rounded-xl bg-brand-600 px-4 py-3 text-black border border-b-0 md:border-b border-gray-200 md:shadow-sm transition-all duration-300 ease-out ${visible ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"}`}
         role="status"
@@ -66,7 +75,9 @@ export default function Toast() {
         </svg>
 
         <div className="min-w-0 flex flex-col justify-center">
-          <span className="font-medium hidden md:block">Item added to cart</span>
+          <span className="font-medium hidden md:block">
+            Item added to cart
+          </span>
           <span className="truncate text-sm text-foreground md:text-muted-foreground empty:hidden">
             <span className="font-medium md:font-normal">{text}</span>
             <span className="md:hidden"> added to cart</span>
