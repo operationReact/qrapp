@@ -9,9 +9,9 @@ import {
   CarouselContent,
   CarouselItem,
 } from "@/components/ui/carousel";
-import ModeSwitcher from "../components/ModeSwitcher";
 import { usePreferences } from "@/context/PreferencesContext";
 import MobileMenu from "@/components/MobileMenu";
+import { useLocation } from "react-router-dom";
 
 // Small mock dataset used when backend is unreachable so the UI can be inspected
 const SAMPLE_MENU = [
@@ -46,11 +46,13 @@ const SAMPLE_MENU = [
 
 export default function Menu() {
   const [menu, setMenu] = useState([]);
-  const [category, setCategory] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [offline, setOffline] = useState(false);
   const [offlineMessage, setOfflineMessage] = useState("");
+  const { hash } = useLocation();
+
+  const category = decodeURIComponent(hash.slice(1)) || "All";
 
   // local vegFilter replaced with context for respecting preferences across the app
   const { preferences } = usePreferences();
@@ -90,7 +92,7 @@ export default function Menu() {
     fetchMenu();
   }, [fetchMenu]);
 
-  const categories = ["All", ...new Set(menu.map((m) => m.category))];
+  const categories = [...new Set(menu.map((m) => m.category))];
 
   const filtered = menu.filter((item) => {
     // Normalize possible server representations for boolean-ish isVeg
@@ -103,7 +105,7 @@ export default function Menu() {
       .filter(Boolean)
       .join(" ")
       .toLowerCase();
-    if (category !== "All" && item.category !== category) return false;
+    // if (category !== "All" && item.category !== category) return false;
     if (vegFilter === "veg" && !isVeg) return false;
     if (vegFilter === "nonveg" && isVeg) return false;
     if (
@@ -123,7 +125,7 @@ export default function Menu() {
   return (
     <div className="page-shell pb-mobile-nav! md:pb-[initial]!">
       <Navbar />
-      <MobileMenu/>
+      <MobileMenu />
       {/* Backend offline banner (non-technical user friendly) */}
       {offline && (
         <div className="container-premium py-3">
@@ -162,20 +164,15 @@ export default function Menu() {
         <div className="container-premium py-3">
           <div className="flex gap-4 w-full">
             <SearchBar onSearch={setSearchQuery} />
-            {/* <ModeSwitcher /> */}
           </div>
         </div>
       </div>
 
       <div className="container-premium mt-4">
-        <CategoryTabs
-          categories={categories}
-          active={category}
-          onChange={setCategory}
-        />
+        <CategoryTabs categories={categories} active={category} />
       </div>
 
-      <main className="container-premium py-5 sm:py-6">
+      <main className="container-premium py-4">
         <div className="page-stack">
           {/* HEADER */}
           <div className="space-y-2 sr-only">
@@ -206,11 +203,7 @@ export default function Menu() {
 
           {/* ITEMS */}
           {Object.entries(groups).map(([category, items]) => (
-            <div
-              className="premium-grid"
-              key={category}
-              id={category.toLowerCase()}
-            >
+            <section className="premium-grid scroll-mt-4" key={category} id={category}>
               <h2 className="text-xl font-semibold sm:text-2xl">
                 {category || "Specials"}
               </h2>
@@ -226,7 +219,7 @@ export default function Menu() {
                   ))}
                 </CarouselContent>
               </Carousel>
-            </div>
+            </section>
           ))}
         </div>
       </main>
