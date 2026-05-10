@@ -1,5 +1,11 @@
 import { useNavigate, useLocation, Link } from "react-router-dom";
-import { BoxAlt, CartAlt2, Compass, User } from "@boxicons/react";
+import {
+  ArrowOutRightCircleHalf,
+  BoxAlt,
+  CartAlt2,
+  Compass,
+  User,
+} from "@boxicons/react";
 import { Button, buttonVariants } from "./ui/button";
 import { cn } from "@/lib/utils";
 import {
@@ -56,63 +62,122 @@ const items = [
 ];
 
 function UserAccountDrawerContent() {
+  const { setUser } = useUserAuth();
+  const navigate = useNavigate();
+
   return (
-    <div className="p-4 grid gap-2 grid-cols-2">
-      <Link
-        to="/orders"
-        className={buttonVariants({
-          variant: "outline",
-          size: "lg",
-          className:
-            "h-fit text-lg bg-linear-to-br from-primary/5 border-primary/10! gap-0! to-white flex-col p-4 items-start justify-center",
-        })}
-      >
-        <BoxAlt pack="filled" className="size-6 text-primary mb-2" />{" "}
-        <span className="font-semibold!">Your Orders</span>
-        <span className="block text-xs text-muted-foreground">
-          Track all orders{" "}
-        </span>
-      </Link>
-
-      <Link
-        to="/profile"
-        className={buttonVariants({
-          variant: "outline",
-          size: "lg",
-          className:
-            "h-fit text-lg bg-linear-to-br from-primary/5 border-primary/10! gap-0! to-white flex-col p-4 items-start justify-center",
-        })}
-      >
-        <User pack="filled" className="size-6 text-primary mb-2" />{" "}
-        <span className="font-semibold!">Profile</span>
-        <span className="block text-xs text-muted-foreground">
-          Update your profile{" "}
-        </span>
-      </Link>
-
-      <Link
-        to="/wallet"
-        className={buttonVariants({
-          variant: "outline",
-          size: "lg",
-          className:
-            "h-fit col-span-2 text-lg gap-4 to-white p-4 items-center justify-start border-amber-200! bg-linear-to-br from-[#FFEFBD] to-[#FEEE70]",
-        })}
-      >
-        <img src="/coin.png" className="size-12 text-primary mb-2" />{" "}
-        <div>
-          <span
-            aria-label="Bro Wallet"
-            className="font-semibold! inline-block mb-1 text-md"
-          >
-            <img src="/bro-wallet.svg" alt="Bro Wallet" />
-          </span>
+    <>
+      <div className="p-4 grid gap-2 grid-cols-2">
+        <Link
+          to="/orders"
+          className={buttonVariants({
+            variant: "outline",
+            size: "lg",
+            className:
+              "h-fit text-lg bg-linear-to-br from-primary/5 border-primary/10! gap-0! to-white flex-col p-4 items-start justify-center",
+          })}
+        >
+          <BoxAlt pack="filled" className="size-6 text-primary mb-2" />{" "}
+          <span className="font-semibold!">Your Orders</span>
           <span className="block text-xs text-muted-foreground">
-            Check balance and transactions
+            Track all orders{" "}
           </span>
-        </div>
-      </Link>
-    </div>
+        </Link>
+
+        <Link
+          to="/profile"
+          className={buttonVariants({
+            variant: "outline",
+            size: "lg",
+            className:
+              "h-fit text-lg bg-linear-to-br from-primary/5 border-primary/10! gap-0! to-white flex-col p-4 items-start justify-center",
+          })}
+        >
+          <User pack="filled" className="size-6 text-primary mb-2" />{" "}
+          <span className="font-semibold!">Profile</span>
+          <span className="block text-xs text-muted-foreground">
+            Update your profile{" "}
+          </span>
+        </Link>
+
+        <Link
+          to="/wallet"
+          className={buttonVariants({
+            variant: "outline",
+            size: "lg",
+            className:
+              "h-fit col-span-2 text-lg gap-4 to-white p-4 items-center justify-start border-amber-200! bg-linear-to-br from-[#FFEFBD] to-[#FEEE70]",
+          })}
+        >
+          <img src="/coin.png" className="size-12 text-primary mb-2" />{" "}
+          <div>
+            <span
+              aria-label="Bro Wallet"
+              className="font-semibold! inline-block mb-1 text-md"
+            >
+              <img src="/bro-wallet.svg" alt="Bro Wallet" />
+            </span>
+            <span className="block text-xs text-muted-foreground">
+              Check balance and transactions
+            </span>
+          </div>
+        </Link>
+      </div>
+
+      <DrawerFooter className="grid grid-cols-2">
+        <DrawerClose asChild>
+          <Button
+            variant="outline"
+            size="lg"
+            className="w-full h-12 font-medium!"
+          >
+            Close{" "}
+          </Button>
+        </DrawerClose>
+        <Button
+          variant="secondary"
+          onClick={() => {
+            setUser(null);
+            navigate("/login");
+          }}
+          className="h-12 text-sm! w-full font-medium!"
+        >
+          <ArrowOutRightCircleHalf /> Log out
+        </Button>
+      </DrawerFooter>
+    </>
+  );
+}
+
+function UserUnauthorizedDrawerContent() {
+  return (
+    <>
+      <div className="p-4 grid grid-cols-2 gap-2">
+        <Button asChild size="lg" className="text-sm! font-medium! h-12">
+          <Link to="/login">Login</Link>
+        </Button>
+        <Button
+          variant="secondary"
+          asChild
+          size="lg"
+          className="text-sm! font-medium! h-12"
+        >
+          <Link to="/register">Create Account</Link>
+        </Button>
+      </div>
+
+      <DrawerFooter>
+        <DrawerClose asChild>
+          <Button
+            variant="outline"
+            size="lg"
+            className="w-full h-12 font-medium!"
+          >
+            Close{" "}
+          </Button>
+        </DrawerClose>
+      </DrawerFooter>
+    </>
   );
 }
 
@@ -187,31 +252,8 @@ export default function MobileMenu() {
           {user ? (
             <UserAccountDrawerContent />
           ) : (
-            <div className="p-4 grid grid-cols-2 gap-2">
-              <Button asChild size="lg" className="text-sm! font-medium! h-12">
-                <Link to="/login">Login</Link>
-              </Button>
-              <Button
-                variant="secondary"
-                asChild
-                size="lg"
-                className="text-sm! font-medium! h-12"
-              >
-                <Link to="/register">Create Account</Link>
-              </Button>
-            </div>
+            <UserUnauthorizedDrawerContent />
           )}
-          <DrawerFooter>
-            <DrawerClose asChild>
-              <Button
-                variant="outline"
-                size="lg"
-                className="w-full h-12 font-medium!"
-              >
-                Close{" "}
-              </Button>
-            </DrawerClose>
-          </DrawerFooter>
         </DrawerContent>
       </Drawer>
     </nav>

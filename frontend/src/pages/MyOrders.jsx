@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import { getMyOrders } from "../services/api";
@@ -6,6 +6,7 @@ import { useUserAuth } from "../context/UserAuthContext";
 import { Cabinet } from "@boxicons/react";
 import OrderCard from "@/components/orders/OrderCard";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function MyOrders() {
   const navigate = useNavigate();
@@ -18,10 +19,10 @@ export default function MyOrders() {
     let mounted = true;
 
     async function loadOrders() {
-      // if (!user?.token) {
-      //   navigate("/login", { state: { from: "/orders" } });
-      //   return;
-      // }
+      if (!user?.token) {
+        navigate("/login", { state: { from: "/orders" } });
+        return;
+      }
 
       try {
         const response = await getMyOrders();
@@ -47,10 +48,18 @@ export default function MyOrders() {
     };
   }, [navigate, user?.token]);
 
-  const activeOrders = useMemo(
-    () => orders.filter((order) => !["COMPLETED"].includes(order.status)),
-    [orders],
-  );
+  const groupedOrders = (orders || []).reduce((group, order) => {
+    console.error({ group });
+
+    if (!group[order.status]) {
+      group[order.status] = [];
+    }
+
+    group[order.status] = [...group[order.status], order];
+    return group;
+  }, {});
+
+  const statuses = Object.keys(groupedOrders);
 
   return (
     <div className="page-shell">
@@ -58,18 +67,14 @@ export default function MyOrders() {
 
       <main className="container-premium py-6">
         <div className="mx-auto space-y-6">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <div className="flex flex-col gap-2">
             <div>
-              <h1 className="text-2xl font-semibold sm:text-3xl">My Orders</h1>
+              <h1 className="text-2xl font-semibold sm:text-3xl">Orders</h1>
               <p className="mt-1 text-md text-muted-foreground">
                 Review live order status, see what you ordered, and revisit
                 recent purchases.
               </p>
             </div>
-            {/* <div className="rounded-2xl bg-white px-4 py-3 shadow-sm border border-gray-100">
-                            <div className="text-xs uppercase tracking-wide text-gray-400">Active orders</div>
-                            <div className="mt-1 text-2xl font-bold text-gray-900">{activeOrders.length}</div>
-                        </div>*/}
           </div>
 
           {loading && (
@@ -104,11 +109,32 @@ export default function MyOrders() {
           )}
 
           {!loading && !error && orders.length > 0 && (
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
-              {orders.map((order) => {
-                return <OrderCard key={order.id} order={order} />;
-              })}
-            </div>
+            <Tabs defaultValue={Object.keys(groupedOrders)[0]}>
+              {statuses.length > 1 ? (
+                <TabsList variant="line">
+                  {statuses.map((status) => (
+                    <TabsTrigger
+                      className="text-sm! font-medium!"
+                      key={status}
+                      value={status}
+                    >
+                      {status}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+              ) : null}
+
+              {Object.entries(groupedOrders).map(([status, statusOrders]) => (
+                <TabsContent
+                  className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3"
+                  value={status}
+                >
+                  {statusOrders.map((order) => (
+                    <OrderCard key={order.id} order={order} />
+                  ))}
+                </TabsContent>
+              ))}
+            </Tabs>
           )}
         </div>
       </main>
