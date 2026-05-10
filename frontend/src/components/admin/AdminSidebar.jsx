@@ -81,19 +81,6 @@ export function AdminSidebar() {
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
-
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                asChild
-                className="text-zinc-700 font-medium"
-                isActive={pathname === "/admin/manage-menu"}
-              >
-                <Link to={"/admin/manage-menu"}>
-                  <FoodMenu className="text-primary" />
-                  <span>Manage Menu</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
           </SidebarMenu>
         </SidebarGroup>
 

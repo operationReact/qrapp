@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { getMenu, updateMenuItem, deleteMenuItem } from "../../services/api";
 import { useAdminAuth } from "../../context/AdminAuthContext";
@@ -6,8 +6,21 @@ import AdminMenuItem from "../../components/admin/AdminMenuItem";
 import MenuItemEditModal from "../../components/MenuItemEditModal";
 import ConfirmDialog from "../../components/ConfirmDialog";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, Search, Filter } from "lucide-react";
 import AdminHeader from "@/components/admin/AdminHeader";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from "@/components/ui/input-group";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { ButtonGroup } from "@/components/ui/button-group";
 
 export default function AdminMenuPage() {
   const navigate = useNavigate();
@@ -18,6 +31,13 @@ export default function AdminMenuPage() {
   const [loadingMenu, setLoadingMenu] = useState(true);
   const [editingItem, setEditingItem] = useState(null);
   const [deletingItem, setDeletingItem] = useState(null);
+
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filters, setFilters] = useState({
+    showRecommended: false,
+    showAvailable: false,
+    isVeg: null,
+  });
 
   async function loadMenu() {
     setLoadingMenu(true);
@@ -108,6 +128,41 @@ export default function AdminMenuPage() {
     }
   };
 
+  const filteredItems = menu.filter((item) => {
+    const haystack = [item.name, item.description, item.category, item.tag]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+
+    if (
+      searchQuery.trim() &&
+      !haystack.includes(searchQuery.trim().toLowerCase())
+    ) {
+      return false;
+    }
+
+    if (filters.showRecommended && !item.recommended) {
+      return false;
+    }
+
+    if (filters.showAvailable && !item.available) {
+      return false;
+    }
+
+    if (filters.isVeg !== null) {
+      const itemIsVeg =
+        item.isVeg === true ||
+        item.isVeg === "true" ||
+        item.isVeg === 1 ||
+        item.isVeg === "1";
+      if (itemIsVeg !== filters.isVeg) {
+        return false;
+      }
+    }
+
+    return true;
+  });
+
   if (!admin?.username || !admin?.password) {
     return (
       <Navigate to={"/login"} replace state={{ from: location.pathname }} />
@@ -133,6 +188,85 @@ export default function AdminMenuPage() {
         </Button>
       </div>
 
+      <div className="flex gap-2 mb-4 px-4 pb-2 justify-between items-center">
+        <ButtonGroup className="flex-1">
+          <InputGroup className="rounded-md max-w-[350px]">
+            <InputGroupInput
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search by title, description, tags..."
+              className="text-sm! w-full"
+            />
+            <InputGroupAddon>
+              <Search />
+            </InputGroupAddon>
+          </InputGroup>
+
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="text-sm! font-medium!">
+                <Filter />
+                Filter
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-60">
+              <div className="grid gap-4">
+                <div className="space-y-2">
+                  <h4 className="leading-none font-medium">Filters</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Filter by recommended and available items. 
+                  </p>
+                </div>
+                <div className="grid gap-4">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="show-recommended">Recommended Only</Label>
+                    <Switch
+                      id="show-recommended"
+                      checked={filters.showRecommended}
+                      onCheckedChange={(checked) =>
+                        setFilters((prev) => ({
+                          ...prev,
+                          showRecommended: checked,
+                        }))
+                      }
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="show-available">Available Only</Label>
+                    <Switch
+                      id="show-available"
+                      checked={filters.showAvailable}
+                      onCheckedChange={(checked) =>
+                        setFilters((prev) => ({
+                          ...prev,
+                          showAvailable: checked,
+                        }))
+                      }
+                    />
+                  </div>
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
+        </ButtonGroup>
+
+        <div className="flex items-center gap-2 mr-1">
+          <Label htmlFor="veg-filter" className="text-sm font-medium">
+            Veg Only
+          </Label>
+          <Switch
+            id="veg-filter"
+            checked={filters.isVeg === true}
+            onCheckedChange={(checked) =>
+              setFilters((prev) => ({
+                ...prev,
+                isVeg: checked ? true : null,
+              }))
+            }
+          />
+        </div>
+      </div>
+
       <div className="grid pb-4 px-4 gap-2 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {loadingMenu &&
           Array.from({ length: 8 }).map((_, index) => (
@@ -143,7 +277,7 @@ export default function AdminMenuPage() {
           ))}
 
         {!loadingMenu &&
-          menu.map((item) => (
+          filteredItems.map((item) => (
             <AdminMenuItem
               key={item.id}
               item={item}
@@ -166,6 +300,29 @@ export default function AdminMenuPage() {
               className="mt-4 text-sm! font-medium! w-full max-w-1/3 h-12"
             >
               Create Menu Item
+            </Button>
+          </div>
+        )}
+
+        {!loadingMenu && menu.length > 0 && filteredItems.length === 0 && (
+          <div className="col-span-full py-20 text-center rounded-3xl border border-dashed border-slate-200 bg-white">
+            <h3 className="text-lg font-semibold">No Matching Items!</h3>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Try adjusting your search or filters.
+            </p>
+            <Button
+              onClick={() => {
+                setSearchQuery("");
+                setFilters({
+                  showRecommended: false,
+                  showAvailable: false,
+                  isVeg: null,
+                });
+              }}
+              variant="outline"
+              className="mt-4 text-sm! font-medium! w-full max-w-1/3 h-12"
+            >
+              Clear Filters
             </Button>
           </div>
         )}
