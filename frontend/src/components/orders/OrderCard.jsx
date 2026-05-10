@@ -4,6 +4,7 @@ import {
   Drawer,
   DrawerClose,
   DrawerContent,
+  DrawerDescription,
   DrawerFooter,
   DrawerHeader,
   DrawerTitle,
@@ -62,6 +63,7 @@ export default function OrderCard({ order }) {
                   <DrawerTitle className="text-xl font-semibold">
                     Order#{order.id} Items
                   </DrawerTitle>
+                  <DrawerDescription className="sr-only">List of your order items</DrawerDescription>
                 </DrawerHeader>
                 <div className="pb-4 px-4">
                   <ul className="pl-4 marker:text-muted-foreground/50 list-disc">

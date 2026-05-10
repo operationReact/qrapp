@@ -1,0 +1,554 @@
+{
+  "content": [
+    {
+      "id": 42,
+      "phone": "123",
+      "userId": 5,
+      "status": "PLACED",
+      "paymentStatus": "PENDING",
+      "paymentMethod": "RAZORPAY",
+      "createdAt": "2026-05-01T06:56:57.173781",
+      "lastStatusChangedAt": "2026-05-01T06:56:57.173781",
+      "startedAt": null,
+      "readyAt": null,
+      "completedAt": null,
+      "total": 386.0,
+      "totalItems": 4,
+      "priority": "NORMAL",
+      "adminNote": null,
+      "assignedAdmin": null,
+      "live": true,
+      "delayed": true,
+      "ageMinutes": 1986,
+      "stageAgeMinutes": 1986,
+      "availableTransitions": [
+        "PREPARING",
+        "READY",
+        "COMPLETED",
+        "CANCELLED"
+      ],
+      "items": [
+        {
+          "itemId": 152,
+          "name": "Healthy Oat Meal",
+          "price": 99.0,
+          "quantity": 3,
+          "subtotal": 297.0,
+          "imageUrl": "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=800&q=80",
+          "isVeg": true
+        },
+        {
+          "itemId": 153,
+          "name": "Oats Banana Smoothie",
+          "price": 89.0,
+          "quantity": 1,
+          "subtotal": 89.0,
+          "imageUrl": "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=800&q=80",
+          "isVeg": true
+        }
+      ],
+      "history": [
+        {
+          "previousStatus": null,
+          "newStatus": "PLACED",
+          "changedBy": "SYSTEM",
+          "note": "Order created",
+          "changedAt": "2026-05-01T06:56:57.173781"
+        }
+      ]
+    },
+    {
+      "id": 41,
+      "phone": "123",
+      "userId": 5,
+      "status": "PLACED",
+      "paymentStatus": "PENDING",
+      "paymentMethod": "RAZORPAY",
+      "createdAt": "2026-05-01T06:55:51.203886",
+      "lastStatusChangedAt": "2026-05-01T06:55:51.203886",
+      "startedAt": null,
+      "readyAt": null,
+      "completedAt": null,
+      "total": 386.0,
+      "totalItems": 4,
+      "priority": "NORMAL",
+      "adminNote": null,
+      "assignedAdmin": null,
+      "live": true,
+      "delayed": true,
+      "ageMinutes": 1987,
+      "stageAgeMinutes": 1987,
+      "availableTransitions": [
+        "PREPARING",
+        "READY",
+        "COMPLETED",
+        "CANCELLED"
+      ],
+      "items": [
+        {
+          "itemId": 152,
+          "name": "Healthy Oat Meal",
+          "price": 99.0,
+          "quantity": 3,
+          "subtotal": 297.0,
+          "imageUrl": "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=800&q=80",
+          "isVeg": true
+        },
+        {
+          "itemId": 153,
+          "name": "Oats Banana Smoothie",
+          "price": 89.0,
+          "quantity": 1,
+          "subtotal": 89.0,
+          "imageUrl": "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=800&q=80",
+          "isVeg": true
+        }
+      ],
+      "history": [
+        {
+          "previousStatus": null,
+          "newStatus": "PLACED",
+          "changedBy": "SYSTEM",
+          "note": "Order created",
+          "changedAt": "2026-05-01T06:55:51.203886"
+        }
+      ]
+    },
+    {
+      "id": 36,
+      "phone": "123",
+      "userId": 5,
+      "status": "PLACED",
+      "paymentStatus": "PENDING",
+      "paymentMethod": "RAZORPAY",
+      "createdAt": "2026-05-01T00:13:23.721405",
+      "lastStatusChangedAt": "2026-05-01T00:13:23.721405",
+      "startedAt": null,
+      "readyAt": null,
+      "completedAt": null,
+      "total": 89.0,
+      "totalItems": 1,
+      "priority": "NORMAL",
+      "adminNote": null,
+      "assignedAdmin": null,
+      "live": true,
+      "delayed": true,
+      "ageMinutes": 2389,
+      "stageAgeMinutes": 2389,
+      "availableTransitions": [
+        "PREPARING",
+        "READY",
+        "COMPLETED",
+        "CANCELLED"
+      ],
+      "items": [
+        {
+          "itemId": 153,
+          "name": "Oats Banana Smoothie",
+          "price": 89.0,
+          "quantity": 1,
+          "subtotal": 89.0,
+          "imageUrl": "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=800&q=80",
+          "isVeg": true
+        }
+      ],
+      "history": [
+        {
+          "previousStatus": null,
+          "newStatus": "PLACED",
+          "changedBy": "SYSTEM",
+          "note": "Order created",
+          "changedAt": "2026-05-01T00:13:23.721405"
+        }
+      ]
+    },
+    {
+      "id": 30,
+      "phone": "123",
+      "userId": 5,
+      "status": "PLACED",
+      "paymentStatus": "PENDING",
+      "paymentMethod": "RAZORPAY",
+      "createdAt": "2026-04-30T23:59:47.065115",
+      "lastStatusChangedAt": "2026-04-30T23:59:47.065115",
+      "startedAt": null,
+      "readyAt": null,
+      "completedAt": null,
+      "total": 178.0,
+      "totalItems": 2,
+      "priority": "NORMAL",
+      "adminNote": null,
+      "assignedAdmin": null,
+      "live": true,
+      "delayed": true,
+      "ageMinutes": 2403,
+      "stageAgeMinutes": 2403,
+      "availableTransitions": [
+        "PREPARING",
+        "READY",
+        "COMPLETED",
+        "CANCELLED"
+      ],
+      "items": [
+        {
+          "itemId": 153,
+          "name": "Oats Banana Smoothie",
+          "price": 89.0,
+          "quantity": 1,
+          "subtotal": 89.0,
+          "imageUrl": "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=800&q=80",
+          "isVeg": true
+        },
+        {
+          "itemId": 154,
+          "name": "Peanut Butter Toast",
+          "price": 89.0,
+          "quantity": 1,
+          "subtotal": 89.0,
+          "imageUrl": "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=800&q=80",
+          "isVeg": true
+        }
+      ],
+      "history": [
+        {
+          "previousStatus": null,
+          "newStatus": "PLACED",
+          "changedBy": "SYSTEM",
+          "note": "Order created",
+          "changedAt": "2026-04-30T23:59:47.065115"
+        }
+      ]
+    },
+    {
+      "id": 40,
+      "phone": "123",
+      "userId": 5,
+      "status": "PLACED",
+      "paymentStatus": "PENDING",
+      "paymentMethod": "RAZORPAY",
+      "createdAt": "2026-04-30T19:00:33.5877",
+      "lastStatusChangedAt": "2026-04-30T19:00:33.5877",
+      "startedAt": null,
+      "readyAt": null,
+      "completedAt": null,
+      "total": 188.0,
+      "totalItems": 2,
+      "priority": "NORMAL",
+      "adminNote": null,
+      "assignedAdmin": null,
+      "live": true,
+      "delayed": true,
+      "ageMinutes": 2702,
+      "stageAgeMinutes": 2702,
+      "availableTransitions": [
+        "PREPARING",
+        "READY",
+        "COMPLETED",
+        "CANCELLED"
+      ],
+      "items": [
+        {
+          "itemId": 153,
+          "name": "Oats Banana Smoothie",
+          "price": 89.0,
+          "quantity": 1,
+          "subtotal": 89.0,
+          "imageUrl": "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=800&q=80",
+          "isVeg": true
+        },
+        {
+          "itemId": 152,
+          "name": "Healthy Oat Meal",
+          "price": 99.0,
+          "quantity": 1,
+          "subtotal": 99.0,
+          "imageUrl": "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=800&q=80",
+          "isVeg": true
+        }
+      ],
+      "history": [
+        {
+          "previousStatus": null,
+          "newStatus": "PLACED",
+          "changedBy": "SYSTEM",
+          "note": "Order created",
+          "changedAt": "2026-04-30T19:00:33.5877"
+        }
+      ]
+    },
+    {
+      "id": 39,
+      "phone": "123",
+      "userId": 5,
+      "status": "PLACED",
+      "paymentStatus": "PENDING",
+      "paymentMethod": "RAZORPAY",
+      "createdAt": "2026-04-30T18:55:36.544842",
+      "lastStatusChangedAt": "2026-04-30T18:55:36.544842",
+      "startedAt": null,
+      "readyAt": null,
+      "completedAt": null,
+      "total": 188.0,
+      "totalItems": 2,
+      "priority": "NORMAL",
+      "adminNote": null,
+      "assignedAdmin": null,
+      "live": true,
+      "delayed": true,
+      "ageMinutes": 2707,
+      "stageAgeMinutes": 2707,
+      "availableTransitions": [
+        "PREPARING",
+        "READY",
+        "COMPLETED",
+        "CANCELLED"
+      ],
+      "items": [
+        {
+          "itemId": 153,
+          "name": "Oats Banana Smoothie",
+          "price": 89.0,
+          "quantity": 1,
+          "subtotal": 89.0,
+          "imageUrl": "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=800&q=80",
+          "isVeg": true
+        },
+        {
+          "itemId": 152,
+          "name": "Healthy Oat Meal",
+          "price": 99.0,
+          "quantity": 1,
+          "subtotal": 99.0,
+          "imageUrl": "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=800&q=80",
+          "isVeg": true
+        }
+      ],
+      "history": [
+        {
+          "previousStatus": null,
+          "newStatus": "PLACED",
+          "changedBy": "SYSTEM",
+          "note": "Order created",
+          "changedAt": "2026-04-30T18:55:36.544842"
+        }
+      ]
+    },
+    {
+      "id": 38,
+      "phone": "123",
+      "userId": 5,
+      "status": "PLACED",
+      "paymentStatus": "PENDING",
+      "paymentMethod": "RAZORPAY",
+      "createdAt": "2026-04-30T18:54:58.216615",
+      "lastStatusChangedAt": "2026-04-30T18:54:58.216615",
+      "startedAt": null,
+      "readyAt": null,
+      "completedAt": null,
+      "total": 89.0,
+      "totalItems": 1,
+      "priority": "NORMAL",
+      "adminNote": null,
+      "assignedAdmin": null,
+      "live": true,
+      "delayed": true,
+      "ageMinutes": 2708,
+      "stageAgeMinutes": 2708,
+      "availableTransitions": [
+        "PREPARING",
+        "READY",
+        "COMPLETED",
+        "CANCELLED"
+      ],
+      "items": [
+        {
+          "itemId": 153,
+          "name": "Oats Banana Smoothie",
+          "price": 89.0,
+          "quantity": 1,
+          "subtotal": 89.0,
+          "imageUrl": "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=800&q=80",
+          "isVeg": true
+        }
+      ],
+      "history": [
+        {
+          "previousStatus": null,
+          "newStatus": "PLACED",
+          "changedBy": "SYSTEM",
+          "note": "Order created",
+          "changedAt": "2026-04-30T18:54:58.216615"
+        }
+      ]
+    },
+    {
+      "id": 20,
+      "phone": "123",
+      "userId": 5,
+      "status": "PLACED",
+      "paymentStatus": "PENDING",
+      "paymentMethod": "RAZORPAY",
+      "createdAt": "2026-04-06T08:10:49.170992",
+      "lastStatusChangedAt": "2026-04-06T08:10:49.170992",
+      "startedAt": null,
+      "readyAt": null,
+      "completedAt": null,
+      "total": 0.0,
+      "totalItems": 1,
+      "priority": "NORMAL",
+      "adminNote": null,
+      "assignedAdmin": null,
+      "live": true,
+      "delayed": true,
+      "ageMinutes": 37912,
+      "stageAgeMinutes": 37912,
+      "availableTransitions": [
+        "PREPARING",
+        "READY",
+        "COMPLETED",
+        "CANCELLED"
+      ],
+      "items": [
+        {
+          "itemId": 1,
+          "name": null,
+          "price": 0.0,
+          "quantity": 1,
+          "subtotal": 0.0,
+          "imageUrl": null,
+          "isVeg": null
+        }
+      ],
+      "history": [
+        {
+          "previousStatus": null,
+          "newStatus": "PLACED",
+          "changedBy": "SYSTEM",
+          "note": "Order created",
+          "changedAt": "2026-04-06T08:10:49.170992"
+        }
+      ]
+    },
+    {
+      "id": 19,
+      "phone": "123",
+      "userId": 5,
+      "status": "PLACED",
+      "paymentStatus": "PAID",
+      "paymentMethod": "RAZORPAY",
+      "createdAt": "2026-04-06T00:15:25.841322",
+      "lastStatusChangedAt": "2026-04-06T00:15:25.841322",
+      "startedAt": null,
+      "readyAt": null,
+      "completedAt": null,
+      "total": 0.0,
+      "totalItems": 1,
+      "priority": "NORMAL",
+      "adminNote": null,
+      "assignedAdmin": null,
+      "live": true,
+      "delayed": true,
+      "ageMinutes": 38387,
+      "stageAgeMinutes": 38387,
+      "availableTransitions": [
+        "PREPARING",
+        "READY",
+        "COMPLETED",
+        "CANCELLED"
+      ],
+      "items": [
+        {
+          "itemId": 2,
+          "name": null,
+          "price": 0.0,
+          "quantity": 1,
+          "subtotal": 0.0,
+          "imageUrl": null,
+          "isVeg": null
+        }
+      ],
+      "history": [
+        {
+          "previousStatus": null,
+          "newStatus": "PLACED",
+          "changedBy": "SYSTEM",
+          "note": "Order created",
+          "changedAt": "2026-04-06T00:15:25.841322"
+        }
+      ]
+    },
+    {
+      "id": 18,
+      "phone": "123",
+      "userId": 5,
+      "status": "PLACED",
+      "paymentStatus": "PAID",
+      "paymentMethod": "RAZORPAY",
+      "createdAt": "2026-04-06T00:06:08.778962",
+      "lastStatusChangedAt": "2026-04-06T00:06:08.778962",
+      "startedAt": null,
+      "readyAt": null,
+      "completedAt": null,
+      "total": 0.0,
+      "totalItems": 1,
+      "priority": "NORMAL",
+      "adminNote": null,
+      "assignedAdmin": null,
+      "live": true,
+      "delayed": true,
+      "ageMinutes": 38396,
+      "stageAgeMinutes": 38396,
+      "availableTransitions": [
+        "PREPARING",
+        "READY",
+        "COMPLETED",
+        "CANCELLED"
+      ],
+      "items": [
+        {
+          "itemId": 3,
+          "name": null,
+          "price": 0.0,
+          "quantity": 1,
+          "subtotal": 0.0,
+          "imageUrl": null,
+          "isVeg": null
+        }
+      ],
+      "history": [
+        {
+          "previousStatus": null,
+          "newStatus": "PLACED",
+          "changedBy": "SYSTEM",
+          "note": "Order created",
+          "changedAt": "2026-04-06T00:06:08.778962"
+        }
+      ]
+    }
+  ],
+  "pageable": {
+    "pageNumber": 0,
+    "pageSize": 10,
+    "sort": {
+      "empty": false,
+      "sorted": true,
+      "unsorted": false
+    },
+    "offset": 0,
+    "unpaged": false,
+    "paged": true
+  },
+  "totalElements": 20,
+  "totalPages": 2,
+  "last": false,
+  "size": 10,
+  "number": 0,
+  "sort": {
+    "empty": false,
+    "sorted": true,
+    "unsorted": false
+  },
+  "numberOfElements": 10,
+  "first": true,
+  "empty": false
+}

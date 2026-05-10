@@ -223,7 +223,7 @@ export default function ServiceBoard() {
                           {summarizeItems(order)}
                         </div>
 
-                        <div className="mt-2 pt-2 flex gap-2">
+                        <div className="mt-2 pt-2 flex flex-wrap gap-2">
                           {(order.availableTransitions || [])
                             .slice(0, 2)
                             .map((nextStatus) => (

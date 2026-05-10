@@ -1,10 +1,8 @@
 import PropTypes from "prop-types";
 import { Button } from "./ui/button";
 import { Carousel, CarouselContent, CarouselItem } from "./ui/carousel";
-import { Link } from "react-router-dom";
 
 export default function CategoryTabs({ categories, active }) {
-  console.log({ active, categories });
   return (
     <Carousel opts={{ dragFree: true }}>
       <CarouselContent className={"-ml-1.5"}>

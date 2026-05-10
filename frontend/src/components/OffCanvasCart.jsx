@@ -27,7 +27,6 @@ export default function OffCanvasCart() {
   if (location && location.pathname && location.pathname.startsWith("/cart"))
     return null;
 
-  console.log(cart);
 
   return (
     <div

@@ -49,8 +49,6 @@ export default function MyOrders() {
   }, [navigate, user?.token]);
 
   const groupedOrders = (orders || []).reduce((group, order) => {
-    console.error({ group });
-
     if (!group[order.status]) {
       group[order.status] = [];
     }
@@ -111,14 +109,14 @@ export default function MyOrders() {
           {!loading && !error && orders.length > 0 && (
             <Tabs defaultValue={Object.keys(groupedOrders)[0]}>
               {statuses.length > 1 ? (
-                <TabsList variant="line">
+                <TabsList>
                   {statuses.map((status) => (
                     <TabsTrigger
-                      className="text-sm! font-medium!"
+                      className="text-sm! font-medium! capitalize"
                       key={status}
                       value={status}
                     >
-                      {status}
+                      {status.toLowerCase()}
                     </TabsTrigger>
                   ))}
                 </TabsList>
@@ -126,6 +124,7 @@ export default function MyOrders() {
 
               {Object.entries(groupedOrders).map(([status, statusOrders]) => (
                 <TabsContent
+                  key={`tab-content-${status}`}
                   className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3"
                   value={status}
                 >
