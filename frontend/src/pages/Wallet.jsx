@@ -4,13 +4,12 @@ import Navbar from "../components/Navbar";
 import { useUserAuth } from "../context/UserAuthContext";
 import {
   clearWalletCache,
-  walletCreateOrder,
   walletGetOverview,
   walletGetTransactions,
-  walletVerifyPayment,
 } from "../services/api";
 import { Activity } from "lucide-react";
 import {
+  Check,
   Clock,
   Copy,
   CreditCardAlt,
@@ -26,7 +25,6 @@ import {
   CarouselContent,
   CarouselItem,
 } from "@/components/ui/carousel";
-import { Separator } from "@/components/ui/separator";
 import AddMoneyForm from "@/components/wallet/AddMoneyForm";
 import { Badge } from "@/components/ui/badge";
 
@@ -483,27 +481,35 @@ export default function Wallet() {
                         <span>
                           {tx.createdAt
                             ? new Date(tx.createdAt).toLocaleString("en-IN", {
-                                dateStyle: "long",
-                                timeStyle: "medium",
-                              })
+                              dateStyle: "long",
+                              timeStyle: "medium",
+                            })
                             : "Timestamp unavailable"}
                         </span>
                         <span>•</span>
                         {(tx.referenceId || tx.providerOrderId) && (
-                          <Badge asChild variant="secondary">
-                            <Button
+                          <Badge asChild variant="outline" className="font-medium! text-muted-foreground hover:text-secondary-foreground text-xs!">
+                            <button
                               onClick={() => {
                                 navigator.clipboard.writeText(
                                   tx.referenceId || tx.providerOrderId,
                                 );
                                 toast.show("Transaction Id copied");
                               }}
+                              className="group/copy-btn"
                             >
-                              <Copy /> Transaction Id
+                              <span className="size-3 [&>svg]:size-3! grid grid-cols-1 grid-rows-1">
+                                <Copy
+                                  pack="filled"
+                                  className="group-active/copy-btn:opacity-0 group-active/copy-btn:scale-75 group-active/copy-btn:blur-[2px] transition-[opacity_300ms,scale_100ms,filter_500ms] ease-out"
+                                />{" "}
+                                <Check className="opacity-0 blur-[2px] text-accent-400 group-active/copy-btn:opacity-100 scale-75 group-active/copy-btn:scale-100 group-active/copy-btn:blur-[0px] transition-[opacity_300ms,scale_200ms,filter_500ms] ease-out" />
+                              </span>
+                              Copy Reference{" "}
                               <span className="sr-only">
                                 {tx.referenceId || tx.providerOrderId}
                               </span>
-                            </Button>
+                            </button>
                           </Badge>
                         )}
                       </div>
