@@ -68,3 +68,12 @@ razorpay:
   key: ${RAZORPAY_KEY:rzp_live_SjoDXPub6QyGmK}
   secret: ${RAZORPAY_SECRET:ce48RVyeGMJlGlbbUckKAU7l}
   webhookSecret: ${RAZORPAY_WEBHOOK_SECRET:rzp_test_mock_webhook_secret}
+
+
+twilio:
+  accountSid: ${TWILIO_ACCOUNT_SID:ACc9ccb1101977a6bc3adc0806c56f026f}
+  authToken: ${TWILIO_AUTH_TOKEN:8c98ee56d052a01711546c12441b230b}
+  fromNumber: ${TWILIO_FROM_NUMBER:whatsapp:+14155238886}
+  orderPlacedContentSid: ${TWILIO_ORDER_PLACED_CONTENT_SID:HX7926f06db10abf2c81bd27dc98c27423}
+  orderReadyContentSid: ${TWILIO_ORDER_READY_CONTENT_SID:}
+  otpContentSid: ${TWILIO_OTP_CONTENT_SID:HX229f5a04fd0510ce1b071852155d3e75}

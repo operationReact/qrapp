@@ -68,6 +68,7 @@ public class SecurityConfig {
                 // other admin endpoints require admin
                 .requestMatchers("/admin/**").hasRole("ADMIN")
                 .requestMatchers("/webhook/**").permitAll()
+                .requestMatchers("/whatsapp/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/menu", "/menu/**").permitAll()
                 .anyRequest().authenticated()
             )

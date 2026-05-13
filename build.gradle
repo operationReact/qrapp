@@ -32,12 +32,18 @@ subprojects {
         options.release = 17
     }
 
-    // Keep test dependencies available to subprojects by default
     dependencies {
+
+        // Spring Boot test support
         testImplementation 'org.springframework.boot:spring-boot-starter-test'
+
+        // Twilio WhatsApp SDK
+        implementation 'com.twilio.sdk:twilio:10.1.2'
+
+        // JSON support
+        implementation 'org.json:json:20240303'
     }
 }
 
 // Note: The `backend` subproject contains its own Spring Boot plugin and
 // is responsible for application packaging.
-
