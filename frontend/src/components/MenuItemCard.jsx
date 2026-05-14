@@ -56,7 +56,7 @@ export default function MenuItemCard({ item, onEdit, onDelete }) {
             before:absolute before:left-0 before:top-0 before:size-4 before:-translate-y-full before:rounded-bl-sm before:shadow-[0px_7px_white] before:bg-transparent
             after:absolute after:right-0 after:bottom-0 after:size-4 after:translate-x-full after:rounded-bl-sm after:shadow-[0px_7px_white] after:bg-transparent"
           >
-            ₹{item.price.toFixed(0)}
+            ₹{item.sellingPrice.toFixed(0)}
           </span>
 
           {/* CTA */}
