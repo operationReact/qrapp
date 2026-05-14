@@ -1,5 +1,5 @@
 import PropTypes from "prop-types";
-import { Button } from "./ui/button";
+import { Button, buttonVariants } from "./ui/button";
 import { Carousel, CarouselContent, CarouselItem } from "./ui/carousel";
 
 export default function CategoryTabs({ categories, active }) {
@@ -8,13 +8,16 @@ export default function CategoryTabs({ categories, active }) {
       <CarouselContent className={"-ml-1.5"}>
         {categories.map((cat) => (
           <CarouselItem className="basis-auto pl-1.5" key={cat}>
-            <Button
-              variant={active === cat ? "black" : "outline"}
-              className={`rounded-md text-sm! font-medium! ${!active && "bg-transparent"}`}
-              asChild
+            <a
+              href={`/#${cat}`}
+              className={buttonVariants({
+                size: "sm",
+                variant: active === cat ? "black" : "outline",
+                className:"border-border!"
+              })}
             >
-              <a href={`/#${cat}`}>{cat}</a>
-            </Button>
+              {cat}
+            </a>
           </CarouselItem>
         ))}
       </CarouselContent>

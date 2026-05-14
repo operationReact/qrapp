@@ -1,15 +1,17 @@
-import { AlertCircle } from "@boxicons/react";
-import { ArrowUpRight } from "lucide-react";
+import { ArrowUpRightIcon, WarningCircleIcon } from "@phosphor-icons/react";
 import OrderItem from "./OrderItem";
 import { Link } from "react-router-dom";
 
-export default function FlaggedOrders({flaggedOrders = []}) {
+export default function FlaggedOrders({ flaggedOrders = [] }) {
   return (
-    <section id="flagged-orders" className="bg-amber-50/80 border border-amber-200 rounded-lg">
+    <section
+      id="flagged-orders"
+      className="bg-amber-50/80 border border-amber-200 rounded-lg"
+    >
       <div className="px-4 py-3 border-b border-b-amber-200">
         <div className="flex flex-wrap items-center justify-between">
           <div className="flex items-center gap-2 text-amber-800">
-            <AlertCircle className="size-5 animate-alarm" />
+            <WarningCircleIcon className="size-5 animate-alarm" />
             <h2 className="font-medium">
               {flaggedOrders.length} orders need your attention
             </h2>
@@ -31,10 +33,13 @@ export default function FlaggedOrders({flaggedOrders = []}) {
 
             <div
               aria-hidden
-              className="hidden lg:flex font-medium bottom-0 inset-x-0 h-7 absolute duration-300 transition-all ease-out overflow-hidden bg-white mt-2 gap-2 items-center text-zinc-600 border-t border-t-zinc-100 rounded-full text-sm"
+              className="hidden lg:flex font-medium bottom-0 inset-x-1 h-7 absolute duration-300 transition-all ease-out overflow-hidden bg-white mt-2 gap-2 items-center text-zinc-600 border-t border-t-zinc-100 rounded-full text-sm"
             >
               <span className="size-6 bg-zinc-100 ml-0.5 rounded-full grid place-items-center text-zinc-600">
-                <ArrowUpRight className="size-4 rotate-45 group-hover:rotate-0 transition-transform duration-100 ease-out" />
+                <ArrowUpRightIcon
+                  weight="bold"
+                  className="size-4 rotate-45 group-hover:rotate-0 transition-transform duration-100 ease-out"
+                />
               </span>
               <span className="opacity-25 w-0 overflow-hidden group-hover:w-80 inline-block group-hover:opacity-100 transition-all duration-200 text-nowrap">
                 operational queue

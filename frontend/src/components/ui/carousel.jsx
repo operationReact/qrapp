@@ -3,7 +3,7 @@ import useEmblaCarousel from "embla-carousel-react";
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react"
+import { CaretLeftIcon, CaretRightIcon } from "@phosphor-icons/react"
 
 const CarouselContext = React.createContext(null)
 
@@ -160,7 +160,7 @@ function CarouselPrevious({
       disabled={!canScrollPrev}
       onClick={scrollPrev}
       {...props}>
-      <ChevronLeftIcon />
+      <CaretLeftIcon />
       <span className="sr-only">Previous slide</span>
     </Button>
   );
@@ -185,7 +185,7 @@ function CarouselNext({
       disabled={!canScrollNext}
       onClick={scrollNext}
       {...props}>
-      <ChevronRightIcon />
+      <CaretRightIcon />
       <span className="sr-only">Next slide</span>
     </Button>
   );

@@ -63,7 +63,7 @@ export default function Register() {
             size="icon-lg"
             asChild
             variant="outline"
-            className="font-medium! rounded-xl shadow-sm shadow-red-500/10 sm:absolute sm:left-4 flex items-center text-sm text-zinc-600 hover:text-zinc-600/90 w-fit px-1"
+            className="shadow-sm shadow-red-500/10 sm:absolute sm:left-4 text-zinc-600 hover:text-zinc-600/90"
           >
             <Link to="/">
               <ChevronLeft className="size-7" />
@@ -84,7 +84,7 @@ export default function Register() {
               {error}
             </div>
           )}
-          <form onSubmit={submit} className="space-y-3">
+          <form onSubmit={submit} className="space-y-4">
             <Field>
               <FieldLabel>Phone Number</FieldLabel>
               <FieldContent>
@@ -94,7 +94,7 @@ export default function Register() {
                   onChange={(e) => setPhone(e.target.value)}
                   required
                   placeholder="1234567890"
-                  className="h-12"
+                  className="h-10"
                 />
               </FieldContent>
             </Field>
@@ -105,7 +105,7 @@ export default function Register() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Your Name"
-                  className="h-12"
+                  className="h-10"
                 />
               </FieldContent>
             </Field>
@@ -117,7 +117,7 @@ export default function Register() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  className="h-12"
+                  className="h-10"
                 />
               </FieldContent>
             </Field>
@@ -125,17 +125,15 @@ export default function Register() {
               <Button
                 type="submit"
                 disabled={loading}
-                className="h-12 text-sm! font-medium!"
+                className="h-10 text-sm! font-medium!"
               >
                 {loading ? "Creating..." : "Create Account"}
               </Button>
               <Button
-                asChild
                 variant="ghost"
-                className="h-12"
-              >
-                <Link to="/login">Already Have An Account?</Link>
-              </Button>
+                size="lg"
+                render={<Link to="/login">Already Have An Account?</Link>}
+              ></Button>
             </div>
           </form>
         </div>

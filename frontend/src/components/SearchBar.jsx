@@ -19,7 +19,7 @@ export default function SearchBar({ onSearch = () => { }, autoFocus = false }) {
 
   const [placeholder, setPlaceholder] = useState(placeholders[0]);
 
- /* UPDATE PLACEHOLDER OF SEARCH FIELD EVERY 3 SECOND*/ 
+ /* UPDATE PLACEHOLDER OF SEARCH FIELD EVERY 3 SECOND*/
   useEffect(() => {
     const interval = setInterval(() => {
       setPlaceholder((placeholder) => {
@@ -39,18 +39,17 @@ export default function SearchBar({ onSearch = () => { }, autoFocus = false }) {
   }, [searchQuery]);
 
   return (
-    <InputGroup className="h-12 border-1 sm:h-14 bg-primary/5 focus-within:bg-white border-primary-foreground focus:border-primary focus:ring-1 focus:ring-primary focus-within:border-primary! focus-within:ring-1! focus-within:ring-primary!">
+    <InputGroup className="h-12 bg-primary/5 focus-within:bg-white border-primary-foreground focus:border-primary focus:ring-1 focus:ring-primary focus-within:border-primary! focus-within:ring-1! focus-within:ring-primary!">
       <InputGroupInput
         ref={inputRef}
         value={value}
         onChange={(e) => setValue(e.target.value)}
         placeholder={`Search "${placeholder}"`}
-        className="w-full text-sm! font-medium! pr-12 border-0 focus-visible:ring-0"
         autoFocus={autoFocus}
       />
 
       <InputGroupAddon>
-        <Search className="size-7 fill-primary" />
+        <Search className="size-6 sm:size-7 fill-primary" />
       </InputGroupAddon>
 
       {value && (

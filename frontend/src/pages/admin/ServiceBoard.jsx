@@ -2,44 +2,45 @@ import AdminHeader from "@/components/admin/AdminHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useAdminDashboard } from "@/context/AdminDashboardContext";
-import {
-  AlarmExclamation,
-  AlertCircle,
-  CheckCircle,
-  ChevronRight,
-  ClockDashedHalf,
-  Package,
-  PlayCircle,
-} from "@boxicons/react";
 import { useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "motion/react";
+import {
+  CaretRightIcon,
+  CheckCircleIcon,
+  ClockCountdownIcon,
+  PackageIcon,
+  PlayCircleIcon,
+  TimerIcon,
+  WarningCircleIcon,
+} from "@phosphor-icons/react";
+import { formatDate } from "@/lib/utils";
 
 const STATUS_META = {
   PLACED: {
     label: "Placed",
     tone: "bg-amber-100 text-amber-800 border-amber-200",
-    icon: Package,
+    icon: PackageIcon,
   },
   PREPARING: {
     label: "Preparing",
     tone: "bg-sky-100 text-sky-800 border-sky-200",
-    icon: PlayCircle,
+    icon: PlayCircleIcon,
   },
   READY: {
     label: "Ready",
     tone: "bg-emerald-100 text-emerald-800 border-emerald-200",
-    icon: CheckCircle,
+    icon: CheckCircleIcon,
   },
   COMPLETED: {
     label: "Completed",
     tone: "bg-slate-100 text-slate-700 border-slate-200",
-    icon: CheckCircle,
+    icon: CheckCircleIcon,
   },
   CANCELLED: {
     label: "Cancelled",
     tone: "bg-rose-100 text-rose-700 border-rose-200",
-    icon: AlertCircle,
+    icon: WarningCircleIcon,
   },
 };
 
@@ -160,7 +161,7 @@ export default function ServiceBoard() {
                     ))
                   ) : orders.length === 0 ? (
                     <div className="h-32 border-2 border-dashed border-slate-200 rounded-xl flex flex-col items-center justify-center text-slate-400">
-                      <Package className="size-6 mb-2 opacity-50" />
+                      <PackageIcon className="size-6 mb-2 opacity-50" />
                       <span className="text-xs">No orders</span>
                     </div>
                   ) : (
@@ -189,7 +190,7 @@ export default function ServiceBoard() {
                                 </Badge>
                                 {order.delayed && (
                                   <Badge variant="destructive">
-                                    <AlarmExclamation pack="filled" /> Delayed
+                                    <TimerIcon weight="fill" /> Delayed
                                   </Badge>
                                 )}
                               </div>
@@ -197,8 +198,8 @@ export default function ServiceBoard() {
                                 {formatCurrency(order.total)}
                               </div>
                             </div>
-                            <div className="mt-2 text-sm text-slate-500">
-                              {order.phone} • {formatDateTime(order.createdAt)}
+                            <div className="mt-2 text-sm text-muted-foreground">
+                              {order.phone} • {formatDate(order.createdAt)}
                             </div>
                           </div>
 
@@ -218,7 +219,7 @@ export default function ServiceBoard() {
                               }
                             </Badge>*/}
                             <Badge variant="ghost" className="h-auto">
-                              <ClockDashedHalf />
+                              <ClockCountdownIcon weight="bold" />
                               {order.stageAgeMinutes} min in stage
                             </Badge>
                           </div>
@@ -234,8 +235,7 @@ export default function ServiceBoard() {
                                 <Button
                                   key={`${order.id}-${nextStatus}`}
                                   size="sm"
-                                  variant="outline"
-                                  className="font-medium! text-sm!"
+                                  variant="secondary"
                                   onClick={() =>
                                     document.startViewTransition(() => {
                                       handleOrderUpdate(order.id, {
@@ -245,7 +245,7 @@ export default function ServiceBoard() {
                                   }
                                 >
                                   Move to {toneForStatus(nextStatus).label}
-                                  <ChevronRight />
+                                  <CaretRightIcon />
                                 </Button>
                               ))}
                           </div>

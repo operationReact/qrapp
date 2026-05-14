@@ -11,12 +11,17 @@ import {
 } from "@/components/ui/sidebar";
 import { useAdminAuth } from "@/context/AdminAuthContext";
 import { useAdminDashboard } from "@/context/AdminDashboardContext";
-import { Dashboard, FoodMenu } from "@boxicons/react";
-import { Boxes, CakeSlice, FolderKanban, LogOutIcon } from "lucide-react";
 import { Link, useNavigate, useResolvedPath } from "react-router-dom";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { ButtonGroup } from "../ui/button-group";
+import {
+  BowlFoodIcon,
+  KanbanIcon,
+  QueueIcon,
+  SignOutIcon,
+  SquaresFourIcon,
+} from "@phosphor-icons/react";
 
 export function AdminSidebar() {
   const { setAdmin } = useAdminAuth();
@@ -31,20 +36,20 @@ export function AdminSidebar() {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton
-              asChild
               className="data-[slot=sidebar-menu-button]:p-1.5! h-auto hover:bg-unset"
-            >
-              <Link
-                to="/admin"
-                className="flex gap-2 items-center font-semibold"
-              >
-                <img
-                  src="/bro-logo.png"
-                  alt="Bro and Bro Admin"
-                  className="size-10!"
-                />
-              </Link>
-            </SidebarMenuButton>
+              render={
+                <Link
+                  to="/admin"
+                  className="flex gap-2 items-center font-semibold"
+                >
+                  <img
+                    src="/bro-logo.png"
+                    alt="Bro and Bro Admin"
+                    className="size-10!"
+                  />
+                </Link>
+              }
+            />
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
@@ -53,16 +58,19 @@ export function AdminSidebar() {
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton
-                asChild
                 tooltip="Dashboard"
                 className="text-sm! font-medium! text-zinc-700"
                 isActive={pathname === "/admin"}
-              >
-                <Link to="/admin">
-                  <Dashboard className="text-primary" />
-                  <span>Dashboard</span>
-                </Link>
-              </SidebarMenuButton>
+                render={
+                  <Link to="/admin">
+                    <SquaresFourIcon
+                      className="text-primary"
+                      weight={pathname === "/admin" ? "bold" : "regular"}
+                    />
+                    <span>Dashboard</span>
+                  </Link>
+                }
+              />
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarGroup>
@@ -71,15 +79,18 @@ export function AdminSidebar() {
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton
-                asChild
                 className="text-zinc-700 font-medium"
                 isActive={pathname === "/admin/menu"}
-              >
-                <Link to={"/admin/menu"}>
-                  <CakeSlice className="text-primary" />
-                  <span>Menu</span>
-                </Link>
-              </SidebarMenuButton>
+                render={
+                  <Link to={"/admin/menu"}>
+                    <BowlFoodIcon
+                      className="text-primary"
+                      weight={pathname === "/admin/menu" ? "bold" : "regular"}
+                    />
+                    <span>Menu</span>
+                  </Link>
+                }
+              />
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarGroup>
@@ -89,27 +100,39 @@ export function AdminSidebar() {
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton
-                asChild
                 className="text-zinc-700 font-medium"
                 isActive={pathname === "/admin/service-board"}
-              >
-                <Link to={"/admin/service-board"}>
-                  <FolderKanban className="text-primary" />
-                  <span>Service Board</span>
-                </Link>
-              </SidebarMenuButton>
+                render={
+                  <Link to={"/admin/service-board"}>
+                    <KanbanIcon
+                      className="text-primary"
+                      weight={
+                        pathname === "/admin/service-board" ? "bold" : "regular"
+                      }
+                    />
+                    <span>Service Board</span>
+                  </Link>
+                }
+              />
             </SidebarMenuItem>
             <SidebarMenuItem>
               <SidebarMenuButton
-                asChild
                 className="text-zinc-700 font-medium"
                 isActive={pathname.startsWith("/admin/operational-queue")}
-              >
-                <Link to={"/admin/operational-queue"}>
-                  <Boxes className="text-primary" />
-                  <span>Operational Queue</span>
-                </Link>
-              </SidebarMenuButton>
+                render={
+                  <Link to={"/admin/operational-queue"}>
+                    <QueueIcon
+                      className="text-primary"
+                      weight={
+                        pathname.startsWith("/admin/operational-queue")
+                          ? "bold"
+                          : "regular"
+                      }
+                    />
+                    <span>Operational Queue</span>
+                  </Link>
+                }
+              />
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarGroup>
@@ -140,18 +163,18 @@ export function AdminSidebar() {
             </SidebarMenuItem>
             <SidebarMenuItem>
               <SidebarMenuButton
-                asChild
                 className="text-sm! font-medium! text-zinc-700"
-              >
-                <button
-                  onClick={() => {
-                    setAdmin(null);
-                    navigate("/login");
-                  }}
-                >
-                  <LogOutIcon /> Logout
-                </button>
-              </SidebarMenuButton>
+                render={
+                  <button
+                    onClick={() => {
+                      setAdmin(null);
+                      navigate("/login");
+                    }}
+                  >
+                    <SignOutIcon /> Logout
+                  </button>
+                }
+              />
             </SidebarMenuItem>
           </SidebarGroup>
         </SidebarMenu>

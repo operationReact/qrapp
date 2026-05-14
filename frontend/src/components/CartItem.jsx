@@ -45,7 +45,7 @@ export default function CartItem({ item, removeItem, addItem, decreaseItem }) {
         {/* veg/non-veg badge */}
         <div
           title={item.isVeg ? "Veg" : "Non Veg"}
-          className={`absolute top-2 left-2 p-1 border-2 bg-white rounded-sm size-4 flex items-center ${veg ? "border-accent-400" : "border-red-600"}`}
+          className={`absolute top-2 left-2 p-1 border-2 bg-white rounded-[5px] size-4 flex items-center ${veg ? "border-accent-400" : "border-red-600"}`}
         >
           <span
             className={`size-full rounded-full ${item.isVeg ? "bg-accent-400" : "bg-red-600"}`}
@@ -56,7 +56,7 @@ export default function CartItem({ item, removeItem, addItem, decreaseItem }) {
       {/* cart item details*/}
       <div className="min-w-0 w-full">
         <div className="truncate text-md font-semibold">{item.name}</div>
-        <div className="mt-0 text-sm text-muted-foreground">₹{item.price}</div>
+        <div className="mt-0 text-sm text-muted-foreground">₹{item.sellingPrice}</div>
         <button
           onClick={() => removeItem(item.id)}
           className="text-sm! rounded font-medium! text-primary transition-transform duration-150 active:scale-95"
@@ -67,7 +67,7 @@ export default function CartItem({ item, removeItem, addItem, decreaseItem }) {
 
       <div className="gap-0 justify-self-end grid place-items-end">
         <div className="text-right text-lg font-bold mb-1">
-          ₹{(Number(item.price || 0) * Number(item.quantity || 0)).toFixed(2)}
+          ₹{(Number(item.sellingPrice || 0) * Number(item.quantity || 0)).toFixed(2)}
         </div>
         <QuantityUpdater
           qty={item.quantity}

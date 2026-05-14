@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/carousel";
 import AddMoneyForm from "@/components/wallet/AddMoneyForm";
 import { Badge } from "@/components/ui/badge";
+import { formatDate } from "@/lib/utils";
 
 function useToast() {
   const [message, setMessage] = useState(null);
@@ -480,37 +481,38 @@ export default function Wallet() {
                       <div className="mt-2 space-x-2 text-xs text-muted-foreground sm:text-sm">
                         <span>
                           {tx.createdAt
-                            ? new Date(tx.createdAt).toLocaleString("en-IN", {
-                              dateStyle: "long",
-                              timeStyle: "medium",
-                            })
+                            ? formatDate(tx.createdAt)
                             : "Timestamp unavailable"}
                         </span>
                         <span>•</span>
                         {(tx.referenceId || tx.providerOrderId) && (
-                          <Badge asChild variant="outline" className="font-medium! text-muted-foreground hover:text-secondary-foreground text-xs!">
-                            <button
-                              onClick={() => {
-                                navigator.clipboard.writeText(
-                                  tx.referenceId || tx.providerOrderId,
-                                );
-                                toast.show("Transaction Id copied");
-                              }}
-                              className="group/copy-btn"
-                            >
-                              <span className="size-3 [&>svg]:size-3! grid grid-cols-1 grid-rows-1">
-                                <Copy
-                                  pack="filled"
-                                  className="group-active/copy-btn:opacity-0 group-active/copy-btn:scale-75 group-active/copy-btn:blur-[2px] transition-[opacity_300ms,scale_100ms,filter_500ms] ease-out"
-                                />{" "}
-                                <Check className="opacity-0 blur-[2px] text-accent-400 group-active/copy-btn:opacity-100 scale-75 group-active/copy-btn:scale-100 group-active/copy-btn:blur-[0px] transition-[opacity_300ms,scale_200ms,filter_500ms] ease-out" />
-                              </span>
-                              Copy Reference{" "}
-                              <span className="sr-only">
-                                {tx.referenceId || tx.providerOrderId}
-                              </span>
-                            </button>
-                          </Badge>
+                          <Badge
+                            variant="outline"
+                            className="font-medium! text-muted-foreground hover:text-secondary-foreground text-xs!"
+                            render={
+                              <button
+                                onClick={() => {
+                                  navigator.clipboard.writeText(
+                                    tx.referenceId || tx.providerOrderId,
+                                  );
+                                  toast.show("Transaction Id copied");
+                                }}
+                                className="group/copy-btn"
+                              >
+                                <span className="size-3 [&>svg]:size-3! grid grid-cols-1 grid-rows-1">
+                                  <Copy
+                                    pack="filled"
+                                    className="group-active/copy-btn:opacity-0 group-active/copy-btn:scale-75 group-active/copy-btn:blur-[2px] transition-[opacity_300ms,scale_100ms,filter_500ms] ease-out"
+                                  />{" "}
+                                  <Check className="opacity-0 blur-[2px] text-accent-400 group-active/copy-btn:opacity-100 scale-75 group-active/copy-btn:scale-100 group-active/copy-btn:blur-[0px] transition-[opacity_300ms,scale_200ms,filter_500ms] ease-out" />
+                                </span>
+                                Copy Reference{" "}
+                                <span className="sr-only">
+                                  {tx.referenceId || tx.providerOrderId}
+                                </span>
+                              </button>
+                            }
+                          />
                         )}
                       </div>
                     </article>

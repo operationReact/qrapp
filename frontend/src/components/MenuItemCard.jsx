@@ -35,10 +35,10 @@ export default function MenuItemCard({ item, onEdit, onDelete }) {
             src={imageSrc}
             alt={item.name}
             onError={() => setImgError(true)}
-            className="w-full h-full object-cover rounded-2xl"
+            className="w-full h-full object-cover rounded-xl"
           />
         ) : (
-          <div className="w-full rounded-2xl overflow-hidden h-full flex items-center justify-center text-5xl bg-linear-to-br from-primary/25 to-primary">
+          <div className="w-full rounded-xl overflow-hidden h-full flex items-center justify-center text-5xl bg-linear-to-br from-primary/25 to-primary">
             <img
               src="/brand/white.png"
               alt="Bro Logo"
@@ -52,11 +52,11 @@ export default function MenuItemCard({ item, onEdit, onDelete }) {
 
         <div className="absolute left-0 bottom-0 right-0 px-2 py-2 flex justify-end items-baseline">
           <span
-            className="bg-white font-bold rounded-tr-xl absolute bottom-0 left-0 px-2 py-0.5 sm:py-1 sm:text-xl text-black
-            before:absolute before:left-0 before:top-0 before:bg-red-500 before:size-4 before:-translate-y-full before:rounded-bl-sm before:shadow-[0px_7px_white] before:bg-transparent
-            after:absolute after:right-0 after:bottom-0 after:bg-red-500 after:size-4 after:translate-x-full after:rounded-bl-sm after:shadow-[0px_7px_white] after:bg-transparent"
+            className="bg-white font-bold rounded-tr-sm absolute bottom-0 left-0 px-2 py-0.5 sm:py-1 sm:text-xl text-black
+            before:absolute before:left-0 before:top-0 before:size-4 before:-translate-y-full before:rounded-bl-sm before:shadow-[0px_7px_white] before:bg-transparent
+            after:absolute after:right-0 after:bottom-0 after:size-4 after:translate-x-full after:rounded-bl-sm after:shadow-[0px_7px_white] after:bg-transparent"
           >
-            ₹{(item.price || 0).toFixed(0)}
+            ₹{item.sellingPrice.toFixed(0)}
           </span>
 
           {/* CTA */}
@@ -70,7 +70,7 @@ export default function MenuItemCard({ item, onEdit, onDelete }) {
         {/* veg/non-veg badge */}
         <div
           title={veg ? "Veg" : "Non Veg"}
-          className={`absolute top-2 left-2 p-1.5 border-2 bg-white rounded-md size-6 flex items-center gap-2 ${veg ? "border-accent-400" : "border-red-600"}`}
+          className={`absolute top-2 left-2 p-1.5 border-2 bg-white rounded-sm size-6 flex items-center gap-2 ${veg ? "border-accent-400" : "border-red-600"}`}
         >
           <span
             className={`size-full rounded-full ${veg ? "bg-accent-400" : "bg-red-600"}`}

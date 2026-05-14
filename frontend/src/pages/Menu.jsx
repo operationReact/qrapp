@@ -18,29 +18,38 @@ const SAMPLE_MENU = [
   {
     id: 1,
     name: "Paneer Butter Masala",
+    basePrice: 220,
     price: 220,
     category: "Main",
     description: "Rich tomato gravy",
     imageUrl: null,
     isVeg: true,
+    sellingPrice: 220,
+    margin: 0,
   },
   {
     id: 2,
     name: "Chicken Biryani",
+    basePrice: 250,
     price: 250,
     category: "Main",
     description: "Fragrant basmati biryani",
     imageUrl: null,
     isVeg: false,
+    sellingPrice: 250,
+    margin: 0,
   },
   {
     id: 3,
     name: "Veg Salad",
+    basePrice: 120,
     price: 120,
     category: "Sides",
     description: "Fresh greens",
     imageUrl: null,
     isVeg: true,
+    sellingPrice: 120,
+    margin: 0,
   },
 ];
 
@@ -203,7 +212,11 @@ export default function Menu() {
 
           {/* ITEMS */}
           {Object.entries(groups).map(([category, items]) => (
-            <section className="premium-grid scroll-mt-4" key={category} id={category}>
+            <section
+              className="premium-grid scroll-mt-4"
+              key={category}
+              id={category}
+            >
               <h2 className="text-xl font-semibold sm:text-2xl">
                 {category || "Specials"}
               </h2>

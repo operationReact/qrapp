@@ -19,11 +19,12 @@ export default function ItemActionButton({ qty, onAdd, onDecrease }) {
         backgroundColor:
           qty > 0 ? "var(--color-white)" : "var(--primary-foreground)",
       }}
-      className="h-8 shrink-0 shadow shadow-black/10 bg-primary rounded-lg overflow-hidden"
+      className="h-8 shrink-0 shadow shadow-black/10 bg-primary rounded-md overflow-hidden"
     >
       {qty === 0 ? (
         <Button
-          className="rounded-lg bg-transparent text-primary text-sm! font-medium! h-8"
+          variant="secondary"
+          className="rounded-md bg-transparent text-primary h-8"
           style={{ width: initialWidth }}
           onClick={onAdd}
           disabled={qty > 0}
