@@ -446,11 +446,7 @@ export default function Wallet() {
                               {formatTransactionTitle(tx)}
                             </h3>
                             <div className="space-x-1">
-                              <Badge
-                                className={`font-medium! ${statusClass} capitalize`}
-                              >
-                                {tx.status.toLowerCase()}
-                              </Badge>
+                              <Badge className={statusClass}>{tx.status}</Badge>
                               {tx.orderId && (
                                 <Badge className="bg-gray-100 text-gray-700 font-medium">
                                   Order #{tx.orderId}
@@ -460,7 +456,7 @@ export default function Wallet() {
                           </div>
                         </div>
 
-                        <div className="text-right">
+                        <div className="text-right shrink-0">
                           <div
                             className={`text-lg font-bold ${isCredit ? "text-green-600" : "text-red-500"}`}
                           >
