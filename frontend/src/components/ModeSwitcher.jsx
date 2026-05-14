@@ -9,7 +9,7 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from "./ui/drawer";
-import { Button } from "./ui/button";
+import { Button, buttonVariants } from "./ui/button";
 import { usePreferences } from "@/context/PreferencesContext";
 import { FishIcon, PlantIcon, ToggleRightIcon } from "@phosphor-icons/react";
 
@@ -203,14 +203,14 @@ export default function ModeSwitcher() {
           </div>
         </div>
         <DrawerFooter>
-          <DrawerClose asChild>
-            <Button
-              size="lg"
-              variant="outline"
-              className="w-full h-12 font-medium!"
-            >
-              Close
-            </Button>
+          <DrawerClose
+            className={buttonVariants({
+              variant: "outline",
+              size: "lg",
+              className: "border-border!",
+            })}
+          >
+            Close
           </DrawerClose>
         </DrawerFooter>
       </DrawerContent>

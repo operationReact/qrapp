@@ -80,7 +80,7 @@ function UserAccountDrawerContent() {
           })}
         >
           <CubeIcon weight="fill" className="size-6 text-primary mb-2" />{" "}
-          <span className="font-semibold!">Your Orders</span>
+          <span className="font-semibold">Your Orders</span>
           <span className="block text-xs text-muted-foreground">
             Track all orders{" "}
           </span>
@@ -96,7 +96,7 @@ function UserAccountDrawerContent() {
           })}
         >
           <UserIcon weight="fill" className="size-6 text-primary mb-2" />{" "}
-          <span className="font-semibold!">Profile</span>
+          <span className="font-semibold">Profile</span>
           <span className="block text-xs text-muted-foreground">
             Update your profile{" "}
           </span>
@@ -139,12 +139,14 @@ function UserAccountDrawerContent() {
 
       <DrawerFooter className="grid grid-cols-2">
         <DrawerClose
-          render={
-            <Button variant="outline" size="lg" className="w-full">
-              Close{" "}
-            </Button>
-          }
-        ></DrawerClose>
+          className={buttonVariants({
+            variant: "outline",
+            size: "lg",
+            class: "border-border!",
+          })}
+        >
+          Close
+        </DrawerClose>
         <Button
           variant="secondary"
           size="lg"
@@ -165,26 +167,33 @@ function UserUnauthorizedDrawerContent() {
   return (
     <>
       <div className="p-4 grid grid-cols-2 gap-2">
-        <Button size="lg" render={<Link to="/login">Login</Link>}></Button>
-        <Button
-          variant="secondary"
-          size="lg"
-          render={<Link to="/register">Create Account</Link>}
-        ></Button>
+        <Link
+          className={buttonVariants({
+            size: "lg",
+          })}
+          to="/login"
+        >
+          Login
+        </Link>
+
+        <Link
+          className={buttonVariants({ variant: "secondary", size: "lg" })}
+          to="/register"
+        >
+          Create Account
+        </Link>
       </div>
 
       <DrawerFooter>
         <DrawerClose
-          render={
-            <Button
-              variant="outline"
-              size="lg"
-              className="w-full"
-            >
-              Close{" "}
-            </Button>
-          }
-        ></DrawerClose>
+          className={buttonVariants({
+            variant: "outline",
+            size: "lg",
+            class: "border-border!",
+          })}
+        >
+          Close
+        </DrawerClose>
       </DrawerFooter>
     </>
   );

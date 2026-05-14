@@ -4,10 +4,10 @@ import API, { loginUser } from "../services/api";
 import { setUserAuth } from "../services/api";
 import { useUserAuth } from "../context/UserAuthContext";
 import { Link } from "react-router-dom";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Field, FieldContent, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { ChevronLeft } from "@boxicons/react";
+import { CaretLeftIcon } from "@phosphor-icons/react";
 
 export default function Register() {
   const navigate = useNavigate();
@@ -58,18 +58,19 @@ export default function Register() {
     <div className="page-shell flex min-h-screen justify-center py-6 sm:px-4">
       <div className="w-full max-w-md ">
         <div className="px-4 sm:px-0">
-          <Button
+          <Link
+            className={buttonVariants({
+              size: "icon",
+              variant: "outline",
+              className:
+                "shadow-sm border-border! shadow-red-500/10 sm:absolute sm:left-4 text-zinc-600 hover:text-zinc-600/90",
+            })}
+            to="/"
             title="Back To Menu"
-            size="icon-lg"
-            asChild
-            variant="outline"
-            className="shadow-sm shadow-red-500/10 sm:absolute sm:left-4 text-zinc-600 hover:text-zinc-600/90"
           >
-            <Link to="/">
-              <ChevronLeft className="size-7" />
-              <span className="sr-only">Back To Menu</span>
-            </Link>
-          </Button>
+            <CaretLeftIcon weight="bold" />
+            <span className="sr-only">Back To Menu</span>
+          </Link>
         </div>
         <div className="rounded-2xl p-4 sm:p-6 sm:shadow-lg sm:shadow-red-300/10 h-fit sm:bg-white/20">
           <img
@@ -129,11 +130,12 @@ export default function Register() {
               >
                 {loading ? "Creating..." : "Create Account"}
               </Button>
-              <Button
-                variant="ghost"
-                size="lg"
-                render={<Link to="/login">Already Have An Account?</Link>}
-              ></Button>
+              <Link
+                className={buttonVariants({ variant: "ghost", size: "lg" })}
+                to="/login"
+              >
+                Already Have An Account?
+              </Link>
             </div>
           </form>
         </div>

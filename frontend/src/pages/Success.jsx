@@ -1,6 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
-import { CreditCardAlt, WalletAlt } from "@boxicons/react";
 import { Button } from "@/components/ui/button";
+import { ArchiveIcon, CreditCardIcon, WalletIcon } from "@phosphor-icons/react";
 
 export default function Success() {
   const location = useLocation();
@@ -28,13 +28,13 @@ export default function Success() {
               <div className="flex items-center gap-2">
                 <span className="rounded-full bg-green-500/10 p-1.5">
                   {isWallet ? (
-                    <WalletAlt
-                      pack="filled"
+                    <WalletIcon
+                      weight="fill"
                       className="size-4 text-green-600"
                     />
                   ) : (
-                    <CreditCardAlt
-                      pack="filled"
+                    <CreditCardIcon
+                      weight="fill"
                       className="size-4 text-green-600"
                     />
                   )}
@@ -48,7 +48,7 @@ export default function Success() {
               </div>
               <div className="absolute -right-2 -bottom-2 opacity-10">
                 {isWallet ? (
-                  <WalletAlt className="size-16" />
+                  <WalletIcon className="size-16" />
                 ) : (
                   <img src="/razorpay.svg" alt="" className="size-16" />
                 )}
@@ -57,7 +57,7 @@ export default function Success() {
             <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-amber-50 to-amber-100/50 p-4">
               <div className="flex items-center gap-2">
                 <span className="rounded-full bg-amber-500/10 p-1.5">
-                  <CreditCardAlt className="size-4 text-amber-600" />
+                  <ArchiveIcon weight="fill" className="size-4 text-amber-600" />
                 </span>
                 <span className="text-xs font-medium text-amber-700">
                   Order Number
@@ -67,16 +67,16 @@ export default function Success() {
                 {orderNumber || orderId || "Generated"}
               </div>
               <div className="absolute -right-2 -bottom-2 opacity-10">
-                <CreditCardAlt className="size-16" />
+                <ArchiveIcon className="size-16" />
               </div>
             </div>
           </div>
 
           <div className="mt-8 flex flex-col gap-3">
-            <Button asChild className="h-12 font-medium!">
+            <Button size="lg">
               <Link to="/orders">Track my order</Link>
             </Button>
-            <Button asChild variant="outline" className="h-12 font-medium!">
+            <Button size="lg" variant="outline">
               <Link to="/">Back to menu</Link>
             </Button>
           </div>
