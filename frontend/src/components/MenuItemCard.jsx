@@ -70,7 +70,7 @@ export default function MenuItemCard({ item, onEdit, onDelete }) {
         {/* veg/non-veg badge */}
         <div
           title={veg ? "Veg" : "Non Veg"}
-          className={`absolute top-2 left-2 p-1.5 border-2 bg-white rounded-md size-6 flex items-center gap-2 ${veg ? "border-accent-400" : "border-red-600"}`}
+          className={`absolute top-2 left-2 p-1.5 border-2 bg-white rounded-sm size-6 flex items-center gap-2 ${veg ? "border-accent-400" : "border-red-600"}`}
         >
           <span
             className={`size-full rounded-full ${veg ? "bg-accent-400" : "bg-red-600"}`}

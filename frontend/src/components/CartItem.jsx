@@ -45,7 +45,7 @@ export default function CartItem({ item, removeItem, addItem, decreaseItem }) {
         {/* veg/non-veg badge */}
         <div
           title={item.isVeg ? "Veg" : "Non Veg"}
-          className={`absolute top-2 left-2 p-1 border-2 bg-white rounded-sm size-4 flex items-center ${veg ? "border-accent-400" : "border-red-600"}`}
+          className={`absolute top-2 left-2 p-1 border-2 bg-white rounded-[5px] size-4 flex items-center ${veg ? "border-accent-400" : "border-red-600"}`}
         >
           <span
             className={`size-full rounded-full ${item.isVeg ? "bg-accent-400" : "bg-red-600"}`}
