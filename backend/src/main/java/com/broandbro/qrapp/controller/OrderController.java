@@ -56,6 +56,7 @@ public class OrderController {
         Order order = service.createOrder(req, currentUser);
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("orderId", order.getId());
+        body.put("orderNumber", order.getOrderNumber());
         body.put("paymentMethod", paymentMethod);
 
         if (paymentMethod == PaymentMethod.WALLET) {

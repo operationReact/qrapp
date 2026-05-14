@@ -48,6 +48,11 @@ spring:
 app:
   cors:
     allowed-origins: "${APP_CORS_ALLOWED_ORIGINS:http://localhost:5173}"
+  order:
+    # Shop code used in human-readable order number generation
+    # Format: SHOPCODE-YYYYMMDD-XXXX
+    # Example: BB-20260515-0001
+    shop-code: "${APP_ORDER_SHOP_CODE:BB}"
 
 # Razorpay settings - read from env if available, otherwise fall back to the YAML value below.
 razorpay:

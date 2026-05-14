@@ -19,6 +19,7 @@ import com.broandbro.qrapp.repository.OrderRepository;
 import com.broandbro.qrapp.repository.OrderStatusHistoryRepository;
 import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -46,6 +47,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class OrderService {
 
     private static final Set<OrderStatus> LIVE_STATUSES = EnumSet.of(OrderStatus.ORDER_PLACED, OrderStatus.PREPARING, OrderStatus.READY);
@@ -55,7 +57,23 @@ public class OrderService {
     private final MenuRepository menuRepository;
     private final OrderStatusHistoryRepository orderStatusHistoryRepository;
     private final WhatsAppService whatsappService;
+    private final OrderNumberGenerator orderNumberGenerator;
 
+    /**
+     * Creates a new order with a human-readable order number.
+     *
+     * Thread-safe order number generation happens inside this transaction:
+     * 1. Acquires pessimistic write lock on today's sequence row
+     * 2. Increments the sequence atomically
+     * 3. Generates formatted order number (BB-YYYYMMDD-XXXX)
+     * 4. Associates order number with the new order
+     *
+     * @param req the order creation request
+     * @param user the user placing the order (optional)
+     * @return the created order with order_number field populated
+     * @throws RuntimeException if order number generation fails
+     */
+    @Transactional
     public Order createOrder(CreateOrderRequest req, User user) {
         LocalDateTime now = LocalDateTime.now();
         Order order = new Order();
@@ -67,6 +85,10 @@ public class OrderService {
         order.setCreatedAt(now);
         order.setLastStatusChangedAt(now);
         order.setPriority(OrderPriority.NORMAL);
+
+        // Generate human-readable order number with pessimistic locking
+        String orderNumber = orderNumberGenerator.generateOrderNumber(now.toLocalDate());
+        order.setOrderNumber(orderNumber);
 
         order = orderRepo.save(order);
         recordStatusHistory(order.getId(), null, OrderStatus.ORDER_PLACED, "Order created", "SYSTEM", now);
@@ -125,6 +147,7 @@ public class OrderService {
         for (Order order : orders) {
             UserOrderSummaryResponse summary = new UserOrderSummaryResponse();
             summary.setId(order.getId());
+            summary.setOrderNumber(order.getOrderNumber());
             summary.setStatus(order.getStatus());
             summary.setPaymentStatus(order.getPaymentStatus());
             summary.setCreatedAt(order.getCreatedAt());

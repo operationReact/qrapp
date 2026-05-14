@@ -15,6 +15,14 @@ public class Order {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    /**
+     * Human-readable order number in format: SHOPCODE-YYYYMMDD-XXX
+     * Example: BB-20260515-001
+     * Unique across all orders.
+     */
+    @Column(name = "order_number", unique = true, length = 32)
+    private String orderNumber;
+
     @Column(name = "phone")
     private String phone;
 
