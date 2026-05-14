@@ -1,5 +1,10 @@
 package com.broandbro.qrapp.enums;
-
 public enum OrderStatus {
-    PLACED, PREPARING, READY, COMPLETED, CANCELLED
+    ORDER_PLACED,
+    ACKNOWLEDGED,
+    PREPARING,
+    READY,
+    DELIVERED,
+    COMPLETED,
+    CANCELLED
 }

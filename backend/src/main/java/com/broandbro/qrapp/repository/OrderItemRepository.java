@@ -12,7 +12,7 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
     List<OrderItem> findAllByOrderIdIn(List<Long> orderIds);
 
 	@Query(value = """
-			SELECT COALESCE(SUM(mi.price * oi.quantity), 0)
+			SELECT COALESCE(SUM((mi.base_price + mi.margin) * oi.quantity), 0)
 			FROM order_item oi
 			JOIN menu_item mi ON mi.id = oi.item_id
 			WHERE oi.order_id = :orderId

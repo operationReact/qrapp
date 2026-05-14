@@ -70,7 +70,7 @@ function formatDateTime(value) {
 }
 
 function toneForStatus(status) {
-  return STATUS_META[status] || STATUS_META.PLACED;
+  return STATUS_META[status] || STATUS_META.ORDER_PLACED;
 }
 
 function toneForPriority(priority) {
