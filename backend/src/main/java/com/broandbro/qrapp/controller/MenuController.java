@@ -26,14 +26,8 @@ import org.springframework.http.MediaType;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.bind.annotation.RequestParam;
 
-import org.springframework.util.StringUtils;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
-import java.util.UUID;
 
 import jakarta.validation.Valid;
 import java.util.List;
@@ -57,18 +51,14 @@ public class MenuController {
 
     private final MenuRepository repo;
 
-    // helper to store uploaded file under resources/static/uploads and return public URL
-    private String storeUploadedFile(MultipartFile file) throws IOException {
-        if (file == null || file.isEmpty()) return null;
-        Path uploadDir = Paths.get("src/main/resources/static/uploads");
-        Files.createDirectories(uploadDir);
-        String original = StringUtils.cleanPath(file.getOriginalFilename() == null ? "file" : file.getOriginalFilename());
-        String filename = UUID.randomUUID() + "_" + original;
-        Path target = uploadDir.resolve(filename);
-        try (InputStream in = file.getInputStream()) {
-            Files.copy(in, target, StandardCopyOption.REPLACE_EXISTING);
-        }
-        return "/uploads/" + filename;
+    /**
+     * Store uploaded image in MenuItem as BLOB data.
+     * Extracts bytes and MIME type from MultipartFile.
+     */
+    private void storeImageInDatabase(MultipartFile file, MenuItem item) throws IOException {
+        if (file == null || file.isEmpty()) return;
+        item.setImageData(file.getBytes());
+        item.setImageMimeType(file.getContentType() != null ? file.getContentType() : "image/jpeg");
     }
 
     @GetMapping
@@ -99,7 +89,7 @@ public class MenuController {
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("hasRole('ADMIN')")
     @ResponseStatus(HttpStatus.CREATED)
-    @CacheEvict(cacheNames = {"menu", "menuRecommended"}, allEntries = true)
+    @CacheEvict(cacheNames = {"menu", "menuRecommended", "menuItemImages"}, allEntries = true)
     public MenuItem addMenuItem(@Valid @RequestBody MenuItem item) {
         // Ensure id is null so a new entity is created rather than updated
         item.setId(null);
@@ -109,7 +99,7 @@ public class MenuController {
     // New multipart/form-data POST handler so admin can upload an image when creating an item
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasRole('ADMIN')")
-    @CacheEvict(cacheNames = {"menu", "menuRecommended"}, allEntries = true)
+    @CacheEvict(cacheNames = {"menu", "menuRecommended", "menuItemImages"}, allEntries = true)
     public ResponseEntity<?> addMenuItemMultipart(
             @RequestPart("name") String name,
             @RequestPart(value = "price", required = false) String priceStr,
@@ -144,8 +134,7 @@ public class MenuController {
             }
             if (image != null && !image.isEmpty()) {
                 try {
-                    String url = storeUploadedFile(image);
-                    item.setImageUrl(url);
+                    storeImageInDatabase(image, item);
                 } catch (IOException ioe) {
                     log.error("Failed to store uploaded image", ioe);
                     return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to store image");
@@ -162,7 +151,7 @@ public class MenuController {
     // --- Flexible single PUT handler (handles JSON, multipart, raw bytes) ---
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    @CacheEvict(cacheNames = {"menu", "menuRecommended"}, allEntries = true)
+    @CacheEvict(cacheNames = {"menu", "menuRecommended", "menuItemImages"}, allEntries = true)
     public ResponseEntity<?> updateMenuItemFlexible(
             @PathVariable Long id,
             HttpServletRequest request,
@@ -201,8 +190,7 @@ public class MenuController {
                     org.springframework.web.multipart.MultipartFile file = mreq.getFile("image");
                     if (file != null && !file.isEmpty()) {
                         try {
-                            String url = storeUploadedFile(file);
-                            existing.setImageUrl(url);
+                            storeImageInDatabase(file, existing);
                         } catch (IOException ioe) {
                             log.error("Failed to store multipart file", ioe);
                             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to store image");
@@ -254,16 +242,21 @@ public class MenuController {
                 return ResponseEntity.ok(saved);
             }
 
-            // Fallback: treat body as raw bytes (octet-stream or unknown content type)
+            // Fallback: treat body as raw bytes (octet-stream or unknown content type) and store as image
             try (InputStream in = request.getInputStream()) {
-                String original = xFilename != null && !xFilename.isBlank() ? StringUtils.cleanPath(xFilename) : "upload";
-                String filename = UUID.randomUUID() + "_" + original;
-                Path uploadDir = Paths.get("src/main/resources/static/uploads");
-                Files.createDirectories(uploadDir);
-                Path target = uploadDir.resolve(filename);
-                Files.copy(in, target, StandardCopyOption.REPLACE_EXISTING);
-                String url = "/uploads/" + filename;
-                existing.setImageUrl(url);
+                byte[] imageBytes = in.readAllBytes();
+                if (imageBytes.length > 0) {
+                    existing.setImageData(imageBytes);
+                    // Try to infer MIME type from X-Filename header
+                    String mimeType = "image/jpeg"; // default
+                    if (xFilename != null && !xFilename.isBlank()) {
+                        String lower = xFilename.toLowerCase();
+                        if (lower.endsWith(".png")) mimeType = "image/png";
+                        else if (lower.endsWith(".gif")) mimeType = "image/gif";
+                        else if (lower.endsWith(".webp")) mimeType = "image/webp";
+                    }
+                    existing.setImageMimeType(mimeType);
+                }
                 MenuItem saved = repo.save(existing);
                 return ResponseEntity.ok(saved);
             } catch (IOException ioe) {
@@ -277,9 +270,35 @@ public class MenuController {
         }
     }
 
+    /**
+     * Retrieve image data for a menu item.
+     * Returns 404 if item not found, 204 if item has no image data.
+     * For items with image data in DB, returns the binary image with appropriate Content-Type.
+     */
+    @GetMapping("/{id}/image/old")
+    @Cacheable(cacheNames = "menuItemImages", key = "#id")
+    public ResponseEntity<byte[]> getMenuItemImage(@PathVariable Long id) {
+        Optional<MenuItem> o = repo.findById(id);
+        if (o.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        MenuItem item = o.get();
+        
+        // If no image data stored in DB, return 204 No Content
+        if (item.getImageData() == null || item.getImageData().length == 0) {
+            return ResponseEntity.noContent().build();
+        }
+        
+        // Return the stored image with appropriate MIME type
+        String mimeType = item.getImageMimeType() != null ? item.getImageMimeType() : "image/jpeg";
+        return ResponseEntity.ok()
+                .contentType(org.springframework.http.MediaType.parseMediaType(mimeType))
+                .body(item.getImageData());
+    }
+
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    @CacheEvict(cacheNames = {"menu", "menuRecommended"}, allEntries = true)
+    @CacheEvict(cacheNames = {"menu", "menuRecommended", "menuItemImages"}, allEntries = true)
     public ResponseEntity<?> deleteMenuItem(@PathVariable Long id) {
         if (!repo.existsById(id)) {
             return ResponseEntity.notFound().build();

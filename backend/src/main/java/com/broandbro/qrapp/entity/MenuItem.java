@@ -31,6 +31,14 @@ public class MenuItem {
     private String description;
     @Column(name = "image_url")
     private String imageUrl;
+
+    @Column(name = "image_data", columnDefinition = "BYTEA")
+    private byte[] imageData;
+
+    // MIME type of the image (e.g., image/jpeg, image/png)
+    @Column(name = "image_mime_type")
+    private String imageMimeType;
+
     private String tag;
     @Column(name = "is_veg")
     private Boolean isVeg;
