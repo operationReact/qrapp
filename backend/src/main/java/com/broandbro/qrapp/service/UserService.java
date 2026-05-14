@@ -5,7 +5,9 @@ import com.broandbro.qrapp.dto.LoginResponse;
 import com.broandbro.qrapp.dto.UpdateProfileRequest;
 import com.broandbro.qrapp.dto.UserResponse;
 import com.broandbro.qrapp.entity.User;
+import com.broandbro.qrapp.entity.Wallet;
 import com.broandbro.qrapp.repository.UserRepository;
+import com.broandbro.qrapp.repository.WalletRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -24,6 +26,7 @@ import java.time.Duration;
 @RequiredArgsConstructor
 public class UserService {
     private final UserRepository userRepository;
+    private final WalletRepository walletRepository;
     private final PasswordEncoder passwordEncoder;
     private final SecureRandom random = new SecureRandom();
 
@@ -32,6 +35,10 @@ public class UserService {
     private final ConcurrentMap<String, CachedUser> tokenCache = new ConcurrentHashMap<>();
     private static final Duration TOKEN_CACHE_TTL = Duration.ofSeconds(30);
 
+    /**
+     * Register a new user and create their wallet
+     */
+    @Transactional
     public UserResponse register(RegisterRequest req) {
         if (userRepository.findByPhone(req.getPhone()).isPresent()) {
             throw new IllegalArgumentException("phone_taken");
@@ -41,9 +48,19 @@ public class UserService {
                 .password(passwordEncoder.encode(req.getPassword()))
                 .name(req.getName())
                 .build();
-        userRepository.save(u);
+        u = userRepository.save(u);
+
+        // Create wallet for new user
+        Wallet wallet = Wallet.builder()
+                .user(u)
+                .balance(0L)  // Start with 0 balance
+                .build();
+        walletRepository.save(wallet);
+
         return toResponse(u);
     }
+
+    // ...existing code...
 
     public LoginResponse login(String phone, String password) {
         Optional<User> o = userRepository.findByPhone(phone);

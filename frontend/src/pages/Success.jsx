@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 export default function Success() {
   const location = useLocation();
   const paymentMethod = location.state?.paymentMethod || "RAZORPAY";
+  const orderNumber = location.state?.orderNumber;
   const orderId = location.state?.orderId;
   const isWallet = paymentMethod === "WALLET";
 
@@ -59,11 +60,11 @@ export default function Success() {
                   <CreditCardAlt className="size-4 text-amber-600" />
                 </span>
                 <span className="text-xs font-medium text-amber-700">
-                  Order ID
+                  Order Number
                 </span>
               </div>
               <div className="mt-2 truncate text-lg font-semibold text-amber-800">
-                {orderId || "Generated"}
+                {orderNumber || orderId || "Generated"}
               </div>
               <div className="absolute -right-2 -bottom-2 opacity-10">
                 <CreditCardAlt className="size-16" />

@@ -46,7 +46,6 @@ public class WalletService {
         });
     }
 
-    @Cacheable(value = "walletBalance", key = "#user.id", condition = "#user != null && #user.id != null")
     public WalletBalanceResponse getBalance(User user) {
         Wallet wallet = getOrCreateWallet(user);
         return new WalletBalanceResponse(wallet.getBalance());

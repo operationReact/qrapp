@@ -178,6 +178,7 @@ export default function Cart() {
       }
 
       const res = await createOrder({ items, phone, paymentMethod });
+      console.log("Order response:", res?.data);
       const responsePaymentMethod = res?.data?.paymentMethod || paymentMethod;
 
       if (responsePaymentMethod === "WALLET") {
@@ -187,6 +188,7 @@ export default function Cart() {
         navigate("/success", {
           state: {
             paymentMethod: "WALLET",
+            orderNumber: res?.data?.orderNumber,
             orderId: res?.data?.orderId,
           },
         });
@@ -223,6 +225,7 @@ export default function Cart() {
           navigate("/success", {
             state: {
               paymentMethod: "RAZORPAY",
+              orderNumber: res?.data?.orderNumber,
               orderId: res?.data?.orderId,
             },
           });
