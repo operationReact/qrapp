@@ -47,7 +47,7 @@ export default function StickyCartBar() {
 
   return (
     <div className="fixed inset-x-0 bottom-0 pb-mobile-nav md:px-2.5 md:pb-2.5 z-39 pointer-events-auto">
-      <div className="rounded-t-2xl max-w-md md:rounded-3xl md:max-w-1/2 mx-auto border border-b-0 md:border-b border-gray-200 bg-white pb-[env(safe-area-inset-bottom)]">
+      <div className="rounded-t-xl max-w-md md:rounded-xl md:max-w-1/2 mx-auto border border-b-0 md:border-b border-gray-200 bg-white pb-[env(safe-area-inset-bottom)]">
         <div className="w-full px-8 sm:px-4 md:mx-auto md:max-w-4xl lg:max-w-5xl xl:max-w-6xl">
           <div className="flex md:min-h-[72px] items-center md:py-3">
             <div className="flex w-full items-center justify-between gap-3 py-2 md:py-0">
