@@ -118,7 +118,7 @@ export default function AddMoneyForm({ className, onSuccess, onError }) {
   return (
     <>
       <div
-        className={cn("rounded-2xl border bg-white p-5 shadow-sm", className)}
+        className={cn("rounded-lg border bg-white p-5", className)}
       >
         <div className="mb-5 flex gap-4">
           <img src="/coin-plus.svg" alt="Plus" className="size-11 shrink-0" />
@@ -139,7 +139,7 @@ export default function AddMoneyForm({ className, onSuccess, onError }) {
             inputMode="numeric"
             value={amount}
             onChange={(event) => setAmount(event.target.value)}
-            className="w-full rounded-xl border-2 border-gray-200 px-4 py-3 text-base outline-none transition focus:border-[#F3CE4D]"
+            className="w-full rounded-lg border-2 border-gray-200 px-4 py-3 text-base outline-none transition focus:border-[#F3CE4D]"
             placeholder="Amount (₹)"
           />
           <div className="mt-0 flex gap-2 overflow-x-auto pb-1 no-scrollbar">
@@ -148,7 +148,7 @@ export default function AddMoneyForm({ className, onSuccess, onError }) {
                 key={amount}
                 type="button"
                 onClick={() => setAmount(String(amount))}
-                className="whitespace-nowrap rounded-lg border text-muted-foreground px-2 py-1 text-sm font-medium! hover:bg-amber-50 hover:border-amber-200 hover:text-black"
+                className="whitespace-nowrap rounded-sm border text-muted-foreground px-2 py-1 text-sm font-medium! hover:bg-amber-50 hover:border-amber-200 hover:text-black"
               >
                 ₹{amount}
               </button>
@@ -158,7 +158,7 @@ export default function AddMoneyForm({ className, onSuccess, onError }) {
             type="button"
             onClick={handleAddMoney}
             disabled={adding}
-            className="touch-button rounded-xl bg-[#F3CE4D] px-5 py-3 text-sm font-semibold! text-black shadow-sm transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-70"
+            className="touch-button rounded-md bg-[#F3CE4D] px-5 py-3 text-sm font-semibold! text-black shadow-sm transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-70"
           >
             {adding ? "Processing..." : "Add Money"}
           </button>
@@ -174,7 +174,7 @@ export default function AddMoneyForm({ className, onSuccess, onError }) {
         </div>
 
         {error && (
-          <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
             {error}
           </div>
         )}

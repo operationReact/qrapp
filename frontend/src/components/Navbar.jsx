@@ -27,6 +27,7 @@ import {
   WalletIcon,
 } from "@phosphor-icons/react";
 import { buttonVariants } from "./ui/button";
+import { Avatar, AvatarFallback } from "./ui/avatar";
 
 export default function Navbar() {
   const { cart, openDrawer, closeDrawer } = useCart();
@@ -90,26 +91,22 @@ export default function Navbar() {
     {
       to: "/profile",
       label: "Profile",
-      description: "Update your name, phone, and password",
       icon: UserGearIcon,
     },
     {
       to: "/orders",
       label: "Orders",
-      description: "Track active and past orders",
       icon: CubeIcon,
     },
 
     {
       to: "/wallet",
       label: "Wallet",
-      description: "Check balance and transactions",
       icon: WalletIcon,
     },
     {
       to: "/",
       label: "Menu",
-      description: "Go back to the food menu",
       icon: BowlFoodIcon,
     },
   ];
@@ -148,7 +145,7 @@ export default function Navbar() {
           {!admin && user && (
             <Link
               to="/wallet"
-              className="flex items-center gap-1 h-11 rounded-full border-2 border-amber-200 bg-linear-to-b from-[#FFEFBD] to-[#FEEE70] p-2 text-black"
+              className="flex items-center gap-1 h-10 rounded-full border-2 border-amber-200 bg-linear-to-b from-[#FFEFBD] to-[#FEEE70] p-2 text-black"
             >
               <img src="/coin.png" alt="Coin" className="size-6" />
               <span className="max-w-[5.5rem] truncate text-sm font-semibold sm:max-w-none">
@@ -156,7 +153,7 @@ export default function Navbar() {
                   ? "..."
                   : walletBalance == null
                     ? "Wallet"
-                    : `₹ ${(walletBalance / 100).toFixed(2)}`}
+                    : `₹${(walletBalance / 100).toFixed(0)}`}
               </span>
             </Link>
           )}
@@ -174,7 +171,7 @@ export default function Navbar() {
               aria-label="Open cart"
               className="relative rounded-2xl"
             >
-              <ShoppingCartSimpleIcon weight="fill" className="size-7" />
+              <ShoppingCartSimpleIcon weight="fill" className="size-6" />
               {cart.length > 0 && (
                 <span className="absolute will-change-transform origin-center -right-1 -top-1 align-middle h-4 min-w-[1rem] px-px animate-in-scaled rounded-full grid place-items-center text-center text-[12px] font-semibold bg-primary text-secondary">
                   {cart.length}
@@ -188,53 +185,52 @@ export default function Navbar() {
               to="/login"
               className={buttonVariants({
                 size: "lg",
-                className: "text-sm! rounded-lg! font-medium!",
+                className:"w-full max-w-20"
               })}
             >
               Login
             </Link>
           )}
 
+          {/* className="size-11 flex items-center aspect-square aria-expanded:ring aria-expanded:ring-primary/40 transition-colors justify-center rounded-full bg-white text-sm font-medium! text-primary"*/}
           {!isMobile && !admin && user && (
             <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button
-                  type="button"
-                  aria-label="Open account menu"
-                  className="size-11 flex items-center aspect-square aria-expanded:ring aria-expanded:ring-primary/40 transition-colors justify-center rounded-full bg-white text-xs font-medium! text-primary"
-                >
-                  {initials}
-                </button>
-              </DropdownMenuTrigger>
+              <DropdownMenuTrigger
+                aria-label="Open account menu"
+                render={
+                  <button className="rounded-full will-change-transform aria-expanded:scale-95 aria-expanded:ring aria-expanded:ring-primary transition-all">
+                    <Avatar className="size-10">
+                      <AvatarFallback className="text-primary">
+                        {initials}
+                      </AvatarFallback>
+                    </Avatar>
+                  </button>
+                }
+              ></DropdownMenuTrigger>
               <DropdownMenuContent
-                className="w-60 rounded-lg shadow"
+                className="w-50 rounded-lg shadow"
                 align="end"
               >
-                {menuItems.map(({ to, label, description, icon: Icon }) => (
+                {menuItems.map(({ to, label, icon: Icon }) => (
                   <DropdownMenuItem
                     key={to}
-                    asChild
-                    className="items-start hover:bg-primary-foreground/40 focus:bg-primary-foreground/40!"
-                  >
-                    <Link key={to} to={to}>
-                      <Icon className="size-5 mt-1 text-primary! fill-primary" />
-                      <span className="grid gap-px">
+                    render={
+                      <Link key={to} to={to}>
+                        <Icon weight="fill" className="size-5" />
                         <span className="text-sm font-medium text-foreground">
                           {label}
                         </span>
-                        <span className="text-xs text-muted-foreground">
-                          {description}
-                        </span>
-                      </span>
-                    </Link>
-                  </DropdownMenuItem>
+                      </Link>
+                    }
+                  ></DropdownMenuItem>
                 ))}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   onClick={logout}
-                  className="hover:bg-red-100 h-10 border border-red-100 focus:bg-red-100! font-medium! focus:text-red-500"
+                  className="hover:bg-red-100 border border-red-100 focus:bg-red-100! font-medium! focus:text-red-500"
                 >
-                  <SignOutIcon className="text-red-500 fill-red-500" /> Log out
+                  <SignOutIcon className="size-5 text-red-500 fill-red-500" />{" "}
+                  Log out
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -242,7 +238,7 @@ export default function Navbar() {
 
           <Separator
             orientation="vertical"
-            className="h-10 bg-primary/20 my-auto hidden md:block"
+            className="h-7 bg-primary/10 my-auto hidden md:block"
           />
           <ModeSwitcher />
         </div>

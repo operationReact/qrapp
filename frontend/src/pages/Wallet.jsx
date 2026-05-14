@@ -244,7 +244,7 @@ export default function Wallet() {
                     {loading ? "..." : formatCurrencyFromPaise(balance)}
                   </div>
                   {overview?.lastTransactionAt && (
-                    <div className="rounded-xl bg-amber-100/70 border border-amber-100 mx-auto sm:mx-0 w-fit text-center text-muted-foreground max-w-75 px-4 py-3 text-sm mt-4">
+                    <div className="rounded-lg bg-amber-100/70 border border-amber-100 mx-auto sm:mx-0 w-fit text-center text-muted-foreground max-w-75 px-4 py-3 text-sm mt-4">
                       <Activity className="inline-block size-4 mr-1" /> Last
                       Activity on{" "}
                       <span className="mt-1 font-medium">
@@ -254,13 +254,13 @@ export default function Wallet() {
                   )}
 
                   {!loading && error && (
-                    <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 mt-4 w-fit">
+                    <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 mt-4 w-fit">
                       {error}
                     </div>
                   )}
 
                   {!loading && !overview && !error && (
-                    <div className="rounded-xl bg-neutral-100/70 border mx-auto w-fit sm:mx-0 text-center sm:text-start text-muted-foreground max-w-75 px-4 py-3 text-sm mt-4">
+                    <div className="rounded-lg bg-neutral-100/70 border mx-auto w-fit sm:mx-0 text-center sm:text-start text-muted-foreground max-w-75 px-4 py-3 text-sm mt-4">
                       <Activity className="inline-block size-4 mr-2" />
                       Activity Record Not Available
                     </div>
@@ -324,7 +324,7 @@ export default function Wallet() {
               </div>
             </div>
 
-            <div className="rounded-xl border bg-white p-4 shadow-sm shadow-gray-200/50">
+            <div className="rounded-xl border bg-white p-4">
               <div className="flex items-center gap-3">
                 <SparklesAlt pack="filled" className="size-12 text-amber-600" />
                 <div>
@@ -341,7 +341,7 @@ export default function Wallet() {
             </div>
           </section>
 
-          <section className="rounded-2xl border bg-white shadow-sm p-4">
+          <section className="rounded-lg border bg-white shadow-sm p-4">
             <div className="space-y-4 md:space-y-0 md:flex justify-between items-center gap-4 flex-wrap">
               <div>
                 <h2 className="text-xl font-semibold">Activity</h2>
@@ -370,7 +370,6 @@ export default function Wallet() {
                       <Button
                         size="sm"
                         variant={filter === item.key ? "black" : "outline"}
-                        className={`rounded-md text-sm! font-medium!`}
                         type="button"
                         onClick={() => {
                           if ("startViewTransition" in document) {
@@ -396,7 +395,6 @@ export default function Wallet() {
                       data-icon="inline-start"
                       onClick={handleRefresh}
                       disabled={refreshing}
-                      className="rounded-md! text-sm! font-medium!"
                     >
                       <RefreshCcw
                         className={`size-4 ${refreshing ? "animate-spin" : ""}`}
@@ -409,11 +407,11 @@ export default function Wallet() {
             </div>
 
             {loading ? (
-              <div className="mt-6 rounded-3xl bg-gray-50 px-6 py-14 text-center text-gray-500">
+              <div className="mt-6 rounded-xl bg-gray-50 px-6 py-14 text-center text-gray-500">
                 Loading wallet activity...
               </div>
             ) : filteredTransactions.length === 0 ? (
-              <div className="mt-6 rounded-3xl border border-dashed border-gray-200 bg-gray-50/50 px-6 py-14 text-center">
+              <div className="mt-6 rounded-xl border border-dashed border-gray-200 bg-gray-50/50 px-6 py-14 text-center">
                 <WalletAlt pack="filled" className="size-24 mx-auto" />
                 <div className="mt-4 text-lg font-semibold ">
                   No Transactions Yet!

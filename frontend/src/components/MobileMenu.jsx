@@ -138,22 +138,21 @@ function UserAccountDrawerContent() {
       </div>
 
       <DrawerFooter className="grid grid-cols-2">
-        <DrawerClose asChild>
-          <Button
-            variant="outline"
-            size="lg"
-            className="w-full h-12 font-medium!"
-          >
-            Close{" "}
-          </Button>
-        </DrawerClose>
+        <DrawerClose
+          render={
+            <Button variant="outline" size="lg" className="w-full">
+              Close{" "}
+            </Button>
+          }
+        ></DrawerClose>
         <Button
           variant="secondary"
+          size="lg"
           onClick={() => {
             setUser(null);
             navigate("/login");
           }}
-          className="h-12 text-sm! w-full font-medium!"
+          className="w-full"
         >
           <SignOutIcon /> Log out
         </Button>
@@ -166,29 +165,26 @@ function UserUnauthorizedDrawerContent() {
   return (
     <>
       <div className="p-4 grid grid-cols-2 gap-2">
-        <Button asChild size="lg" className="text-sm! font-medium! h-12">
-          <Link to="/login">Login</Link>
-        </Button>
+        <Button size="lg" render={<Link to="/login">Login</Link>}></Button>
         <Button
           variant="secondary"
-          asChild
           size="lg"
-          className="text-sm! font-medium! h-12"
-        >
-          <Link to="/register">Create Account</Link>
-        </Button>
+          render={<Link to="/register">Create Account</Link>}
+        ></Button>
       </div>
 
       <DrawerFooter>
-        <DrawerClose asChild>
-          <Button
-            variant="outline"
-            size="lg"
-            className="w-full h-12 font-medium!"
-          >
-            Close{" "}
-          </Button>
-        </DrawerClose>
+        <DrawerClose
+          render={
+            <Button
+              variant="outline"
+              size="lg"
+              className="w-full"
+            >
+              Close{" "}
+            </Button>
+          }
+        ></DrawerClose>
       </DrawerFooter>
     </>
   );
