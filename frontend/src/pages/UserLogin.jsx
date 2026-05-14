@@ -89,7 +89,7 @@ export default function UserLogin() {
             size="icon-lg"
             asChild
             variant="outline"
-            className="font-medium! rounded-xl shadow-sm shadow-red-500/10 sm:absolute sm:left-4 flex items-center text-sm text-zinc-600 hover:text-zinc-600/90 w-fit px-1"
+            className="shadow-sm shadow-red-500/10 sm:absolute sm:left-4 text-zinc-600 hover:text-zinc-600/90"
           >
             <Link to="/">
               <ChevronLeft className="size-7" />
@@ -112,7 +112,7 @@ export default function UserLogin() {
               {error}
             </div>
           )}
-          <form onSubmit={submit} className="space-y-3">
+          <form onSubmit={submit} className="space-y-4">
             <Field>
               <FieldLabel>Phone Number / Username</FieldLabel>
               <FieldContent>
@@ -122,7 +122,7 @@ export default function UserLogin() {
                   onChange={(e) => setIdentifier(e.target.value)}
                   required
                   placeholder="e.g. 1234567890 or admin"
-                  className="h-12"
+                  className="h-10"
                 />
               </FieldContent>
             </Field>
@@ -133,24 +133,21 @@ export default function UserLogin() {
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="h-12"
+                  className="h-10"
                   required
                 />
               </FieldContent>
             </Field>
             <div className="flex mt-5 flex-col gap-2 justify-center">
-              <Button
-                type="submit"
-                disabled={loading}
-                className="h-12 font-medium! text-sm!"
-              >
+              <Button type="submit" size="lg" disabled={loading}>
                 {loading ? "Signing in..." : "Sign In"}
               </Button>
-              {/* <Link to="/" className="text-sm text-gray-600">Back to menu</Link> */}
 
-              <Button asChild variant="ghost" className="h-12 font-medium!">
-                <Link to="/register">Create An Account</Link>
-              </Button>
+              <Button
+                variant="ghost"
+                size="lg"
+                render={<Link to="/register">Create An Account</Link>}
+              ></Button>
             </div>
           </form>
         </div>

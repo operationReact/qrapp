@@ -121,7 +121,6 @@ export default function OffCanvasCart() {
   if (location && location.pathname && location.pathname.startsWith("/cart"))
     return null;
 
-
   if (isMobile) {
     return <MobileCart open={drawerOpen} onClose={closeDrawer} />;
   }

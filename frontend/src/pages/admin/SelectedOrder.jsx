@@ -6,19 +6,20 @@ import {
   InputGroupButton,
   InputGroupTextarea,
 } from "@/components/ui/input-group";
-import { cn } from "@/lib/utils";
-import {
-  Archive,
-  BadgeInfo,
-  ClockDashedHalf,
-  CreditCardAlt,
-  Group,
-  Phone,
-  Rupee,
-} from "@boxicons/react";
+import { cn, formatDate } from "@/lib/utils";
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { useAdminDashboard } from "@/context/AdminDashboardContext";
+import {
+  ArchiveIcon,
+  ClockCountdownIcon,
+  CreditCardIcon,
+  CurrencyInrIcon,
+  PhoneIcon,
+  SealWarningIcon,
+  SwapIcon,
+  UsersIcon,
+} from "@phosphor-icons/react";
 
 const STATUS_META = {
   PLACED: {
@@ -79,8 +80,9 @@ function toneForPriority(priority) {
 export default function SelectedOrder() {
   const params = useParams();
   const selectedOrderId = params?.orderId;
-  
-  const { selectedOrder, actionLoading, handleOrderUpdate } = useAdminDashboard(selectedOrderId);
+
+  const { selectedOrder, actionLoading, handleOrderUpdate } =
+    useAdminDashboard(selectedOrderId);
 
   const [noteDraft, setNoteDraft] = useState("");
 
@@ -91,7 +93,7 @@ export default function SelectedOrder() {
   }, [selectedOrder]);
 
   return (
-    <div className="h-full bg-white p-4 shadow-sm h-full">
+    <div className=" bg-white p-4 shadow-sm">
       {(!selectedOrderId || !selectedOrder) && (
         <div className="flex text-center text-balance min-h-[320px] items-center justify-center h-full rounded-2xl border border-dashed border-slate-200 bg-primary-foreground/10 text-sm text-slate-500">
           Choose an order to open the operations panel.
@@ -111,7 +113,7 @@ export default function SelectedOrder() {
                     <Badge
                       className={`${toneForStatus(selectedOrder.status).tone}`}
                     >
-                      <Archive pack="filled" />
+                      <ArchiveIcon pack="filled" />
                       {toneForStatus(selectedOrder.status).label}
                     </Badge>
                     <Badge
@@ -123,21 +125,24 @@ export default function SelectedOrder() {
                 </h2>
 
                 <p className="mt-2 text-sm text-slate-500 gap-1 flex items-center">
-                  <Button asChild variant="secondary">
-                    <a href={`tel:+91${selectedOrder.phone}`}>
-                      <Phone />
-                      {selectedOrder.phone}
-                    </a>
-                  </Button>
-                  <span>•</span> Created{" "}
-                  {formatDateTime(selectedOrder.createdAt)}
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    render={
+                      <a href={`tel:+91${selectedOrder.phone}`}>
+                        <PhoneIcon />
+                        {selectedOrder.phone}
+                      </a>
+                    }
+                  />
+                  <span>•</span> Created {formatDate(selectedOrder.createdAt)}
                 </p>
               </div>
             </div>
             <div className="mt-4 grid grid-cols-2 gap-1 text-sm text-slate-600 xl:grid-cols-4">
               <div className="rounded-l-xl rounded-bl-none xl:rounded-bl-xl p-2 bg-primary-foreground/30 border border-primary-foreground">
                 <div className="text-xs flex gap-1 items-center font-semibold capitalize text-primary">
-                  <Rupee className="size-4" /> Total
+                  <CurrencyInrIcon weight="bold" className="size-4" /> Total
                 </div>
                 <div className="mt-1 text-base font-semibold text-slate-900">
                   {formatCurrency(selectedOrder.total)}
@@ -145,7 +150,7 @@ export default function SelectedOrder() {
               </div>
               <div className="rounded-tr-xl xl:rounded-tr-none p-2 border bg-primary-foreground/30 border border-primary-foreground">
                 <div className="text-xs flex gap-1 items-center font-semibold capitalize text-primary">
-                  <CreditCardAlt pack="filled" className="size-4" /> Payment
+                  <CreditCardIcon weight="fill" className="size-4" /> Payment
                 </div>
                 <div className="mt-1 text-base font-semibold text-slate-900">
                   {selectedOrder.paymentStatus || "Pending"}
@@ -153,7 +158,7 @@ export default function SelectedOrder() {
               </div>
               <div className="p-2 rounded-bl-xl xl:rounded-bl-none border bg-primary-foreground/30 border border-primary-foreground">
                 <div className="text-xs flex gap-1 items-center font-semibold capitalize text-primary">
-                  <ClockDashedHalf pack="filled" className="size-4" /> Age
+                  <ClockCountdownIcon weight="fill" className="size-4" /> Age
                 </div>
                 <div className="mt-1 text-base font-semibold text-slate-900">
                   {selectedOrder.ageMinutes} min
@@ -161,7 +166,7 @@ export default function SelectedOrder() {
               </div>
               <div className="rounded-r-xl rounded-tr-none xl:rounded-tr-xl p-2 border bg-primary-foreground/30 border border-primary-foreground">
                 <div className="text-xs flex gap-1 items-center font-semibold capitalize text-primary">
-                  <Group pack="filled" className="size-4" /> Assigned
+                  <UsersIcon weight="fill" className="size-4" /> Assigned
                 </div>
                 <div className="mt-1 text-base font-semibold text-slate-900">
                   {selectedOrder.assignedAdmin || "Unassigned"}
@@ -176,7 +181,6 @@ export default function SelectedOrder() {
               {(selectedOrder.availableTransitions || []).map((nextStatus) => (
                 <Button
                   variant="outline"
-                  className="text-sm! font-medium! rounded-md"
                   key={`detail-${selectedOrder.id}-${nextStatus}`}
                   onClick={() =>
                     handleOrderUpdate(selectedOrder.id, {
@@ -196,19 +200,20 @@ export default function SelectedOrder() {
             <div className="mt-3 flex flex-wrap gap-2">
               {["NORMAL", "HIGH", "URGENT"].map((priority) => (
                 <Badge
-                  asChild
                   key={priority}
                   className={`text-sm! font-medium! rounded-md ${toneForPriority(priority).tone}`}
-                >
-                  <Button
-                    disabled={actionLoading}
-                    onClick={() =>
-                      handleOrderUpdate(selectedOrder.id, { priority })
-                    }
-                  >
-                    {toneForPriority(priority).label}
-                  </Button>
-                </Badge>
+                  render={
+                    <button
+                      disabled={actionLoading}
+                      variant="ghost"
+                      onClick={() =>
+                        handleOrderUpdate(selectedOrder.id, { priority })
+                      }
+                    >
+                      {toneForPriority(priority).label}
+                    </button>
+                  }
+                />
               ))}
             </div>
           </div>
@@ -233,7 +238,6 @@ export default function SelectedOrder() {
                       handleOrderUpdate(selectedOrder.id, { adminNote: "" })
                     }
                     disabled={actionLoading}
-                    className="text-xs font-medium ml-auto h-8"
                   >
                     Clear Note
                   </InputGroupButton>
@@ -241,7 +245,6 @@ export default function SelectedOrder() {
                   <InputGroupButton
                     variant="outline"
                     onClick={() => setNoteDraft(selectedOrder.adminNote || "")}
-                    className="text-xs font-medium ml-auto h-8"
                   >
                     Reset
                   </InputGroupButton>
@@ -254,7 +257,6 @@ export default function SelectedOrder() {
                       })
                     }
                     disabled={actionLoading}
-                    className="text-xs font-medium ml-auto h-8"
                   >
                     Save Note
                   </InputGroupButton>
@@ -293,7 +295,7 @@ export default function SelectedOrder() {
                 {(selectedOrder.items || []).map((item, index) => (
                   <li
                     key={`${index}-${selectedOrder.id}-${item.name}`}
-                    className="py-2 bg-white shadow-sm border-b last:border-b-0 group/item first:rounded-t-xl last:rounded-b-xl px-4"
+                    className="py-2 bg-white shadow-sm border-b last:border-b-0 group/item first:rounded-t-md last:rounded-b-md px-4"
                   >
                     <div
                       key={`${selectedOrder.id}-${item.itemId || index}`}
@@ -343,15 +345,18 @@ export default function SelectedOrder() {
               {(selectedOrder.history || []).map((entry, index) => (
                 <div
                   key={`${selectedOrder.id}-history-${index}`}
-                  className="rounded-xl shadow-sm shadow-primary/10 border border-zinc-200 bg-white"
+                  className="rounded-md shadow-sm shadow-primary/10 border border-zinc-200 bg-white"
                 >
                   {entry.note && (
                     <div className="text-sm justify-between border-b px-2 rounded-b-none py-2 bg-zinc-100 rounded-md text-zinc-700 flex gap-2 items-center">
                       <span className="flex gap-1 items-center font-medium">
-                        <BadgeInfo pack="filled" className="size-4 shrink-0" />
+                        <SealWarningIcon
+                          weight="fill"
+                          className="size-4 shrink-0"
+                        />
                         {entry.note}
                       </span>
-                      <div className="text-sm font-medium text-xs text-zinc-600">
+                      <div className="font-medium text-xs">
                         Updated by {entry.changedBy || "system"} on{" "}
                         {formatDateTime(entry.changedAt)}
                       </div>
@@ -359,16 +364,22 @@ export default function SelectedOrder() {
                   )}
 
                   <div className="flex items-center justify-between gap-3 p-2">
-                    <div className="text-sm rounded-xl font-semibold text-slate-900 flex items-center">
-                      <span className="border rounded-l-lg p-2 border-zinc-200 bg-zinc-100">
+                    <div className="text-xs rounded-xl font-semibold flex items-center">
+                      <span className="border rounded-l p-2 border-zinc-200 bg-zinc-100">
                         {entry.previousStatus || "NEW"}
                       </span>
                       <span className="border-y border-zinc-100 p-2">→</span>
-                      <span className="border rounded-r-lg p-2 border-primary/10 text-primary bg-primary/10">
+                      <span className="border rounded-r p-2 border-primary/10 text-primary bg-primary/10">
                         {entry.newStatus}
                       </span>
                     </div>
                   </div>
+                  {
+                    !entry.note &&  (
+                      <div className="text-xs justify-between border-t px-2 rounded-t-none py-2 bg-zinc-50 rounded-md text-zinc-700 font-medium flex gap-2 items-center">
+                           Updated by {entry.changedBy || "system"} on{" "} {formatDate(entry.changedAt)}
+                      </div>
+                    )}
                 </div>
               ))}
             </div>

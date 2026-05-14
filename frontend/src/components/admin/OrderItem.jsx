@@ -1,14 +1,11 @@
 import { cn } from "@/lib/utils";
-import {
-  AlarmExclamation,
-  Archive,
-  ClockDashedHalf,
-  CreditCardAlt,
-  Rupee,
-} from "@boxicons/react";
-import { Link } from "react-router-dom";
 import { Badge } from "../ui/badge";
-import { Separator } from "../ui/separator";
+import {
+  ArchiveIcon,
+  ClockCountdownIcon,
+  CreditCardIcon,
+  TimerIcon,
+} from "@phosphor-icons/react";
 
 const STATUS_META = {
   PLACED: {
@@ -103,7 +100,7 @@ export default function OrderItem({ order }) {
                   variant="outline"
                   className={toneForStatus(order.status).tone}
                 >
-                  <Archive pack="filled" />
+                  <ArchiveIcon weight="fill" />
                   {toneForStatus(order.status).label}
                 </Badge>
                 <Badge
@@ -114,7 +111,7 @@ export default function OrderItem({ order }) {
                 </Badge>
                 {order.delayed && (
                   <Badge variant="destructive">
-                    <AlarmExclamation pack="filled" /> Delayed
+                    <TimerIcon weight="fill" /> Delayed
                   </Badge>
                 )}
               </div>
@@ -136,11 +133,11 @@ export default function OrderItem({ order }) {
             toneForPaymentStatus(order.paymentStatus || "PENDING").tone
           }
         >
-          <CreditCardAlt pack="filled" /> Payment{" "}
+          <CreditCardIcon weight="fill" data-icon="inline-start" /> Payment{" "}
           {toneForPaymentStatus(order.paymentStatus || "PENDING").label}
         </Badge>
         <Badge variant="ghost">
-          <ClockDashedHalf />
+          <ClockCountdownIcon weight="bold" data-icon="inline-start" />
           <span>{order.stageAgeMinutes} min in stage</span>
         </Badge>
       </div>

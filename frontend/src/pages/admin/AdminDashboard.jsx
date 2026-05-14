@@ -1,17 +1,18 @@
 import AdminHeader from "@/components/admin/AdminHeader";
 import FlaggedOrders from "@/components/admin/FlaggedOrders";
 import { useAdminDashboard } from "@/context/AdminDashboardContext";
-import {
-  Archive,
-  Broadcast,
-  CalendarDownArrow,
-  Check,
-  ClockDashedHalf,
-  Workflow
-} from "@boxicons/react";
+
 import { useEffect, useMemo } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { useAdminAuth } from "../../context/AdminAuthContext";
+import {
+  ArchiveIcon,
+  BroadcastIcon,
+  CalendarCheckIcon,
+  CheckCircleIcon,
+  ClockCountdownIcon,
+  CookingPotIcon,
+} from "@phosphor-icons/react";
 
 export default function AdminDashboard() {
   const { ordersPage, dashboard, loadData } = useAdminDashboard();
@@ -21,42 +22,42 @@ export default function AdminDashboard() {
       label: "Live orders",
       value: dashboard?.liveOrders ?? 0,
       subtext: "Orders needing action right now",
-      icon: Broadcast,
+      icon: BroadcastIcon,
       tone: "bg-purple-50 text-purple-600",
     },
     {
       label: "Placed",
       value: dashboard?.placedOrders ?? 0,
       subtext: "Freshly created and waiting",
-      icon: Archive,
+      icon: ArchiveIcon,
       tone: "bg-amber-50 text-amber-600",
     },
     {
       label: "Preparing",
       value: dashboard?.preparingOrders ?? 0,
       subtext: "Kitchen currently working",
-      icon: Workflow,
+      icon: CookingPotIcon,
       tone: "bg-orange-50 text-orange-600",
     },
     {
       label: "Ready",
       value: dashboard?.readyOrders ?? 0,
       subtext: "Ready for pickup / handoff",
-      icon: Check,
+      icon: CheckCircleIcon,
       tone: "bg-teal-50 text-teal-600",
     },
     {
       label: "Delayed",
       value: dashboard?.delayedOrders ?? 0,
       subtext: "Orders outside expected SLA",
-      icon: ClockDashedHalf,
+      icon: ClockCountdownIcon,
       tone: "bg-red-50 text-red-600",
     },
     {
       label: "Completed today",
       value: dashboard?.completedToday ?? 0,
       subtext: `${dashboard?.averageFulfillmentMinutes ?? 0} min avg fulfillment`,
-      icon: CalendarDownArrow,
+      icon: CalendarCheckIcon,
       tone: "bg-green-50 text-green-600",
     },
   ];
@@ -116,7 +117,7 @@ export default function AdminDashboard() {
               <span
                 className={`absolute size-7 grid place-items-center rounded-lg right-2 top-2 ${stat.tone}`}
               >
-                <stat.icon pack="filled" className="size-5" />
+                <stat.icon weight="fill" className="size-5" />
               </span>
               <div className="text-2xl font-semibold px-4">{stat.value}</div>
               <div className={`${stat.tone} pb-3 pt-2 flex-1`}>

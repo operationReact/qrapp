@@ -71,7 +71,7 @@ export default function OperationalQueue() {
 
           <div className="flex gap-2 mt-2 border-b pl-4 pr-5 pb-2 justify-between items-center">
             <ButtonGroup>
-              <InputGroup className="rounded-md max-w-[300px]">
+              <InputGroup className="max-w-[300px]">
                 <InputGroupInput
                   value={filters.query}
                   onChange={(e) => {
@@ -86,12 +86,14 @@ export default function OperationalQueue() {
                 </InputGroupAddon>
               </InputGroup>
               <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className="text-sm! font-medium!">
-                    <Filter />
-                    Filter
-                  </Button>
-                </PopoverTrigger>
+                <PopoverTrigger
+                  render={
+                    <Button variant="outline">
+                      <Filter />
+                      Filter
+                    </Button>
+                  }
+                />
                 <PopoverContent className="w-80">
                   <div className="grid gap-4">
                     <div className="space-y-2">
@@ -221,7 +223,7 @@ export default function OperationalQueue() {
             </div>
           </div>
 
-          <ScrollArea className="pl-2 pr-3 max-h-[calc(100vh_-_45.2px_-_80px_-_40.8px_-_8px_-_49.6px)] py-2 flex-1">
+          <ScrollArea className="pl-2 pr-3 max-h-[calc(100vh_-_48.8px_-_80px_-_44.8px_-_8px_-_53.6px)] py-2 flex-1">
             {(ordersPage.content || []).length === 0 && (
               <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-500">
                 No orders found for the selected filters.
@@ -300,7 +302,7 @@ export default function OperationalQueue() {
           </div>
         </div>
         <div className="flex flex-col h-full">
-          <ScrollArea className="py-2 pr-3 lg:max-h-[calc(100vh_-_45.2px)] flex-1">
+          <ScrollArea className="py-2 pr-3 lg:max-h-[calc(100vh_-_48.8px)] flex-1">
             <Outlet />
           </ScrollArea>
         </div>

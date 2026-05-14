@@ -4,7 +4,6 @@ import API from "../../services/api";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Edit2, Trash2, Star, Eye, EyeOff } from "lucide-react";
 import { Field, FieldLabel } from "../ui/field";
 import {
   AlertDialog,
@@ -17,6 +16,13 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "../ui/alert-dialog";
+import {
+  EyeIcon,
+  EyeSlashIcon,
+  PencilSimpleLineIcon,
+  StarIcon,
+  TrashIcon,
+} from "@phosphor-icons/react";
 
 export default function AdminMenuItem({
   item,
@@ -78,7 +84,7 @@ export default function AdminMenuItem({
 
         <div
           title={veg ? "Veg" : "Non Veg"}
-          className={`absolute top-3 left-3 p-1 border-2 bg-white rounded-md size-6 flex items-center gap-2 ${veg ? "border-accent-400" : "border-red-600"}`}
+          className={`absolute top-3 left-3 p-1 border-2 bg-white rounded size-6 flex items-center gap-2 ${veg ? "border-accent-400" : "border-red-600"}`}
         >
           <span
             className={`size-full rounded-full ${veg ? "bg-accent-400" : "bg-red-600"}`}
@@ -91,7 +97,12 @@ export default function AdminMenuItem({
               variant="secondary"
               className="bg-amber-400/90 hover:bg-amber-400/90 text-amber-950 font-semibold border-transparent shadow-sm"
             >
-              <Star className="size-3.5 mr-1 fill-current" /> Recommended
+              <StarIcon
+                weight="fill"
+                data-icon="inline-start"
+                className="size-3.5 mr-1 fill-current"
+              />{" "}
+              Recommended
             </Badge>
           )}
           <Badge
@@ -104,11 +115,12 @@ export default function AdminMenuItem({
           >
             {item.available ? (
               <>
-                <Eye className="size-3.5 mr-1" /> Available
+                <EyeIcon weight="fill" data-icon="inline-start" /> Available
               </>
             ) : (
               <>
-                <EyeOff className="size-3.5 mr-1" /> Unavailable
+                <EyeSlashIcon weight="fill" data-icon="inline-start" />{" "}
+                Unavailable
               </>
             )}
           </Badge>
@@ -134,7 +146,21 @@ export default function AdminMenuItem({
               {item.description || "No description added yet."}
             </p>
           </div>
-          <span className="text-2xl font-bold">₹{item.price}</span>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2 px-2">
+          <div className="grid gap-0.5">
+            <span className="text-xs font-medium text-secondary-foreground capitalize">
+              Base Price
+            </span>
+            <span className="text-xl font-bold">₹{item.basePrice}</span>
+          </div>
+          <div className="grid gap-0.5">
+            <span className="text-xs font-medium text-secondary-foreground capitalize">
+              Selling Price
+            </span>
+            <span className="text-xl font-bold">₹{item.sellingPrice}</span>
+          </div>
         </div>
 
         <div className="pt-4 border-t grid gap-3 p-2 pb-0">
@@ -161,33 +187,40 @@ export default function AdminMenuItem({
         <div className="mt-4 px-2 pb-2 flex gap-2">
           <Button
             variant="outline"
-            className="flex-1 text-sm! font-medium! rounded-md"
             onClick={() => onEdit(item)}
+            className="flex-1"
           >
-            <Edit2 className="size-4" />
+            <PencilSimpleLineIcon />
             Edit
           </Button>
 
           <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button
-                variant="destructive"
-                className="flex-1 rounded-md text-sm! font-medium! h-9"
-              >
-                <Trash2 className="size-4" />
-                Delete
-              </Button>
-            </AlertDialogTrigger>
+            <AlertDialogTrigger
+              render={
+                <Button variant="destructive" className="flex-1">
+                  <TrashIcon />
+                  Delete
+                </Button>
+              }
+            ></AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
                 <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  This will permanently delete <span className="font-medium">{item.name}</span>
+                  This will permanently delete{" "}
+                  <span className="font-medium">{item.name}</span>
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel className="text-sm! font-medium! rounded-md!">Cancel</AlertDialogCancel>
-                <AlertDialogAction className="text-sm! font-medium! rounded-md!" onClick={() => onDelete(item)}>Yes, Delete</AlertDialogAction>
+                <AlertDialogCancel className="text-sm! font-medium! rounded-md!">
+                  Cancel
+                </AlertDialogCancel>
+                <AlertDialogAction
+                  className="text-sm! font-medium! rounded-md!"
+                  onClick={() => onDelete(item)}
+                >
+                  Yes, Delete
+                </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
