@@ -256,7 +256,7 @@ public class DataLoader implements CommandLineRunner {
 
         String secondPhone = users.size() > 1 ? users.get(1).getPhone() : users.get(0).getPhone();
         Long secondUserId = users.size() > 1 ? users.get(1).getId() : users.get(0).getId();
-        orders.add(order(secondUserId, secondPhone, OrderStatus.PLACED, "PENDING", "order_mock_003", LocalDateTime.now().minusMinutes(30)));
+        orders.add(order(secondUserId, secondPhone, OrderStatus.ORDER_PLACED, "PENDING", "order_mock_003", LocalDateTime.now().minusMinutes(30)));
 
         List<Order> saved = orderRepository.saveAll(orders);
         log.info("Seeded {} mock orders", saved.size());
@@ -299,7 +299,8 @@ public class DataLoader implements CommandLineRunner {
                               String description, String imageUrl, Boolean isVeg) {
         MenuItem item = new MenuItem();
         item.setName(name);
-        item.setPrice(price);
+        item.setBasePrice(new java.math.BigDecimal(price));
+        item.setMargin(java.math.BigDecimal.ZERO);
         item.setCategory(category);
         item.setAvailable(available);
         item.setRecommended(recommended);

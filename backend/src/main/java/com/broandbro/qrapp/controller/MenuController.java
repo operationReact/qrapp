@@ -133,7 +133,7 @@ public class MenuController {
                     return ResponseEntity.badRequest().body("Invalid price format");
                 }
             }
-            item.setPrice(price);
+            item.setBasePrice(new java.math.BigDecimal(price));
             item.setCategory(category);
             item.setDescription(description);
             item.setAvailable(availableStr == null || Boolean.parseBoolean(availableStr));
@@ -189,7 +189,7 @@ public class MenuController {
 
                     if (name != null) existing.setName(name);
                     if (priceStr != null && !priceStr.isBlank()) {
-                        try { existing.setPrice(Double.parseDouble(priceStr)); } catch (Exception ex) { /* ignore */ }
+                        try { existing.setBasePrice(new java.math.BigDecimal(priceStr)); } catch (Exception ex) { /* ignore */ }
                     }
                     if (category != null) existing.setCategory(category);
                     if (description != null) existing.setDescription(description);
@@ -227,7 +227,7 @@ public class MenuController {
                     Object p = payload.get("price");
                     try {
                         double pd = p instanceof Number ? ((Number)p).doubleValue() : Double.parseDouble(String.valueOf(p));
-                        existing.setPrice(pd);
+                        existing.setBasePrice(new java.math.BigDecimal(pd));
                     } catch (Exception ex) { /* ignore invalid price */ }
                 }
                 if (payload.containsKey("category")) existing.setCategory((String) payload.getOrDefault("category", existing.getCategory()));

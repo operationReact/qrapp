@@ -48,7 +48,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class OrderService {
 
-    private static final Set<OrderStatus> LIVE_STATUSES = EnumSet.of(OrderStatus.PLACED, OrderStatus.PREPARING, OrderStatus.READY);
+    private static final Set<OrderStatus> LIVE_STATUSES = EnumSet.of(OrderStatus.ORDER_PLACED, OrderStatus.PREPARING, OrderStatus.READY);
 
     private final OrderRepository orderRepo;
     private final OrderItemRepository orderItemRepo;
@@ -61,7 +61,7 @@ public class OrderService {
         Order order = new Order();
         order.setPhone(user != null ? user.getPhone() : req.getPhone());
         order.setUserId(user != null ? user.getId() : null);
-        order.setStatus(OrderStatus.PLACED);
+        order.setStatus(OrderStatus.ORDER_PLACED);
         order.setPaymentStatus("PENDING");
         order.setPaymentMethod(req.getPaymentMethod() != null ? req.getPaymentMethod() : PaymentMethod.RAZORPAY);
         order.setCreatedAt(now);
@@ -69,7 +69,7 @@ public class OrderService {
         order.setPriority(OrderPriority.NORMAL);
 
         order = orderRepo.save(order);
-        recordStatusHistory(order.getId(), null, OrderStatus.PLACED, "Order created", "SYSTEM", now);
+        recordStatusHistory(order.getId(), null, OrderStatus.ORDER_PLACED, "Order created", "SYSTEM", now);
 
         for (CreateOrderRequest.Item i : req.getItems()) {
             OrderItem oi = new OrderItem();
@@ -138,10 +138,10 @@ public class OrderService {
                 itemSummary.setQuantity(orderItem.getQuantity());
                 if (menuItem != null) {
                     itemSummary.setName(menuItem.getName());
-                    itemSummary.setPrice(menuItem.getPrice());
+                    itemSummary.setPrice(menuItem.getSellingPrice().doubleValue());
                     itemSummary.setImageUrl(menuItem.getImageUrl());
                     itemSummary.setIsVeg(menuItem.getIsVeg());
-                    total += menuItem.getPrice() * orderItem.getQuantity();
+                    total += menuItem.getSellingPrice().doubleValue() * orderItem.getQuantity();
                 }
                 itemSummaries.add(itemSummary);
             }
@@ -155,7 +155,7 @@ public class OrderService {
     }
 
     @Transactional(readOnly = true)
-    public long calculateAmountForItems(java.util.List<CreateOrderRequest.Item> items) {
+    public long calculateAmountForItems(List<CreateOrderRequest.Item> items) {
         if (items == null || items.isEmpty()) {
             return 0L;
         }
@@ -169,7 +169,7 @@ public class OrderService {
         }
 
         double total = menuRepository.findAllById(quantityByItemId.keySet()).stream()
-                .mapToDouble(item -> item.getPrice() * quantityByItemId.getOrDefault(item.getId(), 0))
+                .mapToDouble(item -> item.getSellingPrice().doubleValue() * quantityByItemId.getOrDefault(item.getId(), 0))
                 .sum();
         return Math.round(total * 100);
     }
@@ -235,7 +235,7 @@ public class OrderService {
         List<Order> allOrders = orderRepo.findAll(Sort.by(Sort.Order.desc("createdAt"), Sort.Order.desc("id")));
         AdminOrderDashboardResponse response = new AdminOrderDashboardResponse();
         response.setTotalOrders(allOrders.size());
-        response.setPlacedOrders(countByStatus(allOrders, OrderStatus.PLACED));
+        response.setPlacedOrders(countByStatus(allOrders, OrderStatus.ORDER_PLACED));
         response.setPreparingOrders(countByStatus(allOrders, OrderStatus.PREPARING));
         response.setReadyOrders(countByStatus(allOrders, OrderStatus.READY));
         response.setLiveOrders(allOrders.stream().filter(this::isLive).count());
@@ -332,7 +332,7 @@ public class OrderService {
         if (hasStatusChange && !previousStatus.equals(nextStatus)) {
             recordStatusHistory(order.getId(), previousStatus, nextStatus, trimToNull(request.getAdminNote()), normalizedActor, now);
             if (nextStatus == OrderStatus.READY) {
-                whatsappService.sendOrderReady(order.getPhone(), order.getId());
+                //whatsappService.sendOrderReady(order.getPhone(), order.getId());
             }
         }
 
@@ -348,7 +348,7 @@ public class OrderService {
         order.setPaymentMethod(PaymentMethod.RAZORPAY);
         orderRepo.save(order);
 
-        whatsappService.sendOrderPlaced(order.getPhone(), order.getId());
+       // whatsappService.sendOrderPlaced(order.getPhone(), order.getId());
     }
 
     @Transactional
@@ -358,7 +358,7 @@ public class OrderService {
         order.setPaymentMethod(PaymentMethod.WALLET);
         orderRepo.save(order);
 
-        whatsappService.sendOrderPlaced(order.getPhone(), order.getId());
+       // whatsappService.sendOrderPlaced(order.getPhone(), order.getId());
     }
 
     private Specification<Order> matchesQuery(String rawQuery) {
@@ -445,10 +445,10 @@ public class OrderService {
             itemSummary.setQuantity(orderItem.getQuantity());
             if (menuItem != null) {
                 itemSummary.setName(menuItem.getName());
-                itemSummary.setPrice(menuItem.getPrice());
+                itemSummary.setPrice(menuItem.getSellingPrice().doubleValue());
                 itemSummary.setImageUrl(menuItem.getImageUrl());
                 itemSummary.setIsVeg(menuItem.getIsVeg());
-                double subtotal = menuItem.getPrice() * orderItem.getQuantity();
+                double subtotal = menuItem.getSellingPrice().doubleValue() * orderItem.getQuantity();
                 itemSummary.setSubtotal(subtotal);
                 total += subtotal;
             }
@@ -493,9 +493,11 @@ public class OrderService {
             return List.of();
         }
         return switch (status) {
-            case PLACED -> List.of(OrderStatus.PREPARING, OrderStatus.READY, OrderStatus.COMPLETED, OrderStatus.CANCELLED);
-            case PREPARING -> List.of(OrderStatus.PLACED, OrderStatus.READY, OrderStatus.COMPLETED, OrderStatus.CANCELLED);
+            case ORDER_PLACED -> List.of(OrderStatus.PREPARING, OrderStatus.READY, OrderStatus.COMPLETED, OrderStatus.CANCELLED);
+            case ACKNOWLEDGED -> null;
+            case PREPARING -> List.of(OrderStatus.ORDER_PLACED, OrderStatus.READY, OrderStatus.COMPLETED, OrderStatus.CANCELLED);
             case READY -> List.of(OrderStatus.PREPARING, OrderStatus.COMPLETED, OrderStatus.CANCELLED);
+            case DELIVERED -> null;
             case COMPLETED, CANCELLED -> List.of();
         };
     }
@@ -510,7 +512,7 @@ public class OrderService {
         }
         long stageAge = minutesBetween(order.getLastStatusChangedAt() != null ? order.getLastStatusChangedAt() : order.getCreatedAt(), now);
         return switch (order.getStatus()) {
-            case PLACED -> stageAge >= 5;
+            case ORDER_PLACED -> stageAge >= 5;
             case PREPARING -> stageAge >= 15;
             case READY -> stageAge >= 10;
             default -> false;
