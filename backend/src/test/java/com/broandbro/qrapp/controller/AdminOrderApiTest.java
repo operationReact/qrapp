@@ -21,6 +21,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Map;
 
@@ -64,10 +65,10 @@ class AdminOrderApiTest {
 
 	@Test
 	void adminDashboardShowsLiveOrdersAndFiltersWork() throws Exception {
-		MenuItem dosa = menuRepository.save(menu("Masala Dosa", 95.0, true));
-		MenuItem coffee = menuRepository.save(menu("Filter Coffee", 40.0, true));
+		MenuItem dosa = menuRepository.save(menu("Masala Dosa", BigDecimal.valueOf(95.0), true));
+		MenuItem coffee = menuRepository.save(menu("Filter Coffee", BigDecimal.valueOf(40.0), true));
 
-		Order placed = order("9000000101", OrderStatus.PLACED, "PAID", LocalDateTime.now().minusMinutes(25));
+		Order placed = order("9000000101", OrderStatus.ORDER_PLACED, "PAID", LocalDateTime.now().minusMinutes(25));
 		placed.setLastStatusChangedAt(LocalDateTime.now().minusMinutes(8));
 		placed.setPriority(OrderPriority.HIGH);
 		placed.setAdminNote("VIP customer");
@@ -111,7 +112,7 @@ class AdminOrderApiTest {
 
 	@Test
 	void adminCanMoveOrderThroughStagesWithPriorityAndNotes() throws Exception {
-		Order order = orderRepository.save(order("9000000201", OrderStatus.PLACED, "PENDING", LocalDateTime.now().minusMinutes(6)));
+		Order order = orderRepository.save(order("9000000201", OrderStatus.ORDER_PLACED, "PENDING", LocalDateTime.now().minusMinutes(6)));
 
 		mockMvc.perform(patch("/admin/orders/{id}", order.getId())
 						.with(httpBasic("admin", "123"))
@@ -151,7 +152,7 @@ class AdminOrderApiTest {
 						.contains("Cannot move order from COMPLETED to PREPARING"));
 	}
 
-	private MenuItem menu(String name, double price, boolean recommended) {
+	private MenuItem menu(String name, BigDecimal price, boolean recommended) {
 		MenuItem menuItem = new MenuItem();
 		menuItem.setName(name);
 		menuItem.setPrice(price);

@@ -1,14 +1,6 @@
 package com.broandbro.qrapp.entity;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Column;
-import jakarta.persistence.Table;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.FetchType;
+import jakarta.persistence.*;
 import lombok.Data;
 import java.math.BigDecimal;
 
@@ -43,6 +35,9 @@ public class MenuItem {
     @Column(name = "is_veg")
     private Boolean isVeg;
 
+    @Transient
+    private BigDecimal price;
+
     /**
      * Optional relation to Shop. Null means in-house item.
      */
@@ -60,7 +55,8 @@ public class MenuItem {
     public BigDecimal getSellingPrice() {
         BigDecimal bp = basePrice == null ? BigDecimal.ZERO : basePrice;
         BigDecimal m = margin == null ? BigDecimal.ZERO : margin;
-        return bp.add(m);
+        price = bp.add(m);
+        return price;
     }
 
 }

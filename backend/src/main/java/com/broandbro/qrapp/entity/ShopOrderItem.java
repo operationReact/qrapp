@@ -23,8 +23,6 @@ public class ShopOrderItem {
     private BigDecimal marginSnapshot;
     @Column(name = "selling_price_snapshot", precision = 19, scale = 2, nullable = false)
     private BigDecimal sellingPriceSnapshot;
-    @Column(name = "product_snapshot", columnDefinition = "JSON")
-    private String productSnapshot;
     @Column(name = "created_at", updatable = false)
     private Instant createdAt;
     @PrePersist

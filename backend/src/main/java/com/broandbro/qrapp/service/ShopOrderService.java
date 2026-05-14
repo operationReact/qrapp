@@ -82,7 +82,6 @@ public class ShopOrderService {
             orderItem.setBasePriceSnapshot(basePrice);
             orderItem.setMarginSnapshot(margin);
             orderItem.setSellingPriceSnapshot(sellingPrice);
-            orderItem.setProductSnapshot(menuItem.getName());
             orderItem.setShopOrder(order);
             orderItems.add(orderItem);
             // Compute total
