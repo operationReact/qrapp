@@ -24,7 +24,7 @@ const SAMPLE_MENU = [
     description: "Rich tomato gravy",
     imageUrl: null,
     isVeg: true,
-    selllingPrice: 220,
+    sellingPrice: 220,
     margin: 0,
   },
   {
@@ -36,7 +36,7 @@ const SAMPLE_MENU = [
     description: "Fragrant basmati biryani",
     imageUrl: null,
     isVeg: false,
-    selllingPrice: 250,
+    sellingPrice: 250,
     margin: 0,
   },
   {
@@ -48,7 +48,7 @@ const SAMPLE_MENU = [
     description: "Fresh greens",
     imageUrl: null,
     isVeg: true,
-    selllingPrice: 120,
+    sellingPrice: 120,
     margin: 0,
   },
 ];
