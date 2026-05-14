@@ -10,7 +10,7 @@ export default function QuantityUpdater({
   return (
     <div
       className={cn(
-        `grid grid-cols-[32px_6px_32px] h-8 place-items-center bg-white ease-out rounded-lg duration-200 w-32px border border-primary-foreground`,
+        `grid grid-cols-[32px_6px_32px] h-8 place-items-center bg-foreground ease-out rounded-lg duration-200 w-32px border border-primary-foreground`,
         className,
       )}
     >
