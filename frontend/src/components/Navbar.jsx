@@ -8,15 +8,6 @@ import {
   getCachedWalletBalance,
   clearWalletCache,
 } from "../services/api";
-import {
-  Archive,
-  ArrowOutRightCircleHalf,
-  Cart,
-  Dashboard,
-  Edit,
-  User,
-  Wallet,
-} from "@boxicons/react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import ModeSwitcher from "./ModeSwitcher";
 import { Separator } from "./ui/separator";
@@ -27,6 +18,15 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
+import {
+  BowlFoodIcon,
+  CubeIcon,
+  ShoppingCartSimpleIcon,
+  SignOutIcon,
+  UserGearIcon,
+  WalletIcon,
+} from "@phosphor-icons/react";
+import { buttonVariants } from "./ui/button";
 
 export default function Navbar() {
   const { cart, openDrawer, closeDrawer } = useCart();
@@ -91,26 +91,26 @@ export default function Navbar() {
       to: "/profile",
       label: "Profile",
       description: "Update your name, phone, and password",
-      icon: Edit,
+      icon: UserGearIcon,
     },
     {
       to: "/orders",
       label: "Orders",
       description: "Track active and past orders",
-      icon: Archive,
+      icon: CubeIcon,
     },
 
     {
       to: "/wallet",
       label: "Wallet",
       description: "Check balance and transactions",
-      icon: Wallet,
+      icon: WalletIcon,
     },
     {
       to: "/",
       label: "Menu",
       description: "Go back to the food menu",
-      icon: Dashboard,
+      icon: BowlFoodIcon,
     },
   ];
 
@@ -163,8 +163,6 @@ export default function Navbar() {
 
           {!isMobile && (
             <button
-              size="icon-lg"
-              variant="ghost"
               onClick={() => {
                 if (shouldOpenCartDrawer) {
                   openDrawer();
@@ -176,19 +174,24 @@ export default function Navbar() {
               aria-label="Open cart"
               className="relative rounded-2xl"
             >
-              <Cart pack="filled" className="size-7" />
-              <span className="absolute -left-1 -bottom-1 align-middle size-5 rounded-full aspect-square grid place-items-center text-center text-[12px] font-semibold bg-primary text-secondary">
-                {cart.length}
-              </span>
+              <ShoppingCartSimpleIcon weight="fill" className="size-7" />
+              {cart.length > 0 && (
+                <span className="absolute will-change-transform origin-center -right-1 -top-1 align-middle h-4 min-w-[1rem] px-px animate-in-scaled rounded-full grid place-items-center text-center text-[12px] font-semibold bg-primary text-secondary">
+                  {cart.length}
+                </span>
+              )}
             </button>
           )}
 
           {!isMobile && !admin && !user && (
             <Link
               to="/login"
-              className="rounded-full transition-colors aspect-square grid place-items-center bg-white border border-primary/5 size-11 text-sm font-medium"
+              className={buttonVariants({
+                size: "lg",
+                className: "text-sm! rounded-lg! font-medium!",
+              })}
             >
-              <User pack="filled" className="size-6 fill-primary" />
+              Login
             </Link>
           )}
 
@@ -231,8 +234,7 @@ export default function Navbar() {
                   onClick={logout}
                   className="hover:bg-red-100 h-10 border border-red-100 focus:bg-red-100! font-medium! focus:text-red-500"
                 >
-                  <ArrowOutRightCircleHalf className="text-red-500 fill-red-500" />{" "}
-                  Log out
+                  <SignOutIcon className="text-red-500 fill-red-500" /> Log out
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

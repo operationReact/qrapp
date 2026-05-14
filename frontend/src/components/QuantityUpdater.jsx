@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { MinusIcon, PlusIcon } from "lucide-react";
+import { MinusIcon, PlusIcon } from "@phosphor-icons/react";
 
 export default function QuantityUpdater({
   qty,
@@ -19,7 +19,7 @@ export default function QuantityUpdater({
         className="flex size-full items-center justify-center text-lg text-gray-600"
         disabled={qty === 0}
       >
-        <MinusIcon className="size-4" />
+        <MinusIcon weight="bold" className="size-4" />
       </button>
       <span className="text-center text-sm font-semibold">{qty}</span>
       <button
@@ -27,7 +27,7 @@ export default function QuantityUpdater({
         onClick={onIncrease}
         className="flex size-full aspect-square justify-center items-center text-lg text-gray-600"
       >
-        <PlusIcon className="size-4" />
+        <PlusIcon weight="bold" className="size-4" />
       </button>
     </div>
   );

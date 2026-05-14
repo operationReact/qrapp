@@ -179,7 +179,7 @@ export default function Profile() {
                           value={form.name}
                           onChange={handleChange("name")}
                           placeholder="Enter Your Name"
-                          className="h-12"
+          className="h-12"
                         />
                       </FieldContent>
                     </Field>

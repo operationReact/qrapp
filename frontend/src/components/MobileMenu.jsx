@@ -1,11 +1,4 @@
 import { useNavigate, useLocation, Link } from "react-router-dom";
-import {
-  ArrowOutRightCircleHalf,
-  BoxAlt,
-  CartAlt2,
-  Compass,
-  User,
-} from "@boxicons/react";
 import { Button, buttonVariants } from "./ui/button";
 import { cn } from "@/lib/utils";
 import {
@@ -20,6 +13,15 @@ import {
 } from "./ui/drawer";
 import { useUserAuth } from "@/context/UserAuthContext";
 import { useIsMobile } from "@/hooks/use-mobile";
+import {
+  CompassIcon,
+  CubeIcon,
+  ShoppingCartSimpleIcon,
+  SignOutIcon,
+  UserCircleIcon,
+  UserIcon,
+} from "@phosphor-icons/react";
+import { useCart } from "@/context/CartContext";
 
 const items = [
   {
@@ -44,19 +46,19 @@ const items = [
   {
     key: "search",
     label: "Explore",
-    icon: Compass,
+    icon: CompassIcon,
     path: "/search",
   },
   {
     key: "cart",
     label: "Cart",
-    icon: CartAlt2,
+    icon: ShoppingCartSimpleIcon,
     path: "/cart",
   },
   {
     key: "account",
     label: "Account",
-    icon: User,
+    icon: UserCircleIcon,
     path: "/profile",
   },
 ];
@@ -77,7 +79,7 @@ function UserAccountDrawerContent() {
               "h-fit text-lg bg-linear-to-br from-primary/5 border-primary/10! gap-0! to-white flex-col p-4 items-start justify-center",
           })}
         >
-          <BoxAlt pack="filled" className="size-6 text-primary mb-2" />{" "}
+          <CubeIcon weight="fill" className="size-6 text-primary mb-2" />{" "}
           <span className="font-semibold!">Your Orders</span>
           <span className="block text-xs text-muted-foreground">
             Track all orders{" "}
@@ -93,7 +95,7 @@ function UserAccountDrawerContent() {
               "h-fit text-lg bg-linear-to-br from-primary/5 border-primary/10! gap-0! to-white flex-col p-4 items-start justify-center",
           })}
         >
-          <User pack="filled" className="size-6 text-primary mb-2" />{" "}
+          <UserIcon weight="fill" className="size-6 text-primary mb-2" />{" "}
           <span className="font-semibold!">Profile</span>
           <span className="block text-xs text-muted-foreground">
             Update your profile{" "}
@@ -106,16 +108,27 @@ function UserAccountDrawerContent() {
             variant: "outline",
             size: "lg",
             className:
-              "h-fit col-span-2 text-lg gap-4 to-white p-4 items-center justify-start border-amber-200! bg-linear-to-br from-[#FFEFBD] to-[#FEEE70]",
+              "h-auto col-span-2 text-lg gap-4 to-white p-4 items-center justify-start border-amber-200! bg-linear-to-br from-[#FFEFBD] to-[#FEEE70]",
           })}
         >
-          <img src="/coin.png" className="size-12 text-primary mb-2" />{" "}
+          <img
+            src="/coin.png"
+            width={48}
+            height={48}
+            loading="eager"
+            className="size-12 text-primary mb-2"
+          />{" "}
           <div>
             <span
               aria-label="Bro Wallet"
               className="font-semibold! inline-block mb-1 text-md"
             >
-              <img src="/bro-wallet.svg" alt="Bro Wallet" />
+              <img
+                height={20}
+                src="/bro-wallet.svg"
+                alt="Bro Wallet"
+                loading="eager"
+              />
             </span>
             <span className="block text-xs text-muted-foreground">
               Check balance and transactions
@@ -142,7 +155,7 @@ function UserAccountDrawerContent() {
           }}
           className="h-12 text-sm! w-full font-medium!"
         >
-          <ArrowOutRightCircleHalf /> Log out
+          <SignOutIcon /> Log out
         </Button>
       </DrawerFooter>
     </>
@@ -182,34 +195,35 @@ function UserUnauthorizedDrawerContent() {
 }
 
 export default function MobileMenu() {
-  const navigate = useNavigate();
   const location = useLocation();
   const isMobile = useIsMobile();
   const { user } = useUserAuth();
+  const { cart, openDrawer, closeDrawer } = useCart();
+
+  const shouldOpenCartDrawer = location.pathname !== "/cart";
 
   if (!isMobile) return null;
 
   return (
     <nav className="fixed border-x left-0 right-0 bottom-0 z-40 w-full max-w-md isolate mx-auto flex justify-between items-end px-2 py-3 bg-white shadow-[0_8px_38px_rgba(0,0,0,0.06)] border-t border-zinc-200/70">
-      {items.slice(0, -1).map((item) => {
+      {items.slice(0, -2).map((item) => {
         const isActive = location.pathname === item.path;
         return (
           <Link
             key={item.key}
             to={item.path}
             className={cn(
-              `flex flex-col items-center transition-transform flex-1 focus:outline-none after:absolute after:scale-y-0 after:top-0 after:w-12 after:h-0.5 after:rounded-b-xl after:bg-primary`,
+              `grid place-items-center transition-transform flex-1 focus:outline-none after:absolute after:scale-y-0 after:top-0 after:w-12 after:h-0.5 after:rounded-b-xl after:bg-primary`,
               isActive && "after:scale-y-100",
             )}
-            viewTransition
             aria-label={item.label}
           >
             <item.icon
-              pack={isActive ? "filled" : "outline"}
-              className={`w-6 h-6 mb-0.5 transition-all ${isActive ? "text-primary scale-110" : "text-zinc-400 group-hover:text-primary"}`}
+              weight={isActive ? "fill" : undefined}
+              className={`w-6 h-6 mb-0.5 transition-all ${isActive ? "text-primary scale-110" : "text-zinc-400"}`}
             />
             <span
-              className={`text-[10px] font-medium ${isActive ? "text-primary" : "text-zinc-400 group-hover:text-primary"}`}
+              className={`text-[10px] font-semibold overflow-y-clip h-full ${isActive ? "text-primary" : "text-zinc-400"}`}
             >
               {item.label}
             </span>
@@ -217,18 +231,50 @@ export default function MobileMenu() {
         );
       })}
 
+      <button
+        onClick={() => {
+          if (shouldOpenCartDrawer) {
+            openDrawer();
+          } else {
+            closeDrawer();
+          }
+        }}
+        className={cn(
+          `grid place-items-center transition-transform flex-1 focus:outline-none after:absolute after:scale-y-0 after:top-0 after:w-12 after:h-0.5 after:rounded-b-xl after:bg-primary`,
+          location.pathname === "/cart" && "after:scale-y-100",
+        )}
+        aria-label={"Cart"}
+      >
+        <span className="relative">
+          <ShoppingCartSimpleIcon
+            weight={location.pathname === "/cart" ? "fill" : undefined}
+            className={`w-6 h-6 mb-0.5 transition-all ${location.pathname === "/cart" ? "text-primary scale-110" : "text-zinc-400"}`}
+          />
+          {cart.length > 0 && (
+            <span className="absolute will-change-transform origin-center -right-1 -top-1 align-middle h-4 min-w-[1rem] animate-in-scaled rounded-full grid place-items-center text-center text-[12px] font-semibold bg-primary text-secondary">
+              {cart.length}
+            </span>
+          )}
+        </span>
+        <span
+          className={`text-[10px] font-semibold overflow-y-clip h-full ${location.pathname === "cart" ? "text-primary" : "text-zinc-400"}`}
+        >
+          Cart
+        </span>
+      </button>
+
       <Drawer>
         <DrawerTrigger asChild>
           <button
             className={cn(
-              `flex flex-col items-center transition-transform flex-1 focus:outline-none after:absolute after:scale-y-0 after:top-0 after:w-12 after:h-0.5 after:rounded-b-xl after:bg-primary`,
+              `grid place-items-center transition-transform flex-1 focus:outline-none after:absolute after:scale-y-0 after:top-0 after:w-12 after:h-0.5 after:rounded-b-xl after:bg-primary`,
               location.pathname === "/account" && "after:scale-y-100",
             )}
             aria-label="Account"
             tabIndex={0}
           >
-            <User
-              pack="outline"
+            <UserCircleIcon
+              weight="fill"
               className={`w-6 h-6 mb-0.5 text-zinc-400 group-hover:text-primary transition-all`}
             />
             <span

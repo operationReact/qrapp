@@ -1,8 +1,8 @@
-import { PlusIcon } from "lucide-react";
 import { Button } from "./ui/button";
 import QuantityUpdater from "./QuantityUpdater";
 import { motion } from "motion/react";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { PlusIcon } from "@phosphor-icons/react";
 
 export default function ItemActionButton({ qty, onAdd, onDecrease }) {
   const isMobile = useIsMobile();
@@ -28,7 +28,7 @@ export default function ItemActionButton({ qty, onAdd, onDecrease }) {
           onClick={onAdd}
           disabled={qty > 0}
         >
-          <PlusIcon className="size-4" />
+          <PlusIcon weight="bold" className="size-4" />
 
           <span className="hidden md:inline animate-in transition-opacity duration-200">
             Add
