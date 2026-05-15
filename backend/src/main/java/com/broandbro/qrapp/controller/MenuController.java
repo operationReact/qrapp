@@ -1,7 +1,11 @@
 package com.broandbro.qrapp.controller;
 
 import com.broandbro.qrapp.entity.MenuItem;
+import com.broandbro.qrapp.entity.Category;
+import com.broandbro.qrapp.entity.Tag;
 import com.broandbro.qrapp.repository.MenuRepository;
+import com.broandbro.qrapp.repository.CategoryRepository;
+import com.broandbro.qrapp.repository.TagRepository;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -56,6 +60,8 @@ public class MenuController {
     private static final int MAX_RECOMMENDED_LIMIT = 24;
 
     private final MenuRepository repo;
+    private final CategoryRepository categoryRepository;
+    private final TagRepository tagRepository;
 
     // helper to store uploaded file under resources/static/uploads and return public URL
     private String storeUploadedFile(MultipartFile file) throws IOException {
@@ -72,20 +78,18 @@ public class MenuController {
     }
 
     @GetMapping
-    @Cacheable(cacheNames = "menu", key = "T(java.lang.String).format('%s|%s|%s|%s|%s|%s', #isVeg, #category, #recommended, #available, #page, #size)")
+    @Cacheable(cacheNames = "menu", key = "T(java.lang.String).format('%s|%s|%s|%s|%s|%s', #isVeg, #categoryId, #recommended, #available, #page, #size)")
     public List<MenuItem> getMenu(
             @RequestParam(value = "isVeg", required = false) Boolean isVeg,
-            @RequestParam(value = "category", required = false) String category,
+            @RequestParam(value = "categoryId", required = false) Long categoryId,
             @RequestParam(value = "recommended", required = false) Boolean recommended,
             @RequestParam(value = "available", required = false) Boolean available,
             @RequestParam(value = "page", defaultValue = "0") Integer page,
             @RequestParam(value = "size", defaultValue = "200") Integer size
     ) {
-        // Normalise blank category to null so the JPQL IS NULL check works correctly
-        String cat = (category == null || category.isBlank()) ? null : category.trim();
         int safePage = page == null ? DEFAULT_MENU_PAGE : Math.max(0, page);
         int safeSize = size == null ? DEFAULT_MENU_SIZE : Math.max(1, Math.min(size, MAX_MENU_SIZE));
-        return repo.findByFilters(isVeg, cat, recommended, available, PageRequest.of(safePage, safeSize));
+        return repo.findByFilters(isVeg, categoryId, recommended, available, PageRequest.of(safePage, safeSize));
     }
 
     @GetMapping("/recommended")
@@ -113,11 +117,11 @@ public class MenuController {
     public ResponseEntity<?> addMenuItemMultipart(
             @RequestPart("name") String name,
             @RequestPart(value = "price", required = false) String priceStr,
-            @RequestPart(value = "category", required = false) String category,
+            @RequestPart(value = "categoryId", required = false) String categoryIdStr,
             @RequestPart(value = "description", required = false) String description,
             @RequestPart(value = "available", required = false) String availableStr,
             @RequestPart(value = "recommended", required = false) String recommendedStr,
-            @RequestPart(value = "tag", required = false) String tag,
+            @RequestPart(value = "tagId", required = false) String tagIdStr,
             @RequestPart(value = "isVeg", required = false) String isVegStr,
             @RequestPart(value = "image", required = false) MultipartFile image
     ) {
@@ -134,11 +138,35 @@ public class MenuController {
                 }
             }
             item.setBasePrice(new java.math.BigDecimal(price));
-            item.setCategory(category);
+
+            // Set category if categoryId is provided
+            if (categoryIdStr != null && !categoryIdStr.isBlank()) {
+                try {
+                    Long categoryId = Long.parseLong(categoryIdStr);
+                    Category category = categoryRepository.findById(categoryId)
+                            .orElseThrow(() -> new RuntimeException("Category not found with id: " + categoryId));
+                    item.setCategory(category);
+                } catch (NumberFormatException nfe) {
+                    return ResponseEntity.badRequest().body("Invalid category ID format");
+                }
+            }
+
             item.setDescription(description);
             item.setAvailable(availableStr == null || Boolean.parseBoolean(availableStr));
             item.setRecommended(Boolean.parseBoolean(recommendedStr));
-            item.setTag(tag);
+
+            // Set tag if tagId is provided
+            if (tagIdStr != null && !tagIdStr.isBlank()) {
+                try {
+                    Long tagId = Long.parseLong(tagIdStr);
+                    Tag tag = tagRepository.findById(tagId)
+                            .orElseThrow(() -> new RuntimeException("Tag not found with id: " + tagId));
+                    item.setTag(tag);
+                } catch (NumberFormatException nfe) {
+                    return ResponseEntity.badRequest().body("Invalid tag ID format");
+                }
+            }
+
             if (isVegStr != null) {
                 item.setIsVeg(Boolean.parseBoolean(isVegStr));
             }
@@ -153,6 +181,9 @@ public class MenuController {
             }
             MenuItem saved = repo.save(item);
             return ResponseEntity.status(HttpStatus.CREATED).body(saved);
+        } catch (RuntimeException ex) {
+            log.error("Failed to create menu item (multipart)", ex);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
         } catch (Exception ex) {
             log.error("Failed to create menu item (multipart)", ex);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to create menu item");
@@ -180,22 +211,36 @@ public class MenuController {
                     // params
                     String name = mreq.getParameter("name");
                     String priceStr = mreq.getParameter("price");
-                    String category = mreq.getParameter("category");
+                    String categoryIdStr = mreq.getParameter("categoryId");
                     String description = mreq.getParameter("description");
                     String availableStr = mreq.getParameter("available");
                     String recommendedStr = mreq.getParameter("recommended");
-                    String tag = mreq.getParameter("tag");
+                    String tagIdStr = mreq.getParameter("tagId");
                     String isVegStr = mreq.getParameter("isVeg");
 
                     if (name != null) existing.setName(name);
                     if (priceStr != null && !priceStr.isBlank()) {
                         try { existing.setBasePrice(new java.math.BigDecimal(priceStr)); } catch (Exception ex) { /* ignore */ }
                     }
-                    if (category != null) existing.setCategory(category);
+                    if (categoryIdStr != null && !categoryIdStr.isBlank()) {
+                        try {
+                            Long categoryId = Long.parseLong(categoryIdStr);
+                            Category category = categoryRepository.findById(categoryId)
+                                    .orElseThrow(() -> new RuntimeException("Category not found with id: " + categoryId));
+                            existing.setCategory(category);
+                        } catch (NumberFormatException ex) { /* ignore */ }
+                    }
                     if (description != null) existing.setDescription(description);
                     if (availableStr != null) existing.setAvailable(Boolean.parseBoolean(availableStr));
                     if (recommendedStr != null) existing.setRecommended(Boolean.parseBoolean(recommendedStr));
-                    if (tag != null) existing.setTag(tag);
+                    if (tagIdStr != null && !tagIdStr.isBlank()) {
+                        try {
+                            Long tagId = Long.parseLong(tagIdStr);
+                            Tag tag = tagRepository.findById(tagId)
+                                    .orElseThrow(() -> new RuntimeException("Tag not found with id: " + tagId));
+                            existing.setTag(tag);
+                        } catch (NumberFormatException ex) { /* ignore */ }
+                    }
                     if (isVegStr != null) existing.setIsVeg(Boolean.parseBoolean(isVegStr));
 
                     org.springframework.web.multipart.MultipartFile file = mreq.getFile("image");
@@ -230,7 +275,17 @@ public class MenuController {
                         existing.setBasePrice(new java.math.BigDecimal(pd));
                     } catch (Exception ex) { /* ignore invalid price */ }
                 }
-                if (payload.containsKey("category")) existing.setCategory((String) payload.getOrDefault("category", existing.getCategory()));
+                if (payload.containsKey("categoryId")) {
+                    Object c = payload.get("categoryId");
+                    if (c != null) {
+                        try {
+                            Long categoryId = c instanceof Number ? ((Number)c).longValue() : Long.parseLong(String.valueOf(c));
+                            Category category = categoryRepository.findById(categoryId)
+                                    .orElseThrow(() -> new RuntimeException("Category not found with id: " + categoryId));
+                            existing.setCategory(category);
+                        } catch (Exception ex) { /* ignore */ }
+                    }
+                }
                 if (payload.containsKey("description")) existing.setDescription((String) payload.getOrDefault("description", existing.getDescription()));
                 if (payload.containsKey("available")) {
                     Object a = payload.get("available");
@@ -242,7 +297,17 @@ public class MenuController {
                     boolean rec = r instanceof Boolean ? (Boolean) r : Boolean.parseBoolean(String.valueOf(r));
                     existing.setRecommended(rec);
                 }
-                if (payload.containsKey("tag")) existing.setTag((String) payload.getOrDefault("tag", existing.getTag()));
+                if (payload.containsKey("tagId")) {
+                    Object t = payload.get("tagId");
+                    if (t != null) {
+                        try {
+                            Long tagId = t instanceof Number ? ((Number)t).longValue() : Long.parseLong(String.valueOf(t));
+                            Tag tag = tagRepository.findById(tagId)
+                                    .orElseThrow(() -> new RuntimeException("Tag not found with id: " + tagId));
+                            existing.setTag(tag);
+                        } catch (Exception ex) { /* ignore */ }
+                    }
+                }
                 if (payload.containsKey("isVeg")) {
                     Object v = payload.get("isVeg");
                     boolean iv = v instanceof Boolean ? (Boolean)v : Boolean.parseBoolean(String.valueOf(v));

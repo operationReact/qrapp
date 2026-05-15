@@ -6,6 +6,8 @@ import com.broandbro.qrapp.entity.OrderItem;
 import com.broandbro.qrapp.entity.User;
 import com.broandbro.qrapp.entity.Wallet;
 import com.broandbro.qrapp.entity.WalletTransaction;
+import com.broandbro.qrapp.entity.Category;
+import com.broandbro.qrapp.entity.Tag;
 import com.broandbro.qrapp.enums.OrderStatus;
 import com.broandbro.qrapp.enums.TransactionStatus;
 import com.broandbro.qrapp.enums.TransactionType;
@@ -15,6 +17,8 @@ import com.broandbro.qrapp.repository.OrderRepository;
 import com.broandbro.qrapp.repository.UserRepository;
 import com.broandbro.qrapp.repository.WalletRepository;
 import com.broandbro.qrapp.repository.WalletTransactionRepository;
+import com.broandbro.qrapp.repository.CategoryRepository;
+import com.broandbro.qrapp.repository.TagRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
@@ -39,6 +43,8 @@ public class DataLoader implements CommandLineRunner {
     private final WalletTransactionRepository walletTransactionRepository;
     private final OrderRepository orderRepository;
     private final OrderItemRepository orderItemRepository;
+    private final CategoryRepository categoryRepository;
+    private final TagRepository tagRepository;
     private final PasswordEncoder passwordEncoder;
 
     public DataLoader(MenuRepository menuRepository,
@@ -47,6 +53,8 @@ public class DataLoader implements CommandLineRunner {
                       WalletTransactionRepository walletTransactionRepository,
                       OrderRepository orderRepository,
                       OrderItemRepository orderItemRepository,
+                      CategoryRepository categoryRepository,
+                      TagRepository tagRepository,
                       PasswordEncoder passwordEncoder) {
         this.menuRepository = menuRepository;
         this.userRepository = userRepository;
@@ -54,20 +62,26 @@ public class DataLoader implements CommandLineRunner {
         this.walletTransactionRepository = walletTransactionRepository;
         this.orderRepository = orderRepository;
         this.orderItemRepository = orderItemRepository;
+        this.categoryRepository = categoryRepository;
+        this.tagRepository = tagRepository;
         this.passwordEncoder = passwordEncoder;
     }
 
     @Override
     public void run(String... args) {
         try {
-            List<MenuItem> menuItems = seedMenuItemsIfNeeded();
+            List<Category> categories = seedCategoriesIfNeeded();
+            List<Tag> tags = seedTagsIfNeeded();
+            List<MenuItem> menuItems = seedMenuItemsIfNeeded(categories, tags);
             List<User> users = seedUsersIfNeeded();
             List<Wallet> wallets = seedWalletsIfNeeded(users);
             seedWalletTransactionsIfNeeded(wallets);
             List<Order> orders = seedOrdersIfNeeded(users);
             seedOrderItemsIfNeeded(menuItems, orders);
 
-            log.info("Mock data check complete: menu={}, users={}, wallets={}, walletTransactions={}, orders={}, orderItems={}",
+            log.info("Mock data check complete: categories={}, tags={}, menu={}, users={}, wallets={}, walletTransactions={}, orders={}, orderItems={}",
+                    categoryRepository.count(),
+                    tagRepository.count(),
                     menuRepository.count(),
                     userRepository.count(),
                     walletRepository.count(),
@@ -79,7 +93,45 @@ public class DataLoader implements CommandLineRunner {
         }
     }
 
-    private List<MenuItem> seedMenuItemsIfNeeded() {
+    private List<Category> seedCategoriesIfNeeded() {
+        if (categoryRepository.count() > 0) {
+            log.info("Categories already present - skipping category seed");
+            return categoryRepository.findAll();
+        }
+
+        List<Category> categories = new ArrayList<>();
+        categories.add(new Category(null, "Breakfast Specials", "Healthy breakfast options to start your day"));
+        categories.add(new Category(null, "Lunch Meals", "Full meal combinations for lunch"));
+        categories.add(new Category(null, "Sandwiches", "Variety of delicious sandwiches"));
+        categories.add(new Category(null, "Maggi Corner", "Instant noodle dishes"));
+        categories.add(new Category(null, "Fresh & Healthy Bowls", "Nutritious bowl options"));
+        categories.add(new Category(null, "Dosa Corner", "South Indian dosa varieties"));
+        categories.add(new Category(null, "Sides", "Side dishes and extras"));
+
+        List<Category> saved = categoryRepository.saveAll(categories);
+        log.info("Seeded {} categories", saved.size());
+        return saved;
+    }
+
+    private List<Tag> seedTagsIfNeeded() {
+        if (tagRepository.count() > 0) {
+            log.info("Tags already present - skipping tag seed");
+            return tagRepository.findAll();
+        }
+
+        List<Tag> tags = new ArrayList<>();
+        tags.add(new Tag(null, "Spicy"));
+        tags.add(new Tag(null, "Mild"));
+        tags.add(new Tag(null, "Sweet"));
+        tags.add(new Tag(null, "Savory"));
+        tags.add(new Tag(null, "Premium"));
+
+        List<Tag> saved = tagRepository.saveAll(tags);
+        log.info("Seeded {} tags", saved.size());
+        return saved;
+    }
+
+    private List<MenuItem> seedMenuItemsIfNeeded(List<Category> categories, List<Tag> tags) {
         if (menuRepository.count() > 0) {
             log.info("Menu already present - skipping menu seed");
             return menuRepository.findAll();
@@ -93,35 +145,41 @@ public class DataLoader implements CommandLineRunner {
         final String dosaImg = "https://images.unsplash.com/photo-1604908177522-3b8de1df1dd8?auto=format&fit=crop&w=800&q=80";
         final String sidesImg = "https://images.unsplash.com/photo-1542834369-f10ebf06d3fb?auto=format&fit=crop&w=800&q=80";
 
+        // Create a map for easy lookup of categories by name
+        java.util.Map<String, Category> categoryMap = new java.util.HashMap<>();
+        for (Category cat : categories) {
+            categoryMap.put(cat.getName(), cat);
+        }
+
         List<MenuItem> items = new ArrayList<>();
-        items.add(menuItem("Healthy Oat Meal", 99, "Breakfast Specials", true, true, "", breakfastImg, true));
-        items.add(menuItem("Oats Banana Smoothie", 89, "Breakfast Specials", true, true, "", breakfastImg, true));
-        items.add(menuItem("Peanut Butter Toast", 89, "Breakfast Specials", true, false, "", breakfastImg, true));
-        items.add(menuItem("Puri Bhaji", 49, "Breakfast Specials", true, false, "", breakfastImg, true));
-        items.add(menuItem("Combo Meal", 99, "Lunch Meals", true, false, "", lunchImg, true));
-        items.add(menuItem("Chapathi Combo", 99, "Lunch Meals", true, false, "", lunchImg, true));
-        items.add(menuItem("Mini Thali", 129, "Lunch Meals", true, false, "", lunchImg, true));
-        items.add(menuItem("Full Meal Thali", 159, "Lunch Meals", true, false, "", lunchImg, true));
-        items.add(menuItem("Veg Cheese Sandwich", 69, "Sandwiches", true, true, "", sandwichImg, true));
-        items.add(menuItem("Paneer Cheese Sandwich", 89, "Sandwiches", true, false, "", sandwichImg, true));
-        items.add(menuItem("Corn Cheese Sandwich", 79, "Sandwiches", true, false, "", sandwichImg, true));
-        items.add(menuItem("Corn Sandwich", 69, "Sandwiches", true, false, "", sandwichImg, true));
-        items.add(menuItem("Cheese Sandwich", 49, "Sandwiches", true, false, "", sandwichImg, true));
-        items.add(menuItem("Fried Maggi", 69, "Maggi Corner", true, false, "", maggiImg, false));
-        items.add(menuItem("Veg Maggi", 59, "Maggi Corner", true, true, "", maggiImg, true));
-        items.add(menuItem("Sweet Corn Cup", 59, "Fresh & Healthy Bowls", true, true, "", bowlsImg, true));
-        items.add(menuItem("Sprouts Chaat", 79, "Fresh & Healthy Bowls", true, false, "", bowlsImg, true));
-        items.add(menuItem("Fruit Bowl", 49, "Fresh & Healthy Bowls", true, false, "", bowlsImg, true));
-        items.add(menuItem("Yogurt Fruit Bowl", 169, "Fresh & Healthy Bowls", true, false, "", bowlsImg, true));
-        items.add(menuItem("Plain Dosa", 39, "Dosa Corner", true, false, "", dosaImg, true));
-        items.add(menuItem("Onion Dosa", 49, "Dosa Corner", true, false, "", dosaImg, true));
-        items.add(menuItem("Ghee Dosa", 49, "Dosa Corner", true, false, "", dosaImg, true));
-        items.add(menuItem("Karam Dosa", 49, "Dosa Corner", true, false, "", dosaImg, true));
-        items.add(menuItem("Masala Dosa", 59, "Dosa Corner", true, false, "", dosaImg, true));
-        items.add(menuItem("Ghee Karam Dosa", 59, "Dosa Corner", true, false, "", dosaImg, true));
-        items.add(menuItem("Chicken Sandwich", 119, "Sandwiches", true, true, "Grilled chicken with mayo", sandwichImg, false));
-        items.add(menuItem("Chicken Thali", 189, "Lunch Meals", true, false, "Rice, curry and grilled chicken", lunchImg, false));
-        items.add(menuItem("Fried Chicken Pieces", 149, "Sides", true, false, "Crispy fried chicken", sidesImg, false));
+        items.add(menuItem("Healthy Oat Meal", 99, categoryMap.get("Breakfast Specials"), true, true, "", breakfastImg, true));
+        items.add(menuItem("Oats Banana Smoothie", 89, categoryMap.get("Breakfast Specials"), true, true, "", breakfastImg, true));
+        items.add(menuItem("Peanut Butter Toast", 89, categoryMap.get("Breakfast Specials"), true, false, "", breakfastImg, true));
+        items.add(menuItem("Puri Bhaji", 49, categoryMap.get("Breakfast Specials"), true, false, "", breakfastImg, true));
+        items.add(menuItem("Combo Meal", 99, categoryMap.get("Lunch Meals"), true, false, "", lunchImg, true));
+        items.add(menuItem("Chapathi Combo", 99, categoryMap.get("Lunch Meals"), true, false, "", lunchImg, true));
+        items.add(menuItem("Mini Thali", 129, categoryMap.get("Lunch Meals"), true, false, "", lunchImg, true));
+        items.add(menuItem("Full Meal Thali", 159, categoryMap.get("Lunch Meals"), true, false, "", lunchImg, true));
+        items.add(menuItem("Veg Cheese Sandwich", 69, categoryMap.get("Sandwiches"), true, true, "", sandwichImg, true));
+        items.add(menuItem("Paneer Cheese Sandwich", 89, categoryMap.get("Sandwiches"), true, false, "", sandwichImg, true));
+        items.add(menuItem("Corn Cheese Sandwich", 79, categoryMap.get("Sandwiches"), true, false, "", sandwichImg, true));
+        items.add(menuItem("Corn Sandwich", 69, categoryMap.get("Sandwiches"), true, false, "", sandwichImg, true));
+        items.add(menuItem("Cheese Sandwich", 49, categoryMap.get("Sandwiches"), true, false, "", sandwichImg, true));
+        items.add(menuItem("Fried Maggi", 69, categoryMap.get("Maggi Corner"), true, false, "", maggiImg, false));
+        items.add(menuItem("Veg Maggi", 59, categoryMap.get("Maggi Corner"), true, true, "", maggiImg, true));
+        items.add(menuItem("Sweet Corn Cup", 59, categoryMap.get("Fresh & Healthy Bowls"), true, true, "", bowlsImg, true));
+        items.add(menuItem("Sprouts Chaat", 79, categoryMap.get("Fresh & Healthy Bowls"), true, false, "", bowlsImg, true));
+        items.add(menuItem("Fruit Bowl", 49, categoryMap.get("Fresh & Healthy Bowls"), true, false, "", bowlsImg, true));
+        items.add(menuItem("Yogurt Fruit Bowl", 169, categoryMap.get("Fresh & Healthy Bowls"), true, false, "", bowlsImg, true));
+        items.add(menuItem("Plain Dosa", 39, categoryMap.get("Dosa Corner"), true, false, "", dosaImg, true));
+        items.add(menuItem("Onion Dosa", 49, categoryMap.get("Dosa Corner"), true, false, "", dosaImg, true));
+        items.add(menuItem("Ghee Dosa", 49, categoryMap.get("Dosa Corner"), true, false, "", dosaImg, true));
+        items.add(menuItem("Karam Dosa", 49, categoryMap.get("Dosa Corner"), true, false, "", dosaImg, true));
+        items.add(menuItem("Masala Dosa", 59, categoryMap.get("Dosa Corner"), true, false, "", dosaImg, true));
+        items.add(menuItem("Ghee Karam Dosa", 59, categoryMap.get("Dosa Corner"), true, false, "", dosaImg, true));
+        items.add(menuItem("Chicken Sandwich", 119, categoryMap.get("Sandwiches"), true, true, "Grilled chicken with mayo", sandwichImg, false));
+        items.add(menuItem("Chicken Thali", 189, categoryMap.get("Lunch Meals"), true, false, "Rice, curry and grilled chicken", lunchImg, false));
+        items.add(menuItem("Fried Chicken Pieces", 149, categoryMap.get("Sides"), true, false, "Crispy fried chicken", sidesImg, false));
 
         List<MenuItem> saved = menuRepository.saveAll(items);
         log.info("Seeded {} mock menu items", saved.size());
@@ -295,7 +353,7 @@ public class DataLoader implements CommandLineRunner {
         log.info("Seeded {} mock order items", items.size());
     }
 
-    private MenuItem menuItem(String name, double price, String category, boolean available, boolean recommended,
+    private MenuItem menuItem(String name, double price, Category category, boolean available, boolean recommended,
                               String description, String imageUrl, Boolean isVeg) {
         MenuItem item = new MenuItem();
         item.setName(name);
