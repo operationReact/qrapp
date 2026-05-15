@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import API, { loginUser } from "../services/api";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import API, { generateOTP, loginUser, verifyOTP } from "../services/api";
 import { setUserAuth } from "../services/api";
 import { useUserAuth } from "../context/UserAuthContext";
 import { Link } from "react-router-dom";
@@ -13,18 +13,43 @@ import OTPVerifyCard from "@/components/OTPVerifyCard";
 export default function Register() {
   const navigate = useNavigate();
   const { setUser } = useUserAuth();
+  const [params, setSearchParams] = useSearchParams();
 
   const [phone, setPhone] = useState("");
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [otp, setOTP] = useState("");
 
-  const submit = async (e) => {
+  const handleGenerateOTP = async (e) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
     try {
+      await generateOTP({ userName: name, phone });
+      setSearchParams("verify");
+    } catch (err) {
+      console.error("generateOTP failed", err);
+      setError(err?.response?.data || "Unable to generate OTP");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const createAccount = async (e) => {
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
+    try {
+      const otpVerified = await verifyOTP({ phone, otp: params.get("otp") });
+
+      if (otpVerified.data?.sucesss !== true) {
+        setError("OTP verification failed");
+        setLoading(false);
+        return;
+      }
+
       await API.post("/auth/register", { phone, password, name });
       // auto-login after register
       const res = await loginUser({ phone, password });
@@ -66,77 +91,90 @@ export default function Register() {
           </Link>
         </div>
         <div className="rounded-xl p-4 pt-2 h-fit">
-          <img
-            src="/login-banner.jpg"
-            alt="Your Easy Access To Delicious Meals"
-            className="w-full border border-muted login-banner rounded-[14px] overflow-hidden"
-          />
-          <h1 className="mb-2 mt-4 text-2xl font-semibold">Create Account</h1>
-          {/* <p className="mb-4 text-sm text-gray-500">Register to track orders and use wallet checkout faster.</p> */}
-          {error && (
-            <div className="mb-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
-              {error}
-            </div>
+          {params.has("verify") ? (
+            <OTPVerifyCard
+              title="Verify Your Number"
+              description="Enter the OTP sent to your phone"
+              verificationMedium="+91-600025634"
+              onVerify={createAccount}
+            />
+          ) : (
+            <>
+              <img
+                src="/login-banner.jpg"
+                alt="Your Easy Access To Delicious Meals"
+                className="w-full border border-muted login-banner rounded-[14px] overflow-hidden"
+              />
+              <h1 className="mb-2 mt-4 text-2xl font-semibold">
+                Create Account
+              </h1>
+              {/* <p className="mb-4 text-sm text-gray-500">Register to track orders and use wallet checkout faster.</p> */}
+              {error && (
+                <div className="mb-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+                  {error}
+                </div>
+              )}
+              <form onSubmit={handleGenerateOTP} className="space-y-4">
+                <Field>
+                  <FieldLabel>Name</FieldLabel>
+                  <FieldContent>
+                    <Input
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="Your Name"
+                      className="h-10"
+                    />
+                  </FieldContent>
+                </Field>
+                <Field>
+                  <FieldLabel>Phone Number</FieldLabel>
+                  <FieldContent>
+                    <Input
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      required
+                      placeholder="1234567890"
+                      className="h-10"
+                    />
+                  </FieldContent>
+                </Field>
+                <Field>
+                  <FieldLabel>Password</FieldLabel>
+                  <FieldContent>
+                    <Input
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                      className="h-10"
+                    />
+                  </FieldContent>
+                </Field>
+                <div className="flex mt-5 flex-col gap-2">
+                  <Button
+                    type="submit"
+                    disabled={loading}
+                    className="h-10 text-sm! font-medium!"
+                  >
+                    {loading ? "Creating..." : "Create Account"}
+                  </Button>
+                  <Link
+                    className={buttonVariants({ variant: "ghost", size: "lg" })}
+                    to="/login"
+                  >
+                    Already Have An Account?
+                  </Link>
+                </div>
+              </form>
+            </>
           )}
-          <form onSubmit={submit} className="space-y-4">
-            <Field>
-              <FieldLabel>Name</FieldLabel>
-              <FieldContent>
-                <Input
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Your Name"
-                  className="h-10"
-                />
-              </FieldContent>
-            </Field>
-            <Field>
-              <FieldLabel>Phone Number</FieldLabel>
-              <FieldContent>
-                <Input
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  required
-                  placeholder="1234567890"
-                  className="h-10"
-                />
-              </FieldContent>
-            </Field>
-            <Field>
-              <FieldLabel>Password</FieldLabel>
-              <FieldContent>
-                <Input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  className="h-10"
-                />
-              </FieldContent>
-            </Field>
-            <div className="flex mt-5 flex-col gap-2">
-              <Button
-                type="submit"
-                disabled={loading}
-                className="h-10 text-sm! font-medium!"
-              >
-                {loading ? "Creating..." : "Create Account"}
-              </Button>
-              <Link
-                className={buttonVariants({ variant: "ghost", size: "lg" })}
-                to="/login"
-              >
-                Already Have An Account?
-              </Link>
-            </div>
-          </form>
         </div>
-        <OTPVerifyCard
+        {/* <OTPVerifyCard
           title="Verify Your Number"
           description="Enter the OTP sent to your phone"
           verificationMedium="+91-600025634"
           onVerify={() => {}}
-        />
+        />*/}
       </div>
     </div>
   );

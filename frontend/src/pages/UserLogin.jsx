@@ -88,24 +88,23 @@ export default function UserLogin() {
   };
 
   return (
-    <div className="page-shell flex w-full min-h-screen justify-center py-6 sm:px-4">
+    <div className="page-shell flex min-h-screen items-center justify-center py-6 sm:px-4">
       <div className="w-full max-w-md">
-        <div className="px-4 sm:px-0">
+        <div className="px-4">
           <Link
             className={buttonVariants({
-              size: "icon",
-              variant: "outline",
-              className:
-                "shadow-sm border-border! shadow-red-500/10 sm:absolute sm:left-4 text-zinc-600 hover:text-zinc-600/90",
+              size: "xs",
+              variant: "ghost",
+              className: "",
             })}
             to="/"
             title="Back To Menu"
           >
             <CaretLeftIcon weight="bold" />
-            <span className="sr-only">Back To Menu</span>
+            <span>Back To Menu</span>
           </Link>
         </div>
-        <div className="rounded-2xl p-4 sm:p-6 sm:shadow-lg sm:shadow-red-300/10 h-fit sm:bg-white/20">
+        <div className="rounded-xl p-4 pt-2 h-fit">
           <img
             src="/login-banner.jpg"
             alt="Your Easy Access To Delicious Meals"
