@@ -92,6 +92,7 @@ public class MenuController {
         return repo.findByFilters(isVeg, categoryId, recommended, available, PageRequest.of(safePage, safeSize));
     }
 
+
     @GetMapping("/recommended")
     @Cacheable(cacheNames = "menuRecommended", key = "#limit == null ? 'default' : #limit")
     public List<MenuItem> getRecommendedMenu(@RequestParam(value = "limit", required = false) Integer limit) {
