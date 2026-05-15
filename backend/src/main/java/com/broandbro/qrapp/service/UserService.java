@@ -158,6 +158,8 @@ public class UserService {
         r.setId(u.getId());
         r.setPhone(u.getPhone());
         r.setName(u.getName());
+        r.setIsAdmin(u.getIsAdmin());
+        r.setIsSuperUser(u.getIsSuperUser());
         return r;
     }
 }

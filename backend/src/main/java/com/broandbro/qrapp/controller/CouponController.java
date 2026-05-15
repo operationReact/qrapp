@@ -95,9 +95,12 @@ public class CouponController {
     /**
      * Admin: Create a new coupon.
      * POST /api/coupons
+     *
+     * ONLY SUPER USERS can create coupons.
+     * Regular admins can only manage existing coupons.
      */
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('SUPERUSER')")
     public ResponseEntity<CouponResponse> createCoupon(
             @RequestBody CouponCreateUpdateRequest request) {
 

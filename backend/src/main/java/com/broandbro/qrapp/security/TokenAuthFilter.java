@@ -15,6 +15,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 @Slf4j
@@ -33,10 +34,19 @@ public class TokenAuthFilter extends OncePerRequestFilter {
 
             User u = userService.findByToken(token).orElse(null);
             if (u != null) {
-                log.info("User found with token! Phone: {}, ID: {}", u.getPhone(), u.getId());
-                var auth = new UsernamePasswordAuthenticationToken(u.getPhone(), null, List.of(new SimpleGrantedAuthority("ROLE_USER")));
+                log.info("User found with token! Phone: {}, ID: {}, IsAdmin: {}, IsSuperUser: {}",
+                    u.getPhone(), u.getId(), u.getIsAdmin(), u.getIsSuperUser());
+                List<SimpleGrantedAuthority> authorities = new ArrayList<>();
+                authorities.add(new SimpleGrantedAuthority("ROLE_USER"));
+                if (u.getIsAdmin()) {
+                    authorities.add(new SimpleGrantedAuthority("ROLE_ADMIN"));
+                }
+                if (u.getIsSuperUser()) {
+                    authorities.add(new SimpleGrantedAuthority("ROLE_SUPERUSER"));
+                }
+                var auth = new UsernamePasswordAuthenticationToken(u.getPhone(), null, authorities);
                 SecurityContextHolder.getContext().setAuthentication(auth);
-                log.info("Authentication set in SecurityContext for user: {}", u.getPhone());
+                log.info("Authentication set in SecurityContext for user: {} with roles: {}", u.getPhone(), authorities);
             } else {
                 log.warn("No user found with token: {}", token);
             }

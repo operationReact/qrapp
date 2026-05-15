@@ -30,9 +30,16 @@ export default function UserLogin() {
 
   useEffect(() => {
     if (user && user.token) {
-      navigate(
-        returnPath && !returnPath.startsWith("/admin") ? returnPath : "/",
-      );
+      // Check if user is admin or super user - redirect to admin dashboard
+      if (user.info?.isAdmin || user.info?.isSuperUser) {
+        navigate(
+          returnPath && returnPath.startsWith("/admin") ? returnPath : "/admin",
+        );
+      } else {
+        navigate(
+          returnPath && !returnPath.startsWith("/admin") ? returnPath : "/",
+        );
+      }
     }
     if (admin && admin.username && admin.password) {
       navigate(

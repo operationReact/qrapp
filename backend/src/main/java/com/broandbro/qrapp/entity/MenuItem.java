@@ -22,7 +22,7 @@ public class MenuItem {
     @Column(name = "margin", precision = 19, scale = 2, nullable = false)
     private BigDecimal margin = BigDecimal.ZERO;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "category_id")
     private Category category;
 
@@ -35,7 +35,7 @@ public class MenuItem {
     @Column(name = "image_url")
     private String imageUrl;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "tag_id")
     private Tag tag;
     @Column(name = "is_veg")
@@ -47,7 +47,7 @@ public class MenuItem {
     /**
      * Optional relation to Shop. Null means in-house item.
      */
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "shop_id")
     private Shop shop;
 
