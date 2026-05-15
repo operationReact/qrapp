@@ -17,13 +17,13 @@ public interface MenuRepository extends JpaRepository<MenuItem, Long> {
      */
     @Query("SELECT m FROM MenuItem m WHERE " +
            "(:isVeg    IS NULL OR m.isVeg       = :isVeg)    AND " +
-           "(:category IS NULL OR m.category = :category) AND " +
+           "(:categoryId IS NULL OR m.category.id = :categoryId) AND " +
            "(:recommended IS NULL OR m.recommended = :recommended) AND " +
            "(:available   IS NULL OR m.available   = :available) " +
            "ORDER BY m.id ASC")
     List<MenuItem> findByFilters(
             @Param("isVeg")       Boolean isVeg,
-            @Param("category")    String  category,
+            @Param("categoryId")    Long  categoryId,
             @Param("recommended") Boolean recommended,
             @Param("available")   Boolean available,
             Pageable pageable
@@ -37,4 +37,22 @@ public interface MenuRepository extends JpaRepository<MenuItem, Long> {
            "WHERE m.recommended = true AND m.available = true " +
            "ORDER BY m.id DESC")
     List<MenuItem> findTopRecommended(Pageable pageable);
+
+    /**
+     * Get all menu items for a specific category by category ID.
+     * Returns menu items ordered by ID.
+     */
+    @Query("SELECT m FROM MenuItem m " +
+           "WHERE m.category.id = :categoryId " +
+           "ORDER BY m.id ASC")
+    List<MenuItem> findByCategoryId(@Param("categoryId") Long categoryId);
+
+    /**
+     * Get all menu items for a specific tag by tag ID.
+     * Returns menu items ordered by ID.
+     */
+    @Query("SELECT m FROM MenuItem m " +
+           "WHERE m.tag.id = :tagId " +
+           "ORDER BY m.id ASC")
+    List<MenuItem> findByTagId(@Param("tagId") Long tagId);
 }

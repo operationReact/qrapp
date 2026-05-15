@@ -22,7 +22,10 @@ public class MenuItem {
     @Column(name = "margin", precision = 19, scale = 2, nullable = false)
     private BigDecimal margin = BigDecimal.ZERO;
 
-    private String category;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "category_id")
+    private Category category;
+
     private boolean available;
     // Make recommended nullable to avoid forcing a NOT NULL schema change that may time out
     // Use Boolean so adding the column is a fast nullable add; provide a convenience
@@ -31,7 +34,10 @@ public class MenuItem {
     private String description;
     @Column(name = "image_url")
     private String imageUrl;
-    private String tag;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "tag_id")
+    private Tag tag;
     @Column(name = "is_veg")
     private Boolean isVeg;
 
