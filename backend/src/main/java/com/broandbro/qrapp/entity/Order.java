@@ -6,6 +6,7 @@ import com.broandbro.qrapp.enums.OrderStatus;
 import jakarta.persistence.*;
 import lombok.Data;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
@@ -67,6 +68,41 @@ public class Order {
 
     @Column(name = "assigned_admin")
     private String assignedAdmin;
+
+    /**
+     * Coupon code applied to this order (if any).
+     * Stored for reference and audit purposes.
+     */
+    @Column(name = "coupon_code", length = 50)
+    private String couponCode;
+
+    /**
+     * Final discount amount applied from coupon (in smallest currency unit).
+     * Never recalculate after order placement - this is the locked-in value.
+     * Null means no coupon applied.
+     */
+    @Column(name = "coupon_discount", precision = 10, scale = 2)
+    private BigDecimal couponDiscount;
+
+    /**
+     * Subtotal before discount (sum of all item prices).
+     * Used to ensure historical accuracy if prices change.
+     */
+    @Column(name = "subtotal", precision = 10, scale = 2)
+    private BigDecimal subtotal;
+
+    /**
+     * Tax applied to taxable amount (subtotal - discount).
+     */
+    @Column(name = "tax", precision = 10, scale = 2)
+    private BigDecimal tax;
+
+    /**
+     * Grand total after discount and tax.
+     * This is the final amount customer pays.
+     */
+    @Column(name = "grand_total", precision = 10, scale = 2)
+    private BigDecimal grandTotal;
 
     // Explicit getter to ensure callers can use getId() even if Lombok is not processed
     public Long getId() {
