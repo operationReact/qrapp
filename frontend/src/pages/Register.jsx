@@ -95,7 +95,7 @@ export default function Register() {
             <OTPVerifyCard
               title="Verify Your Number"
               description="Enter the OTP sent to your phone"
-              verificationMedium="+91-600025634"
+              verificationMedium={`+91-${phone}`}
               onVerify={createAccount}
             />
           ) : (
