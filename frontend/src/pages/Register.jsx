@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import API, { loginUser } from "../services/api";
 import { setUserAuth } from "../services/api";
@@ -8,6 +8,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Field, FieldContent, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { CaretLeftIcon } from "@phosphor-icons/react";
+import OTPVerifyCard from "@/components/OTPVerifyCard";
 
 export default function Register() {
   const navigate = useNavigate();
@@ -18,13 +19,6 @@ export default function Register() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-
-  // Focus the first input field on mounting the component - UX CHOICE
-  const firstFormField = useRef(null);
-
-  useEffect(() => {
-    firstFormField.current?.focus();
-  }, []);
 
   const submit = async (e) => {
     e.preventDefault();
@@ -55,24 +49,23 @@ export default function Register() {
   };
 
   return (
-    <div className="page-shell flex min-h-screen justify-center py-6 sm:px-4">
-      <div className="w-full max-w-md ">
-        <div className="px-4 sm:px-0">
+    <div className="page-shell flex min-h-screen items-center justify-center py-6 sm:px-4">
+      <div className="w-full max-w-md">
+        <div className="px-4">
           <Link
             className={buttonVariants({
-              size: "icon",
-              variant: "outline",
-              className:
-                "shadow-sm border-border! shadow-red-500/10 sm:absolute sm:left-4 text-zinc-600 hover:text-zinc-600/90",
+              size: "xs",
+              variant: "ghost",
+              className: "",
             })}
             to="/"
             title="Back To Menu"
           >
             <CaretLeftIcon weight="bold" />
-            <span className="sr-only">Back To Menu</span>
+            <span>Back To Menu</span>
           </Link>
         </div>
-        <div className="rounded-2xl p-4 sm:p-6 sm:shadow-lg sm:shadow-red-300/10 h-fit sm:bg-white/20">
+        <div className="rounded-xl p-4 pt-2 h-fit">
           <img
             src="/login-banner.jpg"
             alt="Your Easy Access To Delicious Meals"
@@ -87,25 +80,24 @@ export default function Register() {
           )}
           <form onSubmit={submit} className="space-y-4">
             <Field>
-              <FieldLabel>Phone Number</FieldLabel>
-              <FieldContent>
-                <Input
-                  ref={firstFormField}
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  required
-                  placeholder="1234567890"
-                  className="h-10"
-                />
-              </FieldContent>
-            </Field>
-            <Field>
-              <FieldLabel>Name (optional)</FieldLabel>
+              <FieldLabel>Name</FieldLabel>
               <FieldContent>
                 <Input
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Your Name"
+                  className="h-10"
+                />
+              </FieldContent>
+            </Field>
+            <Field>
+              <FieldLabel>Phone Number</FieldLabel>
+              <FieldContent>
+                <Input
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  required
+                  placeholder="1234567890"
                   className="h-10"
                 />
               </FieldContent>
@@ -139,6 +131,12 @@ export default function Register() {
             </div>
           </form>
         </div>
+        <OTPVerifyCard
+          title="Verify Your Number"
+          description="Enter the OTP sent to your phone"
+          verificationMedium="+91-600025634"
+          onVerify={() => {}}
+        />
       </div>
     </div>
   );

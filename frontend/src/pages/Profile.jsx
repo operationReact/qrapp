@@ -149,122 +149,122 @@ export default function Profile() {
             </p>
           </div>
 
-          <section className="rounded-2xl border bg-white shadow-sm">
+          <section className="rounded-xl border bg-white shadow-sm">
             {loading ? (
-            <div className="py-10 text-center text-muted-foreground">
-              Loading Profile...
-            </div>
+              <div className="py-10 text-center text-muted-foreground">
+                Loading Profile...
+              </div>
             ) : (
-            <form onSubmit={handleSubmit}>
-              <div className="p-4 sm:py-6 space-y-2">
-                {error && (
-                  <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                    {error}
-                  </div>
-                )}
+              <form onSubmit={handleSubmit}>
+                <div className="p-4 sm:py-6 space-y-2">
+                  {error && (
+                    <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                      {error}
+                    </div>
+                  )}
 
-                {success && (
-                  <div className="rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
-                    {success}
-                  </div>
-                )}
+                  {success && (
+                    <div className="rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+                      {success}
+                    </div>
+                  )}
 
-                <FieldSet>
-                  <FieldLegend>Personal Information</FieldLegend>
-                  <FieldGroup className="grid gap-4 md:grid-cols-2">
-                    <Field>
-                      <FieldLabel>Name</FieldLabel>
-                      <FieldContent>
-                        <Input
-                          value={form.name}
-                          onChange={handleChange("name")}
-                          placeholder="Enter Your Name"
-          className="h-12"
-                        />
-                      </FieldContent>
-                    </Field>
+                  <FieldSet>
+                    <FieldLegend>Personal Information</FieldLegend>
+                    <FieldGroup className="grid gap-4 md:grid-cols-2">
+                      <Field>
+                        <FieldLabel>Name</FieldLabel>
+                        <FieldContent>
+                          <Input
+                            value={form.name}
+                            onChange={handleChange("name")}
+                            placeholder="Enter Your Name"
+                            className="h-12"
+                          />
+                        </FieldContent>
+                      </Field>
 
-                    <Field>
-                      <FieldLabel>Phone Number</FieldLabel>
-                      <FieldContent>
-                        <Input
-                          value={form.phone}
-                          onChange={handleChange("phone")}
-                          placeholder="e.g. 1234567890"
-                          className="h-12"
-                        />
-                      </FieldContent>
-                    </Field>
-                  </FieldGroup>
-                </FieldSet>
+                      <Field>
+                        <FieldLabel>Phone Number</FieldLabel>
+                        <FieldContent>
+                          <Input
+                            value={form.phone}
+                            onChange={handleChange("phone")}
+                            placeholder="e.g. 1234567890"
+                            className="h-12"
+                          />
+                        </FieldContent>
+                      </Field>
+                    </FieldGroup>
+                  </FieldSet>
 
-                <FieldSet className="mt-4">
-                  <FieldLegend className="font-medium">
-                    Change Password
-                  </FieldLegend>
-                  <FieldDescription className="mt-1 text-sm text-muted-foreground">
-                    {passwordHint}
-                  </FieldDescription>
+                  <FieldSet className="mt-4">
+                    <FieldLegend className="font-medium">
+                      Change Password
+                    </FieldLegend>
+                    <FieldDescription className="mt-1 text-sm text-muted-foreground">
+                      {passwordHint}
+                    </FieldDescription>
 
-                  <FieldGroup className="grid gap-4 md:grid-cols-3">
-                    <Field>
-                      <FieldLabel>Current Password</FieldLabel>
-                      <FieldContent>
-                        <Input
-                          type="password"
-                          value={form.currentPassword}
-                          onChange={handleChange("currentPassword")}
-                          placeholder="Current Password"
-                          className="h-12"
-                        />
-                      </FieldContent>
-                    </Field>
+                    <FieldGroup className="grid gap-4 md:grid-cols-3">
+                      <Field>
+                        <FieldLabel>Current Password</FieldLabel>
+                        <FieldContent>
+                          <Input
+                            type="password"
+                            value={form.currentPassword}
+                            onChange={handleChange("currentPassword")}
+                            placeholder="Current Password"
+                            className="h-12"
+                          />
+                        </FieldContent>
+                      </Field>
 
-                    <Field>
-                      <FieldLabel>New Password</FieldLabel>
-                      <FieldContent>
-                        <Input
-                          type="password"
-                          value={form.newPassword}
-                          onChange={handleChange("newPassword")}
-                          placeholder="Set New Password"
-                          className="h-12"
-                        />
-                      </FieldContent>
-                    </Field>
+                      <Field>
+                        <FieldLabel>New Password</FieldLabel>
+                        <FieldContent>
+                          <Input
+                            type="password"
+                            value={form.newPassword}
+                            onChange={handleChange("newPassword")}
+                            placeholder="Set New Password"
+                            className="h-12"
+                          />
+                        </FieldContent>
+                      </Field>
 
-                    <Field>
-                      <FieldLabel>Confirm Password</FieldLabel>
-                      <FieldContent>
-                        <Input
-                          type="password"
-                          value={form.confirmPassword}
-                          onChange={handleChange("confirmPassword")}
-                          placeholder="Confirm Password"
-                          className="h-12"
-                        />
-                      </FieldContent>
-                    </Field>
-                  </FieldGroup>
-                </FieldSet>
-              </div>
+                      <Field>
+                        <FieldLabel>Confirm Password</FieldLabel>
+                        <FieldContent>
+                          <Input
+                            type="password"
+                            value={form.confirmPassword}
+                            onChange={handleChange("confirmPassword")}
+                            placeholder="Confirm Password"
+                            className="h-12"
+                          />
+                        </FieldContent>
+                      </Field>
+                    </FieldGroup>
+                  </FieldSet>
+                </div>
 
-              <div className="p-4 flex justify-end border-t">
-                <Button
-                  size="lg"
-                  type="submit"
-                  disabled={saving}
-                  className="h-12 text-sm! w-full sm:max-w-37 font-medium!"
-                >
-                  {saving ? "Saving Changes..." : "Update Profile"}
-                </Button>
-              </div>
-            </form>
+                <div className="p-4 flex justify-end border-t">
+                  <Button
+                    size="lg"
+                    type="submit"
+                    disabled={saving}
+                    className="h-12 text-sm! w-full sm:max-w-37 font-medium!"
+                  >
+                    {saving ? "Saving Changes..." : "Update Profile"}
+                  </Button>
+                </div>
+              </form>
             )}
           </section>
 
           <div className="grid">
-            <div className="rounded-t-2xl bg-white flex gap-3 items-start sm:items-center p-4 shadow-sm border border-gray-100 border-b-none">
+            <div className="rounded-t-xl bg-white flex gap-3 items-start sm:items-center p-4 shadow-sm border border-gray-100 border-b-none">
               <span className="size-10 grid place-items-center bg-green-500/10 p-2 rounded-md">
                 <Shield pack="filled" className="fill-green-400 size-6" />
               </span>
@@ -288,7 +288,7 @@ export default function Profile() {
                 </div>
               </div>
             </div>
-            <div className="rounded-b-2xl bg-white flex gap-3 items-start sm:items-center p-4 shadow-sm border border-gray-100 border-t-none">
+            <div className="rounded-b-xl bg-white flex gap-3 items-start sm:items-center p-4 shadow-sm border border-gray-100 border-t-none">
               <span className="size-10 grid place-items-center bg-blue-500/10 p-2 rounded-md">
                 <LockKeyhole pack="filled" className="fill-blue-400 size-6" />
               </span>

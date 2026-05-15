@@ -48,8 +48,8 @@ export default function SearchPage() {
     const haystack = [
       menuItem.name,
       menuItem.description,
-      menuItem.category,
-      menuItem.tag,
+      menuItem.category.name,
+      menuItem.tag?.name,
     ]
       .filter(Boolean)
       .join(" ")
@@ -59,7 +59,7 @@ export default function SearchPage() {
   });
 
   const bestsellers = results.filter(
-    (item) => item.tag && item.tag.toLowerCase() === "bestseller",
+    (item) => item.tag && item.tag.name.toLowerCase() === "bestseller",
   );
 
   return (
@@ -108,7 +108,7 @@ export default function SearchPage() {
 
           {query.trim() !== "" && (
             <section className="mt-4">
-              <h2 className="font-semibold mb-2">Results</h2>
+              <h2 className="font-medium text-zinc-700 mb-4">Search results for <span className="text-primary">"{query}"</span></h2>
               {filteredResults.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
                   No results found

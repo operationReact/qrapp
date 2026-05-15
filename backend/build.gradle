@@ -57,6 +57,9 @@ dependencies {
     // JSON library used by Razorpay SDK wrapper
     implementation 'org.json:json:20230618'
 
+    // Twilio SDK for WhatsApp
+    implementation 'com.twilio.sdk:twilio:9.2.1'
+
     // Lombok: compileOnly + annotationProcessor to match original pom
     compileOnly "org.projectlombok:lombok:${lombokVersion}"
     annotationProcessor "org.projectlombok:lombok:${lombokVersion}"

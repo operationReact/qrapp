@@ -76,7 +76,7 @@ export default function OrderCard({ order }) {
                           <div className="flex items-center gap-2">
                             <Badge
                               className={cn(
-                                ` bg-transparent border-2 rounded-sm font-medium p-1`,
+                                ` bg-transparent border-2 rounded font-medium p-1`,
                                 item.isVeg
                                   ? "text-accent-400 border-accent-400"
                                   : "text-red-500 border-red-500",

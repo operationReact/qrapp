@@ -101,7 +101,8 @@ export default function Menu() {
     fetchMenu();
   }, [fetchMenu]);
 
-  const categories = [...new Set(menu.map((m) => m.category))];
+
+  const categories = [...new Set(menu.map((m) => m.category.name))];
 
   const filtered = menu.filter((item) => {
     // Normalize possible server representations for boolean-ish isVeg
@@ -110,7 +111,7 @@ export default function Menu() {
       item.isVeg === "true" ||
       item.isVeg === 1 ||
       item.isVeg === "1";
-    const haystack = [item.name, item.description, item.category, item.tag]
+    const haystack = [item.name, item.description, item.category.name, item.tag?.name]
       .filter(Boolean)
       .join(" ")
       .toLowerCase();
@@ -126,8 +127,8 @@ export default function Menu() {
   });
 
   const groups = filtered.reduce((acc, item) => {
-    acc[item.category] = acc[item.category] || [];
-    acc[item.category].push(item);
+    acc[item.category.name] = acc[item.category.name] || [];
+    acc[item.category.name].push(item);
     return acc;
   }, {});
 

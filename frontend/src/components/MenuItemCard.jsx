@@ -81,7 +81,7 @@ export default function MenuItemCard({ item, onEdit, onDelete }) {
       <div className="py-2">
         {/* name in image */}
         {item.tag && (
-          <span className="text-xs font-medium text-primary">{item.tag}</span>
+          <span className="text-xs font-medium text-primary">{item.tag.name}</span>
         )}
         <h3 className="text-balance text-md font-semibold leading-5 sm:text-lg text-zinc-800">
           {item.name}
