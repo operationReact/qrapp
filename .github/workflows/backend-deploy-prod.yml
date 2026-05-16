@@ -33,15 +33,16 @@ jobs:
         with:
           java-version: ${{ env.JAVA_VERSION }}
           distribution: corretto
-          cache: gradle
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3  # installs Gradle, handles caching
 
       - name: Run tests
-        working-directory: backend
-        run: ./gradlew test --no-daemon --parallel
+        # Run from repo root – settings.gradle includes 'backend' as a subproject
+        run: gradle :backend:test --no-daemon --parallel
 
       - name: Build JAR
-        working-directory: backend
-        run: ./gradlew bootJar -x test --no-daemon --parallel
+        run: gradle :backend:bootJar -x test --no-daemon --parallel
 
       - name: Upload JAR artifact
         uses: actions/upload-artifact@v4
