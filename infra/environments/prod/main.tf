@@ -125,5 +125,7 @@ module "route53" {
   cloudfront_hosted_zone_id = module.cloudfront.hosted_zone_id
   ec2_elastic_ip            = module.ec2.elastic_ip
   create_www_record         = true
+  domain_name               = var.domain_name
+
 }
 
