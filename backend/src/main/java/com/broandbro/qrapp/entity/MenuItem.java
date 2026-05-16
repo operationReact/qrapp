@@ -97,6 +97,9 @@ public class MenuItem {
     // LIFECYCLE METHODS
     // ============================================================================
 
+    @OneToOne(mappedBy = "menuItem", fetch = FetchType.LAZY)
+    private MenuItemImage image;
+
     @PrePersist
     public void prePersist() {
         if (createdAt == null) {

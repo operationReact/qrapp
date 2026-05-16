@@ -57,6 +57,9 @@ dependencies {
     // JSON library used by Razorpay SDK wrapper
     implementation 'org.json:json:20230618'
 
+    // Thumbnailator for image resizing and compression before storing in PostgreSQL BYTEA
+    implementation 'net.coobird:thumbnailator:0.4.20'
+
     // Twilio SDK for WhatsApp
     implementation 'com.twilio.sdk:twilio:9.2.1'
 
