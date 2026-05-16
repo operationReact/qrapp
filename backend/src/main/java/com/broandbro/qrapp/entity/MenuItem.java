@@ -69,17 +69,15 @@ public class MenuItem {
      * Whether this item is hidden from the menu.
      * true = item is hidden and not visible to customers
      * false = item is visible in menu
+     *
+     * Also used for manual admin pauses (kitchen issue, ingredient shortage).
+     * Stock availability is derived, not stored:
+     *   UNLIMITED → always orderable (when not hidden)
+     *   LIMITED   → orderable when inventory.availableQuantity > 0 (and not hidden)
      */
     @Column(name = "is_hidden", nullable = false)
     private Boolean isHidden = false;
 
-    /**
-     * Whether this item is in stock.
-     * true = item is in stock and can be ordered
-     * false = item is out of stock
-     */
-    @Column(name = "is_item_in_stock", nullable = false)
-    private Boolean isItemInStock = true;
 
     /**
      * Timestamp when item was created.

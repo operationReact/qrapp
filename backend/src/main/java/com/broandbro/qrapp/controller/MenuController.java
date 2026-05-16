@@ -92,7 +92,9 @@ public class MenuController {
     ) {
         int safePage = page == null ? DEFAULT_MENU_PAGE : Math.max(0, page);
         int safeSize = size == null ? DEFAULT_MENU_SIZE : Math.max(1, Math.min(size, MAX_MENU_SIZE));
-        List<MenuItem> items = repo.findByFilters(isVeg, categoryId, recommended, available, PageRequest.of(safePage, safeSize));
+        // available=true → show only orderable items; null/false → show all
+        boolean availableOnly = Boolean.TRUE.equals(available);
+        List<MenuItem> items = repo.findByFilters(isVeg, categoryId, recommended, availableOnly, PageRequest.of(safePage, safeSize));
         return items.stream()
             .map(this::buildMenuItemResponse)
             .toList();
@@ -128,7 +130,6 @@ public class MenuController {
             @RequestPart(value = "price", required = false) String priceStr,
             @RequestPart(value = "categoryId", required = false) String categoryIdStr,
             @RequestPart(value = "description", required = false) String description,
-            @RequestPart(value = "isItemInStock", required = false) String isItemInStockStr,
             @RequestPart(value = "isHidden", required = false) String isHiddenStr,
             @RequestPart(value = "recommended", required = false) String recommendedStr,
             @RequestPart(value = "tagId", required = false) String tagIdStr,
@@ -165,7 +166,6 @@ public class MenuController {
             item.setDescription(description);
 
             // Set inventory fields with proper defaults
-            item.setIsItemInStock(isItemInStockStr == null || Boolean.parseBoolean(isItemInStockStr));
             item.setIsHidden(isHiddenStr != null && Boolean.parseBoolean(isHiddenStr));
 
             // Set inventory mode
@@ -237,7 +237,6 @@ public class MenuController {
                     String priceStr = mreq.getParameter("price");
                     String categoryIdStr = mreq.getParameter("categoryId");
                     String description = mreq.getParameter("description");
-                    String isItemInStockStr = mreq.getParameter("isItemInStock");
                     String isHiddenStr = mreq.getParameter("isHidden");
                     String recommendedStr = mreq.getParameter("recommended");
                     String tagIdStr = mreq.getParameter("tagId");
@@ -257,7 +256,6 @@ public class MenuController {
                         } catch (NumberFormatException ex) { /* ignore */ }
                     }
                     if (description != null) existing.setDescription(description);
-                    if (isItemInStockStr != null) existing.setIsItemInStock(Boolean.parseBoolean(isItemInStockStr));
                     if (isHiddenStr != null) existing.setIsHidden(Boolean.parseBoolean(isHiddenStr));
                     if (recommendedStr != null) existing.setRecommended(Boolean.parseBoolean(recommendedStr));
                     if (inventoryModeStr != null && !inventoryModeStr.isBlank()) {
@@ -319,11 +317,6 @@ public class MenuController {
                     }
                 }
                 if (payload.containsKey("description")) existing.setDescription((String) payload.getOrDefault("description", existing.getDescription()));
-                if (payload.containsKey("isItemInStock")) {
-                    Object a = payload.get("isItemInStock");
-                    boolean av = a instanceof Boolean ? (Boolean)a : Boolean.parseBoolean(String.valueOf(a));
-                    existing.setIsItemInStock(av);
-                }
                 if (payload.containsKey("isHidden")) {
                     Object h = payload.get("isHidden");
                     boolean hid = h instanceof Boolean ? (Boolean)h : Boolean.parseBoolean(String.valueOf(h));
@@ -428,7 +421,6 @@ public class MenuController {
             .shopId(shopId)
             .inventoryMode(item.getInventoryMode())
             .isHidden(item.getIsHidden())
-            .isItemInStock(item.getIsItemInStock())
             .createdAt(item.getCreatedAt())
             .updatedAt(item.getUpdatedAt())
             .stockStatus(inventoryService.getStockStatus(item.getId()))

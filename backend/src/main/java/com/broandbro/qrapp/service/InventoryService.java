@@ -178,5 +178,36 @@ public interface InventoryService {
      * @return inventory status with safe public info
      */
     InventoryStatusResponse getInventoryStatus(Long menuItemId);
+
+    // ============================================================================
+    // ADMIN INVENTORY MANAGEMENT SCREEN METHODS
+    // ============================================================================
+
+    /**
+     * Fetch paginated list of LIMITED inventory items with optional filters.
+     *
+     * @param filter  search / isHidden / isItemInStock / lowStockOnly flags
+     * @param pageable pagination and sorting
+     * @return paginated admin inventory items
+     */
+    Page<AdminInventoryItemResponse> getInventoryItems(InventoryItemFilter filter, Pageable pageable);
+
+    /**
+     * Unified update for a menu item's inventory state.
+     *
+     * Only non-null fields in {@code request} are applied.
+     *
+     * Dependency rule:
+     *   - quantity provided   → isItemInStock is AUTO-DERIVED (quantity > 0 = true)
+     *   - only isItemInStock  → manual override (kitchen issue etc.)
+     *
+     * Each changed field creates its own audit entry within the same transaction.
+     *
+     * @param menuItemId    target item
+     * @param request       partial update payload
+     * @param changedByName authenticated admin username / phone
+     * @return updated admin inventory item response
+     */
+    AdminInventoryItemResponse updateItem(Long menuItemId, AdminInventoryUpdateRequest request, String changedByName);
 }
 

@@ -35,7 +35,6 @@ public class MenuItemResponse {
     private Long shopId;
     private InventoryMode inventoryMode;
     private Boolean isHidden;
-    private Boolean isItemInStock;
     private java.time.Instant createdAt;
     private java.time.Instant updatedAt;
 
