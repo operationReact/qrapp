@@ -1,0 +1,31 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# broandbro PRODUCTION environment variables
+# Copy this file to terraform.tfvars and fill in secrets.
+# NEVER commit terraform.tfvars to version control.
+# ─────────────────────────────────────────────────────────────────────────────
+
+aws_region  = "ap-south-1"
+environment = "prod"
+domain_name = "broandbro.in"
+
+# EC2
+ec2_instance_type = "t4g.small"
+ec2_key_pair_name = "broandbro-prod-key"
+ec2_public_key    = "ssh-rsa AAAA... your-public-key-here"
+
+# Restrict SSH to your office/home IP in production!
+ssh_allowed_cidrs = ["YOUR_OFFICE_IP/32"]
+
+# RDS
+rds_instance_class        = "db.t4g.micro"
+rds_allocated_storage     = 20
+rds_backup_retention_days = 7
+multi_az                  = false  # Set to true when you can afford ~$15/mo more
+
+db_name     = "broandbro"
+db_username = "broandbro"
+db_password = "CHANGE_ME_USE_STRONG_PASSWORD"  # Use: openssl rand -base64 32
+
+# CloudFront
+cloudfront_price_class = "PriceClass_200"
+

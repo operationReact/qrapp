@@ -1,0 +1,4 @@
+# DEPRECATED – replaced by backend-deploy-dev.yml and backend-deploy-prod.yml
+# This file intentionally has no 'on:' trigger so GitHub Actions ignores it.
+# Safe to delete.
+

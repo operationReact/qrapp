@@ -1,0 +1,4 @@
+# DEPRECATED – replaced by terraform-validate.yml, terraform-plan.yml,
+#              terraform-apply-dev.yml, terraform-apply-prod.yml
+# This file intentionally has no 'on:' trigger so GitHub Actions ignores it.
+# Safe to delete.

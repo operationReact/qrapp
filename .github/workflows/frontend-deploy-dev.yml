@@ -1,0 +1,94 @@
+# =============================================================================
+# Workflow: frontend-deploy-dev.yml
+# Triggered by push to `dev` branch when frontend/** changes.
+# Builds the Vite app and deploys to the DEV S3 bucket + CloudFront.
+# =============================================================================
+name: Frontend Deploy – Dev
+
+on:
+  push:
+    branches: [dev]
+    paths: ["frontend/**"]
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  NODE_VERSION: "20"
+  AWS_REGION: "ap-south-1"
+  S3_BUCKET: "broandbro-dev-ui"
+  # NOTE: CF_DISTRIBUTION_ID cannot be set here from secrets – referenced directly in the step below
+
+jobs:
+  deploy-frontend-dev:
+    name: Build & Deploy Frontend – Dev
+    runs-on: ubuntu-latest
+    environment: dev
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build Vite app
+        working-directory: frontend
+        run: npm run build
+        env:
+          # Inject API URL at build time – Vite bakes this into the bundle
+          VITE_API_BASE_URL: "https://dev-api.broandbro.in"
+          VITE_ENV: "dev"
+          NODE_ENV: "production"
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      # ── Upload to S3 ──────────────────────────────────────────────────────
+      # Strategy:
+      #   /assets/*  → long cache (Vite appends content hash to filename)
+      #   index.html → no cache (always fetch latest shell)
+      #   everything else → short cache
+
+      - name: Upload hashed assets (long cache)
+        run: |
+          aws s3 sync frontend/dist/assets/ s3://${{ env.S3_BUCKET }}/assets/ \
+            --cache-control "public, max-age=31536000, immutable" \
+            --delete
+
+      - name: Upload index.html (no cache)
+        run: |
+          aws s3 cp frontend/dist/index.html s3://${{ env.S3_BUCKET }}/index.html \
+            --cache-control "no-cache, no-store, must-revalidate"
+
+      - name: Upload remaining files (short cache)
+        run: |
+          aws s3 sync frontend/dist/ s3://${{ env.S3_BUCKET }}/ \
+            --cache-control "public, max-age=3600" \
+            --exclude "assets/*" \
+            --exclude "index.html" \
+            --delete
+
+      # ── CloudFront cache invalidation ────────────────────────────────────
+      - name: Invalidate CloudFront cache
+        run: |
+          INVALIDATION_ID=$(aws cloudfront create-invalidation \
+            --distribution-id ${{ secrets.DEV_CF_DISTRIBUTION_ID }} \
+            --paths "/*" \
+            --query "Invalidation.Id" \
+            --output text)
+          echo "Invalidation ID: $INVALIDATION_ID"
+          echo "✅ Frontend deployed to https://dev.broandbro.in" >> $GITHUB_STEP_SUMMARY
+

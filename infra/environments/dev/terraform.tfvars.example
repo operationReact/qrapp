@@ -1,0 +1,30 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# broandbro DEV environment variables
+# Copy to terraform.tfvars and fill in values.
+# NEVER commit terraform.tfvars to version control.
+# ─────────────────────────────────────────────────────────────────────────────
+
+aws_region  = "ap-south-1"
+environment = "dev"
+domain_name = "broandbro.in"
+
+# EC2
+ec2_instance_type = "t4g.micro"
+ec2_key_pair_name = "broandbro-dev-key"
+ec2_public_key    = "ssh-rsa AAAA... your-public-key-here"
+
+ssh_allowed_cidrs = ["0.0.0.0/0"] # Dev: open – tighten for prod
+
+# RDS
+rds_instance_class        = "db.t4g.micro"
+rds_allocated_storage     = 20
+rds_backup_retention_days = 3
+multi_az                  = false
+
+db_name     = "broandbro_dev"
+db_username = "broandbro"
+db_password = "CHANGE_ME_DEV_PASSWORD"
+
+# CloudFront
+cloudfront_price_class = "PriceClass_100"
+

@@ -1,0 +1,66 @@
+# =============================================================================
+# Workflow: terraform-validate.yml
+# Runs on every push to dev or main that touches infra/**
+# Validates that all Terraform code is correctly formatted and valid.
+# =============================================================================
+name: Terraform Validate
+
+on:
+  push:
+    branches: [dev, main]
+    paths: ["infra/**"]
+  pull_request:
+    branches: [dev, main]
+    paths: ["infra/**"]
+
+permissions:
+  id-token: write   # Required for OIDC
+  contents: read
+
+env:
+  TF_VERSION: "1.9.5"
+  AWS_REGION: "ap-south-1"
+
+jobs:
+  validate:
+    name: Validate – ${{ matrix.env }}
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        env: [dev, prod]
+
+    defaults:
+      run:
+        working-directory: infra/environments/${{ matrix.env }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Terraform Format Check
+        run: terraform fmt -check -recursive -diff
+
+      - name: Terraform Init
+        run: |
+          terraform init \
+            -backend-config="bucket=broandbro-tfstate-ap-south-1" \
+            -backend-config="key=env/${{ matrix.env }}/terraform.tfstate" \
+            -backend-config="region=ap-south-1" \
+            -backend-config="dynamodb_table=broandbro-tf-lock"
+
+      - name: Terraform Validate
+        run: terraform validate
+

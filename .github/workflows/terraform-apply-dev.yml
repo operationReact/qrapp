@@ -1,0 +1,79 @@
+# =============================================================================
+# Workflow: terraform-apply-dev.yml
+# Triggered by push to `dev` branch when infra/** changes.
+# Applies Terraform to the DEV environment.
+# =============================================================================
+name: Terraform Apply – Dev
+
+on:
+  push:
+    branches: [dev]
+    paths: ["infra/**"]
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  TF_VERSION: "1.9.5"
+  AWS_REGION: "ap-south-1"
+  TF_ENV: dev
+
+jobs:
+  apply-dev:
+    name: Terraform Apply – Dev
+    runs-on: ubuntu-latest
+    environment: dev  # Maps to GitHub Environment "dev"
+
+    defaults:
+      run:
+        working-directory: infra/environments/dev
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Terraform Init
+        run: |
+          terraform init \
+            -backend-config="bucket=broandbro-tfstate-ap-south-1" \
+            -backend-config="key=env/dev/terraform.tfstate" \
+            -backend-config="region=ap-south-1" \
+            -backend-config="dynamodb_table=broandbro-tf-lock"
+
+      - name: Terraform Validate
+        run: terraform validate
+
+      - name: Terraform Plan
+        run: |
+          terraform plan -out=tfplan \
+            -var="db_password=${{ secrets.DEV_DB_PASSWORD }}" \
+            -var="ec2_public_key=${{ secrets.DEV_EC2_PUBLIC_KEY }}"
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve tfplan
+
+      - name: Export outputs to GitHub summary
+        run: |
+          echo "## ✅ Dev Infrastructure Deployed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Output | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Frontend URL | https://dev.broandbro.in |" >> $GITHUB_STEP_SUMMARY
+          echo "| API URL | https://dev-api.broandbro.in |" >> $GITHUB_STEP_SUMMARY
+          CF_ID=$(terraform output -raw cloudfront_distribution_id 2>/dev/null || echo "N/A")
+          EC2_IP=$(terraform output -raw ec2_elastic_ip 2>/dev/null || echo "N/A")
+          echo "| CloudFront ID | $CF_ID |" >> $GITHUB_STEP_SUMMARY
+          echo "| EC2 IP | $EC2_IP |" >> $GITHUB_STEP_SUMMARY
+
