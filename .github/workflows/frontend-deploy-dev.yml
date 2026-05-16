@@ -19,6 +19,7 @@ env:
   AWS_REGION: "ap-south-1"
   S3_BUCKET: "broandbro-dev-ui"
   # NOTE: CF_DISTRIBUTION_ID cannot be set here from secrets – referenced directly in the step below
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
 jobs:
   deploy-frontend-dev:

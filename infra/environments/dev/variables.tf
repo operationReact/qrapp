@@ -25,7 +25,7 @@ variable "ec2_public_key" {
 
 variable "ssh_allowed_cidrs" {
   type    = list(string)
-  default = ["0.0.0.0/0"]  # Open for dev – tighten in prod
+  default = ["0.0.0.0/0"] # Open for dev – tighten in prod
 }
 
 variable "rds_instance_class" {

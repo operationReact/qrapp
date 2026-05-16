@@ -18,6 +18,7 @@ env:
   TF_VERSION: "1.9.5"
   AWS_REGION: "ap-south-1"
   TF_ENV: dev
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
 jobs:
   apply-dev:

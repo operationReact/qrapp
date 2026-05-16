@@ -58,7 +58,7 @@ module "acm" {
     aws.us_east_1 = aws.us_east_1
   }
 
-  domain_name  = var.domain_name
+  domain_name = var.domain_name
   subject_alternative_names = [
     "dev.${var.domain_name}",
     "dev-api.${var.domain_name}",
@@ -84,7 +84,7 @@ module "cloudfront" {
 module "s3" {
   source = "../../modules/s3"
 
-  bucket_name                 = var.frontend_bucket_name  # broandbro-dev-ui
+  bucket_name                 = var.frontend_bucket_name # broandbro-dev-ui
   environment                 = "dev"
   cloudfront_distribution_arn = module.cloudfront.distribution_arn
 }
@@ -94,7 +94,7 @@ module "ec2" {
   source = "../../modules/ec2"
 
   environment       = "dev"
-  instance_type     = var.ec2_instance_type  # t4g.micro
+  instance_type     = var.ec2_instance_type # t4g.micro
   security_group_id = module.security_group.ec2_sg_id
   ec2_public_key    = var.ec2_public_key
 }
@@ -106,7 +106,7 @@ module "rds" {
   environment           = "dev"
   vpc_id                = module.security_group.vpc_id
   security_group_id     = module.security_group.rds_sg_id
-  instance_class        = var.rds_instance_class  # db.t4g.micro
+  instance_class        = var.rds_instance_class # db.t4g.micro
   allocated_storage     = 20
   db_name               = var.db_name
   db_username           = var.db_username
@@ -125,6 +125,6 @@ module "route53" {
   cloudfront_domain_name    = module.cloudfront.domain_name
   cloudfront_hosted_zone_id = module.cloudfront.hosted_zone_id
   ec2_elastic_ip            = module.ec2.elastic_ip
-  create_www_record         = false  # dev doesn't need www
+  create_www_record         = false # dev doesn't need www
 }
 

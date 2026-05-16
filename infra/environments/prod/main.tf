@@ -83,7 +83,7 @@ module "cloudfront" {
 module "s3" {
   source = "../../modules/s3"
 
-  bucket_name                 = var.frontend_bucket_name  # broandbro-prod-ui
+  bucket_name                 = var.frontend_bucket_name # broandbro-prod-ui
   environment                 = "prod"
   cloudfront_distribution_arn = module.cloudfront.distribution_arn
 }
@@ -93,7 +93,7 @@ module "ec2" {
   source = "../../modules/ec2"
 
   environment       = "prod"
-  instance_type     = var.ec2_instance_type  # t4g.small
+  instance_type     = var.ec2_instance_type # t4g.small
   security_group_id = module.security_group.ec2_sg_id
   ec2_public_key    = var.ec2_public_key
 }
@@ -105,13 +105,13 @@ module "rds" {
   environment           = "prod"
   vpc_id                = module.security_group.vpc_id
   security_group_id     = module.security_group.rds_sg_id
-  instance_class        = var.rds_instance_class  # db.t4g.small
+  instance_class        = var.rds_instance_class # db.t4g.small
   allocated_storage     = 20
   db_name               = var.db_name
   db_username           = var.db_username
   db_password           = var.db_password
   backup_retention_days = 7
-  multi_az              = false  # set true (~$26/mo) when uptime is critical
+  multi_az              = false # set true (~$26/mo) when uptime is critical
 }
 
 # ── Route53 DNS ───────────────────────────────────────────────────────────────
