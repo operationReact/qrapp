@@ -1,6 +1,7 @@
 package com.broandbro.qrapp.repository;
 
 import com.broandbro.qrapp.entity.MenuItem;
+import com.broandbro.qrapp.enums.InventoryMode;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -12,20 +13,23 @@ public interface MenuRepository extends JpaRepository<MenuItem, Long> {
 
     /**
      * Filtered menu query — all predicates are optional (null = no filter).
-     * Runs a single SQL SELECT with WHERE pushed to the database instead of
-     * fetching everything and filtering in Java.
+     *
+     * availableOnly = true  → only UNLIMITED items  OR  LIMITED items with qty > 0
+     * availableOnly = false → all items regardless of stock
      */
     @Query("SELECT m FROM MenuItem m WHERE " +
-           "(:isVeg    IS NULL OR m.isVeg       = :isVeg)    AND " +
-           "(:categoryId IS NULL OR m.category.id = :categoryId) AND " +
-           "(:recommended IS NULL OR m.recommended = :recommended) AND " +
-           "(:isItemInStock   IS NULL OR m.isItemInStock   = :isItemInStock) " +
+           "(:isVeg       IS NULL OR m.isVeg        = :isVeg) AND " +
+           "(:categoryId  IS NULL OR m.category.id  = :categoryId) AND " +
+           "(:recommended IS NULL OR m.recommended  = :recommended) AND " +
+           "(:availableOnly = false " +
+           "  OR m.inventoryMode = com.broandbro.qrapp.enums.InventoryMode.UNLIMITED " +
+           "  OR EXISTS (SELECT i FROM Inventory i WHERE i.menuItem = m AND i.availableQuantity > 0)) " +
            "ORDER BY m.id ASC")
     List<MenuItem> findByFilters(
-            @Param("isVeg")       Boolean isVeg,
-            @Param("categoryId")    Long  categoryId,
-            @Param("recommended") Boolean recommended,
-            @Param("isItemInStock")   Boolean isItemInStock,
+            @Param("isVeg")         Boolean isVeg,
+            @Param("categoryId")    Long    categoryId,
+            @Param("recommended")   Boolean recommended,
+            @Param("availableOnly") boolean availableOnly,
             Pageable pageable
     );
 
@@ -34,7 +38,7 @@ public interface MenuRepository extends JpaRepository<MenuItem, Long> {
      * Uses the composite index idx_menu_item_avail_rec (available, recommended).
      */
     @Query("SELECT m FROM MenuItem m " +
-           "WHERE m.recommended = true AND m.isItemInStock = true " +
+           "WHERE m.recommended = true AND m.isHidden = false " +
            "ORDER BY m.id DESC")
     List<MenuItem> findTopRecommended(Pageable pageable);
 

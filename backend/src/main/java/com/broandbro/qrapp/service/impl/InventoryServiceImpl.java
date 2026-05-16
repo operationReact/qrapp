@@ -75,17 +75,16 @@ public class InventoryServiceImpl implements InventoryService {
     public boolean isOrderable(Long menuItemId) {
         MenuItem menuItem = getMenuItemOrThrow(menuItemId);
 
-        // Must not be hidden
-        if (menuItem.getIsHidden()) {
-            return false;
-        }
+        // Hidden items are never orderable
+        if (Boolean.TRUE.equals(menuItem.getIsHidden())) return false;
 
-        // Must be in stock
-        if (!menuItem.getIsItemInStock()) {
-            return false;
-        }
+        // UNLIMITED items are always orderable when not hidden
+        if (menuItem.getInventoryMode() == InventoryMode.UNLIMITED) return true;
 
-        return true;
+        // LIMITED items: orderable only when quantity > 0
+        return inventoryRepository.findByMenuItemId(menuItemId)
+                .map(inv -> inv.getAvailableQuantity() > 0)
+                .orElse(false);
     }
 
     @Override
@@ -154,9 +153,6 @@ public class InventoryServiceImpl implements InventoryService {
         inventory.setAvailableQuantity(inventory.getAvailableQuantity() - quantity);
         Long newQuantity = inventory.getAvailableQuantity();
 
-        // Update orderable status based on new quantity
-        updateOrderableStatus(menuItem, newQuantity);
-
         // Save inventory (optimistic lock will increment version)
         inventoryRepository.save(inventory);
 
@@ -201,9 +197,6 @@ public class InventoryServiceImpl implements InventoryService {
         inventory.setAvailableQuantity(inventory.getAvailableQuantity() + quantity);
         Long newQuantity = inventory.getAvailableQuantity();
 
-        // Update orderable status based on new quantity
-        updateOrderableStatus(menuItem, newQuantity);
-
         // Save inventory
         inventoryRepository.save(inventory);
 
@@ -226,53 +219,6 @@ public class InventoryServiceImpl implements InventoryService {
     // PRIVATE HELPER METHODS
     // ============================================================================
 
-    /**
-     * Update orderable status based on quantity.
-     *
-     * Automatic behavior:
-     * - If quantity becomes 0 → set available = false
-     * - If quantity becomes > 0 → set available = true (unless manually disabled)
-     *
-     * @param menuItem menu item to update
-     * @param newQuantity new quantity
-     */
-    private void updateOrderableStatus(MenuItem menuItem, Long newQuantity) {
-        boolean wasInStock = menuItem.getIsItemInStock();
-
-        if (newQuantity <= 0) {
-            // Out of stock
-            menuItem.setIsItemInStock(false);
-            if (wasInStock) {
-                log.info("Item {} marked as out of stock (quantity = {})", menuItem.getId(), newQuantity);
-                createAuditEntry(
-                    menuItem.getId(),
-                    InventoryAuditActionType.AUTO_OUT_OF_STOCK,
-                    newQuantity + 1,
-                    newQuantity,
-                    null,
-                    "Automatic out of stock trigger",
-                    null
-                );
-            }
-        } else {
-            // Back in stock
-            if (!wasInStock) {
-                menuItem.setIsItemInStock(true);
-                log.info("Item {} marked as back in stock (quantity = {})", menuItem.getId(), newQuantity);
-                createAuditEntry(
-                    menuItem.getId(),
-                    InventoryAuditActionType.AUTO_BACK_IN_STOCK,
-                    0L,
-                    newQuantity,
-                    null,
-                    "Automatic back in stock trigger",
-                    null
-                );
-            }
-        }
-
-        menuRepository.save(menuItem);
-    }
 
     /**
      * Create audit entry for inventory change.
@@ -351,7 +297,6 @@ public class InventoryServiceImpl implements InventoryService {
 
         // Update inventory
         inventory.setAvailableQuantity(newQuantity);
-        updateOrderableStatus(menuItem, newQuantity);
         inventoryRepository.save(inventory);
 
         // Create audit entry
@@ -480,7 +425,7 @@ public class InventoryServiceImpl implements InventoryService {
             .menuItemId(menuItem.getId())
             .itemName(menuItem.getName())
             .stockStatus(status)
-            .available(menuItem.getIsItemInStock() && !menuItem.getIsHidden())
+            .available(!Boolean.TRUE.equals(menuItem.getIsHidden()) && !inventory.isOutOfStock())
             .version(inventory.getVersion())
             .lastUpdatedAt(inventory.getLastUpdatedAt().toString())
             .build();
@@ -501,6 +446,156 @@ public class InventoryServiceImpl implements InventoryService {
             .referenceId(audit.getReferenceId())
             .createdAt(audit.getCreatedAt())
             .build();
+    }
+
+    // ============================================================================
+    // ADMIN INVENTORY MANAGEMENT SCREEN IMPLEMENTATIONS
+    // ============================================================================
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<AdminInventoryItemResponse> getInventoryItems(InventoryItemFilter filter, Pageable pageable) {
+        String search       = (filter.getSearch() != null && !filter.getSearch().isBlank())
+                              ? filter.getSearch().trim() : null;
+        boolean lowStockOnly = Boolean.TRUE.equals(filter.getLowStockOnly());
+
+        return inventoryRepository.findLimitedItemsWithFilters(
+                        filter.getInventoryMode(),
+                        search,
+                        filter.getIsHidden(),
+                        Boolean.TRUE.equals(filter.getInStockOnly()),
+                        lowStockOnly,
+                        pageable)
+                .map(this::toAdminInventoryItemResponse);
+    }
+
+    /**
+     * Unified update: applies only non-null fields in one transaction.
+     *
+     * Dependency rule:
+     *   quantity present  → isItemInStock AUTO-DERIVED  (qty > 0 = true, 0 = false)
+     *   quantity absent   → isItemInStock applied as manual override if present
+     */
+    @Override
+    @Transactional
+    public AdminInventoryItemResponse updateItem(Long menuItemId,
+                                                  AdminInventoryUpdateRequest request,
+                                                  String changedByName) {
+        MenuItem menuItem = getMenuItemOrThrow(menuItemId);
+        boolean menuItemDirty = false;
+
+        // ------------------------------------------------------------------
+        // 1. QUANTITY  (+ auto-derive isItemInStock)
+        // ------------------------------------------------------------------
+        if (request.getQuantity() != null) {
+            if (menuItem.getInventoryMode() != InventoryMode.LIMITED) {
+                throw new InventoryOperationException(
+                        "Cannot set quantity for item with inventoryMode = " + menuItem.getInventoryMode());
+            }
+
+            Inventory inventory = inventoryRepository.findByMenuItemIdWithLock(menuItemId)
+                    .orElseThrow(() -> new InventoryNotConfiguredException(menuItemId));
+
+            Long oldQty = inventory.getAvailableQuantity();
+            Long newQty = request.getQuantity();
+            inventory.setAvailableQuantity(newQty);
+            inventoryRepository.save(inventory);
+
+
+            createNamedAuditEntry(menuItemId, InventoryAuditActionType.SET_QUANTITY,
+                    oldQty, newQty, changedByName,
+                    request.getReason() != null ? request.getReason() : "Admin set quantity");
+
+            log.info("Admin [{}] set quantity for item {} : {} → {}", changedByName, menuItemId, oldQty, newQty);
+        }
+
+        // ------------------------------------------------------------------
+        // 2. LOW STOCK THRESHOLD
+        // ------------------------------------------------------------------
+        if (request.getLowStockThreshold() != null) {
+            if (menuItem.getInventoryMode() != InventoryMode.LIMITED) {
+                throw new InventoryOperationException(
+                        "Cannot set low stock threshold for UNLIMITED item");
+            }
+            Inventory inventory = inventoryRepository.findByMenuItemIdWithLock(menuItemId)
+                    .orElseThrow(() -> new InventoryNotConfiguredException(menuItemId));
+            inventory.setLowStockThreshold(request.getLowStockThreshold());
+            inventoryRepository.save(inventory);
+            log.info("Admin [{}] updated lowStockThreshold for item {} to {}",
+                    changedByName, menuItemId, request.getLowStockThreshold());
+        }
+
+        // ------------------------------------------------------------------
+        // 3. VISIBILITY
+        // ------------------------------------------------------------------
+        if (request.getIsHidden() != null) {
+            boolean oldHidden = Boolean.TRUE.equals(menuItem.getIsHidden());
+            boolean newHidden = request.getIsHidden();
+            menuItem.setIsHidden(newHidden);
+            menuItemDirty = true;
+
+            createNamedAuditEntry(menuItemId, InventoryAuditActionType.VISIBILITY_CHANGE,
+                    oldHidden ? 1L : 0L, newHidden ? 1L : 0L, changedByName,
+                    newHidden ? "Item hidden by admin" : "Item unhidden by admin");
+
+            log.info("Admin [{}] set isHidden={} for item {}", changedByName, newHidden, menuItemId);
+        }
+
+        if (menuItemDirty) {
+            menuRepository.save(menuItem);
+        }
+
+        // Return fresh snapshot
+        return inventoryRepository.findByMenuItemId(menuItemId)
+                .map(this::toAdminInventoryItemResponse)
+                .orElseGet(() -> buildResponseWithoutInventory(menuItem));
+    }
+
+    // ============================================================================
+    // PRIVATE HELPERS FOR ADMIN METHODS
+    // ============================================================================
+
+    private void createNamedAuditEntry(Long menuItemId, InventoryAuditActionType actionType,
+                                       Long oldQuantity, Long newQuantity,
+                                       String changedByName, String reason) {
+        InventoryAudit audit = InventoryAudit.builder()
+                .menuItemId(menuItemId)
+                .actionType(actionType)
+                .oldQuantity(oldQuantity)
+                .newQuantity(newQuantity)
+                .changedByName(changedByName)
+                .reason(reason)
+                .createdAt(Instant.now())
+                .build();
+        inventoryAuditRepository.save(audit);
+    }
+
+    private AdminInventoryItemResponse toAdminInventoryItemResponse(Inventory inventory) {
+        MenuItem m = inventory.getMenuItem();
+        boolean hidden = Boolean.TRUE.equals(m.getIsHidden());
+        boolean orderable = !hidden && inventory.getAvailableQuantity() > 0;
+        return AdminInventoryItemResponse.builder()
+                .menuItemId(m.getId())
+                .itemName(m.getName())
+                .availableQuantity(inventory.getAvailableQuantity())
+                .lowStockThreshold(inventory.getLowStockThreshold())
+                .isLowStock(inventory.isLowStock())
+                .isHidden(hidden)
+                .isOrderable(orderable)
+                .version(inventory.getVersion())
+                .updatedAt(inventory.getLastUpdatedAt())
+                .build();
+    }
+
+    private AdminInventoryItemResponse buildResponseWithoutInventory(MenuItem m) {
+        boolean hidden = Boolean.TRUE.equals(m.getIsHidden());
+        return AdminInventoryItemResponse.builder()
+                .menuItemId(m.getId())
+                .itemName(m.getName())
+                .isHidden(hidden)
+                // UNLIMITED items are always orderable when not hidden
+                .isOrderable(!hidden)
+                .build();
     }
 }
 

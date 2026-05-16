@@ -42,6 +42,21 @@ public enum InventoryAuditActionType {
     /**
      * Low stock threshold reached
      */
-    LOW_STOCK_ALERT
+    LOW_STOCK_ALERT,
+
+    /**
+     * Admin explicitly set quantity to a fixed value via admin screen
+     */
+    SET_QUANTITY,
+
+    /**
+     * Admin changed isItemInStock flag (manual override)
+     */
+    STOCK_STATUS_CHANGE,
+
+    /**
+     * Admin changed isHidden flag
+     */
+    VISIBILITY_CHANGE
 }
 

@@ -1,7 +1,10 @@
 package com.broandbro.qrapp.repository;
 
 import com.broandbro.qrapp.entity.Inventory;
+import com.broandbro.qrapp.enums.InventoryMode;
 import jakarta.persistence.LockModeType;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
@@ -106,14 +109,33 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
     long countLowStockItems();
 
     /**
-     * Count out of stock items.
+     * Unified filtered query for the admin inventory management screen.
      *
-     * @return count of out of stock items
+     * All filter params are optional (null = no restriction):
+     *   inventoryMode – filter by InventoryMode enum value (LIMITED / UNLIMITED)
+     *   search        – case-insensitive partial match on menu item name
+     *   isHidden      – filter by MenuItem.isHidden
+     *   isItemInStock – filter by MenuItem.isItemInStock
+     *   lowStockOnly  – when true, only LIMITED items where availableQty <= threshold
+     *
+     * Uses JOIN FETCH to avoid N+1 reads on MenuItem.
+     * Note: UNLIMITED items have no inventory row — only LIMITED items appear in this table.
      */
     @Query("""
-        SELECT COUNT(i) FROM Inventory i 
-        WHERE i.availableQuantity <= 0
+        SELECT i FROM Inventory i
+        JOIN FETCH i.menuItem m
+        WHERE (:inventoryMode IS NULL OR m.inventoryMode = :inventoryMode)
+        AND (:search        IS NULL OR LOWER(m.name)       LIKE LOWER(CONCAT('%', :search, '%')))
+        AND (:isHidden      IS NULL OR m.isHidden           = :isHidden)
+        AND (:inStockOnly   = false  OR i.availableQuantity > 0)
+        AND (:lowStockOnly  = false  OR i.availableQuantity <= i.lowStockThreshold)
         """)
-    long countOutOfStockItems();
+    Page<Inventory> findLimitedItemsWithFilters(
+            @Param("inventoryMode") InventoryMode inventoryMode,
+            @Param("search")        String        search,
+            @Param("isHidden")      Boolean       isHidden,
+            @Param("inStockOnly")   boolean       inStockOnly,
+            @Param("lowStockOnly")  boolean       lowStockOnly,
+            Pageable pageable);
 }
 

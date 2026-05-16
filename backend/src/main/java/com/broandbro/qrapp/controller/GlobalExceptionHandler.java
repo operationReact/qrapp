@@ -5,6 +5,8 @@ import com.broandbro.qrapp.exception.FileTooLargeException;
 import com.broandbro.qrapp.exception.ImageNotFoundException;
 import com.broandbro.qrapp.exception.InsufficientBalanceException;
 import com.broandbro.qrapp.exception.InvalidImageException;
+import com.broandbro.qrapp.exception.InventoryNotConfiguredException;
+import com.broandbro.qrapp.exception.InventoryOperationException;
 import com.broandbro.qrapp.exception.MenuItemNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -29,6 +31,16 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(FileTooLargeException.class)
     public ResponseEntity<String> handleFileTooLarge(FileTooLargeException ex) {
         return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE).body(ex.getMessage());
+    }
+
+    @ExceptionHandler(InventoryOperationException.class)
+    public ResponseEntity<String> handleInventoryOperation(InventoryOperationException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
+    }
+
+    @ExceptionHandler(InventoryNotConfiguredException.class)
+    public ResponseEntity<String> handleInventoryNotConfigured(InventoryNotConfiguredException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
     }
 
     @ExceptionHandler(MenuItemNotFoundException.class)

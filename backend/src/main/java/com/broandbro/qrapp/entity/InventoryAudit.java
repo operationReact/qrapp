@@ -65,6 +65,13 @@ public class InventoryAudit {
     private Long changedBy;
 
     /**
+     * Human-readable username / phone of the admin who made the change.
+     * Populated from SecurityContextHolder at the time of the change.
+     */
+    @Column(name = "changed_by_name", length = 100)
+    private String changedByName;
+
+    /**
      * Reason for this inventory change.
      * Example: "Morning stock refill", "Order #123 cancelled", etc.
      */
