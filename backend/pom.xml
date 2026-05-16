@@ -1,8 +1,0 @@
-<!-- Removed: project migrated to Gradle. Delete this file from the repository. -->
-<!-- To remove the POM from git locally and in CI, run:
-	 git rm backend/pom.xml
-	 git commit -m "Remove Maven POM after migration to Gradle"
-	 git push
--->
-
-<!-- Build is now Gradle-based. Use ./gradlew :backend:bootJar to build the backend. -->
