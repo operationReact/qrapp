@@ -2,7 +2,9 @@ package com.broandbro.qrapp.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import com.broandbro.qrapp.enums.InventoryMode;
 import java.math.BigDecimal;
+import java.time.Instant;
 
 @Entity
 @Table(name = "menu_item")
@@ -26,7 +28,6 @@ public class MenuItem {
     @JoinColumn(name = "category_id")
     private Category category;
 
-    private boolean available;
     // Make recommended nullable to avoid forcing a NOT NULL schema change that may time out
     // Use Boolean so adding the column is a fast nullable add; provide a convenience
     // isRecommended() to preserve existing code that calls the boolean-style getter.
@@ -50,6 +51,66 @@ public class MenuItem {
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "shop_id")
     private Shop shop;
+
+    // ============================================================================
+    // INVENTORY MANAGEMENT FIELDS
+    // ============================================================================
+
+    /**
+     * Determines how inventory is managed for this item.
+     * UNLIMITED: no inventory tracking required
+     * LIMITED: inventory quantity must be tracked and enforced
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "inventory_mode", nullable = false)
+    private InventoryMode inventoryMode = InventoryMode.UNLIMITED;
+
+    /**
+     * Whether this item is hidden from the menu.
+     * true = item is hidden and not visible to customers
+     * false = item is visible in menu
+     */
+    @Column(name = "is_hidden", nullable = false)
+    private Boolean isHidden = false;
+
+    /**
+     * Whether this item is in stock.
+     * true = item is in stock and can be ordered
+     * false = item is out of stock
+     */
+    @Column(name = "is_item_in_stock", nullable = false)
+    private Boolean isItemInStock = true;
+
+    /**
+     * Timestamp when item was created.
+     */
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private Instant createdAt;
+
+    /**
+     * Timestamp when item was last updated.
+     */
+    @Column(name = "updated_at", nullable = false)
+    private Instant updatedAt;
+
+    // ============================================================================
+    // LIFECYCLE METHODS
+    // ============================================================================
+
+    @PrePersist
+    public void prePersist() {
+        if (createdAt == null) {
+            createdAt = Instant.now();
+        }
+        if (updatedAt == null) {
+            updatedAt = Instant.now();
+        }
+    }
+
+    @PreUpdate
+    public void preUpdate() {
+        updatedAt = Instant.now();
+    }
 
     public boolean isRecommended() {
         return Boolean.TRUE.equals(this.recommended);

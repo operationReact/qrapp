@@ -1,5 +1,5 @@
 -- Migration: Fix Seed User Passwords
--- Version: V101
+-- Version: V17
 -- Date: 2026-05-15
 -- Description: Update BCrypt hashes for seed users to match the actual passwords
 --

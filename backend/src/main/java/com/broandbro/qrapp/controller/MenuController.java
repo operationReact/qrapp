@@ -6,6 +6,8 @@ import com.broandbro.qrapp.entity.Tag;
 import com.broandbro.qrapp.repository.MenuRepository;
 import com.broandbro.qrapp.repository.CategoryRepository;
 import com.broandbro.qrapp.repository.TagRepository;
+import com.broandbro.qrapp.dto.MenuItemResponse;
+import com.broandbro.qrapp.service.InventoryService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -62,6 +64,7 @@ public class MenuController {
     private final MenuRepository repo;
     private final CategoryRepository categoryRepository;
     private final TagRepository tagRepository;
+    private final InventoryService inventoryService;
 
     // helper to store uploaded file under resources/static/uploads and return public URL
     private String storeUploadedFile(MultipartFile file) throws IOException {
@@ -79,7 +82,7 @@ public class MenuController {
 
     @GetMapping
     @Cacheable(cacheNames = "menu", key = "T(java.lang.String).format('%s|%s|%s|%s|%s|%s', #isVeg, #categoryId, #recommended, #available, #page, #size)")
-    public List<MenuItem> getMenu(
+    public List<MenuItemResponse> getMenu(
             @RequestParam(value = "isVeg", required = false) Boolean isVeg,
             @RequestParam(value = "categoryId", required = false) Long categoryId,
             @RequestParam(value = "recommended", required = false) Boolean recommended,
@@ -89,16 +92,21 @@ public class MenuController {
     ) {
         int safePage = page == null ? DEFAULT_MENU_PAGE : Math.max(0, page);
         int safeSize = size == null ? DEFAULT_MENU_SIZE : Math.max(1, Math.min(size, MAX_MENU_SIZE));
-        return repo.findByFilters(isVeg, categoryId, recommended, available, PageRequest.of(safePage, safeSize));
+        List<MenuItem> items = repo.findByFilters(isVeg, categoryId, recommended, available, PageRequest.of(safePage, safeSize));
+        return items.stream()
+            .map(this::buildMenuItemResponse)
+            .toList();
     }
 
 
     @GetMapping("/recommended")
     @Cacheable(cacheNames = "menuRecommended", key = "#limit == null ? 'default' : #limit")
-    public List<MenuItem> getRecommendedMenu(@RequestParam(value = "limit", required = false) Integer limit) {
+    public List<MenuItemResponse> getRecommendedMenu(@RequestParam(value = "limit", required = false) Integer limit) {
         int safeLimit = limit == null ? DEFAULT_RECOMMENDED_LIMIT : Math.max(1, Math.min(limit, MAX_RECOMMENDED_LIMIT));
-        // LIMIT is now applied in SQL via Pageable — no full table load in Java
-        return repo.findTopRecommended(PageRequest.of(0, safeLimit));
+        List<MenuItem> items = repo.findTopRecommended(PageRequest.of(0, safeLimit));
+        return items.stream()
+            .map(this::buildMenuItemResponse)
+            .toList();
     }
 
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
@@ -120,10 +128,12 @@ public class MenuController {
             @RequestPart(value = "price", required = false) String priceStr,
             @RequestPart(value = "categoryId", required = false) String categoryIdStr,
             @RequestPart(value = "description", required = false) String description,
-            @RequestPart(value = "available", required = false) String availableStr,
+            @RequestPart(value = "isItemInStock", required = false) String isItemInStockStr,
+            @RequestPart(value = "isHidden", required = false) String isHiddenStr,
             @RequestPart(value = "recommended", required = false) String recommendedStr,
             @RequestPart(value = "tagId", required = false) String tagIdStr,
             @RequestPart(value = "isVeg", required = false) String isVegStr,
+            @RequestPart(value = "inventoryMode", required = false) String inventoryModeStr,
             @RequestPart(value = "image", required = false) MultipartFile image
     ) {
         try {
@@ -153,7 +163,20 @@ public class MenuController {
             }
 
             item.setDescription(description);
-            item.setAvailable(availableStr == null || Boolean.parseBoolean(availableStr));
+
+            // Set inventory fields with proper defaults
+            item.setIsItemInStock(isItemInStockStr == null || Boolean.parseBoolean(isItemInStockStr));
+            item.setIsHidden(isHiddenStr != null && Boolean.parseBoolean(isHiddenStr));
+
+            // Set inventory mode
+            if (inventoryModeStr != null && !inventoryModeStr.isBlank()) {
+                try {
+                    item.setInventoryMode(com.broandbro.qrapp.enums.InventoryMode.valueOf(inventoryModeStr.toUpperCase()));
+                } catch (IllegalArgumentException e) {
+                    return ResponseEntity.badRequest().body("Invalid inventory mode: " + inventoryModeStr);
+                }
+            }
+
             item.setRecommended(Boolean.parseBoolean(recommendedStr));
 
             // Set tag if tagId is provided
@@ -214,10 +237,12 @@ public class MenuController {
                     String priceStr = mreq.getParameter("price");
                     String categoryIdStr = mreq.getParameter("categoryId");
                     String description = mreq.getParameter("description");
-                    String availableStr = mreq.getParameter("available");
+                    String isItemInStockStr = mreq.getParameter("isItemInStock");
+                    String isHiddenStr = mreq.getParameter("isHidden");
                     String recommendedStr = mreq.getParameter("recommended");
                     String tagIdStr = mreq.getParameter("tagId");
                     String isVegStr = mreq.getParameter("isVeg");
+                    String inventoryModeStr = mreq.getParameter("inventoryMode");
 
                     if (name != null) existing.setName(name);
                     if (priceStr != null && !priceStr.isBlank()) {
@@ -232,8 +257,14 @@ public class MenuController {
                         } catch (NumberFormatException ex) { /* ignore */ }
                     }
                     if (description != null) existing.setDescription(description);
-                    if (availableStr != null) existing.setAvailable(Boolean.parseBoolean(availableStr));
+                    if (isItemInStockStr != null) existing.setIsItemInStock(Boolean.parseBoolean(isItemInStockStr));
+                    if (isHiddenStr != null) existing.setIsHidden(Boolean.parseBoolean(isHiddenStr));
                     if (recommendedStr != null) existing.setRecommended(Boolean.parseBoolean(recommendedStr));
+                    if (inventoryModeStr != null && !inventoryModeStr.isBlank()) {
+                        try {
+                            existing.setInventoryMode(com.broandbro.qrapp.enums.InventoryMode.valueOf(inventoryModeStr.toUpperCase()));
+                        } catch (IllegalArgumentException ex) { /* ignore */ }
+                    }
                     if (tagIdStr != null && !tagIdStr.isBlank()) {
                         try {
                             Long tagId = Long.parseLong(tagIdStr);
@@ -288,15 +319,28 @@ public class MenuController {
                     }
                 }
                 if (payload.containsKey("description")) existing.setDescription((String) payload.getOrDefault("description", existing.getDescription()));
-                if (payload.containsKey("available")) {
-                    Object a = payload.get("available");
+                if (payload.containsKey("isItemInStock")) {
+                    Object a = payload.get("isItemInStock");
                     boolean av = a instanceof Boolean ? (Boolean)a : Boolean.parseBoolean(String.valueOf(a));
-                    existing.setAvailable(av);
+                    existing.setIsItemInStock(av);
+                }
+                if (payload.containsKey("isHidden")) {
+                    Object h = payload.get("isHidden");
+                    boolean hid = h instanceof Boolean ? (Boolean)h : Boolean.parseBoolean(String.valueOf(h));
+                    existing.setIsHidden(hid);
                 }
                 if (payload.containsKey("recommended")) {
                     Object r = payload.get("recommended");
                     boolean rec = r instanceof Boolean ? (Boolean) r : Boolean.parseBoolean(String.valueOf(r));
                     existing.setRecommended(rec);
+                }
+                if (payload.containsKey("inventoryMode")) {
+                    Object im = payload.get("inventoryMode");
+                    if (im != null) {
+                        try {
+                            existing.setInventoryMode(com.broandbro.qrapp.enums.InventoryMode.valueOf(String.valueOf(im).toUpperCase()));
+                        } catch (Exception ex) { /* ignore */ }
+                    }
                 }
                 if (payload.containsKey("tagId")) {
                     Object t = payload.get("tagId");
@@ -358,5 +402,36 @@ public class MenuController {
         } catch (Exception ex) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to delete menu item");
         }
+    }
+
+    /**
+     * Helper method to convert MenuItem entity to MenuItemResponse DTO
+     * Includes inventory information from InventoryService
+     */
+    private MenuItemResponse buildMenuItemResponse(MenuItem item) {
+        Long categoryId = item.getCategory() != null ? item.getCategory().getId() : null;
+        Long tagId = item.getTag() != null ? item.getTag().getId() : null;
+        Long shopId = item.getShop() != null ? item.getShop().getId() : null;
+
+        return MenuItemResponse.builder()
+            .id(item.getId())
+            .name(item.getName())
+            .description(item.getDescription())
+            .price(item.getSellingPrice())
+            .imageUrl(item.getImageUrl())
+            .isVeg(item.getIsVeg())
+            .recommended(item.isRecommended())
+            .basePrice(item.getBasePrice())
+            .margin(item.getMargin())
+            .categoryId(categoryId)
+            .tagId(tagId)
+            .shopId(shopId)
+            .inventoryMode(item.getInventoryMode())
+            .isHidden(item.getIsHidden())
+            .isItemInStock(item.getIsItemInStock())
+            .createdAt(item.getCreatedAt())
+            .updatedAt(item.getUpdatedAt())
+            .stockStatus(inventoryService.getStockStatus(item.getId()))
+            .build();
     }
 }

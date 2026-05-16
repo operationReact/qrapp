@@ -1,5 +1,5 @@
 -- Flyway Versioned Migration: Initial Seed Data
--- File: V100__seed_initial_data.sql
+-- File: V16__seed_initial_data.sql
 -- Date: 2026-05-15
 -- Description: Seeds initial bootstrap data for development and testing
 -- This versioned migration runs ONLY ONCE during the first deployment
