@@ -19,13 +19,13 @@ public interface MenuRepository extends JpaRepository<MenuItem, Long> {
            "(:isVeg    IS NULL OR m.isVeg       = :isVeg)    AND " +
            "(:categoryId IS NULL OR m.category.id = :categoryId) AND " +
            "(:recommended IS NULL OR m.recommended = :recommended) AND " +
-           "(:available   IS NULL OR m.available   = :available) " +
+           "(:isItemInStock   IS NULL OR m.isItemInStock   = :isItemInStock) " +
            "ORDER BY m.id ASC")
     List<MenuItem> findByFilters(
             @Param("isVeg")       Boolean isVeg,
             @Param("categoryId")    Long  categoryId,
             @Param("recommended") Boolean recommended,
-            @Param("available")   Boolean available,
+            @Param("isItemInStock")   Boolean isItemInStock,
             Pageable pageable
     );
 
@@ -34,7 +34,7 @@ public interface MenuRepository extends JpaRepository<MenuItem, Long> {
      * Uses the composite index idx_menu_item_avail_rec (available, recommended).
      */
     @Query("SELECT m FROM MenuItem m " +
-           "WHERE m.recommended = true AND m.available = true " +
+           "WHERE m.recommended = true AND m.isItemInStock = true " +
            "ORDER BY m.id DESC")
     List<MenuItem> findTopRecommended(Pageable pageable);
 

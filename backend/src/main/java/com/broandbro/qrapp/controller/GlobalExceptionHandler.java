@@ -1,7 +1,11 @@
 package com.broandbro.qrapp.controller;
 
 import com.broandbro.qrapp.exception.DuplicateTransactionException;
+import com.broandbro.qrapp.exception.FileTooLargeException;
+import com.broandbro.qrapp.exception.ImageNotFoundException;
 import com.broandbro.qrapp.exception.InsufficientBalanceException;
+import com.broandbro.qrapp.exception.InvalidImageException;
+import com.broandbro.qrapp.exception.MenuItemNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -12,6 +16,26 @@ import java.util.stream.Collectors;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+    @ExceptionHandler(ImageNotFoundException.class)
+    public ResponseEntity<String> handleImageNotFound(ImageNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
+    }
+
+    @ExceptionHandler(InvalidImageException.class)
+    public ResponseEntity<String> handleInvalidImage(InvalidImageException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
+    }
+
+    @ExceptionHandler(FileTooLargeException.class)
+    public ResponseEntity<String> handleFileTooLarge(FileTooLargeException ex) {
+        return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE).body(ex.getMessage());
+    }
+
+    @ExceptionHandler(MenuItemNotFoundException.class)
+    public ResponseEntity<String> handleMenuItemNotFound(MenuItemNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
+    }
+
     @ExceptionHandler(InsufficientBalanceException.class)
     public ResponseEntity<String> handleInsufficient(InsufficientBalanceException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
