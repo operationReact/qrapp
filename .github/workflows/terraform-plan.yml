@@ -57,7 +57,7 @@ jobs:
             -backend-config="bucket=broandbro-tfstate-ap-south-1" \
             -backend-config="key=env/dev/terraform.tfstate" \
             -backend-config="region=ap-south-1" \
-            -backend-config="dynamodb_table=broandbro-tf-lock"
+            -backend-config="dynamodb_table=broandbro-terraform-locks"
 
       - name: Terraform Plan
         id: plan
@@ -142,7 +142,7 @@ jobs:
             -backend-config="bucket=broandbro-tfstate-ap-south-1" \
             -backend-config="key=env/prod/terraform.tfstate" \
             -backend-config="region=ap-south-1" \
-            -backend-config="dynamodb_table=broandbro-tf-lock"
+            -backend-config="dynamodb_table=broandbro-terraform-locks"
 
       - name: Terraform Plan
         id: plan

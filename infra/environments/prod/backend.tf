@@ -8,7 +8,7 @@ terraform {
     key            = "env/prod/terraform.tfstate"
     region         = "ap-south-1"
     encrypt        = true
-    dynamodb_table = "broandbro-tf-lock"
+    dynamodb_table = "broandbro-terraform-locks"
   }
 }
 

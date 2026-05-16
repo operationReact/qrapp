@@ -89,7 +89,7 @@ resource "aws_s3_bucket_policy" "tfstate" {
 
 # ── DynamoDB table for state locking ─────────────────────────────────────────
 resource "aws_dynamodb_table" "tf_lock" {
-  name         = "broandbro-tf-lock"
+  name         = "broandbro-terraform-locks"
   billing_mode = "PAY_PER_REQUEST"
   hash_key     = "LockID"
 
@@ -103,7 +103,7 @@ resource "aws_dynamodb_table" "tf_lock" {
   }
 
   tags = {
-    Name      = "broandbro-tf-lock"
+    Name      = "broandbro-terraform-locks"
     ManagedBy = "Terraform"
   }
 }
