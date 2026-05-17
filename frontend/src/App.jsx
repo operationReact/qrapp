@@ -35,6 +35,7 @@ function SafeAreaWrapper({ children }) {
 }
 
 
+
 SafeAreaWrapper.propTypes = {
   children: PropTypes.node,
 };
