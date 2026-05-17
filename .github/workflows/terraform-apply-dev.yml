@@ -56,6 +56,52 @@ jobs:
       - name: Terraform Validate
         run: terraform validate
 
+      # ── Guard: fail early with a clear message if required secrets are missing
+      - name: Validate required secrets
+        run: |
+          MISSING=""
+          [ -z "${{ secrets.DEV_DB_PASSWORD }}"    ] && MISSING="$MISSING DEV_DB_PASSWORD"
+          [ -z "${{ secrets.DEV_EC2_PUBLIC_KEY }}" ] && MISSING="$MISSING DEV_EC2_PUBLIC_KEY"
+          if [ -n "$MISSING" ]; then
+            echo "❌ The following GitHub secrets are not set:$MISSING"
+            echo "Go to: Settings → Environments → dev → Environment secrets"
+            exit 1
+          fi
+          echo "✅ All required secrets are present."
+
+      # ── Import orphaned resources from previous partial applies ────────────
+      # If a prior apply partially succeeded, resources exist in AWS but not in
+      # Terraform state. Import them before plan/apply to avoid conflicts.
+      - name: Import existing S3 bucket (if orphaned)
+        run: |
+          if aws s3api head-bucket --bucket broandbro-dev-ui 2>/dev/null; then
+            echo "Bucket exists – checking state..."
+            if ! terraform state show module.s3.aws_s3_bucket.this 2>/dev/null; then
+              echo "Importing orphaned S3 bucket into state..."
+              terraform import \
+                -var="db_password=${{ secrets.DEV_DB_PASSWORD }}" \
+                -var="ec2_public_key=${{ secrets.DEV_EC2_PUBLIC_KEY }}" \
+                module.s3.aws_s3_bucket.this broandbro-dev-ui
+            else
+              echo "Bucket already in state – skipping."
+            fi
+          fi
+
+      - name: Import existing EC2 Key Pair (if orphaned)
+        run: |
+          if aws ec2 describe-key-pairs --key-names broandbro-dev-key --region ap-south-1 2>/dev/null; then
+            echo "Key pair exists – checking state..."
+            if ! terraform state show module.ec2.aws_key_pair.this 2>/dev/null; then
+              echo "Importing orphaned key pair into state..."
+              terraform import \
+                -var="db_password=${{ secrets.DEV_DB_PASSWORD }}" \
+                -var="ec2_public_key=${{ secrets.DEV_EC2_PUBLIC_KEY }}" \
+                module.ec2.aws_key_pair.this broandbro-dev-key
+            else
+              echo "Key pair already in state – skipping."
+            fi
+          fi
+
       - name: Terraform Plan
         run: |
           terraform plan -out=tfplan \
