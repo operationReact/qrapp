@@ -108,7 +108,8 @@ public class SecurityConfig {
                         .requestMatchers(
                                 HttpMethod.GET,
                                 "/menu",
-                                "/menu/**"
+                                "/menu/**",
+                                "/categories/**"
                         ).permitAll()
 
                         .requestMatchers(

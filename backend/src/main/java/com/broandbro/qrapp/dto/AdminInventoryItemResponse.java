@@ -26,7 +26,6 @@ public class AdminInventoryItemResponse {
     private Long menuItemId;
     private String itemName;
 
-
     private Long availableQuantity;
     private Long lowStockThreshold;
 

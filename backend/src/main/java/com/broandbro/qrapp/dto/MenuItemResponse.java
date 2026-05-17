@@ -1,5 +1,7 @@
 package com.broandbro.qrapp.dto;
 
+import com.broandbro.qrapp.entity.Category;
+import com.broandbro.qrapp.entity.Tag;
 import com.broandbro.qrapp.enums.InventoryMode;
 import com.broandbro.qrapp.enums.StockStatus;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -30,8 +32,8 @@ public class MenuItemResponse {
     // MenuItem fields (full snapshot)
     private BigDecimal basePrice;
     private BigDecimal margin;
-    private Long categoryId;
-    private Long tagId;
+    private Category category;
+    private Tag tag;
     private Long shopId;
     private InventoryMode inventoryMode;
     private Boolean isHidden;
