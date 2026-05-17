@@ -11,6 +11,10 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 5.50"
     }
+    tls = {
+      source  = "hashicorp/tls"
+      version = "~> 4.0"
+    }
   }
 }
 
@@ -96,7 +100,6 @@ module "ec2" {
   environment       = "dev"
   instance_type     = var.ec2_instance_type # t4g.micro
   security_group_id = module.security_group.ec2_sg_id
-  ec2_public_key    = var.ec2_public_key
 }
 
 # ── RDS PostgreSQL ────────────────────────────────────────────────────────────

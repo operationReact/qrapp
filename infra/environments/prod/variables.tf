@@ -17,11 +17,7 @@ variable "ec2_instance_type" {
   type    = string
   default = "t4g.small"
 }
-
-variable "ec2_public_key" {
-  description = "SSH public key for EC2 access (injected via GitHub Actions secret)"
-  type        = string
-}
+# ec2_public_key removed – Terraform auto-generates the key pair
 
 variable "ssh_allowed_cidrs" {
   description = "Lock this down to your office IP in prod!"

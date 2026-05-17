@@ -69,10 +69,15 @@ jobs:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Setup SSH key
+      # Fetch SSH private key from SSM – no manual GitHub secret needed
+      - name: Setup SSH key (from SSM)
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.DEV_EC2_SSH_PRIVATE_KEY }}" > ~/.ssh/broandbro_dev
+          aws ssm get-parameter \
+            --name "/broandbro/dev/ec2-ssh-private-key" \
+            --with-decryption \
+            --query "Parameter.Value" \
+            --output text > ~/.ssh/broandbro_dev
           chmod 600 ~/.ssh/broandbro_dev
           ssh-keyscan -H ${{ secrets.DEV_EC2_HOST }} >> ~/.ssh/known_hosts 2>/dev/null
 

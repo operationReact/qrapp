@@ -57,14 +57,14 @@ jobs:
             -backend-config="bucket=broandbro-tfstate-ap-south-1" \
             -backend-config="key=env/dev/terraform.tfstate" \
             -backend-config="region=ap-south-1" \
-            -backend-config="dynamodb_table=broandbro-terraform-locks"
+            -backend-config="dynamodb_table=broandbro-tf-lock"
 
       - name: Terraform Plan
         id: plan
         run: |
           terraform plan -no-color -out=tfplan \
-            -var="db_password=${{ secrets.DEV_DB_PASSWORD }}" \
-            -var="ec2_public_key=${{ secrets.DEV_EC2_PUBLIC_KEY }}"
+            -var="db_password=${{ secrets.DEV_DB_PASSWORD }}"
+
         continue-on-error: true
 
       - name: Post Plan to PR
@@ -142,14 +142,13 @@ jobs:
             -backend-config="bucket=broandbro-tfstate-ap-south-1" \
             -backend-config="key=env/prod/terraform.tfstate" \
             -backend-config="region=ap-south-1" \
-            -backend-config="dynamodb_table=broandbro-terraform-locks"
+            -backend-config="dynamodb_table=broandbro-tf-lock"
 
       - name: Terraform Plan
         id: plan
         run: |
           terraform plan -no-color -out=tfplan \
-            -var="db_password=${{ secrets.PROD_DB_PASSWORD }}" \
-            -var="ec2_public_key=${{ secrets.PROD_EC2_PUBLIC_KEY }}"
+            -var="db_password=${{ secrets.PROD_DB_PASSWORD }}"
         continue-on-error: true
 
       - name: Post Plan to PR

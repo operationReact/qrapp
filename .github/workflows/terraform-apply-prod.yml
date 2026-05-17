@@ -51,24 +51,19 @@ jobs:
             -backend-config="bucket=broandbro-tfstate-ap-south-1" \
             -backend-config="key=env/prod/terraform.tfstate" \
             -backend-config="region=ap-south-1" \
-            -backend-config="dynamodb_table=broandbro-terraform-locks"
+            -backend-config="dynamodb_table=broandbro-tf-lock"
 
       - name: Terraform Validate
         run: terraform validate
-
-      - name: Terraform Plan
-        run: |
-          terraform plan -out=tfplan \
-            -var="db_password=${{ secrets.PROD_DB_PASSWORD }}" \
-            -var="ec2_public_key=${{ secrets.PROD_EC2_PUBLIC_KEY }}"
 
       # ── Import orphaned resources from previous partial applies ────────────
       - name: Import existing S3 bucket (if orphaned)
         run: |
           if aws s3api head-bucket --bucket broandbro-prod-ui 2>/dev/null; then
             if ! terraform state show module.s3.aws_s3_bucket.this 2>/dev/null; then
-              echo "Importing orphaned S3 bucket into state..."
-              terraform import module.s3.aws_s3_bucket.this broandbro-prod-ui
+              terraform import \
+                -var="db_password=${{ secrets.PROD_DB_PASSWORD }}" \
+                module.s3.aws_s3_bucket.this broandbro-prod-ui
             fi
           fi
 
@@ -76,10 +71,16 @@ jobs:
         run: |
           if aws ec2 describe-key-pairs --key-names broandbro-prod-key --region ap-south-1 2>/dev/null; then
             if ! terraform state show module.ec2.aws_key_pair.this 2>/dev/null; then
-              echo "Importing orphaned key pair into state..."
-              terraform import module.ec2.aws_key_pair.this broandbro-prod-key
+              terraform import \
+                -var="db_password=${{ secrets.PROD_DB_PASSWORD }}" \
+                module.ec2.aws_key_pair.this broandbro-prod-key
             fi
           fi
+
+      - name: Terraform Plan
+        run: |
+          terraform plan -out=tfplan \
+            -var="db_password=${{ secrets.PROD_DB_PASSWORD }}"
 
       - name: Terraform Apply
         run: terraform apply -auto-approve tfplan

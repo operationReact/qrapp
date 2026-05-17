@@ -12,8 +12,3 @@ variable "security_group_id" {
   description = "Security group ID to attach to the instance"
   type        = string
 }
-
-variable "ec2_public_key" {
-  description = "SSH public key material"
-  type        = string
-}

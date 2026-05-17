@@ -60,7 +60,7 @@ jobs:
             -backend-config="bucket=broandbro-tfstate-ap-south-1" \
             -backend-config="key=env/${{ matrix.env }}/terraform.tfstate" \
             -backend-config="region=ap-south-1" \
-            -backend-config="dynamodb_table=broandbro-terraform-locks"
+            -backend-config="dynamodb_table=broandbro-tf-lock"
 
       - name: Terraform Validate
         run: terraform validate
