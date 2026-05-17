@@ -1,7 +1,7 @@
 // Gradle build converted from existing pom.xml
 plugins {
     id 'java'
-    id 'org.springframework.boot' version '3.2.4'
+    id 'org.springframework.boot' version '3.4.4'
     // Removed the standalone io.spring.dependency-management plugin because
     // the Spring Boot Gradle plugin provides dependency management and the
     // older standalone plugin is incompatible with Gradle 9 (causes
@@ -30,7 +30,7 @@ repositories {
 
 dependencies {
     // Provide Spring Boot BOM as a platform so versions for Spring artifacts are available
-    implementation platform('org.springframework.boot:spring-boot-dependencies:3.2.4')
+    implementation platform('org.springframework.boot:spring-boot-dependencies:3.4.4')
 
     // NOTE: The project previously used the Razorpay Java SDK (com.razorpay:razorpay-java:1.6.0)
     // resolved from Razorpay's repository. This codebase does not use the SDK classes (it
