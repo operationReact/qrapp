@@ -163,3 +163,17 @@ resource "aws_eip" "this" {
     Environment = var.environment
   }
 }
+
+# ── Store Elastic IP in SSM so the deploy workflow can read it ────────────────
+resource "aws_ssm_parameter" "ec2_ip" {
+  name        = "/broandbro/${var.environment}/ec2-public-ip"
+  description = "EC2 Elastic IP for ${var.environment} backend – used by deploy workflow"
+  type        = "String"
+  value       = aws_eip.this.public_ip
+
+  tags = {
+    Name        = "broandbro-${var.environment}-ec2-ip"
+    Environment = var.environment
+  }
+}
+
