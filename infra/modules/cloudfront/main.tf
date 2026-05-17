@@ -87,3 +87,17 @@ resource "aws_cloudfront_distribution" "this" {
     Environment = var.environment
   }
 }
+
+# ── Store distribution ID in SSM so the deploy workflow can read it ──────────
+resource "aws_ssm_parameter" "cf_distribution_id" {
+  name        = "/broandbro/${var.environment}/cf-distribution-id"
+  description = "CloudFront distribution ID for ${var.environment} – used by frontend deploy workflow"
+  type        = "String"
+  value       = aws_cloudfront_distribution.this.id
+
+  tags = {
+    Name        = "broandbro-${var.environment}-cf-distribution-id"
+    Environment = var.environment
+  }
+}
+

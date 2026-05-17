@@ -85,8 +85,13 @@ jobs:
       # ── CloudFront cache invalidation ────────────────────────────────────
       - name: Invalidate CloudFront cache
         run: |
+          CF_DIST_ID=$(aws ssm get-parameter \
+            --name "/broandbro/dev/cf-distribution-id" \
+            --query "Parameter.Value" \
+            --output text)
+
           INVALIDATION_ID=$(aws cloudfront create-invalidation \
-            --distribution-id ${{ secrets.DEV_CF_DISTRIBUTION_ID }} \
+            --distribution-id "$CF_DIST_ID" \
             --paths "/*" \
             --query "Invalidation.Id" \
             --output text)
