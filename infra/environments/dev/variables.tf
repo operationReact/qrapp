@@ -24,11 +24,6 @@ variable "ssh_allowed_cidrs" {
   default = ["0.0.0.0/0"] # Open for dev – tighten in prod
 }
 
-variable "local_dev_cidrs" {
-  description = "Your local machine IP(s) for Redis access. e.g. [\"1.2.3.4/32\"]"
-  type        = list(string)
-  default     = []
-}
 
 variable "rds_instance_class" {
   type    = string

@@ -56,7 +56,6 @@ module "security_group" {
 
   environment       = "dev"
   ssh_allowed_cidrs = var.ssh_allowed_cidrs
-  local_dev_cidrs   = var.local_dev_cidrs
 }
 
 # ── ACM Certificate (us-east-1) ───────────────────────────────────────────────

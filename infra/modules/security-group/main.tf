@@ -68,15 +68,12 @@ resource "aws_security_group" "rds" {
     security_groups = [aws_security_group.ec2.id]
   }
 
-  dynamic "ingress" {
-    for_each = length(var.local_dev_cidrs) > 0 ? [1] : []
-    content {
-      description = "PostgreSQL from local dev"
-      from_port   = 5432
-      to_port     = 5432
-      protocol    = "tcp"
-      cidr_blocks = var.local_dev_cidrs
-    }
+  ingress {
+    description = "PostgreSQL public access (dev only)"
+    from_port   = 5432
+    to_port     = 5432
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
   egress {
