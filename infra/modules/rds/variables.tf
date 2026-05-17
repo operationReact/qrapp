@@ -15,12 +15,8 @@ variable "db_name" {
 }
 
 variable "db_username" {
-  type = string
-}
-
-variable "db_password" {
-  type      = string
-  sensitive = true
+  type    = string
+  default = "broandbro"
 }
 
 variable "instance_class" {

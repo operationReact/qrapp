@@ -38,9 +38,5 @@ variable "db_username" {
   type    = string
   default = "broandbro"
 }
-
-variable "db_password" {
-  type      = string
-  sensitive = true
-}
+# db_password removed – Terraform auto-generates it via random_password
 

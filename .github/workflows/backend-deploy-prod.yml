@@ -85,6 +85,12 @@ jobs:
 
       - name: Write application.env to EC2
         run: |
+          DB_PASSWORD=$(aws ssm get-parameter \
+            --name "/broandbro/prod/db-password" \
+            --with-decryption \
+            --query "Parameter.Value" \
+            --output text)
+
           ssh -i ~/.ssh/broandbro_prod \
               -o StrictHostKeyChecking=no \
               ec2-user@${{ secrets.PROD_EC2_HOST }} \
@@ -93,8 +99,8 @@ jobs:
              printf 'SPRING_PROFILES_ACTIVE=prod\n'
              printf 'SERVER_PORT=8080\n'
              printf 'SPRING_DATASOURCE_URL=jdbc:postgresql://${{ secrets.PROD_DB_HOST }}:5432/${{ secrets.PROD_DB_NAME }}\n'
-             printf 'SPRING_DATASOURCE_USERNAME=${{ secrets.PROD_DB_USERNAME }}\n'
-             printf 'SPRING_DATASOURCE_PASSWORD=${{ secrets.PROD_DB_PASSWORD }}\n'
+             printf 'SPRING_DATASOURCE_USERNAME=broandbro\n'
+             printf 'SPRING_DATASOURCE_PASSWORD=%s\n' \"$DB_PASSWORD\"
              printf 'SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE=10\n'
              printf 'SPRING_DATASOURCE_HIKARI_CONNECTION_TIMEOUT=30000\n'
            } | sudo tee /opt/broandbro/config/application.env > /dev/null

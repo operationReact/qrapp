@@ -15,6 +15,10 @@ terraform {
       source  = "hashicorp/tls"
       version = "~> 4.0"
     }
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.6"
+    }
   }
 }
 
@@ -113,7 +117,6 @@ module "rds" {
   allocated_storage     = 20
   db_name               = var.db_name
   db_username           = var.db_username
-  db_password           = var.db_password
   backup_retention_days = 3
   multi_az              = false
 }

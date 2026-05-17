@@ -83,6 +83,13 @@ jobs:
 
       - name: Write application.env to EC2
         run: |
+          # Fetch secrets from SSM – no GitHub secrets needed for DB credentials
+          DB_PASSWORD=$(aws ssm get-parameter \
+            --name "/broandbro/dev/db-password" \
+            --with-decryption \
+            --query "Parameter.Value" \
+            --output text)
+
           ssh -i ~/.ssh/broandbro_dev \
               -o StrictHostKeyChecking=no \
               ec2-user@${{ secrets.DEV_EC2_HOST }} \
@@ -91,8 +98,8 @@ jobs:
              printf 'SPRING_PROFILES_ACTIVE=dev\n'
              printf 'SERVER_PORT=8080\n'
              printf 'SPRING_DATASOURCE_URL=jdbc:postgresql://${{ secrets.DEV_DB_HOST }}:5432/${{ secrets.DEV_DB_NAME }}\n'
-             printf 'SPRING_DATASOURCE_USERNAME=${{ secrets.DEV_DB_USERNAME }}\n'
-             printf 'SPRING_DATASOURCE_PASSWORD=${{ secrets.DEV_DB_PASSWORD }}\n'
+             printf 'SPRING_DATASOURCE_USERNAME=broandbro\n'
+             printf 'SPRING_DATASOURCE_PASSWORD=%s\n' \"$DB_PASSWORD\"
              printf 'SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE=5\n'
            } | sudo tee /opt/broandbro/config/application.env > /dev/null
            sudo chown broandbro:broandbro /opt/broandbro/config/application.env
