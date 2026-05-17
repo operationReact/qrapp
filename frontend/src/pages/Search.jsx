@@ -1,6 +1,5 @@
 import MenuItemCard from "@/components/MenuItemCard";
 import MobileMenu from "@/components/MobileMenu";
-import ModeSwitcher from "@/components/ModeSwitcher";
 import SearchBar from "@/components/SearchBar";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -10,7 +9,7 @@ import {
   CarouselItem,
 } from "@/components/ui/carousel";
 import { usePreferences } from "@/context/PreferencesContext";
-import { getCategories, getMenu } from "@/services/api";
+import { getMenu } from "@/services/api";
 import { RefreshCcw } from "@boxicons/react";
 import { useEffect, useState } from "react";
 import Navbar from "@/components/Navbar";
@@ -19,7 +18,6 @@ export default function SearchPage() {
   const [results, setResults] = useState([]);
   const [query, setQuery] = useState("");
   const [error, setError] = useState(null);
-  const [categoriesData, setCategoriesData] = useState([]);
 
   const {
     preferences: { segmentedFilter: vegFilter },
@@ -35,9 +33,7 @@ export default function SearchPage() {
 
     try {
       const res = await getMenu(opts);
-      const categoriesRes = await getCategories();
       setResults(res.data || []);
-      setCategoriesData(categoriesRes.data);
     } catch (err) {
       const msg = err && err.message;
       setError(msg);
@@ -49,12 +45,11 @@ export default function SearchPage() {
   }, [vegFilter]);
 
   const filteredResults = results.filter((menuItem) => {
-    console.log({categoriesData})
     const haystack = [
       menuItem.name,
       menuItem.description,
-      categoriesData.find((c) => c.id === menuItem.categoryId).name,
-      // menuItem.tag?.name,
+      menuItem.category.name,
+      menuItem.tag?.name,
     ]
       .filter(Boolean)
       .join(" ")
@@ -63,12 +58,9 @@ export default function SearchPage() {
     return query.trim() && haystack.includes(query.trim().toLowerCase());
   });
 
-  // const bestsellers = results.filter(
-  //   (item) => item.tag && item.tag.name.toLowerCase() === "bestseller",
-  // );
-  //
-
-  const bestsellers = [];
+  const bestsellers = results.filter(
+    (item) => item.tag && item.tag.name.toLowerCase() === "bestseller",
+  );
 
   return (
     <div className="page-shell pb-mobile-nav! md:pb-[initial]!">

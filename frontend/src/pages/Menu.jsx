@@ -128,8 +128,8 @@ export default function Menu() {
     const haystack = [
       item.name,
       item.description,
-      categoriesData.find((c) => c.id === item.categoryId).name,
-      // item.tag?.name,
+      item.category.name,
+      item.tag?.name,
     ]
       .filter(Boolean)
       .join(" ")
@@ -145,9 +145,13 @@ export default function Menu() {
   });
 
   const groups = filtered.reduce((acc, item) => {
-    const category = categoriesData.find((c) => c.id === item.categoryId);
-    acc[category.name] = acc[category.name] || [];
-    acc[category.name].push(item);
+
+    if (acc[item.category.name]) {
+      acc[item.category.name].push(item);
+    } else {
+      acc[item.category.name] = [item];
+    }
+
     return acc;
   }, {});
 
