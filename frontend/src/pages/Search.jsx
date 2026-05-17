@@ -10,15 +10,17 @@ import {
   CarouselItem,
 } from "@/components/ui/carousel";
 import { usePreferences } from "@/context/PreferencesContext";
-import { getMenu } from "@/services/api";
+import { getCategories, getMenu } from "@/services/api";
 import { RefreshCcw } from "@boxicons/react";
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 import Navbar from "@/components/Navbar";
 
 export default function SearchPage() {
   const [results, setResults] = useState([]);
   const [query, setQuery] = useState("");
   const [error, setError] = useState(null);
+  const [categoriesData, setCategoriesData] = useState([]);
+
   const {
     preferences: { segmentedFilter: vegFilter },
   } = usePreferences();
@@ -33,7 +35,9 @@ export default function SearchPage() {
 
     try {
       const res = await getMenu(opts);
+      const categoriesRes = await getCategories();
       setResults(res.data || []);
+      setCategoriesData(categoriesRes.data);
     } catch (err) {
       const msg = err && err.message;
       setError(msg);
@@ -45,11 +49,12 @@ export default function SearchPage() {
   }, [vegFilter]);
 
   const filteredResults = results.filter((menuItem) => {
+    console.log({categoriesData})
     const haystack = [
       menuItem.name,
       menuItem.description,
-      menuItem.category.name,
-      menuItem.tag?.name,
+      categoriesData.find((c) => c.id === menuItem.categoryId).name,
+      // menuItem.tag?.name,
     ]
       .filter(Boolean)
       .join(" ")
@@ -58,9 +63,12 @@ export default function SearchPage() {
     return query.trim() && haystack.includes(query.trim().toLowerCase());
   });
 
-  const bestsellers = results.filter(
-    (item) => item.tag && item.tag.name.toLowerCase() === "bestseller",
-  );
+  // const bestsellers = results.filter(
+  //   (item) => item.tag && item.tag.name.toLowerCase() === "bestseller",
+  // );
+  //
+
+  const bestsellers = [];
 
   return (
     <div className="page-shell pb-mobile-nav! md:pb-[initial]!">
@@ -108,7 +116,10 @@ export default function SearchPage() {
 
           {query.trim() !== "" && (
             <section className="mt-4">
-              <h2 className="font-medium text-zinc-700 mb-4">Search results for <span className="text-primary">"{query}"</span></h2>
+              <h2 className="font-medium text-zinc-700 mb-4">
+                Search results for{" "}
+                <span className="text-primary">"{query}"</span>
+              </h2>
               {filteredResults.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
                   No results found
