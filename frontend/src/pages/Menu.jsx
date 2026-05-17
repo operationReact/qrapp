@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { getMenu } from "../services/api";
+import { getCategories, getMenu } from "../services/api";
 import Navbar from "../components/Navbar";
 import SearchBar from "../components/SearchBar";
 import CategoryTabs from "../components/CategoryTabs";
@@ -20,7 +20,11 @@ const SAMPLE_MENU = [
     name: "Paneer Butter Masala",
     basePrice: 220,
     price: 220,
-    category: "Main",
+    category: {
+      name: "Main",
+      id: 1,
+    },
+    categoryId: 1,
     description: "Rich tomato gravy",
     imageUrl: null,
     isVeg: true,
@@ -32,7 +36,11 @@ const SAMPLE_MENU = [
     name: "Chicken Biryani",
     basePrice: 250,
     price: 250,
-    category: "Main",
+    category: {
+      name: "Main",
+      id: 1,
+    },
+    categoryId: 1,
     description: "Fragrant basmati biryani",
     imageUrl: null,
     isVeg: false,
@@ -44,7 +52,11 @@ const SAMPLE_MENU = [
     name: "Veg Salad",
     basePrice: 120,
     price: 120,
-    category: "Sides",
+    category: {
+      name: "Sides",
+      id: 2,
+    },
+    categoryId: 2,
     description: "Fresh greens",
     imageUrl: null,
     isVeg: true,
@@ -59,6 +71,7 @@ export default function Menu() {
   const [loading, setLoading] = useState(true);
   const [offline, setOffline] = useState(false);
   const [offlineMessage, setOfflineMessage] = useState("");
+  const [categoriesData, setCategoriesData] = useState([]);
   const { hash } = useLocation();
 
   const category = decodeURIComponent(hash.slice(1)) || "All";
@@ -74,6 +87,8 @@ export default function Menu() {
     if (vegFilter === "nonveg") opts.isVeg = false;
     try {
       const res = await getMenu(opts);
+      const categoriesRes = await getCategories();
+      setCategoriesData(categoriesRes.data || []);
       setMenu(res.data || []);
       setOffline(false);
       setOfflineMessage("");
@@ -101,8 +116,7 @@ export default function Menu() {
     fetchMenu();
   }, [fetchMenu]);
 
-
-  const categories = [...new Set(menu.map((m) => m.category.name))];
+  const categories = [...new Set(categoriesData.map((c) => c.name))];
 
   const filtered = menu.filter((item) => {
     // Normalize possible server representations for boolean-ish isVeg
@@ -111,11 +125,15 @@ export default function Menu() {
       item.isVeg === "true" ||
       item.isVeg === 1 ||
       item.isVeg === "1";
-    const haystack = [item.name, item.description, item.category.name, item.tag?.name]
+    const haystack = [
+      item.name,
+      item.description,
+      item.category.name,
+      item.tag?.name,
+    ]
       .filter(Boolean)
       .join(" ")
       .toLowerCase();
-    // if (category !== "All" && item.category !== category) return false;
     if (vegFilter === "veg" && !isVeg) return false;
     if (vegFilter === "nonveg" && isVeg) return false;
     if (
@@ -127,8 +145,13 @@ export default function Menu() {
   });
 
   const groups = filtered.reduce((acc, item) => {
-    acc[item.category.name] = acc[item.category.name] || [];
-    acc[item.category.name].push(item);
+
+    if (acc[item.category.name]) {
+      acc[item.category.name].push(item);
+    } else {
+      acc[item.category.name] = [item];
+    }
+
     return acc;
   }, {});
 

@@ -1,6 +1,5 @@
 import MenuItemCard from "@/components/MenuItemCard";
 import MobileMenu from "@/components/MobileMenu";
-import ModeSwitcher from "@/components/ModeSwitcher";
 import SearchBar from "@/components/SearchBar";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -12,13 +11,14 @@ import {
 import { usePreferences } from "@/context/PreferencesContext";
 import { getMenu } from "@/services/api";
 import { RefreshCcw } from "@boxicons/react";
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 import Navbar from "@/components/Navbar";
 
 export default function SearchPage() {
   const [results, setResults] = useState([]);
   const [query, setQuery] = useState("");
   const [error, setError] = useState(null);
+
   const {
     preferences: { segmentedFilter: vegFilter },
   } = usePreferences();
@@ -108,7 +108,10 @@ export default function SearchPage() {
 
           {query.trim() !== "" && (
             <section className="mt-4">
-              <h2 className="font-medium text-zinc-700 mb-4">Search results for <span className="text-primary">"{query}"</span></h2>
+              <h2 className="font-medium text-zinc-700 mb-4">
+                Search results for{" "}
+                <span className="text-primary">"{query}"</span>
+              </h2>
               {filteredResults.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
                   No results found

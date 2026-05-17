@@ -9,6 +9,8 @@ import { Field, FieldContent, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { CaretLeftIcon } from "@phosphor-icons/react";
 import OTPVerifyCard from "@/components/OTPVerifyCard";
+import { PasswordInput } from "@/components/ui/password-input";
+import { PhoneInput } from "@/components/ui/phone-input";
 
 export default function Register() {
   const navigate = useNavigate();
@@ -20,7 +22,6 @@ export default function Register() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [otp, setOTP] = useState("");
 
   const handleGenerateOTP = async (e) => {
     e.preventDefault();
@@ -31,18 +32,20 @@ export default function Register() {
       setSearchParams("verify");
     } catch (err) {
       console.error("generateOTP failed", err);
-      setError(err?.response?.data || "Unable to generate OTP");
+      setError(err?.response?.data || "Failed to generate OTP");
     } finally {
       setLoading(false);
     }
   };
 
-  const createAccount = async (e) => {
-    e.preventDefault();
+  const createAccount = async () => {
     setError(null);
     setLoading(true);
     try {
-      const otpVerified = await verifyOTP({ phone, otp: params.get("otp") });
+      const otpVerified = await verifyOTP({
+        phone: phone.includes("+91") ? phone : `+91${phone}`,
+        otp: params.get("otp"),
+      });
 
       if (otpVerified.data?.sucesss !== true) {
         setError("OTP verification failed");
@@ -129,7 +132,7 @@ export default function Register() {
                 <Field>
                   <FieldLabel>Phone Number</FieldLabel>
                   <FieldContent>
-                    <Input
+                    <PhoneInput
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
                       required
@@ -141,12 +144,11 @@ export default function Register() {
                 <Field>
                   <FieldLabel>Password</FieldLabel>
                   <FieldContent>
-                    <Input
-                      type="password"
+                    <PasswordInput
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      required
                       className="h-10"
+                      required
                     />
                   </FieldContent>
                 </Field>
@@ -169,12 +171,6 @@ export default function Register() {
             </>
           )}
         </div>
-        {/* <OTPVerifyCard
-          title="Verify Your Number"
-          description="Enter the OTP sent to your phone"
-          verificationMedium="+91-600025634"
-          onVerify={() => {}}
-        />*/}
       </div>
     </div>
   );
