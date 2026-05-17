@@ -69,35 +69,47 @@ jobs:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
-      # Fetch SSH private key from SSM – no manual GitHub secret needed
+      # Fetch SSH private key + EC2 IP from SSM – no manual GitHub secrets needed
       - name: Setup SSH key (from SSM)
         run: |
           mkdir -p ~/.ssh
+
           aws ssm get-parameter \
             --name "/broandbro/dev/ec2-ssh-private-key" \
             --with-decryption \
             --query "Parameter.Value" \
             --output text > ~/.ssh/broandbro_dev
           chmod 600 ~/.ssh/broandbro_dev
-          ssh-keyscan -H ${{ secrets.DEV_EC2_HOST }} >> ~/.ssh/known_hosts 2>/dev/null
+
+          EC2_IP=$(aws ssm get-parameter \
+            --name "/broandbro/dev/ec2-public-ip" \
+            --query "Parameter.Value" \
+            --output text)
+          echo "EC2_HOST=$EC2_IP" >> $GITHUB_ENV
+
+          ssh-keyscan -H $EC2_IP >> ~/.ssh/known_hosts 2>/dev/null
 
       - name: Write application.env to EC2
         run: |
-          # Fetch secrets from SSM – no GitHub secrets needed for DB credentials
           DB_PASSWORD=$(aws ssm get-parameter \
             --name "/broandbro/dev/db-password" \
             --with-decryption \
             --query "Parameter.Value" \
             --output text)
 
+          DB_HOST=$(aws ssm get-parameter \
+            --name "/broandbro/dev/db-endpoint" \
+            --query "Parameter.Value" \
+            --output text)
+
           ssh -i ~/.ssh/broandbro_dev \
               -o StrictHostKeyChecking=no \
-              ec2-user@${{ secrets.DEV_EC2_HOST }} \
+              ec2-user@${{ env.EC2_HOST }} \
           "sudo mkdir -p /opt/broandbro/config
            {
              printf 'SPRING_PROFILES_ACTIVE=dev\n'
              printf 'SERVER_PORT=8080\n'
-             printf 'SPRING_DATASOURCE_URL=jdbc:postgresql://${{ secrets.DEV_DB_HOST }}:5432/${{ secrets.DEV_DB_NAME }}\n'
+             printf 'SPRING_DATASOURCE_URL=jdbc:postgresql://%s:5432/broandbro_dev\n' \"$DB_HOST\"
              printf 'SPRING_DATASOURCE_USERNAME=broandbro\n'
              printf 'SPRING_DATASOURCE_PASSWORD=%s\n' \"$DB_PASSWORD\"
              printf 'SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE=5\n'
@@ -112,13 +124,13 @@ jobs:
           scp -i ~/.ssh/broandbro_dev \
               -o StrictHostKeyChecking=no \
               "$JAR_FILE" \
-              ec2-user@${{ secrets.DEV_EC2_HOST }}:/tmp/app-new.jar
+              ec2-user@${{ env.EC2_HOST }}:/tmp/app-new.jar
 
       - name: Deploy and restart service
         run: |
           ssh -i ~/.ssh/broandbro_dev \
               -o StrictHostKeyChecking=no \
-              ec2-user@${{ secrets.DEV_EC2_HOST }} \
+              ec2-user@${{ env.EC2_HOST }} \
           '
           set -e
           echo "--- Deploying new JAR ---"
@@ -155,5 +167,5 @@ jobs:
           echo "## ✅ Backend Deployed – Dev" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "- **API URL:** https://dev-api.broandbro.in" >> $GITHUB_STEP_SUMMARY
-          echo "- **EC2 Host:** ${{ secrets.DEV_EC2_HOST }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **EC2 Host:** ${{ env.EC2_HOST }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY

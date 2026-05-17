@@ -48,6 +48,20 @@ resource "aws_ssm_parameter" "db_password" {
   }
 }
 
+# ── Store RDS endpoint in SSM so the deploy workflow can read it ──────────────
+resource "aws_ssm_parameter" "db_endpoint" {
+  name        = "/broandbro/${var.environment}/db-endpoint"
+  description = "RDS endpoint (host only) for broandbro ${var.environment}"
+  type        = "String"
+  # aws_db_instance.endpoint returns "host:port" – strip the port
+  value       = split(":", aws_db_instance.this.endpoint)[0]
+
+  tags = {
+    Name        = "broandbro-${var.environment}-db-endpoint"
+    Environment = var.environment
+  }
+}
+
 # Fetch default VPC subnets for RDS subnet group
 data "aws_subnets" "default" {
   filter {
