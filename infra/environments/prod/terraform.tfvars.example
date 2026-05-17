@@ -29,3 +29,6 @@ db_password = "CHANGE_ME_USE_STRONG_PASSWORD"  # Use: openssl rand -base64 32
 # CloudFront
 cloudfront_price_class = "PriceClass_200"
 
+# CloudWatch – set your email to receive alarm notifications
+alarm_email = "your-email@example.com"
+

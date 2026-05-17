@@ -29,3 +29,6 @@ db_password = "CHANGE_ME_DEV_PASSWORD"
 # CloudFront
 cloudfront_price_class = "PriceClass_100"
 
+# CloudWatch – optional for dev
+alarm_email = ""
+

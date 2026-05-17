@@ -24,3 +24,13 @@ output "rds_endpoint" {
   description = "RDS endpoint for Spring Boot datasource URL"
 }
 
+output "cloudwatch_dashboard_url" {
+  value       = module.cloudwatch.dashboard_url
+  description = "CloudWatch dashboard URL for dev monitoring"
+}
+
+output "alarm_sns_topic_arn" {
+  value       = module.cloudwatch.alarm_sns_topic_arn
+  description = "SNS topic ARN for CloudWatch alarms"
+}
+

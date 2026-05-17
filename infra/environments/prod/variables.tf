@@ -41,3 +41,10 @@ variable "db_username" {
 }
 # db_password removed – Terraform auto-generates it via random_password
 
+variable "alarm_email" {
+  description = "Email address for CloudWatch alarm notifications (recommended for prod)"
+  type        = string
+  default     = ""
+}
+
+

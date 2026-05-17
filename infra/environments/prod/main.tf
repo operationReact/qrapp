@@ -120,6 +120,18 @@ module "rds" {
   multi_az              = false # set true (~$26/mo) when uptime is critical
 }
 
+# ── CloudWatch Monitoring ─────────────────────────────────────────────────────
+module "cloudwatch" {
+  source = "../../modules/cloudwatch"
+
+  environment        = "prod"
+  aws_region         = var.aws_region
+  ec2_instance_id    = module.ec2.instance_id
+  rds_identifier     = module.rds.db_instance_id
+  log_retention_days = 90
+  alarm_email        = var.alarm_email
+}
+
 # ── Route53 DNS ───────────────────────────────────────────────────────────────
 module "route53" {
   source = "../../modules/route53"
