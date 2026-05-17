@@ -5,9 +5,6 @@ plugins {
 
 allprojects {
     repositories {
-        // Additional repositories required by some dependencies (e.g. Razorpay)
-        maven { url 'https://s3.amazonaws.com/razorpay-maven/' }
-        maven { url 'https://repo.razorpay.com/maven2/' }
         mavenCentral()
         maven { url 'https://jitpack.io' }
     }

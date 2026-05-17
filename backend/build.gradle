@@ -24,9 +24,6 @@ ext {
 }
 
 repositories {
-    maven { url 'https://s3.amazonaws.com/razorpay-maven/' }
-    // Official Razorpay repository (may be unreachable from some networks)
-    maven { url 'https://repo.razorpay.com/maven2/' }
     mavenCentral()
     maven { url 'https://jitpack.io' }
 }
@@ -55,7 +52,7 @@ dependencies {
     runtimeOnly 'org.postgresql:postgresql'
 
     // JSON library used by Razorpay SDK wrapper
-    implementation 'org.json:json:20230618'
+    implementation 'org.json:json:20240303'
 
     // Thumbnailator for image resizing and compression before storing in PostgreSQL BYTEA
     implementation 'net.coobird:thumbnailator:0.4.20'
