@@ -402,8 +402,6 @@ public class MenuController {
      * Includes inventory information from InventoryService
      */
     private MenuItemResponse buildMenuItemResponse(MenuItem item) {
-        Long categoryId = item.getCategory() != null ? item.getCategory().getId() : null;
-        Long tagId = item.getTag() != null ? item.getTag().getId() : null;
         Long shopId = item.getShop() != null ? item.getShop().getId() : null;
 
         return MenuItemResponse.builder()
@@ -416,8 +414,8 @@ public class MenuController {
             .recommended(item.isRecommended())
             .basePrice(item.getBasePrice())
             .margin(item.getMargin())
-            .categoryId(categoryId)
-            .tagId(tagId)
+            .category(item.getCategory())
+            .tag(item.getTag())
             .shopId(shopId)
             .inventoryMode(item.getInventoryMode())
             .isHidden(item.getIsHidden())
