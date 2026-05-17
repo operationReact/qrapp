@@ -26,6 +26,13 @@ echo "=== broandbro bootstrap starting — env: $ENVIRONMENT ==="
 # ── 1. OS update ──────────────────────────────────────────────────────────────
 dnf update -y
 
+# ── 1b. SSM Agent (pre-installed on AL2023, but must be explicitly enabled) ───
+# Required for: CloudWatch agent remote config, Session Manager, Run Command
+dnf install -y amazon-ssm-agent 2>/dev/null || true
+systemctl enable amazon-ssm-agent
+systemctl start amazon-ssm-agent
+echo "SSM Agent status: $(systemctl is-active amazon-ssm-agent)"
+
 # ── 2. Install Java 21 (Amazon Corretto ARM64) ────────────────────────────────
 dnf install -y java-21-amazon-corretto-headless
 java -version
