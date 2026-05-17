@@ -59,7 +59,7 @@ export function CartProvider({ children }) {
     };
 
     const getTotal = () =>
-        cart.reduce((sum, i) => sum + i.sellingPrice * i.quantity, 0);
+        cart.reduce((sum, i) => sum + i.price * i.quantity, 0);
 
     const openDrawer = () => setDrawerOpen(true);
     const closeDrawer = () => setDrawerOpen(false);

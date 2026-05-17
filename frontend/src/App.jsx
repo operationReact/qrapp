@@ -23,6 +23,7 @@ import SelectedOrder from "./pages/admin/SelectedOrder";
 import ServiceBoard from "./pages/admin/ServiceBoard";
 import AdminMenuPage from "./pages/admin/AdminMenuPage";
 import AdminMenuManager from "./pages/admin/AdminMenuManager";
+import AdminCouponsPage from "./pages/admin/AdminCouponsPage";
 import Search from "./pages/Search";
 
 function SafeAreaWrapper({ children }) {
@@ -63,6 +64,7 @@ function App() {
                     <Route path="/admin" element={<AdminLayout />}>
                       <Route index element={<AdminDashboard />} />
                       <Route path="menu" element={<AdminMenuPage />} />
+                      <Route path="coupons" element={<AdminCouponsPage />} />
                       <Route path="manage-menu" element={<AdminMenuManager />} />
                       <Route path="service-board" element={<ServiceBoard />} />
                       <Route

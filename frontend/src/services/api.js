@@ -302,4 +302,13 @@ export const generateOTP = ({ userName, phone }) =>
 export const verifyOTP = ({ phone, otp }) =>
   API.post("/whatsapp/verify-otp", { phone, otp });
 
+export const fetchCoupons = () => API.get("/api/coupons/admin/all");
+export const createCoupon = (data) => API.post("/api/coupons", data);
+export const updateCoupon = (id, data) => API.put(`/api/coupons/admin/${id}`, data);
+export const deleteCoupon = (id) => API.delete(`/api/coupons/admin/${id}`);
+export const getCouponAnalytics = (id) => API.get(`/api/coupons/admin/${id}/analytics`);
+export const toggleCouponStatus = (id) => API.patch(`/api/coupons/admin/${id}/toggle`);
+
+export const getCategories = () => API.get("/categories");
+
 export default API;

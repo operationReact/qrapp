@@ -438,15 +438,15 @@ export default function Cart() {
                                         ""
                                       ) : (
                                         <Badge
-                                          asChild
                                           variant="secondary"
                                           className="ml-auto"
-                                        >
-                                          <Link to="/wallet">
-                                            <Plus data-icon="inline-start" />{" "}
-                                            Top up instantly
-                                          </Link>
-                                        </Badge>
+                                          render={
+                                            <Link to="/wallet">
+                                              <Plus data-icon="inline-start" />{" "}
+                                              Top up instantly
+                                            </Link>
+                                          }
+                                        ></Badge>
                                       )}
                                     </span>
                                   </FieldDescription>
