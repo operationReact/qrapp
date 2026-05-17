@@ -7,3 +7,10 @@ variable "ssh_allowed_cidrs" {
   type        = list(string)
   default     = ["0.0.0.0/0"]
 }
+
+variable "local_dev_cidrs" {
+  description = "Your local machine IP(s) allowed to connect to RDS (5432). Use YOUR_IP/32."
+  type        = list(string)
+  default     = ["0.0.0.0/0"]
+}
+

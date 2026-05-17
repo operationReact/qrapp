@@ -54,8 +54,7 @@ resource "aws_security_group" "ec2" {
 }
 
 # ── RDS Security Group ────────────────────────────────────────────────────────
-# PostgreSQL port is ONLY reachable from the EC2 security group.
-# The RDS instance itself has publicly_accessible = false.
+# PostgreSQL accessible from EC2 and from local dev IPs (var.local_dev_cidrs).
 resource "aws_security_group" "rds" {
   name        = "broandbro-${var.environment}-rds-sg"
   description = "RDS PostgreSQL: only EC2 sg may connect"
@@ -67,6 +66,17 @@ resource "aws_security_group" "rds" {
     to_port         = 5432
     protocol        = "tcp"
     security_groups = [aws_security_group.ec2.id]
+  }
+
+  dynamic "ingress" {
+    for_each = length(var.local_dev_cidrs) > 0 ? [1] : []
+    content {
+      description = "PostgreSQL from local dev"
+      from_port   = 5432
+      to_port     = 5432
+      protocol    = "tcp"
+      cidr_blocks = var.local_dev_cidrs
+    }
   }
 
   egress {
@@ -81,3 +91,4 @@ resource "aws_security_group" "rds" {
     Environment = var.environment
   }
 }
+

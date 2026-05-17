@@ -95,8 +95,9 @@ resource "aws_db_instance" "this" {
   db_subnet_group_name   = aws_db_subnet_group.this.name
   vpc_security_group_ids = [var.security_group_id]
 
-  # Do NOT expose the DB to the public internet
-  publicly_accessible = false
+  # Expose to internet only in dev (for local development access).
+  # In prod this remains false – access is only via EC2.
+  publicly_accessible = var.environment != "prod" ? true : false
 
   # Automated backups
   backup_retention_period = var.backup_retention_days
