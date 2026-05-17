@@ -34,6 +34,7 @@ function SafeAreaWrapper({ children }) {
   return <div style={style}>{children}</div>;
 }
 
+
 SafeAreaWrapper.propTypes = {
   children: PropTypes.node,
 };
