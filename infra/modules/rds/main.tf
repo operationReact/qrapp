@@ -26,12 +26,20 @@ resource "aws_db_subnet_group" "this" {
   }
 }
 
+# ── Auto-discover the latest available PostgreSQL 16 minor version ────────────
+# This avoids hard-coding a version that may not be available in ap-south-1.
+data "aws_rds_engine_version" "postgres" {
+  engine             = "postgres"
+  version            = "16"
+  preferred_versions = ["16.6", "16.5", "16.4", "16.3", "16.2", "16.1"]
+}
+
 # RDS PostgreSQL instance
 resource "aws_db_instance" "this" {
   identifier = "broandbro-${var.environment}"
 
   engine         = "postgres"
-  engine_version = "16.4"
+  engine_version = data.aws_rds_engine_version.postgres.version
   instance_class = var.instance_class
 
   allocated_storage     = var.allocated_storage

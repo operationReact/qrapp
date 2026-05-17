@@ -48,9 +48,14 @@ resource "aws_s3_bucket_lifecycle_configuration" "this" {
   rule {
     id     = "expire-old-versions"
     status = "Enabled"
+
+    # filter is required by the AWS provider – empty block means apply to all objects
+    filter {}
+
     noncurrent_version_expiration {
       noncurrent_days = 30
     }
+
     abort_incomplete_multipart_upload {
       days_after_initiation = 7
     }
