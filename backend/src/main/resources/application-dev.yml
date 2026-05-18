@@ -5,9 +5,9 @@ spring:
     caffeine:
       spec: maximumSize=500,expireAfterWrite=10m
   datasource:
-    url: jdbc:postgresql://broandbro-dev.chi2yu0m6hp0.ap-south-1.rds.amazonaws.com:5432/broandbro_dev
-    username: broandbro
-    password: 2F+d^tH{,Lec$wJ1f9eP($6^eUiF>y90
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://broandbro-dev.chi2yu0m6hp0.ap-south-1.rds.amazonaws.com:5432/broandbro_dev}
+    username: ${SPRING_DATASOURCE_USERNAME:broandbro}
+    password: ${SPRING_DATASOURCE_PASSWORD:BroApp#2025}
     driver-class-name: org.postgresql.Driver
     hikari:
       pool-name: ${SPRING_DATASOURCE_HIKARI_POOL_NAME:QrAppHikariPool}
