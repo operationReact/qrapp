@@ -13,6 +13,10 @@ terraform {
       source  = "hashicorp/tls"
       version = "~> 4.0"
     }
+    null = {
+      source  = "hashicorp/null"
+      version = "~> 3.0"
+    }
   }
 }
 
@@ -175,5 +179,47 @@ resource "aws_ssm_parameter" "ec2_ip" {
     Name        = "broandbro-${var.environment}-ec2-ip"
     Environment = var.environment
   }
+}
+
+# ── Fetch the stored SSH private key ─────────────────────────────────────────
+# Used by the provisioner below to SSH into the instance and fix SSM agent.
+data "aws_ssm_parameter" "ssh_private_key" {
+  name            = "/broandbro/${var.environment}/ec2-ssh-private-key"
+  with_decryption = true
+
+  depends_on = [aws_ssm_parameter.ssh_private_key]
+}
+
+# ── Ensure SSM Agent is installed and running ─────────────────────────────────
+# This fixes existing instances where the agent may have stopped or not been
+# installed. Runs via SSH on every `terraform apply` (trigger = instance ID).
+resource "null_resource" "ensure_ssm_agent" {
+  triggers = {
+    instance_id = aws_instance.this.id
+  }
+
+  connection {
+    type        = "ssh"
+    user        = "ec2-user"
+    private_key = data.aws_ssm_parameter.ssh_private_key.value
+    host        = aws_eip.this.public_ip
+    timeout     = "5m"
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "echo '=== Ensuring SSM Agent is installed and active ==='",
+      # Try dnf first (works on AL2023 when package repo has it)
+      "sudo dnf install -y amazon-ssm-agent 2>/dev/null || true",
+      # If dnf didn't install it, fall back to direct RPM (AL2023 ARM64 / Graviton)
+      "sudo systemctl is-enabled amazon-ssm-agent >/dev/null 2>&1 || sudo rpm --import https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/linux_arm64/amazon-ssm-agent.rpm 2>/dev/null || sudo dnf install -y 'https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/linux_arm64/amazon-ssm-agent.rpm'",
+      "sudo systemctl enable amazon-ssm-agent",
+      "sudo systemctl restart amazon-ssm-agent",
+      "sleep 5",
+      "sudo systemctl is-active amazon-ssm-agent && echo 'SSM Agent is ACTIVE' || echo 'WARNING: SSM Agent failed to start'",
+    ]
+  }
+
+  depends_on = [aws_eip.this]
 }
 

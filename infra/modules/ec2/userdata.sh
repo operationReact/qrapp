@@ -26,9 +26,12 @@ echo "=== broandbro bootstrap starting — env: $ENVIRONMENT ==="
 # ── 1. OS update ──────────────────────────────────────────────────────────────
 dnf update -y
 
-# ── 1b. SSM Agent (pre-installed on AL2023, but must be explicitly enabled) ───
+# ── 1b. SSM Agent (install via direct RPM for AL2023 ARM64 / Graviton) ───────
 # Required for: CloudWatch agent remote config, Session Manager, Run Command
-dnf install -y amazon-ssm-agent 2>/dev/null || true
+# AL2023 may not have amazon-ssm-agent in the default dnf repo, so we fall back
+# to the official S3-hosted RPM for linux_arm64 (Graviton).
+dnf install -y amazon-ssm-agent 2>/dev/null || \
+  dnf install -y "https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/linux_arm64/amazon-ssm-agent.rpm"
 systemctl enable amazon-ssm-agent
 systemctl start amazon-ssm-agent
 echo "SSM Agent status: $(systemctl is-active amazon-ssm-agent)"
