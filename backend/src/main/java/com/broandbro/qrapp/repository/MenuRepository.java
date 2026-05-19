@@ -1,7 +1,6 @@
 package com.broandbro.qrapp.repository;
 
 import com.broandbro.qrapp.entity.MenuItem;
-import com.broandbro.qrapp.enums.InventoryMode;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -14,22 +13,20 @@ public interface MenuRepository extends JpaRepository<MenuItem, Long> {
     /**
      * Filtered menu query — all predicates are optional (null = no filter).
      *
-     * availableOnly = true  → only UNLIMITED items  OR  LIMITED items with qty > 0
-     * availableOnly = false → all items regardless of stock
+     * Hidden items are ALWAYS excluded (isHidden = false is a hard filter).
+     * All non-hidden items are returned regardless of stock status —
+     * out-of-stock items are displayed on the menu but marked unavailable on the frontend.
      */
     @Query("SELECT m FROM MenuItem m WHERE " +
+           "m.isHidden = false AND " +
            "(:isVeg       IS NULL OR m.isVeg        = :isVeg) AND " +
            "(:categoryId  IS NULL OR m.category.id  = :categoryId) AND " +
-           "(:recommended IS NULL OR m.recommended  = :recommended) AND " +
-           "(:availableOnly = false " +
-           "  OR m.inventoryMode = com.broandbro.qrapp.enums.InventoryMode.UNLIMITED " +
-           "  OR EXISTS (SELECT i FROM Inventory i WHERE i.menuItem = m AND i.availableQuantity > 0)) " +
+           "(:recommended IS NULL OR m.recommended  = :recommended) " +
            "ORDER BY m.id ASC")
     List<MenuItem> findByFilters(
             @Param("isVeg")         Boolean isVeg,
             @Param("categoryId")    Long    categoryId,
             @Param("recommended")   Boolean recommended,
-            @Param("availableOnly") boolean availableOnly,
             Pageable pageable
     );
 

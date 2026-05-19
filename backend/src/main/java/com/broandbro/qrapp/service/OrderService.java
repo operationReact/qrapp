@@ -58,6 +58,7 @@ public class OrderService {
     private final OrderStatusHistoryRepository orderStatusHistoryRepository;
     private final WhatsAppService whatsappService;
     private final OrderNumberGenerator orderNumberGenerator;
+    private final PricingService pricingService;
 
     /**
      * Creates a new order with a human-readable order number.
@@ -94,10 +95,20 @@ public class OrderService {
         recordStatusHistory(order.getId(), null, OrderStatus.ORDER_PLACED, "Order created", "SYSTEM", now);
 
         for (CreateOrderRequest.Item i : req.getItems()) {
+            MenuItem menuItem = menuRepository.findById(i.getItemId())
+                    .orElseThrow(() -> new RuntimeException("MenuItem not found: " + i.getItemId()));
+
+            Long shopId = menuItem.getShop() != null ? menuItem.getShop().getId() : null;
+            PricingService.OrderItemSnapshot snap = pricingService.createSnapshot(i.getItemId(), shopId, i.getQuantity());
+
             OrderItem oi = new OrderItem();
             oi.setOrderId(order.getId());
             oi.setItemId(i.getItemId());
             oi.setQuantity(i.getQuantity());
+            oi.setSellingPriceSnapshot(snap.sellingPriceSnapshot());
+            oi.setCostPriceSnapshot(snap.costPriceSnapshot());
+            oi.setProfitSnapshot(snap.profitSnapshot());
+            oi.setLineTotal(snap.lineTotal());
             orderItemRepo.save(oi);
         }
 
@@ -161,10 +172,14 @@ public class OrderService {
                 itemSummary.setQuantity(orderItem.getQuantity());
                 if (menuItem != null) {
                     itemSummary.setName(menuItem.getName());
-                    itemSummary.setPrice(menuItem.getSellingPrice().doubleValue());
+                    // Use immutable snapshot price; fall back to current price for legacy rows
+                    double unitPrice = orderItem.getSellingPriceSnapshot() != null
+                            ? orderItem.getSellingPriceSnapshot().doubleValue()
+                            : pricingService.getCurrentSellingPrice(menuItem.getId()).doubleValue();
+                    itemSummary.setPrice(unitPrice);
                     itemSummary.setImageUrl(menuItem.getImageUrl());
                     itemSummary.setIsVeg(menuItem.getIsVeg());
-                    total += menuItem.getSellingPrice().doubleValue() * orderItem.getQuantity();
+                    total += unitPrice * orderItem.getQuantity();
                 }
                 itemSummaries.add(itemSummary);
             }
@@ -192,7 +207,7 @@ public class OrderService {
         }
 
         double total = menuRepository.findAllById(quantityByItemId.keySet()).stream()
-                .mapToDouble(item -> item.getSellingPrice().doubleValue() * quantityByItemId.getOrDefault(item.getId(), 0))
+                .mapToDouble(item -> pricingService.getCurrentSellingPrice(item.getId()).doubleValue() * quantityByItemId.getOrDefault(item.getId(), 0))
                 .sum();
         return Math.round(total * 100);
     }
@@ -468,10 +483,13 @@ public class OrderService {
             itemSummary.setQuantity(orderItem.getQuantity());
             if (menuItem != null) {
                 itemSummary.setName(menuItem.getName());
-                itemSummary.setPrice(menuItem.getSellingPrice().doubleValue());
+                double unitPrice = orderItem.getSellingPriceSnapshot() != null
+                        ? orderItem.getSellingPriceSnapshot().doubleValue()
+                        : pricingService.getCurrentSellingPrice(menuItem.getId()).doubleValue();
+                itemSummary.setPrice(unitPrice);
                 itemSummary.setImageUrl(menuItem.getImageUrl());
                 itemSummary.setIsVeg(menuItem.getIsVeg());
-                double subtotal = menuItem.getSellingPrice().doubleValue() * orderItem.getQuantity();
+                double subtotal = unitPrice * orderItem.getQuantity();
                 itemSummary.setSubtotal(subtotal);
                 total += subtotal;
             }

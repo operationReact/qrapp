@@ -2,17 +2,21 @@ package com.broandbro.qrapp.dto;
 
 import com.broandbro.qrapp.entity.Category;
 import com.broandbro.qrapp.entity.Tag;
+import com.broandbro.qrapp.enums.FulfillmentType;
 import com.broandbro.qrapp.enums.InventoryMode;
 import com.broandbro.qrapp.enums.StockStatus;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.*;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 
 /**
- * DTO for menu item response to customers.
+ * DTO for menu item response to customers and admin.
  *
- * Includes inventory status without exposing exact stock quantities.
+ * <p>Pricing is always sourced from {@code MenuItemSellingPriceHistory} –
+ * the {@code price} field here carries the resolved current selling price and
+ * is populated by the service layer, never derived from a DB column on MenuItem.
  */
 @Data
 @Builder
@@ -24,21 +28,25 @@ public class MenuItemResponse {
     private Long id;
     private String name;
     private String description;
+
+    /**
+     * Resolved current selling price (from MenuItemSellingPriceHistory).
+     * Null if no active price record exists.
+     */
     private BigDecimal price;
+
     private String imageUrl;
     private Boolean isVeg;
     private Boolean recommended;
 
-    // MenuItem fields (full snapshot)
-    private BigDecimal basePrice;
-    private BigDecimal margin;
     private Category category;
     private Tag tag;
     private Long shopId;
+    private FulfillmentType fulfillmentType;
     private InventoryMode inventoryMode;
     private Boolean isHidden;
-    private java.time.Instant createdAt;
-    private java.time.Instant updatedAt;
+    private Instant createdAt;
+    private Instant updatedAt;
 
     // ============================================================================
     // INVENTORY FIELDS
@@ -46,13 +54,6 @@ public class MenuItemResponse {
 
     /**
      * Current stock status (for display to customer).
-     * Does NOT expose exact quantities.
-     *
-     * Values:
-     * - UNLIMITED: no inventory tracking
-     * - AVAILABLE: has stock
-     * - LIMITED: at or below low stock threshold
-     * - OUT_OF_STOCK: no stock available
      */
     private StockStatus stockStatus;
 }

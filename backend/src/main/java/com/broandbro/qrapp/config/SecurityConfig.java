@@ -123,6 +123,9 @@ public class SecurityConfig {
                         // Allow wallet endpoints to pass through (controller will handle auth)
                         .requestMatchers("/api/wallet/**").permitAll()
 
+                        // Cache admin – no auth required
+                        .requestMatchers("/api/cache/**").permitAll()
+
                         .anyRequest()
                         .authenticated()
                 )

@@ -8,6 +8,7 @@ import com.broandbro.qrapp.repository.CategoryRepository;
 import com.broandbro.qrapp.repository.TagRepository;
 import com.broandbro.qrapp.dto.MenuItemResponse;
 import com.broandbro.qrapp.service.InventoryService;
+import com.broandbro.qrapp.service.PricingService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,7 +43,9 @@ import java.nio.file.StandardCopyOption;
 import java.util.UUID;
 
 import jakarta.validation.Valid;
+import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.springframework.web.bind.annotation.RequestHeader;
 
@@ -65,6 +68,7 @@ public class MenuController {
     private final CategoryRepository categoryRepository;
     private final TagRepository tagRepository;
     private final InventoryService inventoryService;
+    private final PricingService pricingService;
 
     // helper to store uploaded file under resources/static/uploads and return public URL
     private String storeUploadedFile(MultipartFile file) throws IOException {
@@ -81,22 +85,22 @@ public class MenuController {
     }
 
     @GetMapping
-    @Cacheable(cacheNames = "menu", key = "T(java.lang.String).format('%s|%s|%s|%s|%s|%s', #isVeg, #categoryId, #recommended, #available, #page, #size)")
+    @Cacheable(cacheNames = "menu", key = "T(java.lang.String).format('%s|%s|%s|%s|%s', #isVeg, #categoryId, #recommended, #page, #size)")
     public List<MenuItemResponse> getMenu(
             @RequestParam(value = "isVeg", required = false) Boolean isVeg,
             @RequestParam(value = "categoryId", required = false) Long categoryId,
             @RequestParam(value = "recommended", required = false) Boolean recommended,
-            @RequestParam(value = "available", required = false) Boolean available,
             @RequestParam(value = "page", defaultValue = "0") Integer page,
             @RequestParam(value = "size", defaultValue = "200") Integer size
     ) {
         int safePage = page == null ? DEFAULT_MENU_PAGE : Math.max(0, page);
         int safeSize = size == null ? DEFAULT_MENU_SIZE : Math.max(1, Math.min(size, MAX_MENU_SIZE));
-        // available=true → show only orderable items; null/false → show all
-        boolean availableOnly = Boolean.TRUE.equals(available);
-        List<MenuItem> items = repo.findByFilters(isVeg, categoryId, recommended, availableOnly, PageRequest.of(safePage, safeSize));
+        List<MenuItem> items = repo.findByFilters(isVeg, categoryId, recommended, PageRequest.of(safePage, safeSize));
+        // Batch-load all active prices in ONE query instead of N individual queries
+        List<Long> ids = items.stream().map(MenuItem::getId).toList();
+        Map<Long, BigDecimal> priceMap = pricingService.getCurrentSellingPrices(ids);
         return items.stream()
-            .map(this::buildMenuItemResponse)
+            .map(item -> buildMenuItemResponse(item, priceMap.get(item.getId())))
             .toList();
     }
 
@@ -106,8 +110,10 @@ public class MenuController {
     public List<MenuItemResponse> getRecommendedMenu(@RequestParam(value = "limit", required = false) Integer limit) {
         int safeLimit = limit == null ? DEFAULT_RECOMMENDED_LIMIT : Math.max(1, Math.min(limit, MAX_RECOMMENDED_LIMIT));
         List<MenuItem> items = repo.findTopRecommended(PageRequest.of(0, safeLimit));
+        List<Long> ids = items.stream().map(MenuItem::getId).toList();
+        Map<Long, BigDecimal> priceMap = pricingService.getCurrentSellingPrices(ids);
         return items.stream()
-            .map(this::buildMenuItemResponse)
+            .map(item -> buildMenuItemResponse(item, priceMap.get(item.getId())))
             .toList();
     }
 
@@ -149,7 +155,7 @@ public class MenuController {
                     return ResponseEntity.badRequest().body("Invalid price format");
                 }
             }
-            item.setBasePrice(new java.math.BigDecimal(price));
+            final double resolvedPrice = price;
 
             // Set category if categoryId is provided
             if (categoryIdStr != null && !categoryIdStr.isBlank()) {
@@ -204,6 +210,15 @@ public class MenuController {
                 }
             }
             MenuItem saved = repo.save(item);
+            // Persist initial selling price in history table
+            if (resolvedPrice > 0) {
+                pricingService.setSellingPrice(new com.broandbro.qrapp.dto.pricing.PriceSetRequest(
+                        saved.getId(),
+                        java.math.BigDecimal.valueOf(resolvedPrice),
+                        null,
+                        "Initial price set on creation"
+                ));
+            }
             return ResponseEntity.status(HttpStatus.CREATED).body(saved);
         } catch (RuntimeException ex) {
             log.error("Failed to create menu item (multipart)", ex);
@@ -245,7 +260,12 @@ public class MenuController {
 
                     if (name != null) existing.setName(name);
                     if (priceStr != null && !priceStr.isBlank()) {
-                        try { existing.setBasePrice(new java.math.BigDecimal(priceStr)); } catch (Exception ex) { /* ignore */ }
+                        try {
+                            java.math.BigDecimal newPrice = new java.math.BigDecimal(priceStr);
+                            repo.save(existing); // ensure item is persisted before price update
+                            pricingService.setSellingPrice(new com.broandbro.qrapp.dto.pricing.PriceSetRequest(
+                                    existing.getId(), newPrice, null, "Price updated via admin"));
+                        } catch (Exception ex) { /* ignore */ }
                     }
                     if (categoryIdStr != null && !categoryIdStr.isBlank()) {
                         try {
@@ -302,7 +322,8 @@ public class MenuController {
                     Object p = payload.get("price");
                     try {
                         double pd = p instanceof Number ? ((Number)p).doubleValue() : Double.parseDouble(String.valueOf(p));
-                        existing.setBasePrice(new java.math.BigDecimal(pd));
+                        pricingService.setSellingPrice(new com.broandbro.qrapp.dto.pricing.PriceSetRequest(
+                                existing.getId(), java.math.BigDecimal.valueOf(pd), null, "Price updated via admin JSON"));
                     } catch (Exception ex) { /* ignore invalid price */ }
                 }
                 if (payload.containsKey("categoryId")) {
@@ -399,24 +420,26 @@ public class MenuController {
 
     /**
      * Helper method to convert MenuItem entity to MenuItemResponse DTO
-     * Includes inventory information from InventoryService
+    /**
+     * Builds a MenuItemResponse from a MenuItem entity and a pre-loaded selling price.
+     * The price is sourced from MenuItemSellingPriceHistory (batch-loaded by the caller)
+     * to avoid N+1 queries. Null price means no active price record exists.
      */
-    private MenuItemResponse buildMenuItemResponse(MenuItem item) {
+    private MenuItemResponse buildMenuItemResponse(MenuItem item, BigDecimal price) {
         Long shopId = item.getShop() != null ? item.getShop().getId() : null;
 
         return MenuItemResponse.builder()
             .id(item.getId())
             .name(item.getName())
             .description(item.getDescription())
-            .price(item.getSellingPrice())
+            .price(price)                          // from MenuItemSellingPriceHistory
             .imageUrl(item.getImageUrl())
             .isVeg(item.getIsVeg())
             .recommended(item.isRecommended())
-            .basePrice(item.getBasePrice())
-            .margin(item.getMargin())
             .category(item.getCategory())
             .tag(item.getTag())
             .shopId(shopId)
+            .fulfillmentType(item.getFulfillmentType())
             .inventoryMode(item.getInventoryMode())
             .isHidden(item.getIsHidden())
             .createdAt(item.getCreatedAt())

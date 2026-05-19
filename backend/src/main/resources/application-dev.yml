@@ -3,7 +3,7 @@ spring:
     type: caffeine
     cache-names: walletBalance,menu,menuRecommended,otp
     caffeine:
-      spec: maximumSize=500,expireAfterWrite=10m
+      spec: maximumSize=500,expireAfterWrite=10m,recordStats
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://broandbro-dev.chi2yu0m6hp0.ap-south-1.rds.amazonaws.com:5432/broandbro_dev}
     username: ${SPRING_DATASOURCE_USERNAME:broandbro}
@@ -22,6 +22,7 @@ spring:
   flyway:
     enabled: ${SPRING_FLYWAY_ENABLED:true}
     baseline-on-migrate: ${SPRING_FLYWAY_BASELINE_ON_MIGRATE:true}
+    #repair-on-migrate: true   # auto-repairs failed migration checksum on restart
 
   jpa:
     hibernate:
