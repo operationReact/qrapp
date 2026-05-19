@@ -40,6 +40,7 @@ public class FilterConfig extends OncePerRequestFilter {
 
                         path.startsWith("/webhook/") ||
                         path.startsWith("/api/cache") ||
+                        path.startsWith("/admin/menu/bulk-upload/") ||
 
                         path.equals("/menu") ||
 

@@ -105,6 +105,8 @@ public class SecurityConfig {
 
                         .requestMatchers("/webhook/**").permitAll()
 
+                        .requestMatchers("/admin/menu/bulk-upload/**").permitAll()
+
                         .requestMatchers(
                                 HttpMethod.GET,
                                 "/menu",
@@ -125,6 +127,9 @@ public class SecurityConfig {
 
                         // Cache admin – no auth required
                         .requestMatchers("/api/cache/**").permitAll()
+                        .requestMatchers("/admin/menu/bulk-upload/**").permitAll()
+
+
 
                         .anyRequest()
                         .authenticated()

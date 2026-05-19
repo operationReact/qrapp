@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface MenuRepository extends JpaRepository<MenuItem, Long> {
 
@@ -56,4 +57,11 @@ public interface MenuRepository extends JpaRepository<MenuItem, Long> {
            "WHERE m.tag.id = :tagId " +
            "ORDER BY m.id ASC")
     List<MenuItem> findByTagId(@Param("tagId") Long tagId);
+
+    Optional<MenuItem> findBySkuCode(String skuCode);
+
+    @Query("SELECT m FROM MenuItem m WHERE LOWER(m.name) = LOWER(:name) AND m.category.id = :categoryId")
+    Optional<MenuItem> findByNameIgnoreCaseAndCategoryId(
+            @Param("name") String name,
+            @Param("categoryId") Long categoryId);
 }

@@ -28,6 +28,10 @@ spring:
     baseline-on-migrate: ${SPRING_FLYWAY_BASELINE_ON_MIGRATE:true}
     baseline-version: ${SPRING_FLYWAY_BASELINE_VERSION:1}
     lock-retry-count: ${SPRING_FLYWAY_LOCK_RETRY_COUNT:180}
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 12MB
   jpa:
     hibernate:
       ddl-auto: validate

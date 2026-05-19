@@ -60,6 +60,13 @@ public class MenuItem {
     @Column(name = "is_hidden", nullable = false)
     private Boolean isHidden = false;
 
+    /**
+     * Optional SKU code for bulk upload identification and external system integration.
+     * Must be unique when set.
+     */
+    @Column(name = "sku_code", unique = true)
+    private String skuCode;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
