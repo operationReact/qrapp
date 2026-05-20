@@ -124,7 +124,7 @@ resource "aws_iam_role_policy" "ssm_read" {
 # ── S3 media bucket access (AI-generated images) ──────────────────────────────
 # Only attached when media_bucket_arn is provided (non-empty).
 resource "aws_iam_role_policy" "media_s3" {
-  count = var.media_bucket_arn != "" ? 1 : 0
+  count = var.create_media_s3_policy ? 1 : 0
   name  = "broandbro-${var.environment}-media-s3"
   role  = aws_iam_role.ec2.id
 

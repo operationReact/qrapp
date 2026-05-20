@@ -14,8 +14,14 @@ variable "security_group_id" {
 }
 
 variable "media_bucket_arn" {
-  description = "ARN of the shared S3 media bucket (AI-generated images). When set, an IAM policy is attached to the EC2 role allowing PutObject/GetObject/DeleteObject on menu-items/*."
+  description = "ARN of the shared S3 media bucket (AI-generated images)."
   type        = string
   default     = ""
+}
+
+variable "create_media_s3_policy" {
+  description = "Set to true to attach an S3 IAM policy for the media bucket to the EC2 role. Must be true when media_bucket_arn is provided."
+  type        = bool
+  default     = false
 }
 

@@ -210,10 +210,11 @@ module "s3" {
 module "ec2" {
   source = "../../modules/ec2"
 
-  environment       = "dev"
-  instance_type     = var.ec2_instance_type # t4g.micro
-  security_group_id = module.security_group.ec2_sg_id
-  media_bucket_arn  = aws_s3_bucket.media.arn
+  environment            = "dev"
+  instance_type          = var.ec2_instance_type
+  security_group_id      = module.security_group.ec2_sg_id
+  media_bucket_arn       = aws_s3_bucket.media.arn
+  create_media_s3_policy = true
 }
 
 # ── RDS PostgreSQL ────────────────────────────────────────────────────────────
