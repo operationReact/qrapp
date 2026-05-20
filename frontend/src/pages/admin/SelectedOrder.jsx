@@ -17,7 +17,6 @@ import {
   CurrencyInrIcon,
   PhoneIcon,
   SealWarningIcon,
-  SwapIcon,
   UsersIcon,
 } from "@phosphor-icons/react";
 
@@ -43,6 +42,8 @@ const STATUS_META = {
     tone: "bg-rose-100 text-rose-700 border-rose-200",
   },
 };
+
+STATUS_META["ORDER_PLACED"] = STATUS_META.PLACED;
 
 const PRIORITY_META = {
   NORMAL: {
@@ -111,7 +112,7 @@ export default function SelectedOrder() {
                   Order #{selectedOrder.id}
                   <div className="flex gap-2">
                     <Badge
-                      className={`${toneForStatus(selectedOrder.status).tone}`}
+                      className={`${toneForStatus(selectedOrder.status)?.tone}`}
                     >
                       <ArchiveIcon pack="filled" />
                       {toneForStatus(selectedOrder.status).label}
