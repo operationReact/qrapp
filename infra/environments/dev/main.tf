@@ -51,11 +51,113 @@ provider "aws" {
 }
 
 # ── Shared media bucket (AI-generated menu item images) ──────────────────────
-# This bucket is created ONCE by bootstrap/bootstrap.tf and shared by
-# all environments.  Here we just look it up so we can reference its ARN.
-data "aws_s3_bucket" "media" {
+# Created here in the dev environment so it exists before any data sources
+# reference it.  lifecycle.prevent_destroy ensures it is never deleted.
+# Prod references it via a data source (see environments/prod/main.tf).
+resource "aws_s3_bucket" "media" {
   bucket = var.media_bucket_name
+
+  lifecycle {
+    prevent_destroy = true
+    # Ignore tags applied outside Terraform (e.g. by AWS Config rules)
+    ignore_changes = [tags]
+  }
+
+  tags = {
+    Name      = var.media_bucket_name
+    Purpose   = "AI-generated menu item images – shared across all environments"
+    ManagedBy = "Terraform"
+  }
 }
+
+resource "aws_s3_bucket_public_access_block" "media" {
+  bucket                  = aws_s3_bucket.media.id
+  block_public_acls       = true
+  ignore_public_acls      = true
+  block_public_policy     = false
+  restrict_public_buckets = false
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "media" {
+  bucket = aws_s3_bucket.media.id
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+  }
+}
+
+resource "aws_s3_bucket_versioning" "media" {
+  bucket = aws_s3_bucket.media.id
+  versioning_configuration {
+    status = "Suspended"
+  }
+}
+
+resource "aws_s3_bucket_lifecycle_configuration" "media" {
+  bucket = aws_s3_bucket.media.id
+  rule {
+    id     = "expire-old-images"
+    status = "Enabled"
+    filter {}
+    expiration {
+      days = 365
+    }
+    abort_incomplete_multipart_upload {
+      days_after_initiation = 1
+    }
+  }
+}
+
+resource "aws_s3_bucket_cors_configuration" "media" {
+  bucket = aws_s3_bucket.media.id
+  cors_rule {
+    allowed_headers = ["*"]
+    allowed_methods = ["GET", "HEAD"]
+    allowed_origins = ["*"]
+    expose_headers  = ["ETag"]
+    max_age_seconds = 86400
+  }
+}
+
+resource "aws_s3_bucket_policy" "media" {
+  bucket     = aws_s3_bucket.media.id
+  depends_on = [aws_s3_bucket_public_access_block.media]
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "AllowAccountUploads"
+        Effect = "Allow"
+        Principal = {
+          AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"
+        }
+        Action   = ["s3:PutObject", "s3:DeleteObject", "s3:GetObject"]
+        Resource = "${aws_s3_bucket.media.arn}/menu-items/*"
+      },
+      {
+        Sid       = "PublicReadMenuImages"
+        Effect    = "Allow"
+        Principal = "*"
+        Action    = ["s3:GetObject", "s3:HeadObject"]
+        Resource  = "${aws_s3_bucket.media.arn}/menu-items/*"
+      },
+      {
+        Sid       = "DenyNonSSLUploads"
+        Effect    = "Deny"
+        Principal = "*"
+        Action    = "s3:PutObject"
+        Resource  = "${aws_s3_bucket.media.arn}/*"
+        Condition = {
+          Bool = { "aws:SecureTransport" = "false" }
+        }
+      }
+    ]
+  })
+}
+
+data "aws_caller_identity" "current" {}
 
 # ── Security Groups ───────────────────────────────────────────────────────────
 module "security_group" {
@@ -111,7 +213,7 @@ module "ec2" {
   environment       = "dev"
   instance_type     = var.ec2_instance_type # t4g.micro
   security_group_id = module.security_group.ec2_sg_id
-  media_bucket_arn  = data.aws_s3_bucket.media.arn
+  media_bucket_arn  = aws_s3_bucket.media.arn
 }
 
 # ── RDS PostgreSQL ────────────────────────────────────────────────────────────

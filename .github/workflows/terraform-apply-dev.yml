@@ -94,6 +94,23 @@ jobs:
             fi
           fi
 
+      # The shared media bucket may have been pre-created by bootstrap/bootstrap.tf
+      # or a previous apply. Import it so Terraform manages it without re-creating.
+      - name: Import shared media bucket (if already exists)
+        run: |
+          BUCKET="${{ vars.MEDIA_BUCKET_NAME || 'broandbro-menu-images' }}"
+          if aws s3api head-bucket --bucket "$BUCKET" 2>/dev/null; then
+            echo "Media bucket $BUCKET exists – checking state..."
+            if ! terraform state show aws_s3_bucket.media 2>/dev/null; then
+              echo "Importing media bucket into state..."
+              terraform import aws_s3_bucket.media "$BUCKET"
+            else
+              echo "Media bucket already in state – skipping."
+            fi
+          else
+            echo "Media bucket $BUCKET does not exist yet – will be created by apply."
+          fi
+
       - name: Terraform Plan
         run: terraform plan -out=tfplan
 
