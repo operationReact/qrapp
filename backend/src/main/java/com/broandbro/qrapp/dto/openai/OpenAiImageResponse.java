@@ -1,30 +1,55 @@
 package com.broandbro.qrapp.dto.openai;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
 import java.util.List;
 
 /**
- * Top-level response from POST /v1/images/generations.
+ * Response from POST /v1/images/generations (gpt-image-1).
  */
 @Data
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class OpenAiImageResponse {
 
     private Long created;
-
     private List<ImageData> data;
+    private Usage usage;
 
     @Data
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class ImageData {
 
-        /** Base64-encoded PNG image bytes. */
         @JsonProperty("b64_json")
         private String b64Json;
+    }
 
-        /** Revised prompt returned by the model (for DALL-E 3). */
-        @JsonProperty("revised_prompt")
-        private String revisedPrompt;
+    @Data
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public static class Usage {
+
+        @JsonProperty("total_tokens")
+        private Integer totalTokens;
+
+        @JsonProperty("input_tokens")
+        private Integer inputTokens;
+
+        @JsonProperty("output_tokens")
+        private Integer outputTokens;
+
+        @JsonProperty("input_tokens_details")
+        private InputTokenDetails inputTokensDetails;
+    }
+
+    @Data
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public static class InputTokenDetails {
+
+        @JsonProperty("text_tokens")
+        private Integer textTokens;
+
+        @JsonProperty("image_tokens")
+        private Integer imageTokens;
     }
 }
-

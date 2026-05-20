@@ -45,3 +45,21 @@ twilio:
   orderPlacedContentSid: ${TWILIO_ORDER_PLACED_CONTENT_SID:HX7926f06db10abf2c81bd27dc98c27423}
   orderReadyContentSid: ${TWILIO_ORDER_READY_CONTENT_SID:}
   otpContentSid: ${TWILIO_OTP_CONTENT_SID:HX229f5a04fd0510ce1b071852155d3e75}
+
+# ── AWS S3 ────────────────────────────────────────────────────────────────────
+# Disabled by default for local dev — no AWS credentials needed.
+# To test real S3 uploads locally, export these env vars and restart:
+#
+#   export AWS_S3_ENABLED=true
+#   export AWS_ACCESS_KEY_ID=your_key
+#   export AWS_SECRET_ACCESS_KEY=your_secret
+#   export AWS_S3_BUCKET_NAME=qrapp-menu-images   # optional, uses default
+#   export AWS_S3_REGION=ap-south-1               # optional, uses default
+#
+aws:
+  s3:
+    enabled: ${AWS_S3_ENABLED:true}
+    bucket-name: ${AWS_S3_BUCKET_NAME:broandbro-menu-images}
+    region: ${AWS_S3_REGION:ap-south-1}
+    access-key: ${AWS_ACCESS_KEY_ID}
+    secret-key: ${AWS_SECRET_ACCESS_KEY}

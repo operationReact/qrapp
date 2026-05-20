@@ -304,4 +304,17 @@ export const toggleCouponStatus = (id) => API.patch(`/api/coupons/admin/${id}/to
 
 export const getCategories = () => API.get("/categories");
 
+// ---- Bulk Menu Upload ----
+export const bulkMenuValidate = (file) => {
+  const form = new FormData();
+  form.append("file", file);
+  return API.post("/admin/menu/bulk-upload/validate", form);
+};
+
+export const bulkMenuCommit = (rows, uploadMode = "UPSERT") =>
+  API.post("/admin/menu/bulk-upload/commit", { rows, uploadMode });
+
+export const bulkMenuDownloadTemplate = () =>
+  API.get("/admin/menu/bulk-upload/template", { responseType: "blob" });
+
 export default API;

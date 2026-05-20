@@ -10,9 +10,10 @@ import { useAuth } from "../../context/AuthContext";
 import AdminMenuItem from "../../components/admin/AdminMenuItem";
 import MenuItemEditModal from "../../components/MenuItemEditModal";
 import { Button } from "@/components/ui/button";
-import { Plus, Filter } from "lucide-react";
+import { Plus, Filter, Upload } from "lucide-react";
 import AdminHeader from "@/components/admin/AdminHeader";
 import AdminMenuFilters from "../../components/admin/AdminMenuFilters";
+import BulkMenuUploadModal from "../../components/admin/BulkMenuUploadModal";
 
 export default function AdminMenuPage() {
   const navigate = useNavigate();
@@ -25,6 +26,7 @@ export default function AdminMenuPage() {
   const [editingItem, setEditingItem] = useState(null);
   const [deletingItem, setDeletingItem] = useState(null);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
+  const [bulkUploadOpen, setBulkUploadOpen] = useState(false);
 
   const [searchQuery, setSearchQuery] = useState(
     () => searchParams.get("q") || "",
@@ -221,14 +223,23 @@ export default function AdminMenuPage() {
           className="px-0 pt-0"
         />
 
-        <Button
-          onClick={() => navigate("/admin/manage-menu")}
-          className="sm:w-auto"
-          size="lg"
-        >
-          <Plus className="size-5" />
-          Create New Item
-        </Button>
+        <div className="flex gap-2 sm:w-auto">
+          <Button
+            onClick={() => setBulkUploadOpen(true)}
+            variant="outline"
+            size="lg"
+          >
+            <Upload className="size-5" />
+            Bulk Upload
+          </Button>
+          <Button
+            onClick={() => navigate("/admin/manage-menu")}
+            size="lg"
+          >
+            <Plus className="size-5" />
+            Create New Item
+          </Button>
+        </div>
       </div>
 
       <div className="grid lg:grid-cols-[300px_1fr] min-h-0">
@@ -309,6 +320,12 @@ export default function AdminMenuPage() {
         item={editingItem}
         onClose={() => setEditingItem(null)}
         onSuccess={handleEditSuccess}
+      />
+
+      <BulkMenuUploadModal
+        open={bulkUploadOpen}
+        onClose={() => setBulkUploadOpen(false)}
+        onSuccess={() => { setBulkUploadOpen(false); loadMenu(); }}
       />
     </>
   );

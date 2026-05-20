@@ -38,8 +38,13 @@ public class ExcelBulkMenuParser implements BulkMenuFileParser {
             Sheet sheet = workbook.getSheetAt(0);
             Iterator<Row> rowIter = sheet.iterator();
 
-            // Skip header row
-            if (rowIter.hasNext()) rowIter.next();
+            // Template structure:
+            //   Row 1 – title / branding banner
+            //   Row 2 – column header labels
+            //   Row 3 – example / hint row (e.g. "e.g. Veg Biryani")
+            //   Row 4+ – actual data rows
+            int skipRows = 3;
+            for (int s = 0; s < skipRows && rowIter.hasNext(); s++) rowIter.next();
 
             int rowNumber = 0;
             while (rowIter.hasNext()) {

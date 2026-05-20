@@ -77,3 +77,20 @@ twilio:
   orderPlacedContentSid: ${TWILIO_ORDER_PLACED_CONTENT_SID:HX7926f06db10abf2c81bd27dc98c27423}
   orderReadyContentSid: ${TWILIO_ORDER_READY_CONTENT_SID:}
   otpContentSid: ${TWILIO_OTP_CONTENT_SID:HX229f5a04fd0510ce1b071852155d3e75}
+
+# ── AWS S3 ────────────────────────────────────────────────────────────────────
+# Enabled in production. All values MUST be supplied as environment variables.
+# Required env vars on the EC2 / ECS instance:
+#   AWS_S3_ENABLED=true
+#   AWS_ACCESS_KEY_ID=<iam-access-key>
+#   AWS_SECRET_ACCESS_KEY=<iam-secret-key>
+#   AWS_S3_BUCKET_NAME=broandbro-menu-images          (or override)
+#   AWS_S3_REGION=ap-south-1                      (or override)
+aws:
+  s3:
+    enabled: ${AWS_S3_ENABLED:true}
+    bucket-name: ${AWS_S3_BUCKET_NAME:broandbro-menu-images}
+    region: ${AWS_S3_REGION:ap-south-1}
+    access-key: ${AWS_ACCESS_KEY_ID}
+    secret-key: ${AWS_SECRET_ACCESS_KEY}
+

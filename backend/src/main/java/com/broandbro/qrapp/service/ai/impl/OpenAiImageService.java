@@ -54,12 +54,13 @@ public class OpenAiImageService implements ImageGenerationService {
         String prompt = promptBuilder.buildFoodImagePrompt(menuItemName, categoryName, isVeg);
         log.info("[OpenAI] Starting image generation for '{}' (category={})", menuItemName, categoryName);
 
+        // Exact request matching the curl:
+        // { "model": "gpt-image-1", "prompt": "...", "n": 1, "size": "1024x1024" }
         OpenAiImageRequest request = OpenAiImageRequest.builder()
                 .model(props.getImageModel())
                 .prompt(prompt)
-                .size(props.getImageSize())
                 .n(1)
-                .responseFormat("b64_json")
+                .size(props.getImageSize())
                 .build();
 
         Instant start = Instant.now();
@@ -70,27 +71,29 @@ public class OpenAiImageService implements ImageGenerationService {
                     .uri("/images/generations")
                     .bodyValue(request)
                     .retrieve()
-                    .onStatus(status -> status.is4xxClientError(), clientResponse -> {
-                        return clientResponse.bodyToMono(String.class)
-                                .map(body -> {
-                                    log.error("[OpenAI] Client error {}: {}", clientResponse.statusCode(), body);
-                                    return new OpenAiImageGenerationException(
-                                            "OpenAI API client error: " + clientResponse.statusCode() + " - " + body);
-                                });
-                    })
-                    .onStatus(status -> status.is5xxServerError(), clientResponse -> {
-                        return clientResponse.bodyToMono(String.class)
-                                .map(body -> {
-                                    log.error("[OpenAI] Server error {}: {}", clientResponse.statusCode(), body);
-                                    return new OpenAiImageGenerationException(
-                                            "OpenAI API server error: " + clientResponse.statusCode() + " - " + body);
-                                });
-                    })
+                    .onStatus(status -> status.is4xxClientError(), clientResponse ->
+                            clientResponse.bodyToMono(String.class).map(body -> {
+                                log.error("[OpenAI] Client error {}: {}", clientResponse.statusCode(), body);
+                                return new OpenAiImageGenerationException(
+                                        "OpenAI client error " + clientResponse.statusCode() + ": " + body);
+                            }))
+                    .onStatus(status -> status.is5xxServerError(), clientResponse ->
+                            clientResponse.bodyToMono(String.class).map(body -> {
+                                log.error("[OpenAI] Server error {}: {}", clientResponse.statusCode(), body);
+                                return new OpenAiImageGenerationException(
+                                        "OpenAI server error " + clientResponse.statusCode() + ": " + body);
+                            }))
                     .bodyToMono(OpenAiImageResponse.class)
                     .block(Duration.ofSeconds(props.getReadTimeoutSeconds()));
 
             long latencyMs = Duration.between(start, Instant.now()).toMillis();
-            log.info("[OpenAI] Image generation completed for '{}' in {}ms", menuItemName, latencyMs);
+            log.info("[OpenAI] Image generated for '{}' in {}ms", menuItemName, latencyMs);
+
+            if (response != null && response.getUsage() != null) {
+                OpenAiImageResponse.Usage u = response.getUsage();
+                log.info("[OpenAI] Tokens used – total={} (input={} output={}) for '{}'",
+                        u.getTotalTokens(), u.getInputTokens(), u.getOutputTokens(), menuItemName);
+            }
 
             return decodeBase64Image(response, menuItemName);
 
@@ -104,7 +107,7 @@ public class OpenAiImageService implements ImageGenerationService {
             log.error("[OpenAI] HTTP error for '{}': {}", menuItemName, e.getMessage());
             throw new OpenAiImageGenerationException("OpenAI HTTP error: " + e.getMessage(), e);
         } catch (Exception e) {
-            log.error("[OpenAI] Unexpected error generating image for '{}': {}", menuItemName, e.getMessage(), e);
+            log.error("[OpenAI] Unexpected error for '{}': {}", menuItemName, e.getMessage(), e);
             throw new OpenAiImageGenerationException("Unexpected error calling OpenAI: " + e.getMessage(), e);
         }
     }
@@ -113,10 +116,6 @@ public class OpenAiImageService implements ImageGenerationService {
     public String getProviderName() {
         return "openai";
     }
-
-    // -------------------------------------------------------------------------
-    // Private helpers
-    // -------------------------------------------------------------------------
 
     private byte[] decodeBase64Image(OpenAiImageResponse response, String menuItemName) {
         if (response == null || response.getData() == null || response.getData().isEmpty()) {
@@ -134,8 +133,7 @@ public class OpenAiImageService implements ImageGenerationService {
 
         try {
             byte[] imageBytes = Base64.getDecoder().decode(b64);
-            log.debug("[OpenAI] Decoded image bytes: {} KB for '{}'",
-                    imageBytes.length / 1024, menuItemName);
+            log.debug("[OpenAI] Decoded {} KB for '{}'", imageBytes.length / 1024, menuItemName);
             return imageBytes;
         } catch (IllegalArgumentException e) {
             throw new OpenAiImageGenerationException(
@@ -143,4 +141,3 @@ public class OpenAiImageService implements ImageGenerationService {
         }
     }
 }
-

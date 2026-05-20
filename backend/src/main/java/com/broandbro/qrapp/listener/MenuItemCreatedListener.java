@@ -4,8 +4,9 @@ import com.broandbro.qrapp.event.MenuItemCreatedEvent;
 import com.broandbro.qrapp.service.ai.MenuItemImageGenerationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
 
 /**
  * Listens for {@link MenuItemCreatedEvent} and triggers async AI image generation.
@@ -28,7 +29,7 @@ public class MenuItemCreatedListener {
      * Handles a new menu item creation event.
      * Triggers async image generation – the method itself returns immediately.
      */
-    @EventListener
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onMenuItemCreated(MenuItemCreatedEvent event) {
         log.info("[Listener] MenuItemCreatedEvent received for menuItemId={} name='{}'",
                 event.getMenuItemId(), event.getMenuItemName());
