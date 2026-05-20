@@ -51,6 +51,9 @@ import org.springframework.web.bind.annotation.RequestHeader;
 
 import jakarta.servlet.http.HttpServletRequest;
 
+import com.broandbro.qrapp.event.MenuItemCreatedEvent;
+import org.springframework.context.ApplicationEventPublisher;
+
 
 @RestController
 @RequestMapping("/menu")
@@ -69,6 +72,7 @@ public class MenuController {
     private final TagRepository tagRepository;
     private final InventoryService inventoryService;
     private final PricingService pricingService;
+    private final ApplicationEventPublisher eventPublisher;
 
     // helper to store uploaded file under resources/static/uploads and return public URL
     private String storeUploadedFile(MultipartFile file) throws IOException {
@@ -124,7 +128,10 @@ public class MenuController {
     public MenuItem addMenuItem(@Valid @RequestBody MenuItem item) {
         // Ensure id is null so a new entity is created rather than updated
         item.setId(null);
-        return repo.save(item);
+        MenuItem saved = repo.save(item);
+        String categoryName = saved.getCategory() != null ? saved.getCategory().getName() : null;
+        eventPublisher.publishEvent(new MenuItemCreatedEvent(this, saved.getId(), saved.getName(), categoryName, saved.getIsVeg()));
+        return saved;
     }
 
     // New multipart/form-data POST handler so admin can upload an image when creating an item
@@ -218,6 +225,11 @@ public class MenuController {
                         null,
                         "Initial price set on creation"
                 ));
+            }
+            // Publish event to trigger async AI image generation (only when no image was uploaded)
+            if (image == null || image.isEmpty()) {
+                String catName = saved.getCategory() != null ? saved.getCategory().getName() : null;
+                eventPublisher.publishEvent(new MenuItemCreatedEvent(this, saved.getId(), saved.getName(), catName, saved.getIsVeg()));
             }
             return ResponseEntity.status(HttpStatus.CREATED).body(saved);
         } catch (RuntimeException ex) {

@@ -49,6 +49,13 @@ provider "aws" {
   }
 }
 
+# ── Shared media bucket (AI-generated menu item images) ──────────────────────
+# This bucket is created ONCE by bootstrap/bootstrap.tf and shared by
+# all environments.  Here we just look it up so we can reference its ARN.
+data "aws_s3_bucket" "media" {
+  bucket = var.media_bucket_name
+}
+
 # ── Security Groups ───────────────────────────────────────────────────────────
 module "security_group" {
   source = "../../modules/security-group"
@@ -103,6 +110,7 @@ module "ec2" {
   environment       = "prod"
   instance_type     = var.ec2_instance_type # t4g.small
   security_group_id = module.security_group.ec2_sg_id
+  media_bucket_arn  = data.aws_s3_bucket.media.arn
 }
 
 # ── RDS PostgreSQL ────────────────────────────────────────────────────────────

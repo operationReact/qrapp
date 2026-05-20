@@ -10,12 +10,14 @@ import com.broandbro.qrapp.enums.InventoryMode;
 import com.broandbro.qrapp.repository.CategoryRepository;
 import com.broandbro.qrapp.repository.InventoryRepository;
 import com.broandbro.qrapp.repository.MenuRepository;
+import com.broandbro.qrapp.event.MenuItemCreatedEvent;
 import com.broandbro.qrapp.service.PricingService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.CellRangeAddressList;
 import org.apache.poi.xssf.usermodel.*;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -44,6 +46,7 @@ public class BulkMenuUploadService {
     private final CategoryRepository       categoryRepository;
     private final InventoryRepository      inventoryRepository;
     private final PricingService           pricingService;
+    private final ApplicationEventPublisher eventPublisher;
 
     // =========================================================================
     // VALIDATE — parse + validate only, no DB writes
@@ -136,6 +139,10 @@ public class BulkMenuUploadService {
             for (int i = 0; i < saved.size(); i++) {
                 BulkMenuRowDto row = insertRowByIndex.get(i);
                 if (row != null) { setPrice(saved.get(i), row); setInventory(saved.get(i), row); }
+                // Trigger async AI image generation for newly inserted items
+                MenuItem s = saved.get(i);
+                String catName = s.getCategory() != null ? s.getCategory().getName() : null;
+                eventPublisher.publishEvent(new MenuItemCreatedEvent(this, s.getId(), s.getName(), catName, s.getIsVeg()));
             }
         }
         if (!toUpdate.isEmpty()) {

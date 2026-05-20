@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Data;
 import com.broandbro.qrapp.enums.FulfillmentType;
 import com.broandbro.qrapp.enums.InventoryMode;
+import com.broandbro.qrapp.enums.ImageGenerationStatus;
 import java.time.Instant;
 
 @Entity
@@ -75,6 +76,32 @@ public class MenuItem {
 
     @OneToOne(mappedBy = "menuItem", fetch = FetchType.LAZY)
     private MenuItemImage image;
+
+    // ============================================================================
+    // AI IMAGE GENERATION FIELDS
+    // ============================================================================
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "image_generation_status")
+    private ImageGenerationStatus imageGenerationStatus;
+
+    @Column(name = "image_generation_error", columnDefinition = "TEXT")
+    private String imageGenerationError;
+
+    @Column(name = "ai_generated_image")
+    private Boolean aiGeneratedImage = false;
+
+    @Column(name = "image_prompt", columnDefinition = "TEXT")
+    private String imagePrompt;
+
+    @Column(name = "image_prompt_hash")
+    private String imagePromptHash;
+
+    @Column(name = "image_generation_requested_at")
+    private Instant imageGenerationRequestedAt;
+
+    @Column(name = "image_generation_completed_at")
+    private Instant imageGenerationCompletedAt;
 
     @PrePersist
     public void prePersist() {

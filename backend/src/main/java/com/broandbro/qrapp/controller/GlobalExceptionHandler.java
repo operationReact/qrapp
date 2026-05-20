@@ -3,11 +3,14 @@ package com.broandbro.qrapp.controller;
 import com.broandbro.qrapp.exception.DuplicateTransactionException;
 import com.broandbro.qrapp.exception.FileTooLargeException;
 import com.broandbro.qrapp.exception.ImageNotFoundException;
+import com.broandbro.qrapp.exception.ImageUploadException;
 import com.broandbro.qrapp.exception.InsufficientBalanceException;
 import com.broandbro.qrapp.exception.InvalidImageException;
+import com.broandbro.qrapp.exception.InvalidPromptException;
 import com.broandbro.qrapp.exception.InventoryNotConfiguredException;
 import com.broandbro.qrapp.exception.InventoryOperationException;
 import com.broandbro.qrapp.exception.MenuItemNotFoundException;
+import com.broandbro.qrapp.exception.OpenAiImageGenerationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -60,6 +63,21 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<String> handleIllegalArgument(IllegalArgumentException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
+    }
+
+    @ExceptionHandler(OpenAiImageGenerationException.class)
+    public ResponseEntity<String> handleOpenAiImageGeneration(OpenAiImageGenerationException ex) {
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(ex.getMessage());
+    }
+
+    @ExceptionHandler(ImageUploadException.class)
+    public ResponseEntity<String> handleImageUpload(ImageUploadException ex) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ex.getMessage());
+    }
+
+    @ExceptionHandler(InvalidPromptException.class)
+    public ResponseEntity<String> handleInvalidPrompt(InvalidPromptException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
     }
 

@@ -34,3 +34,18 @@ output "alarm_sns_topic_arn" {
   description = "SNS topic ARN for CloudWatch alarms"
 }
 
+output "media_bucket_name" {
+  value       = data.aws_s3_bucket.media.bucket
+  description = "Shared S3 bucket for AI-generated menu item images (set as AWS_S3_BUCKET_NAME env var)"
+}
+
+output "media_bucket_arn" {
+  value       = data.aws_s3_bucket.media.arn
+  description = "ARN of the shared media S3 bucket"
+}
+
+output "media_bucket_regional_domain" {
+  value       = data.aws_s3_bucket.media.bucket_regional_domain_name
+  description = "Regional domain – base URL for public image access"
+}
+

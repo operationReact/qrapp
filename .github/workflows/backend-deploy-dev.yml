@@ -1,225 +1,153 @@
-# =============================================================================
-# Workflow: backend-deploy-dev.yml
-# Triggered by push to `dev` branch when backend/** changes.
-# Builds Spring Boot JAR, SCPs it to DEV EC2, restarts the service.
-# =============================================================================
 name: Backend Deploy – Dev
 
 on:
   push:
     branches: [dev]
-    paths: ["backend/**"]
+    paths:
+      - "backend/**"
 
 permissions:
-  id-token: write
+  id-token: write   # required for OIDC → AWS
   contents: read
 
-env:
-  JAVA_VERSION: "21"
-  AWS_REGION: "ap-south-1"
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
-
 jobs:
-  # ── Build ──────────────────────────────────────────────────────────────────
-  build:
-    name: Build Spring Boot JAR
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Java 21 (Corretto)
-        uses: actions/setup-java@v4
-        with:
-          java-version: ${{ env.JAVA_VERSION }}
-          distribution: corretto
-
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v3  # installs Gradle, handles caching
-
-      - name: Build Spring Boot JAR
-        # Run from repo root – settings.gradle includes 'backend' as a subproject
-        run: gradle :backend:bootJar -x test --no-daemon --parallel
-
-      - name: Upload JAR artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: backend-jar-dev
-          path: backend/build/libs/*.jar
-          retention-days: 5
-
-  # ── Deploy ─────────────────────────────────────────────────────────────────
   deploy:
-    name: Deploy to Dev EC2
+    name: Build & Deploy to Dev EC2
     runs-on: ubuntu-latest
-    needs: build
     environment: dev
 
     steps:
-      - name: Download JAR
-        uses: actions/download-artifact@v4
-        with:
-          name: backend-jar-dev
-          path: ./jar
+      # ── 1. Checkout ──────────────────────────────────────────────────────────
+      - name: Checkout
+        uses: actions/checkout@v4
 
+      # ── 2. Set up Java 21 ────────────────────────────────────────────────────
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: "21"
+          distribution: corretto
+          cache: gradle
+
+      # ── 3. Build JAR ─────────────────────────────────────────────────────────
+      - name: Build Spring Boot JAR
+        working-directory: backend
+        run: ./gradlew bootJar -x test --no-daemon
+
+      # ── 4. Authenticate to AWS via OIDC ──────────────────────────────────────
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-          aws-region: ${{ env.AWS_REGION }}
+          aws-region: ap-south-1
 
-      # Fetch SSH private key + EC2 IP from SSM – no manual GitHub secrets needed
-      - name: Setup SSH key (from SSM)
+      # ── 5. Fetch EC2 host from SSM (populated by Terraform) ──────────────────
+      - name: Get EC2 host from SSM
+        id: ec2
         run: |
-          mkdir -p ~/.ssh
-
-          aws ssm get-parameter \
-            --name "/broandbro/dev/ec2-ssh-private-key" \
-            --with-decryption \
-            --query "Parameter.Value" \
-            --output text > ~/.ssh/broandbro_dev
-          chmod 600 ~/.ssh/broandbro_dev
-
-          EC2_IP=$(aws ssm get-parameter \
+          IP=$(aws ssm get-parameter \
             --name "/broandbro/dev/ec2-public-ip" \
             --query "Parameter.Value" \
             --output text)
-          echo "EC2_HOST=$EC2_IP" >> $GITHUB_ENV
+          echo "host=$IP" >> "$GITHUB_OUTPUT"
 
-          ssh-keyscan -H $EC2_IP >> ~/.ssh/known_hosts 2>/dev/null
-
-      - name: Ensure HTTPS (certbot) is configured on EC2
+      # ── 6. Fetch SSH private key from SSM (SecureString) ─────────────────────
+      - name: Get SSH private key from SSM
+        id: ssh
         run: |
-          ssh -i ~/.ssh/broandbro_dev \
-              -o StrictHostKeyChecking=no \
-              ec2-user@${{ env.EC2_HOST }} \
-          '
-          set -e
-          DOMAIN="dev-api.broandbro.in"
-          CERT_PATH="/etc/letsencrypt/live/$DOMAIN/fullchain.pem"
-
-          echo "--- Checking HTTPS / certbot status ---"
-
-          # Install certbot if missing (idempotent)
-          if ! command -v certbot &>/dev/null; then
-            echo "Installing certbot..."
-            sudo dnf install -y python3 python3-pip augeas-libs 2>/dev/null || true
-            sudo pip3 install certbot certbot-nginx --quiet
-            sudo ln -sf /usr/local/bin/certbot /usr/bin/certbot || true
-          fi
-
-          # Create webroot dir for ACME challenge if missing
-          sudo mkdir -p /var/www/certbot
-          sudo chown nginx:nginx /var/www/certbot 2>/dev/null || true
-
-          # Ensure Nginx conf has ACME challenge location (idempotent)
-          if ! sudo grep -q "well-known/acme-challenge" /etc/nginx/conf.d/broandbro.conf 2>/dev/null; then
-            echo "Adding ACME challenge block to Nginx config..."
-            sudo sed -i "/listen 80/a\\    location /.well-known/acme-challenge/ { root /var/www/certbot; try_files \$uri =404; }" \
-              /etc/nginx/conf.d/broandbro.conf
-            sudo nginx -t && sudo systemctl reload nginx
-          fi
-
-          if [ -f "$CERT_PATH" ]; then
-            echo "✅ Certificate already exists for $DOMAIN – skipping issuance"
-            # Attempt renewal if expiring within 30 days
-            sudo certbot renew --quiet --nginx --deploy-hook "systemctl reload nginx" || true
-          else
-            echo "🔐 Issuing Let'\''s Encrypt certificate for $DOMAIN..."
-            sudo certbot --nginx \
-              --non-interactive \
-              --agree-tos \
-              --email admin@broandbro.in \
-              --domains "$DOMAIN" \
-              --redirect
-            echo "✅ Certificate issued and Nginx updated for HTTPS"
-          fi
-
-          # Verify port 443 is now active
-          sudo nginx -t
-          sudo systemctl reload nginx
-          echo "--- Nginx HTTPS status ---"
-          sudo ss -tlnp | grep 443 && echo "✅ Port 443 is listening" || echo "❌ WARNING: Port 443 not listening"
-          '
-
-      - name: Write application.env to EC2
-        run: |
-          DB_PASSWORD=$(aws ssm get-parameter \
-            --name "/broandbro/dev/db-password" \
+          KEY=$(aws ssm get-parameter \
+            --name "/broandbro/dev/ec2-ssh-private-key" \
             --with-decryption \
             --query "Parameter.Value" \
             --output text)
+          echo "$KEY" > /tmp/deploy_key
+          chmod 600 /tmp/deploy_key
 
-          DB_HOST=$(aws ssm get-parameter \
-            --name "/broandbro/dev/db-endpoint" \
-            --query "Parameter.Value" \
-            --output text)
-
-          ssh -i ~/.ssh/broandbro_dev \
-              -o StrictHostKeyChecking=no \
-              ec2-user@${{ env.EC2_HOST }} \
-          "sudo mkdir -p /opt/broandbro/config
-           {
-             printf 'SPRING_PROFILES_ACTIVE=dev\n'
-             printf 'SERVER_PORT=8080\n'
-             printf 'SPRING_DATASOURCE_URL=jdbc:postgresql://%s:5432/broandbro_dev\n' \"$DB_HOST\"
-             printf 'SPRING_DATASOURCE_USERNAME=broandbro\n'
-             printf 'SPRING_DATASOURCE_PASSWORD=%s\n' \"$DB_PASSWORD\"
-             printf 'SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE=5\n'
-           } | sudo tee /opt/broandbro/config/application.env > /dev/null
-           sudo chown broandbro:broandbro /opt/broandbro/config/application.env
-           sudo chmod 640 /opt/broandbro/config/application.env"
-
-      - name: SCP JAR to EC2
+      # ── 7. Copy JAR to EC2 ───────────────────────────────────────────────────
+      - name: Copy JAR to EC2
         run: |
-          JAR_FILE=$(ls jar/*.jar | head -1)
-          echo "Deploying: $JAR_FILE"
-          scp -i ~/.ssh/broandbro_dev \
-              -o StrictHostKeyChecking=no \
-              "$JAR_FILE" \
-              ec2-user@${{ env.EC2_HOST }}:/tmp/app-new.jar
+          scp -i /tmp/deploy_key \
+            -o StrictHostKeyChecking=no \
+            backend/build/libs/qrapp-*.jar \
+            ec2-user@${{ steps.ec2.outputs.host }}:/tmp/app-new.jar
 
-      - name: Deploy and restart service
+      # ── 8. Write application.env + restart service ───────────────────────────
+      # All secrets are injected here — nothing sensitive is ever stored in files
+      # in the repo.  The env file is written with 640 permissions (broandbro user
+      # only) and is never echoed in logs.
+      - name: Deploy & restart
         run: |
-          ssh -i ~/.ssh/broandbro_dev \
-              -o StrictHostKeyChecking=no \
-              ec2-user@${{ env.EC2_HOST }} \
-          '
-          set -e
-          echo "--- Deploying new JAR ---"
+          ssh -i /tmp/deploy_key \
+            -o StrictHostKeyChecking=no \
+            ec2-user@${{ steps.ec2.outputs.host }} << 'ENDSSH'
 
-          # Keep previous JAR as rollback backup
-          [ -f /opt/broandbro/app.jar ] && \
-            sudo cp /opt/broandbro/app.jar /opt/broandbro/app.jar.bak
+            set -euo pipefail
 
-          sudo mv /tmp/app-new.jar /opt/broandbro/app.jar
-          sudo chown broandbro:broandbro /opt/broandbro/app.jar
-          sudo chmod 640 /opt/broandbro/app.jar
+            # Backup existing JAR
+            [ -f /opt/broandbro/app.jar ] && \
+              sudo cp /opt/broandbro/app.jar /opt/broandbro/app.jar.bak || true
 
-          echo "--- Restarting broandbro service ---"
-          sudo systemctl restart broandbro
+            # Move new JAR into place
+            sudo mv /tmp/app-new.jar /opt/broandbro/app.jar
+            sudo chown broandbro:broandbro /opt/broandbro/app.jar
 
-          echo "--- Waiting for service to become healthy ---"
-          for i in $(seq 1 24); do
-            sleep 5
-            STATUS=$(sudo systemctl is-active broandbro 2>/dev/null)
-            echo "Attempt $i: service is $STATUS"
-            if [ "$STATUS" = "active" ]; then
-              echo "✅ Service started successfully"
-              exit 0
-            fi
-          done
+            # Write environment file (secrets injected at deploy time)
+            sudo tee /opt/broandbro/config/application.env > /dev/null << EOF
+          # ─── Spring ────────────────────────────────────────────────────────
+          SPRING_PROFILES_ACTIVE=dev
+          SERVER_PORT=8080
 
-          echo "❌ Service failed to start after 2 minutes"
-          sudo journalctl -u broandbro -n 50 --no-pager
-          exit 1
-          '
+          # ─── Database ──────────────────────────────────────────────────────
+          SPRING_DATASOURCE_URL=jdbc:postgresql://${{ secrets.DEV_DB_HOST }}:5432/${{ secrets.DEV_DB_NAME }}
+          SPRING_DATASOURCE_USERNAME=${{ secrets.DEV_DB_USERNAME }}
+          SPRING_DATASOURCE_PASSWORD=${{ secrets.DEV_DB_PASSWORD }}
 
-      - name: Deployment summary
-        run: |
-          echo "## ✅ Backend Deployed – Dev" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- **API URL:** https://dev-api.broandbro.in" >> $GITHUB_STEP_SUMMARY
-          echo "- **EC2 Host:** ${{ env.EC2_HOST }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          # ─── OpenAI (AI image generation) ──────────────────────────────────
+          OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
+          OPENAI_IMAGE_MODEL=gpt-image-1
+          OPENAI_IMAGE_SIZE=1024x1024
+
+          # ─── AWS S3 (shared media bucket) ──────────────────────────────────
+          # EC2 instance profile handles auth – no explicit keys needed
+          AWS_S3_BUCKET_NAME=broandbro-menu-images
+          AWS_S3_REGION=ap-south-1
+          AWS_S3_ENABLED=true
+
+          # ─── Razorpay ──────────────────────────────────────────────────────
+          RAZORPAY_KEY=${{ secrets.DEV_RAZORPAY_KEY }}
+          RAZORPAY_SECRET=${{ secrets.DEV_RAZORPAY_SECRET }}
+          RAZORPAY_WEBHOOK_SECRET=${{ secrets.DEV_RAZORPAY_WEBHOOK_SECRET }}
+
+          # ─── Twilio / WhatsApp ──────────────────────────────────────────────
+          TWILIO_ACCOUNT_SID=${{ secrets.DEV_TWILIO_ACCOUNT_SID }}
+          TWILIO_AUTH_TOKEN=${{ secrets.DEV_TWILIO_AUTH_TOKEN }}
+          TWILIO_FROM_NUMBER=${{ secrets.DEV_TWILIO_FROM_NUMBER }}
+          TWILIO_ORDER_PLACED_CONTENT_SID=${{ secrets.DEV_TWILIO_ORDER_PLACED_CONTENT_SID }}
+          TWILIO_OTP_CONTENT_SID=${{ secrets.DEV_TWILIO_OTP_CONTENT_SID }}
+          EOF
+
+            sudo chmod 640 /opt/broandbro/config/application.env
+            sudo chown broandbro:broandbro /opt/broandbro/config/application.env
+
+            # Restart service
+            sudo systemctl daemon-reload
+            sudo systemctl restart broandbro
+
+            # Wait up to 60s for healthy startup
+            for i in $(seq 1 12); do
+              sleep 5
+              STATUS=$(sudo systemctl is-active broandbro 2>/dev/null || echo "inactive")
+              echo "[$i/12] Service status: $STATUS"
+              if [ "$STATUS" = "active" ]; then
+                echo "✅ broandbro started successfully"
+                exit 0
+              fi
+            done
+            echo "❌ Service failed to start" && sudo journalctl -u broandbro -n 50 --no-pager && exit 1
+          ENDSSH
+
+      # ── 9. Cleanup ───────────────────────────────────────────────────────────
+      - name: Cleanup SSH key
+        if: always()
+        run: rm -f /tmp/deploy_key
+

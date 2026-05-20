@@ -167,6 +167,147 @@ resource "aws_iam_role_policy_attachment" "github_actions_admin" {
   policy_arn = "arn:aws:iam::aws:policy/AdministratorAccess"
 }
 
+# =============================================================================
+# Shared Media Bucket – AI-generated menu item images
+# Used by ALL environments (dev + prod).  Created once here in bootstrap so
+# there is only ever one bucket and no per-environment naming.
+# Spring Boot uploads to  menu-items/{id}/{uuid}.png
+# Images are served via direct S3 HTTPS URLs stored in menu_item.image_url.
+# =============================================================================
+
+locals {
+  media_bucket_name = "broandbro-menu-images"
+}
+
+resource "aws_s3_bucket" "media" {
+  bucket = local.media_bucket_name
+
+  lifecycle {
+    prevent_destroy = true
+  }
+
+  tags = {
+    Name      = local.media_bucket_name
+    Purpose   = "AI-generated menu item images – shared across all environments"
+    ManagedBy = "Terraform"
+  }
+}
+
+# ── Allow public read so stored image URLs resolve in the browser ─────────────
+resource "aws_s3_bucket_public_access_block" "media" {
+  bucket = aws_s3_bucket.media.id
+
+  # Public ACLs are not used – access is granted by bucket policy only
+  block_public_acls       = true
+  ignore_public_acls      = true
+  # Policy-based public read IS needed for direct image URLs
+  block_public_policy     = false
+  restrict_public_buckets = false
+}
+
+# ── Server-side encryption ────────────────────────────────────────────────────
+resource "aws_s3_bucket_server_side_encryption_configuration" "media" {
+  bucket = aws_s3_bucket.media.id
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+  }
+}
+
+# ── Versioning disabled (images are immutable UUID-named files) ───────────────
+resource "aws_s3_bucket_versioning" "media" {
+  bucket = aws_s3_bucket.media.id
+  versioning_configuration {
+    status = "Suspended"
+  }
+}
+
+# ── Lifecycle: auto-delete objects older than 1 year to control cost ──────────
+resource "aws_s3_bucket_lifecycle_configuration" "media" {
+  bucket = aws_s3_bucket.media.id
+
+  rule {
+    id     = "expire-old-images"
+    status = "Enabled"
+    filter {}
+
+    expiration {
+      days = 365
+    }
+
+    abort_incomplete_multipart_upload {
+      days_after_initiation = 1
+    }
+  }
+}
+
+# ── CORS: allow browsers to load images ──────────────────────────────────────
+resource "aws_s3_bucket_cors_configuration" "media" {
+  bucket = aws_s3_bucket.media.id
+
+  cors_rule {
+    allowed_headers = ["*"]
+    allowed_methods = ["GET", "HEAD"]
+    allowed_origins = ["*"]
+    expose_headers  = ["ETag"]
+    max_age_seconds = 86400
+  }
+}
+
+# ── Bucket policy ─────────────────────────────────────────────────────────────
+# • Any AWS principal in this account may upload to menu-items/*  (dev + prod EC2)
+# • Anyone on the internet may GET/HEAD menu-items/* (public image URLs)
+# • Non-SSL access is denied for uploads
+resource "aws_s3_bucket_policy" "media" {
+  bucket = aws_s3_bucket.media.id
+
+  # must come after the public-access-block that allows policy-based public reads
+  depends_on = [aws_s3_bucket_public_access_block.media]
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      # Allow EC2 instance roles from any environment in this account to upload
+      {
+        Sid    = "AllowAccountUploads"
+        Effect = "Allow"
+        Principal = {
+          AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"
+        }
+        Action = [
+          "s3:PutObject",
+          "s3:DeleteObject",
+          "s3:GetObject"
+        ]
+        Resource = "${aws_s3_bucket.media.arn}/menu-items/*"
+      },
+      # Public read so stored image URLs work in the browser
+      {
+        Sid       = "PublicReadMenuImages"
+        Effect    = "Allow"
+        Principal = "*"
+        Action    = ["s3:GetObject", "s3:HeadObject"]
+        Resource  = "${aws_s3_bucket.media.arn}/menu-items/*"
+      },
+      # Deny non-SSL uploads
+      {
+        Sid       = "DenyNonSSLUploads"
+        Effect    = "Deny"
+        Principal = "*"
+        Action    = "s3:PutObject"
+        Resource  = "${aws_s3_bucket.media.arn}/*"
+        Condition = {
+          Bool = { "aws:SecureTransport" = "false" }
+        }
+      }
+    ]
+  })
+}
+
+# Current AWS account ID – used in the bucket policy above
+data "aws_caller_identity" "current" {}
+
 # ── Outputs ───────────────────────────────────────────────────────────────────
 output "tfstate_bucket" {
   value       = aws_s3_bucket.tfstate.bucket
@@ -187,3 +328,19 @@ output "github_oidc_provider_arn" {
   value       = aws_iam_openid_connect_provider.github.arn
   description = "GitHub OIDC provider ARN"
 }
+
+output "media_bucket_name" {
+  value       = aws_s3_bucket.media.bucket
+  description = "Shared S3 bucket for AI-generated menu item images (all environments)"
+}
+
+output "media_bucket_arn" {
+  value       = aws_s3_bucket.media.arn
+  description = "ARN of the shared media bucket – use in EC2 IAM policies"
+}
+
+output "media_bucket_regional_domain" {
+  value       = aws_s3_bucket.media.bucket_regional_domain_name
+  description = "Regional domain name for the shared media bucket"
+}
+

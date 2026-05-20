@@ -26,7 +26,7 @@ broandbro/
 ├── frontend/              ← React + Vite
 ├── backend/               ← Spring Boot
 └── infra/
-    ├── bootstrap/         ← Run ONCE: S3 state + DynamoDB + OIDC
+    ├── bootstrap/         ← Run ONCE: S3 state + DynamoDB + OIDC + shared media bucket
     ├── environments/
     │   ├── dev/           ← Dev environment (dev branch)
     │   └── prod/          ← Prod environment (main branch)
@@ -162,6 +162,7 @@ Go to **GitHub → your repo → Settings → Secrets and variables → Actions*
 | Secret | Value | Where to get it |
 |--------|-------|-----------------|
 | `AWS_ROLE_ARN` | `arn:aws:iam::ACCOUNT:role/broandbro-github-actions-role` | bootstrap output |
+| `OPENAI_API_KEY` | `sk-proj-...` | [platform.openai.com/api-keys](https://platform.openai.com/api-keys) |
 
 ### Environment secrets – Dev (`Settings → Environments → dev`)
 
@@ -175,6 +176,16 @@ Go to **GitHub → your repo → Settings → Secrets and variables → Actions*
 | `DEV_DB_NAME` | `broandbro_dev` |
 | `DEV_DB_USERNAME` | `broandbro` |
 | `DEV_CF_DISTRIBUTION_ID` | CloudFront distribution ID (after first terraform apply) |
+| `DEV_RAZORPAY_KEY` | Razorpay test key (`rzp_test_...`) |
+| `DEV_RAZORPAY_SECRET` | Razorpay test secret |
+| `DEV_RAZORPAY_WEBHOOK_SECRET` | Razorpay test webhook secret |
+| `DEV_TWILIO_ACCOUNT_SID` | Twilio account SID |
+| `DEV_TWILIO_AUTH_TOKEN` | Twilio auth token |
+| `DEV_TWILIO_FROM_NUMBER` | Twilio WhatsApp sender (e.g. `whatsapp:+14155238886`) |
+| `DEV_TWILIO_ORDER_PLACED_CONTENT_SID` | Twilio content SID for order-placed message |
+| `DEV_TWILIO_OTP_CONTENT_SID` | Twilio content SID for OTP message |
+
+> 💡 **`OPENAI_API_KEY`** is set at **repository level** (not per-environment) so dev and prod share the same key. The deploy workflows inject it into `application.env` on EC2 at deploy time — it is never stored in the repo or the JAR.
 
 ### Environment secrets – Prod (`Settings → Environments → prod`)
 
@@ -188,6 +199,16 @@ Go to **GitHub → your repo → Settings → Secrets and variables → Actions*
 | `PROD_DB_NAME` | `broandbro` |
 | `PROD_DB_USERNAME` | `broandbro` |
 | `PROD_CF_DISTRIBUTION_ID` | CloudFront distribution ID (after first terraform apply) |
+| `PROD_RAZORPAY_KEY` | Razorpay **live** key (`rzp_live_...`) |
+| `PROD_RAZORPAY_SECRET` | Razorpay live secret |
+| `PROD_RAZORPAY_WEBHOOK_SECRET` | Razorpay live webhook secret |
+| `PROD_TWILIO_ACCOUNT_SID` | Twilio account SID |
+| `PROD_TWILIO_AUTH_TOKEN` | Twilio auth token |
+| `PROD_TWILIO_FROM_NUMBER` | Twilio WhatsApp sender |
+| `PROD_TWILIO_ORDER_PLACED_CONTENT_SID` | Twilio content SID for order-placed message |
+| `PROD_TWILIO_OTP_CONTENT_SID` | Twilio content SID for OTP message |
+
+> 💡 **`OPENAI_API_KEY`** is set at **repository level** — shared between dev and prod. See the repository-level secrets table above.
 
 ---
 

@@ -121,6 +121,39 @@ resource "aws_iam_role_policy" "ssm_read" {
   })
 }
 
+# ── S3 media bucket access (AI-generated images) ──────────────────────────────
+# Only attached when media_bucket_arn is provided (non-empty).
+resource "aws_iam_role_policy" "media_s3" {
+  count = var.media_bucket_arn != "" ? 1 : 0
+  name  = "broandbro-${var.environment}-media-s3"
+  role  = aws_iam_role.ec2.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "AllowMenuItemImageUploads"
+        Effect = "Allow"
+        Action = [
+          "s3:PutObject",
+          "s3:GetObject",
+          "s3:DeleteObject"
+        ]
+        Resource = "${var.media_bucket_arn}/menu-items/*"
+      },
+      {
+        Sid    = "AllowBucketList"
+        Effect = "Allow"
+        Action = ["s3:ListBucket"]
+        Resource = var.media_bucket_arn
+        Condition = {
+          StringLike = { "s3:prefix" = ["menu-items/*"] }
+        }
+      }
+    ]
+  })
+}
+
 resource "aws_iam_instance_profile" "ec2" {
   name = "broandbro-${var.environment}-ec2-profile"
   role = aws_iam_role.ec2.name
