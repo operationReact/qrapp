@@ -45,6 +45,8 @@ const STATUS_META = {
   },
 };
 
+STATUS_META["ORDER_PLACED"] = STATUS_META.PLACED;
+
 const PAYMENT_STATUS_META = {
   PENDING: {
     label: "Pending",
