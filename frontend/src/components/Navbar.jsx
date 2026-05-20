@@ -1,7 +1,5 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { useCart } from "../context/CartContext";
-import { useUserAuth } from "../context/UserAuthContext";
-import { useAdminAuth } from "../context/AdminAuthContext";
+import { useCart } from "../context/CartContext";;
 import { useEffect, useMemo, useState } from "react";
 import {
   walletGetBalance,
@@ -28,11 +26,11 @@ import {
 } from "@phosphor-icons/react";
 import { buttonVariants } from "./ui/button";
 import { Avatar, AvatarFallback } from "./ui/avatar";
+import { useAuth } from "@/context/AuthContext";
 
 export default function Navbar() {
   const { cart, openDrawer, closeDrawer } = useCart();
-  const { user, setUser } = useUserAuth();
-  const { admin } = useAdminAuth();
+  const { user, setUser, isAdmin } = useAuth();
   const [walletBalance, setWalletBalance] = useState(null);
   const [loadingBalance, setLoadingBalance] = useState(false);
   const navigate = useNavigate();
@@ -142,7 +140,7 @@ export default function Navbar() {
         </Link>
 
         <div className="flex items-center gap-2.5 sm:gap-3">
-          {!admin && user && (
+          {!isAdmin && user && (
             <Link
               to="/wallet"
               className="flex items-center gap-1 h-10 rounded-full border-2 border-amber-200 bg-linear-to-b from-[#FFEFBD] to-[#FEEE70] p-2 text-black"
@@ -153,7 +151,7 @@ export default function Navbar() {
                   ? "..."
                   : walletBalance == null
                     ? "Wallet"
-                    : `₹${(walletBalance).toFixed(0)}`}
+                    : `₹${walletBalance.toFixed(0)}`}
               </span>
             </Link>
           )}
@@ -180,12 +178,12 @@ export default function Navbar() {
             </button>
           )}
 
-          {!isMobile && !admin && !user && (
+          {!isMobile && !isAdmin && !user && (
             <Link
               to="/login"
               className={buttonVariants({
                 size: "lg",
-                className:"w-full max-w-20"
+                className: "w-full max-w-20",
               })}
             >
               Login
@@ -193,7 +191,7 @@ export default function Navbar() {
           )}
 
           {/* className="size-11 flex items-center aspect-square aria-expanded:ring aria-expanded:ring-primary/40 transition-colors justify-center rounded-full bg-white text-sm font-medium! text-primary"*/}
-          {!isMobile && !admin && user && (
+          {!isMobile && !isAdmin && user && (
             <DropdownMenu>
               <DropdownMenuTrigger
                 aria-label="Open account menu"

@@ -1,18 +1,17 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import API, { loginUser } from "../services/api";
-import { useUserAuth } from "../context/UserAuthContext";
-import { useAdminAuth } from "../context/AdminAuthContext";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Field, FieldContent, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { CaretLeftIcon } from "@phosphor-icons/react";
+import { PasswordInput } from "@/components/ui/password-input";
+import { useAuth } from "@/context/AuthContext";
 
 export default function UserLogin() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, setUser } = useUserAuth();
-  const { admin, setAdmin } = useAdminAuth();
+  const { user, setUser, isAdmin, isSuperUser } = useAuth();
 
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
@@ -29,59 +28,40 @@ export default function UserLogin() {
   }, []);
 
   useEffect(() => {
-    if (user && user.token) {
-      // Check if user is admin or super user - redirect to admin dashboard
-      if (user.info?.isAdmin || user.info?.isSuperUser) {
-        navigate(
-          returnPath && returnPath.startsWith("/admin") ? returnPath : "/admin",
-        );
-      } else {
-        navigate(
-          returnPath && !returnPath.startsWith("/admin") ? returnPath : "/",
-        );
-      }
-    }
-    if (admin && admin.username && admin.password) {
+    if (!user) return;
+
+    if (isAdmin || isSuperUser) {
       navigate(
         returnPath && returnPath.startsWith("/admin") ? returnPath : "/admin",
       );
+      return;
     }
-  }, [user, admin, navigate, returnPath]);
+
+    navigate(returnPath && !returnPath.startsWith("/admin") ? returnPath : "/");
+  }, [user, isAdmin, isSuperUser, navigate, returnPath]);
 
   const submit = async (e) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
-    const id = (identifier || "").trim();
-    const isAdminLogin = id.toLowerCase() === "admin";
     try {
-      if (isAdminLogin) {
-        await API.post("/admin/login", { username: id, password });
-        setUser(null);
-        setAdmin({ username: id, password });
-        navigate(
-          returnPath && returnPath.startsWith("/admin") ? returnPath : "/admin",
-        );
-        return;
-      }
-
-      const res = await loginUser({ phone: id, password });
+      const res = await loginUser({ phone: identifier, password });
       const data = res.data || {};
       const token = data.token;
+
       if (!token) {
         setError("No token returned from server");
         setLoading(false);
         return;
       }
-      setAdmin(null);
-      setUser({ token, info: data.user || { phone: id } });
+
+      setUser({ token: data.token, ...data.user });
       navigate(
         returnPath && !returnPath.startsWith("/admin") ? returnPath : "/",
       );
     } catch (err) {
       console.error("login failed", err);
-      if (isAdminLogin) setError("Invalid admin username or password");
-      else setError("Invalid phone or password");
+      setError("Invalid phone or password");
     } finally {
       setLoading(false);
     }
@@ -136,8 +116,7 @@ export default function UserLogin() {
             <Field>
               <FieldLabel>Password</FieldLabel>
               <FieldContent>
-                <Input
-                  type="password"
+                <PasswordInput
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="h-10"

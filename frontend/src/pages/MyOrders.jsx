@@ -2,16 +2,16 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import { getMyOrders } from "../services/api";
-import { useUserAuth } from "../context/UserAuthContext";
 import { Cabinet } from "@boxicons/react";
 import OrderCard from "@/components/orders/OrderCard";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import MobileMenu from "@/components/MobileMenu";
+import { useAuth } from "@/context/AuthContext";
 
 export default function MyOrders() {
   const navigate = useNavigate();
-  const { user } = useUserAuth();
+  const { user } = useAuth();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");

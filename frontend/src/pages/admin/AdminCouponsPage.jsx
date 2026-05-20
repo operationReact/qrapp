@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { useAdminAuth } from "../../context/AdminAuthContext";
+import { useAuth } from "../../context/AuthContext"
 import {
   fetchCoupons,
   createCoupon,
@@ -35,7 +35,7 @@ import CouponForm from "@/components/admin/CouponForm";
 export default function AdminCouponsPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { admin, setAdmin } = useAdminAuth();
+  const { user: admin, setUser: setAdmin} = useAuth();
 
   const [coupons, setCoupons] = useState([]);
   const [loading, setLoading] = useState(true);

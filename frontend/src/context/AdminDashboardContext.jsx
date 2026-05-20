@@ -7,20 +7,20 @@ import React, {
   useMemo,
 } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { useAdminAuth } from "./AdminAuthContext";
 import {
   getOrdersAdmin,
   updateAdminOrder,
   getAdminOrder,
   getAdminOrderDashboard,
 } from "../services/api";
+import { useAuth } from "./AuthContext";
 
 const AdminDashboardContext = createContext(null);
 
 export const AdminDashboardProvider = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { setAdmin } = useAdminAuth();
+  const { setUser: setAdmin } = useAuth();
 
   const [ordersPage, setOrdersPage] = useState({
     content: [],

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
-import { useAdminAuth } from "../../context/AdminAuthContext";
+import { useAuth } from "../../context/AuthContext"
 import API, { createMenuItem } from "../../services/api";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,7 +21,7 @@ import AdminHeader from "@/components/admin/AdminHeader";
 export default function AdminMenuManager() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { admin, setAdmin } = useAdminAuth();
+  const { user: admin, setUser: setAdmin} = useAuth();
 
   const [form, setForm] = useState({
     name: "",

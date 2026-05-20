@@ -21,7 +21,6 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import { useCart } from "../context/CartContext";
-import { useUserAuth } from "../context/UserAuthContext";
 import {
   clearWalletCache,
   createOrder,
@@ -40,6 +39,7 @@ import {
 } from "@/components/ui/field";
 import { Badge } from "@/components/ui/badge";
 import MobileMenu from "@/components/MobileMenu";
+import { useAuth } from "@/context/AuthContext";
 
 function loadRazorpayScript(
   src = "https://checkout.razorpay.com/v1/checkout.js",
@@ -67,7 +67,7 @@ export default function Cart() {
     closeDrawer,
     clearCart,
   } = useCart();
-  const { user } = useUserAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [recommended, setRecommended] = useState([]);
   const [recLoading, setRecLoading] = useState(false);

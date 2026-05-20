@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import API, { generateOTP, loginUser, verifyOTP } from "../services/api";
 import { setUserAuth } from "../services/api";
-import { useUserAuth } from "../context/UserAuthContext";
 import { Link } from "react-router-dom";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Field, FieldContent, FieldLabel } from "@/components/ui/field";
@@ -11,10 +10,11 @@ import { CaretLeftIcon } from "@phosphor-icons/react";
 import OTPVerifyCard from "@/components/OTPVerifyCard";
 import { PasswordInput } from "@/components/ui/password-input";
 import { PhoneInput } from "@/components/ui/phone-input";
+import { useAuth } from "@/context/AuthContext";
 
 export default function Register() {
   const navigate = useNavigate();
-  const { setUser } = useUserAuth();
+  const { setUser } = useAuth();
   const [params, setSearchParams] = useSearchParams();
 
   const [phone, setPhone] = useState("");

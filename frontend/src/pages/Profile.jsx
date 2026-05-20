@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import { getCurrentUser, updateCurrentUser } from "../services/api";
-import { useUserAuth } from "../context/UserAuthContext";
 import { LockKeyhole, Menu, Shield } from "@boxicons/react";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,10 +14,11 @@ import {
   FieldSet,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { useAuth } from "@/context/AuthContext";
 
 export default function Profile() {
   const navigate = useNavigate();
-  const { user, setUser } = useUserAuth();
+  const { user, setUser } = useAuth();
   const [form, setForm] = useState({
     name: "",
     phone: "",

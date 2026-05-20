@@ -1,13 +1,11 @@
 import { useState } from "react";
 import { useCart } from "../context/CartContext";
-import { useAdminAuth } from "../context/AdminAuthContext";
 import PropTypes from "prop-types";
 import API from "../services/api";
 import MenuItemActionButton from "./MenuItemActionButton";
 
 export default function MenuItemCard({ item, onEdit, onDelete }) {
   const { cart, addItem, decreaseItem } = useCart();
-  const { admin } = useAdminAuth();
   const [imgError, setImgError] = useState(false);
 
   const existing = cart.find((i) => i.id === item.id);
@@ -89,27 +87,6 @@ export default function MenuItemCard({ item, onEdit, onDelete }) {
         <p className="line-clamp-2 mt-1 capitalize text-xs text-muted-foreground">
           {item.description || "Delicious choice"}
         </p>
-
-        {admin && (
-          <div className="flex gap-2 mt-2">
-            {onEdit && (
-              <button
-                onClick={() => onEdit(item)}
-                className="text-xs px-2 py-1 bg-yellow-400 rounded"
-              >
-                Edit
-              </button>
-            )}
-            {onDelete && (
-              <button
-                onClick={() => onDelete(item)}
-                className="text-xs px-2 py-1 bg-red-400 rounded"
-              >
-                Delete
-              </button>
-            )}
-          </div>
-        )}
       </div>
     </article>
   );

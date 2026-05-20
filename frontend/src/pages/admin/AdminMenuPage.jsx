@@ -6,7 +6,7 @@ import {
   useSearchParams,
 } from "react-router-dom";
 import { getMenu, updateMenuItem, deleteMenuItem } from "../../services/api";
-import { useAdminAuth } from "../../context/AdminAuthContext";
+import { useAuth } from "../../context/AuthContext";
 import AdminMenuItem from "../../components/admin/AdminMenuItem";
 import MenuItemEditModal from "../../components/MenuItemEditModal";
 import { Button } from "@/components/ui/button";
@@ -18,7 +18,7 @@ export default function AdminMenuPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { admin, setAdmin } = useAdminAuth();
+  const { isAdmin, isSuperUser, user: admin, setUser: setAdmin } = useAuth();
 
   const [menu, setMenu] = useState([]);
   const [loadingMenu, setLoadingMenu] = useState(true);
@@ -206,7 +206,7 @@ export default function AdminMenuPage() {
     return true;
   });
 
-  if (!admin?.username || !admin?.password) {
+  if (!isAdmin && !isSuperUser) {
     return (
       <Navigate to={"/login"} replace state={{ from: location.pathname }} />
     );

@@ -30,8 +30,8 @@ import OrderItem from "@/components/admin/OrderItem";
 
 import { useAdminDashboard } from "@/context/AdminDashboardContext";
 import AdminHeader from "@/components/admin/AdminHeader";
-import { useAdminAuth } from "@/context/AdminAuthContext";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/context/AuthContext";
 
 export default function OperationalQueue() {
   const {
@@ -48,13 +48,13 @@ export default function OperationalQueue() {
   const params = useParams();
   const selectedOrderId = params?.orderId ? Number(params.orderId) : undefined;
 
-  const { admin } = useAdminAuth();
+  const { isAdmin, isSuperUser } = useAuth();
 
   useEffect(() => {
     loadData({ quiet: true });
   }, []);
 
-  if (!admin?.username || !admin?.password) {
+  if (!isAdmin && !isSuperUser) {
     return (
       <Navigate to={"/login"} replace state={{ from: location.pathname }} />
     );

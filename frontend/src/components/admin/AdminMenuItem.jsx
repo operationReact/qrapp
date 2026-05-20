@@ -131,7 +131,7 @@ export default function AdminMenuItem({
             {item.name}
           </h3>
           {item.tag && (
-            <Badge className="bg-white text-black">{item.tag}</Badge>
+            <Badge className="bg-white text-black">{item.tag.name}</Badge>
           )}
         </div>
       </div>
@@ -140,7 +140,7 @@ export default function AdminMenuItem({
         <div className="grid grid-cols-[1fr_auto] gap-2 mb-2 pt-2 px-2">
           <div>
             <span className="text-sm font-medium text-secondary-foreground capitalize">
-              {item.category}
+              {item.category.name}
             </span>
             <p className="line-clamp-2 leading-3.5 text-xs text-muted-foreground flex-1">
               {item.description || "No description added yet."}
@@ -159,7 +159,7 @@ export default function AdminMenuItem({
             <span className="text-xs font-medium text-secondary-foreground capitalize">
               Selling Price
             </span>
-            <span className="text-xl font-bold">₹{item.sellingPrice}</span>
+            <span className="text-xl font-bold">₹{item.price}</span>
           </div>
         </div>
 

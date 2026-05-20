@@ -1,9 +1,7 @@
 import { useCart } from "../context/CartContext";
-import { useAdminAuth } from "../context/AdminAuthContext";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "./ui/button";
 import CartItem from "./CartItem";
-import { Receipt } from "@boxicons/react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "./ui/sheet";
 import {
   Drawer,
@@ -14,7 +12,7 @@ import {
 } from "./ui/drawer";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { X } from "lucide-react";
-import { ReceiptIcon } from "@phosphor-icons/react";
+import { useAuth } from "@/context/AuthContext";
 
 function CartContent({ onClose }) {
   const { cart, getTotal, addItem, decreaseItem, removeItem } = useCart();
@@ -123,10 +121,10 @@ function DesktopCart({ open, onClose }) {
 export default function OffCanvasCart() {
   const { drawerOpen, closeDrawer } = useCart();
   const location = useLocation();
-  const { admin } = useAdminAuth();
+  const { isAdmin } = useAuth();
   const isMobile = useIsMobile();
 
-  if (admin) return null;
+  if (isAdmin) return null;
 
   if (location && location.pathname && location.pathname.startsWith("/cart"))
     return null;

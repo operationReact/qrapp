@@ -8,8 +8,6 @@ import OffCanvasCart from "./components/OffCanvasCart";
 import Toast from "./components/Toast";
 import StickyCartBar from "./components/StickyCartBar";
 import AdminDashboard from "./pages/admin/AdminDashboard";
-import { AdminAuthProvider } from "./context/AdminAuthContext";
-import { UserAuthProvider } from "./context/UserAuthContext";
 import UserLogin from "./pages/UserLogin";
 import Register from "./pages/Register";
 import Profile from "./pages/Profile";
@@ -25,6 +23,7 @@ import AdminMenuPage from "./pages/admin/AdminMenuPage";
 import AdminMenuManager from "./pages/admin/AdminMenuManager";
 import AdminCouponsPage from "./pages/admin/AdminCouponsPage";
 import Search from "./pages/Search";
+import { AuthProvider } from "./context/AuthContext";
 
 function SafeAreaWrapper({ children }) {
   const { cart } = useCart();
@@ -43,46 +42,44 @@ function App() {
   return (
     <TooltipProvider>
       <CartProvider>
-        <AdminAuthProvider>
+        <AuthProvider>
           <PreferencesProvider>
-            <UserAuthProvider>
-              <BrowserRouter>
-                <OffCanvasCart />
-                <SafeAreaWrapper>
-                  <Routes>
-                    <Route path="/" element={<Menu />} />
-                    <Route path="/wallet" element={<Wallet />} />
-                    <Route path="/search" element={<Search />} />
-                    <Route path="/cart" element={<Cart />} />
-                    <Route path="/orders" element={<MyOrders />} />
-                    <Route path="/profile" element={<Profile />} />
-                    <Route path="/success" element={<Success />} />
+            <BrowserRouter>
+              <OffCanvasCart />
+              <SafeAreaWrapper>
+                <Routes>
+                  <Route path="/" element={<Menu />} />
+                  <Route path="/wallet" element={<Wallet />} />
+                  <Route path="/search" element={<Search />} />
+                  <Route path="/cart" element={<Cart />} />
+                  <Route path="/orders" element={<MyOrders />} />
+                  <Route path="/profile" element={<Profile />} />
+                  <Route path="/success" element={<Success />} />
 
-                    <Route path="/login" element={<UserLogin />} />
-                    <Route path="/register" element={<Register />} />
+                  <Route path="/login" element={<UserLogin />} />
+                  <Route path="/register" element={<Register />} />
 
-                    <Route path="/admin" element={<AdminLayout />}>
-                      <Route index element={<AdminDashboard />} />
-                      <Route path="menu" element={<AdminMenuPage />} />
-                      <Route path="coupons" element={<AdminCouponsPage />} />
-                      <Route path="manage-menu" element={<AdminMenuManager />} />
-                      <Route path="service-board" element={<ServiceBoard />} />
-                      <Route
-                        path="operational-queue"
-                        element={<OperationalQueue />}
-                      >
-                        <Route index element={<SelectedOrder/>} />
-                        <Route path=":orderId" element={<SelectedOrder />} />
-                      </Route>
+                  <Route path="/admin" element={<AdminLayout />}>
+                    <Route index element={<AdminDashboard />} />
+                    <Route path="menu" element={<AdminMenuPage />} />
+                    <Route path="coupons" element={<AdminCouponsPage />} />
+                    <Route path="manage-menu" element={<AdminMenuManager />} />
+                    <Route path="service-board" element={<ServiceBoard />} />
+                    <Route
+                      path="operational-queue"
+                      element={<OperationalQueue />}
+                    >
+                      <Route index element={<SelectedOrder />} />
+                      <Route path=":orderId" element={<SelectedOrder />} />
                     </Route>
-                  </Routes>
-                </SafeAreaWrapper>
-                <Toast />
-                <StickyCartBar />
-              </BrowserRouter>
-            </UserAuthProvider>
+                  </Route>
+                </Routes>
+              </SafeAreaWrapper>
+              <Toast />
+              <StickyCartBar />
+            </BrowserRouter>
           </PreferencesProvider>
-        </AdminAuthProvider>
+        </AuthProvider>
       </CartProvider>
     </TooltipProvider>
   );

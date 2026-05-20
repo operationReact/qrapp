@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useAdminDashboard } from "@/context/AdminDashboardContext";
 import { useEffect, useMemo } from "react";
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 import { motion } from "motion/react";
 import {
   CaretRightIcon,
@@ -15,6 +15,7 @@ import {
   WarningCircleIcon,
 } from "@phosphor-icons/react";
 import { formatDate } from "@/lib/utils";
+import { useAuth } from "@/context/AuthContext";
 
 const STATUS_META = {
   PLACED: {
@@ -102,6 +103,7 @@ function summarizeItems(order) {
 export default function ServiceBoard() {
   const { ordersPage, loading, handleOrderUpdate, loadData } =
     useAdminDashboard();
+  const { isAdmin, isSuperUser } = useAuth();
 
   useEffect(() => {
     loadData({ quiet: true });
@@ -115,6 +117,12 @@ export default function ServiceBoard() {
       return acc;
     }, {});
   }, [ordersPage.content]);
+
+  if (!isAdmin && !isSuperUser) {
+    return (
+      <Navigate to={"/login"} replace state={{ from: location.pathname }} />
+    );
+  }
 
   return (
     <>

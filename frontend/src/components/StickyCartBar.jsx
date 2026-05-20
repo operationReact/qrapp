@@ -1,8 +1,8 @@
 import { useCart } from "../context/CartContext";
 import { useNavigate, useLocation } from "react-router-dom";
-import { useAdminAuth } from "../context/AdminAuthContext";
 import { Button } from "./ui/button";
 import { Cart } from "@boxicons/react";
+import { useAuth } from "@/context/AuthContext";
 
 const pluralRules = new Intl.PluralRules("en-US");
 
@@ -23,13 +23,13 @@ export default function StickyCartBar() {
   const { cart, getTotal, openDrawer, closeDrawer } = useCart();
   const navigate = useNavigate();
   const location = useLocation();
-  const { admin } = useAdminAuth();
+  const { isAdmin } = useAuth();
 
   // Only show the sticky cart bar on the landing page (home)
   if (location && !stickyCartBarVisibleRoutes.includes(location.pathname))
     return null;
 
-  if (admin) return null;
+  if (isAdmin) return null;
 
   const totalItems = cart.reduce((s, i) => s + (i.quantity || 0), 0);
   const totalPrice = getTotal();
@@ -54,7 +54,7 @@ export default function StickyCartBar() {
               <div className="flex min-w-0 items-center gap-3">
                 <div className="hidden md:flex size-6 md:size-10 relative bg-primary-foreground/50 flex-none items-center justify-center rounded-full text-base font-semibold text-primary">
                   <Cart pack="filled" className="size-6" />
-                  <span className="absolute hidden md:grid bg-white rounded-full w-8 grid place-items-center -bottom-2 border border-muted text-xs text-black">
+                  <span className="absolute hidden md:grid bg-white rounded-full w-8 place-items-center -bottom-2 border border-muted text-xs text-black">
                     {totalItems}
                   </span>
                 </div>
@@ -72,7 +72,7 @@ export default function StickyCartBar() {
               </div>
 
               <Button
-                className="font-medium! rounded-full h-9 text-sm! font-medium!"
+                className="font-medium! rounded-full h-9 text-sm!"
                 onClick={handleViewCart}
                 aria-label="View cart"
               >

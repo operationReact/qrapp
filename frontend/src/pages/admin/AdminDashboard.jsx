@@ -4,7 +4,7 @@ import { useAdminDashboard } from "@/context/AdminDashboardContext";
 
 import { useEffect, useMemo } from "react";
 import { Navigate, useLocation } from "react-router-dom";
-import { useAdminAuth } from "../../context/AdminAuthContext";
+import { useAuth } from "../../context/AuthContext";
 import {
   ArchiveIcon,
   BroadcastIcon,
@@ -63,7 +63,7 @@ export default function AdminDashboard() {
   ];
 
   const location = useLocation();
-  const { admin } = useAdminAuth();
+  const { isAdmin, isSuperUser } = useAuth();
 
   useEffect(() => {
     loadData({ quiet: true });
@@ -76,7 +76,7 @@ export default function AdminDashboard() {
     );
   }, [ordersPage.content]);
 
-  if (!admin?.username || !admin?.password) {
+  if (!isAdmin && !isSuperUser) {
     return (
       <Navigate to={"/login"} replace state={{ from: location.pathname }} />
     );

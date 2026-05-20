@@ -98,10 +98,10 @@ export default function OrderItem({ order }) {
               <div className="flex gap-1">
                 <Badge
                   variant="outline"
-                  className={toneForStatus(order.status).tone}
+                  className={toneForStatus(order.status)?.tone}
                 >
                   <ArchiveIcon weight="fill" />
-                  {toneForStatus(order.status).label}
+                  {toneForStatus(order.status)?.label}
                 </Badge>
                 <Badge
                   variant="outline"

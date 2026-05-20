@@ -11,7 +11,6 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from "./ui/drawer";
-import { useUserAuth } from "@/context/UserAuthContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
   CompassIcon,
@@ -22,6 +21,7 @@ import {
   UserIcon,
 } from "@phosphor-icons/react";
 import { useCart } from "@/context/CartContext";
+import { useAuth } from "@/context/AuthContext";
 
 const items = [
   {
@@ -64,7 +64,7 @@ const items = [
 ];
 
 function UserAccountDrawerContent() {
-  const { setUser } = useUserAuth();
+  const { setUser } = useAuth();
   const navigate = useNavigate();
 
   return (
@@ -202,7 +202,7 @@ function UserUnauthorizedDrawerContent() {
 export default function MobileMenu() {
   const location = useLocation();
   const isMobile = useIsMobile();
-  const { user } = useUserAuth();
+  const { user } = useAuth();
   const { cart, openDrawer, closeDrawer } = useCart();
 
   const shouldOpenCartDrawer = location.pathname !== "/cart";

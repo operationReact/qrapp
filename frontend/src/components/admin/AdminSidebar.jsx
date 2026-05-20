@@ -9,7 +9,6 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { useAdminAuth } from "@/context/AdminAuthContext";
 import { useAdminDashboard } from "@/context/AdminDashboardContext";
 import { Link, useNavigate, useResolvedPath } from "react-router-dom";
 import { Badge } from "../ui/badge";
@@ -21,10 +20,12 @@ import {
   QueueIcon,
   SignOutIcon,
   SquaresFourIcon,
+  TagIcon,
 } from "@phosphor-icons/react";
+import { useAuth } from "@/context/AuthContext";
 
 export function AdminSidebar() {
-  const { setAdmin } = useAdminAuth();
+  const { setUser: setAdmin } = useAuth();
   const navigate = useNavigate();
   const { pathname } = useResolvedPath();
 
@@ -130,6 +131,29 @@ export function AdminSidebar() {
                       }
                     />
                     <span>Operational Queue</span>
+                  </Link>
+                }
+              />
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarGroup>
+
+        <SidebarGroup className="group-data-[collapsible=icon]:hidden">
+          <SidebarGroupLabel>Coupons</SidebarGroupLabel>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                className="text-zinc-700 font-medium"
+                isActive={pathname === "/admin/coupons"}
+                render={
+                  <Link to={"/admin/coupons"}>
+                    <TagIcon
+                      className="text-primary"
+                      weight={
+                        pathname === "/admin/coupons" ? "bold" : "regular"
+                      }
+                    />
+                    <span>Coupons</span>
                   </Link>
                 }
               />

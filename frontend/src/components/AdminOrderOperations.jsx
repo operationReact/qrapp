@@ -1,12 +1,12 @@
 import PropTypes from "prop-types";
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { useAdminAuth } from "../context/AdminAuthContext";
 import {
   getAdminOrderDashboard,
   getOrdersAdmin,
   updateAdminOrder,
 } from "../services/api";
+import { useAuth } from "@/context/AuthContext";
 
 const STATUS_META = {
   PLACED: {
@@ -78,7 +78,7 @@ function summarizeItems(order) {
 export default function AdminOrderOperations({ embedded = false }) {
   const navigate = useNavigate();
   const location = useLocation();
-  const { setAdmin } = useAdminAuth();
+  const { setUser: setAdmin } = useAuth();
 
   const [dashboard, setDashboard] = useState(null);
   const [ordersPage, setOrdersPage] = useState({

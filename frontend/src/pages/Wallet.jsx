@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
-import { useUserAuth } from "../context/UserAuthContext";
 import {
   clearWalletCache,
   walletGetOverview,
@@ -28,6 +27,7 @@ import {
 import AddMoneyForm from "@/components/wallet/AddMoneyForm";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
+import { useAuth } from "@/context/AuthContext";
 
 function useToast() {
   const [message, setMessage] = useState(null);
@@ -97,7 +97,7 @@ function formatTransactionTitle(tx) {
 export default function Wallet() {
   const navigate = useNavigate();
   const mounted = useRef(true);
-  const { user, setUser } = useUserAuth();
+  const { user, setUser } = useAuth();
   const toast = useToast();
 
   const [overview, setOverview] = useState(null);

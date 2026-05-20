@@ -95,7 +95,7 @@ function dedupeRequest(key, fn) {
 API.interceptors.request.use(
   (config) => {
     try {
-      const raw = localStorage.getItem("userCreds");
+      const raw = localStorage.getItem("user");
       const creds = raw ? JSON.parse(raw) : null;
       if (creds && creds.token) {
         config.headers = config.headers || {};
@@ -119,7 +119,7 @@ API.interceptors.response.use(
     if (status === 401) {
       try {
         delete API.defaults.headers.common["Authorization"];
-        localStorage.removeItem("userCreds");
+        localStorage.removeItem("user");
         // notify app that logout occurred so contexts can react
         window.dispatchEvent(
           new CustomEvent("auth:logout", {
@@ -134,32 +134,25 @@ API.interceptors.response.use(
   },
 );
 
-export const setAdminAuth = (username, password) => {
-  if (username && password) {
-    API.defaults.auth = { username, password };
-  } else {
-    delete API.defaults.auth;
-  }
-};
-
-// Set bearer token for regular user auth. If token is null, remove header.
+// Set bearer token for user auth. If token is null, remove header.
 export const setUserAuth = (token) => {
   if (token) {
     API.defaults.headers.common["Authorization"] = `Bearer ${token}`;
     // also persist in localStorage so new tabs pick it up
     try {
-      const raw = localStorage.getItem("userCreds");
+      const raw = localStorage.getItem("user");
       const existing = raw ? JSON.parse(raw) : {};
-      localStorage.setItem("userCreds", JSON.stringify({ ...existing, token }));
+      localStorage.setItem("user", JSON.stringify({ ...existing, token }));
     } catch (e) {
       console.debug("setUserAuth localStorage write failed", e);
     }
   } else {
     try {
-      localStorage.removeItem("userCreds");
+      localStorage.removeItem("user");
     } catch (e) {
       console.debug("setUserAuth localStorage remove failed", e);
     }
+
     delete API.defaults.headers.common["Authorization"];
   }
 };
