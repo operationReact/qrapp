@@ -45,9 +45,9 @@ jobs:
 
       - name: Build Vite app
         working-directory: frontend
-        run: npm run build
+        run: npm run build:prod
         env:
-          VITE_API_BASE_URL: "https://api.broandbro.in"
+          VITE_API_URL: "https://api.broandbro.in"
           VITE_ENV: "prod"
           NODE_ENV: "production"
 

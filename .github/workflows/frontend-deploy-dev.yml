@@ -44,10 +44,10 @@ jobs:
 
       - name: Build Vite app
         working-directory: frontend
-        run: npm run build
+        run: npm run build:dev
         env:
           # Inject API URL at build time – Vite bakes this into the bundle
-          VITE_API_BASE_URL: "https://dev-api.broandbro.in"
+          VITE_API_URL: "https://dev-api.broandbro.in"
           VITE_ENV: "dev"
           NODE_ENV: "production"
 
