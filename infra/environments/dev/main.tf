@@ -65,7 +65,7 @@ resource "aws_s3_bucket" "media" {
 
   tags = {
     Name      = var.media_bucket_name
-    Purpose   = "AI-generated menu item images – shared across all environments"
+    Purpose   = "AI-generated menu item images - shared across all environments"
     ManagedBy = "Terraform"
   }
 }
