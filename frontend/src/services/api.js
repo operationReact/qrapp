@@ -14,40 +14,40 @@ function isPrivateOrLocalHostname(hostname) {
   return hostname.endsWith(".local");
 }
 
-// Resolve API base URL:
-// 1) Prefer VITE_API_URL injected at build/dev time
-// 2) If not present, when running in a browser on localhost/LAN/private IP use the same host on port 8080
-// 3) If the app itself is being served by the production API host, use the current origin
-// 4) Otherwise fall back to the public production API URL
+// Resolve API base URL (evaluated once at module load):
+// 1. VITE_API_URL  – injected at build time by CI (the primary and preferred source)
+// 2. localhost / LAN – point to local backend on port 8080 for local dev
+// 3. No silent fallback to prod – log a loud warning if nothing matched
 const resolvedBase = (() => {
-  const vite = import.meta?.env?.VITE_API_URL;
-  if (vite) return vite;
+  // Vite replaces import.meta.env.VITE_API_URL with the literal string at build time
+  const fromEnv = import.meta.env.VITE_API_URL;
+  if (fromEnv && fromEnv.trim() !== "") return fromEnv.trim();
+
   try {
-    const location = typeof window !== "undefined" ? window.location : null;
-    const host = location?.hostname || "";
-    const protocol = location?.protocol || "http:";
+    const host = typeof window !== "undefined" ? window.location.hostname : "";
+    const protocol = typeof window !== "undefined" ? window.location.protocol : "http:";
     if (isPrivateOrLocalHostname(host)) {
       return `${protocol}//${host}:8080`;
     }
-    if (location?.origin && host === "api.broandbro.in") {
-      return location.origin;
-    }
-  } catch (e) {
+  } catch (_) {
     // ignore
   }
+
+  // VITE_API_URL was not set at build time and we're not on localhost.
+  // This should never happen in a proper CI deployment.
+  console.error(
+    "[api] ⚠️  VITE_API_URL was not set at build time and the app is not running on localhost. " +
+    "Make sure the CI workflow sets VITE_API_URL before running `npm run build`. " +
+    "Falling back to https://api.broandbro.in – this is likely WRONG for non-prod environments."
+  );
   return "https://api.broandbro.in";
 })();
 
+// Always log the resolved URL so it's visible in browser DevTools for any environment
+console.info(`[api] baseURL → ${resolvedBase}`);
+
 const API = axios.create({ baseURL: resolvedBase });
 
-// Helpful debug during development to confirm which backend URL is used
-if (
-  typeof window !== "undefined" &&
-  window.location &&
-  window.location.hostname.includes("localhost")
-) {
-  console.debug("[api] using backend base URL:", resolvedBase);
-}
 
 // --- simple in-memory cache for GET requests (used for wallet balance)
 const cache = new Map(); // key -> { ts, data }

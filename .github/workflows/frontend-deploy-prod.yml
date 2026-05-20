@@ -45,11 +45,18 @@ jobs:
 
       - name: Build Vite app
         working-directory: frontend
-        run: npm run build:prod
+        run: npm run build
         env:
           VITE_API_URL: "https://api.broandbro.in"
           VITE_ENV: "prod"
           NODE_ENV: "production"
+
+      - name: Verify API URL was baked in
+        working-directory: frontend
+        run: |
+          echo "Checking that VITE_API_URL was baked into the bundle..."
+          grep -r "\"https://api.broandbro.in\"" dist/ --include="*.js" -l && echo "✅ api.broandbro.in found in bundle" || echo "❌ WARNING: api.broandbro.in NOT found in bundle!"
+          grep -r "dev-api.broandbro.in" dist/ --include="*.js" -l && echo "❌ WARNING: dev URL present in prod bundle!" || echo "✅ Dev URL not in prod bundle"
 
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4

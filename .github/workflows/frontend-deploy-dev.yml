@@ -44,12 +44,20 @@ jobs:
 
       - name: Build Vite app
         working-directory: frontend
-        run: npm run build:dev
+        run: npm run build
         env:
-          # Inject API URL at build time – Vite bakes this into the bundle
+          # Vite bakes VITE_* env vars into the bundle at build time.
+          # This is the single source of truth for the API URL in the dev deployment.
           VITE_API_URL: "https://dev-api.broandbro.in"
           VITE_ENV: "dev"
           NODE_ENV: "production"
+
+      - name: Verify API URL was baked in
+        working-directory: frontend
+        run: |
+          echo "Checking that VITE_API_URL was baked into the bundle..."
+          grep -r "dev-api.broandbro.in" dist/ --include="*.js" -l && echo "✅ dev-api.broandbro.in found in bundle" || echo "❌ WARNING: dev-api.broandbro.in NOT found in bundle!"
+          grep -r "\"https://api.broandbro.in\"" dist/ --include="*.js" -l && echo "❌ WARNING: prod URL still present in bundle" || echo "✅ Prod URL not hardcoded in bundle"
 
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
