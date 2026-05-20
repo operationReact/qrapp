@@ -6,12 +6,13 @@
 # What this script does:
 #   1. Updates the OS
 #   2. Installs Amazon Corretto 21 (Java 21, ARM/Graviton native)
-#   3. Installs Nginx
+#   3. Installs Nginx + Certbot
 #   4. Creates a dedicated 'broandbro' system user (no shell)
 #   5. Creates /opt/broandbro app directory structure
 #   6. Writes a systemd service unit
-#   7. Writes the Nginx reverse-proxy config
+#   7. Writes the Nginx reverse-proxy config (HTTP only initially)
 #   8. Enables + starts Nginx (app will start once JAR is deployed)
+#   NOTE: HTTPS/TLS cert is provisioned by the deploy workflow via certbot
 # =============================================================================
 set -euo pipefail
 exec > >(tee /var/log/broandbro-bootstrap.log | logger -t broandbro-bootstrap) 2>&1
@@ -27,9 +28,6 @@ echo "=== broandbro bootstrap starting — env: $ENVIRONMENT ==="
 dnf update -y
 
 # ── 1b. SSM Agent (install via direct RPM for AL2023 ARM64 / Graviton) ───────
-# Required for: CloudWatch agent remote config, Session Manager, Run Command
-# AL2023 may not have amazon-ssm-agent in the default dnf repo, so we fall back
-# to the official S3-hosted RPM for linux_arm64 (Graviton).
 dnf install -y amazon-ssm-agent 2>/dev/null || \
   dnf install -y "https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/linux_arm64/amazon-ssm-agent.rpm"
 systemctl enable amazon-ssm-agent
@@ -40,8 +38,13 @@ echo "SSM Agent status: $(systemctl is-active amazon-ssm-agent)"
 dnf install -y java-21-amazon-corretto-headless
 java -version
 
-# ── 3. Install Nginx ──────────────────────────────────────────────────────────
+# ── 3. Install Nginx + Certbot ────────────────────────────────────────────────
 dnf install -y nginx
+# Certbot via Python pip (most reliable on AL2023 ARM64)
+dnf install -y python3 python3-pip augeas-libs
+pip3 install certbot certbot-nginx --quiet
+# Symlink so certbot is on PATH
+ln -sf /usr/local/bin/certbot /usr/bin/certbot || true
 
 # ── 4. System user for running the app (least privilege) ─────────────────────
 useradd --system --no-create-home --shell /sbin/nologin "$APP_USER" 2>/dev/null || true
@@ -115,18 +118,24 @@ systemctl daemon-reload
 systemctl enable "$SERVICE"
 # Don't start yet – app.jar is deployed by CI/CD, not present at boot
 
-# ── 7. Nginx reverse-proxy config ────────────────────────────────────────────
+# ── 7. Nginx reverse-proxy config (HTTP only – HTTPS added by deploy workflow) ─
 # Remove default site
 rm -f /etc/nginx/conf.d/default.conf
 
 cat > "/etc/nginx/conf.d/broandbro.conf" << 'NGINX'
 # broandbro backend – Nginx reverse proxy
-# Proxies HTTP → Spring Boot on 8080
-# HTTPS termination is handled by EC2 security group + ACM (if ALB used later)
+# Port 80: serves ACME challenge + proxies to Spring Boot
+# Port 443: added by certbot on first deploy (certbot --nginx)
 
 server {
     listen 80 default_server;
     server_name _;
+
+    # Let's Encrypt ACME challenge – must be reachable over HTTP
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+        try_files $uri =404;
+    }
 
     # Increase timeouts for large file uploads / slow Spring Boot startup
     proxy_connect_timeout  60s;
@@ -140,7 +149,7 @@ server {
     add_header X-XSS-Protection          "1; mode=block" always;
     add_header Referrer-Policy           "strict-origin-when-cross-origin" always;
 
-    # Health check endpoint (load balancer / Route53 health checks use this)
+    # Health check endpoint
     location /actuator/health {
         proxy_pass         http://127.0.0.1:8080;
         proxy_set_header   Host $host;
@@ -160,7 +169,7 @@ server {
         proxy_buffering    off;
     }
 
-    # Nginx status (internal only – for monitoring)
+    # Nginx status (internal only)
     location /nginx_status {
         stub_status;
         allow 127.0.0.1;
@@ -169,9 +178,41 @@ server {
 }
 NGINX
 
+# Create webroot for ACME challenge
+mkdir -p /var/www/certbot
+chown nginx:nginx /var/www/certbot
+
 nginx -t  # Validate config before enabling
 systemctl enable nginx
 systemctl start nginx
+
+# ── 8. Certbot auto-renewal timer ────────────────────────────────────────────
+# Renewal is attempted twice daily; certs are only renewed if expiring in < 30d
+cat > /etc/systemd/system/certbot-renew.service << 'EOF'
+[Unit]
+Description=Certbot Renewal
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/certbot renew --quiet --nginx --deploy-hook "systemctl reload nginx"
+EOF
+
+cat > /etc/systemd/system/certbot-renew.timer << 'EOF'
+[Unit]
+Description=Twice daily certbot renewal
+
+[Timer]
+OnCalendar=*-*-* 00,12:00:00
+RandomizedDelaySec=43200
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+EOF
+
+systemctl daemon-reload
+systemctl enable certbot-renew.timer
+systemctl start certbot-renew.timer
 
 # ── 8. Install CloudWatch agent ───────────────────────────────────────────────
 dnf install -y amazon-cloudwatch-agent 2>/dev/null || true
