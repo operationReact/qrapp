@@ -80,14 +80,15 @@ public class WalletService {
     @Transactional
     public CreateRazorpayOrderResponse createRazorpayOrder(User user, CreateRazorpayOrderRequest req) {
         User currentUser = validateCurrentUser(user);
-        long amount = validateAmount(req.getAmount());
-        String receipt = "wallet_" + currentUser.getId();       
-        String orderId = razorpayService.createOrder(amount, "INR", receipt);
+        long amountRupees = validateAmount(req.getAmount()); // frontend sends rupees
+        String receipt = "wallet_" + currentUser.getId();
+        // Razorpay API requires paise → multiply by 100 here only
+        String orderId = razorpayService.createOrder(amountRupees * 100, "INR", receipt);
 
         Wallet wallet = getOrCreateWallet(currentUser);
         WalletTransaction transaction = WalletTransaction.builder()
                 .wallet(wallet)
-                .amount(amount)
+                .amount(amountRupees)   // store as rupees
                 .type(TransactionType.CREDIT)
                 .status(TransactionStatus.PENDING)
                 .providerOrderId(orderId)
@@ -98,7 +99,7 @@ public class WalletService {
         return new CreateRazorpayOrderResponse(
                 orderId,
                 razorpayService.getKeyId(),
-                amount,
+                amountRupees * 100,  // return paise so Razorpay checkout renders correctly
                 "INR"
         );
     }

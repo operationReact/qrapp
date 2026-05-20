@@ -77,9 +77,8 @@ export default function Cart() {
   const [submitting, setSubmitting] = useState(false);
 
   const total = useMemo(() => Number(getTotal() || 0), [getTotal]);
-  const totalPaise = useMemo(() => Math.round(total * 100), [total]);
   const hasWalletBalance = typeof walletBalance === "number";
-  const walletCanCoverOrder = hasWalletBalance && walletBalance >= totalPaise;
+  const walletCanCoverOrder = hasWalletBalance && walletBalance >= total;
 
   useEffect(() => {
     if (closeDrawer) closeDrawer();
@@ -123,7 +122,7 @@ export default function Cart() {
         if (!mounted) return;
         const nextBalance = Number(resp?.data?.balance ?? 0);
         setWalletBalance(nextBalance);
-        if (nextBalance >= totalPaise && totalPaise > 0) {
+        if (nextBalance >= total && total > 0) {
           setPaymentMethod((current) =>
             current === "RAZORPAY" ? "WALLET" : current,
           );
@@ -139,7 +138,7 @@ export default function Cart() {
     return () => {
       mounted = false;
     };
-  }, [totalPaise, user?.token]);
+  }, [total, user?.token]);
 
   const handleCheckout = async () => {
     if (!user || !user.token) {
@@ -425,7 +424,7 @@ export default function Cart() {
                                     {walletLoading
                                       ? "Checking wallet balance..."
                                       : hasWalletBalance
-                                        ? `Available balance: ₹${(walletBalance / 100).toFixed(2)}`
+                                        ? `Available balance: ₹${(walletBalance).toFixed(2)}`
                                         : "Login to use your wallet balance"}
                                     {!walletCanCoverOrder && user?.token && (
                                       <span className="mt-1 block mb-1.5 text-xs text-red-700">

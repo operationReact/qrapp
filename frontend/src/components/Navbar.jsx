@@ -153,7 +153,7 @@ export default function Navbar() {
                   ? "..."
                   : walletBalance == null
                     ? "Wallet"
-                    : `₹${(walletBalance / 100).toFixed(0)}`}
+                    : `₹${(walletBalance).toFixed(0)}`}
               </span>
             </Link>
           )}

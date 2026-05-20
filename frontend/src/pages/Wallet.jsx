@@ -80,7 +80,8 @@ const compactCurrencyFormatter = new Intl.NumberFormat("en-IN", {
 });
 
 function formatCurrencyFromPaise(value, compact = false) {
-  const amount = Number(value || 0) / 100;
+  // Wallet stores rupees directly – no /100 conversion needed
+  const amount = Number(value || 0);
   return compact
     ? compactCurrencyFormatter.format(amount)
     : currencyFormatter.format(amount);

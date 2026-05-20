@@ -49,8 +49,8 @@ export default function AddMoneyForm({ className, onSuccess, onError }) {
     setAdding(true);
     setError("");
     try {
-      const amountPaise = Math.round(amountRupees * 100);
-      const response = await walletCreateOrder({ amount: amountPaise });
+      // Send rupees directly – backend converts to paise for Razorpay
+      const response = await walletCreateOrder({ amount: amountRupees });
       const order = response?.data || {};
       const orderId = order.razorpayOrderId;
 

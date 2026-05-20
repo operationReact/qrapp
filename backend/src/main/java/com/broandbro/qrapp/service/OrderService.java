@@ -209,11 +209,13 @@ public class OrderService {
         double total = menuRepository.findAllById(quantityByItemId.keySet()).stream()
                 .mapToDouble(item -> pricingService.getCurrentSellingPrice(item.getId()).doubleValue() * quantityByItemId.getOrDefault(item.getId(), 0))
                 .sum();
-        return Math.round(total * 100);
+        // Return rupees (whole number). Paise conversion only happens for Razorpay (see calculateAmountForOrder).
+        return Math.round(total);
     }
 
     /**
-     * Calculate total amount (in smallest currency unit, e.g., paise) for the order by summing menu item prices.
+     * Calculate total amount in paise (smallest currency unit) for Razorpay.
+     * Razorpay requires paise – do NOT use this for wallet debits.
      */
     public int calculateAmountForOrder(Long orderId) {
         double total = orderItemRepo.calculateOrderTotal(orderId);
