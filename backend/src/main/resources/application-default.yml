@@ -28,7 +28,7 @@ spring:
       ddl-auto: validate
     show-sql: false
     open-in-view: false
-    database-platform: org.hibernate.dialect.PostgreSQLDialect
+   ## database-platform: org.hibernate.dialect.PostgreSQLDialect
 
 
 # Default profile: require explicit Razorpay credentials instead of silently using a bundled test account.
