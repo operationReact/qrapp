@@ -59,8 +59,10 @@ resource "aws_s3_bucket" "media" {
 
   lifecycle {
     prevent_destroy = true
-    # Ignore tags applied outside Terraform (e.g. by AWS Config rules)
-    ignore_changes = [tags]
+    # Ignore tag drift (both resource-level tags and provider default_tags).
+    # This prevents the bucket from being replaced after a partial create
+    # (e.g. when PutBucketTagging failed on a previous apply).
+    ignore_changes = [tags, tags_all]
   }
 
   tags = {

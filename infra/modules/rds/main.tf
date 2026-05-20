@@ -26,8 +26,9 @@ resource "random_password" "db" {
   #  and they are not in the allowed set above)
 
   lifecycle {
-    # Never regenerate – rotating credentials requires a deliberate action
-    ignore_changes = [result]
+    # `result` is provider-computed and cannot be listed in ignore_changes.
+    # The password is stable because random_password only regenerates when its
+    # *input* arguments (length, special, override_special) change.
   }
 }
 
