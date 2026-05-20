@@ -29,6 +29,7 @@ jobs:
           distribution: corretto
           cache: gradle
 
+
       # ── 3. Build JAR ─────────────────────────────────────────────────────────
       # gradlew lives at repo root (multi-module Gradle project).
       # The backend subproject JAR is built via :backend:bootJar.
