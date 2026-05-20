@@ -9,7 +9,16 @@ name: Terraform Apply – Prod
 on:
   push:
     branches: [main]
-    paths: ["infra/**"]
+    paths:
+      - "infra/**"
+      - ".github/workflows/terraform-apply-prod.yml"
+  # Allow manual trigger from the GitHub Actions UI
+  workflow_dispatch:
+    inputs:
+      force_apply:
+        description: "Force apply even without infra changes"
+        required: false
+        default: "false"
 
 permissions:
   id-token: write

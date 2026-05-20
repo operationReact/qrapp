@@ -8,7 +8,16 @@ name: Terraform Apply – Dev
 on:
   push:
     branches: [dev]
-    paths: ["infra/**"]
+    paths:
+      - "infra/**"
+      - ".github/workflows/terraform-apply-dev.yml"
+  # Allow manual trigger from the GitHub Actions UI
+  workflow_dispatch:
+    inputs:
+      force_apply:
+        description: "Force apply even without infra changes"
+        required: false
+        default: "false"
 
 permissions:
   id-token: write
