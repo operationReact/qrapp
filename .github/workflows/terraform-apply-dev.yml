@@ -96,16 +96,23 @@ jobs:
 
       # The shared media bucket may have been pre-created by bootstrap/bootstrap.tf
       # or a previous apply. Import it so Terraform manages it without re-creating.
+      # If the state entry is tainted (left over from a failed apply), remove it
+      # and re-import so the taint is cleared and prevent_destroy does not block plan.
       - name: Import shared media bucket (if already exists)
         run: |
           BUCKET="${{ vars.MEDIA_BUCKET_NAME || 'broandbro-menu-images' }}"
           if aws s3api head-bucket --bucket "$BUCKET" 2>/dev/null; then
             echo "Media bucket $BUCKET exists – checking state..."
-            if ! terraform state show aws_s3_bucket.media 2>/dev/null; then
-              echo "Importing media bucket into state..."
+            STATE_OUTPUT=$(terraform state show aws_s3_bucket.media 2>/dev/null || true)
+            if [ -z "$STATE_OUTPUT" ]; then
+              echo "Not in state – importing..."
+              terraform import aws_s3_bucket.media "$BUCKET"
+            elif echo "$STATE_OUTPUT" | grep -q "(tainted)"; then
+              echo "Bucket is tainted in state – removing taint and re-importing..."
+              terraform state rm aws_s3_bucket.media
               terraform import aws_s3_bucket.media "$BUCKET"
             else
-              echo "Media bucket already in state – skipping."
+              echo "Bucket already in state and not tainted – skipping."
             fi
           else
             echo "Media bucket $BUCKET does not exist yet – will be created by apply."
