@@ -114,7 +114,7 @@ export default function ServiceBoard() {
   const groupedLiveOrders = useMemo(() => {
     return LIVE_STAGES.reduce((acc, stage) => {
       acc[stage] = (ordersPage.content || []).filter(
-        (order) => order.status === stage,
+        (order) => order.status.includes(stage),
       );
       return acc;
     }, {});
