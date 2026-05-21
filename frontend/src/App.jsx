@@ -20,7 +20,7 @@ import OperationalQueue from "./pages/admin/OperationalQueue";
 import SelectedOrder from "./pages/admin/SelectedOrder";
 import ServiceBoard from "./pages/admin/ServiceBoard";
 import AdminMenuPage from "./pages/admin/AdminMenuPage";
-import AdminMenuManager from "./pages/admin/AdminMenuManager";
+import CreateMenuPage from "./pages/admin/CreateMenuPage";
 import AdminCouponsPage from "./pages/admin/AdminCouponsPage";
 import Search from "./pages/Search";
 import { AuthProvider } from "./context/AuthContext";
@@ -63,7 +63,7 @@ function App() {
                     <Route index element={<AdminDashboard />} />
                     <Route path="menu" element={<AdminMenuPage />} />
                     <Route path="coupons" element={<AdminCouponsPage />} />
-                    <Route path="manage-menu" element={<AdminMenuManager />} />
+                    <Route path="manage-menu" element={<CreateMenuPage />} />
                     <Route path="service-board" element={<ServiceBoard />} />
                     <Route
                       path="operational-queue"
