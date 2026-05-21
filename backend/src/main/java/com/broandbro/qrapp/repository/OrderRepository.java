@@ -18,3 +18,4 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
     List<Order> findAllByPhoneOrderByCreatedAtDescIdDesc(String phone);
     List<Order> findAllByStatusInOrderByCreatedAtAscIdAsc(Collection<OrderStatus> statuses, Pageable pageable);
 }
+

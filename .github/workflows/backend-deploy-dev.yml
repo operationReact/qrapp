@@ -41,7 +41,7 @@ jobs:
           DEV_DB_USERNAME:       ${{ secrets.DEV_DB_USERNAME }}
           DEV_DB_PASSWORD:       ${{ secrets.DEV_DB_PASSWORD }}
           AWS_ROLE_ARN:          ${{ secrets.AWS_ROLE_ARN }}
-          DEV_RAZORPAY_KEY:      ${{ secrets.DEV_RAZORPAY_KEY }}
+          DEV_RAZORPAY_KEY:      ${{ secrets.RAZORPAY_KEY }}
           DEV_RAZORPAY_SECRET:   ${{ secrets.DEV_RAZORPAY_SECRET }}
         run: |
           MISSING=()
