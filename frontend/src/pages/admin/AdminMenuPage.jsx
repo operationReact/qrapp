@@ -81,12 +81,12 @@ export default function AdminMenuPage() {
 
   const allCategories = useMemo(
     () =>
-      [...new Set(menu.map((item) => item.category).filter(Boolean))].sort(),
+      [...new Set(menu.map((item) => item.category?.name).filter(Boolean))].sort(),
     [menu],
   );
 
   const allTags = useMemo(
-    () => [...new Set(menu.map((item) => item.tag).filter(Boolean))].sort(),
+    () => [...new Set(menu.map((item) => item.tag?.name).filter(Boolean))].sort(),
     [menu],
   );
 
@@ -177,12 +177,12 @@ export default function AdminMenuPage() {
 
     if (
       selectedCategories.length > 0 &&
-      !selectedCategories.includes(item.category)
+      !selectedCategories.includes(item.category?.name)
     ) {
       return false;
     }
 
-    if (selectedTags.length > 0 && !selectedTags.includes(item.tag)) {
+    if (selectedTags.length > 0 && !selectedTags.includes(item.tag?.name)) {
       return false;
     }
 

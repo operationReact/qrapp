@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
-import { useAuth } from "../../context/AuthContext"
+import { useAuth } from "../../context/AuthContext";
 import API, { createMenuItem } from "../../services/api";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,7 +21,7 @@ import AdminHeader from "@/components/admin/AdminHeader";
 export default function AdminMenuManager() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user: admin, setUser: setAdmin} = useAuth();
+  const { isAdmin, isSuperUser, setUser: setAdmin } = useAuth();
 
   const [form, setForm] = useState({
     name: "",
@@ -182,7 +182,7 @@ export default function AdminMenuManager() {
     return `${base}${url}`;
   };
 
-  if (!admin?.username || !admin?.password) {
+  if (!isAdmin && !isSuperUser) {
     return (
       <Navigate to={"/login"} replace state={{ from: location.pathname }} />
     );
@@ -191,7 +191,7 @@ export default function AdminMenuManager() {
   return (
     <>
       <AdminHeader
-        title="Menu Management"
+        title="Create Menu Item"
         description="Create a new menu item to be instantly available to your customers."
         className="mb-6"
       />
