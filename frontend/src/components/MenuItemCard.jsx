@@ -4,7 +4,7 @@ import PropTypes from "prop-types";
 import API from "../services/api";
 import MenuItemActionButton from "./MenuItemActionButton";
 
-export default function MenuItemCard({ item, onEdit, onDelete }) {
+export default function MenuItemCard({ item }) {
   const { cart, addItem, decreaseItem } = useCart();
   const [imgError, setImgError] = useState(false);
 

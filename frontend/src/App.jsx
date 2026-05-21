@@ -24,6 +24,8 @@ import CreateMenuPage from "./pages/admin/CreateMenuPage";
 import AdminCouponsPage from "./pages/admin/AdminCouponsPage";
 import Search from "./pages/Search";
 import { AuthProvider } from "./context/AuthContext";
+import PartyOrdersPage from "./pages/admin/PartyOrdersPage";
+import { Toaster } from "./components/ui/sonner";
 
 function SafeAreaWrapper({ children }) {
   const { cart } = useCart();
@@ -65,6 +67,7 @@ function App() {
                     <Route path="coupons" element={<AdminCouponsPage />} />
                     <Route path="manage-menu" element={<CreateMenuPage />} />
                     <Route path="service-board" element={<ServiceBoard />} />
+                    <Route path="party-orders" element={<PartyOrdersPage />} />
                     <Route
                       path="operational-queue"
                       element={<OperationalQueue />}
@@ -76,6 +79,7 @@ function App() {
                 </Routes>
               </SafeAreaWrapper>
               <Toast />
+              <Toaster/>
               <StickyCartBar />
             </BrowserRouter>
           </PreferencesProvider>

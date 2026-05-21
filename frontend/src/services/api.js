@@ -317,4 +317,10 @@ export const bulkMenuCommit = (rows, uploadMode = "UPSERT") =>
 export const bulkMenuDownloadTemplate = () =>
   API.get("/admin/menu/bulk-upload/template", { responseType: "blob" });
 
+// ---- Party Orders ----
+export const createPartyOrder = (data) => API.post("/party-order/create", data);
+export const getPartyOrdersAdmin = () => API.get("/admin/party-orders");
+export const submitPartyOrderEstimate = (orderId, data) =>
+  API.post(`/party-order/${orderId}/estimate`, data);
+
 export default API;
