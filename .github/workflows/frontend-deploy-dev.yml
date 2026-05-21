@@ -9,6 +9,12 @@ on:
   push:
     branches: [dev]
     paths: ["frontend/**"]
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: "Reason for manual deployment"
+        required: false
+        default: "Manual trigger"
 
 permissions:
   id-token: write
