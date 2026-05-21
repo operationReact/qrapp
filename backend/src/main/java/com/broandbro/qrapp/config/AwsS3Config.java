@@ -4,6 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
+import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
@@ -31,21 +32,24 @@ public class AwsS3Config {
         boolean hasSecret = props.getSecretKey() != null && !props.getSecretKey().isBlank();
 
         if (props.isEnabled()) {
-            if (!hasKey || !hasSecret) {
-                throw new IllegalStateException(
-                    "[AWS S3] aws.s3.enabled=true but credentials are missing.\n" +
-                    "  Set environment variables AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY,\n" +
-                    "  OR disable S3 for local dev by setting aws.s3.enabled=false " +
-                    "(e.g. in application-dev.yml or the AWS_S3_ENABLED env var).");
+            if (hasKey && hasSecret) {
+                log.info("[AWS S3] Using static credentials for bucket '{}' in region '{}'",
+                        props.getBucketName(), props.getRegion());
+                return S3Client.builder()
+                        .region(region)
+                        .credentialsProvider(StaticCredentialsProvider.create(
+                                AwsBasicCredentials.create(props.getAccessKey(), props.getSecretKey())))
+                        .build();
             }
 
-            log.info("[AWS S3] Using static credentials for bucket '{}' in region '{}'",
+            // No static keys — rely on the default credential chain:
+            // IAM instance profile, ECS task role, env vars, ~/.aws/credentials, etc.
+            log.info("[AWS S3] No static credentials configured — using default credential chain " +
+                     "(IAM role / instance profile) for bucket '{}' in region '{}'",
                     props.getBucketName(), props.getRegion());
-
             return S3Client.builder()
                     .region(region)
-                    .credentialsProvider(StaticCredentialsProvider.create(
-                            AwsBasicCredentials.create(props.getAccessKey(), props.getSecretKey())))
+                    .credentialsProvider(DefaultCredentialsProvider.create())
                     .build();
         }
 
