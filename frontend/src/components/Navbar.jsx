@@ -139,7 +139,7 @@ export default function Navbar() {
           </svg>
         </Link>
 
-        <div className="flex items-center gap-2.5 sm:gap-3">
+        <div className="flex items-center gap-2.5 sm:gap-3 flex-1 justify-end">
           {!isAdmin && user && (
             <Link
               to="/wallet"

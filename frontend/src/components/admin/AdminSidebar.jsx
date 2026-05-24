@@ -21,6 +21,7 @@ import {
   SignOutIcon,
   SquaresFourIcon,
   TagIcon,
+  UsersThreeIcon,
 } from "@phosphor-icons/react";
 import { useAuth } from "@/context/AuthContext";
 
@@ -131,6 +132,23 @@ export function AdminSidebar() {
                       }
                     />
                     <span>Operational Queue</span>
+                  </Link>
+                }
+              />
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                className="text-zinc-700 font-medium"
+                isActive={pathname === "/admin/party-orders"}
+                render={
+                  <Link to={"/admin/party-orders"}>
+                    <UsersThreeIcon
+                      className="text-primary"
+                      weight={
+                        pathname === "/admin/party-orders" ? "bold" : "regular"
+                      }
+                    />
+                    <span>Party Orders</span>
                   </Link>
                 }
               />

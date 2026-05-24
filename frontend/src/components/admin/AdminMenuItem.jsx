@@ -139,25 +139,20 @@ export default function AdminMenuItem({
       <div className="flex flex-col flex-1">
         <div className="grid grid-cols-[1fr_auto] gap-2 mb-2 pt-2 px-2">
           <div>
-            <span className="text-sm font-medium text-secondary-foreground capitalize">
-              {item.category.name}
-            </span>
+            {
+              item.category && (
+                <span className="text-sm font-medium text-secondary-foreground capitalize">
+                  {item.category.name}
+                </span>
+              )
+            }
             <p className="line-clamp-2 leading-3.5 text-xs text-muted-foreground flex-1">
               {item.description || "No description added yet."}
             </p>
           </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-2 px-2">
           <div className="grid gap-0.5">
             <span className="text-xs font-medium text-secondary-foreground capitalize">
-              Base Price
-            </span>
-            <span className="text-xl font-bold">₹{item.basePrice}</span>
-          </div>
-          <div className="grid gap-0.5">
-            <span className="text-xs font-medium text-secondary-foreground capitalize">
-              Selling Price
+              Price
             </span>
             <span className="text-xl font-bold">₹{item.price}</span>
           </div>

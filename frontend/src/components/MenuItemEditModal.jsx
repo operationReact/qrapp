@@ -19,6 +19,7 @@ import { X } from "lucide-react";
 import {
   Sheet,
   SheetContent,
+  SheetFooter,
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
@@ -54,12 +55,12 @@ export default function MenuItemEditModal({
       setForm({
         name: item.name || "",
         price: item.price != null ? String(item.price) : "",
-        category: item.category || "",
+        category: item?.category?.name || "",
         description: item.description || "",
         imageUrl: item.imageUrl || "",
         available: item.available == null ? true : !!item.available,
         recommended: !!item.recommended,
-        tag: item.tag || "",
+        tag: item?.tag?.name || "",
         isVeg: !!item.isVeg,
         imageFile: null,
         previewUrl: initialPreview,
@@ -158,6 +159,7 @@ export default function MenuItemEditModal({
     setError(null);
     try {
       // If an image file is selected, send multipart/form-data
+      console.log(form)
       let res;
       if (form.imageFile) {
         const fd = new FormData();
@@ -209,18 +211,16 @@ export default function MenuItemEditModal({
         }
       }}
     >
-      <SheetContent className="overflow-y-auto p-0 sm:max-w-2xl">
-        <SheetHeader>
-          <SheetTitle>Edit Item</SheetTitle>
+      <SheetContent>
+        <SheetHeader className="border-b">
+          <SheetTitle className="font-medium">Update Menu Item</SheetTitle>
         </SheetHeader>
-        <form className="px-4" onSubmit={handleSubmit}>
+        <form
+          id="edit-menu-form"
+          className="px-4 no-scrollbar overflow-y-auto"
+          onSubmit={handleSubmit}
+        >
           <div className="space-y-2">
-            {error && (
-              <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                {error}
-              </div>
-            )}
-
             <FieldSet>
               <FieldLegend>Essential Details</FieldLegend>
               <FieldDescription className="mt-1 text-sm text-muted-foreground">
@@ -234,7 +234,6 @@ export default function MenuItemEditModal({
                       value={form.name}
                       onChange={handleChange("name")}
                       placeholder="Item name"
-                      className="h-12 text-sm!"
                     />
                   </FieldContent>
                 </Field>
@@ -248,7 +247,6 @@ export default function MenuItemEditModal({
                       value={form.price}
                       onChange={handleChange("price")}
                       placeholder="e.g. 99.50"
-                      className="h-12 text-sm!"
                     />
                   </FieldContent>
                 </Field>
@@ -260,7 +258,6 @@ export default function MenuItemEditModal({
                       value={form.category}
                       onChange={handleChange("category")}
                       placeholder="e.g. Main Course"
-                      className="h-12 text-sm!"
                     />
                   </FieldContent>
                 </Field>
@@ -272,7 +269,6 @@ export default function MenuItemEditModal({
                       value={form.tag}
                       onChange={handleChange("tag")}
                       placeholder="e.g. Bestseller"
-                      className="h-12 text-sm!"
                     />
                   </FieldContent>
                 </Field>
@@ -285,7 +281,7 @@ export default function MenuItemEditModal({
                       onChange={handleChange("description")}
                       placeholder="Optional description"
                       rows={3}
-                      className="resize-none text-sm!"
+                      className="resize-none"
                     />
                   </FieldContent>
                 </Field>
@@ -308,7 +304,6 @@ export default function MenuItemEditModal({
                         ref={imageFieldRef}
                         accept="image/*"
                         onChange={handleFileChange}
-                        className="flex-1 cursor-pointer file:cursor-pointer file:border-0 file:bg-transparent file:text-sm file:font-medium h-12 pt-3 text-sm!"
                       />
                     </div>
                     <p className="mt-2 text-xs text-muted-foreground">
@@ -324,18 +319,17 @@ export default function MenuItemEditModal({
                       value={form.imageUrl}
                       onChange={handleChange("imageUrl")}
                       placeholder="https://..."
-                      className="h-12 text-sm!"
                       disabled={!!form.imageFile}
                     />
                   </FieldContent>
                 </Field>
 
-                {(form.previewUrl || form.imageUrl) && (
+                {form.previewUrl && (
                   <div className="md:col-span-2 flex flex-col items-start gap-3">
                     <span className="text-sm font-medium">Preview</span>
                     <div className="relative">
                       <img
-                        src={computeImageSrc(form.previewUrl || form.imageUrl)}
+                        src={computeImageSrc(form.previewUrl)}
                         alt="Preview"
                         className="h-32 w-32 rounded-2xl object-cover shadow-sm border"
                       />
@@ -362,7 +356,7 @@ export default function MenuItemEditModal({
                 Configure the item's availability and tags.
               </FieldDescription>
 
-              <FieldGroup className="mt-4 md:max-w-sm">
+              <FieldGroup className="md:max-w-sm">
                 <Field className="md:max-w-sm" orientation="horizontal">
                   <FieldContent>
                     <FieldLabel htmlFor="available-edit">Available</FieldLabel>
@@ -420,30 +414,35 @@ export default function MenuItemEditModal({
                 </Field>
               </FieldGroup>
             </FieldSet>
-          </div>
-          <div className="py-4 flex gap-3 justify-end border-t rounded-b-lg mt-6">
-            <Button
-              size="lg"
-              type="button"
-              variant="outline"
-              onClick={() => {
-                if (onPreviewChange) onPreviewChange("");
-                onClose();
-              }}
-              className="h-12 text-sm! w-full sm:max-w-37 font-medium!"
-            >
-              Cancel
-            </Button>
-            <Button
-              size="lg"
-              type="submit"
-              disabled={submitting}
-              className="h-12 text-sm! w-full sm:max-w-37 font-medium!"
-            >
-              {submitting ? "Saving..." : "Save Changes"}
-            </Button>
+
+            {error && (
+              <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                {error}
+              </div>
+            )}
           </div>
         </form>
+        <SheetFooter>
+          <Button
+            size="lg"
+            type="submit"
+            form="edit-menu-form"
+            disabled={submitting}
+          >
+            {submitting ? "Saving..." : "Save Changes"}
+          </Button>
+          <Button
+            size="lg"
+            type="button"
+            variant="outline"
+            onClick={() => {
+              if (onPreviewChange) onPreviewChange("");
+              onClose();
+            }}
+          >
+            Cancel
+          </Button>
+        </SheetFooter>
       </SheetContent>
     </Sheet>
   );

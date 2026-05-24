@@ -4,6 +4,7 @@ import Navbar from "../components/Navbar";
 import SearchBar from "../components/SearchBar";
 import CategoryTabs from "../components/CategoryTabs";
 import MenuItemCard from "../components/MenuItemCard";
+import PartyOrderBanner from "../components/PartyOrderBanner";
 import {
   Carousel,
   CarouselContent,
@@ -233,6 +234,9 @@ export default function Menu() {
               <p className="text-sm">Try changing filters</p>
             </div>
           )}
+
+          {/* PARTY ORDER BANNER */}
+          <PartyOrderBanner />
 
           {/* ITEMS */}
           {Object.entries(groups).map(([category, items]) => (
