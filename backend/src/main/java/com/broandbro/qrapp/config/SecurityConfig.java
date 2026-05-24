@@ -136,6 +136,9 @@ public class SecurityConfig {
                         // Allow wallet endpoints to pass through (controller will handle auth)
                         .requestMatchers("/api/wallet/**").permitAll()
 
+                        // Party orders — user-facing (authentication enforced in controller)
+                        .requestMatchers("/party-order/**").authenticated()
+
                         // Cache admin – no auth required
                         .requestMatchers("/api/cache/**").permitAll()
                         .requestMatchers("/admin/menu/bulk-upload/**").permitAll()
