@@ -1,6 +1,6 @@
 import { ArrowUpRightIcon, WarningCircleIcon } from "@phosphor-icons/react";
 import OrderItem from "./OrderItem";
-import { Link } from "react-router-dom";
+import { Link } from "@tanstack/react-router";
 
 export default function FlaggedOrders({ flaggedOrders = [] }) {
   return (

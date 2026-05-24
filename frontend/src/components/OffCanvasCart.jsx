@@ -1,7 +1,7 @@
 import { useCart } from "../context/CartContext";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "@tanstack/react-router";
 import { Button } from "./ui/button";
-import CartItem from "./CartItem";
+import CartItem from "./shared/CartItem";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "./ui/sheet";
 import {
   Drawer,
@@ -57,7 +57,7 @@ function CartContent({ onClose }) {
           size="lg"
           onClick={() => {
             onClose();
-            navigate("/cart");
+            navigate({ to: "/cart" });
           }}
           className="w-full h-12 font-medium!"
         >

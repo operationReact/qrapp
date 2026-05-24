@@ -6,7 +6,7 @@ import React, {
   useCallback,
   useMemo,
 } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "@tanstack/react-router";
 import {
   getOrdersAdmin,
   updateAdminOrder,
@@ -92,7 +92,7 @@ export const AdminDashboardProvider = ({ children }) => {
       } catch (err) {
         if (err?.response?.status === 401 || err?.response?.status === 403) {
           setAdmin(null);
-          navigate("/login", {
+          navigate({ to: "/login", 
             replace: true,
             state: { from: location.pathname },
           });
@@ -151,7 +151,7 @@ export const AdminDashboardProvider = ({ children }) => {
       } catch (err) {
         if (err?.response?.status === 401 || err?.response?.status === 403) {
           setAdmin(null);
-          navigate("/login", {
+          navigate({ to: "/login", 
             replace: true,
             state: { from: location.pathname },
           });

@@ -1,4 +1,4 @@
-import { useResolvedPath } from "react-router-dom";
+import { useLocation } from "@tanstack/react-router";
 import { useCart } from "../context/CartContext";
 import { useEffect, useRef, useState } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -9,7 +9,7 @@ export default function Toast() {
   const [text, setText] = useState(null);
   const rafRef = useRef(null);
   const hideTimerRef = useRef(null);
-  const { pathname } = useResolvedPath();
+  const { pathname } = useLocation();
 
   const isMobile = useIsMobile();
   const raiseBottomForCheckoutBar = isMobile && pathname === "/cart";
