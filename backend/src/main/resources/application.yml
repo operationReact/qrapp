@@ -52,6 +52,30 @@ spring:
 app:
   cors:
     allowed-origins: "${APP_CORS_ALLOWED_ORIGINS:http://localhost:5173}"
+
+# Analytics Engine configuration
+analytics:
+  cron:
+    daily-sales:            "${ANALYTICS_CRON_DAILY_SALES:0 5 0 * * *}"
+    daily-sales-intraday:   "${ANALYTICS_CRON_DAILY_SALES_INTRADAY:0 0 12 * * *}"
+    hourly-orders:          "${ANALYTICS_CRON_HOURLY_ORDERS:0 2 * * * *}"
+    menu-items:             "${ANALYTICS_CRON_MENU_ITEMS:0 10 0 * * *}"
+    menu-items-intraday:    "${ANALYTICS_CRON_MENU_ITEMS_INTRADAY:0 30 12 * * *}"
+    user-preferences:       "${ANALYTICS_CRON_USER_PREFERENCES:0 0 1 * * *}"
+    coupon-analytics:       "${ANALYTICS_CRON_COUPON_ANALYTICS:0 15 0 * * *}"
+    coupon-analytics-intraday: "${ANALYTICS_CRON_COUPON_ANALYTICS_INTRADAY:0 0 */6 * * *}"
+  cache:
+    dashboard-ttl-seconds:        ${ANALYTICS_CACHE_DASHBOARD_TTL:300}
+    daily-sales-ttl-seconds:      ${ANALYTICS_CACHE_DAILY_SALES_TTL:900}
+    hourly-orders-ttl-seconds:    ${ANALYTICS_CACHE_HOURLY_ORDERS_TTL:600}
+    menu-items-ttl-seconds:       ${ANALYTICS_CACHE_MENU_ITEMS_TTL:900}
+    coupon-analytics-ttl-seconds: ${ANALYTICS_CACHE_COUPON_ANALYTICS_TTL:900}
+    recommendations-ttl-seconds:  ${ANALYTICS_CACHE_RECOMMENDATIONS_TTL:1800}
+  limits:
+    max-top-items:            ${ANALYTICS_LIMITS_MAX_TOP_ITEMS:50}
+    max-date-range-days:      ${ANALYTICS_LIMITS_MAX_DATE_RANGE_DAYS:365}
+    abuse-detection-threshold: ${ANALYTICS_LIMITS_ABUSE_THRESHOLD:1}
+    churn-threshold-days:     ${ANALYTICS_LIMITS_CHURN_DAYS:30}
   order:
     # Shop code used in human-readable order number generation
     # Format: SHOPCODE-YYYYMMDD-XXXX
