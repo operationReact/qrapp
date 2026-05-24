@@ -1,5 +1,5 @@
 import { Button } from "./ui/button";
-import QuantityUpdater from "./QuantityUpdater";
+import QuantityUpdater from "@/components/shared/QuantityUpdater";
 import { motion } from "motion/react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { PlusIcon } from "@phosphor-icons/react";

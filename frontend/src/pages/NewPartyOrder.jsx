@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "@tanstack/react-router";
 import { Field, FieldLabel, FieldContent } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -54,7 +54,7 @@ export default function NewPartyOrder({ className }) {
         menuDescription: menuDescription.trim(),
       });
       toast.success("Party order submitted successfully!");
-      navigate("/orders");
+      navigate({ to: "/orders" });
     } catch (err) {
       const message =
         err?.response?.data?.message ||

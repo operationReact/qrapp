@@ -10,7 +10,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { useAdminDashboard } from "@/context/AdminDashboardContext";
-import { Link, useNavigate, useResolvedPath } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "@tanstack/react-router";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { ButtonGroup } from "../ui/button-group";
@@ -36,7 +36,7 @@ import { useAuth } from "@/context/AuthContext";
 export function AdminSidebar() {
   const { setUser: setAdmin } = useAuth();
   const navigate = useNavigate();
-  const { pathname } = useResolvedPath();
+  const { pathname } = useLocation();
 
   const { refreshing, loadData } = useAdminDashboard();
 
@@ -265,7 +265,7 @@ export function AdminSidebar() {
                   <button
                     onClick={() => {
                       setAdmin(null);
-                      navigate("/login");
+                      navigate({ to: "/login" });
                     }}
                   >
                     <SignOutIcon /> Logout

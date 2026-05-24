@@ -1,6 +1,6 @@
 import PropTypes from "prop-types";
 import { useEffect, useMemo, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "@tanstack/react-router";
 import {
   getAdminOrderDashboard,
   getOrdersAdmin,
@@ -171,7 +171,7 @@ export default function AdminOrderOperations({ embedded = false }) {
     } catch (err) {
       if (err?.response?.status === 401 || err?.response?.status === 403) {
         setAdmin(null);
-        navigate("/login", {
+        navigate({ to: "/login", 
           replace: true,
           state: { from: location.pathname },
         });
@@ -225,7 +225,7 @@ export default function AdminOrderOperations({ embedded = false }) {
     } catch (err) {
       if (err?.response?.status === 401 || err?.response?.status === 403) {
         setAdmin(null);
-        navigate("/login", {
+        navigate({ to: "/login", 
           replace: true,
           state: { from: location.pathname },
         });
@@ -296,7 +296,7 @@ export default function AdminOrderOperations({ embedded = false }) {
           </div>
           <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
             <button
-              onClick={() => navigate("/admin")}
+              onClick={() => navigate({ to: "/admin" })}
               className="touch-button rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
             >
               Dashboard

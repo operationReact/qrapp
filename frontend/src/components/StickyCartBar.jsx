@@ -1,5 +1,5 @@
 import { useCart } from "../context/CartContext";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation } from "@tanstack/react-router";
 import { Button } from "./ui/button";
 import { Cart } from "@boxicons/react";
 import { useAuth } from "@/context/AuthContext";
@@ -39,7 +39,7 @@ export default function StickyCartBar() {
       openDrawer();
     } else {
       closeDrawer();
-      navigate("/cart");
+      navigate({ to: "/cart" });
     }
   };
 

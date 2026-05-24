@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { getCategories, getMenu } from "../services/api";
-import Navbar from "../components/Navbar";
-import SearchBar from "../components/SearchBar";
+import Navbar from "../components/shared/Navbar";
+import SearchBar from "../components/shared/SearchBar";
 import CategoryTabs from "../components/CategoryTabs";
 import MenuItemCard from "../components/MenuItemCard";
 import PartyOrderBanner from "../components/PartyOrderBanner";
@@ -11,8 +11,8 @@ import {
   CarouselItem,
 } from "@/components/ui/carousel";
 import { usePreferences } from "@/context/PreferencesContext";
-import MobileMenu from "@/components/MobileMenu";
-import { useLocation } from "react-router-dom";
+import MobileMenu from "@/components/shared/MobileMenu";
+import { useLocation } from "@tanstack/react-router";
 
 // Small mock dataset used when backend is unreachable so the UI can be inspected
 const SAMPLE_MENU = [

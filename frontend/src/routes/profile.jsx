@@ -1,0 +1,312 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
+import Navbar from "@/components/shared/Navbar";
+import { getCurrentUser, updateCurrentUser } from "@/services/api";
+import { LockKeyhole, Menu, Shield } from "@boxicons/react";
+import { Button } from "@/components/ui/button";
+import {
+  Field,
+  FieldContent,
+  FieldDescription,
+  FieldGroup,
+  FieldLabel,
+  FieldLegend,
+  FieldSet,
+} from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import { useAuth } from "@/context/AuthContext";
+
+export const Route = createFileRoute("/profile")({
+  component: ProfilePage,
+});
+
+function ProfilePage() {
+  const navigate = useNavigate();
+  const { user, setUser } = useAuth();
+  const [form, setForm] = useState({
+    name: "",
+    phone: "",
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadProfile() {
+      if (!user?.token) {
+        navigate({ to: "/login", state: { from: "/profile" } });
+        return;
+      }
+
+      try {
+        const response = await getCurrentUser();
+        if (!mounted) return;
+        const profile = response?.data || {};
+        setForm((current) => ({
+          ...current,
+          name: profile.name || "",
+          phone: profile.phone || "",
+        }));
+        setUser((current) =>
+          current ? { ...current, info: profile } : current,
+        );
+      } catch (err) {
+        if (!mounted) return;
+        const message =
+          err?.response?.data || "Unable to load your profile right now.";
+        setError(
+          typeof message === "string"
+            ? message
+            : "Unable to load your profile right now.",
+        );
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    }
+
+    loadProfile();
+    return () => {
+      mounted = false;
+    };
+  }, [navigate, setUser, user?.token]);
+
+  const passwordHint = useMemo(
+    () =>
+      form.newPassword
+        ? "Changing password requires your current password."
+        : "Leave password fields empty if you only want to update name or phone.",
+    [form.newPassword],
+  );
+
+  const handleChange = (key) => (event) => {
+    setError("");
+    setSuccess("");
+    setForm((current) => ({ ...current, [key]: event.target.value }));
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setError("");
+    setSuccess("");
+
+    if (!form.phone.trim()) {
+      setError("Phone number is required.");
+      return;
+    }
+
+    if (form.newPassword && form.newPassword !== form.confirmPassword) {
+      setError("New password and confirm password do not match.");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const payload = {
+        name: form.name,
+        phone: form.phone,
+      };
+
+      if (form.newPassword) {
+        payload.currentPassword = form.currentPassword;
+        payload.newPassword = form.newPassword;
+      }
+
+      const response = await updateCurrentUser(payload);
+      const profile = response?.data || {};
+      setUser((current) => (current ? { ...current, info: profile } : current));
+      setForm((current) => ({
+        ...current,
+        name: profile.name || "",
+        phone: profile.phone || "",
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      }));
+      setSuccess("Profile updated successfully.");
+    } catch (err) {
+      const message = err?.response?.data || "Failed to update profile.";
+      setError(
+        typeof message === "string" ? message : "Failed to update profile.",
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="page-shell bg-page">
+      <Navbar />
+
+      <main className="container-premium py-6">
+        <div className="mx-auto space-y-5 sm:space-y-6">
+          <div>
+            <h1 className="text-2xl font-semibold sm:text-3xl">Edit Profile</h1>
+            <p className="mt-2 text-md text-muted-foreground">
+              Keep your account details updated so your orders and payments stay
+              smooth.
+            </p>
+          </div>
+
+          <section className="rounded-xl border bg-white shadow-sm">
+            {loading ? (
+              <div className="py-10 text-center text-muted-foreground">
+                Loading Profile...
+              </div>
+            ) : (
+              <form onSubmit={handleSubmit}>
+                <div className="p-4 sm:py-6 space-y-2">
+                  {error && (
+                    <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                      {error}
+                    </div>
+                  )}
+
+                  {success && (
+                    <div className="rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+                      {success}
+                    </div>
+                  )}
+
+                  <FieldSet>
+                    <FieldLegend>Personal Information</FieldLegend>
+                    <FieldGroup className="grid gap-4 md:grid-cols-2">
+                      <Field>
+                        <FieldLabel>Name</FieldLabel>
+                        <FieldContent>
+                          <Input
+                            value={form.name}
+                            onChange={handleChange("name")}
+                            placeholder="Enter Your Name"
+                            className="h-12"
+                          />
+                        </FieldContent>
+                      </Field>
+
+                      <Field>
+                        <FieldLabel>Phone Number</FieldLabel>
+                        <FieldContent>
+                          <Input
+                            value={form.phone}
+                            onChange={handleChange("phone")}
+                            placeholder="e.g. 1234567890"
+                            className="h-12"
+                          />
+                        </FieldContent>
+                      </Field>
+                    </FieldGroup>
+                  </FieldSet>
+
+                  <FieldSet className="mt-4">
+                    <FieldLegend className="font-medium">
+                      Change Password
+                    </FieldLegend>
+                    <FieldDescription className="mt-1 text-sm text-muted-foreground">
+                      {passwordHint}
+                    </FieldDescription>
+
+                    <FieldGroup className="grid gap-4 md:grid-cols-3">
+                      <Field>
+                        <FieldLabel>Current Password</FieldLabel>
+                        <FieldContent>
+                          <Input
+                            type="password"
+                            value={form.currentPassword}
+                            onChange={handleChange("currentPassword")}
+                            placeholder="Current Password"
+                            className="h-12"
+                          />
+                        </FieldContent>
+                      </Field>
+
+                      <Field>
+                        <FieldLabel>New Password</FieldLabel>
+                        <FieldContent>
+                          <Input
+                            type="password"
+                            value={form.newPassword}
+                            onChange={handleChange("newPassword")}
+                            placeholder="Set New Password"
+                            className="h-12"
+                          />
+                        </FieldContent>
+                      </Field>
+
+                      <Field>
+                        <FieldLabel>Confirm Password</FieldLabel>
+                        <FieldContent>
+                          <Input
+                            type="password"
+                            value={form.confirmPassword}
+                            onChange={handleChange("confirmPassword")}
+                            placeholder="Confirm Password"
+                            className="h-12"
+                          />
+                        </FieldContent>
+                      </Field>
+                    </FieldGroup>
+                  </FieldSet>
+                </div>
+
+                <div className="p-4 flex justify-end border-t">
+                  <Button
+                    size="lg"
+                    type="submit"
+                    disabled={saving}
+                    className="h-12 text-sm! w-full sm:max-w-37 font-medium!"
+                  >
+                    {saving ? "Saving Changes..." : "Update Profile"}
+                  </Button>
+                </div>
+              </form>
+            )}
+          </section>
+
+          <div className="grid">
+            <div className="rounded-t-xl bg-white flex gap-3 items-start sm:items-center p-4 shadow-sm border border-gray-100 border-b-none">
+              <span className="size-10 grid place-items-center bg-green-500/10 p-2 rounded-md">
+                <Shield pack="filled" className="fill-green-400 size-6" />
+              </span>
+              <div>
+                <div className="font-medium">Save Your Preferences</div>
+                <div className="mt-0.5 text-sm text-muted-foreground">
+                  Your menu, wallet, and order history are linked to this
+                  account.
+                </div>
+              </div>
+            </div>
+            <div className="bg-white flex gap-3 items-start sm:items-center p-4 shadow-sm border border-gray-100 ">
+              <span className="size-10 grid place-items-center bg-red-500/10 p-2 rounded-md">
+                <Menu pack="filled" className="fill-red-400 size-6" />
+              </span>
+              <div>
+                <div className="font-medium">Quick Access To Your Account</div>
+                <div className="mt-1 text-sm text-muted-foreground">
+                  Use the hamburger menu any time to open your account
+                  shortcuts.
+                </div>
+              </div>
+            </div>
+            <div className="rounded-b-xl bg-white flex gap-3 items-start sm:items-center p-4 shadow-sm border border-gray-100 border-t-none">
+              <span className="size-10 grid place-items-center bg-blue-500/10 p-2 rounded-md">
+                <LockKeyhole pack="filled" className="fill-blue-400 size-6" />
+              </span>
+              <div>
+                <div className="font-medium">Secure Password Protection</div>
+                <div className="mt-1 text-sm text-muted-foreground">
+                  You'll need your current password before setting a new one.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+}
