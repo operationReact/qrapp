@@ -1,5 +1,9 @@
 package com.broandbro.qrapp.controller;
 
+import com.broandbro.qrapp.combo.exception.ComboNotFoundException;
+import com.broandbro.qrapp.combo.exception.ComboValidationException;
+import com.broandbro.qrapp.signature.exception.InsufficientStockException;
+import com.broandbro.qrapp.signature.exception.SignatureProductNotFoundException;
 import com.broandbro.qrapp.exception.DuplicateTransactionException;
 import com.broandbro.qrapp.exception.FileTooLargeException;
 import com.broandbro.qrapp.exception.ImageNotFoundException;
@@ -58,6 +62,26 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(DuplicateTransactionException.class)
     public ResponseEntity<String> handleDuplicate(DuplicateTransactionException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(ex.getMessage());
+    }
+
+    @ExceptionHandler(ComboNotFoundException.class)
+    public ResponseEntity<String> handleComboNotFound(ComboNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
+    }
+
+    @ExceptionHandler(ComboValidationException.class)
+    public ResponseEntity<String> handleComboValidation(ComboValidationException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
+    }
+
+    @ExceptionHandler(SignatureProductNotFoundException.class)
+    public ResponseEntity<String> handleSignatureProductNotFound(SignatureProductNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
+    }
+
+    @ExceptionHandler(InsufficientStockException.class)
+    public ResponseEntity<String> handleInsufficientStock(InsufficientStockException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(ex.getMessage());
     }
 

@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { lazy, Suspense } from "react";
 import Menu from "./pages/Menu";
 import Cart from "./pages/Cart";
 import Success from "./pages/Success";
@@ -26,6 +27,24 @@ import Search from "./pages/Search";
 import { AuthProvider } from "./context/AuthContext";
 import PartyOrdersPage from "./pages/admin/PartyOrdersPage";
 import { Toaster } from "./components/ui/sonner";
+
+// Analytics pages – lazy loaded for code splitting
+const AnalyticsOverview = lazy(() => import("./pages/admin/analytics/AnalyticsOverview"));
+const SalesAnalytics = lazy(() => import("./pages/admin/analytics/SalesAnalytics"));
+const OrdersAnalytics = lazy(() => import("./pages/admin/analytics/OrdersAnalytics"));
+const MenuAnalytics = lazy(() => import("./pages/admin/analytics/MenuAnalytics"));
+const UserAnalytics = lazy(() => import("./pages/admin/analytics/UserAnalytics"));
+const CouponAnalytics = lazy(() => import("./pages/admin/analytics/CouponAnalytics"));
+const Recommendations = lazy(() => import("./pages/admin/analytics/Recommendations"));
+const CombosPage = lazy(() => import("./pages/admin/CombosPage"));
+
+function AnalyticsFallback() {
+  return (
+    <div className="flex items-center justify-center h-64 text-zinc-400 text-sm animate-pulse">
+      Loading analytics…
+    </div>
+  );
+}
 
 function SafeAreaWrapper({ children }) {
   const { cart } = useCart();
@@ -75,6 +94,15 @@ function App() {
                       <Route index element={<SelectedOrder />} />
                       <Route path=":orderId" element={<SelectedOrder />} />
                     </Route>
+                    {/* Analytics */}
+                    <Route path="analytics" element={<Suspense fallback={<AnalyticsFallback />}><AnalyticsOverview /></Suspense>} />
+                    <Route path="analytics/sales" element={<Suspense fallback={<AnalyticsFallback />}><SalesAnalytics /></Suspense>} />
+                    <Route path="analytics/orders" element={<Suspense fallback={<AnalyticsFallback />}><OrdersAnalytics /></Suspense>} />
+                    <Route path="analytics/menu" element={<Suspense fallback={<AnalyticsFallback />}><MenuAnalytics /></Suspense>} />
+                    <Route path="analytics/users" element={<Suspense fallback={<AnalyticsFallback />}><UserAnalytics /></Suspense>} />
+                    <Route path="analytics/coupons" element={<Suspense fallback={<AnalyticsFallback />}><CouponAnalytics /></Suspense>} />
+                    <Route path="analytics/recommendations" element={<Suspense fallback={<AnalyticsFallback />}><Recommendations /></Suspense>} />
+                    <Route path="combos" element={<Suspense fallback={<AnalyticsFallback />}><CombosPage /></Suspense>} />
                   </Route>
                 </Routes>
               </SafeAreaWrapper>

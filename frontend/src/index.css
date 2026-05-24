@@ -439,3 +439,22 @@ body {
     opacity: 0;
     transition: opacity 200ms ease;
 }
+
+/* ── Analytics dashboard mobile utilities ─────────────────────── */
+
+/* Hide scrollbar on tab pill strips while keeping horizontal scroll functional */
+.no-scrollbar {
+    scrollbar-width: none;        /* Firefox */
+    -ms-overflow-style: none;     /* IE / Edge */
+}
+.no-scrollbar::-webkit-scrollbar {
+    display: none;                /* Chrome / Safari / Opera */
+}
+
+/* Prevent the Recharts tooltip from clipping at viewport edge on mobile */
+.recharts-tooltip-wrapper {
+    z-index: 50;
+    pointer-events: none;
+}
+
+

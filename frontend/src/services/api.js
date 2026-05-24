@@ -46,7 +46,7 @@ const resolvedBase = (() => {
 // Always log the resolved URL so it's visible in browser DevTools for any environment
 console.info(`[api] baseURL → ${resolvedBase}`);
 
-const API = axios.create({ baseURL: resolvedBase });
+export const API = axios.create({ baseURL: resolvedBase });
 
 
 // --- simple in-memory cache for GET requests (used for wallet balance)

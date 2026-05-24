@@ -3,9 +3,11 @@ package com.broandbro.qrapp.analytics.config;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.CacheManager;
+import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.cache.caffeine.CaffeineCacheManager;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 
@@ -23,6 +25,7 @@ import java.util.concurrent.TimeUnit;
  */
 @Configuration
 @EnableScheduling
+@EnableCaching
 @RequiredArgsConstructor
 public class AnalyticsCacheConfig {
 
@@ -38,6 +41,27 @@ public class AnalyticsCacheConfig {
     public static final String CACHE_RECOMMENDATIONS = "analytics::recommendations";
 
     private final AnalyticsProperties props;
+
+    // ── Primary (app-level) cache manager ─────────────────────────────────────
+    //
+    // Spring Boot's CaffeineCacheAutoConfiguration is @ConditionalOnMissingBean(CacheManager.class).
+    // Because we define analyticsCacheManager below, the auto-configuration is suppressed and the
+    // app-level caches (walletBalance, menu, menuRecommended) would silently disappear.
+    // This @Primary bean restores them and becomes the default for @Cacheable annotations that do
+    // NOT specify cacheManager="analyticsCacheManager" explicitly.
+
+    @Bean
+    @Primary
+    public CacheManager cacheManager() {
+        CaffeineCacheManager manager = new CaffeineCacheManager(
+                "walletBalance", "menu", "menuRecommended",
+                "combos", "signatureProducts");  // Combo & Signature Product caches
+        manager.setCaffeine(Caffeine.newBuilder()
+                .maximumSize(500)
+                .expireAfterWrite(60, TimeUnit.SECONDS)
+                .recordStats());
+        return manager;
+    }
 
     @Bean("analyticsCacheManager")
     public CacheManager analyticsCacheManager() {

@@ -3,11 +3,6 @@ server:
 
 # Default datasource: PostgreSQL. Use environment variables to override in CI or other environments.
 spring:
-  cache:
-    type: caffeine
-    cache-names: walletBalance,menu,menuRecommended
-    caffeine:
-      spec: maximumSize=500,expireAfterWrite=60s
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://aws-1-ap-northeast-1.pooler.supabase.com:5432/postgres}
     username: ${SPRING_DATASOURCE_USERNAME:postgres.yoxxgeiwbekdvczedotg}

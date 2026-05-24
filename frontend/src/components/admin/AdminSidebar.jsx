@@ -22,6 +22,14 @@ import {
   SquaresFourIcon,
   TagIcon,
   UsersThreeIcon,
+  ChartLineUpIcon,
+  ChartBarIcon,
+  ShoppingCartSimpleIcon,
+  ForkKnifeIcon,
+  UserCircleIcon,
+  TicketIcon,
+  StarIcon,
+  CubeIcon,
 } from "@phosphor-icons/react";
 import { useAuth } from "@/context/AuthContext";
 
@@ -90,6 +98,21 @@ export function AdminSidebar() {
                       weight={pathname === "/admin/menu" ? "bold" : "regular"}
                     />
                     <span>Menu</span>
+                  </Link>
+                }
+              />
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                className="text-zinc-700 font-medium"
+                isActive={pathname === "/admin/combos"}
+                render={
+                  <Link to={"/admin/combos"}>
+                    <CubeIcon
+                      className="text-primary"
+                      weight={pathname === "/admin/combos" ? "bold" : "regular"}
+                    />
+                    <span>Combos</span>
                   </Link>
                 }
               />
@@ -167,15 +190,47 @@ export function AdminSidebar() {
                   <Link to={"/admin/coupons"}>
                     <TagIcon
                       className="text-primary"
-                      weight={
-                        pathname === "/admin/coupons" ? "bold" : "regular"
-                      }
+                      weight={pathname === "/admin/coupons" ? "bold" : "regular"}
                     />
                     <span>Coupons</span>
                   </Link>
                 }
               />
             </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarGroup>
+
+        <SidebarGroup className="group-data-[collapsible=icon]:hidden">
+          <SidebarGroupLabel>Analytics</SidebarGroupLabel>
+          <SidebarMenu>
+            {[
+              { to: "/admin/analytics", label: "Overview", icon: ChartLineUpIcon },
+              { to: "/admin/analytics/sales", label: "Sales", icon: ChartBarIcon },
+              { to: "/admin/analytics/orders", label: "Orders", icon: ShoppingCartSimpleIcon },
+              { to: "/admin/analytics/menu", label: "Menu", icon: ForkKnifeIcon },
+              { to: "/admin/analytics/users", label: "Users", icon: UserCircleIcon },
+              { to: "/admin/analytics/coupons", label: "Coupons", icon: TicketIcon },
+              { to: "/admin/analytics/recommendations", label: "Recommendations", icon: StarIcon },
+            ].map(({ to, label, icon }) => {
+              const ItemIcon = icon;
+              return (
+              <SidebarMenuItem key={to}>
+                <SidebarMenuButton
+                  className="text-zinc-700 font-medium"
+                  isActive={pathname === to}
+                  render={
+                    <Link to={to}>
+                      <ItemIcon
+                        className="text-primary"
+                        weight={pathname === to ? "bold" : "regular"}
+                      />
+                      <span>{label}</span>
+                    </Link>
+                  }
+                />
+              </SidebarMenuItem>
+              );
+            })}
           </SidebarMenu>
         </SidebarGroup>
       </SidebarContent>
