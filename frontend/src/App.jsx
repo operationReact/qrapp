@@ -27,7 +27,8 @@ import Search from "./pages/Search";
 import { AuthProvider } from "./context/AuthContext";
 import PartyOrdersPage from "./pages/admin/PartyOrdersPage";
 import { Toaster } from "./components/ui/sonner";
-
+import CreateComboPage from "@/pages/admin/CreateComboPage";
+import EditComboPage from "@/pages/admin/EditComboPage";
 // Analytics pages – lazy loaded for code splitting
 const AnalyticsOverview = lazy(() => import("./pages/admin/analytics/AnalyticsOverview"));
 const SalesAnalytics = lazy(() => import("./pages/admin/analytics/SalesAnalytics"));
@@ -36,7 +37,7 @@ const MenuAnalytics = lazy(() => import("./pages/admin/analytics/MenuAnalytics")
 const UserAnalytics = lazy(() => import("./pages/admin/analytics/UserAnalytics"));
 const CouponAnalytics = lazy(() => import("./pages/admin/analytics/CouponAnalytics"));
 const Recommendations = lazy(() => import("./pages/admin/analytics/Recommendations"));
-const CombosPage = lazy(() => import("./pages/admin/CombosPage"));
+const CombosPage = lazy(() => import("./pages/admin/CombosPage.jsx"));
 
 function AnalyticsFallback() {
   return (
@@ -76,6 +77,14 @@ function App() {
                   <Route path="/orders" element={<MyOrders />} />
                   <Route path="/profile" element={<Profile />} />
                   <Route path="/success" element={<Success />} />
+                  <Route
+                      path="/admin/combos/create"
+                      element={<CreateComboPage />}
+                  />
+                  <Route
+                      path="/admin/combos/:id/edit"
+                      element={<EditComboPage />}
+                  />
 
                   <Route path="/login" element={<UserLogin />} />
                   <Route path="/register" element={<Register />} />
