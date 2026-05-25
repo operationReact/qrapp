@@ -28,7 +28,7 @@ export const Route = createFileRoute('/(auth)/register')({
     const otpMutation = useMutation({
       mutationFn: () => generateOTP({ userName: name, phone }),
       onSuccess: () => {
-        setSearchParams("verify");
+        navigate({ to: '/register', search: { verify: true } });
       },
       onError: (err) => {
         setError(err?.response?.data || "Failed to generate OTP");
