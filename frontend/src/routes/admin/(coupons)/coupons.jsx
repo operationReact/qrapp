@@ -4,15 +4,10 @@ import {
   useLocation,
 } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from "@/context/AuthContext";
-import {
-  fetchCoupons,
-  createCoupon,
-  updateCoupon,
-  deleteCoupon,
-  getCouponAnalytics,
-  toggleCouponStatus,
-} from "@/services/api";
+import { createCoupon, updateCoupon, deleteCoupon, getCouponAnalytics, toggleCouponStatus } from "@/services/coupon-service";
+import { couponsOptions } from "@/query/options/coupons";
 import AdminHeader from "@/components/admin/AdminHeader";
 import {
   Table,
@@ -50,9 +45,8 @@ function AdminCouponsPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { setUser: setAdmin } = useAuth();
+  const queryClient = useQueryClient();
 
-  const [coupons, setCoupons] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -64,37 +58,56 @@ function AdminCouponsPage() {
   const [analyticsData, setAnalyticsData] = useState(null);
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
 
-  async function loadCoupons() {
-    setLoading(true);
-    try {
-      const response = await fetchCoupons();
-      setCoupons(response.data || []);
-    } catch (err) {
-      if (err?.response?.status === 401 || err?.response?.status === 403) {
-        setAdmin(null);
-        navigate({
-          to: "/login",
-          replace: true,
-          state: { from: location.pathname },
-        });
-        return;
-      }
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  }
+  const { data: coupons = [], isLoading: loading, error } = useQuery(couponsOptions);
 
   useEffect(() => {
-    loadCoupons();
-  }, []);
+    if (error && (error?.response?.status === 401 || error?.response?.status === 403)) {
+      setAdmin(null);
+      navigate({
+        to: "/login",
+        replace: true,
+        state: { from: location.pathname },
+      });
+    }
+  }, [error, navigate, setAdmin]);
+
+  const createMutation = useMutation({
+    mutationFn: createCoupon,
+    onSuccess: () => {
+      setCreateDialogOpen(false);
+      queryClient.invalidateQueries({ queryKey: ['coupons'] });
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }) => updateCoupon(id, data),
+    onSuccess: () => {
+      setEditDialogOpen(false);
+      setSelectedCoupon(null);
+      queryClient.invalidateQueries({ queryKey: ['coupons'] });
+    },
+  });
+
+  const toggleMutation = useMutation({
+    mutationFn: toggleCouponStatus,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['coupons'] });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: deleteCoupon,
+    onSuccess: () => {
+      setDeleteDialogOpen(false);
+      setSelectedCoupon(null);
+      queryClient.invalidateQueries({ queryKey: ['coupons'] });
+    },
+  });
 
   const handleCreate = async (data) => {
     setSubmitting(true);
     try {
-      await createCoupon(data);
-      setCreateDialogOpen(false);
-      loadCoupons();
+      await createMutation.mutateAsync(data);
     } catch (err) {
       console.error(err);
     } finally {
@@ -105,10 +118,7 @@ function AdminCouponsPage() {
   const handleUpdate = async (data) => {
     setSubmitting(true);
     try {
-      await updateCoupon(selectedCoupon.id, data);
-      setEditDialogOpen(false);
-      setSelectedCoupon(null);
-      loadCoupons();
+      await updateMutation.mutateAsync({ id: selectedCoupon.id, data });
     } catch (err) {
       console.error(err);
     } finally {
@@ -118,8 +128,7 @@ function AdminCouponsPage() {
 
   const handleToggle = async (coupon) => {
     try {
-      await toggleCouponStatus(coupon.id);
-      loadCoupons();
+      await toggleMutation.mutateAsync(coupon.id);
     } catch (err) {
       console.error(err);
     }
@@ -127,10 +136,7 @@ function AdminCouponsPage() {
 
   const handleDelete = async () => {
     try {
-      await deleteCoupon(selectedCoupon.id);
-      setDeleteDialogOpen(false);
-      setSelectedCoupon(null);
-      loadCoupons();
+      await deleteMutation.mutateAsync(selectedCoupon.id);
     } catch (err) {
       console.error(err);
     }
@@ -142,8 +148,8 @@ function AdminCouponsPage() {
     setAnalyticsLoading(true);
     setAnalyticsDialogOpen(true);
     try {
-      const response = await getCouponAnalytics(coupon.id);
-      setAnalyticsData(response.data);
+      const data = await getCouponAnalytics(coupon.id);
+      setAnalyticsData(data);
     } catch (err) {
       console.error(err);
     } finally {

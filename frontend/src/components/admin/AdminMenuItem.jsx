@@ -1,6 +1,6 @@
 import { useState } from "react";
 import PropTypes from "prop-types";
-import API from "../../services/api";
+import { baseURL } from "../../services";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -38,7 +38,7 @@ export default function AdminMenuItem({
   const computeImageSrc = (url) => {
     if (!url) return null;
     if (url.startsWith("http")) return url;
-    return `${API.defaults.baseURL}${url}`;
+    return `${baseURL}${url}`;
   };
 
   const imageSrc = computeImageSrc(item.imageUrl);

@@ -7,12 +7,9 @@ import React, {
   useMemo,
 } from "react";
 import { useLocation, useNavigate } from "@tanstack/react-router";
-import {
-  getOrdersAdmin,
-  updateAdminOrder,
-  getAdminOrder,
-  getAdminOrderDashboard,
-} from "../services/api";
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { adminOrdersOptions, adminOrderDashboardOptions, adminOrderOptions } from "@/query/options/orders";
+import { updateAdminOrder } from "@/services/order-service";
 import { useAuth } from "./AuthContext";
 
 const AdminDashboardContext = createContext(null);
@@ -21,25 +18,7 @@ export const AdminDashboardProvider = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { setUser: setAdmin } = useAuth();
-
-  const [ordersPage, setOrdersPage] = useState({
-    content: [],
-    totalPages: 0,
-    totalElements: 0,
-    number: 0,
-  });
-  const [dashboard, setDashboard] = useState({
-    totalOrders: 0,
-    liveOrders: 0,
-    placedOrders: 0,
-    preparingOrders: 0,
-    readyOrders: 0,
-    completedToday: 0,
-    delayedOrders: 0,
-    paidOrders: 0,
-    averageFulfillmentMinutes: 0.0,
-    liveOrdersQueue: [],
-  });
+  const queryClient = useQueryClient();
 
   const [page, setPage] = useState(0);
   const [size, setSize] = useState(10);
@@ -51,161 +30,86 @@ export const AdminDashboardProvider = ({ children }) => {
     liveOnly: false,
   });
 
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [actionLoading, setActionLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const ordersParams = useMemo(() => {
+    const params = { page, size };
+    if (filters.status) params.status = filters.status;
+    if (filters.paymentStatus) params.paymentStatus = filters.paymentStatus;
+    if (filters.priority) params.priority = filters.priority;
+    if (filters.query) params.query = filters.query;
+    if (typeof filters.liveOnly === "boolean") params.liveOnly = filters.liveOnly;
+    return params;
+  }, [page, size, filters]);
 
-  const [singleOrderCache, setSingleOrderCache] = useState({});
+  const {
+    data: ordersPage,
+    isLoading: loading,
+    isRefetching: refreshing,
+    error: queryError,
+  } = useQuery(adminOrdersOptions(ordersParams));
 
-  const loadData = useCallback(
-    async ({ quiet = false } = {}) => {
-      if (quiet) {
-        setRefreshing(true);
-      } else {
-        setLoading(true);
-      }
-      setError(null);
-
-      try {
-        const ordersRes = await getOrdersAdmin({
-          page,
-          size,
-          status: filters.status || undefined,
-          paymentStatus: filters.paymentStatus || undefined,
-          priority: filters.priority || undefined,
-          query: filters.query || undefined,
-          liveOnly: filters.liveOnly || undefined,
-        });
-        const dashboardRes = await getAdminOrderDashboard({ liveLimit: 12 });
-
-        setDashboard(dashboardRes?.data);
-
-        setOrdersPage(
-          ordersRes.data || {
-            content: [],
-            totalPages: 0,
-            totalElements: 0,
-            number: 0,
-          },
-        );
-      } catch (err) {
-        if (err?.response?.status === 401 || err?.response?.status === 403) {
-          setAdmin(null);
-          navigate({ to: "/login", 
-            replace: true,
-            state: { from: location.pathname },
-          });
-          return;
-        }
-        console.error(err);
-        setError(err?.response?.data || "Failed to load admin dashboard data");
-      } finally {
-        setLoading(false);
-        setRefreshing(false);
-      }
-    },
-    [page, size, filters, navigate, location.pathname, setAdmin],
-  );
+  const { data: dashboard } = useQuery(adminOrderDashboardOptions());
 
   useEffect(() => {
-    loadData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    page,
-    size,
-    filters.status,
-    filters.paymentStatus,
-    filters.priority,
-    filters.query,
-    filters.liveOnly,
-  ]);
-
-  useEffect(() => {
-    const timer = setInterval(() => loadData({ quiet: true }), 15000);
-    return () => clearInterval(timer);
-  }, [loadData]);
-
-  const fetchOrder = useCallback(async (orderId) => {
-    try {
-      const res = await getAdminOrder(orderId);
-      setSingleOrderCache((prev) => ({ ...prev, [orderId]: res.data }));
-      return res.data;
-    } catch (err) {
-      console.error("Failed to fetch individual order", err);
-      return null;
+    if (queryError && (queryError?.response?.status === 401 || queryError?.response?.status === 403)) {
+      setAdmin(null);
+      navigate({ to: "/login", replace: true, state: { from: location.pathname } });
     }
-  }, []);
+  }, [queryError, navigate, setAdmin]);
 
-  const handleOrderUpdate = useCallback(
-    async (orderId, payload) => {
-      setActionLoading(true);
-      setError(null);
-      try {
-        await updateAdminOrder(orderId, payload);
-        await loadData({ quiet: true });
+  const error = useMemo(() => {
+    if (!queryError) return null;
+    return queryError?.response?.data || "Failed to load admin dashboard data";
+  }, [queryError]);
 
-        if (singleOrderCache[orderId]) {
-          await fetchOrder(orderId);
-        }
-      } catch (err) {
-        if (err?.response?.status === 401 || err?.response?.status === 403) {
-          setAdmin(null);
-          navigate({ to: "/login", 
-            replace: true,
-            state: { from: location.pathname },
-          });
-          return;
-        }
-        console.error(err);
-        setError(err?.response?.data || "Failed to update order");
-      } finally {
-        setActionLoading(false);
+  const orderUpdateMutation = useMutation({
+    mutationFn: ({ orderId, payload }) => updateAdminOrder(orderId, payload),
+    onSuccess: (_, { orderId }) => {
+      queryClient.invalidateQueries({ queryKey: ['orders', 'admin'] });
+      queryClient.invalidateQueries({ queryKey: ['orders', 'admin', String(orderId)] });
+    },
+    onError: (err) => {
+      if (err?.response?.status === 401 || err?.response?.status === 403) {
+        setAdmin(null);
+        navigate({ to: "/login", replace: true, state: { from: location.pathname } });
       }
     },
-    [
-      loadData,
-      singleOrderCache,
-      fetchOrder,
-      navigate,
-      location.pathname,
-      setAdmin,
-    ],
-  );
+  });
+
+  const loadData = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ['orders', 'admin'] });
+  }, [queryClient]);
+
+  const handleOrderUpdate = useCallback(async (orderId, payload) => {
+    try {
+      await orderUpdateMutation.mutateAsync({ orderId, payload });
+    } catch (err) {
+      console.error(err);
+    }
+  }, [orderUpdateMutation]);
+
+  const ordersPageOrDefault = ordersPage || { content: [], totalPages: 0, totalElements: 0, number: 0 };
+  const dashboardOrDefault = dashboard || {
+    totalOrders: 0, liveOrders: 0, placedOrders: 0, preparingOrders: 0,
+    readyOrders: 0, completedToday: 0, delayedOrders: 0, paidOrders: 0,
+    averageFulfillmentMinutes: 0, liveOrdersQueue: [],
+  };
 
   const value = useMemo(
     () => ({
-      ordersPage,
-      dashboard,
-      page,
-      setPage,
-      size,
-      setSize,
-      filters,
-      setFilters,
-      loading,
-      refreshing,
-      error,
-      actionLoading,
-      loadData,
-      handleOrderUpdate,
-      fetchOrder,
-      singleOrderCache,
+      ordersPage: ordersPageOrDefault,
+      dashboard: dashboardOrDefault,
+      page, setPage, size, setSize,
+      filters, setFilters,
+      loading: loading && !ordersPage,
+      refreshing, error,
+      actionLoading: orderUpdateMutation.isPending,
+      loadData, handleOrderUpdate,
     }),
     [
-      ordersPage,
-      dashboard,
-      page,
-      size,
-      filters,
-      loading,
-      refreshing,
-      error,
-      actionLoading,
-      loadData,
-      handleOrderUpdate,
-      fetchOrder,
-      singleOrderCache,
+      ordersPageOrDefault, dashboardOrDefault,
+      page, size, filters, loading, refreshing, error,
+      orderUpdateMutation.isPending,
+      loadData, handleOrderUpdate,
     ],
   );
 
@@ -224,28 +128,19 @@ export const useAdminDashboard = (selectedOrderId) => {
     );
   }
 
-  const [selectedOrder, setSelectedOrder] = useState(null);
-  const { ordersPage, singleOrderCache, fetchOrder } = context;
+  const { ordersPage } = context;
 
-  useEffect(() => {
-    if (!selectedOrderId) {
-      setSelectedOrder(null);
-      return;
-    }
+  const orderFromPage = useMemo(() => {
+    if (!selectedOrderId || !ordersPage?.content) return null;
+    return ordersPage.content.find((o) => String(o.id) === String(selectedOrderId)) || null;
+  }, [selectedOrderId, ordersPage]);
 
-    const idStr = String(selectedOrderId);
-    const found = ordersPage?.content?.find((o) => String(o.id) === idStr);
+  const { data: fetchedOrder } = useQuery({
+    ...adminOrderOptions(selectedOrderId),
+    enabled: !!selectedOrderId && !orderFromPage,
+  });
 
-    if (found) {
-      setSelectedOrder(found);
-    } else if (singleOrderCache[idStr]) {
-      setSelectedOrder(singleOrderCache[idStr]);
-    } else {
-      fetchOrder(idStr).then((order) => {
-        if (order) setSelectedOrder(order);
-      });
-    }
-  }, [selectedOrderId, ordersPage, singleOrderCache, fetchOrder]);
+  const selectedOrder = orderFromPage || fetchedOrder || null;
 
   return {
     ...context,

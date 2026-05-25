@@ -10,7 +10,8 @@ import {
 import { Field, FieldLabel, FieldContent } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { submitPartyOrderEstimate } from "@/services/api";
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { submitPartyOrderEstimate } from "@/services/party-order-service";
 import { toast } from "sonner";
 
 export default function PartyOrderEstimateDialog({
@@ -20,8 +21,17 @@ export default function PartyOrderEstimateDialog({
   onSubmitted,
 }) {
   const [estimatedAmount, setEstimatedAmount] = useState("");
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const queryClient = useQueryClient();
+
+  const submitMutation = useMutation({
+    mutationFn: (data) => submitPartyOrderEstimate(orderId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['party-orders'] });
+      setEstimatedAmount("");
+      onSubmitted?.();
+    },
+  });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -32,23 +42,18 @@ export default function PartyOrderEstimateDialog({
       return;
     }
 
-    setLoading(true);
     try {
-      await submitPartyOrderEstimate(orderId, {
+      await submitMutation.mutateAsync({
         estimatedAmount: Number(estimatedAmount),
         currency: "INR",
       });
       toast.success("Estimate submitted successfully");
-      setEstimatedAmount("");
-      onSubmitted?.();
     } catch (err) {
       const message =
         err?.response?.data?.message ||
         err?.response?.data?.error ||
         "Failed to submit estimate. Please try again.";
       toast.error(message);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -92,8 +97,8 @@ export default function PartyOrderEstimateDialog({
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={loading}>
-              {loading ? "Submitting..." : "Submit Estimate"}
+            <Button type="submit" disabled={submitMutation.isPending}>
+              {submitMutation.isPending ? "Submitting..." : "Submit Estimate"}
             </Button>
           </DialogFooter>
         </form>

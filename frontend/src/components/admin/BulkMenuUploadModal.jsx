@@ -12,7 +12,7 @@ import {
   bulkMenuValidate,
   bulkMenuCommit,
   bulkMenuDownloadTemplate,
-} from "../../services/api";
+} from "../../services/menu-service";
 import { CheckCircleIcon, CircleNotchIcon, DownloadIcon, MicrosoftExcelLogoIcon, UploadIcon, XCircleIcon } from "@phosphor-icons/react";
 
 const STEP = {

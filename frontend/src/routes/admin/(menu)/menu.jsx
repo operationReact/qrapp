@@ -1,6 +1,14 @@
-import { createFileRoute, Navigate, useLocation, useNavigate, useSearch } from '@tanstack/react-router'
-import { useEffect, useState, useMemo } from "react";
-import { getMenu, updateMenuItem, deleteMenuItem } from "@/services/api";
+import {
+  createFileRoute,
+  Navigate,
+  useLocation,
+  useNavigate,
+  useSearch,
+} from "@tanstack/react-router";
+import { useState, useMemo } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { updateMenuItem, deleteMenuItem } from "@/services/menu-service";
+import { menuOptions } from "@/query/options/menu";
 import { useAuth } from "@/context/AuthContext";
 import AdminMenuItem from "@/components/admin/AdminMenuItem";
 import MenuItemEditModal from "@/components/MenuItemEditModal";
@@ -9,58 +17,33 @@ import { Plus, Filter, Upload } from "lucide-react";
 import AdminHeader from "@/components/admin/AdminHeader";
 import AdminMenuFilters from "@/components/admin/AdminMenuFilters";
 import BulkMenuUploadModal from "@/components/admin/BulkMenuUploadModal";
+import { useEffect } from "react";
 
-export const Route = createFileRoute('/admin/(menu)/menu')({
+export const Route = createFileRoute("/admin/(menu)/menu")({
   component: function AdminMenuPage() {
     const navigate = useNavigate();
     const location = useLocation();
     const search = useSearch({ strict: false });
-    const { isAdmin, isSuperUser, user: admin, setUser: setAdmin } = useAuth();
-    const [searchQuery, setSearchQuery] = useState(
-      () => search.q || "",
-    );
+    const { isAdmin, isSuperUser } = useAuth();
+    const [searchQuery, setSearchQuery] = useState(() => search.q || "");
     const [selectedCategories, setSelectedCategories] = useState(
       () => search.categories?.split(",").filter(Boolean) || [],
     );
     const [selectedTags, setSelectedTags] = useState(
       () => search.tags?.split(",").filter(Boolean) || [],
     );
-     const [filters, setFilters] = useState({
+    const [filters, setFilters] = useState({
       showRecommended: search.recommended === "true",
       showAvailable: search.available === "true",
       isVeg: search.veg === "true" ? true : null,
     });
-     const [menu, setMenu] = useState([]);
-     const [loadingMenu, setLoadingMenu] = useState(true);
+    const queryClient = useQueryClient();
     const [editingItem, setEditingItem] = useState(null);
     const [deletingItem, setDeletingItem] = useState(null);
     const [showMobileFilters, setShowMobileFilters] = useState(false);
     const [bulkUploadOpen, setBulkUploadOpen] = useState(false);
 
-    async function loadMenu() {
-      setLoadingMenu(true);
-      try {
-        const response = await getMenu();
-        setMenu(response.data || []);
-      } catch (err) {
-        if (err?.response?.status === 401 || err?.response?.status === 403) {
-          setAdmin(null);
-          navigate({
-            to: "/login",
-            replace: true,
-            state: { from: location.pathname },
-          });
-          return;
-        }
-        console.error(err);
-      } finally {
-        setLoadingMenu(false);
-      }
-    }
-
-    useEffect(() => {
-      loadMenu();
-    }, []);
+    const { data: menu, isLoading: loadingMenu } = useQuery(menuOptions());
 
     useEffect(() => {
       const params = {};
@@ -76,77 +59,64 @@ export const Route = createFileRoute('/admin/(menu)/menu')({
 
     const allCategories = useMemo(
       () =>
-        [...new Set(menu.map((item) => item.category?.name).filter(Boolean))].sort(),
+        [
+          ...new Set(
+            menu.map((item) => item.category?.name).filter(Boolean),
+          ),
+        ].sort(),
       [menu],
     );
 
     const allTags = useMemo(
-      () => [...new Set(menu.map((item) => item.tag?.name).filter(Boolean))].sort(),
+      () =>
+        [
+          ...new Set(menu.map((item) => item.tag?.name).filter(Boolean)),
+        ].sort(),
       [menu],
     );
 
-    const handleEditSuccess = (updatedItem) => {
-      setMenu((prev) =>
-        prev.map((item) => (item.id === updatedItem.id ? updatedItem : item)),
-      );
-      setEditingItem(null);
-    };
+    const toggleMutation = useMutation({
+      mutationFn: ({ id, data }) => updateMenuItem(id, data),
+      onError: (err) => {
+        console.error(err);
+        alert(err?.response?.data || "Failed to update menu item");
+      },
+      onSettled: () => {
+        queryClient.invalidateQueries({ queryKey: ["menu"] });
+      },
+    });
 
-    const handleDeleteConfirm = async (deletingItem) => {
-      try {
-        await deleteMenuItem(deletingItem.id);
-        setMenu((prev) => prev.filter((item) => item.id !== deletingItem.id));
+    const deleteMutation = useMutation({
+      mutationFn: (id) => deleteMenuItem(id),
+      onSuccess: () => {
         setDeletingItem(null);
-      } catch (err) {
+      },
+      onError: (err) => {
         console.error(err);
         alert(
           err?.response?.data || err?.message || "Failed to delete menu item",
         );
-      }
+      },
+      onSettled: () => {
+        queryClient.invalidateQueries({ queryKey: ["menu"] });
+      },
+    });
+
+    const handleEditSuccess = () => {
+      setEditingItem(null);
+      queryClient.invalidateQueries({ queryKey: ["menu"] });
     };
 
-    const handleToggleAvailable = async (id, nextAvailable) => {
-      setMenu((prev) =>
-        prev.map((current) =>
-          current.id === id ? { ...current, available: nextAvailable } : current,
-        ),
-      );
-      try {
-        await updateMenuItem(id, { available: nextAvailable });
-      } catch (err) {
-        console.error(err);
-        setMenu((prev) =>
-          prev.map((current) =>
-            current.id === id
-              ? { ...current, available: !nextAvailable }
-              : current,
-          ),
-        );
-        alert(err?.response?.data || "Failed to update availability");
-      }
+    const handleDeleteConfirm = (item) => {
+      deleteMutation.mutate(item.id);
     };
 
-    const handleToggleRecommended = async (id, nextRecommended) => {
-      setMenu((prev) =>
-        prev.map((current) =>
-          current.id === id
-            ? { ...current, recommended: nextRecommended }
-            : current,
-        ),
-      );
-      try {
-        await updateMenuItem(id, { recommended: nextRecommended });
-      } catch (err) {
-        console.error(err);
-        setMenu((prev) =>
-          prev.map((current) =>
-            current.id === id
-              ? { ...current, recommended: !nextRecommended }
-              : current,
-          ),
-        );
-        alert(err?.response?.data || "Failed to update recommendation");
-      }
+    const handleToggleAvailable = (id, nextAvailable) => {
+      toggleMutation.mutate({ id, data: { available: nextAvailable } });
+    };
+
+    const handleToggleRecommended = (id, nextRecommended) => {
+      toggleMutation.mutate({ id, data: { recommended: nextRecommended } });
     };
 
     const handleClearAll = () => {
@@ -209,6 +179,8 @@ export const Route = createFileRoute('/admin/(menu)/menu')({
       );
     }
 
+    console.log({loadingMenu})
+
     return (
       <>
         <div className="flex px-4 pt-2 flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
@@ -260,7 +232,7 @@ export const Route = createFileRoute('/admin/(menu)/menu')({
                 Array.from({ length: 8 }).map((_, index) => (
                   <div
                     key={index}
-                    className="aspect-[3/4] animate-pulse rounded-2xl bg-slate-100/80"
+                    className="aspect-[3/4] animate-pulse rounded-2xl bg-slate-200/80"
                   />
                 ))}
 
@@ -292,21 +264,25 @@ export const Route = createFileRoute('/admin/(menu)/menu')({
                 </div>
               )}
 
-              {!loadingMenu && menu.length > 0 && filteredItems.length === 0 && (
-                <div className="col-span-full py-20 text-center rounded-3xl border border-dashed border-slate-200 bg-white">
-                  <h3 className="text-lg font-semibold">No Matching Items!</h3>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Try adjusting your search or filters.
-                  </p>
-                  <Button
-                    onClick={handleClearAll}
-                    variant="outline"
-                    className="mt-4 text-sm! font-medium! w-full max-w-1/3 h-12"
-                  >
-                    Clear Filters
-                  </Button>
-                </div>
-              )}
+              {!loadingMenu &&
+                menu.length > 0 &&
+                filteredItems.length === 0 && (
+                  <div className="col-span-full py-20 text-center rounded-3xl border border-dashed border-slate-200 bg-white">
+                    <h3 className="text-lg font-semibold">
+                      No Matching Items!
+                    </h3>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Try adjusting your search or filters.
+                    </p>
+                    <Button
+                      onClick={handleClearAll}
+                      variant="outline"
+                      className="mt-4 text-sm! font-medium! w-full max-w-1/3 h-12"
+                    >
+                      Clear Filters
+                    </Button>
+                  </div>
+                )}
             </div>
           </main>
         </div>
@@ -320,9 +296,12 @@ export const Route = createFileRoute('/admin/(menu)/menu')({
         <BulkMenuUploadModal
           open={bulkUploadOpen}
           onClose={() => setBulkUploadOpen(false)}
-          onSuccess={() => { setBulkUploadOpen(false); loadMenu(); }}
+          onSuccess={() => {
+            setBulkUploadOpen(false);
+            queryClient.invalidateQueries({ queryKey: ["menu"] });
+          }}
         />
       </>
     );
-  }
-})
+  },
+});

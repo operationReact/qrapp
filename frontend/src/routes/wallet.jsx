@@ -1,12 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
+import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query'
+import { walletOverviewOptions, walletTransactionsOptions } from "@/query/options/wallet";
 import Navbar from "../components/shared/Navbar";
-import {
-  clearWalletCache,
-  walletGetOverview,
-  walletGetTransactions,
-} from "../services/api";
 import { Activity } from "lucide-react";
 import {
   Check,
@@ -47,22 +44,6 @@ function useToast() {
   };
 }
 
-function loadRazorpayScript(
-  src = "https://checkout.razorpay.com/v1/checkout.js",
-) {
-  return new Promise((resolve, reject) => {
-    if (window.Razorpay) {
-      resolve(true);
-      return;
-    }
-    const script = document.createElement("script");
-    script.src = src;
-    script.onload = () => resolve(true);
-    script.onerror = () => reject(new Error("Razorpay SDK failed to load"));
-    document.body.appendChild(script);
-  });
-}
-
 const QUICK_AMOUNTS = [100, 250, 500, 1000, 2000];
 const FILTERS = [
   { key: "ALL", label: "All" },
@@ -101,110 +82,66 @@ function formatTransactionTitle(tx) {
 
 export default function WalletPage() {
   const navigate = useNavigate();
-  const mounted = useRef(true);
-  const { user, setUser } = useAuth();
+  const { setUser } = useAuth();
   const toast = useToast();
+  const queryClient = useQueryClient();
 
-  const [overview, setOverview] = useState(null);
   const [transactions, setTransactions] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [loadingMore, setLoadingMore] = useState(false);
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(false);
   const [filter, setFilter] = useState("ALL");
   const [error, setError] = useState(null);
 
-  const fetchWallet = useCallback(async (nextPage = 0, append = false) => {
-    const [overviewResp, transactionResp] = await Promise.all([
-      walletGetOverview(),
-      walletGetTransactions({ page: nextPage, size: 10 }),
-    ]);
+  const { data: overview, isLoading: loadingOverview, error: overviewError } = useQuery(walletOverviewOptions);
+  const { data: transactionPage, isLoading: loadingTx, isFetching: txFetching, error: txError } = useQuery({
+    ...walletTransactionsOptions({ page, size: 10 }),
+    placeholderData: keepPreviousData,
+  });
 
-    if (!mounted.current) return;
+  const loading = loadingOverview && loadingTx;
+  const refreshing = txFetching && page === 0;
+  const loadingMore = txFetching && page > 0;
 
-    const nextOverview = overviewResp?.data || null;
-    const transactionPage = transactionResp?.data || {};
-    const content = Array.isArray(transactionPage?.content)
-      ? transactionPage.content
-      : [];
+  useEffect(() => {
+    if (!transactionPage) return;
+    const content = Array.isArray(transactionPage?.content) ? transactionPage.content : [];
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setTransactions((current) => (page === 0 ? content : [...current, ...content]));
+    setHasMore(Boolean(transactionPage && !transactionPage.last && content.length > 0));
+  }, [transactionPage, page]);
 
-    setOverview(nextOverview);
-    setTransactions((current) => (append ? [...current, ...content] : content));
-    setPage(transactionPage?.number ?? nextPage);
-    setHasMore(
-      Boolean(transactionPage && !transactionPage.last && content.length > 0),
-    );
-  }, []);
-
-  const loadInitialWallet = useCallback(async () => {
-    if (!user?.token) {
-      navigate("/login", { state: { from: "/wallet" } });
-      return;
-    }
-
-    setLoading(true);
-    setError("");
-    try {
-      clearWalletCache();
-      await fetchWallet(0, false);
-    } catch (err) {
+  useEffect(() => {
+    const err = overviewError || txError;
+    if (err) {
       const status = err?.response?.status;
       if (status === 401) {
         setUser?.(null);
         navigate("/login", { state: { from: "/wallet" } });
         return;
       }
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setError(
         typeof err?.response?.data === "string"
           ? err.response.data
           : "Failed to load wallet details.",
       );
-    } finally {
-      if (mounted.current) setLoading(false);
+    } else {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setError(null);
     }
-  }, [fetchWallet, navigate, setUser, user?.token]);
-
-  useEffect(() => {
-    mounted.current = true;
-    loadInitialWallet();
-    return () => {
-      mounted.current = false;
-    };
-  }, [loadInitialWallet]);
+  }, [overviewError, txError, navigate, setUser]);
 
   const handleRefresh = async () => {
-    setRefreshing(true);
-    setError("");
-    try {
-      clearWalletCache();
-      await fetchWallet(0, false);
-      toast.show("Wallet refreshed");
-    } catch (err) {
-      setError(
-        typeof err?.response?.data === "string"
-          ? err.response.data
-          : "Unable to refresh wallet right now.",
-      );
-    } finally {
-      if (mounted.current) setRefreshing(false);
-    }
+    setPage(0);
+    setTransactions([]);
+    setError(null);
+    await queryClient.invalidateQueries({ queryKey: ['wallet'] });
+    toast.show("Wallet refreshed");
   };
 
-  const handleLoadMore = async () => {
-    if (!hasMore || loadingMore) return;
-    setLoadingMore(true);
-    try {
-      await fetchWallet(page + 1, true);
-    } catch (err) {
-      toast.show(
-        typeof err?.response?.data === "string"
-          ? err.response.data
-          : "Could not load more transactions",
-      );
-    } finally {
-      if (mounted.current) setLoadingMore(false);
-    }
+  const handleLoadMore = () => {
+    if (!hasMore) return;
+    setPage((p) => p + 1);
   };
 
   const filteredTransactions = useMemo(() => {
@@ -276,7 +213,7 @@ export default function WalletPage() {
             </div>
           </section>
 
-          <AddMoneyForm onSuccess={async () => await fetchWallet(0, false)} />
+          <AddMoneyForm onSuccess={() => queryClient.invalidateQueries({ queryKey: ['wallet'] })} />
 
           <section className="grid gap-3 grid-cols-2 xl:grid-cols-4">
             <div className="rounded-xl border bg-white p-4 shadow-sm shadow-gray-200/50">

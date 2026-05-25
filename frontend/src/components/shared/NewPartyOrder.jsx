@@ -4,7 +4,8 @@ import { Field, FieldLabel, FieldContent } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { createPartyOrder } from "@/services/api";
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { createPartyOrder } from "@/services/party-order-service";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -20,8 +21,15 @@ export default function NewPartyOrder({ className }) {
   const [eventDateTime, setEventDateTime] = useState("");
   const [numberOfPeople, setNumberOfPeople] = useState("");
   const [menuDescription, setMenuDescription] = useState("");
-  const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
+  const queryClient = useQueryClient();
+
+  const createOrder = useMutation({
+    mutationFn: createPartyOrder,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['party-orders'] });
+    },
+  });
 
   const validate = () => {
     const newErrors = {};
@@ -46,9 +54,8 @@ export default function NewPartyOrder({ className }) {
     e.preventDefault();
     if (!validate()) return;
 
-    setLoading(true);
     try {
-      await createPartyOrder({
+      await createOrder.mutateAsync({
         eventDateTime: new Date(eventDateTime).toISOString(),
         numberOfPeople: Number(numberOfPeople),
         menuDescription: menuDescription.trim(),
@@ -61,8 +68,6 @@ export default function NewPartyOrder({ className }) {
         err?.response?.data?.error ||
         "Failed to submit party order. Please try again.";
       toast.error(message);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -118,8 +123,8 @@ export default function NewPartyOrder({ className }) {
         </FieldContent>
       </Field>
 
-      <Button type="submit" className="w-full" disabled={loading}>
-        {loading ? "Submitting..." : "Submit Request"}
+      <Button type="submit" className="w-full" disabled={createOrder.isPending}>
+        {createOrder.isPending ? "Submitting..." : "Submit Request"}
       </Button>
     </form>
   );

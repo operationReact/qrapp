@@ -10,9 +10,10 @@ import {
   CarouselItem,
 } from "@/components/ui/carousel";
 import { usePreferences } from "@/context/PreferencesContext";
-import { getMenu } from "@/services/api";
+import { menuOptions } from "@/query/options/menu";
 import { RefreshCcw } from "@boxicons/react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useQuery } from '@tanstack/react-query'
 import Navbar from "@/components/shared/Navbar";
 
 export const Route = createFileRoute("/search")({
@@ -20,36 +21,21 @@ export const Route = createFileRoute("/search")({
 });
 
 function SearchPage() {
-  const [results, setResults] = useState([]);
   const [query, setQuery] = useState("");
-  const [error, setError] = useState(null);
 
   const {
     preferences: { segmentedFilter: vegFilter },
   } = usePreferences();
 
-  const fetchMenu = async () => {
-    setError(null);
+  const opts = {};
+  if (["veg", "nonveg"].includes(vegFilter)) {
+    opts.isVeg = vegFilter === "veg" ? true : false;
+  }
 
-    const opts = {};
-    if (["veg", "nonveg"].includes(vegFilter)) {
-      opts.isVeg = vegFilter === "veg" ? true : false;
-    }
+  const { data: results, isError: error, refetch: fetchMenu } = useQuery(menuOptions(opts));
 
-    try {
-      const res = await getMenu(opts);
-      setResults(res.data || []);
-    } catch (err) {
-      const msg = err && err.message;
-      setError(msg);
-    }
-  };
-
-  useEffect(() => {
-    fetchMenu();
-  }, [vegFilter]);
-
-  const filteredResults = results.filter((menuItem) => {
+  const menuItems = results || [];
+  const filteredResults = menuItems.filter((menuItem) => {
     const haystack = [
       menuItem.name,
       menuItem.description,
@@ -63,7 +49,7 @@ function SearchPage() {
     return query.trim() && haystack.includes(query.trim().toLowerCase());
   });
 
-  const bestsellers = results.filter(
+  const bestsellers = menuItems.filter(
     (item) => item.tag && item.tag.name.toLowerCase() === "bestseller",
   );
 
@@ -80,8 +66,8 @@ function SearchPage() {
 
           {error && (
             <div className="rounded-2xl border flex justify-between items-center border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 mt-4 w-full">
-              {error}{" "}
-              <Button variant="outline" size="icon" onClick={fetchMenu}>
+              Failed to load menu{" "}
+              <Button variant="outline" size="icon" onClick={() => fetchMenu()}>
                 <RefreshCcw />
               </Button>
             </div>

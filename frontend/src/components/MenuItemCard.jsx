@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useCart } from "../context/CartContext";
 import PropTypes from "prop-types";
-import API from "../services/api";
+import { baseURL } from "../services";
 import MenuItemActionButton from "./MenuItemActionButton";
 
 export default function MenuItemCard({ item }) {
@@ -14,7 +14,7 @@ export default function MenuItemCard({ item }) {
   const computeImageSrc = (url) => {
     if (!url) return null;
     if (url.startsWith("http")) return url;
-    return `${API.defaults.baseURL}${url}`;
+    return `${baseURL}${url}`;
   };
 
   const imageSrc = computeImageSrc(item.imageUrl);

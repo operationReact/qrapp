@@ -1,4 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useQuery } from '@tanstack/react-query'
+import { menuOptions } from "@/query/options/menu";
 import {
   Sheet,
   SheetContent,
@@ -20,7 +22,6 @@ import {
 } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { PlusIcon, TrashIcon, MinusIcon } from "@phosphor-icons/react";
-import { getMenu } from "@/services/api";
 
 const TIME_SLOTS = ["BREAKFAST", "LUNCH", "EVENING", "FULL_DAY", "CUSTOM"];
 const COMBO_TYPES = ["VEG", "NON_VEG", "CONTAINS_EGG", "VEGAN"];
@@ -88,9 +89,12 @@ function ItemRow({ item, menuItems, onChange, onRemove }) {
 
 export default function CreateComboSheet({ open, onClose, initialData, onSave, busy }) {
   const [form, setForm] = useState(BLANK);
-  const [menuItems, setMenuItems] = useState([]);
-  const [menuLoading, setMenuLoading] = useState(false);
   const [addingItemId, setAddingItemId] = useState("");
+
+  const { data: menuItems, isLoading: menuLoading } = useQuery({
+    ...menuOptions({ all: true }),
+    enabled: open,
+  });
 
   // Populate form when editing
   useEffect(() => {
@@ -124,28 +128,7 @@ export default function CreateComboSheet({ open, onClose, initialData, onSave, b
     })();
   }, [initialData, open]);
 
-  // Load menu items for picker
-  useEffect(() => {
-    if (!open) return;
-    let cancelled = false;
-    (async () => {
-      await Promise.resolve();
-      if (cancelled) return;
-      setMenuLoading(true);
-      try {
-        const res = await getMenu({ all: true });
-        if (!cancelled) {
-          const items = Array.isArray(res?.data) ? res.data : res?.data?.content ?? [];
-          setMenuItems(items);
-        }
-      } catch {
-        if (!cancelled) setMenuItems([]);
-      } finally {
-        if (!cancelled) setMenuLoading(false);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [open]);
+  const menuItemList = menuItems || [];
 
   const set = (key, val) => setForm((f) => ({ ...f, [key]: val }));
 
@@ -180,7 +163,7 @@ export default function CreateComboSheet({ open, onClose, initialData, onSave, b
   const isEditing = !!initialData;
 
   // Available items not yet in the combo
-  const availableItems = menuItems.filter(
+  const availableItems = menuItemList.filter(
     (m) => !form.items.some((it) => it.menuItemId === m.id)
   );
 

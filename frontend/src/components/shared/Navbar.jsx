@@ -1,10 +1,7 @@
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import {
-  walletGetBalance,
-  getCachedWalletBalance,
-  clearWalletCache,
-} from "../../services/api";
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { walletBalanceOptions } from "@/query/options/wallet";
 import { useIsMobile } from "@/hooks/use-mobile";
 import ModeSwitcher from "@/components/ModeSwitcher";
 import { Separator } from "@/components/ui/separator";
@@ -31,8 +28,6 @@ import { useCart } from "@/context/CartContext";
 export default function Navbar() {
   const { cart, openDrawer, closeDrawer } = useCart();
   const { user, setUser, isAdmin } = useAuth();
-  const [walletBalance, setWalletBalance] = useState(null);
-  const [loadingBalance, setLoadingBalance] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const shouldOpenCartDrawer = location.pathname !== "/cart";
@@ -43,42 +38,24 @@ export default function Navbar() {
   }, [user]);
 
   const isMobile = useIsMobile();
+  const queryClient = useQueryClient();
+
+  const { data: walletData, isLoading: loadingBalance } = useQuery({
+    ...walletBalanceOptions,
+    enabled: !!user?.token,
+  });
 
   useEffect(() => {
-    let mounted = true;
-    async function fetchBalance(forceRefresh = false) {
-      if (!user || !user.token) {
-        setWalletBalance(null);
-        return;
-      }
-      setLoadingBalance(true);
-      try {
-        if (forceRefresh) clearWalletCache();
-        const cached = !forceRefresh ? getCachedWalletBalance() : null;
-        if (cached) {
-          if (!mounted) return;
-          setWalletBalance(cached.balance ?? 0);
-        } else {
-          const resp = await walletGetBalance();
-          if (!mounted) return;
-          setWalletBalance(resp?.data?.balance ?? 0);
-        }
-      } catch (e) {
-        console.error("Failed to load wallet balance", e);
-        if (mounted) setWalletBalance(null);
-      } finally {
-        if (mounted) setLoadingBalance(false);
-      }
-    }
-    fetchBalance();
-
-    const handleWalletUpdate = () => fetchBalance(true);
+    const handleWalletUpdate = () => {
+      queryClient.invalidateQueries({ queryKey: ['wallet', 'balance'] });
+    };
     window.addEventListener("wallet:updated", handleWalletUpdate);
     return () => {
-      mounted = false;
       window.removeEventListener("wallet:updated", handleWalletUpdate);
     };
-  }, [user]);
+  }, [queryClient]);
+
+  const walletBalance = walletData?.balance ?? null;
 
   const logout = () => {
     setUser(null);

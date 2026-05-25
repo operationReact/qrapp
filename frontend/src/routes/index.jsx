@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState, useCallback } from "react";
-import { getCategories, getMenu } from "../services/api";
+import { useState } from "react";
+import { useQuery } from '@tanstack/react-query'
+import { menuOptions, categoriesOptions } from "@/query/options/menu";
 import Navbar from "../components/shared/Navbar";
 import SearchBar from "../components/shared/SearchBar";
 import CategoryTabs from "../components/CategoryTabs";
@@ -15,109 +16,37 @@ import { usePreferences } from "@/context/PreferencesContext";
 import MobileMenu from "../components/shared/MobileMenu";
 import { useLocation } from "@tanstack/react-router";
 
-// Small mock dataset used when backend is unreachable so the UI can be inspected
-const SAMPLE_MENU = [
-  {
-    id: 1,
-    name: "Paneer Butter Masala",
-    basePrice: 220,
-    price: 220,
-    category: {
-      name: "Main",
-      id: 1,
-    },
-    categoryId: 1,
-    description: "Rich tomato gravy",
-    imageUrl: null,
-    isVeg: true,
-    sellingPrice: 220,
-    margin: 0,
-  },
-  {
-    id: 2,
-    name: "Chicken Biryani",
-    basePrice: 250,
-    price: 250,
-    category: {
-      name: "Main",
-      id: 1,
-    },
-    categoryId: 1,
-    description: "Fragrant basmati biryani",
-    imageUrl: null,
-    isVeg: false,
-    sellingPrice: 250,
-    margin: 0,
-  },
-  {
-    id: 3,
-    name: "Veg Salad",
-    basePrice: 120,
-    price: 120,
-    category: {
-      name: "Sides",
-      id: 2,
-    },
-    categoryId: 2,
-    description: "Fresh greens",
-    imageUrl: null,
-    isVeg: true,
-    sellingPrice: 120,
-    margin: 0,
-  },
-];
-
 export const Route = createFileRoute("/")({
   component: MenuPage,
 });
 
 function MenuPage() {
-  const [menu, setMenu] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [offline, setOffline] = useState(false);
-  const [offlineMessage, setOfflineMessage] = useState("");
-  const [categoriesData, setCategoriesData] = useState([]);
   const { hash } = useLocation();
 
-  const category = decodeURIComponent(hash.slice(1)) || "All";
+  const category = decodeURIComponent(hash) || "All";
 
-  // local vegFilter replaced with context for respecting preferences across the app
   const { preferences } = usePreferences();
   const vegFilter = preferences.segmentedFilter;
 
-  const fetchMenu = useCallback(async () => {
-    setLoading(true);
-    const opts = {};
-    if (vegFilter === "veg") opts.isVeg = true;
-    if (vegFilter === "nonveg") opts.isVeg = false;
-    try {
-      const res = await getMenu(opts);
-      const categoriesRes = await getCategories();
-      setCategoriesData(categoriesRes.data || []);
-      setMenu(res.data || []);
-      setOffline(false);
-      setOfflineMessage("");
-    } catch (err) {
-      console.error(
-        "Failed to fetch /menu:",
-        err && err.message ? err.message : err,
-      );
-      setMenu(SAMPLE_MENU);
-      setOffline(true);
-      setOfflineMessage("Using local sample data");
-    } finally {
-      setLoading(false);
-    }
-  }, [vegFilter]);
+  const opts = {};
+  if (vegFilter === "veg") opts.isVeg = true;
+  if (vegFilter === "nonveg") opts.isVeg = false;
 
-  useEffect(() => {
-    fetchMenu();
-  }, [fetchMenu]);
+  const {
+    data: menu,
+    isLoading: loading,
+    isError: offline,
+    error: fetchError,
+    refetch: fetchMenu,
+  } = useQuery(menuOptions(opts));
 
-  const categories = [...new Set(categoriesData.map((c) => c.name))];
+  const { data: categoriesData } = useQuery(categoriesOptions);
 
-  const filtered = menu.filter((item) => {
+  const categories = [...new Set((categoriesData || []).map((c) => c.name))];
+
+  const menuItems = menu || [];
+  const filtered = menuItems.filter((item) => {
     // Normalize possible server representations for boolean-ish isVeg
     const isVeg =
       item.isVeg === true ||
@@ -161,30 +90,17 @@ function MenuPage() {
       {offline && (
         <div className="container-premium py-3">
           <div className="rounded-2xl border border-yellow-200 bg-yellow-50 p-3 text-sm text-yellow-800">
-            Backend unreachable — frontend is using local sample data. Start the
+            Backend unreachable — frontend is using cached data. Start the
             backend to use live data.
             <div className="mt-2 overflow-x-auto rounded-xl bg-white p-2 font-mono text-xs">
               cd backend; ./gradlew bootRun (or gradle bootRun)
             </div>
-            {offlineMessage && (
-              <div className="mt-2 text-xs text-red-600">{offlineMessage}</div>
-            )}
             <div className="mt-3 flex flex-col gap-2 sm:flex-row">
               <button
-                onClick={fetchMenu}
+                onClick={() => fetchMenu()}
                 className="touch-button rounded-xl bg-red-500 px-3 py-2 text-sm font-medium text-white"
               >
                 Retry
-              </button>
-              <button
-                onClick={() => {
-                  setMenu(SAMPLE_MENU);
-                  setOffline(true);
-                  setOfflineMessage("Using local sample data");
-                }}
-                className="touch-button rounded-xl bg-gray-100 px-3 py-2 text-sm font-medium text-gray-700"
-              >
-                Use sample data
               </button>
             </div>
           </div>

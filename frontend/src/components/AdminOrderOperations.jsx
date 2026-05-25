@@ -1,11 +1,8 @@
 import PropTypes from "prop-types";
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "@tanstack/react-router";
-import {
-  getAdminOrderDashboard,
-  getOrdersAdmin,
-  updateAdminOrder,
-} from "../services/api";
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { getAdminOrderDashboard, getOrdersAdmin, updateAdminOrder } from "@/services/order-service";
 import { useAuth } from "@/context/AuthContext";
 
 const STATUS_META = {
@@ -79,6 +76,7 @@ export default function AdminOrderOperations({ embedded = false }) {
   const navigate = useNavigate();
   const location = useLocation();
   const { setUser: setAdmin } = useAuth();
+  const queryClient = useQueryClient();
 
   const [dashboard, setDashboard] = useState(null);
   const [ordersPage, setOrdersPage] = useState({
@@ -89,7 +87,6 @@ export default function AdminOrderOperations({ embedded = false }) {
   });
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState(null);
   const [autoRefresh, setAutoRefresh] = useState(true);
 
@@ -105,6 +102,19 @@ export default function AdminOrderOperations({ embedded = false }) {
 
   const [selectedOrderId, setSelectedOrderId] = useState(null);
   const [noteDraft, setNoteDraft] = useState("");
+
+  const orderUpdateMutation = useMutation({
+    mutationFn: ({ orderId, payload }) => updateAdminOrder(orderId, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['orders', 'admin'] });
+    },
+    onError: (err) => {
+      if (err?.response?.status === 401 || err?.response?.status === 403) {
+        setAdmin(null);
+        navigate({ to: "/login", replace: true, state: { from: location.pathname } });
+      }
+    },
+  });
 
   const allKnownOrders = useMemo(() => {
     const combined = [
@@ -135,7 +145,7 @@ export default function AdminOrderOperations({ embedded = false }) {
     }
     setError(null);
     try {
-      const [dashboardRes, ordersRes] = await Promise.all([
+      const [nextDashboard, nextOrdersPage] = await Promise.all([
         getAdminOrderDashboard({ liveLimit: 12 }),
         getOrdersAdmin({
           page,
@@ -147,24 +157,22 @@ export default function AdminOrderOperations({ embedded = false }) {
           liveOnly: filters.liveOnly || undefined,
         }),
       ]);
-      const nextDashboard = dashboardRes.data || {};
-      const nextOrdersPage = ordersRes.data || {
+      setDashboard(nextDashboard || {});
+      setOrdersPage(nextOrdersPage || {
         content: [],
         totalPages: 0,
         totalElements: 0,
         number: 0,
-      };
-      setDashboard(nextDashboard);
-      setOrdersPage(nextOrdersPage);
+      });
 
       const availableIds = new Set([
-        ...(nextDashboard.liveOrdersQueue || []).map((order) => order.id),
-        ...(nextOrdersPage.content || []).map((order) => order.id),
+        ...((nextDashboard || {}).liveOrdersQueue || []).map((order) => order.id),
+        ...((nextOrdersPage || {}).content || []).map((order) => order.id),
       ]);
       if (!selectedOrderId || !availableIds.has(selectedOrderId)) {
         const fallback =
-          nextDashboard.liveOrdersQueue?.[0]?.id ??
-          nextOrdersPage.content?.[0]?.id ??
+          (nextDashboard || {}).liveOrdersQueue?.[0]?.id ??
+          (nextOrdersPage || {}).content?.[0]?.id ??
           null;
         setSelectedOrderId(fallback);
       }
@@ -217,24 +225,12 @@ export default function AdminOrderOperations({ embedded = false }) {
   ]);
 
   async function handleOrderUpdate(orderId, payload) {
-    setActionLoading(true);
-    setError(null);
     try {
-      await updateAdminOrder(orderId, payload);
+      await orderUpdateMutation.mutateAsync({ orderId, payload });
       await loadData({ quiet: true });
     } catch (err) {
-      if (err?.response?.status === 401 || err?.response?.status === 403) {
-        setAdmin(null);
-        navigate({ to: "/login", 
-          replace: true,
-          state: { from: location.pathname },
-        });
-        return;
-      }
       console.error(err);
       setError(err?.response?.data || "Failed to update order");
-    } finally {
-      setActionLoading(false);
     }
   }
 
@@ -514,7 +510,7 @@ export default function AdminOrderOperations({ embedded = false }) {
                                 status: nextStatus,
                               })
                             }
-                            disabled={actionLoading}
+                            disabled={orderUpdateMutation.isPending}
                             className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
                           >
                             Move to {toneForStatus(nextStatus).label}
@@ -805,7 +801,7 @@ export default function AdminOrderOperations({ embedded = false }) {
                             status: nextStatus,
                           })
                         }
-                        disabled={actionLoading}
+                        disabled={orderUpdateMutation.isPending}
                         className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         Move to {toneForStatus(nextStatus).label}
@@ -826,7 +822,7 @@ export default function AdminOrderOperations({ embedded = false }) {
                       onClick={() =>
                         handleOrderUpdate(selectedOrder.id, { priority })
                       }
-                      disabled={actionLoading}
+                      disabled={orderUpdateMutation.isPending}
                       className={`rounded-xl border px-3 py-2 text-sm font-semibold transition ${selectedOrder.priority === priority ? toneForPriority(priority).tone : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"}`}
                     >
                       {toneForPriority(priority).label}
@@ -861,7 +857,7 @@ export default function AdminOrderOperations({ embedded = false }) {
                         adminNote: noteDraft,
                       })
                     }
-                    disabled={actionLoading}
+                    disabled={orderUpdateMutation.isPending}
                     className="rounded-xl bg-brand-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     Save note
@@ -870,7 +866,7 @@ export default function AdminOrderOperations({ embedded = false }) {
                     onClick={() =>
                       handleOrderUpdate(selectedOrder.id, { adminNote: "" })
                     }
-                    disabled={actionLoading}
+                    disabled={orderUpdateMutation.isPending}
                     className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     Clear note

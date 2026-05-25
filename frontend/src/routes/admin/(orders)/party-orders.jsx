@@ -1,8 +1,8 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { useEffect, useState } from "react";
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import AdminHeader from "@/components/admin/AdminHeader";
 import PartyOrderCard from "@/components/admin/PartyOrderCard";
-import { getPartyOrdersAdmin } from "@/services/api";
+import { partyOrdersOptions } from "@/query/options/party-orders";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export const Route = createFileRoute('/admin/(orders)/party-orders')({
@@ -10,24 +10,8 @@ export const Route = createFileRoute('/admin/(orders)/party-orders')({
 })
 
 function PartyOrdersPage() {
-  const [orders, setOrders] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  const loadOrders = async () => {
-    setLoading(true);
-    try {
-      const resp = await getPartyOrdersAdmin();
-      setOrders(resp.data || []);
-    } catch (err) {
-      console.error("Failed to load party orders:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadOrders();
-  }, []);
+  const queryClient = useQueryClient();
+  const { data: orders = [], isLoading: loading } = useQuery(partyOrdersOptions);
 
   return (
     <>
@@ -56,7 +40,7 @@ function PartyOrdersPage() {
               <PartyOrderCard
                 key={order.id}
                 order={order}
-                onEstimateSubmitted={loadOrders}
+                onEstimateSubmitted={() => queryClient.invalidateQueries({ queryKey: ['party-orders'] })}
               />
             ))}
           </div>

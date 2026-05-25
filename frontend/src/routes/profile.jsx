@@ -1,8 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import Navbar from "@/components/shared/Navbar";
-import { getCurrentUser, updateCurrentUser } from "@/services/api";
+import { updateCurrentUser } from "@/services/auth-service";
+import { currentUserOptions } from "@/query/options/auth";
 import { LockKeyhole, Menu, Shield } from "@boxicons/react";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,7 +25,20 @@ export const Route = createFileRoute("/profile")({
 
 function ProfilePage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { user, setUser } = useAuth();
+
+  useEffect(() => {
+    if (!user?.token) {
+      navigate({ to: "/login", state: { from: "/profile" } });
+    }
+  }, [user?.token, navigate]);
+
+  const { data: profile, isLoading, error: loadError } = useQuery({
+    ...currentUserOptions,
+    enabled: !!user?.token,
+  });
+
   const [form, setForm] = useState({
     name: "",
     phone: "",
@@ -31,51 +46,47 @@ function ProfilePage() {
     newPassword: "",
     confirmPassword: "",
   });
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (profile) {
+      setForm((current) => ({
+        ...current,
+        name: profile.name || "",
+        phone: profile.phone || "",
+      }));
+      setUser((current) =>
+        current ? { ...current, info: profile } : current,
+      );
+    }
+  }, [profile, setUser]);
+
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  useEffect(() => {
-    let mounted = true;
+  const updateMutation = useMutation({
+    mutationFn: updateCurrentUser,
+    onSuccess: (data) => {
+      setUser((current) => (current ? { ...current, info: data } : current));
+      setForm((current) => ({
+        ...current,
+        name: data.name || "",
+        phone: data.phone || "",
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      }));
+      setSuccess("Profile updated successfully.");
+      queryClient.invalidateQueries({ queryKey: currentUserOptions.queryKey });
+    },
+    onError: (err) => {
+      const message = err?.response?.data || "Failed to update profile.";
+      setError(
+        typeof message === "string" ? message : "Failed to update profile.",
+      );
+    },
+  });
 
-    async function loadProfile() {
-      if (!user?.token) {
-        navigate({ to: "/login", state: { from: "/profile" } });
-        return;
-      }
-
-      try {
-        const response = await getCurrentUser();
-        if (!mounted) return;
-        const profile = response?.data || {};
-        setForm((current) => ({
-          ...current,
-          name: profile.name || "",
-          phone: profile.phone || "",
-        }));
-        setUser((current) =>
-          current ? { ...current, info: profile } : current,
-        );
-      } catch (err) {
-        if (!mounted) return;
-        const message =
-          err?.response?.data || "Unable to load your profile right now.";
-        setError(
-          typeof message === "string"
-            ? message
-            : "Unable to load your profile right now.",
-        );
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    }
-
-    loadProfile();
-    return () => {
-      mounted = false;
-    };
-  }, [navigate, setUser, user?.token]);
+  const saving = updateMutation.isPending;
 
   const passwordHint = useMemo(
     () =>
@@ -91,7 +102,7 @@ function ProfilePage() {
     setForm((current) => ({ ...current, [key]: event.target.value }));
   };
 
-  const handleSubmit = async (event) => {
+  const handleSubmit = (event) => {
     event.preventDefault();
     setError("");
     setSuccess("");
@@ -106,38 +117,17 @@ function ProfilePage() {
       return;
     }
 
-    setSaving(true);
-    try {
-      const payload = {
-        name: form.name,
-        phone: form.phone,
-      };
+    const payload = {
+      name: form.name,
+      phone: form.phone,
+    };
 
-      if (form.newPassword) {
-        payload.currentPassword = form.currentPassword;
-        payload.newPassword = form.newPassword;
-      }
-
-      const response = await updateCurrentUser(payload);
-      const profile = response?.data || {};
-      setUser((current) => (current ? { ...current, info: profile } : current));
-      setForm((current) => ({
-        ...current,
-        name: profile.name || "",
-        phone: profile.phone || "",
-        currentPassword: "",
-        newPassword: "",
-        confirmPassword: "",
-      }));
-      setSuccess("Profile updated successfully.");
-    } catch (err) {
-      const message = err?.response?.data || "Failed to update profile.";
-      setError(
-        typeof message === "string" ? message : "Failed to update profile.",
-      );
-    } finally {
-      setSaving(false);
+    if (form.newPassword) {
+      payload.currentPassword = form.currentPassword;
+      payload.newPassword = form.newPassword;
     }
+
+    updateMutation.mutate(payload);
   };
 
   return (
@@ -155,7 +145,7 @@ function ProfilePage() {
           </div>
 
           <section className="rounded-xl border bg-white shadow-sm">
-            {loading ? (
+            {isLoading ? (
               <div className="py-10 text-center text-muted-foreground">
                 Loading Profile...
               </div>

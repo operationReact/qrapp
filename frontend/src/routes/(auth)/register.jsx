@@ -1,8 +1,9 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useState } from "react";
 import { useNavigate, useSearch } from "@tanstack/react-router";
-import API, { generateOTP, loginUser, verifyOTP } from "@/services/api";
-import { setUserAuth } from "@/services/api";
+import { useMutation } from '@tanstack/react-query'
+import { generateOTP, verifyOTP, loginUser, registerUser } from "@/services/auth-service";
+import { setUserAuth } from "@/services";
 import { Link } from "@tanstack/react-router";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Field, FieldContent, FieldLabel } from "@/components/ui/field";
@@ -22,57 +23,52 @@ export const Route = createFileRoute('/(auth)/register')({
     const [phone, setPhone] = useState("");
     const [name, setName] = useState("");
     const [password, setPassword] = useState("");
-    const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
 
-    const handleGenerateOTP = async (e) => {
-      e.preventDefault();
-      setError(null);
-      setLoading(true);
-      try {
-        await generateOTP({ userName: name, phone });
+    const otpMutation = useMutation({
+      mutationFn: () => generateOTP({ userName: name, phone }),
+      onSuccess: () => {
         setSearchParams("verify");
-      } catch (err) {
-        console.error("generateOTP failed", err);
+      },
+      onError: (err) => {
         setError(err?.response?.data || "Failed to generate OTP");
-      } finally {
-        setLoading(false);
-      }
-    };
+      },
+    });
 
-    const createAccount = async () => {
-      setError(null);
-      setLoading(true);
-      try {
-        const otpVerified = await verifyOTP({
+    const registerMutation = useMutation({
+      mutationFn: async () => {
+        await verifyOTP({
           phone: phone.includes("+91") ? phone : `+91${phone}`,
-          otp: search.otp
+          otp: search.otp,
         });
-
-        if (otpVerified.data?.sucesss !== true) {
-          setError("OTP verification failed");
-          setLoading(false);
-          return;
-        }
-
-        await API.post("/auth/register", { phone, password, name });
-        const res = await loginUser({ phone, password });
-        const data = res.data || {};
-        const token = data.token;
+        await registerUser({ phone, password, name });
+        const data = await loginUser({ phone, password });
+        return data;
+      },
+      onSuccess: (data) => {
+        const token = data?.token;
         if (!token) {
           setError("Registration succeeded but no token returned");
-          setLoading(false);
           return;
         }
         setUser({ token, info: data.user || { phone, name } });
         setUserAuth(token);
         navigate({ to: "/" });
-      } catch (err) {
-        console.error("register failed", err);
+      },
+      onError: (err) => {
         setError(err?.response?.data || "Unable to register");
-      } finally {
-        setLoading(false);
-      }
+      },
+    });
+
+    const handleGenerateOTP = (e) => {
+      e.preventDefault();
+      setError(null);
+      otpMutation.mutate();
+    };
+
+    const createAccount = () => {
+      setError(null);
+      registerMutation.mutate();
     };
 
     return (
@@ -153,10 +149,10 @@ export const Route = createFileRoute('/(auth)/register')({
                   <div className="flex mt-5 flex-col gap-2">
                     <Button
                       type="submit"
-                      disabled={loading}
+                      disabled={otpMutation.isPending}
                       className="h-10 text-sm! font-medium!"
                     >
-                      {loading ? "Creating..." : "Create Account"}
+                      {otpMutation.isPending ? "Creating..." : "Create Account"}
                     </Button>
                     <Link
                       className={buttonVariants({ variant: "ghost", size: "lg" })}

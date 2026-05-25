@@ -1,7 +1,8 @@
 import { useEffect, useState, useRef } from "react";
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import PropTypes from "prop-types";
-import { updateMenuItem } from "../services/api";
-import API from "../services/api";
+import { updateMenuItem } from "../services/menu-service";
+import { baseURL } from "../services";
 import { Button } from "@/components/ui/button";
 import {
   Field,
@@ -46,8 +47,8 @@ export default function MenuItemEditModal({
     imageFile: null,
     previewUrl: "",
   });
-  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     if (item) {
@@ -78,9 +79,7 @@ export default function MenuItemEditModal({
       ["http://", "https://", "blob:"].some((prefix) => url.startsWith(prefix))
     )
       return url;
-    const base =
-      API && API.defaults && API.defaults.baseURL ? API.defaults.baseURL : "";
-    return `${base}${url}`;
+    return `${baseURL}${url}`;
   };
 
   const handleChange = (key) => (e) => {
@@ -147,20 +146,8 @@ export default function MenuItemEditModal({
     if (onPreviewChange) onPreviewChange("");
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    const v = validate();
-    if (v) {
-      setError(v);
-      return;
-    }
-
-    setSubmitting(true);
-    setError(null);
-    try {
-      // If an image file is selected, send multipart/form-data
-      console.log(form)
-      let res;
+  const updateMutation = useMutation({
+    mutationFn: () => {
       if (form.imageFile) {
         const fd = new FormData();
         fd.append("name", form.name.trim());
@@ -172,31 +159,41 @@ export default function MenuItemEditModal({
         fd.append("tag", form.tag.trim());
         fd.append("isVeg", String(!!form.isVeg));
         fd.append("image", form.imageFile);
-        res = await updateMenuItem(item.id, fd);
-      } else {
-        const payload = {
-          name: form.name.trim(),
-          price: Number(form.price),
-          category: form.category.trim(),
-          description: form.description.trim(),
-          imageUrl: form.imageUrl ? form.imageUrl.trim() : item.imageUrl || "",
-          available: !!form.available,
-          recommended: !!form.recommended,
-          tag: form.tag.trim(),
-          isVeg: !!form.isVeg,
-        };
-        res = await updateMenuItem(item.id, payload);
+        return updateMenuItem(item.id, fd);
       }
+      const payload = {
+        name: form.name.trim(),
+        price: Number(form.price),
+        category: form.category.trim(),
+        description: form.description.trim(),
+        imageUrl: form.imageUrl ? form.imageUrl.trim() : item.imageUrl || "",
+        available: !!form.available,
+        recommended: !!form.recommended,
+        tag: form.tag.trim(),
+        isVeg: !!form.isVeg,
+      };
+      return updateMenuItem(item.id, payload);
+    },
+    onSuccess: (data) => {
+      onSuccess(data);
+      onClose?.();
+      queryClient.invalidateQueries({ queryKey: ['menu'] });
+    },
+    onError: (err) => {
+      console.error(err);
+      setError(err?.response?.data || "Failed to update menu item");
+    },
+  });
 
-      const updated = res?.data || { ...item, ...form };
-      if (onSuccess) onSuccess(updated);
-      onClose();
-    } catch (err) {
-      console.error("update failed", err);
-      setError(err?.response?.data?.message || "Failed to update");
-    } finally {
-      setSubmitting(false);
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const v = validate();
+    if (v) {
+      setError(v);
+      return;
     }
+    setError(null);
+    updateMutation.mutate();
   };
 
   if (!item) return null;
@@ -427,9 +424,9 @@ export default function MenuItemEditModal({
             size="lg"
             type="submit"
             form="edit-menu-form"
-            disabled={submitting}
+            disabled={updateMutation.isPending}
           >
-            {submitting ? "Saving..." : "Save Changes"}
+            {updateMutation.isPending ? "Saving..." : "Save Changes"}
           </Button>
           <Button
             size="lg"

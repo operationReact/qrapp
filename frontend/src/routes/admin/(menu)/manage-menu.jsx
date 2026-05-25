@@ -5,8 +5,10 @@ import {
   useNavigate,
 } from "@tanstack/react-router";
 import { useState, useRef } from "react";
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from "@/context/AuthContext";
-import API, { createMenuItem } from "@/services/api";
+import { baseURL } from "@/services";
+import { createMenuItem } from "@/services/menu-service";
 import { Button } from "@/components/ui/button";
 import {
   Field,
@@ -28,9 +30,8 @@ export const Route = createFileRoute("/admin/(menu)/manage-menu")({
 });
 
 function AdminCreateMenuPage() {
-  const navigate = useNavigate();
   const location = useLocation();
-  const { isAdmin, isSuperUser, setUser: setAdmin } = useAuth();
+  const { isAdmin, isSuperUser } = useAuth();
 
   const [form, setForm] = useState({
     name: "",
@@ -46,9 +47,9 @@ function AdminCreateMenuPage() {
 
   const [imageFile, setImageFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState("");
-  const [creating, setCreating] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const queryClient = useQueryClient();
 
   const imageFieldRef = useRef(null);
 
@@ -116,7 +117,25 @@ function AdminCreateMenuPage() {
     handleRemoveFile();
   };
 
-  const handleSubmit = async (event) => {
+  const createMutation = useMutation({
+    mutationFn: (payload) => createMenuItem(payload),
+    onSuccess: () => {
+      setSuccess("Menu item created successfully");
+      resetForm();
+      queryClient.invalidateQueries({ queryKey: ['menu'] });
+      window.setTimeout(() => setSuccess(""), 3000);
+    },
+    onError: (err) => {
+      console.error(err);
+      setError(
+        err?.response?.data?.message ||
+          err?.response?.data ||
+          "Failed to create menu item",
+      );
+    },
+  });
+
+  const handleSubmit = (event) => {
     event.preventDefault();
     setError("");
     setSuccess("");
@@ -130,54 +149,30 @@ function AdminCreateMenuPage() {
       return;
     }
 
-    setCreating(true);
-    try {
-      if (imageFile) {
-        const formData = new FormData();
-        formData.append("name", form.name.trim());
-        formData.append("price", String(Number(form.price)));
-        formData.append("category", form.category.trim() || "Misc");
-        formData.append("description", form.description.trim());
-        formData.append("available", String(form.available));
-        formData.append("recommended", String(form.recommended));
-        formData.append("tag", form.tag.trim());
-        formData.append("isVeg", String(Boolean(form.isVeg)));
-        formData.append("image", imageFile);
-        await createMenuItem(formData);
-      } else {
-        await createMenuItem({
-          name: form.name.trim(),
-          price: Number(form.price),
-          category: form.category.trim() || "Misc",
-          description: form.description.trim(),
-          imageUrl: form.imageUrl.trim(),
-          available: form.available,
-          recommended: form.recommended,
-          tag: form.tag.trim(),
-          isVeg: Boolean(form.isVeg),
-        });
-      }
-      setSuccess("Menu item created successfully");
-      resetForm();
-      window.setTimeout(() => setSuccess(""), 3000);
-    } catch (err) {
-      console.error(err);
-      if (err?.response?.status === 401 || err?.response?.status === 403) {
-        setAdmin(null);
-        navigate({
-          to: "/login",
-          replace: true,
-          state: { from: location.pathname },
-        });
-        return;
-      }
-      setError(
-        err?.response?.data?.message ||
-          err?.response?.data ||
-          "Failed to create menu item",
-      );
-    } finally {
-      setCreating(false);
+    if (imageFile) {
+      const formData = new FormData();
+      formData.append("name", form.name.trim());
+      formData.append("price", String(Number(form.price)));
+      formData.append("category", form.category.trim() || "Misc");
+      formData.append("description", form.description.trim());
+      formData.append("available", String(form.available));
+      formData.append("recommended", String(form.recommended));
+      formData.append("tag", form.tag.trim());
+      formData.append("isVeg", String(Boolean(form.isVeg)));
+      formData.append("image", imageFile);
+      createMutation.mutate(formData);
+    } else {
+      createMutation.mutate({
+        name: form.name.trim(),
+        price: Number(form.price),
+        category: form.category.trim() || "Misc",
+        description: form.description.trim(),
+        imageUrl: form.imageUrl.trim(),
+        available: form.available,
+        recommended: form.recommended,
+        tag: form.tag.trim(),
+        isVeg: Boolean(form.isVeg),
+      });
     }
   };
 
@@ -187,9 +182,7 @@ function AdminCreateMenuPage() {
       ["http://", "https://", "blob:"].some((prefix) => url.startsWith(prefix))
     )
       return url;
-    const base =
-      API && API.defaults && API.defaults.baseURL ? API.defaults.baseURL : "";
-    return `${base}${url}`;
+    return `${baseURL}${url}`;
   };
 
   if (!isAdmin && !isSuperUser) {
@@ -421,8 +414,8 @@ function AdminCreateMenuPage() {
             >
               Reset
             </Button>
-            <Button size="lg" type="submit" disabled={creating}>
-              {creating ? "Creating Item..." : "Create Menu Item"}
+            <Button size="lg" type="submit" disabled={createMutation.isPending}>
+              {createMutation.isPending ? "Creating Item..." : "Create Menu Item"}
             </Button>
           </div>
         </form>

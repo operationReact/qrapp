@@ -1,7 +1,8 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, Link, useLocation } from "@tanstack/react-router";
-import API, { loginUser } from "@/services/api";
+import { useMutation } from '@tanstack/react-query'
+import { loginUser } from "@/services/auth-service";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Field, FieldContent, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -17,8 +18,6 @@ export const Route = createFileRoute('/(auth)/login')({
 
     const [identifier, setIdentifier] = useState("");
     const [password, setPassword] = useState("");
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState(null);
 
     const returnPath =
       typeof location.state?.from === "string" ? location.state.from : null;
@@ -41,31 +40,23 @@ export const Route = createFileRoute('/(auth)/login')({
       navigate({ to: returnPath && !returnPath.startsWith("/admin") ? returnPath : "/" });
     }, [user, isAdmin, isSuperUser, navigate, returnPath]);
 
-    const submit = async (e) => {
-      e.preventDefault();
-      setError(null);
-      setLoading(true);
-      try {
-        const res = await loginUser({ phone: identifier, password });
-        const data = res.data || {};
-        const token = data.token;
+    const [noToken, setNoToken] = useState(false);
 
-        if (!token) {
-          setError("No token returned from server");
-          setLoading(false);
+    const loginMutation = useMutation({
+      mutationFn: loginUser,
+      onSuccess: (data) => {
+        if (!data.token) {
+          setNoToken(true);
           return;
         }
-
         setUser({ token: data.token, ...data.user });
-        navigate({ to: 
-          returnPath ? returnPath : "/"
-        });
-      } catch (err) {
-        console.error("login failed", err);
-        setError("Invalid phone or password");
-      } finally {
-        setLoading(false);
-      }
+        navigate({ to: returnPath ? returnPath : "/" });
+      },
+    });
+
+    const submit = (e) => {
+      e.preventDefault();
+      loginMutation.mutate({ phone: identifier, password });
     };
 
     return (
@@ -94,9 +85,9 @@ export const Route = createFileRoute('/(auth)/login')({
             <div className="mb-2 mt-4">
               <h1 className="text-2xl font-semibold">Login Your Account</h1>
             </div>
-            {error && (
+            {(loginMutation.isError || noToken) && (
               <div className="mb-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
-                {error}
+                {noToken ? "No token returned from server" : "Invalid phone or password"}
               </div>
             )}
             <form onSubmit={submit} className="space-y-4">
@@ -125,8 +116,8 @@ export const Route = createFileRoute('/(auth)/login')({
                 </FieldContent>
               </Field>
               <div className="flex mt-5 flex-col gap-2 justify-center">
-                <Button type="submit" size="lg" disabled={loading}>
-                  {loading ? "Signing in..." : "Sign In"}
+                <Button type="submit" size="lg" disabled={loginMutation.isPending}>
+                  {loginMutation.isPending ? "Signing in..." : "Sign In"}
                 </Button>
 
                 <Link

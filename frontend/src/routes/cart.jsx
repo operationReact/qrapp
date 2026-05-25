@@ -22,14 +22,11 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import Navbar from "@/components/shared/Navbar";
 import { useCart } from "@/context/CartContext";
-import {
-  clearWalletCache,
-  createOrder,
-  getCurrentUser,
-  getRecommendedMenu,
-  notifyWalletUpdated,
-  walletGetBalance,
-} from "@/services/api";
+import { useQueryClient } from '@tanstack/react-query'
+import { createOrder } from "@/services/order-service";
+import { getCurrentUser } from "@/services/auth-service";
+import { walletGetBalance } from "@/services/wallet-service";
+import { getRecommendedMenu } from "@/services/menu-service";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Field,
@@ -74,6 +71,7 @@ function CartPage() {
   } = useCart();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [recommended, setRecommended] = useState([]);
   const [recLoading, setRecLoading] = useState(false);
   const [walletBalance, setWalletBalance] = useState(null);
@@ -125,7 +123,7 @@ function CartPage() {
       try {
         const resp = await walletGetBalance();
         if (!mounted) return;
-        const nextBalance = Number(resp?.data?.balance ?? 0);
+        const nextBalance = Number(resp?.balance ?? 0);
         setWalletBalance(nextBalance);
         if (nextBalance >= total && total > 0) {
           setPaymentMethod((current) =>
@@ -166,7 +164,7 @@ function CartPage() {
       let phone;
       try {
         const me = await getCurrentUser();
-        phone = me?.data?.phone;
+        phone = me?.phone;
       } catch (e) {
         console.debug("getCurrentUser failed", e);
       }
@@ -182,25 +180,25 @@ function CartPage() {
       }
 
       const res = await createOrder({ items, phone, paymentMethod });
-      console.log("Order response:", res?.data);
-      const responsePaymentMethod = res?.data?.paymentMethod || paymentMethod;
+      console.log("Order response:", res);
+      const responsePaymentMethod = res?.paymentMethod || paymentMethod;
 
       if (responsePaymentMethod === "WALLET") {
         clearCart?.();
-        clearWalletCache();
-        notifyWalletUpdated();
+        queryClient.invalidateQueries({ queryKey: ['wallet'] });
+        window.dispatchEvent(new Event('wallet:updated'));
         navigate({
           to: "/success",
           state: {
             paymentMethod: "WALLET",
-            orderNumber: res?.data?.orderNumber,
-            orderId: res?.data?.orderId,
+            orderNumber: res?.orderNumber,
+            orderId: res?.orderId,
           },
         });
         return;
       }
 
-      const { payment } = res.data;
+      const { payment } = res;
       const orderIdForRzp =
         payment?.rzpOrderId || payment?.orderId || payment?.order_id;
 
@@ -231,8 +229,8 @@ function CartPage() {
             to: "/success",
             state: {
               paymentMethod: "RAZORPAY",
-              orderNumber: res?.data?.orderNumber,
-              orderId: res?.data?.orderId,
+              orderNumber: res?.orderNumber,
+              orderId: res?.orderId,
             },
           });
         },

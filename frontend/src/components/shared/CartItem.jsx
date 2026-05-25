@@ -1,6 +1,6 @@
 import { useState } from "react";
 import QuantityUpdater from "./QuantityUpdater";
-import API from "@/services/api";
+import { baseURL } from "@/services";
 
 export default function CartItem({ item, removeItem, addItem, decreaseItem }) {
   const [imgError, setImgError] = useState(false);
@@ -8,7 +8,7 @@ export default function CartItem({ item, removeItem, addItem, decreaseItem }) {
   const computeImageSrc = (url) => {
     if (!url) return null;
     if (url.startsWith("http")) return url;
-    return `${API.defaults.baseURL}${url}`;
+    return `${baseURL}${url}`;
   };
 
   const imageSrc = computeImageSrc(item.imageUrl);

@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import { setUserAuth } from "@/services/api";
+import { setUserAuth } from "@/services";
 import PropTypes from "prop-types";
 import { createContext, useContext, useEffect, useState } from "react";
 

@@ -1,81 +1,74 @@
-import { useState, useEffect, useCallback } from "react";
-import * as svc from "@/services/comboService";
+import { useQuery, useMutation, useQueryClient, useIsMutating } from '@tanstack/react-query'
+import {
+  createCombo,
+  updateCombo,
+  updateComboStatus,
+  deleteCombo,
+} from '@/services/comboService'
+import {
+  comboSummaryOptions,
+  comboListOptions,
+  comboOptions,
+} from '@/query/options/combos'
 
-// ── generic async fetch hook (compliant with react-hooks v5) ──────────────
-function useFetch(fetcher, depsKey = "") {
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [tick, setTick] = useState(0);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      // defer state updates to avoid synchronous setState-in-effect warning
-      await Promise.resolve();
-      if (cancelled) return;
-      setLoading(true);
-      setError(null);
-      try {
-        const d = await fetcher();
-        if (!cancelled) setData(d);
-      } catch (e) {
-        if (!cancelled) setError(e);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => { cancelled = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [depsKey, tick]);
-
-  return { data, loading, error, refetch: () => setTick((t) => t + 1) };
+function useQueryWrapper(options) {
+  const { data, isLoading, error, refetch } = useQuery(options)
+  return { data, loading: isLoading, error, refetch }
 }
 
-// ── summary KPIs ───────────────────────────────────────────────────────────
 export const useComboSummary = () =>
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useFetch(() => svc.getComboAnalyticsSummary());
+  useQueryWrapper(comboSummaryOptions)
 
-// ── paginated list ─────────────────────────────────────────────────────────
 export function useComboList(params) {
-  const key = JSON.stringify(params);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  return useFetch(() => svc.listCombos(params), key);
+  return useQueryWrapper(comboListOptions(params))
 }
 
-// ── single combo ───────────────────────────────────────────────────────────
 export function useCombo(id) {
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  return useFetch(() => svc.getCombo(id), String(id ?? ""));
+  return useQueryWrapper(comboOptions(id))
 }
 
-// ── mutations (imperative) ─────────────────────────────────────────────────
 export function useComboMutations(onSuccess) {
-  const [busy, setBusy] = useState(false);
-  const [mutError, setMutError] = useState(null);
+  const queryClient = useQueryClient()
+  const comboMutating = useIsMutating({ mutationKey: ['combos'] })
 
-  const run = useCallback(async (fn) => {
-    setBusy(true);
-    setMutError(null);
-    try {
-      const result = await fn();
-      onSuccess?.();
-      return result;
-    } catch (e) {
-      setMutError(e?.response?.data?.message ?? e?.message ?? "Something went wrong");
-      throw e;
-    } finally {
-      setBusy(false);
-    }
-  }, [onSuccess]);
+  const invalidate = () => {
+    queryClient.invalidateQueries({ queryKey: ['combos'] })
+    onSuccess?.()
+  }
+
+  const createMutation = useMutation({
+    mutationKey: ['combos', 'create'],
+    mutationFn: createCombo,
+    onSuccess: invalidate,
+  })
+
+  const updateMutation = useMutation({
+    mutationKey: ['combos', 'update'],
+    mutationFn: ({ id, data }) => updateCombo(id, data),
+    onSuccess: invalidate,
+  })
+
+  const statusMutation = useMutation({
+    mutationKey: ['combos', 'status'],
+    mutationFn: ({ id, status }) => updateComboStatus(id, status),
+    onSuccess: invalidate,
+  })
+
+  const deleteMutation = useMutation({
+    mutationKey: ['combos', 'delete'],
+    mutationFn: deleteCombo,
+    onSuccess: invalidate,
+  })
+
+  const getError = () =>
+    createMutation.error || updateMutation.error || statusMutation.error || deleteMutation.error
 
   return {
-    busy,
-    mutError,
-    create:       (data)         => run(() => svc.createCombo(data)),
-    update:       (id, data)     => run(() => svc.updateCombo(id, data)),
-    updateStatus: (id, status)   => run(() => svc.updateComboStatus(id, status)),
-    remove:       (id)           => run(() => svc.deleteCombo(id)),
-  };
+    busy: comboMutating > 0,
+    mutError: getError(),
+    create: (data) => createMutation.mutateAsync(data),
+    update: (id, data) => updateMutation.mutateAsync({ id, data }),
+    updateStatus: (id, status) => statusMutation.mutateAsync({ id, status }),
+    remove: (id) => deleteMutation.mutateAsync(id),
+  }
 }
