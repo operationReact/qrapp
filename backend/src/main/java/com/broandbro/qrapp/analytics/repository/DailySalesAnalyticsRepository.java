@@ -31,6 +31,10 @@ public interface DailySalesAnalyticsRepository extends JpaRepository<DailySalesA
 
     boolean existsBySalesDate(LocalDate salesDate);
 
+    default Optional<DailySalesAnalytics> findByPreviousDate(LocalDate date) {
+        return findBySalesDate(date.minusDays(1));
+    }
+
     // ── Date-range reads (projection — no full entity load) ───────────────────
 
     @Query("""

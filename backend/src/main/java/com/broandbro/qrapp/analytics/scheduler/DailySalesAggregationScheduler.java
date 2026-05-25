@@ -39,7 +39,7 @@ public class DailySalesAggregationScheduler {
      * Runs every day at 00:05 (configurable via {@code analytics.cron.daily-sales}).
      * Aggregates the previous full day's orders.
      */
-    @Scheduled(cron = "${analytics.cron.daily-sales:0 5 0 * * *}",
+    @Scheduled(cron = "${analytics.cron.daily-sales:0 * * * * *}",
                zone = "Asia/Kolkata")
     public void computeYesterdaySnapshot() {
         LocalDate yesterday = LocalDate.now().minusDays(1);

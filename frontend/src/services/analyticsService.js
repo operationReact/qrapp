@@ -2,7 +2,7 @@ import { apiClient } from "./index";
 
 // ── Sales ──────────────────────────────────────────────────────────────────
 export const fetchDailySales = (params) =>
-  apiClient.get("/api/v1/analytics/sales/daily", { params }).then((r) => r.data);
+  apiClient.get("/api/v1/analytics/sales/daily/previous", { params }).then((r) => r.data);
 
 export const fetchWeeklySales = (params) =>
   apiClient.get("/api/v1/analytics/sales/weekly", { params }).then((r) => r.data);

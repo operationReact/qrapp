@@ -17,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -76,6 +77,14 @@ public class SalesAnalyticsServiceImpl implements SalesAnalyticsService {
                 .stream()
                 .map(this::toResponse)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public Optional<DailySalesResponse> findByPreviousDate(LocalDate date) {
+        LocalDate previousDate = date.minusDays(1);
+        log.debug("[SalesService] findByPreviousDate date={} (looking up {})", date, previousDate);
+        return dailySalesRepo.findBySalesDate(previousDate)
+                .map(this::entityToResponse);
     }
 
     @Override

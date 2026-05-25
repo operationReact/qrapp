@@ -3,6 +3,7 @@ package com.broandbro.qrapp.analytics.controller;
 import com.broandbro.qrapp.analytics.dto.ApiResponse;
 import com.broandbro.qrapp.analytics.dto.DailySalesResponse;
 import com.broandbro.qrapp.analytics.dto.DashboardSummaryResponse;
+import com.broandbro.qrapp.analytics.scheduler.DailySalesAggregationScheduler;
 import com.broandbro.qrapp.analytics.service.SalesAnalyticsService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -20,6 +21,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Sales analytics endpoints.
@@ -40,6 +42,7 @@ import java.util.List;
 public class AnalyticsSalesController {
 
     private final SalesAnalyticsService salesService;
+    private final DailySalesAggregationScheduler dailySalesScheduler;
 
     // ── GET /api/v1/analytics/sales/daily ──────────────────────────────────────
 
@@ -60,7 +63,7 @@ public class AnalyticsSalesController {
             LocalDate to) {
 
         LocalDate resolvedTo   = to   != null ? to   : LocalDate.now();
-        LocalDate resolvedFrom = from != null ? from : resolvedTo.minusDays(29);
+        LocalDate resolvedFrom = from != null ? from : resolvedTo.minusDays(1);
         validateRange(resolvedFrom, resolvedTo);
 
         log.debug("[SalesController] GET /daily from={} to={}", resolvedFrom, resolvedTo);
@@ -81,6 +84,30 @@ public class AnalyticsSalesController {
 
         return ResponseEntity.ok(ApiResponse.ok(
                 salesService.getDailySeriesPaged(resolvedFrom, resolvedTo, pageable)));
+    }
+
+    // ── GET /api/v1/analytics/sales/daily/previous ─────────────────────────────
+
+    @GetMapping("/daily/previous")
+    @Operation(
+        summary = "Previous day's sales snapshot",
+        description = "Returns the daily sales record for the day before the given date. " +
+                      "Defaults to yesterday (day before today) if no date is provided. " +
+                      "Returns 404 if no snapshot exists for that day."
+    )
+    public ResponseEntity<ApiResponse<DailySalesResponse>> getPreviousDay(
+            @Parameter(description = "Reference date (yyyy-MM-dd) — returns the day before this. Defaults to today.")
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+
+        LocalDate referenceDate = date != null ? date : LocalDate.now();
+        log.debug("[SalesController] GET /daily/previous referenceDate={}", referenceDate);
+
+        Optional<DailySalesResponse> result = salesService.findByPreviousDate(referenceDate);
+        return result
+                .map(r -> ResponseEntity.ok(ApiResponse.ok(r)))
+                .orElseGet(() -> ResponseEntity.status(404)
+                        .body(ApiResponse.error("No sales snapshot found for " + referenceDate.minusDays(1))));
     }
 
     // ── GET /api/v1/analytics/sales/weekly ─────────────────────────────────────
@@ -112,6 +139,29 @@ public class AnalyticsSalesController {
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
         validateRange(from, to);
         return ResponseEntity.ok(ApiResponse.ok(salesService.getDashboardSummary(from, to)));
+    }
+
+    // ── POST /api/v1/analytics/sales/backfill ──────────────────────────────────
+
+    @PostMapping("/backfill")
+    @Operation(
+        summary = "Backfill daily sales snapshots",
+        description = "Upserts daily sales snapshots for every day in the given range. " +
+                      "Safe to re-run — existing rows are updated (upsert). " +
+                      "Max range: 365 days."
+    )
+    public ResponseEntity<ApiResponse<String>> backfill(
+            @Parameter(description = "Start date (yyyy-MM-dd), inclusive")
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @Parameter(description = "End date (yyyy-MM-dd), inclusive")
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+
+        validateRange(from, to);
+        log.info("[SalesController] Backfill requested from={} to={}", from, to);
+        dailySalesScheduler.backfill(from, to);
+        long days = from.datesUntil(to.plusDays(1)).count();
+        return ResponseEntity.ok(ApiResponse.ok(
+                "Backfill complete for " + days + " day(s) from " + from + " to " + to));
     }
 
     // ── Validation ─────────────────────────────────────────────────────────────
