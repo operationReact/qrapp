@@ -91,6 +91,26 @@ public class AnalyticsMenuController {
                 menuService.getTopItemsByQty(resolvedFrom, resolvedTo, limit)));
     }
 
+    // ── GET /api/v1/analytics/menu/least-selling ──────────────────────────────
+
+    @GetMapping("/least-selling")
+    @Operation(
+        summary = "Least-selling items by revenue",
+        description = "Returns the bottom N menu items ranked by total revenue across a date range."
+    )
+    public ResponseEntity<ApiResponse<List<TopMenuItemResponse>>> getLeastSelling(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @Parameter(description = "Max items to return (1–50)")
+            @RequestParam(defaultValue = "10") @Min(1) @Max(50) int limit) {
+
+        LocalDate resolvedTo   = to   != null ? to   : LocalDate.now();
+        LocalDate resolvedFrom = from != null ? from : resolvedTo.minusDays(29);
+        log.debug("[MenuController] GET /least-selling from={} to={} limit={}", resolvedFrom, resolvedTo, limit);
+        return ResponseEntity.ok(ApiResponse.ok(
+                menuService.getLeastSellingItems(resolvedFrom, resolvedTo, limit)));
+    }
+
     // ── GET /api/v1/analytics/menu/categories ─────────────────────────────────
 
     @GetMapping("/categories")

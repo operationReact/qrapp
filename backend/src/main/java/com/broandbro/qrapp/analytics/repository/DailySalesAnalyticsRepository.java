@@ -70,7 +70,7 @@ public interface DailySalesAnalyticsRepository extends JpaRepository<DailySalesA
      * Uses a native query to leverage PostgreSQL FILTER clause for conditional sums.
      */
     @Query(value = """
-           SELECT
+           SELECT                    
                SUM(total_revenue)          AS totalRevenue,
                SUM(net_revenue)            AS netRevenue,
                SUM(total_discount)         AS totalDiscount,

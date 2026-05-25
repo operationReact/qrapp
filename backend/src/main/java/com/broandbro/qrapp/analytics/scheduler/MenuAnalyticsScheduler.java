@@ -9,7 +9,6 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
-import java.util.Objects;
 
 /**
  * Materialises per-menu-item sales snapshots once per day.
@@ -31,8 +30,8 @@ public class MenuAnalyticsScheduler {
      * Runs at 00:10 every day (configurable via {@code analytics.cron.menu-items}).
      * Computes the previous day's item performance.
      */
-   /* @Scheduled(cron = "${analytics.cron.menu-items:0 10 0 * * *}",
-               zone = "Asia/Kolkata")*/
+    @Scheduled(cron = "${analytics.cron.menu-items:0 */2 * * * *}",
+               zone = "Asia/Kolkata")
     public void computeYesterdaySnapshot() {
         LocalDate yesterday = LocalDate.now().minusDays(1);
         log.info("[MenuAnalyticsScheduler] Starting snapshot for {}", yesterday);
@@ -91,8 +90,13 @@ public class MenuAnalyticsScheduler {
     }
 
     private void evict(String cacheName) {
-        Objects.requireNonNull(analyticsCacheManager.getCache(cacheName)).clear();
-        log.debug("[MenuAnalyticsScheduler] Evicted cache '{}'", cacheName);
+        var cache = analyticsCacheManager.getCache(cacheName);
+        if (cache != null) {
+            cache.clear();
+            log.debug("[MenuAnalyticsScheduler] Evicted cache '{}'", cacheName);
+        } else {
+            log.debug("[MenuAnalyticsScheduler] Cache '{}' not found, skipping eviction", cacheName);
+        }
     }
 }
 

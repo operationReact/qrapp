@@ -73,6 +73,27 @@ public interface MenuItemAnalyticsRepository extends JpaRepository<MenuItemAnaly
             @Param("to") LocalDate to,
             Pageable pageable);
 
+    /** Least-selling N items by revenue across a date range. */
+    @Query("""
+           SELECT m.menuItemId       AS menuItemId,
+                  m.menuItemName     AS menuItemName,
+                  m.categoryId       AS categoryId,
+                  m.categoryName     AS categoryName,
+                  SUM(m.totalQtySold)   AS totalQtySold,
+                  SUM(m.totalRevenue)   AS totalRevenue,
+                  SUM(m.orderCount)     AS totalOrderCount,
+                  AVG(m.avgSellingPrice) AS avgSellingPrice,
+                  MIN(m.revenueRank)    AS revenueRank
+           FROM MenuItemAnalytics m
+           WHERE m.snapshotDate BETWEEN :from AND :to
+           GROUP BY m.menuItemId, m.menuItemName, m.categoryId, m.categoryName
+           ORDER BY SUM(m.totalRevenue) ASC
+           """)
+    List<TopMenuItemProjection> findLeastItemsByRevenue(
+            @Param("from") LocalDate from,
+            @Param("to") LocalDate to,
+            Pageable pageable);
+
     /** Category-level revenue rollup for a date range. */
     @Query(value = """
            SELECT
@@ -110,15 +131,15 @@ public interface MenuItemAnalyticsRepository extends JpaRepository<MenuItemAnaly
                    mi.category_id,
                    c.name                                     AS category_name,
                    COALESCE(SUM(oi.quantity), 0)             AS total_qty_sold,
-                   COALESCE(SUM(oi.quantity * oi.unit_price), 0) AS total_revenue,
+                   COALESCE(SUM(oi.quantity * oi.selling_price_snapshot), 0) AS total_revenue,
                    COUNT(DISTINCT oi.order_id)               AS order_count,
                    CASE
                        WHEN SUM(oi.quantity) = 0 THEN NULL
-                       ELSE SUM(oi.quantity * oi.unit_price) / SUM(oi.quantity)
+                       ELSE SUM(oi.quantity * oi.selling_price_snapshot) / SUM(oi.quantity)
                    END                                        AS avg_selling_price
-               FROM menu_items mi
-               LEFT JOIN categories c ON c.id = mi.category_id
-               LEFT JOIN order_items oi ON oi.menu_item_id = mi.id
+               FROM menu_item mi
+               LEFT JOIN category c ON c.id = mi.category_id
+               LEFT JOIN order_item oi ON oi.item_id = mi.id
                LEFT JOIN orders o ON o.id = oi.order_id
                    AND o.created_at::date = :targetDate
                    AND o.status = 'COMPLETED'

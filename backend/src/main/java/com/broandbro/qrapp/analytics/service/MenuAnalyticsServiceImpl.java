@@ -61,6 +61,21 @@ public class MenuAnalyticsServiceImpl implements MenuAnalyticsService {
     @Override
     @Cacheable(
         cacheManager = "analyticsCacheManager",
+        cacheNames   = AnalyticsCacheConfig.CACHE_TOP_ITEMS,
+        key           = "'least:' + #from + ':' + #to + ':' + #limit"
+    )
+    public List<TopMenuItemResponse> getLeastSellingItems(LocalDate from, LocalDate to, int limit) {
+        log.debug("[MenuService] getLeastSellingItems from={} to={} limit={}", from, to, limit);
+        AtomicInteger rank = new AtomicInteger(1);
+        return menuItemRepo.findLeastItemsByRevenue(from, to, PageRequest.of(0, limit))
+                .stream()
+                .map(p -> toResponse(p, rank.getAndIncrement()))
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Cacheable(
+        cacheManager = "analyticsCacheManager",
         cacheNames   = AnalyticsCacheConfig.CACHE_CATEGORY_ROLLUP,
         key           = "'category:' + #from + ':' + #to"
     )
