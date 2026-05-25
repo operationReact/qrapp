@@ -2,14 +2,14 @@ package com.broandbro.qrapp.analytics.scheduler;
 
 import com.broandbro.qrapp.analytics.config.AnalyticsCacheConfig;
 import com.broandbro.qrapp.analytics.repository.DailySalesAnalyticsRepository;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
-import java.util.Objects;
 
 /**
  * Computes and materialises the daily sales snapshot for yesterday (default)
@@ -21,11 +21,17 @@ import java.util.Objects;
  */
 @Slf4j
 @Component
-@RequiredArgsConstructor
 public class DailySalesAggregationScheduler {
 
     private final DailySalesAnalyticsRepository dailySalesRepo;
     private final CacheManager analyticsCacheManager;
+
+    public DailySalesAggregationScheduler(
+            DailySalesAnalyticsRepository dailySalesRepo,
+            @Qualifier("analyticsCacheManager") CacheManager analyticsCacheManager) {
+        this.dailySalesRepo = dailySalesRepo;
+        this.analyticsCacheManager = analyticsCacheManager;
+    }
 
     // ── Scheduled job ──────────────────────────────────────────────────────────
 
@@ -103,8 +109,12 @@ public class DailySalesAggregationScheduler {
     }
 
     private void evict(String cacheName) {
-        Objects.requireNonNull(analyticsCacheManager.getCache(cacheName), "Cache not found: " + cacheName)
-               .clear();
+        Cache cache = analyticsCacheManager.getCache(cacheName);
+        if (cache == null) {
+            log.warn("[DailySalesScheduler] Cache '{}' not found — skipping eviction", cacheName);
+            return;
+        }
+        cache.clear();
         log.debug("[DailySalesScheduler] Evicted cache '{}'", cacheName);
     }
 }

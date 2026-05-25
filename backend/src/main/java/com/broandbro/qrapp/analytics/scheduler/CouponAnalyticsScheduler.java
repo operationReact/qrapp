@@ -30,8 +30,8 @@ public class CouponAnalyticsScheduler {
     /**
      * Runs daily at 00:15 (configurable via {@code analytics.cron.coupon-analytics}).
      */
-    @Scheduled(cron = "${analytics.cron.coupon-analytics:0 15 0 * * *}",
-               zone = "Asia/Kolkata")
+    /*@Scheduled(cron = "${analytics.cron.coupon-analytics:0 15 0 * * *}",
+               zone = "Asia/Kolkata")*/
     public void computeYesterdaySnapshot() {
         LocalDate yesterday = LocalDate.now().minusDays(1);
         log.info("[CouponAnalyticsScheduler] Starting snapshot for {}", yesterday);

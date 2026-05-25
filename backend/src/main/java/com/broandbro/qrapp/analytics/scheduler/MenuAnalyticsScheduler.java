@@ -31,8 +31,8 @@ public class MenuAnalyticsScheduler {
      * Runs at 00:10 every day (configurable via {@code analytics.cron.menu-items}).
      * Computes the previous day's item performance.
      */
-    @Scheduled(cron = "${analytics.cron.menu-items:0 10 0 * * *}",
-               zone = "Asia/Kolkata")
+   /* @Scheduled(cron = "${analytics.cron.menu-items:0 10 0 * * *}",
+               zone = "Asia/Kolkata")*/
     public void computeYesterdaySnapshot() {
         LocalDate yesterday = LocalDate.now().minusDays(1);
         log.info("[MenuAnalyticsScheduler] Starting snapshot for {}", yesterday);

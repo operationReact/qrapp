@@ -1,0 +1,1216 @@
+{
+  "info": {
+    "name": "qrapp - Full API Collection",
+    "_postman_id": "a1b2c3d4-qrapp-full-collection",
+    "description": "Complete Postman collection for all qrapp backend controller endpoints",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "exec": [
+          "var user = pm.environment.get('adminUsername') || '';",
+          "var pass = pm.environment.get('adminPassword') || '';",
+          "if (user && pass) {",
+          "    try { pm.environment.set('adminAuth', btoa(user + ':' + pass)); }",
+          "    catch (e) { pm.environment.set('adminAuth', Buffer.from(user + ':' + pass).toString('base64')); }",
+          "}"
+        ],
+        "type": "text/javascript"
+      }
+    }
+  ],
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080", "type": "string" },
+    { "key": "userToken", "value": "", "type": "string" },
+    { "key": "adminUsername", "value": "admin", "type": "string" },
+    { "key": "adminPassword", "value": "password", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Auth (Admin)",
+      "item": [
+        {
+          "name": "Admin Login",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{adminUsername}}\",\n  \"password\": \"{{adminPassword}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/admin/login", "host": ["{{baseUrl}}"], "path": ["admin", "login"] }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "User Auth",
+      "item": [
+        {
+          "name": "Register User",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"9999999999\",\n  \"password\": \"password123\",\n  \"name\": \"John Doe\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/auth/register", "host": ["{{baseUrl}}"], "path": ["auth", "register"] }
+          },
+          "response": []
+        },
+        {
+          "name": "User Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var res = pm.response.json();",
+                  "if (res && res.token) { pm.environment.set('userToken', res.token); }"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"9999999999\",\n  \"password\": \"password123\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Current User (me)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{userToken}}" }],
+            "url": { "raw": "{{baseUrl}}/auth/me", "host": ["{{baseUrl}}"], "path": ["auth", "me"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Profile",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{userToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"John Updated\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/auth/me", "host": ["{{baseUrl}}"], "path": ["auth", "me"] }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Menu",
+      "item": [
+        {
+          "name": "Get Menu",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/menu?isVeg=true&categoryId=1&recommended=false&page=0&size=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["menu"],
+              "query": [
+                { "key": "isVeg", "value": "true", "disabled": true },
+                { "key": "categoryId", "value": "1", "disabled": true },
+                { "key": "recommended", "value": "false", "disabled": true },
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "20" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Recommended Menu",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/menu/recommended?limit=6",
+              "host": ["{{baseUrl}}"],
+              "path": ["menu", "recommended"],
+              "query": [{ "key": "limit", "value": "6" }]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Add Menu Item (JSON) [Admin]",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Basic {{adminAuth}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Paneer Butter Masala\",\n  \"description\": \"Rich creamy paneer curry\",\n  \"price\": 250,\n  \"isVeg\": true,\n  \"recommended\": false,\n  \"isHidden\": false,\n  \"category\": { \"id\": 1 },\n  \"tag\": { \"id\": 1 }\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/menu", "host": ["{{baseUrl}}"], "path": ["menu"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Add Menu Item (Multipart) [Admin]",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Basic {{adminAuth}}" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "name", "value": "Paneer Butter Masala", "type": "text" },
+                { "key": "price", "value": "250", "type": "text" },
+                { "key": "categoryId", "value": "1", "type": "text" },
+                { "key": "description", "value": "Rich creamy paneer curry", "type": "text" },
+                { "key": "isVeg", "value": "true", "type": "text" },
+                { "key": "recommended", "value": "false", "type": "text" },
+                { "key": "isHidden", "value": "false", "type": "text" },
+                { "key": "tagId", "value": "1", "type": "text" },
+                { "key": "inventoryMode", "value": "UNLIMITED", "type": "text" },
+                { "key": "image", "type": "file", "src": "" }
+              ]
+            },
+            "url": { "raw": "{{baseUrl}}/menu", "host": ["{{baseUrl}}"], "path": ["menu"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Menu Item [Admin]",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Basic {{adminAuth}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Paneer Butter Masala\",\n  \"description\": \"Updated description\",\n  \"price\": 270,\n  \"isVeg\": true,\n  \"recommended\": true,\n  \"isHidden\": false\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/menu/1", "host": ["{{baseUrl}}"], "path": ["menu", "1"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Menu Item [Admin]",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Basic {{adminAuth}}" }],
+            "url": { "raw": "{{baseUrl}}/menu/1", "host": ["{{baseUrl}}"], "path": ["menu", "1"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Menu Item by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/menu/1", "host": ["{{baseUrl}}"], "path": ["menu", "1"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Search Menu Items",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/menu/search?q=paneer",
+              "host": ["{{baseUrl}}"],
+              "path": ["menu", "search"],
+              "query": [{ "key": "q", "value": "paneer" }]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Menu Item Images",
+      "item": [
+        {
+          "name": "Upload Image [Admin]",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Basic {{adminAuth}}" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "file", "type": "file", "src": "" }
+              ]
+            },
+            "url": { "raw": "{{baseUrl}}/api/menu-items/1/image", "host": ["{{baseUrl}}"], "path": ["api", "menu-items", "1", "image"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Image by Image ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/menu-items/images/1", "host": ["{{baseUrl}}"], "path": ["api", "menu-items", "images", "1"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Image by Menu Item ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/menu-items/1/image", "host": ["{{baseUrl}}"], "path": ["api", "menu-items", "1", "image"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Image Metadata",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/menu-items/1/image/metadata", "host": ["{{baseUrl}}"], "path": ["api", "menu-items", "1", "image", "metadata"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Image [Admin]",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Basic {{adminAuth}}" }],
+            "url": { "raw": "{{baseUrl}}/api/menu-items/images/1", "host": ["{{baseUrl}}"], "path": ["api", "menu-items", "images", "1"] }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Categories",
+      "item": [
+        {
+          "name": "Get All Categories",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/categories", "host": ["{{baseUrl}}"], "path": ["categories"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Category by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/categories/1", "host": ["{{baseUrl}}"], "path": ["categories", "1"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Menu Items by Category",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/categories/1/items", "host": ["{{baseUrl}}"], "path": ["categories", "1", "items"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Category [Admin]",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Basic {{adminAuth}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Starters\",\n  \"displayOrder\": 1\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/categories", "host": ["{{baseUrl}}"], "path": ["categories"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Category [Admin]",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Basic {{adminAuth}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Starters Updated\",\n  \"displayOrder\": 2\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/categories/1", "host": ["{{baseUrl}}"], "path": ["categories", "1"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Category [Admin]",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Basic {{adminAuth}}" }],
+            "url": { "raw": "{{baseUrl}}/categories/1", "host": ["{{baseUrl}}"], "path": ["categories", "1"] }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Tags",
+      "item": [
+        {
+          "name": "Get All Tags",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/tags", "host": ["{{baseUrl}}"], "path": ["tags"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Tag by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/tags/1", "host": ["{{baseUrl}}"], "path": ["tags", "1"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Menu Items by Tag",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/tags/1/items", "host": ["{{baseUrl}}"], "path": ["tags", "1", "items"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Tag [Admin]",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Basic {{adminAuth}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Best Seller\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/tags", "host": ["{{baseUrl}}"], "path": ["tags"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Tag [Admin]",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Basic {{adminAuth}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Most Popular\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/tags/1", "host": ["{{baseUrl}}"], "path": ["tags", "1"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Tag [Admin]",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Basic {{adminAuth}}" }],
+            "url": { "raw": "{{baseUrl}}/tags/1", "host": ["{{baseUrl}}"], "path": ["tags", "1"] }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Orders",
+      "item": [
+        {
+          "name": "Create Order",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{userToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"items\": [\n    { \"menuItemId\": 1, \"quantity\": 2 },\n    { \"menuItemId\": 3, \"quantity\": 1 }\n  ],\n  \"paymentMethod\": \"RAZORPAY\",\n  \"tableNumber\": \"T5\",\n  \"notes\": \"Extra spicy\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/orders", "host": ["{{baseUrl}}"], "path": ["orders"] }
+          },
+          "response": []
+        },
+        {
+          "name": "My Orders",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{userToken}}" }],
+            "url": { "raw": "{{baseUrl}}/orders/me", "host": ["{{baseUrl}}"], "path": ["orders", "me"] }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Wallet",
+      "item": [
+        {
+          "name": "Get Balance",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{userToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/wallet/balance", "host": ["{{baseUrl}}"], "path": ["api", "wallet", "balance"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Overview",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{userToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/wallet/overview", "host": ["{{baseUrl}}"], "path": ["api", "wallet", "overview"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Transactions",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{userToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/wallet/transactions?page=0&size=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "wallet", "transactions"],
+              "query": [
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "20" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Razorpay Order (Wallet Top-up)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{userToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 500\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/api/wallet/create-order", "host": ["{{baseUrl}}"], "path": ["api", "wallet", "create-order"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Verify Payment & Credit Wallet",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{userToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"razorpayOrderId\": \"order_XXXXXXXX\",\n  \"razorpayPaymentId\": \"pay_XXXXXXXX\",\n  \"razorpaySignature\": \"signature_string\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/api/wallet/verify-payment", "host": ["{{baseUrl}}"], "path": ["api", "wallet", "verify-payment"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Pay from Wallet",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{userToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"orderId\": 1,\n  \"amount\": 250\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/api/wallet/pay", "host": ["{{baseUrl}}"], "path": ["api", "wallet", "pay"] }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Party Orders (User)",
+      "item": [
+        {
+          "name": "Create Party Order",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{userToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventDate\": \"2026-06-15\",\n  \"guestCount\": 50,\n  \"eventType\": \"Birthday Party\",\n  \"notes\": \"Outdoor venue, vegetarian preferred\",\n  \"contactPhone\": \"9999999999\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/party-order/create", "host": ["{{baseUrl}}"], "path": ["party-order", "create"] }
+          },
+          "response": []
+        },
+        {
+          "name": "My Party Orders",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{userToken}}" }],
+            "url": { "raw": "{{baseUrl}}/party-order/my-orders", "host": ["{{baseUrl}}"], "path": ["party-order", "my-orders"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Party Order by ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{userToken}}" }],
+            "url": { "raw": "{{baseUrl}}/party-order/1", "host": ["{{baseUrl}}"], "path": ["party-order", "1"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Confirm Estimate",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{userToken}}" }],
+            "url": { "raw": "{{baseUrl}}/party-order/1/confirm", "host": ["{{baseUrl}}"], "path": ["party-order", "1", "confirm"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Reject Estimate",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{userToken}}" }],
+            "url": { "raw": "{{baseUrl}}/party-order/1/reject", "host": ["{{baseUrl}}"], "path": ["party-order", "1", "reject"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Cancel Party Order",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{userToken}}" }],
+            "url": { "raw": "{{baseUrl}}/party-order/1/cancel", "host": ["{{baseUrl}}"], "path": ["party-order", "1", "cancel"] }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Party Orders (Admin)",
+      "item": [
+        {
+          "name": "List All Party Orders",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Basic {{adminAuth}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/admin/party-orders?status=PENDING_ESTIMATE",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "party-orders"],
+              "query": [{ "key": "status", "value": "PENDING_ESTIMATE", "disabled": true }]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Party Order by ID (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Basic {{adminAuth}}" }],
+            "url": { "raw": "{{baseUrl}}/admin/party-orders/1", "host": ["{{baseUrl}}"], "path": ["admin", "party-orders", "1"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Submit Estimate",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Basic {{adminAuth}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"estimatedAmount\": 15000,\n  \"notes\": \"Includes setup and service charges\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/admin/party-orders/1/estimate", "host": ["{{baseUrl}}"], "path": ["admin", "party-orders", "1", "estimate"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Party Order Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Basic {{adminAuth}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"CONFIRMED\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/admin/party-orders/1/status", "host": ["{{baseUrl}}"], "path": ["admin", "party-orders", "1", "status"] }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Coupons",
+      "item": [
+        {
+          "name": "Apply Coupon",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{userToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"couponCode\": \"SAVE10\",\n  \"orderSubtotal\": 500\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/api/coupons/apply", "host": ["{{baseUrl}}"], "path": ["api", "coupons", "apply"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Available Coupons",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/coupons/available", "host": ["{{baseUrl}}"], "path": ["api", "coupons", "available"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Coupon [SuperUser]",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Basic {{adminAuth}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"SAVE10\",\n  \"discountType\": \"PERCENTAGE\",\n  \"discountValue\": 10,\n  \"minOrderAmount\": 200,\n  \"maxUsageCount\": 100,\n  \"expiryDate\": \"2026-12-31\",\n  \"isActive\": true\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/api/coupons", "host": ["{{baseUrl}}"], "path": ["api", "coupons"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Coupons (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Basic {{adminAuth}}" }],
+            "url": { "raw": "{{baseUrl}}/api/coupons/admin/all", "host": ["{{baseUrl}}"], "path": ["api", "coupons", "admin", "all"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Coupon by ID (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Basic {{adminAuth}}" }],
+            "url": { "raw": "{{baseUrl}}/api/coupons/admin/1", "host": ["{{baseUrl}}"], "path": ["api", "coupons", "admin", "1"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Coupon (Admin)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Basic {{adminAuth}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"SAVE10\",\n  \"discountType\": \"PERCENTAGE\",\n  \"discountValue\": 15,\n  \"minOrderAmount\": 300,\n  \"maxUsageCount\": 200,\n  \"expiryDate\": \"2026-12-31\",\n  \"isActive\": true\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/api/coupons/admin/1", "host": ["{{baseUrl}}"], "path": ["api", "coupons", "admin", "1"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Toggle Coupon Status (Admin)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Basic {{adminAuth}}" }],
+            "url": { "raw": "{{baseUrl}}/api/coupons/admin/1/toggle", "host": ["{{baseUrl}}"], "path": ["api", "coupons", "admin", "1", "toggle"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Coupon Analytics (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Basic {{adminAuth}}" }],
+            "url": { "raw": "{{baseUrl}}/api/coupons/admin/1/analytics", "host": ["{{baseUrl}}"], "path": ["api", "coupons", "admin", "1", "analytics"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Coupon (Admin)",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Basic {{adminAuth}}" }],
+            "url": { "raw": "{{baseUrl}}/api/coupons/admin/1", "host": ["{{baseUrl}}"], "path": ["api", "coupons", "admin", "1"] }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Inventory",
+      "item": [
+        {
+          "name": "Get Stock Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/v1/inventory/items/1/stock-status", "host": ["{{baseUrl}}"], "path": ["api", "v1", "inventory", "items", "1", "stock-status"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Is Item Orderable",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/v1/inventory/items/1/orderable", "host": ["{{baseUrl}}"], "path": ["api", "v1", "inventory", "items", "1", "orderable"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Validate Quantity",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"menuItemId\": 1,\n  \"quantity\": 3\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/inventory/validate/quantity", "host": ["{{baseUrl}}"], "path": ["api", "v1", "inventory", "validate", "quantity"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Validate Cart",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "[\n  { \"menuItemId\": 1, \"quantity\": 2 },\n  { \"menuItemId\": 2, \"quantity\": 1 }\n]",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/inventory/validate/cart", "host": ["{{baseUrl}}"], "path": ["api", "v1", "inventory", "validate", "cart"] }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Pricing",
+      "item": [
+        {
+          "name": "Get Current Selling Price",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/pricing/menu-items/1/current-price", "host": ["{{baseUrl}}"], "path": ["api", "pricing", "menu-items", "1", "current-price"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Selling Price History [Admin]",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Basic {{adminAuth}}" }],
+            "url": { "raw": "{{baseUrl}}/api/pricing/menu-items/1/price-history", "host": ["{{baseUrl}}"], "path": ["api", "pricing", "menu-items", "1", "price-history"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Set Selling Price [Admin]",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Basic {{adminAuth}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"menuItemId\": 1,\n  \"price\": 299.00,\n  \"effectiveFrom\": \"2026-05-25T00:00:00\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/api/pricing/menu-items/set-price", "host": ["{{baseUrl}}"], "path": ["api", "pricing", "menu-items", "set-price"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Vendor Costs for Item [Admin]",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Basic {{adminAuth}}" }],
+            "url": { "raw": "{{baseUrl}}/api/pricing/menu-items/1/vendor-costs", "host": ["{{baseUrl}}"], "path": ["api", "pricing", "menu-items", "1", "vendor-costs"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Vendor Cost History [Admin]",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Basic {{adminAuth}}" }],
+            "url": { "raw": "{{baseUrl}}/api/pricing/shops/1/menu-items/1/cost-history", "host": ["{{baseUrl}}"], "path": ["api", "pricing", "shops", "1", "menu-items", "1", "cost-history"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Set Vendor Cost [Admin]",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Basic {{adminAuth}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"shopId\": 1,\n  \"menuItemId\": 1,\n  \"cost\": 120.00,\n  \"effectiveFrom\": \"2026-05-25T00:00:00\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/api/pricing/vendor-costs/set", "host": ["{{baseUrl}}"], "path": ["api", "pricing", "vendor-costs", "set"] }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Shops",
+      "item": [
+        {
+          "name": "Create Shop",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Green Farms\",\n  \"contactPhone\": \"9876543210\",\n  \"address\": \"123 Market Street\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/shops", "host": ["{{baseUrl}}"], "path": ["api", "v1", "shops"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Shop by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/v1/shops/1", "host": ["{{baseUrl}}"], "path": ["api", "v1", "shops", "1"] }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Shop Orders",
+      "item": [
+        {
+          "name": "Create Shop Order",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"shopId\": 1,\n  \"items\": [\n    { \"menuItemId\": 1, \"quantity\": 10 }\n  ],\n  \"notes\": \"Urgent order\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/shop-orders", "host": ["{{baseUrl}}"], "path": ["api", "v1", "shop-orders"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Shop Order by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/v1/shop-orders/1", "host": ["{{baseUrl}}"], "path": ["api", "v1", "shop-orders", "1"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Shop Order Status",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"DELIVERED\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/shop-orders/1/status", "host": ["{{baseUrl}}"], "path": ["api", "v1", "shop-orders", "1", "status"] }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Bulk Menu Upload (Admin)",
+      "item": [
+        {
+          "name": "Validate CSV/Excel",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Basic {{adminAuth}}" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "file", "type": "file", "src": "" }
+              ]
+            },
+            "url": { "raw": "{{baseUrl}}/admin/menu/bulk-upload/validate", "host": ["{{baseUrl}}"], "path": ["admin", "menu", "bulk-upload", "validate"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Commit Bulk Upload",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Basic {{adminAuth}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"uploadMode\": \"INSERT\",\n  \"rows\": [\n    {\n      \"rowStatus\": \"ROW_OK\",\n      \"name\": \"New Item\",\n      \"price\": 150,\n      \"categoryName\": \"Main Course\",\n      \"isVeg\": true\n    }\n  ]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/admin/menu/bulk-upload/commit", "host": ["{{baseUrl}}"], "path": ["admin", "menu", "bulk-upload", "commit"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Download CSV Template",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Basic {{adminAuth}}" }],
+            "url": { "raw": "{{baseUrl}}/admin/menu/bulk-upload/template", "host": ["{{baseUrl}}"], "path": ["admin", "menu", "bulk-upload", "template"] }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Cache Admin",
+      "item": [
+        {
+          "name": "List All Caches",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Basic {{adminAuth}}" }],
+            "url": { "raw": "{{baseUrl}}/api/cache", "host": ["{{baseUrl}}"], "path": ["api", "cache"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Cache by Name",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Basic {{adminAuth}}" }],
+            "url": { "raw": "{{baseUrl}}/api/cache/menu", "host": ["{{baseUrl}}"], "path": ["api", "cache", "menu"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Cache Key",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Basic {{adminAuth}}" }],
+            "url": { "raw": "{{baseUrl}}/api/cache/menu/someKey", "host": ["{{baseUrl}}"], "path": ["api", "cache", "menu", "someKey"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Evict All Caches",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Basic {{adminAuth}}" }],
+            "url": { "raw": "{{baseUrl}}/api/cache", "host": ["{{baseUrl}}"], "path": ["api", "cache"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Evict Cache by Name",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Basic {{adminAuth}}" }],
+            "url": { "raw": "{{baseUrl}}/api/cache/menu", "host": ["{{baseUrl}}"], "path": ["api", "cache", "menu"] }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "WhatsApp / OTP",
+      "item": [
+        {
+          "name": "Send OTP",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"9999999999\",\n  \"userName\": \"John Doe\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/whatsapp/send", "host": ["{{baseUrl}}"], "path": ["whatsapp", "send"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Verify OTP",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"9999999999\",\n  \"otp\": \"123456\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/whatsapp/verify-otp", "host": ["{{baseUrl}}"], "path": ["whatsapp", "verify-otp"] }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Webhooks",
+      "item": [
+        {
+          "name": "Razorpay Webhook",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Razorpay-Signature", "value": "{{razorpayWebhookSignature}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event\": \"payment.captured\",\n  \"payload\": {\n    \"payment\": {\n      \"entity\": {\n        \"razorpay_order_id\": \"order_XXXXXXXX\"\n      }\n    }\n  }\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/webhook/razorpay", "host": ["{{baseUrl}}"], "path": ["webhook", "razorpay"] }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Policies (Web Pages)",
+      "item": [
+        {
+          "name": "Terms and Conditions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/terms-and-conditions", "host": ["{{baseUrl}}"], "path": ["terms-and-conditions"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Privacy Policy",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/privacy-policy", "host": ["{{baseUrl}}"], "path": ["privacy-policy"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Refund Policy",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/refund-policy", "host": ["{{baseUrl}}"], "path": ["refund-policy"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Return Policy",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/return-policy", "host": ["{{baseUrl}}"], "path": ["return-policy"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Shipping Policy",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/shipping-policy", "host": ["{{baseUrl}}"], "path": ["shipping-policy"] }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
+

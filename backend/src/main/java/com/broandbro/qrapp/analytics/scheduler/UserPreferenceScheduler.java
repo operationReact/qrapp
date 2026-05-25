@@ -39,9 +39,9 @@ public class UserPreferenceScheduler {
     /**
      * Runs daily at 01:00 (configurable via {@code analytics.cron.user-preferences}).
      * Full rebuild of all user preference snapshots.
-     */
+     *//*
     @Scheduled(cron = "${analytics.cron.user-preferences:0 0 1 * * *}",
-               zone = "Asia/Kolkata")
+               zone = "Asia/Kolkata")*/
     public void rebuildAllUserSnapshots() {
         log.info("[UserPrefScheduler] Starting full user preference rebuild");
         long start  = System.currentTimeMillis();

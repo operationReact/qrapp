@@ -1,0 +1,531 @@
+{
+  "info": {
+    "name": "qrapp - Analytics & Combos",
+    "_postman_id": "c5d6e7f8-qrapp-analytics-combos",
+    "description": "Postman collection for Analytics and Combo controller endpoints",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "exec": [
+          "var user = pm.environment.get('adminUsername') || '';",
+          "var pass = pm.environment.get('adminPassword') || '';",
+          "if (user && pass) {",
+          "    try { pm.environment.set('adminAuth', btoa(user + ':' + pass)); }",
+          "    catch (e) { pm.environment.set('adminAuth', Buffer.from(user + ':' + pass).toString('base64')); }",
+          "}"
+        ],
+        "type": "text/javascript"
+      }
+    }
+  ],
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080", "type": "string" },
+    { "key": "adminUsername", "value": "admin", "type": "string" },
+    { "key": "adminPassword", "value": "password", "type": "string" },
+    { "key": "fromDate", "value": "2026-04-25", "type": "string" },
+    { "key": "toDate", "value": "2026-05-25", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Analytics — Sales",
+      "item": [
+        {
+          "name": "Daily Sales Time-Series",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Basic {{adminAuth}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/analytics/sales/daily?from={{fromDate}}&to={{toDate}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "analytics", "sales", "daily"],
+              "query": [
+                { "key": "from", "value": "{{fromDate}}" },
+                { "key": "to", "value": "{{toDate}}" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Daily Sales Time-Series (Paged)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Basic {{adminAuth}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/analytics/sales/daily/paged?from={{fromDate}}&to={{toDate}}&page=0&size=30&sort=salesDate,desc",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "analytics", "sales", "daily", "paged"],
+              "query": [
+                { "key": "from", "value": "{{fromDate}}" },
+                { "key": "to", "value": "{{toDate}}" },
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "30" },
+                { "key": "sort", "value": "salesDate,desc" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Weekly Sales Summary (Last 7 Days)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Basic {{adminAuth}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/analytics/sales/weekly",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "analytics", "sales", "weekly"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Monthly Sales Summary (Last 30 Days)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Basic {{adminAuth}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/analytics/sales/monthly",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "analytics", "sales", "monthly"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Custom Range KPI Summary",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Basic {{adminAuth}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/analytics/sales/summary?from={{fromDate}}&to={{toDate}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "analytics", "sales", "summary"],
+              "query": [
+                { "key": "from", "value": "{{fromDate}}" },
+                { "key": "to", "value": "{{toDate}}" }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Analytics — Menu",
+      "item": [
+        {
+          "name": "Top-Selling Items by Revenue",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Basic {{adminAuth}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/analytics/menu/top-selling?from={{fromDate}}&to={{toDate}}&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "analytics", "menu", "top-selling"],
+              "query": [
+                { "key": "from", "value": "{{fromDate}}" },
+                { "key": "to", "value": "{{toDate}}" },
+                { "key": "limit", "value": "10" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Top-Selling Items by Revenue (Paged)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Basic {{adminAuth}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/analytics/menu/top-selling/paged?from={{fromDate}}&to={{toDate}}&sortBy=revenue&page=0&size=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "analytics", "menu", "top-selling", "paged"],
+              "query": [
+                { "key": "from", "value": "{{fromDate}}" },
+                { "key": "to", "value": "{{toDate}}" },
+                { "key": "sortBy", "value": "revenue" },
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "20" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Top Items by Quantity Sold",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Basic {{adminAuth}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/analytics/menu/top-by-qty?from={{fromDate}}&to={{toDate}}&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "analytics", "menu", "top-by-qty"],
+              "query": [
+                { "key": "from", "value": "{{fromDate}}" },
+                { "key": "to", "value": "{{toDate}}" },
+                { "key": "limit", "value": "10" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Category Revenue Rollup",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Basic {{adminAuth}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/analytics/menu/categories?from={{fromDate}}&to={{toDate}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "analytics", "menu", "categories"],
+              "query": [
+                { "key": "from", "value": "{{fromDate}}" },
+                { "key": "to", "value": "{{toDate}}" }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Analytics — Orders",
+      "item": [
+        {
+          "name": "Hourly Order Breakdown (Single Day)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Basic {{adminAuth}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/analytics/orders/hourly?date=2026-05-25",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "analytics", "orders", "hourly"],
+              "query": [
+                { "key": "date", "value": "2026-05-25" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Hourly Heatmap (Date Range)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Basic {{adminAuth}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/analytics/orders/heatmap?from={{fromDate}}&to={{toDate}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "analytics", "orders", "heatmap"],
+              "query": [
+                { "key": "from", "value": "{{fromDate}}" },
+                { "key": "to", "value": "{{toDate}}" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Peak Hours Analysis",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Basic {{adminAuth}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/analytics/orders/peak-hours?from={{fromDate}}&to={{toDate}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "analytics", "orders", "peak-hours"],
+              "query": [
+                { "key": "from", "value": "{{fromDate}}" },
+                { "key": "to", "value": "{{toDate}}" }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Analytics — Users",
+      "item": [
+        {
+          "name": "User Preference Profile",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Basic {{adminAuth}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/analytics/users/preferences?userId=1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "analytics", "users", "preferences"],
+              "query": [
+                { "key": "userId", "value": "1" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Users by Segment",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Basic {{adminAuth}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/analytics/users/segment/VIP?page=0&size=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "analytics", "users", "segment", "VIP"],
+              "query": [
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "20" }
+              ]
+            },
+            "description": "Allowed segments: NEW, OCCASIONAL, REGULAR, VIP, AT_RISK, CHURNED"
+          },
+          "response": []
+        },
+        {
+          "name": "Churned Users",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Basic {{adminAuth}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/analytics/users/churned?page=0&size=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "analytics", "users", "churned"],
+              "query": [
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "20" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Top Spenders (VIP Leaderboard)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Basic {{adminAuth}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/analytics/users/top-spenders?page=0&size=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "analytics", "users", "top-spenders"],
+              "query": [
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "20" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Repeat Customer Rate",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Basic {{adminAuth}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/analytics/users/repeat-rate",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "analytics", "users", "repeat-rate"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Analytics — Coupons",
+      "item": [
+        {
+          "name": "Coupon Performance Summary",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Basic {{adminAuth}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/analytics/coupons/performance?from={{fromDate}}&to={{toDate}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "analytics", "coupons", "performance"],
+              "query": [
+                { "key": "from", "value": "{{fromDate}}" },
+                { "key": "to", "value": "{{toDate}}" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Coupon Performance (Paged & Searchable)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Basic {{adminAuth}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/analytics/coupons/performance/paged?from={{fromDate}}&to={{toDate}}&couponCode=SAVE&page=0&size=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "analytics", "coupons", "performance", "paged"],
+              "query": [
+                { "key": "from", "value": "{{fromDate}}" },
+                { "key": "to", "value": "{{toDate}}" },
+                { "key": "couponCode", "value": "SAVE", "disabled": true },
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "20" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Coupon Abuse Signals",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Basic {{adminAuth}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/analytics/coupons/abuse?from={{fromDate}}&to={{toDate}}&threshold=2",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "analytics", "coupons", "abuse"],
+              "query": [
+                { "key": "from", "value": "{{fromDate}}" },
+                { "key": "to", "value": "{{toDate}}" },
+                { "key": "threshold", "value": "2" }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Combos (Admin)",
+      "item": [
+        {
+          "name": "Create Combo",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Basic {{adminAuth}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Family Feast Combo\",\n  \"description\": \"Serves 4 — includes mains, sides and dessert\",\n  \"comboPrice\": 799,\n  \"categoryId\": 1,\n  \"isActive\": true,\n  \"isFeatured\": false,\n  \"isPreorder\": false,\n  \"displayPriority\": 1,\n  \"timeSlot\": \"FULL_DAY\",\n  \"items\": [\n    { \"menuItemId\": 1, \"quantity\": 2 },\n    { \"menuItemId\": 3, \"quantity\": 1 }\n  ],\n  \"schedules\": [\n    { \"dayOfWeek\": \"MONDAY\", \"startTime\": \"10:00\", \"endTime\": \"22:00\" },\n    { \"dayOfWeek\": \"FRIDAY\", \"startTime\": \"10:00\", \"endTime\": \"23:00\" }\n  ],\n  \"signatureProductIds\": [1, 3]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/combos",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "combos"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List Combos",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Basic {{adminAuth}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/combos?page=0&size=20&sort=displayPriority",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "combos"],
+              "query": [
+                { "key": "search", "value": "feast", "disabled": true },
+                { "key": "categoryId", "value": "1", "disabled": true },
+                { "key": "isActive", "value": "true", "disabled": true },
+                { "key": "isFeatured", "value": "false", "disabled": true },
+                { "key": "isPreorder", "value": "false", "disabled": true },
+                { "key": "timeSlot", "value": "FULL_DAY", "disabled": true },
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "20" },
+                { "key": "sort", "value": "displayPriority" }
+              ]
+            },
+            "description": "timeSlot options: BREAKFAST | LUNCH | EVENING | FULL_DAY | CUSTOM"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Combo by ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Basic {{adminAuth}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/combos/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "combos", "1"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Combo",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Basic {{adminAuth}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Family Feast Combo — Updated\",\n  \"description\": \"Serves 4 — updated description\",\n  \"comboPrice\": 849,\n  \"categoryId\": 1,\n  \"isActive\": true,\n  \"isFeatured\": true,\n  \"isPreorder\": false,\n  \"displayPriority\": 1,\n  \"timeSlot\": \"FULL_DAY\",\n  \"items\": [\n    { \"menuItemId\": 1, \"quantity\": 2 },\n    { \"menuItemId\": 3, \"quantity\": 1 },\n    { \"menuItemId\": 5, \"quantity\": 1 }\n  ],\n  \"schedules\": [\n    { \"dayOfWeek\": \"MONDAY\", \"startTime\": \"11:00\", \"endTime\": \"22:00\" }\n  ],\n  \"signatureProductIds\": [1]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/combos/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "combos", "1"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Combo Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Basic {{adminAuth}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"ACTIVE\"\n}",
+              "options": { "raw": { "language": "json" } },
+              "description": "Allowed statuses: DRAFT, ACTIVE, INACTIVE"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/combos/1/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "combos", "1", "status"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Combo (Soft Delete)",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Basic {{adminAuth}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/combos/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "combos", "1"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Combo Analytics Summary",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Basic {{adminAuth}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/combos/analytics/summary",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "combos", "analytics", "summary"]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
+

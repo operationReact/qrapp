@@ -91,16 +91,35 @@ public class OrderService {
         String orderNumber = orderNumberGenerator.generateOrderNumber(now.toLocalDate());
         order.setOrderNumber(orderNumber);
 
-        order = orderRepo.save(order);
-        recordStatusHistory(order.getId(), null, OrderStatus.ORDER_PLACED, "Order created", "SYSTEM", now);
+        // ── Step 1: pre-compute all item snapshots BEFORE any DB save ──────────
+        // Build (item, snapshot) pairs so we can sum up totals first
+        List<Object[]> itemSnaps = new java.util.ArrayList<>(); // [CreateOrderRequest.Item, OrderItemSnapshot]
+        java.math.BigDecimal subtotal = java.math.BigDecimal.ZERO;
 
         for (CreateOrderRequest.Item i : req.getItems()) {
             MenuItem menuItem = menuRepository.findById(i.getItemId())
                     .orElseThrow(() -> new RuntimeException("MenuItem not found: " + i.getItemId()));
-
             Long shopId = menuItem.getShop() != null ? menuItem.getShop().getId() : null;
             PricingService.OrderItemSnapshot snap = pricingService.createSnapshot(i.getItemId(), shopId, i.getQuantity());
+            itemSnaps.add(new Object[]{i, snap});
+            subtotal = subtotal.add(snap.lineTotal() != null ? snap.lineTotal() : java.math.BigDecimal.ZERO);
+        }
 
+        // ── Step 2: set order-level totals before the first (only) save ─────────
+        java.math.BigDecimal couponDiscount = order.getCouponDiscount() != null ? order.getCouponDiscount() : java.math.BigDecimal.ZERO;
+        java.math.BigDecimal tax = java.math.BigDecimal.ZERO;
+        order.setSubtotal(subtotal);
+        order.setTax(tax);
+        order.setGrandTotal(subtotal.subtract(couponDiscount).add(tax));
+
+        // ── Step 3: single save — order persisted with correct totals + gets ID ─
+        order = orderRepo.save(order);
+        recordStatusHistory(order.getId(), null, OrderStatus.ORDER_PLACED, "Order created", "SYSTEM", now);
+
+        // ── Step 4: persist order items ──────────────────────────────────────────
+        for (Object[] pair : itemSnaps) {
+            CreateOrderRequest.Item i   = (CreateOrderRequest.Item) pair[0];
+            PricingService.OrderItemSnapshot snap = (PricingService.OrderItemSnapshot) pair[1];
             OrderItem oi = new OrderItem();
             oi.setOrderId(order.getId());
             oi.setItemId(i.getItemId());
@@ -613,3 +632,4 @@ public class OrderService {
         return trimmed.isEmpty() ? null : trimmed;
     }
 }
+

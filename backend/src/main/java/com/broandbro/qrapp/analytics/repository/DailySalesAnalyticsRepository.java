@@ -115,10 +115,10 @@ public interface DailySalesAnalyticsRepository extends JpaRepository<DailySalesA
                COUNT(*) FILTER (WHERE o.status = 'COMPLETED')                AS completed_orders,
                COUNT(*) FILTER (WHERE o.status = 'CANCELLED')                AS cancelled_orders,
 
-               COALESCE(SUM(o.final_amount)
+               COALESCE(SUM(o.grand_total)
                    FILTER (WHERE o.status = 'COMPLETED'), 0)                 AS total_revenue,
 
-               COALESCE(SUM(o.final_amount - COALESCE(o.coupon_discount, 0))
+               COALESCE(SUM(o.grand_total - COALESCE(o.coupon_discount, 0))
                    FILTER (WHERE o.status = 'COMPLETED'), 0)                 AS net_revenue,
 
                COALESCE(SUM(o.coupon_discount)
@@ -126,7 +126,7 @@ public interface DailySalesAnalyticsRepository extends JpaRepository<DailySalesA
 
                CASE
                    WHEN COUNT(*) FILTER (WHERE o.status = 'COMPLETED') = 0 THEN NULL
-                   ELSE SUM(o.final_amount)
+                   ELSE SUM(o.grand_total)
                         FILTER (WHERE o.status = 'COMPLETED')
                         / COUNT(*) FILTER (WHERE o.status = 'COMPLETED')
                END                                                            AS average_order_value,
@@ -141,21 +141,21 @@ public interface DailySalesAnalyticsRepository extends JpaRepository<DailySalesA
 
                COALESCE((
                    SELECT SUM(oi.quantity)
-                   FROM order_items oi
+                   FROM order_item oi
                    JOIN orders o2 ON o2.id = oi.order_id
                    WHERE o2.created_at::date = :targetDate
                      AND o2.status = 'COMPLETED'
                ), 0)                                                          AS total_items_sold,
 
-               COALESCE(SUM(o.final_amount)
+               COALESCE(SUM(o.grand_total)
                    FILTER (WHERE o.status = 'COMPLETED'
                              AND o.payment_method = 'WALLET'), 0)            AS wallet_revenue,
 
-               COALESCE(SUM(o.final_amount)
+               COALESCE(SUM(o.grand_total)
                    FILTER (WHERE o.status = 'COMPLETED'
                              AND o.payment_method = 'ONLINE'), 0)            AS online_revenue,
 
-               COALESCE(SUM(o.final_amount)
+               COALESCE(SUM(o.grand_total)
                    FILTER (WHERE o.status = 'COMPLETED'
                              AND o.payment_method = 'COD'), 0)               AS cod_revenue,
 

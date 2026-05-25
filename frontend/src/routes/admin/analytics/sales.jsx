@@ -37,23 +37,33 @@ function SalesAnalyticsPage() {
   const monthly = useMonthlySales();
 
   const current = { daily, weekly, monthly }[tab];
-  const rows = current.data ?? [];
+  // Daily:          { success, data: [ {...}, ... ] }          → flat array
+  // Weekly/Monthly: { success, data: { totalRevenue, dailySeries: [...] } } → summary object
+  const responseData = current.data?.data;
+  const isArray = Array.isArray(responseData);
+  const rows = isArray ? responseData : (responseData?.dailySeries ?? []);
 
-  const totalRevenue = rows.reduce((s, r) => s + (r.revenue ?? 0), 0);
-  const totalOrders = rows.reduce((s, r) => s + (r.orders ?? 0), 0);
-  const aov = totalOrders ? totalRevenue / totalOrders : 0;
+  const totalRevenue = isArray
+    ? rows.reduce((s, r) => s + (r.totalRevenue ?? 0), 0)
+    : (responseData?.totalRevenue ?? 0);
+  const totalOrders = isArray
+    ? rows.reduce((s, r) => s + (r.totalOrders ?? 0), 0)
+    : (responseData?.totalOrders ?? 0);
+  const aov = isArray
+    ? (totalOrders ? totalRevenue / totalOrders : 0)
+    : (responseData?.averageOrderValue ?? 0);
 
   const columns = [
-    { key: "date", header: "Date" },
-    { key: "orders", header: "Orders", align: "right" },
+    { key: "salesDate", header: "Date" },
+    { key: "totalOrders", header: "Orders", align: "right" },
     {
-      key: "revenue",
+      key: "totalRevenue",
       header: "Revenue",
       align: "right",
       render: (v) => fmt(v),
     },
     {
-      key: "avgOrderValue",
+      key: "averageOrderValue",
       header: "AOV",
       align: "right",
       render: (v) => fmt(v),
@@ -130,12 +140,12 @@ function SalesAnalyticsPage() {
       >
         {rows.length ? (
           tab === "daily" ? (
-            <RevenueLineChart data={rows} xKey="date" dataKey="revenue" />
+            <RevenueLineChart data={rows} xKey="salesDate" dataKey="totalRevenue" />
           ) : (
             <OrdersBarChart
               data={rows}
-              xKey="date"
-              dataKey="revenue"
+              xKey="salesDate"
+              dataKey="totalRevenue"
               label="Revenue"
               color="#10b981"
             />

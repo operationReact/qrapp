@@ -33,8 +33,8 @@ public class HourlyAnalyticsScheduler {
      * Fires every hour at :02 (configurable via {@code analytics.cron.hourly-orders}).
      * Upserts the previous full hour and the current partial hour.
      */
-    @Scheduled(cron = "${analytics.cron.hourly-orders:0 2 * * * *}",
-               zone = "Asia/Kolkata")
+   /* @Scheduled(cron = "${analytics.cron.hourly-orders:0 2 * * * *}",
+               zone = "Asia/Kolkata")*/
     public void computeCurrentHourSnapshot() {
         LocalDateTime now = LocalDateTime.now();
         LocalDate today  = now.toLocalDate();
