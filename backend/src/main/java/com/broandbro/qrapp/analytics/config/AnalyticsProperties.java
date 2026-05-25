@@ -29,7 +29,7 @@ public class AnalyticsProperties {
         /** Menu item snapshot — default: every day at 00:10 */
         private String menuItems = "0 10 0 * * *";
         /** User preference snapshot — default: every day at 01:00 */
-        private String userPreferences = "0 0 1 * * *";
+        private String userPreferences = "0 * * * * *";
         /** Coupon analytics snapshot — default: every day at 00:15 */
         private String couponAnalytics = "0 15 0 * * *";
     }

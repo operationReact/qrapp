@@ -29,10 +29,22 @@ export const fetchMenuRevenue = (params) =>
 
 // ── Users ──────────────────────────────────────────────────────────────────
 export const fetchUserPreferences = (params) =>
-  apiClient.get("/api/v1/analytics/users/preferences", { params }).then((r) => r.data);
+  apiClient.get("/api/v1/analytics/users/preferences", { params }).then((r) => r.data?.data);
 
 export const fetchRepeatCustomers = (params) =>
-  apiClient.get("/api/v1/analytics/users/repeat-customers", { params }).then((r) => r.data);
+  apiClient.get("/api/v1/analytics/users/repeat-customers", { params }).then((r) => r.data?.data);
+
+export const fetchRepeatRate = () =>
+  apiClient.get("/api/v1/analytics/users/repeat-rate").then((r) => r.data?.data);
+
+export const fetchTopSpenders = (params) =>
+  apiClient.get("/api/v1/analytics/users/top-spenders", { params }).then((r) => r.data?.data);
+
+export const fetchChurnedUsers = (params) =>
+  apiClient.get("/api/v1/analytics/users/churned", { params }).then((r) => r.data?.data);
+
+export const fetchUsersBySegment = (segment, params) =>
+  apiClient.get(`/api/v1/analytics/users/segment/${segment}`, { params }).then((r) => r.data?.data);
 
 // ── Coupons ────────────────────────────────────────────────────────────────
 export const fetchCouponPerformance = (params) =>

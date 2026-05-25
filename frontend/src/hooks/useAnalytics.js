@@ -12,6 +12,10 @@ import {
   menuRevenueOptions,
   userPreferencesOptions,
   repeatCustomersOptions,
+  repeatRateOptions,
+  topSpendersOptions,
+  churnedUsersOptions,
+  usersBySegmentOptions,
   couponPerformanceOptions,
   recommendationsOptions,
 } from '@/query/options/analytics'
@@ -53,6 +57,18 @@ export const useUserPreferences = (params) =>
 
 export const useRepeatCustomers = (params) =>
   useQueryWrapper(repeatCustomersOptions(params))
+
+export const useRepeatRate = () =>
+  useQueryWrapper(repeatRateOptions)
+
+export const useTopSpenders = (params) =>
+  useQueryWrapper(topSpendersOptions(params))
+
+export const useChurnedUsers = (params) =>
+  useQueryWrapper(churnedUsersOptions(params))
+
+export const useUsersBySegment = (segment, params) =>
+  useQueryWrapper(usersBySegmentOptions(segment, params))
 
 export const useCouponAnalytics = (params) =>
   useQueryWrapper(couponPerformanceOptions(params))

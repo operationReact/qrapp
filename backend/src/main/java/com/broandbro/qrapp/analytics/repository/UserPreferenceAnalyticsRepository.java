@@ -91,6 +91,68 @@ public interface UserPreferenceAnalyticsRepository extends JpaRepository<UserPre
     @Query("SELECT COALESCE(SUM(u.lifetimeSpend), 0) FROM UserPreferenceAnalytics u")
     BigDecimal sumLifetimeSpend();
 
+    @Query("SELECT COUNT(u) FROM UserPreferenceAnalytics u")
+    long countTotalUsers();
+
+    @Query("SELECT COUNT(u) FROM UserPreferenceAnalytics u WHERE u.completedOrders > 1")
+    long countRepeatCustomers();
+
+    @Query("SELECT COALESCE(AVG(CAST(u.completedOrders AS double)), 0.0) FROM UserPreferenceAnalytics u")
+    Double avgCompletedOrdersPerUser();
+
+    /** Top menu items by order frequency across all completed orders. */
+    @Query(value = """
+           SELECT mi.name AS name, SUM(oi.quantity) AS count
+           FROM order_item oi
+           JOIN orders o ON o.id = oi.order_id
+           JOIN menu_item mi ON mi.id = oi.item_id
+           WHERE o.status = 'COMPLETED'
+           GROUP BY mi.name
+           ORDER BY count DESC
+           LIMIT :limit
+           """, nativeQuery = true)
+    List<Object[]> findTopFavoriteItems(@Param("limit") int limit);
+
+    /** Order count grouped by time-of-day slot. */
+    @Query(value = """
+           SELECT
+               CASE
+                   WHEN EXTRACT(HOUR FROM created_at) BETWEEN 5  AND 11 THEN 'Morning'
+                   WHEN EXTRACT(HOUR FROM created_at) BETWEEN 12 AND 16 THEN 'Afternoon'
+                   WHEN EXTRACT(HOUR FROM created_at) BETWEEN 17 AND 20 THEN 'Evening'
+                   ELSE 'Night'
+               END AS slot,
+               COUNT(*) AS count
+           FROM orders
+           WHERE status = 'COMPLETED'
+           GROUP BY slot
+           ORDER BY count DESC
+           """, nativeQuery = true)
+    List<Object[]> findOrderTimeDistribution();
+
+    /** Top N users by order count — for the Most Active Users table. */
+    @Query(value = """
+           SELECT
+               u.id                                                     AS userId,
+               u.name                                                   AS userName,
+               COUNT(o.id)                                              AS orderCount,
+               COALESCE(SUM(o.grand_total), 0)                        AS totalSpend,
+               (SELECT mi.name
+                FROM order_item oi2
+                JOIN menu_item mi ON mi.id = oi2.item_id
+                JOIN orders o2 ON o2.id = oi2.order_id
+                WHERE o2.user_id = u.id AND o2.status = 'COMPLETED'
+                GROUP BY mi.name
+                ORDER BY SUM(oi2.quantity) DESC
+                LIMIT 1)                                                AS favoriteItem
+           FROM users u
+           JOIN orders o ON o.user_id = u.id AND o.status = 'COMPLETED'
+           GROUP BY u.id, u.name
+           ORDER BY orderCount DESC
+           LIMIT :limit
+           """, nativeQuery = true)
+    List<Object[]> findMostActiveUsers(@Param("limit") int limit);
+
     // ── Retention: repeat customer rate ──────────────────────────────────────
 
     /**
@@ -127,7 +189,7 @@ public interface UserPreferenceAnalyticsRepository extends JpaRepository<UserPre
                    COUNT(*)                                                    AS total_orders,
                    COUNT(*) FILTER (WHERE o.status = 'COMPLETED')             AS completed_orders,
                    COUNT(*) FILTER (WHERE o.status = 'CANCELLED')             AS cancelled_orders,
-                   COALESCE(SUM(o.final_amount)
+                   COALESCE(SUM(o.grand_total)
                        FILTER (WHERE o.status = 'COMPLETED'), 0)              AS lifetime_spend,
                    MIN(o.created_at) FILTER (WHERE o.status = 'COMPLETED')    AS first_order_at,
                    MAX(o.created_at) FILTER (WHERE o.status = 'COMPLETED')    AS last_order_at,
@@ -155,9 +217,9 @@ public interface UserPreferenceAnalyticsRepository extends JpaRepository<UserPre
                    (SELECT COALESCE(json_agg(category_id ORDER BY cnt DESC), '[]'::json)
                     FROM (
                         SELECT mi.category_id, SUM(oi.quantity) AS cnt
-                        FROM order_items oi
+                        FROM order_item oi
                         JOIN orders o ON o.id = oi.order_id
-                        JOIN menu_items mi ON mi.id = oi.menu_item_id
+                        JOIN menu_item mi ON mi.id = oi.item_id
                         WHERE o.user_id = :userId AND o.status = 'COMPLETED'
                         GROUP BY mi.category_id
                         ORDER BY cnt DESC
@@ -169,11 +231,11 @@ public interface UserPreferenceAnalyticsRepository extends JpaRepository<UserPre
                SELECT
                    (SELECT COALESCE(json_agg(menu_item_id ORDER BY cnt DESC), '[]'::json)
                     FROM (
-                        SELECT oi.menu_item_id, SUM(oi.quantity) AS cnt
-                        FROM order_items oi
+                        SELECT oi.item_id AS menu_item_id, SUM(oi.quantity) AS cnt
+                        FROM order_item oi
                         JOIN orders o ON o.id = oi.order_id
                         WHERE o.user_id = :userId AND o.status = 'COMPLETED'
-                        GROUP BY oi.menu_item_id
+                        GROUP BY oi.item_id
                         ORDER BY cnt DESC
                         LIMIT 3
                     ) t
@@ -206,7 +268,7 @@ public interface UserPreferenceAnalyticsRepository extends JpaRepository<UserPre
                uo.lifetime_spend,
                CASE WHEN uo.completed_orders = 0 THEN NULL
                     ELSE uo.lifetime_spend / uo.completed_orders END,
-               (SELECT MAX(o.final_amount) FROM orders o
+               (SELECT MAX(o.grand_total) FROM orders o
                 WHERE o.user_id = :userId AND o.status = 'COMPLETED'),
                uo.first_order_at, uo.last_order_at, f.avg_days,
                tc.preferred_category_ids::TEXT, ti.preferred_item_ids::TEXT,

@@ -1,6 +1,8 @@
 package com.broandbro.qrapp.analytics.controller;
 
 import com.broandbro.qrapp.analytics.dto.ApiResponse;
+import com.broandbro.qrapp.analytics.dto.RepeatCustomerResponse;
+import com.broandbro.qrapp.analytics.dto.UserAggregateStatsResponse;
 import com.broandbro.qrapp.analytics.dto.UserPreferenceResponse;
 import com.broandbro.qrapp.analytics.service.UserAnalyticsService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -14,6 +16,8 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 /**
  * User analytics endpoints.
@@ -40,18 +44,45 @@ public class AnalyticsUserController {
 
     @GetMapping("/preferences")
     @Operation(
-        summary = "User preference profile",
-        description = "Returns the materialised preference and segmentation snapshot for a user."
+        summary = "Aggregate user preference stats",
+        description = "Returns dashboard-level stats: totalUsers, repeatCustomers, avgOrdersPerUser, favoriteItems, orderTimeDistribution."
+    )
+    public ResponseEntity<ApiResponse<UserAggregateStatsResponse>> getAggregateStats() {
+        log.debug("[UserController] GET /preferences (aggregate)");
+        return ResponseEntity.ok(ApiResponse.ok(userService.getAggregateStats()));
+    }
+
+    // ── GET /api/v1/analytics/users/preferences/{userId} ───────────────────────
+
+    @GetMapping("/preferences/{userId}")
+    @Operation(
+        summary = "Single user preference profile",
+        description = "Returns the materialised preference and segmentation snapshot for a specific user."
     )
     public ResponseEntity<ApiResponse<UserPreferenceResponse>> getUserPreference(
             @Parameter(description = "User ID", required = true)
-            @RequestParam Long userId) {
+            @PathVariable Long userId) {
 
-        log.debug("[UserController] GET /preferences userId={}", userId);
+        log.debug("[UserController] GET /preferences/{}", userId);
         return userService.getUserPreference(userId)
                 .map(p -> ResponseEntity.ok(ApiResponse.ok(p)))
                 .orElseGet(() -> ResponseEntity.ok(
                         ApiResponse.error("No analytics snapshot found for userId=" + userId)));
+    }
+
+    // ── GET /api/v1/analytics/users/repeat-customers ───────────────────────────
+
+    @GetMapping("/repeat-customers")
+    @Operation(
+        summary = "Most active users",
+        description = "Returns the top N users by completed order count, with total spend and favourite item."
+    )
+    public ResponseEntity<ApiResponse<List<RepeatCustomerResponse>>> getMostActiveUsers(
+            @Parameter(description = "Maximum number of users to return (default 20)")
+            @RequestParam(defaultValue = "20") int limit) {
+
+        log.debug("[UserController] GET /repeat-customers limit={}", limit);
+        return ResponseEntity.ok(ApiResponse.ok(userService.getMostActiveUsers(limit)));
     }
 
     // ── GET /api/v1/analytics/users/segment/{segment} ──────────────────────────

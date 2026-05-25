@@ -1,6 +1,8 @@
 package com.broandbro.qrapp.analytics.service;
 
 import com.broandbro.qrapp.analytics.config.AnalyticsCacheConfig;
+import com.broandbro.qrapp.analytics.dto.RepeatCustomerResponse;
+import com.broandbro.qrapp.analytics.dto.UserAggregateStatsResponse;
 import com.broandbro.qrapp.analytics.dto.UserPreferenceResponse;
 import com.broandbro.qrapp.analytics.entity.UserPreferenceAnalytics;
 import com.broandbro.qrapp.analytics.projection.UserSegmentProjection;
@@ -20,6 +22,7 @@ import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -70,6 +73,43 @@ public class UserAnalyticsServiceImpl implements UserAnalyticsService {
     public double getRepeatCustomerRate() {
         Double rate = userPrefRepo.computeRepeatCustomerRate();
         return rate != null ? rate : 0.0;
+    }
+
+    @Override
+    public UserAggregateStatsResponse getAggregateStats() {
+        long totalUsers = userPrefRepo.countTotalUsers();
+        long repeatCustomers = userPrefRepo.countRepeatCustomers();
+        Double avg = userPrefRepo.avgCompletedOrdersPerUser();
+        double avgOrdersPerUser = avg != null ? avg : 0.0;
+
+        List<UserAggregateStatsResponse.FavoriteItemEntry> favoriteItems =
+                userPrefRepo.findTopFavoriteItems(10).stream()
+                        .map(row -> new UserAggregateStatsResponse.FavoriteItemEntry(
+                                (String) row[0],
+                                ((Number) row[1]).longValue()))
+                        .collect(Collectors.toList());
+
+        List<UserAggregateStatsResponse.OrderTimeSlot> orderTimeDist =
+                userPrefRepo.findOrderTimeDistribution().stream()
+                        .map(row -> new UserAggregateStatsResponse.OrderTimeSlot(
+                                (String) row[0],
+                                ((Number) row[1]).longValue()))
+                        .collect(Collectors.toList());
+
+        return new UserAggregateStatsResponse(
+                totalUsers, repeatCustomers, avgOrdersPerUser, favoriteItems, orderTimeDist);
+    }
+
+    @Override
+    public List<RepeatCustomerResponse> getMostActiveUsers(int limit) {
+        return userPrefRepo.findMostActiveUsers(limit).stream()
+                .map(row -> new RepeatCustomerResponse(
+                        ((Number) row[0]).longValue(),
+                        (String) row[1],
+                        ((Number) row[2]).intValue(),
+                        row[3] != null ? new BigDecimal(row[3].toString()) : BigDecimal.ZERO,
+                        (String) row[4]))
+                .collect(Collectors.toList());
     }
 
     // ── Mappers ────────────────────────────────────────────────────────────────

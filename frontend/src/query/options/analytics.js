@@ -12,6 +12,10 @@ import {
   fetchMenuRevenue,
   fetchUserPreferences,
   fetchRepeatCustomers,
+  fetchRepeatRate,
+  fetchTopSpenders,
+  fetchChurnedUsers,
+  fetchUsersBySegment,
   fetchCouponPerformance,
   fetchRecommendations,
 } from "../../services/analyticsService";
@@ -95,6 +99,34 @@ export const repeatCustomersOptions = (params) =>
   queryOptions({
     queryKey: ["analytics", "users", "repeat-customers", params],
     queryFn: () => fetchRepeatCustomers(params),
+    staleTime: 1000 * 60 * 2,
+  });
+
+export const repeatRateOptions = queryOptions({
+  queryKey: ["analytics", "users", "repeat-rate"],
+  queryFn: fetchRepeatRate,
+  staleTime: 1000 * 60 * 5,
+});
+
+export const topSpendersOptions = (params) =>
+  queryOptions({
+    queryKey: ["analytics", "users", "top-spenders", params],
+    queryFn: () => fetchTopSpenders(params),
+    staleTime: 1000 * 60 * 2,
+  });
+
+export const churnedUsersOptions = (params) =>
+  queryOptions({
+    queryKey: ["analytics", "users", "churned", params],
+    queryFn: () => fetchChurnedUsers(params),
+    staleTime: 1000 * 60 * 2,
+  });
+
+export const usersBySegmentOptions = (segment, params) =>
+  queryOptions({
+    queryKey: ["analytics", "users", "segment", segment, params],
+    queryFn: () => fetchUsersBySegment(segment, params),
+    enabled: !!segment,
     staleTime: 1000 * 60 * 2,
   });
 
