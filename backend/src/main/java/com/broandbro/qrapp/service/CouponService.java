@@ -173,7 +173,7 @@ public class CouponService {
         BigDecimal discount = BigDecimal.ZERO;
 
         switch (coupon.getDiscountType()) {
-            case FLAT:
+            case FIXED:
                 discount = coupon.getDiscountValue();
                 break;
 
@@ -189,15 +189,7 @@ public class CouponService {
                 }
                 break;
 
-            case FREE_DELIVERY:
-                // TODO: Implement based on delivery charge logic
-                discount = BigDecimal.ZERO;
-                break;
 
-            case FREE_ITEM:
-                // TODO: Implement based on item selection logic
-                discount = BigDecimal.ZERO;
-                break;
         }
 
         // Ensure discount doesn't exceed order amount
@@ -211,7 +203,7 @@ public class CouponService {
      */
     private String buildDiscountDescription(Coupon coupon) {
         switch (coupon.getDiscountType()) {
-            case FLAT:
+            case FIXED:
                 return "₹" + coupon.getDiscountValue() + " off";
 
             case PERCENTAGE:
@@ -221,11 +213,6 @@ public class CouponService {
                 }
                 return percentage + "% off";
 
-            case FREE_DELIVERY:
-                return "Free delivery";
-
-            case FREE_ITEM:
-                return "Free item";
 
             default:
                 return "Discount applied";

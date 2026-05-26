@@ -100,7 +100,7 @@ public class CouponController {
      * Regular admins can only manage existing coupons.
      */
     @PostMapping
-    @PreAuthorize("hasRole('SUPERUSER')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<CouponResponse> createCoupon(
             @RequestBody CouponCreateUpdateRequest request) {
 
