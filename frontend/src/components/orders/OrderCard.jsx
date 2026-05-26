@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import { Archive, FoodMenu, Rupee } from "@boxicons/react";
 
 const STATUS_STYLES = {
+  ORDER_PLACED: "bg-yellow-50 text-yellow-800",
   PLACED: "bg-yellow-50 text-yellow-800",
   PREPARING: "bg-blue-50 text-blue-800",
   READY: "bg-green-50 text-green-800",
@@ -32,13 +33,17 @@ export default function OrderCard({ order }) {
       <div className="flex gap-4 items-start justify-between">
         <div>
           <div>
-            <h2 className="text-lg font-semibold">Order #{order.id}</h2>
-            <Badge className={statusClass}>
-              <Archive pack="filled" /> {order.status}
+            <Badge className={cn("capitalize", statusClass)}>
+              <Archive pack="filled" data-icon="inline-start" />
+              {order.status.includes("ORDER_PLACED")
+                ? "Placed"
+                : order.status.toLowerCase()}
             </Badge>
-            <Badge variant="outline" className="ml-1">
-              <Rupee pack="filled" /> {order.paymentStatus || "Pending"}
+            <Badge variant="outline" className="ml-1 capitalize">
+              <Rupee pack="filled" data-icon="inline-start" />{" "}
+              {order.paymentStatus.toLowerCase() || "Pending"}
             </Badge>
+            <h2 className="text-sm font-medium mt-2">{order.orderNumber}</h2>
           </div>
           <div className="mt-2 text-sm text-muted-foreground">
             {createdAt ? createdAt.toLocaleString() : "Timestamp unavailable"}
@@ -63,7 +68,9 @@ export default function OrderCard({ order }) {
                   <DrawerTitle className="text-xl font-semibold">
                     Order#{order.id} Items
                   </DrawerTitle>
-                  <DrawerDescription className="sr-only">List of your order items</DrawerDescription>
+                  <DrawerDescription className="sr-only">
+                    List of your order items
+                  </DrawerDescription>
                 </DrawerHeader>
                 <div className="pb-4 px-4">
                   <ul className="pl-4 marker:text-muted-foreground/50 list-disc">

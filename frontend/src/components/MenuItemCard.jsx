@@ -70,7 +70,7 @@ export default function MenuItemCard({ item }) {
 
       <div className="px-2 py-1.5 sm:py-2">
         {/* name in image */}
-        <h3 className="text-pretty text-xs leading-4 font-medium sm:font-semibold sm:text-lg">
+        <h3 className="text-pretty text-xs leading-4 font-semibold sm:text-lg">
           {item.name}
         </h3>
         {/* <p className="line-clamp-2 mt-1 capitalize text-xs text-muted-foreground">

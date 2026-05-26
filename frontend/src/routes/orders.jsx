@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import Navbar from "@/components/shared/Navbar";
-import { useQuery } from '@tanstack/react-query'
+import { useQuery } from "@tanstack/react-query";
 import { myOrdersOptions } from "@/query/options/orders";
 import { Cabinet } from "@boxicons/react";
 import OrderCard from "@/components/orders/OrderCard";
@@ -25,13 +25,21 @@ function OrdersPage() {
     }
   }, [user?.token, navigate]);
 
-  const { data: ordersData, isLoading: loading, error: fetchError } = useQuery({
+  const {
+    data: ordersData,
+    isLoading: loading,
+    error: fetchError,
+  } = useQuery({
     ...myOrdersOptions,
     enabled: !!user?.token,
   });
 
   const orders = Array.isArray(ordersData) ? ordersData : [];
-  const error = fetchError ? (typeof fetchError?.response?.data === "string" ? fetchError.response.data : "Unable to load your orders right now.") : "";
+  const error = fetchError
+    ? typeof fetchError?.response?.data === "string"
+      ? fetchError.response.data
+      : "Unable to load your orders right now."
+    : "";
 
   const groupedOrders = (orders || []).reduce(
     (group, order) => {
