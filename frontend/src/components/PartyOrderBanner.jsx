@@ -6,6 +6,7 @@ import {
   DrawerClose,
   DrawerContent,
   DrawerDescription,
+  DrawerFooter,
   DrawerHeader,
   DrawerTitle,
   DrawerTrigger,
@@ -41,29 +42,20 @@ export default function PartyOrderBanner() {
           <ConfettiIcon weight="fill" />
           Create Party Order
         </DrawerTrigger>
-
-        {/*
-          Bottom-sheet layout:
-            • max-h-[92dvh] — never taller than the viewport
-            • flex flex-col  — header + body + footer stacked
-            • px-0           — let inner sections own their padding
-        */}
-        <DrawerContent className="flex flex-col max-h-[92dvh] px-0 rounded-t-[24px]">
-          {/* ── Sticky header ─────────────────────────────────────────── */}
-          <DrawerHeader className="shrink-0 px-4 pt-4 pb-3 border-b border-border/50">
-            <DrawerTitle className="font-semibold text-base">
+        <DrawerContent className="px-4 md:max-w-md md:mx-auto">
+          <DrawerHeader>
+            <DrawerTitle className="text-lg font-semibold text-center">
               Create Party Order
             </DrawerTitle>
-            <DrawerDescription className="text-sm">
-              Tell us about your event and preferred menu.{" "}
+            <DrawerDescription>
+              Tell us about your event and preferred menu.
+              <br />
               We'll get back to you with an estimate.
             </DrawerDescription>
           </DrawerHeader>
 
-          {/* ── Scrollable body ───────────────────────────────────────── */}
-          {/* -webkit-overflow-scrolling: touch gives momentum on iOS     */}
           <div
-            className="flex-1 overflow-y-auto px-4 py-4"
+            className="no-scrollbar flex-1 overflow-y-auto px-1 py-4"
             style={{ WebkitOverflowScrolling: "touch" }}
           >
             <NewPartyOrder
@@ -74,21 +66,12 @@ export default function PartyOrderBanner() {
             />
           </div>
 
-          {/* ── Sticky CTA footer ─────────────────────────────────────── */}
-          {/*
-            pb uses env(safe-area-inset-bottom) so the button clears
-            the iOS home indicator and Android gesture bar.
-          */}
-          <div
-            className="shrink-0 px-4 pt-3 border-t border-border/50 bg-background shadow-[0_-4px_16px_rgba(0,0,0,0.06)]"
-            style={{
-              paddingBottom: "max(1rem, env(safe-area-inset-bottom))",
-            }}
-          >
+          <DrawerFooter className="px-2">
             <Button
               type="submit"
               form={FORM_ID}
-              className="w-full h-12 text-sm font-medium"
+              size="lg"
+              className="w-full"
               disabled={pending}
             >
               {pending ? "Submitting…" : "Request Estimate"}
@@ -96,12 +79,12 @@ export default function PartyOrderBanner() {
             <DrawerClose
               className={buttonVariants({
                 variant: "ghost",
-                className: "w-full mt-2 h-10 text-muted-foreground",
+                className: "w-full",
               })}
             >
               Cancel
             </DrawerClose>
-          </div>
+          </DrawerFooter>
         </DrawerContent>
       </Drawer>
     </div>

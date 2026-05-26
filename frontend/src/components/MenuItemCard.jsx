@@ -30,7 +30,7 @@ export default function MenuItemCard({ item }) {
 
   return (
     <article className="group h-full border border-border rounded-lg overflow-hidden">
-      <div className="relative aspect-square w-full">
+      <div className="relative aspect-video w-full">
         {imageSrc && !imgError ? (
           <img
             src={imageSrc}
@@ -43,7 +43,7 @@ export default function MenuItemCard({ item }) {
             <img
               src="/brand/white.png"
               alt="Bro Logo"
-              className="opacity-20 size-1/2 animate-pulse"
+              className="opacity-20 size-1/2 object-contain animate-pulse"
             />
           </div>
         )}
@@ -60,7 +60,7 @@ export default function MenuItemCard({ item }) {
         {/* veg/non-veg badge */}
         <div
           title={veg ? "Veg" : "Non Veg"}
-          className={`absolute scale-75 sm:scale-100 top-2 left-2 p-1.5 border-2 bg-white rounded-sm size-6 flex items-center gap-2 ${veg ? "border-accent-400" : "border-red-600"}`}
+          className={`absolute origin-top-left scale-75 sm:scale-100 top-2 left-2 p-1.5 border-2 bg-white rounded-sm size-6 flex items-center gap-2 ${veg ? "border-accent-400" : "border-red-600"}`}
         >
           <span
             className={`size-full rounded-full ${veg ? "bg-accent-400" : "bg-red-600"}`}
