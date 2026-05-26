@@ -15,6 +15,7 @@ import { Route as SearchRouteImport } from './routes/search'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as PartyOrdersRouteImport } from './routes/party-orders'
 import { Route as OrdersRouteImport } from './routes/orders'
+import { Route as NewPartyOrderRouteImport } from './routes/new-party-order'
 import { Route as CartRouteImport } from './routes/cart'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
@@ -69,6 +70,11 @@ const PartyOrdersRoute = PartyOrdersRouteImport.update({
 const OrdersRoute = OrdersRouteImport.update({
   id: '/orders',
   path: '/orders',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NewPartyOrderRoute = NewPartyOrderRouteImport.update({
+  id: '/new-party-order',
+  path: '/new-party-order',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CartRoute = CartRouteImport.update({
@@ -205,6 +211,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
   '/cart': typeof CartRoute
+  '/new-party-order': typeof NewPartyOrderRoute
   '/orders': typeof OrdersRoute
   '/party-orders': typeof PartyOrdersRoute
   '/profile': typeof ProfileRoute
@@ -237,6 +244,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/cart': typeof CartRoute
+  '/new-party-order': typeof NewPartyOrderRoute
   '/orders': typeof OrdersRoute
   '/party-orders': typeof PartyOrdersRoute
   '/profile': typeof ProfileRoute
@@ -270,6 +278,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
   '/cart': typeof CartRoute
+  '/new-party-order': typeof NewPartyOrderRoute
   '/orders': typeof OrdersRoute
   '/party-orders': typeof PartyOrdersRoute
   '/profile': typeof ProfileRoute
@@ -305,6 +314,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/cart'
+    | '/new-party-order'
     | '/orders'
     | '/party-orders'
     | '/profile'
@@ -337,6 +347,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/cart'
+    | '/new-party-order'
     | '/orders'
     | '/party-orders'
     | '/profile'
@@ -369,6 +380,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/cart'
+    | '/new-party-order'
     | '/orders'
     | '/party-orders'
     | '/profile'
@@ -403,6 +415,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRouteWithChildren
   CartRoute: typeof CartRoute
+  NewPartyOrderRoute: typeof NewPartyOrderRoute
   OrdersRoute: typeof OrdersRoute
   PartyOrdersRoute: typeof PartyOrdersRoute
   ProfileRoute: typeof ProfileRoute
@@ -455,6 +468,13 @@ declare module '@tanstack/react-router' {
       path: '/orders'
       fullPath: '/orders'
       preLoaderRoute: typeof OrdersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/new-party-order': {
+      id: '/new-party-order'
+      path: '/new-party-order'
+      fullPath: '/new-party-order'
+      preLoaderRoute: typeof NewPartyOrderRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/cart': {
@@ -702,6 +722,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRouteWithChildren,
   CartRoute: CartRoute,
+  NewPartyOrderRoute: NewPartyOrderRoute,
   OrdersRoute: OrdersRoute,
   PartyOrdersRoute: PartyOrdersRoute,
   ProfileRoute: ProfileRoute,

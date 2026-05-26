@@ -206,7 +206,7 @@ function SuccessScreen({ onClose }) {
 }
 
 // ── Main Form ────────────────────────────────────────────────────────────────
-export default function NewPartyOrder({ className, onClose, hideSubmitButton = false, formId = "party-order-form", onPendingChange }) {
+export default function NewPartyOrder({ className, onClose, onSuccess, hideSubmitButton = false, formId = "party-order-form", onPendingChange }) {
   const [eventDateTime, setEventDateTime] = useState("");
   const [numberOfPeople, setNumberOfPeople] = useState("50");
   const [menuItems, setMenuItems] = useState([]);
@@ -222,7 +222,11 @@ export default function NewPartyOrder({ className, onClose, hideSubmitButton = f
     mutationFn: createPartyOrder,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["party-orders"] });
-      setSubmitted(true);
+      if (onSuccess) {
+        onSuccess();
+      } else {
+        setSubmitted(true);
+      }
     },
     onError: (err) => {
       const message =
