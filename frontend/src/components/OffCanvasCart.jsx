@@ -15,14 +15,7 @@ import { X } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useEffect } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import {
-  Empty,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-} from "./ui/empty";
-import { BowlFoodIcon } from "@phosphor-icons/react";
+import { Empty, EmptyDescription, EmptyHeader } from "./ui/empty";
 
 function CartContent({ onClose }) {
   const { cart, getTotal, addItem, decreaseItem, removeItem } = useCart();
@@ -145,6 +138,8 @@ export default function OffCanvasCart() {
   useEffect(() => {
     if (location.hash === "cart") {
       openDrawer();
+    } else {
+      closeDrawer();
     }
   }, [location.hash]);
 
