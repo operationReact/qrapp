@@ -62,6 +62,7 @@ public class AnalyticsMenuController {
                 menuService.getTopItemsByRevenue(resolvedFrom, resolvedTo, limit)));
     }
 
+
     @GetMapping("/top-selling/paged")
     @Operation(summary = "Top-selling items (paged)", description = "Supports sortBy=revenue (default) or sortBy=qty.")
     public ResponseEntity<ApiResponse<Page<TopMenuItemResponse>>> getTopSellingPaged(
