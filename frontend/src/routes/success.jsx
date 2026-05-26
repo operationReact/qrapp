@@ -1,7 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Link, useLocation } from "@tanstack/react-router";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { ArchiveIcon, CreditCardIcon, WalletIcon } from "@phosphor-icons/react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 
 export const Route = createFileRoute("/success")({
   component: SuccessPage,
@@ -15,21 +23,21 @@ function SuccessPage() {
   const isWallet = paymentMethod === "WALLET";
 
   return (
-    <div className="page-shell flex w-full min-h-screen justify-center py-6 sm:px-4">
-      <div className="w-full max-w-md grid place-items-center sm:block">
-        <div className="rounded-2xl p-4 sm:p-6 sm:shadow-lg sm:shadow-red-300/10 h-fit sm:bg-white/20">
-          <div className="text-center">
-            <h2 className="text-2xl font-semibold">
+    <div className="page-shell bg-background flex w-full min-h-screen justify-center py-6 sm:px-4">
+      <div className="w-full max-w-md px-4 grid place-items-center sm:block">
+        <Card className="w-full">
+          <CardHeader className="text-center">
+            <CardTitle className="font-semibold">
               Order placed successfully
-            </h2>
-            <p className="mt-1 text-sm text-muted-foreground">
+            </CardTitle>
+            <CardDescription className="mt-1 text-sm text-muted-foreground">
               Thanks for ordering — we're preparing your food and will keep your
               order status updated.
-            </p>
-          </div>
+            </CardDescription>
+          </CardHeader>
 
-          <div className="grid grid-cols-2 gap-3 mt-6">
-            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-green-50 to-green-100/50 p-4">
+          <CardContent className="grid gap-3 mt-2">
+            <div className="relative overflow-hidden rounded-md bg-linear-to-br from-green-50 to-green-100/50 p-2">
               <div className="flex items-center gap-2">
                 <span className="rounded-full bg-green-500/10 p-1.5">
                   {isWallet ? (
@@ -48,7 +56,7 @@ function SuccessPage() {
                   Paid via
                 </span>
               </div>
-              <div className="mt-2 text-lg font-semibold text-green-800">
+              <div className="mt-2 text-base font-semibold text-green-800">
                 {isWallet ? "Wallet" : "Razorpay"}
               </div>
               <div className="absolute -right-2 -bottom-2 opacity-10">
@@ -59,7 +67,7 @@ function SuccessPage() {
                 )}
               </div>
             </div>
-            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-amber-50 to-amber-100/50 p-4">
+            <div className="relative overflow-hidden rounded-md bg-linear-to-br from-amber-50 to-amber-100/50 p-2">
               <div className="flex items-center gap-2">
                 <span className="rounded-full bg-amber-500/10 p-1.5">
                   <ArchiveIcon
@@ -71,24 +79,36 @@ function SuccessPage() {
                   Order Number
                 </span>
               </div>
-              <div className="mt-2 truncate text-lg font-semibold text-amber-800">
+              <div className="mt-2 truncate text-base font-semibold text-amber-800">
                 {orderNumber || orderId || "Generated"}
               </div>
               <div className="absolute -right-2 -bottom-2 opacity-10">
                 <ArchiveIcon className="size-16" />
               </div>
             </div>
-          </div>
+          </CardContent>
 
-          <div className="mt-8 flex flex-col gap-3">
-            <Button size="lg">
-              <Link to="/orders">Track my order</Link>
-            </Button>
-            <Button size="lg" variant="outline">
-              <Link to="/">Back to menu</Link>
-            </Button>
-          </div>
-        </div>
+          <CardFooter className="grid gap-3">
+            <Link
+              to="/orders"
+              className={buttonVariants({
+                size: "lg",
+              })}
+            >
+              Track my order
+            </Link>
+            <Link
+              to="/"
+              className={buttonVariants({
+                variant: "outline",
+                size: "lg",
+                class: "border-border!",
+              })}
+            >
+              Back to menu
+            </Link>
+          </CardFooter>
+        </Card>
       </div>
     </div>
   );
