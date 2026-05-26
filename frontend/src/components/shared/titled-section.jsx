@@ -15,7 +15,6 @@ export const TitledSection = ({ children, className, ...props }) => {
 };
 
 export const TitledSectionHeader = ({
-  children,
   icon,
   className,
   startContent,
@@ -39,7 +38,7 @@ export const TitledSectionHeader = ({
 export const TitledSectionTitle = ({ children, className, ...props }) => {
   return (
     <h2
-      className={cn("text-base font-semibold sm:text-xl", className)}
+      className={cn("text-lg font-bold sm:text-xl", className)}
       {...props}
     >
       {children}
