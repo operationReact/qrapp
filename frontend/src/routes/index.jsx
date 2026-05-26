@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { menuOptions, categoriesOptions } from "@/query/options/menu";
@@ -23,6 +23,16 @@ import {
   TitledSectionTitle,
 } from "@/components/shared/titled-section";
 import React from "react";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { BowlFoodIcon, ConfettiIcon } from "@phosphor-icons/react";
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
 
 export const Route = createFileRoute("/")({
   component: MenuPage,
@@ -150,11 +160,17 @@ function MenuPage() {
 
           {/* EMPTY */}
           {!loading && filtered.length === 0 && (
-            <div className="flex flex-col items-center justify-center rounded-[1.75rem] bg-white py-20 text-gray-400 shadow-sm">
-              <div className="text-5xl mb-3">🍽</div>
-              <p className="text-lg">No items found</p>
-              <p className="text-sm">Try changing filters</p>
-            </div>
+            <Empty>
+              <EmptyHeader>
+                <EmptyMedia variant="icon">
+                  <BowlFoodIcon weight="duotone"/>
+                </EmptyMedia>
+                <EmptyTitle>No Menu Items Available</EmptyTitle>
+                <EmptyDescription>
+                  Remove filters to see all menu items.
+                </EmptyDescription>
+              </EmptyHeader>
+            </Empty>
           )}
 
           {/* ITEMS */}

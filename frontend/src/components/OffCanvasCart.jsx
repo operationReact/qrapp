@@ -15,6 +15,14 @@ import { X } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useEffect } from "react";
 import { useNavigate } from "@tanstack/react-router";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "./ui/empty";
+import { BowlFoodIcon } from "@phosphor-icons/react";
 
 function CartContent({ onClose }) {
   const { cart, getTotal, addItem, decreaseItem, removeItem } = useCart();
@@ -24,9 +32,11 @@ function CartContent({ onClose }) {
     <>
       <div className="flex-1 min-h-0 overflow-y-auto px-4 [scrollbar-width:thin]">
         {cart.length === 0 && (
-          <p className="rounded-2xl bg-gray-50 px-4 py-6 text-center text-sm text-gray-500">
-            Cart is empty
-          </p>
+          <Empty className="p-4 border mb-4">
+            <EmptyHeader>
+              <EmptyDescription>Your cart is empty</EmptyDescription>
+            </EmptyHeader>
+          </Empty>
         )}
         {cart.map((item) => (
           <CartItem

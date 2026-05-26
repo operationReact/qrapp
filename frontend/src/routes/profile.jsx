@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Navbar from "@/components/shared/Navbar";
 import { updateCurrentUser } from "@/services/auth-service";
 import { currentUserOptions } from "@/query/options/auth";
@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/context/AuthContext";
+import { PasswordInput } from "@/components/ui/password-input";
 
 export const Route = createFileRoute("/profile")({
   component: ProfilePage,
@@ -34,7 +35,11 @@ function ProfilePage() {
     }
   }, [user?.token, navigate]);
 
-  const { data: profile, isLoading, error: loadError } = useQuery({
+  const {
+    data: profile,
+    isLoading,
+    error: loadError,
+  } = useQuery({
     ...currentUserOptions,
     enabled: !!user?.token,
   });
@@ -54,9 +59,7 @@ function ProfilePage() {
         name: profile.name || "",
         phone: profile.phone || "",
       }));
-      setUser((current) =>
-        current ? { ...current, info: profile } : current,
-      );
+      setUser((current) => (current ? { ...current, info: profile } : current));
     }
   }, [profile, setUser]);
 
@@ -137,8 +140,8 @@ function ProfilePage() {
       <main className="container-premium py-6">
         <div className="mx-auto space-y-5 sm:space-y-6">
           <div>
-            <h1 className="text-2xl font-semibold sm:text-3xl">Edit Profile</h1>
-            <p className="mt-2 text-md text-muted-foreground">
+            <h1 className="text-lg font-semibold sm:text-2xl">Profile</h1>
+            <p className="text-sm text-muted-foreground">
               Keep your account details updated so your orders and payments stay
               smooth.
             </p>
@@ -168,25 +171,27 @@ function ProfilePage() {
                     <FieldLegend>Personal Information</FieldLegend>
                     <FieldGroup className="grid gap-4 md:grid-cols-2">
                       <Field>
-                        <FieldLabel>Name</FieldLabel>
+                        <FieldLabel htmlFor="name">Name</FieldLabel>
                         <FieldContent>
                           <Input
                             value={form.name}
                             onChange={handleChange("name")}
                             placeholder="Enter Your Name"
-                            className="h-12"
+                            name="name"
+                            id="name"
                           />
                         </FieldContent>
                       </Field>
 
                       <Field>
-                        <FieldLabel>Phone Number</FieldLabel>
+                        <FieldLabel htmlFor="phone">Phone Number</FieldLabel>
                         <FieldContent>
                           <Input
                             value={form.phone}
                             onChange={handleChange("phone")}
                             placeholder="e.g. 1234567890"
-                            className="h-12"
+                            name="phone"
+                            id="phone"
                           />
                         </FieldContent>
                       </Field>
@@ -194,49 +199,54 @@ function ProfilePage() {
                   </FieldSet>
 
                   <FieldSet className="mt-4">
-                    <FieldLegend className="font-medium">
-                      Change Password
-                    </FieldLegend>
-                    <FieldDescription className="mt-1 text-sm text-muted-foreground">
+                    <FieldLegend>Change Password</FieldLegend>
+                    <FieldDescription className="text-sm text-muted-foreground">
                       {passwordHint}
                     </FieldDescription>
 
                     <FieldGroup className="grid gap-4 md:grid-cols-3">
                       <Field>
-                        <FieldLabel>Current Password</FieldLabel>
+                        <FieldLabel htmlFor="current-password">
+                          Current Password
+                        </FieldLabel>
                         <FieldContent>
-                          <Input
+                          <PasswordInput
                             type="password"
                             value={form.currentPassword}
                             onChange={handleChange("currentPassword")}
                             placeholder="Current Password"
-                            className="h-12"
+                            name="current-password"
+                            id="current-password"
                           />
                         </FieldContent>
                       </Field>
 
                       <Field>
-                        <FieldLabel>New Password</FieldLabel>
+                        <FieldLabel htmlFor="new-password">New Password</FieldLabel>
                         <FieldContent>
-                          <Input
+                          <PasswordInput
                             type="password"
                             value={form.newPassword}
                             onChange={handleChange("newPassword")}
                             placeholder="Set New Password"
-                            className="h-12"
+                            name="new-password"
+                            id="new-password"
                           />
                         </FieldContent>
                       </Field>
 
                       <Field>
-                        <FieldLabel>Confirm Password</FieldLabel>
+                        <FieldLabel htmlFor="confirm-password">
+                          Confirm Password
+                        </FieldLabel>
                         <FieldContent>
-                          <Input
+                          <PasswordInput
                             type="password"
                             value={form.confirmPassword}
                             onChange={handleChange("confirmPassword")}
                             placeholder="Confirm Password"
-                            className="h-12"
+                            name="confirm-password"
+                            id="confirm-password"
                           />
                         </FieldContent>
                       </Field>
@@ -249,7 +259,7 @@ function ProfilePage() {
                     size="lg"
                     type="submit"
                     disabled={saving}
-                    className="h-12 text-sm! w-full sm:max-w-37 font-medium!"
+                    className="w-full sm:max-w-37"
                   >
                     {saving ? "Saving Changes..." : "Update Profile"}
                   </Button>

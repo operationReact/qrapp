@@ -10,6 +10,14 @@ import UserPartyOrderCard from "@/components/UserPartyOrderCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { ConfettiIcon } from "@phosphor-icons/react";
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
 
 export const Route = createFileRoute("/party-orders")({
   component: MyPartyOrdersPage,
@@ -36,10 +44,10 @@ function MyPartyOrdersPage() {
 
       <main className="mx-auto container-premium px-4 py-6 space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex gap-2 items-center justify-between">
           <div>
-            <h1 className="text-2xl font-semibold sm:text-3xl">Party Orders</h1>
-            <p className="mt-1 text-md text-muted-foreground">
+            <h1 className="text-lg font-semibold sm:text-2xl">Party orders</h1>
+            <p className="text-sm text-muted-foreground">
               Track your catering requests
             </p>
           </div>
@@ -59,27 +67,27 @@ function MyPartyOrdersPage() {
             ))}
           </div>
         ) : orders.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 gap-4 text-center">
-            <div className="rounded-full bg-primary/10 p-4">
-              <ConfettiIcon className="size-10 text-primary" weight="duotone" />
-            </div>
-            <div>
-              <p className="font-semibold">No party orders yet</p>
-              <p className="text-sm text-muted-foreground mt-1">
-                Plan your next event with us!
-              </p>
-            </div>
-            <Link
-              to="/new-party-order"
-              className={buttonVariants({
-                variant: "secondary",
-                size: "lg",
-                class: "w-full max-w-xs",
-              })}
-            >
-              <ConfettiIcon weight="fill" /> Request Catering
-            </Link>
-          </div>
+          <Empty className="border">
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <ConfettiIcon weight="duotone" />
+              </EmptyMedia>
+              <EmptyTitle>No party orders yet</EmptyTitle>
+              <EmptyDescription>Plan your next event with us!</EmptyDescription>
+            </EmptyHeader>
+            <EmptyContent>
+              <Link
+                to="/new-party-order"
+                className={buttonVariants({
+                  variant: "secondary",
+                  size: "lg",
+                  class: "w-full max-w-3xs",
+                })}
+              >
+                <ConfettiIcon weight="fill" /> Request Catering
+              </Link>
+            </EmptyContent>
+          </Empty>
         ) : (
           <div className="space-y-4">
             {orders.map((order) => (

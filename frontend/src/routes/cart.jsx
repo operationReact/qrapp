@@ -22,7 +22,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import Navbar from "@/components/shared/Navbar";
 import { useCart } from "@/context/CartContext";
-import { useQueryClient } from '@tanstack/react-query'
+import { useQueryClient } from "@tanstack/react-query";
 import { createOrder } from "@/services/order-service";
 import { getCurrentUser } from "@/services/auth-service";
 import { walletGetBalance } from "@/services/wallet-service";
@@ -38,6 +38,15 @@ import {
 import { Badge } from "@/components/ui/badge";
 import MobileMenu from "@/components/shared/MobileMenu";
 import { useAuth } from "@/context/AuthContext";
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
+import { ListStarIcon, ShoppingCartIcon } from "@phosphor-icons/react";
 
 function loadRazorpayScript(
   src = "https://checkout.razorpay.com/v1/checkout.js",
@@ -185,8 +194,8 @@ function CartPage() {
 
       if (responsePaymentMethod === "WALLET") {
         clearCart?.();
-        queryClient.invalidateQueries({ queryKey: ['wallet'] });
-        window.dispatchEvent(new Event('wallet:updated'));
+        queryClient.invalidateQueries({ queryKey: ["wallet"] });
+        window.dispatchEvent(new Event("wallet:updated"));
         navigate({
           to: "/success",
           state: {
@@ -267,45 +276,40 @@ function CartPage() {
         <div className="mx-auto max-w-6xl space-y-4 sm:space-y-6">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <h1 className="text-2xl font-semibold sm:text-3xl">Checkout</h1>
+              <h1 className="text-lg font-semibold sm:text-2xl">Checkout</h1>
             </div>
           </div>
 
           {cart.length === 0 && (
-            <div className="rounded-2xl border bg-white px-6 py-12 text-center shadow-sm">
-              <svg
-                className="size-30 mx-auto"
-                xmlns="http://www.w3.org/2000/svg"
-                width="24"
-                height="24"
-                fill="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  className="fill-primary"
-                  d="m11.73 5.32-1.41 1.41 1.77 1.77-1.77 1.77 1.41 1.41 1.77-1.77 1.77 1.77 1.41-1.41-1.77-1.77 1.77-1.77-1.41-1.41-1.77 1.77z"
-                ></path>
-                <path d="M17.31 14H9.72L5.95 2.68A1 1 0 0 0 5 2H2v2h2.28l3.54 10.63A2 2 0 0 0 9.72 16h7.59a2 2 0 0 0 1.87-1.3l2.76-7.35-1.87-.7zM10 18a2 2 0 1 0 0 4 2 2 0 1 0 0-4m7 0a2 2 0 1 0 0 4 2 2 0 1 0 0-4"></path>
-              </svg>
-              <h3 className="mt-8 text-xl font-semibold">Your Cart is empty</h3>
-              <p className="mt-2 text-muted-foreground max-w-sm mx-auto">
-                Add your favourite dishes and come back here to place your
-                order.
-              </p>
-              <Button
-                size="lg"
-                variant="outline"
-                onClick={() => navigate({ to: "/" })}
-                className="font-medium! mt-8 min-w-60 w-1/2 h-12"
-              >
-                Browse Menu
-              </Button>
-            </div>
+            // update with the Empty component
+            <Empty className="border">
+              <EmptyHeader>
+                <EmptyMedia variant="icon">
+                  <ShoppingCartIcon weight="duotone" />
+                </EmptyMedia>
+                <EmptyTitle>Your Cart is empty</EmptyTitle>
+                <EmptyDescription>
+                  {" "}
+                  Add your favourite dishes and come back here to place your
+                  order.
+                </EmptyDescription>
+              </EmptyHeader>
+              <EmptyContent>
+                <Button
+                  size="lg"
+                  variant="outline"
+                  onClick={() => navigate({ to: "/" })}
+                  className="w-full max-w-3xs"
+                >
+                  Browse Menu
+                </Button>
+              </EmptyContent>
+            </Empty>
           )}
 
           {cart.length > 0 && (
             <div className="grid gap-5 xl:grid-cols-[1.55fr,0.95fr] xl:gap-6">
-              <section className="space-y-0 rounded-2xl bg-white shadow-sm py-2 px-4">
+              <section className="space-y-0 rounded-lg bg-white shadow-sm py-2 px-4">
                 {cart.map((item) => (
                   <CartItem
                     key={item.id}
@@ -319,10 +323,10 @@ function CartPage() {
             </div>
           )}
 
-          <section className="rounded-2xl bg-white shadow-sm p-4 mb-12">
+          <section className="rounded-lg bg-white shadow-sm p-4 mb-12">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <h4 className="text-lg font-semibold">Add Ons</h4>
+                <h4 className="text-base font-semibold mb-2">Add Ons</h4>
               </div>
             </div>
 
@@ -330,6 +334,21 @@ function CartPage() {
               <div className="mt-4 text-sm text-gray-500">
                 Loading recommendations...
               </div>
+            )}
+
+            {!recLoading && recommended && recommended.length === 0 && (
+              <Empty className="border">
+                <EmptyHeader className="px-2">
+                  <EmptyMedia variant="icon">
+                    <ListStarIcon weight="duotone" />
+                  </EmptyMedia>
+                  <EmptyTitle>Build your perfect meal</EmptyTitle>
+                  <EmptyDescription className="text-pretty">
+                    Add your dishes to the cart and we'll suggest the best
+                    sides, drinks, and extras to go with them.
+                  </EmptyDescription>
+                </EmptyHeader>
+              </Empty>
             )}
 
             {!recLoading && recommended && recommended.length > 0 && (

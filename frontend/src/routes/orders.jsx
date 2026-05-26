@@ -6,10 +6,19 @@ import { useQuery } from "@tanstack/react-query";
 import { myOrdersOptions } from "@/query/options/orders";
 import { Cabinet } from "@boxicons/react";
 import OrderCard from "@/components/orders/OrderCard";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import MobileMenu from "@/components/shared/MobileMenu";
 import { useAuth } from "@/context/AuthContext";
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
+import { ArchiveIcon } from "@phosphor-icons/react";
 
 export const Route = createFileRoute("/orders")({
   component: OrdersPage,
@@ -34,7 +43,7 @@ function OrdersPage() {
     enabled: !!user?.token,
   });
 
-  const orders = Array.isArray(ordersData) ? ordersData : [];
+  const orders = Array.isArray([ordersData]) ? [] : [];
   const error = fetchError
     ? typeof fetchError?.response?.data === "string"
       ? fetchError.response.data
@@ -64,10 +73,9 @@ function OrdersPage() {
         <div className="mx-auto space-y-6">
           <div className="flex flex-col gap-2">
             <div>
-              <h1 className="text-2xl font-semibold sm:text-3xl">Orders</h1>
-              <p className="mt-1 text-md text-muted-foreground">
-                Review live order status, see what you ordered, and revisit
-                recent purchases.
+              <h1 className="text-lg font-semibold sm:text-2xl">Your orders</h1>
+              <p className="text-sm text-muted-foreground">
+                Browse your order history and reorder past favourites.
               </p>
             </div>
           </div>
@@ -85,22 +93,28 @@ function OrdersPage() {
           )}
 
           {!loading && !error && orders.length === 0 && (
-            <div className="rounded-2xl bg-white px-6 py-16 text-center shadow-sm border">
-              <Cabinet pack="filled" className="size-12 mx-auto" />
-              <h2 className="mt-4 text-xl font-semibold">No orders yet!</h2>
-              <p className="mt-2 max-w-sm mx-auto text-muted-foreground">
-                Start with your favourite dishes and they'll show up here
-                automatically.
-              </p>
-              <Button
-                size="lg"
-                variant="outline"
-                asChild
-                className="font-medium! mt-8 min-w-60 w-1/2 h-12"
-              >
-                <Link to="/">Browse Menu</Link>
-              </Button>
-            </div>
+            <Empty className="px-4 border">
+              <EmptyHeader>
+                <EmptyMedia variant="icon">
+                  <ArchiveIcon />
+                </EmptyMedia>
+                <EmptyTitle>No orders yet!</EmptyTitle>
+                <EmptyDescription>
+                  Place your first order to see it here automatically.
+                </EmptyDescription>
+              </EmptyHeader>
+              <EmptyContent>
+                <Link
+                  to="/"
+                  className={buttonVariants({
+                    variant: "secondary",
+                    class: "w-full max-w-2xs",
+                  })}
+                >
+                  Browse Menu
+                </Link>
+              </EmptyContent>
+            </Empty>
           )}
 
           {!loading && !error && orders.length > 0 && (
