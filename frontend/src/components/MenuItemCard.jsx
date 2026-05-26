@@ -29,7 +29,7 @@ export default function MenuItemCard({ item }) {
     item.isVeg === "1";
 
   return (
-    <article className="group h-full border border-border rounded-lg overflow-hidden">
+    <article className="group bg-background h-full border border-border rounded-lg overflow-hidden">
       <div className="relative aspect-video w-full">
         {imageSrc && !imgError ? (
           <img

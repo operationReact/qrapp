@@ -1,15 +1,12 @@
 import { useCountdown } from "@/hooks/useCountdown";
 import { cn } from "@/lib/utils";
 
-/**
- * Reusable countdown timer component.
- * Props:
- *  - targetDate: ISO string
- *  - label: string shown above the timer
- *  - expiredLabel: string shown when expired
- *  - className: extra CSS classes
- */
-export default function CountdownTimer({ targetDate, label, expiredLabel = "Expired", className }) {
+export default function CountdownTimer({
+  targetDate,
+  label,
+  expiredLabel = "Expired",
+  className,
+}) {
   const { days, hours, minutes, seconds, expired } = useCountdown(targetDate);
 
   if (!targetDate) return null;
@@ -29,12 +26,15 @@ export default function CountdownTimer({ targetDate, label, expiredLabel = "Expi
   parts.push(`${String(seconds).padStart(2, "0")}s`);
 
   return (
-    <div className={cn("text-xs", className)}>
-      {label && <span className="text-muted-foreground mr-1">{label}</span>}
-      <span className="font-mono font-semibold tabular-nums text-foreground">
-        {parts.join(" ")}
-      </span>
+    <div className={cn("text-xs md:text-sm grid gap-0.5", className)}>
+      {label && <span className="text-muted-foreground">{label}</span>}
+      <div className="tabular-nums flex justify-center bg-white p-0.5 rounded border-muted shadow-xs gap-0.5 font-medium text-primary">
+        {parts.map((part, index) => (
+          <span key={index} className="rounded">
+            {part} {index < parts.length - 1 && ":"}
+          </span>
+        ))}
+      </div>
     </div>
   );
 }
-

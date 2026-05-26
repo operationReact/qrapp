@@ -1,10 +1,5 @@
 import { useState, useEffect, useRef } from "react";
 
-/**
- * Returns a live countdown from now until targetDate (ISO string or Date).
- * Returns { days, hours, minutes, seconds, expired } and updates every second.
- * Cleans up interval on unmount.
- */
 export function useCountdown(targetDate) {
   const [timeLeft, setTimeLeft] = useState(() => calcTimeLeft(targetDate));
   const intervalRef = useRef(null);
@@ -22,10 +17,12 @@ export function useCountdown(targetDate) {
 }
 
 function calcTimeLeft(targetDate) {
-  if (!targetDate) return { days: 0, hours: 0, minutes: 0, seconds: 0, expired: true };
+  if (!targetDate)
+    return { days: 0, hours: 0, minutes: 0, seconds: 0, expired: true };
 
   const diff = new Date(targetDate).getTime() - Date.now();
-  if (diff <= 0) return { days: 0, hours: 0, minutes: 0, seconds: 0, expired: true };
+  if (diff <= 0)
+    return { days: 0, hours: 0, minutes: 0, seconds: 0, expired: true };
 
   const totalSeconds = Math.floor(diff / 1000);
   return {
@@ -36,4 +33,3 @@ function calcTimeLeft(targetDate) {
     expired: false,
   };
 }
-

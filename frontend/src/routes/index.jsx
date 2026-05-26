@@ -17,17 +17,23 @@ import MobileMenu from "../components/shared/MobileMenu";
 import { useLocation } from "@tanstack/react-router";
 import DealsSection from "@/components/DealsSection";
 import {
-  TitledSection,
-  TitledSectionContent,
-  TitledSectionHeader,
-  TitledSectionTitle,
-} from "@/components/shared/titled-section";
+  Segment,
+  SegmentHeader,
+  SegmentLabel,
+  SegmentTitle,
+  SegmentDescription,
+  SegmentContent,
+  SegmentFooter,
+  SegmentActions,
+  SegmentAction,
+} from "@/components/shared/segment";
 import React from "react";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { BowlFoodIcon, ConfettiIcon } from "@phosphor-icons/react";
+import CountdownTimer from "@/components/CountdownTimer";
+import { FireIcon, SparkleIcon } from "@phosphor-icons/react";
+import { BowlFoodIcon } from "@phosphor-icons/react";
 import {
   Empty,
-  EmptyContent,
   EmptyDescription,
   EmptyHeader,
   EmptyMedia,
@@ -64,6 +70,14 @@ function MenuPage() {
   const categories = [...new Set((categoriesData || []).map((c) => c.name))];
 
   const menuItems = menu || [];
+  const highlights = menuItems.slice(0, 6);
+  const freshAndHealthy = menuItems.filter(
+    (item) =>
+      item.isVeg === true ||
+      item.isVeg === "true" ||
+      item.isVeg === 1 ||
+      item.isVeg === "1",
+  );
   const filtered = menuItems.filter((item) => {
     // Normalize possible server representations for boolean-ish isVeg
     const isVeg =
@@ -163,7 +177,7 @@ function MenuPage() {
             <Empty>
               <EmptyHeader>
                 <EmptyMedia variant="icon">
-                  <BowlFoodIcon weight="duotone"/>
+                  <BowlFoodIcon weight="duotone" />
                 </EmptyMedia>
                 <EmptyTitle>No Menu Items Available</EmptyTitle>
                 <EmptyDescription>
@@ -173,20 +187,90 @@ function MenuPage() {
             </Empty>
           )}
 
+          <Segment tone="red" className="p-2">
+            <SegmentHeader>
+              <SegmentLabel icon={<FireIcon weight="duotone" />}>
+                <SegmentTitle>Today's Highlights</SegmentTitle>
+                <SegmentDescription>
+                  Chef's special picks curated just for you.
+                </SegmentDescription>
+              </SegmentLabel>
+              <SegmentActions>
+                <CountdownTimer
+                  targetDate={new Date(
+                    Date.now() + 2 * 60 * 60 * 1000,
+                  ).toISOString()}
+                  label="Preorder closes in"
+                />
+              </SegmentActions>
+            </SegmentHeader>
+            <SegmentContent>
+              <Carousel opts={{ dragFree: true }}>
+                <CarouselContent className="-ml-2 pr-3">
+                  {highlights.map((item) => (
+                    <CarouselItem
+                      key={item.id}
+                      className="pl-2 basis-1/3 md:basis-1/4"
+                    >
+                      <MenuItemCard item={item} />
+                    </CarouselItem>
+                  ))}
+                </CarouselContent>
+              </Carousel>
+            </SegmentContent>
+            <SegmentFooter className="justify-center">
+              <SegmentAction
+                variant="link"
+                className="border-none hover:bg-transparent"
+                size="sm"
+                to="/"
+              >
+                View all highlights
+              </SegmentAction>
+            </SegmentFooter>
+          </Segment>
+
+          <Segment tone="green" className="p-2">
+            <SegmentHeader>
+              <SegmentLabel icon={<SparkleIcon weight="duotone" />}>
+                <SegmentTitle>Fresh & Healthy</SegmentTitle>
+                <SegmentDescription>
+                  Light bites, salads, and nourishing bowls.
+                </SegmentDescription>
+              </SegmentLabel>
+              <SegmentActions>
+                <Button variant="outline" size="sm">
+                  View All
+                </Button>
+              </SegmentActions>
+            </SegmentHeader>
+
+            <SegmentContent>
+              <Carousel opts={{ dragFree: true }}>
+                <CarouselContent className="-ml-2 pr-3">
+                  {freshAndHealthy.map((item) => (
+                    <CarouselItem
+                      key={item.id}
+                      className="pl-2 basis-1/3 md:basis-1/4"
+                    >
+                      <MenuItemCard item={item} />
+                    </CarouselItem>
+                  ))}
+                </CarouselContent>
+              </Carousel>
+            </SegmentContent>
+          </Segment>
+
           {/* ITEMS */}
           {Object.entries(groups).map(([category, items]) => (
-            <TitledSection key={category} id={category}>
-              <TitledSectionHeader
-                startContent={
-                  <React.Fragment>
-                    <TitledSectionTitle>
-                      {category || "Specials"}
-                    </TitledSectionTitle>
-                  </React.Fragment>
-                }
-              />
+            <Segment key={category} id={category}>
+              <SegmentHeader>
+                <SegmentLabel>
+                  <SegmentTitle>{category || "Specials"}</SegmentTitle>
+                </SegmentLabel>
+              </SegmentHeader>
 
-              <TitledSectionContent>
+              <SegmentContent>
                 <Carousel opts={{ dragFree: true }}>
                   <CarouselContent className="-ml-2 pr-3">
                     {items.map((item) => (
@@ -199,8 +283,8 @@ function MenuPage() {
                     ))}
                   </CarouselContent>
                 </Carousel>
-              </TitledSectionContent>
-            </TitledSection>
+              </SegmentContent>
+            </Segment>
           ))}
         </div>
       </main>
