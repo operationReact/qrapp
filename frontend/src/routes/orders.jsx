@@ -43,7 +43,7 @@ function OrdersPage() {
     enabled: !!user?.token,
   });
 
-  const orders = Array.isArray([ordersData]) ? [] : [];
+  const orders = Array.isArray([ordersData]) ? ordersData : [ordersData];
   const error = fetchError
     ? typeof fetchError?.response?.data === "string"
       ? fetchError.response.data
