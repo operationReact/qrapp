@@ -1,6 +1,6 @@
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useEffect, useMemo } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { walletBalanceOptions } from "@/query/options/wallet";
 import { useIsMobile } from "@/hooks/use-mobile";
 import ModeSwitcher from "@/components/ModeSwitcher";
@@ -8,7 +8,9 @@ import { Separator } from "@/components/ui/separator";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -16,12 +18,13 @@ import {
   BowlFoodIcon,
   ConfettiIcon,
   CubeIcon,
+  LockKeyIcon,
   ShoppingCartSimpleIcon,
   SignOutIcon,
   UserGearIcon,
   WalletIcon,
 } from "@phosphor-icons/react";
-import { buttonVariants } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useAuth } from "@/context/AuthContext";
 import { useCart } from "@/context/CartContext";
@@ -48,7 +51,7 @@ export default function Navbar() {
 
   useEffect(() => {
     const handleWalletUpdate = () => {
-      queryClient.invalidateQueries({ queryKey: ['wallet', 'balance'] });
+      queryClient.invalidateQueries({ queryKey: ["wallet", "balance"] });
     };
     window.addEventListener("wallet:updated", handleWalletUpdate);
     return () => {
@@ -125,10 +128,13 @@ export default function Navbar() {
           {!isAdmin && user && (
             <Link
               to="/wallet"
-              className="flex items-center gap-1 h-10 rounded-md border border-primary/5 bg-primary/5 p-2 text-black"
+              className={buttonVariants({
+                variant: "shadow-white",
+                size: "lg",
+              })}
             >
-              <WalletIcon className="size-5 text-primary" weight="fill"/>
-              <span className="max-w-22 truncate text-sm font-semibold sm:max-w-none">
+              <WalletIcon weight="duotone" />
+              <span className="max-w-22 text-foreground truncate font-semibold sm:max-w-none">
                 {loadingBalance
                   ? "..."
                   : walletBalance == null
@@ -151,7 +157,7 @@ export default function Navbar() {
               aria-label="Open cart"
               className="relative rounded-2xl"
             >
-              <ShoppingCartSimpleIcon weight="fill" className="size-6" />
+              <ShoppingCartSimpleIcon weight="duotone" className="size-6" />
               {cart.length > 0 && (
                 <span className="absolute will-change-transform origin-center -right-1 -top-1 align-middle h-4 min-w-[1rem] px-px animate-in-scaled rounded-full grid place-items-center text-center text-[12px] font-semibold bg-primary text-secondary">
                   {cart.length}
@@ -172,54 +178,76 @@ export default function Navbar() {
             </Link>
           )}
 
-          {/* className="size-11 flex items-center aspect-square aria-expanded:ring aria-expanded:ring-primary/40 transition-colors justify-center rounded-full bg-white text-sm font-medium! text-primary"*/}
           {!isMobile && !isAdmin && user && (
             <DropdownMenu>
               <DropdownMenuTrigger
                 aria-label="Open account menu"
                 render={
-                  <button className="rounded-full will-change-transform aria-expanded:scale-95 aria-expanded:ring aria-expanded:ring-primary transition-all">
-                    <Avatar className="size-10">
-                      <AvatarFallback className="text-primary">
-                        {initials}
-                      </AvatarFallback>
+                  <Button
+                    variant="ghost"
+                    size="icon-lg"
+                    className="rounded-full"
+                  >
+                    <Avatar>
+                      <AvatarFallback>{initials}</AvatarFallback>
                     </Avatar>
-                  </button>
+                  </Button>
                 }
-              ></DropdownMenuTrigger>
-              <DropdownMenuContent
-                className="w-50 rounded-lg shadow"
-                align="end"
-              >
+              />
+              <DropdownMenuContent align="end" className="min-w-56 shadow-xl">
+                <DropdownMenuGroup>
+                  <DropdownMenuLabel className="p-2">
+                    <div className="flex items-center gap-3">
+                      <Avatar className="size-9">
+                        <AvatarFallback className="text-xs text-primary">
+                          {initials}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm line-clamp-1 font-medium text-foreground truncate">
+                          Hey, {user?.info?.name || "User"}
+                        </p>
+                        <div className="flex items-center gap-1">
+                          <Link
+                            className={buttonVariants({
+                              variant: "link",
+                              size: "xs",
+                              className: "pl-0!",
+                            })}
+                            to="/profile"
+                          >
+                            <LockKeyIcon
+                              weight="fill"
+                              data-icon="inline-start"
+                            />
+                            Change Password
+                          </Link>
+                        </div>
+                      </div>
+                    </div>
+                  </DropdownMenuLabel>
+                </DropdownMenuGroup>
+                <DropdownMenuSeparator />
                 {menuItems.map(({ to, label, icon: Icon }) => (
                   <DropdownMenuItem
                     key={to}
                     render={
-                      <Link key={to} to={to}>
-                        <Icon weight="fill" className="size-5" />
-                        <span className="text-sm font-medium text-foreground">
-                          {label}
-                        </span>
+                      <Link to={to}>
+                        <Icon weight="duotone" />
+                        <span>{label}</span>
                       </Link>
                     }
-                  ></DropdownMenuItem>
+                  />
                 ))}
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={logout}
-                  className="hover:bg-red-100 border border-red-100 focus:bg-red-100! font-medium! focus:text-red-500"
-                >
-                  <SignOutIcon className="size-5 text-red-500 fill-red-500" />{" "}
+                <DropdownMenuSeparator className="bg-muted" />
+                <DropdownMenuItem variant="destructive" onClick={logout}>
+                  <SignOutIcon weight="duotone" />
                   Log out
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           )}
 
-          <Separator
-            orientation="vertical"
-            className="h-7 bg-primary/10 my-auto hidden md:block"
-          />
           <ModeSwitcher />
         </div>
       </div>
