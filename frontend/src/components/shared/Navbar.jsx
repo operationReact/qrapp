@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {
   BowlFoodIcon,
+  ConfettiIcon,
   CubeIcon,
   ShoppingCartSimpleIcon,
   SignOutIcon,
@@ -73,7 +74,11 @@ export default function Navbar() {
       label: "Orders",
       icon: CubeIcon,
     },
-
+    {
+      to: "/party-orders",
+      label: "Party Orders",
+      icon: ConfettiIcon,
+    },
     {
       to: "/wallet",
       label: "Wallet",

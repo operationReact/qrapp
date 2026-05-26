@@ -82,7 +82,7 @@ public class PartyOrderController {
             Authentication authentication
     ) {
         String phone = requirePhone(authentication);
-        return ResponseEntity.ok(partyOrderService.confirmEstimate(id, phone));
+        return ResponseEntity.ok(partyOrderService.acceptEstimate(id, phone));
     }
 
     // ── Reject estimate ───────────────────────────────────────────────────────
@@ -98,6 +98,51 @@ public class PartyOrderController {
     ) {
         String phone = requirePhone(authentication);
         return ResponseEntity.ok(partyOrderService.rejectEstimate(id, phone));
+    }
+
+    // ── Accept estimate ───────────────────────────────────────────────────────
+
+    /**
+     * POST /party-order/{id}/accept-estimate
+     * User accepts the admin's estimate.  ESTIMATE_SENT → ADVANCE_PENDING.
+     */
+    @PostMapping("/{id}/accept-estimate")
+    public ResponseEntity<PartyOrderResponse> acceptEstimate(
+            @PathVariable Long id,
+            Authentication authentication
+    ) {
+        String phone = requirePhone(authentication);
+        return ResponseEntity.ok(partyOrderService.acceptEstimate(id, phone));
+    }
+
+    // ── Pay advance ───────────────────────────────────────────────────────────
+
+    /**
+     * POST /party-order/{id}/pay-advance
+     * Simulated advance payment.  ADVANCE_PENDING → CONFIRMED.
+     */
+    @PostMapping("/{id}/pay-advance")
+    public ResponseEntity<PartyOrderResponse> payAdvance(
+            @PathVariable Long id,
+            Authentication authentication
+    ) {
+        String phone = requirePhone(authentication);
+        return ResponseEntity.ok(partyOrderService.payAdvance(id, phone));
+    }
+
+    // ── Callback request ──────────────────────────────────────────────────────
+
+    /**
+     * POST /party-order/{id}/callback-request
+     * User requests a callback from admin.
+     */
+    @PostMapping("/{id}/callback-request")
+    public ResponseEntity<PartyOrderResponse> callbackRequest(
+            @PathVariable Long id,
+            Authentication authentication
+    ) {
+        String phone = requirePhone(authentication);
+        return ResponseEntity.ok(partyOrderService.requestCallback(id, phone));
     }
 
     // ── Cancel ────────────────────────────────────────────────────────────────

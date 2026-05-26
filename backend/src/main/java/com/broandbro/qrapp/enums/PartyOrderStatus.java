@@ -13,6 +13,12 @@ public enum PartyOrderStatus {
     /** Admin has submitted an estimate; user has not yet responded. */
     ESTIMATE_SENT,
 
+    /** Estimate expired before user accepted. */
+    ESTIMATE_EXPIRED,
+
+    /** User accepted the estimate; waiting for advance payment. */
+    ADVANCE_PENDING,
+
     /** User confirmed the estimate — order is locked in. */
     CONFIRMED,
 

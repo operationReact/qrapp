@@ -213,6 +213,7 @@ export default function NewPartyOrder({ className, onClose }) {
   const [venue, setVenue] = useState("");
   const [eventType, setEventType] = useState("");
   const [specialNotes, setSpecialNotes] = useState("");
+  const [budgetAmount, setBudgetAmount] = useState("");
   const [errors, setErrors] = useState({});
   const [submitted, setSubmitted] = useState(false);
   const queryClient = useQueryClient();
@@ -255,6 +256,7 @@ export default function NewPartyOrder({ className, onClose }) {
       venue: venue.trim() || undefined,
       eventType: eventType || undefined,
       specialNotes: specialNotes.trim() || undefined,
+      budgetAmount: budgetAmount ? Number(budgetAmount) : undefined,
     });
   };
 
@@ -318,6 +320,24 @@ export default function NewPartyOrder({ className, onClose }) {
           </FieldContent>
         </Field>
       </div>
+
+      {/* ── Row 3: Budget ──────────────────────────────────────────────── */}
+      <Field>
+        <FieldLabel className="flex items-center gap-1.5">
+          Budget <span className="text-muted-foreground font-normal">(optional)</span>
+        </FieldLabel>
+        <FieldContent>
+          <Input
+            type="number"
+            min="0"
+            step="1000"
+            placeholder="e.g. 25000"
+            value={budgetAmount}
+            onChange={(e) => setBudgetAmount(e.target.value)}
+          />
+          <p className="text-xs text-muted-foreground mt-1">Your approximate budget in ₹ (helps us tailor the estimate)</p>
+        </FieldContent>
+      </Field>
 
       {/* ── Preferred Menu ─────────────────────────────────────────────── */}
       <Field>

@@ -2,6 +2,7 @@ package com.broandbro.qrapp.dto.partyorder;
 
 import jakarta.validation.constraints.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -29,5 +30,9 @@ public record PartyOrderCreateRequest(
 
         /** Special requirements, dietary notes, etc. */
         @Size(max = 2000)
-        String specialNotes
+        String specialNotes,
+
+        /** Optional customer budget hint. */
+        @DecimalMin(value = "0.0", inclusive = false, message = "Budget must be positive if provided")
+        BigDecimal budgetAmount
 ) {}

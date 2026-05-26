@@ -14,6 +14,7 @@ import {
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
   CompassIcon,
+  ConfettiIcon,
   CubeIcon,
   ShoppingCartSimpleIcon,
   SignOutIcon,
@@ -134,6 +135,24 @@ function UserAccountDrawerContent() {
               Check balance and transactions
             </span>
           </div>
+        </Link>
+      </div>
+
+      <div className="px-4 pb-2 grid grid-cols-2 gap-2">
+        <Link
+          to="/party-orders"
+          className={buttonVariants({
+            variant: "outline",
+            size: "lg",
+            className:
+              "h-fit col-span-2 text-lg bg-linear-to-br from-primary/5 border-primary/10! gap-0! to-white flex-col p-4 items-start justify-center",
+          })}
+        >
+          <ConfettiIcon weight="fill" className="size-6 text-primary mb-2" />
+          <span className="font-semibold">Party Orders</span>
+          <span className="block text-xs text-muted-foreground">
+            Track your catering requests
+          </span>
         </Link>
       </div>
 

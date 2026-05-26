@@ -12,13 +12,15 @@ export const Route = createFileRoute('/admin/(orders)/party-orders')({
 })
 
 const STATUS_FILTERS = [
-  { label: "All",          value: null },
-  { label: "New",          value: "NEW" },
-  { label: "Under Review", value: "UNDER_REVIEW" },
-  { label: "Estimate Sent",value: "ESTIMATE_SENT" },
-  { label: "Confirmed",    value: "CONFIRMED" },
-  { label: "Completed",    value: "COMPLETED" },
-  { label: "Cancelled",    value: "CANCELLED" },
+  { label: "All",             value: null },
+  { label: "New",             value: "NEW" },
+  { label: "Under Review",    value: "UNDER_REVIEW" },
+  { label: "Estimate Sent",   value: "ESTIMATE_SENT" },
+  { label: "Advance Pending", value: "ADVANCE_PENDING" },
+  { label: "Confirmed",       value: "CONFIRMED" },
+  { label: "Expired",         value: "ESTIMATE_EXPIRED" },
+  { label: "Completed",       value: "COMPLETED" },
+  { label: "Cancelled",       value: "CANCELLED" },
 ];
 
 function PartyOrdersPage() {

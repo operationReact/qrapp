@@ -61,12 +61,28 @@ public class PartyOrder {
     @Column(name = "special_notes", columnDefinition = "TEXT")
     private String specialNotes;
 
+    /** Optional budget the customer has in mind. */
+    @Column(name = "budget_amount", precision = 12, scale = 2)
+    private BigDecimal budgetAmount;
+
     // ── Status & Estimate ────────────────────────────────────────────────────
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 30)
     private PartyOrderStatus status;
 
-    /** Set by admin when submitting estimate. */
+    /** Total quoted price = sum of all menu item quotedPrice. */
+    @Column(name = "estimated_total_amount", precision = 12, scale = 2)
+    private BigDecimal estimatedTotalAmount;
+
+    /** Total estimated cost (admin internal). */
+    @Column(name = "estimated_total_expense", precision = 12, scale = 2)
+    private BigDecimal estimatedTotalExpense;
+
+    /** Profit = estimatedTotalAmount - estimatedTotalExpense (admin internal). */
+    @Column(name = "estimated_total_profit", precision = 12, scale = 2)
+    private BigDecimal estimatedTotalProfit;
+
+    /** Legacy simple estimate amount — kept for backward compat. */
     @Column(name = "estimated_amount", precision = 12, scale = 2)
     private BigDecimal estimatedAmount;
 
@@ -78,6 +94,10 @@ public class PartyOrder {
     @Column(name = "estimate_note", columnDefinition = "TEXT")
     private String estimateNote;
 
+    /** Internal admin-only notes. Never exposed to users. */
+    @Column(name = "admin_notes", columnDefinition = "TEXT")
+    private String adminNotes;
+
     /** Admin username who submitted the estimate. */
     @Column(name = "estimate_submitted_by", length = 100)
     private String estimateSubmittedBy;
@@ -85,6 +105,35 @@ public class PartyOrder {
     /** When the estimate was sent to the user. */
     @Column(name = "estimate_sent_at")
     private Instant estimateSentAt;
+
+    /** When estimate expires (48h after sent, configurable). */
+    @Column(name = "estimate_expires_at")
+    private Instant estimateExpiresAt;
+
+    /** 30% advance amount required. */
+    @Column(name = "advance_required_amount", precision = 12, scale = 2)
+    private BigDecimal advanceRequiredAmount;
+
+    @Column(name = "advance_paid_amount", precision = 12, scale = 2)
+    private BigDecimal advancePaidAmount;
+
+    @Column(name = "advance_paid")
+    @Builder.Default
+    private Boolean advancePaid = false;
+
+    @Column(name = "advance_paid_at")
+    private Instant advancePaidAt;
+
+    @Column(name = "confirmation_started_at")
+    private Instant confirmationStartedAt;
+
+    @Column(name = "event_countdown_started")
+    @Builder.Default
+    private Boolean eventCountdownStarted = false;
+
+    @Column(name = "callback_requested")
+    @Builder.Default
+    private Boolean callbackRequested = false;
 
     /** When user confirmed or rejected. */
     @Column(name = "user_responded_at")
@@ -102,8 +151,11 @@ public class PartyOrder {
         Instant now = Instant.now();
         if (createdAt == null) createdAt = now;
         updatedAt = now;
-        if (status == null) status = PartyOrderStatus.PENDING_ESTIMATE;
+        if (status == null) status = PartyOrderStatus.NEW;
         if (currency == null) currency = "INR";
+        if (advancePaid == null) advancePaid = false;
+        if (eventCountdownStarted == null) eventCountdownStarted = false;
+        if (callbackRequested == null) callbackRequested = false;
     }
 
     @PreUpdate

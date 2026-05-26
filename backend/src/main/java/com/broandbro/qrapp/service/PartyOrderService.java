@@ -18,17 +18,20 @@ public interface PartyOrderService {
     /** Get a single party order; throws 403 if it doesn't belong to the caller. */
     PartyOrderResponse getMyPartyOrder(Long orderId, String phone);
 
-    /**
-     * User confirms an estimate — transitions ESTIMATE_SENT → CONFIRMED.
-     * Throws 409 if the order is not in ESTIMATE_SENT state.
-     */
-    PartyOrderResponse confirmEstimate(Long orderId, String phone);
+    /** User accepts estimate — ESTIMATE_SENT → ADVANCE_PENDING. */
+    PartyOrderResponse acceptEstimate(Long orderId, String phone);
 
     /**
      * User rejects an estimate — transitions ESTIMATE_SENT → REJECTED.
      * Throws 409 if the order is not in ESTIMATE_SENT state.
      */
     PartyOrderResponse rejectEstimate(Long orderId, String phone);
+
+    /** User pays advance (simulated) — ADVANCE_PENDING → CONFIRMED. */
+    PartyOrderResponse payAdvance(Long orderId, String phone);
+
+    /** User requests a callback. */
+    PartyOrderResponse requestCallback(Long orderId, String phone);
 
     /**
      * User cancels their own order — allowed while status is PENDING_ESTIMATE or ESTIMATE_SENT.
@@ -55,4 +58,3 @@ public interface PartyOrderService {
     /** Admin can force any valid status transition. */
     PartyOrderResponse updateStatus(Long orderId, PartyOrderStatusUpdateRequest req, String adminName);
 }
-

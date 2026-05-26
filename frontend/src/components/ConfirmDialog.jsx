@@ -1,6 +1,10 @@
 import PropTypes from 'prop-types';
 
-export default function ConfirmDialog({ title = 'Confirm', message, onCancel, onConfirm, pending }) {
+export default function ConfirmDialog({ title = 'Confirm', message, onCancel, onConfirm, pending, confirmLabel, confirmClassName }) {
+    const btnClass = confirmClassName ?? "touch-button rounded-2xl bg-red-500 px-4 py-3 text-sm font-semibold text-white";
+    const btnLabel = confirmLabel ?? "Delete";
+    const pendingLabel = pending ? (confirmLabel ? `${confirmLabel}…` : "Deleting...") : btnLabel;
+
     return (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-3 sm:items-center sm:p-4">
             <div className="w-full max-w-md rounded-[1.5rem] bg-white p-5 shadow-xl sm:p-6">
@@ -9,7 +13,7 @@ export default function ConfirmDialog({ title = 'Confirm', message, onCancel, on
 
                 <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
                     <button onClick={onCancel} className="touch-button rounded-2xl bg-gray-100 px-4 py-3 text-sm font-medium text-gray-700">Cancel</button>
-                    <button onClick={onConfirm} disabled={pending} className="touch-button rounded-2xl bg-red-500 px-4 py-3 text-sm font-semibold text-white">{pending ? 'Deleting...' : 'Delete'}</button>
+                    <button onClick={onConfirm} disabled={pending} className={btnClass}>{pendingLabel}</button>
                 </div>
             </div>
         </div>
@@ -21,6 +25,10 @@ ConfirmDialog.propTypes = {
     message: PropTypes.string,
     onCancel: PropTypes.func.isRequired,
     onConfirm: PropTypes.func.isRequired,
-    pending: PropTypes.bool
+    pending: PropTypes.bool,
+    confirmLabel: PropTypes.string,
+    confirmClassName: PropTypes.string,
 };
+
+
 

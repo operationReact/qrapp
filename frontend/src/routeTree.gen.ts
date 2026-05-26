@@ -13,6 +13,7 @@ import { Route as WalletRouteImport } from './routes/wallet'
 import { Route as SuccessRouteImport } from './routes/success'
 import { Route as SearchRouteImport } from './routes/search'
 import { Route as ProfileRouteImport } from './routes/profile'
+import { Route as PartyOrdersRouteImport } from './routes/party-orders'
 import { Route as OrdersRouteImport } from './routes/orders'
 import { Route as CartRouteImport } from './routes/cart'
 import { Route as AdminRouteImport } from './routes/admin'
@@ -58,6 +59,11 @@ const SearchRoute = SearchRouteImport.update({
 const ProfileRoute = ProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PartyOrdersRoute = PartyOrdersRouteImport.update({
+  id: '/party-orders',
+  path: '/party-orders',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OrdersRoute = OrdersRouteImport.update({
@@ -200,6 +206,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRouteWithChildren
   '/cart': typeof CartRoute
   '/orders': typeof OrdersRoute
+  '/party-orders': typeof PartyOrdersRoute
   '/profile': typeof ProfileRoute
   '/search': typeof SearchRoute
   '/success': typeof SuccessRoute
@@ -231,6 +238,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/cart': typeof CartRoute
   '/orders': typeof OrdersRoute
+  '/party-orders': typeof PartyOrdersRoute
   '/profile': typeof ProfileRoute
   '/search': typeof SearchRoute
   '/success': typeof SuccessRoute
@@ -263,6 +271,7 @@ export interface FileRoutesById {
   '/admin': typeof AdminRouteWithChildren
   '/cart': typeof CartRoute
   '/orders': typeof OrdersRoute
+  '/party-orders': typeof PartyOrdersRoute
   '/profile': typeof ProfileRoute
   '/search': typeof SearchRoute
   '/success': typeof SuccessRoute
@@ -297,6 +306,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/cart'
     | '/orders'
+    | '/party-orders'
     | '/profile'
     | '/search'
     | '/success'
@@ -328,6 +338,7 @@ export interface FileRouteTypes {
     | '/'
     | '/cart'
     | '/orders'
+    | '/party-orders'
     | '/profile'
     | '/search'
     | '/success'
@@ -359,6 +370,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/cart'
     | '/orders'
+    | '/party-orders'
     | '/profile'
     | '/search'
     | '/success'
@@ -392,6 +404,7 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRouteWithChildren
   CartRoute: typeof CartRoute
   OrdersRoute: typeof OrdersRoute
+  PartyOrdersRoute: typeof PartyOrdersRoute
   ProfileRoute: typeof ProfileRoute
   SearchRoute: typeof SearchRoute
   SuccessRoute: typeof SuccessRoute
@@ -428,6 +441,13 @@ declare module '@tanstack/react-router' {
       path: '/profile'
       fullPath: '/profile'
       preLoaderRoute: typeof ProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/party-orders': {
+      id: '/party-orders'
+      path: '/party-orders'
+      fullPath: '/party-orders'
+      preLoaderRoute: typeof PartyOrdersRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/orders': {
@@ -683,6 +703,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRouteWithChildren,
   CartRoute: CartRoute,
   OrdersRoute: OrdersRoute,
+  PartyOrdersRoute: PartyOrdersRoute,
   ProfileRoute: ProfileRoute,
   SearchRoute: SearchRoute,
   SuccessRoute: SuccessRoute,

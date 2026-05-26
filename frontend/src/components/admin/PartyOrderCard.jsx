@@ -10,8 +10,10 @@ import PartyOrderEstimateDialog from "./PartyOrderEstimateDialog";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { updatePartyOrderStatus } from "@/services/party-order-service";
 import { toast } from "sonner";
+import CountdownTimer from "@/components/CountdownTimer";
+import { cn } from "@/lib/utils";
 
-const ESTIMATABLE_STATUSES = new Set(["NEW", "UNDER_REVIEW", "PENDING_ESTIMATE"]);
+const ESTIMATABLE_STATUSES = new Set(["NEW", "UNDER_REVIEW", "PENDING_ESTIMATE", "ESTIMATE_SENT"]);
 
 function formatDate(dateStr) {
   if (!dateStr) return "N/A";
@@ -19,7 +21,14 @@ function formatDate(dateStr) {
 }
 
 function formatCurrency(amount) {
+  if (amount == null) return null;
   return new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(amount);
+}
+
+function formatK(amount) {
+  if (amount == null) return "—";
+  if (Math.abs(amount) >= 1000) return "₹" + (amount / 1000).toFixed(0) + "k";
+  return "₹" + amount;
 }
 
 const STATUS_STYLES = {
@@ -148,6 +157,54 @@ export default function PartyOrderCard({ order, onEstimateSubmitted }) {
             </div>
           )}
 
+          {/* Financial summary */}
+          {(order.estimatedTotalAmount || order.estimatedAmount) && (
+            <div className="rounded-lg bg-muted/40 px-2.5 py-2 text-xs space-y-1">
+              <div className="flex gap-3 flex-wrap">
+                <span>
+                  <span className="text-muted-foreground">Revenue: </span>
+                  <span className="font-semibold">{formatK(order.estimatedTotalAmount ?? order.estimatedAmount)}</span>
+                </span>
+                {order.estimatedTotalExpense != null && (
+                  <span>
+                    <span className="text-muted-foreground">Expense: </span>
+                    <span className="font-semibold">{formatK(order.estimatedTotalExpense)}</span>
+                  </span>
+                )}
+                {order.estimatedTotalProfit != null && (
+                  <span>
+                    <span className="text-muted-foreground">Profit: </span>
+                    <span className={cn("font-bold", order.estimatedTotalProfit >= 0 ? "text-emerald-600" : "text-red-500")}>
+                      {order.estimatedTotalProfit >= 0 ? "+" : ""}{formatK(order.estimatedTotalProfit)}
+                    </span>
+                  </span>
+                )}
+              </div>
+              {order.budgetAmount && (
+                <div>
+                  <span className="text-muted-foreground">Customer Budget: </span>
+                  <span className="font-medium">{formatK(order.budgetAmount)}</span>
+                  {order.estimatedTotalAmount && (
+                    <span className={cn("ml-1 font-semibold", order.estimatedTotalAmount - order.budgetAmount >= 0 ? "text-red-500" : "text-emerald-600")}>
+                      ({order.estimatedTotalAmount - order.budgetAmount >= 0 ? "+" : ""}{formatK(order.estimatedTotalAmount - order.budgetAmount)})
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Countdown timers */}
+          {order.status === "ESTIMATE_SENT" && order.estimateExpiresAt && (
+            <CountdownTimer targetDate={order.estimateExpiresAt} label="Estimate expires in" expiredLabel="Estimate expired" />
+          )}
+          {order.status === "ADVANCE_PENDING" && (
+            <p className="text-xs text-muted-foreground">Waiting for advance payment</p>
+          )}
+          {order.status === "CONFIRMED" && order.eventDateTime && (
+            <CountdownTimer targetDate={order.eventDateTime} label="Event starts in" expiredLabel="Event date passed" />
+          )}
+
           {/* Special notes */}
           {order.specialNotes && (
             <div className="flex gap-1.5 text-xs text-muted-foreground bg-muted/40 rounded-lg px-2.5 py-2">
@@ -193,7 +250,7 @@ export default function PartyOrderCard({ order, onEstimateSubmitted }) {
       <PartyOrderEstimateDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
-        orderId={order.id}
+        order={order}
         onSubmitted={() => { setDialogOpen(false); onEstimateSubmitted?.(); }}
       />
     </>
