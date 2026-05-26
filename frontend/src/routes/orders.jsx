@@ -65,7 +65,7 @@ function OrdersPage() {
   const statuses = Object.keys(groupedOrders);
 
   return (
-    <div className="page-shell pb-mobile-nav! md:pb-[initial]!">
+    <div className="page-shell bg-white pb-mobile-nav! md:pb-[initial]!">
       <Navbar />
       <MobileMenu />
 

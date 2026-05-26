@@ -1,5 +1,5 @@
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Drawer,
   DrawerClose,
@@ -10,8 +10,9 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from "@/components/ui/drawer";
-import { cn } from "@/lib/utils";
+import { cn, formatDate } from "@/lib/utils";
 import { Archive, FoodMenu, Rupee } from "@boxicons/react";
+import { CalendarIcon, CookingPotIcon, OvenIcon } from "@phosphor-icons/react";
 
 const STATUS_STYLES = {
   ORDER_PLACED: "bg-yellow-50 text-yellow-800",
@@ -28,40 +29,54 @@ export default function OrderCard({ order }) {
   return (
     <article
       key={order.id}
-      className="border p-4 bg-white md:hover:shadow-sm hover:bg-white/80 rounded-2xl"
+      className={cn(
+        "border overflow-clip md:hover:shadow rounded-md",
+        statusClass,
+      )}
     >
-      <div className="flex gap-4 items-start justify-between">
-        <div>
-          <div>
-            <Badge className={cn("capitalize", statusClass)}>
-              <Archive pack="filled" data-icon="inline-start" />
-              {order.status.includes("ORDER_PLACED")
-                ? "Placed"
-                : order.status.toLowerCase()}
-            </Badge>
-            <Badge variant="outline" className="ml-1 capitalize">
-              <Rupee pack="filled" data-icon="inline-start" />{" "}
-              {order.paymentStatus.toLowerCase() || "Pending"}
-            </Badge>
-            <h2 className="text-sm font-medium mt-2">{order.orderNumber}</h2>
-          </div>
-          <div className="mt-2 text-sm text-muted-foreground">
-            {createdAt ? createdAt.toLocaleString() : "Timestamp unavailable"}
-          </div>
-        </div>
+      <div className={cn("py-1 pt-2 text-xs font-medium")}>
+        <Badge className={cn("capitalize", statusClass)}>
+          <Archive pack="filled" data-icon="inline-start" />
+          Order{" "}
+          {order.status.includes("ORDER_PLACED")
+            ? "Placed"
+            : order.status.toLowerCase()}
+        </Badge>
+      </div>
 
-        <div className="flex flex-col gap-2">
-          <div className="text-right order-2 sm:order-1">
-            {/* <Button variant="link" className="border-primary" size="icon-lg"> */}
-            {/*   <ArrowUpRightStroke className="size-5" />{" "} */}
-            {/*   <span className="sr-only">View Order Details</span> */}
-            {/* </Button> */}
+      <div className="bg-background m-1.5 shadow-xs text-foreground mt-1 rounded-md">
+        <div className="grid grid-cols-[1fr_auto] p-3 gap-4">
+          <div>
+            <div>
+              <span className="text-xs font-medium text-muted-foreground">
+                ORDER ID
+              </span>
+              <h2 className="text-base font-semibold">{order.orderNumber}</h2>
+            </div>
+            <div className="mt-2">
+              <Badge variant="outline" className="capitalize">
+                <Rupee pack="filled" data-icon="inline-start" />
+                {order.paymentStatus.toLowerCase() || "Pending"}
+              </Badge>
+            </div>
+          </div>
+
+          <div className="flex text-right items-end justify-between flex-col gap-2">
+            <div className="text-xl font-semibold text-right">
+              ₹{Number(order.total || 0).toFixed(2)}
+            </div>
             <Drawer>
-              <DrawerTrigger asChild>
-                <Button variant="outline" size="icon-lg">
-                  <FoodMenu pack="filled" className="size-5" />{" "}
-                  <span className="sr-only">Order Items</span>
-                </Button>
+              <DrawerTrigger
+                className={buttonVariants({
+                  variant: "outline",
+                  size: "icon",
+                  className:
+                    "text-secondary-foreground mt-auto border-border! rounded-sm",
+                })}
+                title="View ordered items"
+              >
+                <CookingPotIcon weight="duotone" />{" "}
+                <span className="sr-only">View items</span>
               </DrawerTrigger>
               <DrawerContent className="max-w-md mx-auto">
                 <DrawerHeader>
@@ -125,8 +140,20 @@ export default function OrderCard({ order }) {
               </DrawerContent>
             </Drawer>
           </div>
-          <div className="text-xl font-semibold text-right">
-            ₹{Number(order.total || 0).toFixed(2)}
+        </div>
+
+        <div className="grid px-2 text-xs text-secondary-foreground bg-zinc-100 py-2 rounded-sm rounded-t-none border-t mt-2 grid-cols-[auto_1fr] gap-4 font-medium">
+          <div className="flex items-center gap-1">
+            <CookingPotIcon weight="duotone" className="size-4" />{" "}
+            {order.items.length} Items
+          </div>
+          <div className="flex items-center gap-1">
+            <CalendarIcon weight="duotone" className="size-4" />{" "}
+            {createdAt ? (
+              <time>{formatDate(createdAt)}</time>
+            ) : (
+              "Timestamp unavailable"
+            )}
           </div>
         </div>
       </div>
