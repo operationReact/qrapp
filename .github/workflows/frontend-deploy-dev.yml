@@ -3,7 +3,7 @@
 # Triggered by push to `dev` branch when frontend/** changes.
 # Builds the Vite app and deploys to the DEV S3 bucket + CloudFront.
 # =============================================================================
-name: Frontend Deploy – Dev
+name: Frontend Deploy-Dev
 
 on:
   push:

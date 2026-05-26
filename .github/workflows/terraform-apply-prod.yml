@@ -4,7 +4,7 @@
 # Applies Terraform to the PROD environment.
 # Requires manual approval via the "prod" GitHub Environment.
 # =============================================================================
-name: Terraform Apply – Prod
+name: Terraform Apply-Prod
 
 on:
   push:

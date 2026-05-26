@@ -1,4 +1,4 @@
-name: Backend Deploy – Prod
+name: Backend Deploy-Prod
 
 on:
   push:

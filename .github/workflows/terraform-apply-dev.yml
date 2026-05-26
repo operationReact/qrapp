@@ -3,7 +3,7 @@
 # Triggered by push to `dev` branch when infra/** changes.
 # Applies Terraform to the DEV environment.
 # =============================================================================
-name: Terraform Apply – Dev
+name: Terraform Apply-Dev
 
 on:
   push:

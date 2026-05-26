@@ -4,7 +4,7 @@
 # Builds the Vite app and deploys to the PROD S3 bucket + CloudFront.
 # Requires manual approval via the "prod" GitHub Environment.
 # =============================================================================
-name: Frontend Deploy – Prod
+name: Frontend Deploy-Prod
 
 on:
   push:
