@@ -146,6 +146,27 @@ public class PartyOrderController {
 
     // ── Helper ────────────────────────────────────────────────────────────────
 
+    /**
+     * PATCH /party-order/{id}/status
+     * Admin updates the status of a party order (e.g. NEW → UNDER_REVIEW).
+     */
+    @PatchMapping("/{id}/status")
+    public ResponseEntity<PartyOrderResponse> updateStatus(
+            @PathVariable Long id,
+            @Valid @RequestBody PartyOrderStatusUpdateRequest req,
+            Authentication authentication
+    ) {
+        if (authentication == null
+                || authentication.getAuthorities().stream()
+                        .noneMatch(a -> a.getAuthority().equals("ROLE_ADMIN"))) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Admin access required");
+        }
+        String adminName = authentication.getName();
+        return ResponseEntity.ok(partyOrderService.updateStatus(id, req, adminName));
+    }
+
+    // ── Helper ────────────────────────────────────────────────────────────────
+
     private String requirePhone(Authentication auth) {
         if (auth == null || auth.getName() == null) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authentication required");

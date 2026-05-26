@@ -2,8 +2,10 @@ package com.broandbro.qrapp.service;
 
 import com.broandbro.qrapp.dto.partyorder.*;
 import com.broandbro.qrapp.entity.PartyOrder;
+import com.broandbro.qrapp.entity.PartyOrderMenuItem;
 import com.broandbro.qrapp.entity.User;
 import com.broandbro.qrapp.enums.PartyOrderStatus;
+import com.broandbro.qrapp.repository.PartyOrderMenuItemRepository;
 import com.broandbro.qrapp.repository.PartyOrderRepository;
 import com.broandbro.qrapp.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -15,6 +17,8 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -22,8 +26,9 @@ import java.util.List;
 @Transactional(readOnly = true)
 public class PartyOrderServiceImpl implements PartyOrderService {
 
-    private final PartyOrderRepository partyOrderRepo;
-    private final UserRepository       userRepo;
+    private final PartyOrderRepository         partyOrderRepo;
+    private final UserRepository               userRepo;
+    private final PartyOrderMenuItemRepository menuItemRepo;
 
     // =========================================================================
     // USER OPERATIONS
@@ -40,14 +45,23 @@ public class PartyOrderServiceImpl implements PartyOrderService {
                 .userName(user.getName())
                 .eventDateTime(req.eventDateTime())
                 .numberOfPeople(req.numberOfPeople())
-                .menuDescription(req.menuDescription())
                 .venue(req.venue())
-                .status(PartyOrderStatus.PENDING_ESTIMATE)
+                .eventType(req.eventType())
+                .specialNotes(req.specialNotes())
+                .status(PartyOrderStatus.NEW)
                 .currency("INR")
                 .build();
 
+        // Persist parent first to get the PK for the FK
         po = partyOrderRepo.save(po);
-        log.info("[PartyOrder] Created partyOrderId={} by userId={}", po.getId(), user.getId());
+
+        // Normalise, deduplicate and persist menu items
+        List<PartyOrderMenuItem> items = normalizeMenuItems(req.menuItems(), po);
+        menuItemRepo.saveAll(items);
+        po.getMenuItems().addAll(items);
+
+        log.info("[PartyOrder] Created partyOrderId={} by userId={} with {} menu items",
+                po.getId(), user.getId(), items.size());
         return PartyOrderResponse.forUser(po);
     }
 
@@ -109,7 +123,9 @@ public class PartyOrderServiceImpl implements PartyOrderService {
         User user = requireUser(phone);
         PartyOrder po = requireOwnedOrder(orderId, user.getId());
 
-        if (po.getStatus() != PartyOrderStatus.PENDING_ESTIMATE
+        if (po.getStatus() != PartyOrderStatus.NEW
+                && po.getStatus() != PartyOrderStatus.UNDER_REVIEW
+                && po.getStatus() != PartyOrderStatus.PENDING_ESTIMATE
                 && po.getStatus() != PartyOrderStatus.ESTIMATE_SENT) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "Order cannot be cancelled in current status: " + po.getStatus());
@@ -152,9 +168,11 @@ public class PartyOrderServiceImpl implements PartyOrderService {
     public PartyOrderResponse submitEstimate(Long orderId, PartyOrderEstimateRequest req, String adminName) {
         PartyOrder po = requireOrder(orderId);
 
-        if (po.getStatus() != PartyOrderStatus.PENDING_ESTIMATE) {
+        if (po.getStatus() != PartyOrderStatus.PENDING_ESTIMATE
+                && po.getStatus() != PartyOrderStatus.NEW
+                && po.getStatus() != PartyOrderStatus.UNDER_REVIEW) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "Estimate can only be submitted when status is PENDING_ESTIMATE; current: " + po.getStatus());
+                    "Estimate can only be submitted when status is NEW, UNDER_REVIEW or PENDING_ESTIMATE; current: " + po.getStatus());
         }
 
         po.setEstimatedAmount(req.estimatedAmount());
@@ -206,5 +224,19 @@ public class PartyOrderServiceImpl implements PartyOrderService {
         }
         return po;
     }
-}
 
+    /** Trims, deduplicates, and maps raw strings to {@link PartyOrderMenuItem} entities. */
+    private List<PartyOrderMenuItem> normalizeMenuItems(List<String> raw, PartyOrder parent) {
+        if (raw == null) return List.of();
+        return raw.stream()
+                .filter(Objects::nonNull)
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .distinct()
+                .map(name -> PartyOrderMenuItem.builder()
+                        .partyOrder(parent)
+                        .itemName(name)
+                        .build())
+                .collect(Collectors.toList());
+    }
+}

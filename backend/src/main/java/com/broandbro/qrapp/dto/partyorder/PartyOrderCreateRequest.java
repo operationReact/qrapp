@@ -3,6 +3,7 @@ package com.broandbro.qrapp.dto.partyorder;
 import jakarta.validation.constraints.*;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 public record PartyOrderCreateRequest(
 
@@ -14,12 +15,19 @@ public record PartyOrderCreateRequest(
         @Min(value = 10, message = "Minimum 10 people required for a party order")
         Integer numberOfPeople,
 
-        @NotBlank(message = "Menu description is required")
-        @Size(max = 2000, message = "Menu description must not exceed 2000 characters")
-        String menuDescription,
+        @NotNull(message = "At least one menu item is required")
+        @Size(min = 1, message = "At least one menu item is required")
+        List<@NotBlank(message = "Menu item name must not be blank") String> menuItems,
 
         /** Optional venue / delivery location. */
         @Size(max = 255)
-        String venue
-) {}
+        String venue,
 
+        /** Event type: Birthday, Wedding, Corporate, etc. */
+        @Size(max = 50)
+        String eventType,
+
+        /** Special requirements, dietary notes, etc. */
+        @Size(max = 2000)
+        String specialNotes
+) {}

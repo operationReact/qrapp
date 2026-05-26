@@ -1,7 +1,13 @@
 package com.broandbro.qrapp.enums;
 
 public enum PartyOrderStatus {
-    /** Initial state — waiting for admin to provide an estimate. */
+    /** Freshly submitted — no admin action yet. */
+    NEW,
+
+    /** Admin is reviewing the request before sending an estimate. */
+    UNDER_REVIEW,
+
+    /** Initial state (legacy) — waiting for admin to provide an estimate. */
     PENDING_ESTIMATE,
 
     /** Admin has submitted an estimate; user has not yet responded. */
@@ -19,4 +25,3 @@ public enum PartyOrderStatus {
     /** Event has been delivered; order closed out. */
     COMPLETED
 }
-

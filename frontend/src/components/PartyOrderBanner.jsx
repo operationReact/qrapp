@@ -1,4 +1,5 @@
-import { ConfettiIcon, UsersThreeIcon } from "@phosphor-icons/react";
+import { useState } from "react";
+import { ConfettiIcon } from "@phosphor-icons/react";
 import { buttonVariants } from "@/components/ui/button";
 import {
   Drawer,
@@ -13,10 +14,12 @@ import {
 import NewPartyOrder from "@/pages/NewPartyOrder";
 
 export default function PartyOrderBanner() {
+  const [open, setOpen] = useState(false);
+
   return (
     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-primary/5 rounded-lg p-4">
       <div className="flex items-center gap-3">
-        <div className=" text-primary">
+        <div className="text-primary">
           <ConfettiIcon weight="fill" className="size-9" />
         </div>
         <div>
@@ -29,34 +32,28 @@ export default function PartyOrderBanner() {
         </div>
       </div>
 
-      <Drawer>
+      <Drawer open={open} onOpenChange={setOpen}>
         <DrawerTrigger
-          className={buttonVariants({
-            variant: "shadow-white",
-            size: "lg",
-          })}
+          className={buttonVariants({ variant: "shadow-white", size: "lg" })}
         >
           <ConfettiIcon weight="fill" />
           Create Party Order
         </DrawerTrigger>
         <DrawerContent className="px-4">
           <DrawerHeader>
-            <DrawerTitle className="font-semibold">
-              Create Party Order
-            </DrawerTitle>
+            <DrawerTitle className="font-semibold">Create Party Order</DrawerTitle>
             <DrawerDescription>
-              {" "}
               Tell us about your event and preferred menu.
-              <br /> We'll get back to you with an estimate.
+              <br />We'll get back to you with an estimate.
             </DrawerDescription>
           </DrawerHeader>
-          <NewPartyOrder className="w-full max-w-md mx-auto" />
+          <NewPartyOrder
+            className="w-full max-w-md mx-auto"
+            onClose={() => setOpen(false)}
+          />
           <DrawerFooter className="px-0">
             <DrawerClose
-              className={buttonVariants({
-                variant: "ghost",
-                className: "w-full",
-              })}
+              className={buttonVariants({ variant: "ghost", className: "w-full" })}
             >
               Close
             </DrawerClose>

@@ -7,6 +7,8 @@ import lombok.*;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "party_orders")
@@ -39,12 +41,25 @@ public class PartyOrder {
     @Column(name = "number_of_people", nullable = false)
     private Integer numberOfPeople;
 
-    @Column(name = "menu_description", nullable = false, columnDefinition = "TEXT")
+    @Column(name = "menu_description", nullable = true, columnDefinition = "TEXT")
     private String menuDescription;
+
+    /** Structured menu items — replaces the old free-text menuDescription. */
+    @OneToMany(mappedBy = "partyOrder", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @Builder.Default
+    private List<PartyOrderMenuItem> menuItems = new ArrayList<>();
 
     /** Optional location / venue hint provided by user. */
     @Column(name = "venue", length = 255)
     private String venue;
+
+    /** Type of event — Birthday, Wedding, Corporate, etc. */
+    @Column(name = "event_type", length = 50)
+    private String eventType;
+
+    /** Any special requirements — serving staff, dietary restrictions, etc. */
+    @Column(name = "special_notes", columnDefinition = "TEXT")
+    private String specialNotes;
 
     // ── Status & Estimate ────────────────────────────────────────────────────
     @Enumerated(EnumType.STRING)

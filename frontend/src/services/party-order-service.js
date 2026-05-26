@@ -8,3 +8,7 @@ export const getPartyOrdersAdmin = () =>
 
 export const submitPartyOrderEstimate = (orderId, data) =>
   apiClient.post(`/party-order/${orderId}/estimate`, data).then((r) => r.data);
+
+export const updatePartyOrderStatus = (orderId, status) =>
+  apiClient.patch(`/party-order/${orderId}/status`, { status }).then((r) => r.data);
+
