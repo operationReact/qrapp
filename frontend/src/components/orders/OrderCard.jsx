@@ -80,12 +80,10 @@ export default function OrderCard({ order }) {
               </DrawerTrigger>
               <DrawerContent className="max-w-md mx-auto">
                 <DrawerHeader>
-                  <DrawerTitle className="text-xl font-semibold">
-                    Order#{order.id} Items
+                  <DrawerTitle className="text-lg font-semibold">
+                    Your Order
                   </DrawerTitle>
-                  <DrawerDescription className="sr-only">
-                    List of your order items
-                  </DrawerDescription>
+                  <DrawerDescription>#{order.orderNumber}</DrawerDescription>
                 </DrawerHeader>
                 <div className="pb-4 px-4">
                   <ul className="pl-4 marker:text-muted-foreground/50 list-disc">
@@ -127,14 +125,13 @@ export default function OrderCard({ order }) {
                 </div>
 
                 <DrawerFooter>
-                  <DrawerClose asChild>
-                    <Button
-                      size="lg"
-                      variant="outline"
-                      className="w-full h-12 font-medium!"
-                    >
-                      Close
-                    </Button>
+                  <DrawerClose
+                    className={buttonVariants({
+                      variant: "outline",
+                      className: "border-border!",
+                    })}
+                  >
+                    Close
                   </DrawerClose>
                 </DrawerFooter>
               </DrawerContent>
