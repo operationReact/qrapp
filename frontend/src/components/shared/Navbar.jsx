@@ -82,16 +82,16 @@ export default function Navbar() {
       label: "Party Orders",
       icon: ConfettiIcon,
     },
-    {
-      to: "/wallet",
-      label: "Wallet",
-      icon: WalletIcon,
-    },
-    {
-      to: "/",
-      label: "Menu",
-      icon: BowlFoodIcon,
-    },
+    // {
+    //   to: "/wallet",
+    //   label: "Wallet",
+    //   icon: WalletIcon,
+    // },
+    // {
+    //   to: "/",
+    //   label: "Menu",
+    //   icon: BowlFoodIcon,
+    // },
   ];
 
   return (
