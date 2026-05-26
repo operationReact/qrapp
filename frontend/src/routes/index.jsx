@@ -28,7 +28,6 @@ import {
   SegmentAction,
 } from "@/components/shared/segment";
 import React from "react";
-import { Button, buttonVariants } from "@/components/ui/button";
 import CountdownTimer from "@/components/CountdownTimer";
 import { FireIcon, SparkleIcon } from "@phosphor-icons/react";
 import { BowlFoodIcon } from "@phosphor-icons/react";
@@ -39,6 +38,7 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty";
+import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/")({
   component: MenuPage,
@@ -223,7 +223,7 @@ function MenuPage() {
                 variant="link"
                 className="border-none hover:bg-transparent"
                 size="sm"
-                to="/"
+                render={<Link to="/" />}
               >
                 View all highlights
               </SegmentAction>
@@ -239,9 +239,9 @@ function MenuPage() {
                 </SegmentDescription>
               </SegmentLabel>
               <SegmentActions>
-                <Button variant="outline" size="sm">
+                <SegmentAction variant="outline" size="sm">
                   View All
-                </Button>
+                </SegmentAction>
               </SegmentActions>
             </SegmentHeader>
 

@@ -1,5 +1,7 @@
+import { mergeProps } from "@base-ui/react/merge-props";
+import { useRender } from "@base-ui/react/use-render";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 
 const toneStyles = {
   default: "bg-transparent",
@@ -109,23 +111,38 @@ const SegmentActions = ({ className, ...props }) => (
   <div data-slot="segment-actions" className={cn("shrink-0 flex gap-2", className)} {...props} />
 );
 
-const SegmentAction = ({ className, variant = "outline", ...props }) => (
-  <Button
-    data-slot="segment-action"
-    variant={variant}
-    className={cn(
-      "group-data-[tone=blue]/segment:border-blue-200 group-data-[tone=blue]/segment:text-blue-700 group-data-[tone=blue]/segment:hover:bg-blue-50",
-      "group-data-[tone=green]/segment:border-green-200 group-data-[tone=green]/segment:text-green-700 group-data-[tone=green]/segment:hover:bg-green-50",
-      "group-data-[tone=yellow]/segment:border-amber-200 group-data-[tone=yellow]/segment:text-amber-700 group-data-[tone=yellow]/segment:hover:bg-amber-50",
-      "group-data-[tone=red]/segment:border-red-200 group-data-[tone=red]/segment:text-red-700 group-data-[tone=red]/segment:hover:bg-red-50",
-      "group-data-[tone=cyan]/segment:border-cyan-200 group-data-[tone=cyan]/segment:text-cyan-700 group-data-[tone=cyan]/segment:hover:bg-cyan-50",
-      "group-data-[tone=slate]/segment:border-slate-200 group-data-[tone=slate]/segment:text-slate-700 group-data-[tone=slate]/segment:hover:bg-slate-50",
-      "group-data-[tone=neutral]/segment:border-neutral-300 group-data-[tone=neutral]/segment:text-neutral-700 group-data-[tone=neutral]/segment:hover:bg-neutral-100",
-      className,
-    )}
-    {...props}
-  />
-);
+const SegmentAction = ({ className, variant = "outline", render, ...props }) => {
+  const toneClasses = cn(
+    "group-data-[tone=blue]/segment:border-blue-200 group-data-[tone=blue]/segment:text-blue-700 group-data-[tone=blue]/segment:hover:bg-blue-50",
+    "group-data-[tone=green]/segment:border-green-200 group-data-[tone=green]/segment:text-green-700 group-data-[tone=green]/segment:hover:bg-green-50",
+    "group-data-[tone=yellow]/segment:border-amber-200 group-data-[tone=yellow]/segment:text-amber-700 group-data-[tone=yellow]/segment:hover:bg-amber-50",
+    "group-data-[tone=red]/segment:border-red-200 group-data-[tone=red]/segment:text-red-700 group-data-[tone=red]/segment:hover:bg-red-50",
+    "group-data-[tone=cyan]/segment:border-cyan-200 group-data-[tone=cyan]/segment:text-cyan-700 group-data-[tone=cyan]/segment:hover:bg-cyan-50",
+    "group-data-[tone=slate]/segment:border-slate-200 group-data-[tone=slate]/segment:text-slate-700 group-data-[tone=slate]/segment:hover:bg-slate-50",
+    "group-data-[tone=neutral]/segment:border-neutral-300 group-data-[tone=neutral]/segment:text-neutral-700 group-data-[tone=neutral]/segment:hover:bg-neutral-100",
+  );
+
+  if (render) {
+    return useRender({
+      defaultTagName: "button",
+      props: mergeProps({
+        "data-slot": "segment-action",
+        className: cn(buttonVariants({ variant }), toneClasses, className),
+      }, props),
+      render,
+      state: { slot: "segment-action" },
+    });
+  }
+
+  return (
+    <Button
+      data-slot="segment-action"
+      variant={variant}
+      className={cn(toneClasses, className)}
+      {...props}
+    />
+  );
+};
 
 export {
   Segment,
