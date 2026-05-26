@@ -1,5 +1,5 @@
 import { useCart } from "../context/CartContext";
-import { useLocation, useNavigate } from "@tanstack/react-router";
+import { useLocation } from "@tanstack/react-router";
 import { Button } from "./ui/button";
 import CartItem from "./shared/CartItem";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "./ui/sheet";
@@ -13,10 +13,11 @@ import {
 import { useIsMobile } from "@/hooks/use-mobile";
 import { X } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { useEffect } from "react";
+import { useNavigate } from "@tanstack/react-router";
 
 function CartContent({ onClose }) {
   const { cart, getTotal, addItem, decreaseItem, removeItem } = useCart();
-  const navigate = useNavigate();
 
   return (
     <>
@@ -119,10 +120,22 @@ function DesktopCart({ open, onClose }) {
 }
 
 export default function OffCanvasCart() {
-  const { drawerOpen, closeDrawer } = useCart();
+  const { openDrawer, drawerOpen, closeDrawer } = useCart();
   const location = useLocation();
   const { isAdmin } = useAuth();
   const isMobile = useIsMobile();
+  const navigate = useNavigate();
+
+  function closeDrawerAndNavigate() {
+    closeDrawer();
+    navigate({ to: "/", resetScroll: false });
+  }
+
+  useEffect(() => {
+    if (location.hash === "cart") {
+      openDrawer();
+    }
+  }, [location.hash]);
 
   if (isAdmin) return null;
 
@@ -130,8 +143,8 @@ export default function OffCanvasCart() {
     return null;
 
   if (isMobile) {
-    return <MobileCart open={drawerOpen} onClose={closeDrawer} />;
+    return <MobileCart open={drawerOpen} onClose={closeDrawerAndNavigate} />;
   }
 
-  return <DesktopCart open={drawerOpen} onClose={closeDrawer} />;
+  return <DesktopCart open={drawerOpen} onClose={closeDrawerAndNavigate} />;
 }

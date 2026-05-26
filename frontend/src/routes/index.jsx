@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { useQuery } from '@tanstack/react-query'
+import { useQuery } from "@tanstack/react-query";
 import { menuOptions, categoriesOptions } from "@/query/options/menu";
 import Navbar from "../components/shared/Navbar";
 import SearchBar from "../components/shared/SearchBar";
@@ -15,6 +15,14 @@ import {
 import { usePreferences } from "@/context/PreferencesContext";
 import MobileMenu from "../components/shared/MobileMenu";
 import { useLocation } from "@tanstack/react-router";
+import DealsSection from "@/components/DealsSection";
+import {
+  TitledSection,
+  TitledSectionContent,
+  TitledSectionHeader,
+  TitledSectionTitle,
+} from "@/components/shared/titled-section";
+import React from "react";
 
 export const Route = createFileRoute("/")({
   component: MenuPage,
@@ -83,7 +91,7 @@ function MenuPage() {
   }, {});
 
   return (
-    <div className="page-shell pb-mobile-nav! md:pb-[initial]!">
+    <div className="page-shell bg-background pb-mobile-nav! md:pb-[initial]!">
       <Navbar />
       <MobileMenu />
       {/* Backend offline banner (non-technical user friendly) */}
@@ -107,12 +115,13 @@ function MenuPage() {
         </div>
       )}
 
-      <div className="border-b border-b-muted">
-        <div className="container-premium py-3">
-          <div className="flex gap-4 w-full">
-            <SearchBar onSearch={setSearchQuery} />
-          </div>
+      <div className="container-premium flex flex-col gap-4 py-3">
+        <div className="flex gap-4 w-full">
+          <SearchBar onSearch={setSearchQuery} />
         </div>
+
+        <PartyOrderBanner />
+        <DealsSection />
       </div>
 
       <div className="container-premium mt-4">
@@ -148,32 +157,34 @@ function MenuPage() {
             </div>
           )}
 
-          {/* PARTY ORDER BANNER */}
-          <PartyOrderBanner />
-
           {/* ITEMS */}
           {Object.entries(groups).map(([category, items]) => (
-            <section
-              className="premium-grid scroll-mt-4"
-              key={category}
-              id={category}
-            >
-              <h2 className="text-xl font-semibold sm:text-2xl">
-                {category || "Specials"}
-              </h2>
-              <Carousel opts={{ dragFree: true }}>
-                <CarouselContent className="pr-8">
-                  {items.map((item) => (
-                    <CarouselItem
-                      key={item.id}
-                      className="basis-1/2 sm:basis-1/3 md:basis-1/4"
-                    >
-                      <MenuItemCard item={item} />
-                    </CarouselItem>
-                  ))}
-                </CarouselContent>
-              </Carousel>
-            </section>
+            <TitledSection key={category} id={category}>
+              <TitledSectionHeader
+                startContent={
+                  <React.Fragment>
+                    <TitledSectionTitle>
+                      {category || "Specials"}
+                    </TitledSectionTitle>
+                  </React.Fragment>
+                }
+              />
+
+              <TitledSectionContent>
+                <Carousel opts={{ dragFree: true }}>
+                  <CarouselContent className="-ml-2 pr-3">
+                    {items.map((item) => (
+                      <CarouselItem
+                        key={item.id}
+                        className="pl-2 basis-1/3 md:basis-1/4"
+                      >
+                        <MenuItemCard item={item} />
+                      </CarouselItem>
+                    ))}
+                  </CarouselContent>
+                </Carousel>
+              </TitledSectionContent>
+            </TitledSection>
           ))}
         </div>
       </main>

@@ -120,10 +120,10 @@ export default function Navbar() {
           {!isAdmin && user && (
             <Link
               to="/wallet"
-              className="flex items-center gap-1 h-10 rounded-full border-2 border-amber-200 bg-linear-to-b from-[#FFEFBD] to-[#FEEE70] p-2 text-black"
+              className="flex items-center gap-1 h-10 rounded-md border border-primary/5 bg-primary/5 p-2 text-black"
             >
-              <img src="/coin.png" alt="Coin" className="size-6" />
-              <span className="max-w-[5.5rem] truncate text-sm font-semibold sm:max-w-none">
+              <WalletIcon className="size-5 text-primary" weight="fill"/>
+              <span className="max-w-22 truncate text-sm font-semibold sm:max-w-none">
                 {loadingBalance
                   ? "..."
                   : walletBalance == null

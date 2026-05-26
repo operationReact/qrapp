@@ -2,11 +2,14 @@ import { useState } from "react";
 import { useCart } from "../context/CartContext";
 import PropTypes from "prop-types";
 import { baseURL } from "../services";
-import MenuItemActionButton from "./MenuItemActionButton";
+import { BagIcon, PlusIcon } from "@phosphor-icons/react";
+import { Button } from "./ui/button";
+import { useNavigate } from "@tanstack/react-router";
 
 export default function MenuItemCard({ item }) {
-  const { cart, addItem, decreaseItem } = useCart();
+  const { cart, addItem } = useCart();
   const [imgError, setImgError] = useState(false);
+  const navigate = useNavigate();
 
   const existing = cart.find((i) => i.id === item.id);
   const qty = existing ? existing.quantity : 0;
@@ -26,17 +29,17 @@ export default function MenuItemCard({ item }) {
     item.isVeg === "1";
 
   return (
-    <article className="group overflow-hidden">
+    <article className="group h-full border border-border rounded-lg overflow-hidden">
       <div className="relative aspect-square w-full">
         {imageSrc && !imgError ? (
           <img
             src={imageSrc}
             alt={item.name}
             onError={() => setImgError(true)}
-            className="w-full h-full object-cover rounded-xl"
+            className="w-full h-full object-cover"
           />
         ) : (
-          <div className="w-full rounded-xl overflow-hidden h-full flex items-center justify-center text-5xl bg-linear-to-br from-primary/25 to-primary">
+          <div className="w-full overflow-hidden h-full flex items-center justify-center text-5xl bg-linear-to-br from-primary/25 to-primary">
             <img
               src="/brand/white.png"
               alt="Bro Logo"
@@ -45,30 +48,19 @@ export default function MenuItemCard({ item }) {
           </div>
         )}
 
-        {/* subtle gradient overlay */}
-        {/* <div className="absolute left-0 right-0 bottom-0 bg-linear-[rgba(27,30,36,0)_0%,_rgb(27,30,36)_84.21%)] h-22" /> */}
-
-        <div className="absolute left-0 bottom-0 right-0 px-2 py-2 flex justify-end items-baseline">
-          <span
-            className="bg-white font-bold rounded-tr-sm absolute bottom-0 left-0 px-2 py-0.5 sm:py-1 sm:text-xl text-black
-            before:absolute before:left-0 before:top-0 before:size-4 before:-translate-y-full before:rounded-bl-sm before:shadow-[0px_7px_white] before:bg-transparent
-            after:absolute after:right-0 after:bottom-0 after:size-4 after:translate-x-full after:rounded-bl-sm after:shadow-[0px_7px_white] after:bg-transparent"
-          >
-            ₹{item.price.toFixed(0)}
-          </span>
-
-          {/* CTA */}
+        {/* <div className="absolute bottom-0 inset-x-0 p-1 sm:p-2 flex justify-end">
           <MenuItemActionButton
             qty={qty}
             onAdd={() => addItem(item)}
             onDecrease={() => decreaseItem(item)}
           />
-        </div>
+          {item.tag && <Badge variant="secondary">{item.tag.name}</Badge>}
+        </div>*/}
 
         {/* veg/non-veg badge */}
         <div
           title={veg ? "Veg" : "Non Veg"}
-          className={`absolute top-2 left-2 p-1.5 border-2 bg-white rounded-sm size-6 flex items-center gap-2 ${veg ? "border-accent-400" : "border-red-600"}`}
+          className={`absolute scale-75 sm:scale-100 top-2 left-2 p-1.5 border-2 bg-white rounded-sm size-6 flex items-center gap-2 ${veg ? "border-accent-400" : "border-red-600"}`}
         >
           <span
             className={`size-full rounded-full ${veg ? "bg-accent-400" : "bg-red-600"}`}
@@ -76,17 +68,35 @@ export default function MenuItemCard({ item }) {
         </div>
       </div>
 
-      <div className="py-2">
+      <div className="px-2 py-1.5 sm:py-2">
         {/* name in image */}
-        {item.tag && (
-          <span className="text-xs font-medium text-primary">{item.tag.name}</span>
-        )}
-        <h3 className="text-balance text-md font-semibold leading-5 sm:text-lg text-zinc-800">
+        <h3 className="text-pretty text-xs leading-4 font-medium sm:font-semibold sm:text-lg">
           {item.name}
         </h3>
-        <p className="line-clamp-2 mt-1 capitalize text-xs text-muted-foreground">
+        {/* <p className="line-clamp-2 mt-1 capitalize text-xs text-muted-foreground">
           {item.description || "Delicious choice"}
-        </p>
+        </p>*/}
+
+        <div className="flex mt-1 sm:mt-2 items-center gap-2 justify-between">
+          <span className="font-medium text-sm md:text-base">₹{item.price.toFixed(0)}</span>
+          <Button
+            variant={qty > 0 ? "secondary" : "shadow-white"}
+            size="sm"
+            className="size-8 md:h-9 md:w-auto aspect-square md:aspect-auto"
+            onClick={() => {
+              if (qty > 0) navigate({ to: "/#cart" });
+              else addItem(item);
+            }}
+          >
+            {qty > 0 ? <BagIcon weight="bold" /> : <PlusIcon weight="bold" />}
+
+            <span className="hidden md:inline animate-in transition-opacity duration-200">
+              {qty > 0 ? "Cart" : "Add"}
+            </span>
+          </Button>
+        </div>
+
+        {/* CTA */}
       </div>
     </article>
   );

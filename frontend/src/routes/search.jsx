@@ -54,7 +54,7 @@ function SearchPage() {
   );
 
   return (
-    <div className="page-shell pb-mobile-nav! md:pb-[initial]!">
+    <div className="page-shell bg-background pb-mobile-nav! md:pb-[initial]!">
       <Navbar />
       <MobileMenu />
       <div className="container-premium pt-3">

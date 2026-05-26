@@ -1,4 +1,4 @@
-import { Search, X } from "@boxicons/react";
+import { Search, X, SlidersHorizontal } from "lucide-react";
 import PropTypes from "prop-types";
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
@@ -10,47 +10,24 @@ export default function SearchBar({ onSearch = () => { }, autoFocus = false }) {
   const inputRef = useRef();
   const searchQuery = useDebounce(value, 300);
 
-  const placeholders = [
-    "oats, chicken or momos",
-    "bestsellers",
-    "pizzas, pastas, south specials",
-    "combo meal"
-  ];
-
-  const [placeholder, setPlaceholder] = useState(placeholders[0]);
-
- /* UPDATE PLACEHOLDER OF SEARCH FIELD EVERY 3 SECOND*/
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setPlaceholder((placeholder) => {
-        const current = placeholders.findIndex((p) => p === placeholder);
-
-        return current < placeholders.length - 1
-          ? placeholders[current + 1]
-          : placeholders[0];
-      });
-    }, 3000);
-
-    return () => clearInterval(interval);
-  }, []);
-
   useEffect(() => {
     onSearch(searchQuery);
   }, [searchQuery]);
 
   return (
-    <InputGroup className="h-12 bg-primary/5 focus-within:bg-white border-primary-foreground focus:border-primary focus:ring-1 focus:ring-primary focus-within:border-primary! focus-within:ring-1! focus-within:ring-primary!">
+    <InputGroup className="h-12 bg-gray-50 focus-within:bg-white border-gray-200 focus:border-primary focus:ring-1 focus:ring-primary focus-within:border-primary! focus-within:ring-1! focus-within:ring-primary!">
+      <InputGroupAddon className="pl-3 pr-2">
+        <Search className="size-5 text-gray-400" />
+      </InputGroupAddon>
+
       <InputGroupInput
         ref={inputRef}
         value={value}
         onChange={(e) => setValue(e.target.value)}
-        placeholder={`Search "${placeholder}"`}
+        placeholder="Search for items, cuisines..."
         autoFocus={autoFocus}
+        className="border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 px-0"
       />
-
-      <InputGroupAddon>
-        <Search className="size-6 sm:size-7 fill-primary" />
-      </InputGroupAddon>
 
       {value && (
         <Button
@@ -58,11 +35,15 @@ export default function SearchBar({ onSearch = () => { }, autoFocus = false }) {
           size="icon"
           variant="ghost"
           onClick={() => setValue("")}
-          className="absolute right-1 h-8 w-8 hover:bg-gray-100"
+          className="h-8 w-8 hover:bg-gray-100"
         >
-          <X className="size-4" />
+          <X className="size-4 text-gray-500" />
         </Button>
       )}
+
+      <InputGroupAddon align="inline-end" className="pr-3">
+        <SlidersHorizontal className="size-5 text-gray-500" />
+      </InputGroupAddon>
     </InputGroup>
   );
 }
