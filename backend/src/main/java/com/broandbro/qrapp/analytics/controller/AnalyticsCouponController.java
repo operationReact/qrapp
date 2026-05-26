@@ -37,6 +37,7 @@ import java.util.List;
 @Tag(name = "Analytics — Coupons", description = "Coupon ROI, conversion and abuse-detection analytics")
 public class AnalyticsCouponController {
 
+
     private final CouponAnalyticsService couponService;
 
     // ── GET /api/v1/analytics/coupons/performance ─────────────────────────────

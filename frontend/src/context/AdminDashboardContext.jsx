@@ -20,6 +20,7 @@ export const AdminDashboardProvider = ({ children }) => {
   const { setUser: setAdmin } = useAuth();
   const queryClient = useQueryClient();
 
+
   const [page, setPage] = useState(0);
   const [size, setSize] = useState(10);
   const [filters, setFilters] = useState({
