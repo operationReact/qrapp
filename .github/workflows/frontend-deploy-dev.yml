@@ -8,7 +8,9 @@ name: Frontend Deploy – Dev
 on:
   push:
     branches: [dev]
-    paths: ["frontend/**"]
+    paths:
+      - "frontend/**"
+      - ".github/workflows/frontend-deploy-dev.yml"
   workflow_dispatch:
     inputs:
       reason:

@@ -5,6 +5,10 @@ on:
     branches: [dev]
     paths:
       - "backend/**"
+      - "build.gradle"
+      - "settings.gradle"
+      - "gradle/**"
+      - ".github/workflows/backend-deploy-dev.yml"
   workflow_dispatch:
     inputs:
       reason:

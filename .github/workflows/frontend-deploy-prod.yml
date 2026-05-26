@@ -9,7 +9,9 @@ name: Frontend Deploy – Prod
 on:
   push:
     branches: [main]
-    paths: ["frontend/**"]
+    paths:
+      - "frontend/**"
+      - ".github/workflows/frontend-deploy-prod.yml"
   workflow_dispatch:
     inputs:
       reason:
