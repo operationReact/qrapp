@@ -11,7 +11,7 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from "./ui/drawer";
-import NewPartyOrder from "@/pages/NewPartyOrder";
+import NewPartyOrder from "@/components/shared/NewPartyOrder";
 
 const FORM_ID = "party-order-drawer-form";
 

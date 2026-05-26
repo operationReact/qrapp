@@ -8,7 +8,7 @@ import { useAuth } from "@/context/AuthContext";
 import { myPartyOrdersOptions } from "@/query/options/party-orders";
 import UserPartyOrderCard from "@/components/UserPartyOrderCard";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { ConfettiIcon } from "@phosphor-icons/react";
 
 export const Route = createFileRoute("/party-orders")({
@@ -34,22 +34,29 @@ function MyPartyOrdersPage() {
     <div className="page-shell pb-mobile-nav! md:pb-[initial]!">
       <Navbar />
 
-      <main className="mx-auto max-w-2xl px-4 py-6 space-y-6">
+      <main className="mx-auto container-premium px-4 py-6 space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-bold">My Party Orders</h1>
-            <p className="text-sm text-muted-foreground">Track your catering requests</p>
+            <h1 className="text-2xl font-semibold sm:text-3xl">Party Orders</h1>
+            <p className="mt-1 text-md text-muted-foreground">
+              Track your catering requests
+            </p>
           </div>
-          <Link to="/new-party-order">
-            <Button size="sm">New Request</Button>
+          <Link
+            to="/new-party-order"
+            className={buttonVariants({ variant: "shadow-white", size: "lg" })}
+          >
+            <ConfettiIcon weight="fill" /> New Party Order
           </Link>
         </div>
 
         {/* Content */}
         {isLoading ? (
           <div className="space-y-4">
-            {[1, 2, 3].map((i) => <Skeleton key={i} className="h-48 rounded-xl" />)}
+            {[1, 2, 3].map((i) => (
+              <Skeleton key={i} className="h-48 rounded-xl" />
+            ))}
           </div>
         ) : orders.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 gap-4 text-center">
@@ -58,10 +65,19 @@ function MyPartyOrdersPage() {
             </div>
             <div>
               <p className="font-semibold">No party orders yet</p>
-              <p className="text-sm text-muted-foreground mt-1">Plan your next event with us!</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                Plan your next event with us!
+              </p>
             </div>
-            <Link to="/new-party-order">
-              <Button>Request Catering</Button>
+            <Link
+              to="/new-party-order"
+              className={buttonVariants({
+                variant: "secondary",
+                size: "lg",
+                class: "w-full max-w-xs",
+              })}
+            >
+              <ConfettiIcon weight="fill" /> Request Catering
             </Link>
           </div>
         ) : (
@@ -77,4 +93,3 @@ function MyPartyOrdersPage() {
     </div>
   );
 }
-
