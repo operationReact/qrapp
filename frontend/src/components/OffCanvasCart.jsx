@@ -18,6 +18,7 @@ import { useNavigate } from "@tanstack/react-router";
 
 function CartContent({ onClose }) {
   const { cart, getTotal, addItem, decreaseItem, removeItem } = useCart();
+  const navigate = useNavigate();
 
   return (
     <>

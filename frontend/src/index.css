@@ -232,6 +232,8 @@
         @apply font-sans;
         scroll-behavior: smooth;
         interpolate-size: allow-keywords;
+        color-scheme: light;
+        scrollbar-width: thin;
     }
 
     button:not([disabled]),
@@ -456,5 +458,3 @@ body {
     z-index: 50;
     pointer-events: none;
 }
-
-
