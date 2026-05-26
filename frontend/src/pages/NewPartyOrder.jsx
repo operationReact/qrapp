@@ -120,7 +120,7 @@ function MenuItemTagInput({ value = [], onChange, error }) {
         />
       </div>
       {open && filtered.length > 0 && (
-        <ul className="absolute z-50 mt-1 w-full rounded-lg border border-input bg-popover shadow-lg max-h-48 overflow-y-auto py-1">
+        <ul className="absolute z-50 mt-1 w-full rounded-lg border border-input bg-popover shadow-lg max-h-40 overflow-y-auto py-1 overscroll-contain">
           {filtered.map((s, i) => (
             <li key={s}
               className={cn("px-3 py-2 text-sm cursor-pointer", i === hi ? "bg-accent text-accent-foreground" : "hover:bg-accent hover:text-accent-foreground")}
@@ -206,7 +206,7 @@ function SuccessScreen({ onClose }) {
 }
 
 // ── Main Form ────────────────────────────────────────────────────────────────
-export default function NewPartyOrder({ className, onClose }) {
+export default function NewPartyOrder({ className, onClose, hideSubmitButton = false, formId = "party-order-form", onPendingChange }) {
   const [eventDateTime, setEventDateTime] = useState("");
   const [numberOfPeople, setNumberOfPeople] = useState("50");
   const [menuItems, setMenuItems] = useState([]);
@@ -232,6 +232,10 @@ export default function NewPartyOrder({ className, onClose }) {
       toast.error(message);
     },
   });
+
+  useEffect(() => {
+    onPendingChange?.(createOrder.isPending);
+  }, [createOrder.isPending, onPendingChange]);
 
   if (submitted) return <SuccessScreen onClose={onClose} />;
 
@@ -261,7 +265,7 @@ export default function NewPartyOrder({ className, onClose }) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className={cn("space-y-4", className)}>
+    <form id={formId} onSubmit={handleSubmit} className={cn("space-y-3 sm:space-y-4", className)}>
 
       {/* ── Row 1: Event Date + People ─────────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -276,7 +280,7 @@ export default function NewPartyOrder({ className, onClose }) {
               value={eventDateTime}
               onChange={(e) => setEventDateTime(e.target.value)}
               min={getLocalDateTimeString()}
-              className={cn(errors.eventDateTime && "border-destructive")}
+              className={cn("w-full", errors.eventDateTime && "border-destructive")}
             />
             {errors.eventDateTime && <p className="text-xs text-destructive mt-1">{errors.eventDateTime}</p>}
           </FieldContent>
@@ -368,9 +372,11 @@ export default function NewPartyOrder({ className, onClose }) {
       </Field>
 
       {/* ── Submit ─────────────────────────────────────────────────────── */}
-      <Button type="submit" className="w-full h-11 text-sm font-medium" disabled={createOrder.isPending}>
-        {createOrder.isPending ? "Submitting…" : "Request Estimate"}
-      </Button>
+      {!hideSubmitButton && (
+        <Button type="submit" className="w-full h-11 text-sm font-medium" disabled={createOrder.isPending}>
+          {createOrder.isPending ? "Submitting…" : "Request Estimate"}
+        </Button>
+      )}
     </form>
   );
 }

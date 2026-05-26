@@ -1,20 +1,22 @@
 import { useState } from "react";
 import { ConfettiIcon } from "@phosphor-icons/react";
-import { buttonVariants } from "@/components/ui/button";
+import { buttonVariants, Button } from "@/components/ui/button";
 import {
   Drawer,
   DrawerClose,
   DrawerContent,
   DrawerDescription,
-  DrawerFooter,
   DrawerHeader,
   DrawerTitle,
   DrawerTrigger,
 } from "./ui/drawer";
 import NewPartyOrder from "@/pages/NewPartyOrder";
 
+const FORM_ID = "party-order-drawer-form";
+
 export default function PartyOrderBanner() {
   const [open, setOpen] = useState(false);
+  const [pending, setPending] = useState(false);
 
   return (
     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-primary/5 rounded-lg p-4">
@@ -39,25 +41,67 @@ export default function PartyOrderBanner() {
           <ConfettiIcon weight="fill" />
           Create Party Order
         </DrawerTrigger>
-        <DrawerContent className="px-4">
-          <DrawerHeader>
-            <DrawerTitle className="font-semibold">Create Party Order</DrawerTitle>
-            <DrawerDescription>
-              Tell us about your event and preferred menu.
-              <br />We'll get back to you with an estimate.
+
+        {/*
+          Bottom-sheet layout:
+            • max-h-[92dvh] — never taller than the viewport
+            • flex flex-col  — header + body + footer stacked
+            • px-0           — let inner sections own their padding
+        */}
+        <DrawerContent className="flex flex-col max-h-[92dvh] px-0 rounded-t-[24px]">
+          {/* ── Sticky header ─────────────────────────────────────────── */}
+          <DrawerHeader className="shrink-0 px-4 pt-4 pb-3 border-b border-border/50">
+            <DrawerTitle className="font-semibold text-base">
+              Create Party Order
+            </DrawerTitle>
+            <DrawerDescription className="text-sm">
+              Tell us about your event and preferred menu.{" "}
+              We'll get back to you with an estimate.
             </DrawerDescription>
           </DrawerHeader>
-          <NewPartyOrder
-            className="w-full max-w-md mx-auto"
-            onClose={() => setOpen(false)}
-          />
-          <DrawerFooter className="px-0">
-            <DrawerClose
-              className={buttonVariants({ variant: "ghost", className: "w-full" })}
+
+          {/* ── Scrollable body ───────────────────────────────────────── */}
+          {/* -webkit-overflow-scrolling: touch gives momentum on iOS     */}
+          <div
+            className="flex-1 overflow-y-auto px-4 py-4"
+            style={{ WebkitOverflowScrolling: "touch" }}
+          >
+            <NewPartyOrder
+              formId={FORM_ID}
+              hideSubmitButton
+              onClose={() => setOpen(false)}
+              onPendingChange={setPending}
+            />
+          </div>
+
+          {/* ── Sticky CTA footer ─────────────────────────────────────── */}
+          {/*
+            pb uses env(safe-area-inset-bottom) so the button clears
+            the iOS home indicator and Android gesture bar.
+          */}
+          <div
+            className="shrink-0 px-4 pt-3 border-t border-border/50 bg-background shadow-[0_-4px_16px_rgba(0,0,0,0.06)]"
+            style={{
+              paddingBottom: "max(1rem, env(safe-area-inset-bottom))",
+            }}
+          >
+            <Button
+              type="submit"
+              form={FORM_ID}
+              className="w-full h-12 text-sm font-medium"
+              disabled={pending}
             >
-              Close
+              {pending ? "Submitting…" : "Request Estimate"}
+            </Button>
+            <DrawerClose
+              className={buttonVariants({
+                variant: "ghost",
+                className: "w-full mt-2 h-10 text-muted-foreground",
+              })}
+            >
+              Cancel
             </DrawerClose>
-          </DrawerFooter>
+          </div>
         </DrawerContent>
       </Drawer>
     </div>
