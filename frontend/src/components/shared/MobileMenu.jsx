@@ -1,4 +1,5 @@
 import { useNavigate, useLocation, Link } from "@tanstack/react-router";
+import { useMemo } from "react";
 import { Button, buttonVariants } from "../ui/button";
 import { cn } from "@/lib/utils";
 import {
@@ -11,16 +12,21 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from "../ui/drawer";
+import { Separator } from "../ui/separator";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
+  BowlFoodIcon,
   CompassIcon,
   ConfettiIcon,
   CubeIcon,
+  LockKeyIcon,
   ShoppingCartSimpleIcon,
   SignOutIcon,
   UserCircleIcon,
-  UserIcon,
+  UserGearIcon,
+  WalletIcon,
 } from "@phosphor-icons/react";
+import { Avatar, AvatarFallback } from "../ui/avatar";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 
@@ -66,120 +72,73 @@ const items = [
 
 
 function UserAccountDrawerContent() {
-  const { setUser } = useAuth();
+  const { user, setUser } = useAuth();
   const navigate = useNavigate();
 
+  const initials = useMemo(() => {
+    const source = (user?.info?.name || user?.info?.phone || "A").trim();
+    return source.slice(0, 1).toUpperCase();
+  }, [user]);
+
+  const menuItems = [
+    { to: "/profile", label: "Profile", icon: UserGearIcon },
+    { to: "/orders", label: "Orders", icon: CubeIcon },
+    { to: "/party-orders", label: "Party Orders", icon: ConfettiIcon },
+  ];
+
   return (
-    <>
-      <div className="p-4 grid gap-2 grid-cols-2">
-        <Link
-          to="/orders"
-          className={buttonVariants({
-            variant: "outline",
-            size: "lg",
-            className:
-              "h-fit text-lg bg-linear-to-br from-primary/5 border-primary/10! gap-0! to-white flex-col p-4 items-start justify-center",
-          })}
-        >
-          <CubeIcon weight="fill" className="size-6 text-primary mb-2" />{" "}
-          <span className="font-semibold">Your Orders</span>
-          <span className="block text-xs text-muted-foreground">
-            Track all orders{" "}
-          </span>
-        </Link>
-
-        <Link
-          to="/profile"
-          className={buttonVariants({
-            variant: "outline",
-            size: "lg",
-            className:
-              "h-fit text-lg bg-linear-to-br from-primary/5 border-primary/10! gap-0! to-white flex-col p-4 items-start justify-center",
-          })}
-        >
-          <UserIcon weight="fill" className="size-6 text-primary mb-2" />{" "}
-          <span className="font-semibold">Profile</span>
-          <span className="block text-xs text-muted-foreground">
-            Update your profile{" "}
-          </span>
-        </Link>
-
-        <Link
-          to="/wallet"
-          className={buttonVariants({
-            variant: "outline",
-            size: "lg",
-            className:
-              "h-auto col-span-2 text-lg gap-4 to-white p-4 items-center justify-start border-amber-200! bg-linear-to-br from-[#FFEFBD] to-[#FEEE70]",
-          })}
-        >
-          <img
-            src="/coin.png"
-            width={48}
-            height={48}
-            loading="eager"
-            className="size-12 text-primary mb-2"
-          />{" "}
-          <div>
-            <span
-              aria-label="Bro Wallet"
-              className="font-semibold! inline-block mb-1 text-md"
-            >
-              <img
-                height={20}
-                src="/bro-wallet.svg"
-                alt="Bro Wallet"
-                loading="eager"
-              />
-            </span>
-            <span className="block text-xs text-muted-foreground">
-              Check balance and transactions
-            </span>
-          </div>
-        </Link>
+    <div className="flex flex-col gap-0 px-4 pb-4">
+      <div className="flex shadow-sm items-center mb-2 gap-3 p-3 rounded-xl border mb-1">
+        <Avatar className="size-10">
+          <AvatarFallback className="text-primary text-sm">
+            {initials}
+          </AvatarFallback>
+        </Avatar>
+        <div className="flex flex-col min-w-0 flex-1">
+          <p className="text-sm font-medium text-foreground truncate">
+            {user?.info?.name || "User"}
+          </p>
+          <Button
+            variant="link"
+            size="xs"
+            className="gap-1 shrink-0 justify-start px-0 h-auto"
+            onClick={() => navigate({ to: "/profile" })}
+          >
+            <LockKeyIcon weight="fill" />
+            Change Password
+          </Button>
+        </div>
       </div>
 
-      <div className="px-4 pb-2 grid grid-cols-2 gap-2">
+      {menuItems.map(({ to, label, icon: Icon }) => (
         <Link
-          to="/party-orders"
+          key={to}
+          to={to}
           className={buttonVariants({
-            variant: "outline",
-            size: "lg",
-            className:
-              "h-fit col-span-2 text-lg bg-linear-to-br from-primary/5 border-primary/10! gap-0! to-white flex-col p-4 items-start justify-center",
+            variant: "ghost",
+            className: "justify-start gap-3 h-11",
           })}
         >
-          <ConfettiIcon weight="fill" className="size-6 text-primary mb-2" />
-          <span className="font-semibold">Party Orders</span>
-          <span className="block text-xs text-muted-foreground">
-            Track your catering requests
-          </span>
+          <Icon weight="duotone" className="size-5 text-primary shrink-0" />
+          <span>{label}</span>
         </Link>
-      </div>
+      ))}
 
-      <DrawerFooter className="grid grid-cols-2">
-        <DrawerClose
-          className={buttonVariants({
-            variant: "outline",
-            size: "lg",
-            class: "border-border!",
-          })}
-        >
-          Close
-        </DrawerClose>
-        <Button
-          variant="secondary"
-          size="lg"
-          onClick={() => {
-            setUser(null);
-            navigate({ to: "/login" });
-          }}
-          className="w-full"
-        >
-          <SignOutIcon /> Log out
-        </Button>
-      </DrawerFooter>
-    </>
+      <Separator className="my-2" />
+
+      <Button
+        variant="destructive"
+        size="lg"
+        className="justify-start gap-3"
+        onClick={() => {
+          setUser(null);
+          navigate({ to: "/login" });
+        }}
+      >
+        <SignOutIcon weight="fill" className="size-5" />
+        Log out
+      </Button>
+    </div>
   );
 }
 
@@ -311,10 +270,12 @@ export default function MobileMenu() {
         </DrawerTrigger>
         <DrawerContent className="max-w-md mx-auto">
           <DrawerHeader>
-            <DrawerTitle className="text-xl font-semibold">
-              Account{" "}
-            </DrawerTitle>
-            {!user && (
+            <DrawerTitle className="text-lg font-semibold">Account</DrawerTitle>
+            {user ? (
+              <DrawerDescription className="text-balance mx-auto">
+                Manage your account
+              </DrawerDescription>
+            ) : (
               <DrawerDescription className="text-balance mx-auto">
                 Login to access your order history and wallet
               </DrawerDescription>

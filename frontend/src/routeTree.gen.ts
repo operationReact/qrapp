@@ -22,6 +22,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as authRegisterRouteImport } from './routes/(auth)/register'
 import { Route as authLoginRouteImport } from './routes/(auth)/login'
+import { Route as authForgetPasswordRouteImport } from './routes/(auth)/forget-password'
 import { Route as AdminAnalyticsIndexRouteImport } from './routes/admin/analytics/index'
 import { Route as AdminAnalyticsUsersRouteImport } from './routes/admin/analytics/users'
 import { Route as AdminAnalyticsSalesRouteImport } from './routes/admin/analytics/sales'
@@ -105,6 +106,11 @@ const authRegisterRoute = authRegisterRouteImport.update({
 const authLoginRoute = authLoginRouteImport.update({
   id: '/(auth)/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const authForgetPasswordRoute = authForgetPasswordRouteImport.update({
+  id: '/(auth)/forget-password',
+  path: '/forget-password',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminAnalyticsIndexRoute = AdminAnalyticsIndexRouteImport.update({
@@ -218,6 +224,7 @@ export interface FileRoutesByFullPath {
   '/search': typeof SearchRoute
   '/success': typeof SuccessRoute
   '/wallet': typeof WalletRoute
+  '/forget-password': typeof authForgetPasswordRoute
   '/login': typeof authLoginRoute
   '/register': typeof authRegisterRoute
   '/admin/': typeof AdminIndexRoute
@@ -251,6 +258,7 @@ export interface FileRoutesByTo {
   '/search': typeof SearchRoute
   '/success': typeof SuccessRoute
   '/wallet': typeof WalletRoute
+  '/forget-password': typeof authForgetPasswordRoute
   '/login': typeof authLoginRoute
   '/register': typeof authRegisterRoute
   '/admin': typeof AdminIndexRoute
@@ -285,6 +293,7 @@ export interface FileRoutesById {
   '/search': typeof SearchRoute
   '/success': typeof SuccessRoute
   '/wallet': typeof WalletRoute
+  '/(auth)/forget-password': typeof authForgetPasswordRoute
   '/(auth)/login': typeof authLoginRoute
   '/(auth)/register': typeof authRegisterRoute
   '/admin/': typeof AdminIndexRoute
@@ -321,6 +330,7 @@ export interface FileRouteTypes {
     | '/search'
     | '/success'
     | '/wallet'
+    | '/forget-password'
     | '/login'
     | '/register'
     | '/admin/'
@@ -354,6 +364,7 @@ export interface FileRouteTypes {
     | '/search'
     | '/success'
     | '/wallet'
+    | '/forget-password'
     | '/login'
     | '/register'
     | '/admin'
@@ -387,6 +398,7 @@ export interface FileRouteTypes {
     | '/search'
     | '/success'
     | '/wallet'
+    | '/(auth)/forget-password'
     | '/(auth)/login'
     | '/(auth)/register'
     | '/admin/'
@@ -422,6 +434,7 @@ export interface RootRouteChildren {
   SearchRoute: typeof SearchRoute
   SuccessRoute: typeof SuccessRoute
   WalletRoute: typeof WalletRoute
+  authForgetPasswordRoute: typeof authForgetPasswordRoute
   authLoginRoute: typeof authLoginRoute
   authRegisterRoute: typeof authRegisterRoute
 }
@@ -517,6 +530,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof authLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/(auth)/forget-password': {
+      id: '/(auth)/forget-password'
+      path: '/forget-password'
+      fullPath: '/forget-password'
+      preLoaderRoute: typeof authForgetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/analytics/': {
@@ -729,6 +749,7 @@ const rootRouteChildren: RootRouteChildren = {
   SearchRoute: SearchRoute,
   SuccessRoute: SuccessRoute,
   WalletRoute: WalletRoute,
+  authForgetPasswordRoute: authForgetPasswordRoute,
   authLoginRoute: authLoginRoute,
   authRegisterRoute: authRegisterRoute,
 }

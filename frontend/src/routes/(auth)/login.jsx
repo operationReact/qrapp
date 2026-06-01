@@ -1,7 +1,7 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, Link, useLocation } from "@tanstack/react-router";
-import { useMutation } from '@tanstack/react-query'
+import { useMutation } from "@tanstack/react-query";
 import { loginUser } from "@/services/auth-service";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Field, FieldContent, FieldLabel } from "@/components/ui/field";
@@ -10,7 +10,7 @@ import { CaretLeftIcon } from "@phosphor-icons/react";
 import { PasswordInput } from "@/components/ui/password-input";
 import { useAuth } from "@/context/AuthContext";
 
-export const Route = createFileRoute('/(auth)/login')({
+export const Route = createFileRoute("/(auth)/login")({
   component: function UserLogin() {
     const navigate = useNavigate();
     const location = useLocation();
@@ -31,13 +31,18 @@ export const Route = createFileRoute('/(auth)/login')({
       if (!user) return;
 
       if (isAdmin || isSuperUser) {
-        navigate({ to: 
-          returnPath && returnPath.startsWith("/admin") ? returnPath : "/admin"
+        navigate({
+          to:
+            returnPath && returnPath.startsWith("/admin")
+              ? returnPath
+              : "/admin",
         });
         return;
       }
 
-      navigate({ to: returnPath && !returnPath.startsWith("/admin") ? returnPath : "/" });
+      navigate({
+        to: returnPath && !returnPath.startsWith("/admin") ? returnPath : "/",
+      });
     }, [user, isAdmin, isSuperUser, navigate, returnPath]);
 
     const [noToken, setNoToken] = useState(false);
@@ -87,7 +92,9 @@ export const Route = createFileRoute('/(auth)/login')({
             </div>
             {(loginMutation.isError || noToken) && (
               <div className="mb-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
-                {noToken ? "No token returned from server" : "Invalid phone or password"}
+                {noToken
+                  ? "No token returned from server"
+                  : "Invalid phone or password"}
               </div>
             )}
             <form onSubmit={submit} className="space-y-4">
@@ -115,8 +122,18 @@ export const Route = createFileRoute('/(auth)/login')({
                   />
                 </FieldContent>
               </Field>
+              <Link
+                to="/forget-password"
+                className={buttonVariants({ variant: "link", size: "sm",className:"mt-0 mr-0 ml-auto flex! w-fit justify-end" })}
+              >
+                Forgot Password?
+              </Link>
               <div className="flex mt-5 flex-col gap-2 justify-center">
-                <Button type="submit" size="lg" disabled={loginMutation.isPending}>
+                <Button
+                  type="submit"
+                  size="lg"
+                  disabled={loginMutation.isPending}
+                >
                   {loginMutation.isPending ? "Signing in..." : "Sign In"}
                 </Button>
 
@@ -132,5 +149,5 @@ export const Route = createFileRoute('/(auth)/login')({
         </div>
       </div>
     );
-  }
-})
+  },
+});
