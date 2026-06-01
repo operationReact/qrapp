@@ -132,7 +132,7 @@ export default function OffCanvasCart() {
 
   function closeDrawerAndNavigate() {
     closeDrawer();
-    navigate({ to: "/", resetScroll: false });
+    navigate({ to: ".", resetScroll: false });
   }
 
   useEffect(() => {

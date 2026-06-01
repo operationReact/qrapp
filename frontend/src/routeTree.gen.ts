@@ -20,6 +20,7 @@ import { Route as CartRouteImport } from './routes/cart'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
+import { Route as CategoriesCategoryIdRouteImport } from './routes/categories.$categoryId'
 import { Route as authRegisterRouteImport } from './routes/(auth)/register'
 import { Route as authLoginRouteImport } from './routes/(auth)/login'
 import { Route as authForgetPasswordRouteImport } from './routes/(auth)/forget-password'
@@ -97,6 +98,11 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AdminRoute,
+} as any)
+const CategoriesCategoryIdRoute = CategoriesCategoryIdRouteImport.update({
+  id: '/categories/$categoryId',
+  path: '/categories/$categoryId',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const authRegisterRoute = authRegisterRouteImport.update({
   id: '/(auth)/register',
@@ -227,6 +233,7 @@ export interface FileRoutesByFullPath {
   '/forget-password': typeof authForgetPasswordRoute
   '/login': typeof authLoginRoute
   '/register': typeof authRegisterRoute
+  '/categories/$categoryId': typeof CategoriesCategoryIdRoute
   '/admin/': typeof AdminIndexRoute
   '/admin/coupons': typeof AdmincouponsCouponsRoute
   '/admin/manage-menu': typeof AdminmenuManageMenuRoute
@@ -261,6 +268,7 @@ export interface FileRoutesByTo {
   '/forget-password': typeof authForgetPasswordRoute
   '/login': typeof authLoginRoute
   '/register': typeof authRegisterRoute
+  '/categories/$categoryId': typeof CategoriesCategoryIdRoute
   '/admin': typeof AdminIndexRoute
   '/admin/coupons': typeof AdmincouponsCouponsRoute
   '/admin/manage-menu': typeof AdminmenuManageMenuRoute
@@ -296,6 +304,7 @@ export interface FileRoutesById {
   '/(auth)/forget-password': typeof authForgetPasswordRoute
   '/(auth)/login': typeof authLoginRoute
   '/(auth)/register': typeof authRegisterRoute
+  '/categories/$categoryId': typeof CategoriesCategoryIdRoute
   '/admin/': typeof AdminIndexRoute
   '/admin/(coupons)/coupons': typeof AdmincouponsCouponsRoute
   '/admin/(menu)/manage-menu': typeof AdminmenuManageMenuRoute
@@ -333,6 +342,7 @@ export interface FileRouteTypes {
     | '/forget-password'
     | '/login'
     | '/register'
+    | '/categories/$categoryId'
     | '/admin/'
     | '/admin/coupons'
     | '/admin/manage-menu'
@@ -367,6 +377,7 @@ export interface FileRouteTypes {
     | '/forget-password'
     | '/login'
     | '/register'
+    | '/categories/$categoryId'
     | '/admin'
     | '/admin/coupons'
     | '/admin/manage-menu'
@@ -401,6 +412,7 @@ export interface FileRouteTypes {
     | '/(auth)/forget-password'
     | '/(auth)/login'
     | '/(auth)/register'
+    | '/categories/$categoryId'
     | '/admin/'
     | '/admin/(coupons)/coupons'
     | '/admin/(menu)/manage-menu'
@@ -437,6 +449,7 @@ export interface RootRouteChildren {
   authForgetPasswordRoute: typeof authForgetPasswordRoute
   authLoginRoute: typeof authLoginRoute
   authRegisterRoute: typeof authRegisterRoute
+  CategoriesCategoryIdRoute: typeof CategoriesCategoryIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -517,6 +530,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/'
       preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof AdminRoute
+    }
+    '/categories/$categoryId': {
+      id: '/categories/$categoryId'
+      path: '/categories/$categoryId'
+      fullPath: '/categories/$categoryId'
+      preLoaderRoute: typeof CategoriesCategoryIdRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/(auth)/register': {
       id: '/(auth)/register'
@@ -752,6 +772,7 @@ const rootRouteChildren: RootRouteChildren = {
   authForgetPasswordRoute: authForgetPasswordRoute,
   authLoginRoute: authLoginRoute,
   authRegisterRoute: authRegisterRoute,
+  CategoriesCategoryIdRoute: CategoriesCategoryIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
