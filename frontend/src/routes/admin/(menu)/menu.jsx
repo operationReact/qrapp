@@ -5,7 +5,7 @@ import {
   useNavigate,
   useSearch,
 } from "@tanstack/react-router";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { updateMenuItem, deleteMenuItem } from "@/services/menu-service";
 import { menuOptions } from "@/query/options/menu";
@@ -13,11 +13,34 @@ import { useAuth } from "@/context/AuthContext";
 import AdminMenuItem from "@/components/admin/AdminMenuItem";
 import MenuItemEditModal from "@/components/MenuItemEditModal";
 import { Button } from "@/components/ui/button";
-import { Plus, Filter, Upload } from "lucide-react";
-import AdminHeader from "@/components/admin/AdminHeader";
 import AdminMenuFilters from "@/components/admin/AdminMenuFilters";
 import BulkMenuUploadModal from "@/components/admin/BulkMenuUploadModal";
-import { useEffect } from "react";
+import SummaryMetrics from "@/components/admin/SummaryMetrics";
+import CategoriesScroll from "@/components/admin/CategoriesScroll";
+import CategoriesManageModal from "@/components/admin/CategoriesManageModal";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from "@/components/ui/input-group";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
+import {
+  ArrowLeftIcon,
+  BowlFoodIcon,
+  FunnelIcon,
+  LegoIcon,
+  MagnifyingGlassIcon,
+  PlusIcon,
+  SparkleIcon,
+  UploadIcon,
+} from "@phosphor-icons/react";
+import { ButtonGroup } from "@/components/ui/button-group";
 
 export const Route = createFileRoute("/admin/(menu)/menu")({
   component: function AdminMenuPage() {
@@ -25,55 +48,111 @@ export const Route = createFileRoute("/admin/(menu)/menu")({
     const location = useLocation();
     const search = useSearch({ strict: false });
     const { isAdmin, isSuperUser } = useAuth();
+
+    const initialAvailability = (() => {
+      if (search.availability === "available") return "AVAILABLE";
+      if (search.availability === "unavailable") return "UNAVAILABLE";
+      if (search.available === "true") return "AVAILABLE";
+      return "ALL";
+    })();
+
+    const [quickFilter, setQuickFilter] = useState(initialAvailability);
+    const [searchInput, setSearchInput] = useState(() => search.q || "");
     const [searchQuery, setSearchQuery] = useState(() => search.q || "");
-    const [selectedCategories, setSelectedCategories] = useState(
-      () => search.categories?.split(",").filter(Boolean) || [],
+    const [activeCategoryId, setActiveCategoryId] = useState(
+      () => search.activeCategory || "ALL",
     );
     const [selectedTags, setSelectedTags] = useState(
       () => search.tags?.split(",").filter(Boolean) || [],
     );
     const [filters, setFilters] = useState({
       showRecommended: search.recommended === "true",
-      showAvailable: search.available === "true",
       isVeg: search.veg === "true" ? true : null,
     });
     const queryClient = useQueryClient();
     const [editingItem, setEditingItem] = useState(null);
-    const [deletingItem, setDeletingItem] = useState(null);
-    const [showMobileFilters, setShowMobileFilters] = useState(false);
     const [bulkUploadOpen, setBulkUploadOpen] = useState(false);
+    const [filterSheetOpen, setFilterSheetOpen] = useState(false);
+    const [categoriesModalOpen, setCategoriesModalOpen] = useState(false);
 
-    const { data: menu, isLoading: loadingMenu } = useQuery(menuOptions());
+    const { data: menu = [], isLoading: loadingMenu } = useQuery(menuOptions());
+
+    useEffect(() => {
+      const t = setTimeout(() => setSearchQuery(searchInput), 300);
+      return () => clearTimeout(t);
+    }, [searchInput]);
 
     useEffect(() => {
       const params = {};
       if (searchQuery) params.q = searchQuery;
-      if (selectedCategories.length)
-        params.categories = selectedCategories.join(",");
+      if (activeCategoryId && activeCategoryId !== "ALL")
+        params.activeCategory = activeCategoryId;
       if (selectedTags.length) params.tags = selectedTags.join(",");
       if (filters.showRecommended) params.recommended = "true";
-      if (filters.showAvailable) params.available = "true";
       if (filters.isVeg === true) params.veg = "true";
+      if (quickFilter === "AVAILABLE") params.availability = "available";
+      if (quickFilter === "UNAVAILABLE") params.availability = "unavailable";
       navigate({ search: params, replace: true });
-    }, [searchQuery, selectedCategories, selectedTags, filters, navigate]);
+    }, [
+      searchQuery,
+      activeCategoryId,
+      selectedTags,
+      filters,
+      quickFilter,
+      navigate,
+    ]);
 
     const allCategories = useMemo(
       () =>
         [
-          ...new Set(
-            menu.map((item) => item.category?.name).filter(Boolean),
-          ),
+          ...new Set(menu.map((item) => item.category?.name).filter(Boolean)),
         ].sort(),
       [menu],
     );
 
     const allTags = useMemo(
       () =>
-        [
-          ...new Set(menu.map((item) => item.tag?.name).filter(Boolean)),
-        ].sort(),
+        [...new Set(menu.map((item) => item.tag?.name).filter(Boolean))].sort(),
       [menu],
     );
+
+    const totalItems = menu.length;
+    const availableCount = useMemo(
+      () => menu.filter((m) => m.available).length,
+      [menu],
+    );
+    const unavailableCount = totalItems - availableCount;
+    const recommendedCount = useMemo(
+      () => menu.filter((m) => m.recommended).length,
+      [menu],
+    );
+
+    const quickFilterCounts = useMemo(() => {
+      return {
+        ALL: totalItems,
+        AVAILABLE: availableCount,
+        UNAVAILABLE: unavailableCount,
+        RECOMMENDED: recommendedCount,
+        VEG: menu.filter((m) => {
+          const v =
+            m.isVeg === true ||
+            m.isVeg === "true" ||
+            m.isVeg === 1 ||
+            m.isVeg === "1";
+          return v;
+        }).length,
+      };
+    }, [menu, totalItems, availableCount, unavailableCount, recommendedCount]);
+
+    const categoryCounts = useMemo(() => {
+      const counts = { ALL: totalItems };
+      for (const item of menu) {
+        const name = item.category?.name;
+        if (!name) continue;
+        counts[name] = (counts[name] ?? 0) + 1;
+      }
+      return counts;
+    }, [menu, totalItems]);
 
     const toggleMutation = useMutation({
       mutationFn: ({ id, data }) => updateMenuItem(id, data),
@@ -88,9 +167,6 @@ export const Route = createFileRoute("/admin/(menu)/menu")({
 
     const deleteMutation = useMutation({
       mutationFn: (id) => deleteMenuItem(id),
-      onSuccess: () => {
-        setDeletingItem(null);
-      },
       onError: (err) => {
         console.error(err);
         alert(
@@ -108,6 +184,13 @@ export const Route = createFileRoute("/admin/(menu)/menu")({
     };
 
     const handleDeleteConfirm = (item) => {
+      if (
+        !window.confirm(
+          `Permanently delete "${item.name}"? This cannot be undone.`,
+        )
+      ) {
+        return;
+      }
       deleteMutation.mutate(item.id);
     };
 
@@ -120,12 +203,19 @@ export const Route = createFileRoute("/admin/(menu)/menu")({
     };
 
     const handleClearAll = () => {
+      setSearchInput("");
       setSearchQuery("");
-      setSelectedCategories([]);
+      setActiveCategoryId("ALL");
       setSelectedTags([]);
-      setFilters({ showRecommended: false, showAvailable: false, isVeg: null });
+      setFilters({ showRecommended: false, isVeg: null });
+      setQuickFilter("ALL");
       navigate({ search: {}, replace: true });
     };
+
+    const selectedCategories = useMemo(
+      () => (activeCategoryId === "ALL" ? [] : [activeCategoryId]),
+      [activeCategoryId],
+    );
 
     const filteredItems = menu.filter((item) => {
       const haystack = [item.name, item.description, item.category, item.tag]
@@ -155,10 +245,6 @@ export const Route = createFileRoute("/admin/(menu)/menu")({
         return false;
       }
 
-      if (filters.showAvailable && !item.available) {
-        return false;
-      }
-
       if (filters.isVeg !== null) {
         const itemIsVeg =
           item.isVeg === true ||
@@ -173,119 +259,235 @@ export const Route = createFileRoute("/admin/(menu)/menu")({
       return true;
     });
 
+    const activeFilterCount = useMemo(() => {
+      let count = 0;
+      if (selectedTags.length > 0) count += selectedTags.length;
+      if (filters.showRecommended) count += 1;
+      if (filters.isVeg === true) count += 1;
+      return count;
+    }, [selectedTags, filters]);
+
     if (!isAdmin && !isSuperUser) {
       return (
         <Navigate to={"/login"} replace state={{ from: location.pathname }} />
       );
     }
 
-    console.log({loadingMenu})
+    const summaryItems = [
+      {
+        label: "Total Items",
+        value: totalItems,
+        icon: BowlFoodIcon,
+        tone: "red",
+      },
+      {
+        label: "Total Categories",
+        value: allCategories?.length || 0,
+        icon: LegoIcon,
+        tone: "rose",
+      },
+    ];
 
     return (
       <>
-        <div className="flex px-4 pt-2 flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-          <AdminHeader
-            title="Menu"
-            description="Manage all your menu items, availability, and recommendations."
-            className="px-0 pt-0"
-          />
+        {/* STICKY HEADER */}
+        <div className="flex items-start gap-3 border-b px-4 pt-3 pb-4 border-border sticky top-0 z-5 bg-background">
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={() => navigate({ to: "/admin" })}
+            aria-label="Back to dashboard"
+          >
+            <ArrowLeftIcon />
+          </Button>
+          <div className="min-w-0 flex-1">
+            <h1 className="text-lg font-semibold tracking-tight text-foreground">
+              Menu
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Manage items, availability &amp; pricing
+            </p>
+          </div>
+        </div>
 
-          <div className="flex gap-2 sm:w-auto">
+        <div className="mt-5 px-4">
+          <SummaryMetrics items={summaryItems} loading={loadingMenu} />
+        </div>
+
+        <div className="mt-4 flex flex-wrap items-center gap-2 px-4">
+          <ButtonGroup className="w-full order-2 sm:order-0 sm:max-w-sm">
+            <InputGroup className="h-10 flex-1 sm:max-w-lg">
+              <InputGroupInput
+                placeholder="Search menu..."
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+              />
+              <InputGroupAddon>
+                <MagnifyingGlassIcon />
+              </InputGroupAddon>
+            </InputGroup>
             <Button
-              onClick={() => setBulkUploadOpen(true)}
               variant="outline"
-              size="lg"
+              size="icon-lg"
+              onClick={() => setFilterSheetOpen(true)}
+              className="relative shrink-0"
+              aria-label="Filters"
             >
-              <Upload className="size-5" />
-              Bulk Upload
+              <FunnelIcon weight={activeFilterCount > 0 ? "fill" : "regular"} />
+              {activeFilterCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-[10px] size-5 rounded-full flex items-center justify-center font-bold">
+                  {activeFilterCount > 9 ? "9+" : activeFilterCount}
+                </span>
+              )}
+            </Button>
+          </ButtonGroup>
+
+          <div className={"flex flex-wrap ml-auto gap-2 order-0 sm:order-1"}>
+            <Button
+              type="button"
+              variant="link"
+              onClick={() => setCategoriesModalOpen(true)}
+            >
+              <LegoIcon /> Manage Categories
+            </Button>
+            <Button onClick={() => setBulkUploadOpen(true)} variant="outline">
+              <UploadIcon data-icon="inline-start" />
+              <span className="sm:hidden">Bulk Actions</span>
+              <span className="hidden sm:inline">Bulk Upload</span>
             </Button>
             <Button
               onClick={() => navigate({ to: "/admin/manage-menu" })}
-              size="lg"
+              variant="branded-secondary"
             >
-              <Plus className="size-5" />
-              Create New Item
+              <PlusIcon data-icon="inline-start" />
+              <span className="sm:hidden">Add Item</span>
+              <span className="hidden sm:inline">Create New Item</span>
             </Button>
           </div>
         </div>
 
-        <div className="grid lg:grid-cols-[300px_1fr] min-h-0">
-          <div className="border-b md:border-b-0 pb-2 md:pb-0 md:px-0 px-4">
-            <AdminMenuFilters
-              searchQuery={searchQuery}
-              onSearchChange={setSearchQuery}
-              selectedCategories={selectedCategories}
-              onCategoriesChange={setSelectedCategories}
-              selectedTags={selectedTags}
-              onTagsChange={setSelectedTags}
-              filters={filters}
-              onFiltersChange={setFilters}
-              allCategories={allCategories}
-              allTags={allTags}
-              onClearAll={handleClearAll}
-            />
-          </div>
+        {/* CONTENT */}
+        <div className="px-4 py-4 flex flex-col gap-2">
+          <CategoriesScroll
+            categories={allCategories}
+            counts={categoryCounts}
+            value={activeCategoryId}
+            onChange={setActiveCategoryId}
+            onManageClick={() => setCategoriesModalOpen(true)}
+          />
 
-          <main className="p-4 overflow-auto">
-            <div className="grid pb-4 gap-2 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3">
-              {loadingMenu &&
-                Array.from({ length: 8 }).map((_, index) => (
-                  <div
-                    key={index}
-                    className="aspect-[3/4] animate-pulse rounded-2xl bg-slate-200/80"
-                  />
-                ))}
+          <div className="grid md:grid-cols-2 gap-4">
+            {loadingMenu &&
+              Array.from({ length: 6 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="h-[104px] bg-muted/60 rounded-lg animate-pulse"
+                />
+              ))}
 
-              {!loadingMenu &&
-                filteredItems.map((item) => (
-                  <AdminMenuItem
-                    key={item.id}
-                    item={item}
-                    onEdit={() => setEditingItem(item)}
-                    onDelete={(item) => handleDeleteConfirm(item)}
-                    onToggleAvailable={handleToggleAvailable}
-                    onToggleRecommended={handleToggleRecommended}
-                  />
-                ))}
+            {!loadingMenu &&
+              filteredItems.map((item) => (
+                <AdminMenuItem
+                  key={item.id}
+                  item={item}
+                  onEdit={() => setEditingItem(item)}
+                  onDelete={handleDeleteConfirm}
+                  onToggleAvailable={handleToggleAvailable}
+                  onToggleRecommended={handleToggleRecommended}
+                />
+              ))}
 
-              {!loadingMenu && menu.length === 0 && (
-                <div className="col-span-full py-20 text-center rounded-3xl border border-dashed border-slate-200 bg-white">
-                  <h3 className="text-lg font-semibold">No Items Found!</h3>
-                  <p className="mt-1 text-sm text-muted-foreground">
+            {!loadingMenu && menu.length === 0 && (
+              <Empty className="border col-span-full border-dashed border-border bg-card py-12">
+                <EmptyHeader>
+                  <EmptyMedia variant="icon">
+                    <SparkleIcon size={20} weight="fill" />
+                  </EmptyMedia>
+                  <EmptyTitle>No Items Found!</EmptyTitle>
+                  <EmptyDescription>
                     Get started by creating your first menu item.
-                  </p>
+                  </EmptyDescription>
+                </EmptyHeader>
+                <Button
+                  onClick={() => navigate({ to: "/admin/manage-menu" })}
+                  variant="outline"
+                  className="border-border!"
+                >
+                  <PlusIcon data-icon="inline-start" />
+                  Create Menu Item
+                </Button>
+              </Empty>
+            )}
+
+            {!loadingMenu &&
+              menu.length > 0 &&
+              filteredItems.length === 0 && (
+                <Empty className="border col-span-2 border-dashed border-border bg-card py-12">
+                  <EmptyHeader>
+                    <EmptyMedia variant="icon">
+                      <MagnifyingGlassIcon size={20} weight="bold" />
+                    </EmptyMedia>
+                    <EmptyTitle>No Matching Items!</EmptyTitle>
+                    <EmptyDescription>
+                      Try adjusting your search or filters.
+                    </EmptyDescription>
+                  </EmptyHeader>
                   <Button
-                    onClick={() => navigate({ to: "/admin/manage-menu" })}
+                    onClick={handleClearAll}
                     variant="outline"
-                    className="mt-4 text-sm! font-medium! w-full max-w-1/3 h-12"
+                    className="border-border!"
                   >
-                    Create Menu Item
+                    Clear Filters
                   </Button>
-                </div>
+                </Empty>
               )}
 
-              {!loadingMenu &&
-                menu.length > 0 &&
-                filteredItems.length === 0 && (
-                  <div className="col-span-full py-20 text-center rounded-3xl border border-dashed border-slate-200 bg-white">
-                    <h3 className="text-lg font-semibold">
-                      No Matching Items!
-                    </h3>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      Try adjusting your search or filters.
-                    </p>
-                    <Button
-                      onClick={handleClearAll}
-                      variant="outline"
-                      className="mt-4 text-sm! font-medium! w-full max-w-1/3 h-12"
-                    >
-                      Clear Filters
-                    </Button>
-                  </div>
-                )}
-            </div>
-          </main>
+            {!loadingMenu && menu.length > 0 && filteredItems.length === 0 && (
+              <div className="py-20 text-center rounded-lg border border-dashed border-border bg-card">
+                <h3 className="text-lg font-semibold">No Matching Items!</h3>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Try adjusting your search or filters.
+                </p>
+                <Button
+                  onClick={handleClearAll}
+                  variant="outline"
+                  className="mt-4 border-primary text-primary hover:bg-primary/5"
+                >
+                  Clear Filters
+                </Button>
+              </div>
+            )}
+          </div>
         </div>
+
+        <AdminMenuFilters
+          open={filterSheetOpen}
+          onOpenChange={setFilterSheetOpen}
+          searchQuery={searchInput}
+          onSearchChange={setSearchInput}
+          selectedCategories={selectedCategories}
+          onCategoriesChange={(cats) => {
+            setActiveCategoryId(cats[0] ?? "ALL");
+          }}
+          selectedTags={selectedTags}
+          onTagsChange={setSelectedTags}
+          filters={{
+            showRecommended: filters.showRecommended,
+            showAvailable: quickFilter === "AVAILABLE",
+            isVeg: filters.isVeg,
+          }}
+          onFiltersChange={(next) => {
+            setFilters({
+              showRecommended: next.showRecommended,
+              isVeg: next.isVeg,
+            });
+            if (next.showAvailable) setQuickFilter("AVAILABLE");
+            else if (quickFilter === "AVAILABLE") setQuickFilter("ALL");
+          }}
+          allCategories={allCategories}
+          allTags={allTags}
+          onClearAll={handleClearAll}
+        />
 
         <MenuItemEditModal
           item={editingItem}
@@ -300,6 +502,11 @@ export const Route = createFileRoute("/admin/(menu)/menu")({
             setBulkUploadOpen(false);
             queryClient.invalidateQueries({ queryKey: ["menu"] });
           }}
+        />
+
+        <CategoriesManageModal
+          open={categoriesModalOpen}
+          onOpenChange={setCategoriesModalOpen}
         />
       </>
     );

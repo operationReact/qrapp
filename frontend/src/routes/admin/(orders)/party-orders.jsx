@@ -5,9 +5,10 @@ import AdminHeader from "@/components/admin/AdminHeader";
 import PartyOrderCard from "@/components/admin/PartyOrderCard";
 import { partyOrdersOptions } from "@/query/options/party-orders";
 import { Skeleton } from "@/components/ui/skeleton";
-import { MagnifyingGlassIcon } from "@phosphor-icons/react";
+import { ConfettiIcon, MagnifyingGlassIcon } from "@phosphor-icons/react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 
 export const Route = createFileRoute("/admin/(orders)/party-orders")({
   component: PartyOrdersPage,
@@ -107,13 +108,19 @@ function PartyOrdersPage() {
                 ))}
               </div>
             ) : filtered.length === 0 ? (
-              <div className="py-20 text-center rounded-2xl border border-dashed border-muted-foreground/20 bg-muted/20">
-                <p className="text-sm font-medium text-muted-foreground">
-                  {orders.length === 0
-                    ? "No party orders yet."
-                    : "No orders match your filters."}
-                </p>
-              </div>
+              <Empty className="border">
+                <EmptyHeader>
+                  <EmptyMedia variant="icon">
+                    <ConfettiIcon weight="duotone" />
+                  </EmptyMedia>
+                  <EmptyTitle>No party orders</EmptyTitle>
+                  <EmptyDescription>
+                    {orders.length === 0
+                      ? "No party orders created seeking estimates"
+                      : "No orders match your filters."}
+                  </EmptyDescription>
+                </EmptyHeader>
+              </Empty>
             ) : (
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {filtered.map((order) => (

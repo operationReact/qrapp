@@ -7,7 +7,6 @@ import {
   ComboboxEmpty,
   useComboboxAnchor,
 } from "@/components/ui/combobox";
-import React from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -19,7 +18,6 @@ import {
 } from "../ui/input-group";
 import {
   ArrowClockwiseIcon,
-  FunnelSimpleIcon,
   MagnifyingGlassIcon,
   XIcon,
 } from "@phosphor-icons/react";
@@ -30,10 +28,11 @@ import {
   SheetDescription,
   SheetHeader,
   SheetTitle,
-  SheetTrigger,
 } from "../ui/sheet";
 
 export default function AdminMenuFilters({
+  open,
+  onOpenChange,
   searchQuery,
   onSearchChange,
   selectedCategories,
@@ -48,57 +47,35 @@ export default function AdminMenuFilters({
 }) {
   const isMobile = useIsMobile();
 
-  const FiltersComponent = (
-    <AdminMenuFiltersContent
-      searchQuery={searchQuery}
-      onSearchChange={onSearchChange}
-      selectedCategories={selectedCategories}
-      onCategoriesChange={onCategoriesChange}
-      selectedTags={selectedTags}
-      onTagsChange={onTagsChange}
-      filters={filters}
-      onFiltersChange={onFiltersChange}
-      allCategories={allCategories}
-      allTags={allTags}
-      onClearAll={onClearAll}
-    />
-  );
-
-  if (isMobile) {
-    return (
-      <Sheet >
-        <SheetTrigger
-          render={
-            <Button size="sm" variant="outline" className="w-fit">
-              <FunnelSimpleIcon />
-              Filters
-            </Button>
-          }
-        ></SheetTrigger>
-        <SheetContent side="bottom">
-          <SheetHeader>
-            <SheetTitle>Filters</SheetTitle>
-            <SheetDescription className="sr-only">
-              Filter the menu items by category and tags.
-            </SheetDescription>
-          </SheetHeader>
-          <div className="px-4 pb-4">{FiltersComponent}</div>
-        </SheetContent>
-      </Sheet>
-    );
-  }
-
   return (
-    <aside
-      className={`
-        bg-background lg:sticky lg:top-0 h-fit py-4
-      `}
-    >
-      <div>
-        <h2 className="text-sm px-4 font-medium mb-2">Filters</h2>
-      </div>
-      <div className="px-4">{FiltersComponent}</div>
-    </aside>
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent
+        side={isMobile ? "bottom" : "right"}
+        className="flex flex-col"
+      >
+        <SheetHeader>
+          <SheetTitle>Filters</SheetTitle>
+          <SheetDescription className="sr-only">
+            Filter the menu items by category and tags.
+          </SheetDescription>
+        </SheetHeader>
+        <div className="flex-1 pt-1 overflow-y-auto px-4 pb-4">
+          <AdminMenuFiltersContent
+            searchQuery={searchQuery}
+            onSearchChange={onSearchChange}
+            selectedCategories={selectedCategories}
+            onCategoriesChange={onCategoriesChange}
+            selectedTags={selectedTags}
+            onTagsChange={onTagsChange}
+            filters={filters}
+            onFiltersChange={onFiltersChange}
+            allCategories={allCategories}
+            allTags={allTags}
+            onClearAll={onClearAll}
+          />
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 }
 
@@ -147,18 +124,6 @@ function AdminMenuFiltersContent({
             checked={filters.showRecommended}
             onCheckedChange={(checked) =>
               onFiltersChange({ ...filters, showRecommended: checked })
-            }
-          />
-        </div>
-        <div className="flex items-center justify-between">
-          <Label htmlFor="filter-available" className="text-sm cursor-pointer">
-            Available
-          </Label>
-          <Switch
-            id="filter-available"
-            checked={filters.showAvailable}
-            onCheckedChange={(checked) =>
-              onFiltersChange({ ...filters, showAvailable: checked })
             }
           />
         </div>
