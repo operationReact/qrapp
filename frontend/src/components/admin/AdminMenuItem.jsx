@@ -136,7 +136,7 @@ export default function AdminMenuItem({
       </div>
 
       <div className="mt-2 pt-2 border-t flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <Field orientation="horizontal" className="py-2">
+        <Field orientation="horizontal" className="py-2 w-full sm:w-fit">
           <FieldLabel htmlFor="recommended" className="text-sm font-medium">
             Recommended
           </FieldLabel>
