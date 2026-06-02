@@ -11,6 +11,7 @@ import {
 } from "@/hooks/useAnalytics";
 import { Medal } from "lucide-react";
 import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
 
 const fmt = (n) =>
   typeof n === "number"
@@ -30,42 +31,61 @@ const rankBadge = (i) => {
   );
 };
 
+const TODAY = new Date().toISOString().slice(0, 10);
+const THIRTY_DAYS_AGO = new Date(new Date().setDate(new Date().getDate() - 29))
+  .toISOString()
+  .slice(0, 10);
+
 export const Route = createFileRoute("/admin/analytics/menu")({
   component: MenuAnalyticsPage,
 });
 
 function MenuAnalyticsPage() {
-  const topItems = useTopSellingItems();
-  const leastItems = useLeastSellingItems();
-  const menuRev = useMenuRevenue();
+  const [from, setFrom] = useState(THIRTY_DAYS_AGO);
+  const [to, setTo] = useState(TODAY);
 
-  const topRows = topItems.data ?? [];
-  const leastRows = leastItems.data ?? [];
-  const revenueRows = menuRev.data ?? [];
+  const params = { from, to };
+  const topItems = useTopSellingItems(params);
+  const leastItems = useLeastSellingItems(params);
+  const menuRev = useMenuRevenue(params);
+
+  const topRows = Array.isArray(topItems.data) ? topItems.data : [];
+  const leastRows = Array.isArray(leastItems.data) ? leastItems.data : [];
+  const revenueRows = Array.isArray(menuRev.data) ? menuRev.data : [];
+
+  const chartData = topRows.slice(0, 8).map((r) => ({
+    name: r.menuItemName,
+    quantity: r.totalQtySold,
+    revenue: r.totalRevenue,
+  }));
+
+  const revenueChartData = revenueRows.slice(0, 6).map((r) => ({
+    name: r.menuItemName,
+    revenue: r.totalRevenue,
+  }));
 
   const columns = [
     { key: "rank", header: "#", render: (_, __, i) => rankBadge(i) },
-    { key: "name", header: "Item" },
-    { key: "quantity", header: "Qty", align: "right" },
+    { key: "menuItemName", header: "Item" },
+    { key: "totalQtySold", header: "Qty", align: "right" },
     {
-      key: "revenue",
+      key: "totalRevenue",
       header: "Revenue",
       align: "right",
       render: (v) => fmt(v),
     },
     {
-      key: "revenueShare",
-      header: "Share",
+      key: "categoryName",
+      header: "Category",
       align: "right",
-      render: (v) => (v != null ? `${v}%` : "—"),
     },
   ];
 
   const leastColumns = [
-    { key: "name", header: "Item" },
-    { key: "quantity", header: "Qty", align: "right" },
+    { key: "menuItemName", header: "Item" },
+    { key: "totalQtySold", header: "Qty", align: "right" },
     {
-      key: "revenue",
+      key: "totalRevenue",
       header: "Revenue",
       align: "right",
       render: (v) => fmt(v),
@@ -80,6 +100,31 @@ function MenuAnalyticsPage() {
         action={<Medal className="text-primary" size={18} />}
       />
 
+      {/* Date range filter */}
+      <div className="flex flex-wrap gap-3 items-center">
+        <label className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
+          From
+        </label>
+        <input
+          type="date"
+          value={from}
+          max={to}
+          onChange={(e) => setFrom(e.target.value)}
+          className="text-xs border border-zinc-200 dark:border-zinc-700 rounded-lg px-2 py-1.5 bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-100"
+        />
+        <label className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
+          To
+        </label>
+        <input
+          type="date"
+          value={to}
+          min={from}
+          max={TODAY}
+          onChange={(e) => setTo(e.target.value)}
+          className="text-xs border border-zinc-200 dark:border-zinc-700 rounded-lg px-2 py-1.5 bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-100"
+        />
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
         <ChartContainer
           title="Top Selling Items"
@@ -90,7 +135,7 @@ function MenuAnalyticsPage() {
         >
           {topRows.length ? (
             <OrdersBarChart
-              data={topRows.slice(0, 8)}
+              data={chartData}
               xKey="name"
               dataKey="quantity"
               label="Qty"
@@ -109,7 +154,7 @@ function MenuAnalyticsPage() {
         >
           {revenueRows.length ? (
             <PieAnalyticsChart
-              data={revenueRows.slice(0, 6)}
+              data={revenueChartData}
               nameKey="name"
               valueKey="revenue"
             />

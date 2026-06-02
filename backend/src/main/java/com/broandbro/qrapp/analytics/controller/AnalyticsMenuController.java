@@ -125,5 +125,24 @@ public class AnalyticsMenuController {
         return ResponseEntity.ok(ApiResponse.ok(
                 menuService.getCategoryRevenueRollup(resolvedFrom, resolvedTo)));
     }
+
+    // ── GET /api/v1/analytics/menu/revenue ────────────────────────────────────
+
+    @GetMapping("/revenue")
+    @Operation(
+        summary = "Menu items revenue breakdown",
+        description = "Returns all menu items ranked by revenue across a date range. Used for revenue contribution charts."
+    )
+    public ResponseEntity<ApiResponse<List<TopMenuItemResponse>>> getMenuRevenue(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @RequestParam(defaultValue = "50") @Min(1) @Max(100) int limit) {
+
+        LocalDate resolvedTo   = to   != null ? to   : LocalDate.now();
+        LocalDate resolvedFrom = from != null ? from : resolvedTo.minusDays(29);
+        log.debug("[MenuController] GET /revenue from={} to={} limit={}", resolvedFrom, resolvedTo, limit);
+        return ResponseEntity.ok(ApiResponse.ok(
+                menuService.getTopItemsByRevenue(resolvedFrom, resolvedTo, limit)));
+    }
 }
 

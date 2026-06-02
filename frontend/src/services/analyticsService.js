@@ -19,13 +19,13 @@ export const fetchPeakHours = (params) =>
 
 // ── Menu ───────────────────────────────────────────────────────────────────
 export const fetchTopSellingItems = (params) =>
-  apiClient.get("/api/v1/analytics/menu/top-selling", { params }).then((r) => r.data);
+  apiClient.get("/api/v1/analytics/menu/top-selling", { params }).then((r) => r.data?.data);
 
 export const fetchLeastSellingItems = (params) =>
-  apiClient.get("/api/v1/analytics/menu/least-selling", { params }).then((r) => r.data);
+  apiClient.get("/api/v1/analytics/menu/least-selling", { params }).then((r) => r.data?.data);
 
 export const fetchMenuRevenue = (params) =>
-  apiClient.get("/api/v1/analytics/menu/revenue", { params }).then((r) => r.data);
+  apiClient.get("/api/v1/analytics/menu/revenue", { params }).then((r) => r.data?.data);
 
 // ── Users ──────────────────────────────────────────────────────────────────
 export const fetchUserPreferences = (params) =>
@@ -48,7 +48,7 @@ export const fetchUsersBySegment = (segment, params) =>
 
 // ── Coupons ────────────────────────────────────────────────────────────────
 export const fetchCouponPerformance = (params) =>
-  apiClient.get("/api/v1/analytics/coupons/performance", { params }).then((r) => r.data);
+  apiClient.get("/api/v1/analytics/coupons/performance", { params }).then((r) => r.data?.data);
 
 // ── Overview ───────────────────────────────────────────────────────────────
 export const fetchOverviewKpis = () =>

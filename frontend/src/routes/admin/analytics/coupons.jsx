@@ -8,6 +8,7 @@ import { EmptyState } from "@/components/analytics/States";
 import { useCouponAnalytics } from "@/hooks/useAnalytics";
 import { Tag, DollarSign, TrendingDown, Percent } from "lucide-react";
 import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
 
 const fmt = (n) =>
   typeof n === "number"
@@ -22,12 +23,28 @@ export const Route = createFileRoute("/admin/analytics/coupons")({
   component: CouponAnalyticsPage,
 });
 
-function CouponAnalyticsPage() {
-  const coupons = useCouponAnalytics();
+const TODAY = new Date().toISOString().slice(0, 10);
+const THIRTY_DAYS_AGO = new Date(new Date().setDate(new Date().getDate() - 29))
+  .toISOString()
+  .slice(0, 10);
 
-  const data = coupons.data ?? {};
-  const couponsRows = data.coupons ?? [];
-  const summary = data.summary ?? {};
+function CouponAnalyticsPage() {
+  const [from, setFrom] = useState(THIRTY_DAYS_AGO);
+  const [to, setTo] = useState(TODAY);
+
+  const params = { from, to };
+  const coupons = useCouponAnalytics(params);
+
+  // Backend returns List<CouponPerformanceResponse>
+  const couponsRows = Array.isArray(coupons.data) ? coupons.data : [];
+
+  // Derive summary from the list
+  const summary = {
+    activeCoupons: couponsRows.length,
+    totalUses: couponsRows.reduce((s, c) => s + (c.usageCount ?? 0), 0),
+    totalDiscount: couponsRows.reduce((s, c) => s + (c.totalDiscount ?? 0), 0),
+    revenueFromCoupons: couponsRows.reduce((s, c) => s + (c.revenueGenerated ?? 0), 0),
+  };
 
   const chartData = couponsRows.map((c) => ({
     name: c.code,
@@ -65,6 +82,31 @@ function CouponAnalyticsPage() {
         title="Coupon Analytics"
         description="Coupon usage, effectiveness and revenue impact."
       />
+
+      {/* Date range filter */}
+      <div className="flex flex-wrap gap-3 items-center">
+        <label className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
+          From
+        </label>
+        <input
+          type="date"
+          value={from}
+          max={to}
+          onChange={(e) => setFrom(e.target.value)}
+          className="text-xs border border-zinc-200 dark:border-zinc-700 rounded-lg px-2 py-1.5 bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-100"
+        />
+        <label className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
+          To
+        </label>
+        <input
+          type="date"
+          value={to}
+          min={from}
+          max={TODAY}
+          onChange={(e) => setTo(e.target.value)}
+          className="text-xs border border-zinc-200 dark:border-zinc-700 rounded-lg px-2 py-1.5 bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-100"
+        />
+      </div>
 
       {/* 2 cols on mobile → 4 on sm */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
