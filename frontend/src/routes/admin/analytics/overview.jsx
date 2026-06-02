@@ -40,7 +40,9 @@ function AnalyticsOverviewPage() {
   const hourly = useHourlyOrders();
   const topItems = useTopSellingItems({ limit: 6 });
 
-  const k = kpis.data ?? {};
+  const k = (kpis.data && typeof kpis.data === "object" && !Array.isArray(kpis.data))
+    ? kpis.data
+    : {};
 
   const kpiCards = [
     {
@@ -77,11 +79,18 @@ function AnalyticsOverviewPage() {
     },
   ];
 
+  const dailyRows  = Array.isArray(daily.data)    ? daily.data    : [];
+  const hourlyRows = Array.isArray(hourly.data)   ? hourly.data   : [];
+  const topRows    = Array.isArray(topItems.data) ? topItems.data : [];
+
+  // Map backend field names → chart-expected field names
+  const topChartData = topRows.slice(0, 6).map((r) => ({
+    name:     r.menuItemName ?? r.name,
+    quantity: r.totalQtySold ?? r.quantity ?? 0,
+  }));
+
   const statusData = k.statusDistribution
-    ? Object.entries(k.statusDistribution).map(([name, value]) => ({
-        name,
-        value,
-      }))
+    ? Object.entries(k.statusDistribution).map(([name, value]) => ({ name, value }))
     : [];
 
   return (
@@ -108,8 +117,8 @@ function AnalyticsOverviewPage() {
           error={daily.error}
           onRetry={daily.refetch}
         >
-          {daily.data?.length ? (
-            <RevenueLineChart data={daily.data} xKey="date" dataKey="revenue" />
+          {dailyRows.length ? (
+            <RevenueLineChart data={dailyRows} xKey="date" dataKey="revenue" />
           ) : (
             <EmptyState title="No revenue data" />
           )}
@@ -122,8 +131,8 @@ function AnalyticsOverviewPage() {
           error={hourly.error}
           onRetry={hourly.refetch}
         >
-          {hourly.data?.length ? (
-            <OrdersBarChart data={hourly.data} xKey="hour" dataKey="orders" />
+          {hourlyRows.length ? (
+            <OrdersBarChart data={hourlyRows} xKey="hour" dataKey="orders" />
           ) : (
             <EmptyState title="No order data" />
           )}
@@ -139,9 +148,9 @@ function AnalyticsOverviewPage() {
           error={topItems.error}
           onRetry={topItems.refetch}
         >
-          {topItems.data?.length ? (
+          {topChartData.length ? (
             <OrdersBarChart
-              data={topItems.data}
+              data={topChartData}
               xKey="name"
               dataKey="quantity"
               color="#8b5cf6"

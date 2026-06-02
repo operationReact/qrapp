@@ -2,20 +2,32 @@ import { apiClient } from "./index";
 
 // ── Sales ──────────────────────────────────────────────────────────────────
 export const fetchDailySales = (params) =>
-  apiClient.get("/api/v1/analytics/sales/daily/previous", { params }).then((r) => r.data);
+  apiClient.get("/api/v1/analytics/sales/daily/previous", { params }).then((r) => r.data?.data);
 
 export const fetchWeeklySales = (params) =>
-  apiClient.get("/api/v1/analytics/sales/weekly", { params }).then((r) => r.data);
+  apiClient.get("/api/v1/analytics/sales/weekly", { params }).then((r) => r.data?.data);
 
 export const fetchMonthlySales = (params) =>
-  apiClient.get("/api/v1/analytics/sales/monthly", { params }).then((r) => r.data);
+  apiClient.get("/api/v1/analytics/sales/monthly", { params }).then((r) => r.data?.data);
 
 // ── Orders ─────────────────────────────────────────────────────────────────
 export const fetchHourlyOrders = (params) =>
-  apiClient.get("/api/v1/analytics/orders/hourly", { params }).then((r) => r.data);
+  apiClient.get("/api/v1/analytics/orders/hourly", { params }).then((r) => {
+    const rows = r.data?.data ?? [];
+    return rows.map((row) => ({
+      ...row,
+      hour:        row.hourOfDay,
+      orders:      row.orderCount      ?? 0,
+      completed:   row.completedCount  ?? 0,
+      cancelled:   (row.orderCount ?? 0) - (row.completedCount ?? 0),
+      avgPrepTime: row.avgFulfilmentMinutes != null
+        ? Math.round(row.avgFulfilmentMinutes * 10) / 10
+        : null,
+    }));
+  });
 
 export const fetchPeakHours = (params) =>
-  apiClient.get("/api/v1/analytics/orders/peak-hours", { params }).then((r) => r.data);
+  apiClient.get("/api/v1/analytics/orders/peak-hours", { params }).then((r) => r.data?.data);
 
 // ── Menu ───────────────────────────────────────────────────────────────────
 export const fetchTopSellingItems = (params) =>
@@ -52,11 +64,11 @@ export const fetchCouponPerformance = (params) =>
 
 // ── Overview ───────────────────────────────────────────────────────────────
 export const fetchOverviewKpis = () =>
-  apiClient.get("/api/v1/analytics/overview").then((r) => r.data);
+  apiClient.get("/api/v1/analytics/overview").then((r) => r.data?.data);
 
 // ── Recommendations ────────────────────────────────────────────────────────
 export const fetchRecommendations = (userId) =>
-  apiClient.get(`/api/v1/recommendations/${userId}`).then((r) => r.data);
+  apiClient.get(`/api/v1/recommendations/${userId}`).then((r) => r.data?.data);
 
 export const fetchTrendingItems = () =>
-  apiClient.get("/api/v1/recommendations/trending").then((r) => r.data);
+  apiClient.get("/api/v1/recommendations/trending").then((r) => r.data?.data);

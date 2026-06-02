@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
@@ -87,7 +88,7 @@ public interface HourlyOrderAnalyticsRepository extends JpaRepository<HourlyOrde
      * Called by {@code HourlyOrderTrendScheduler} every hour.
      */
     @Modifying
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     @Query(value = """
            INSERT INTO analytics_hourly_orders (
                order_date, hour_of_day, day_of_week,
@@ -97,12 +98,12 @@ public interface HourlyOrderAnalyticsRepository extends JpaRepository<HourlyOrde
            SELECT
                :targetDate,
                :targetHour,
-               EXTRACT(ISODOW FROM TIMESTAMP :targetDate)::INTEGER,
+               EXTRACT(ISODOW FROM CAST(:targetDate AS DATE))::INTEGER,
 
                COUNT(*)                                                    AS order_count,
                COUNT(*) FILTER (WHERE o.status = 'COMPLETED')             AS completed_count,
 
-               COALESCE(SUM(o.final_amount)
+               COALESCE(SUM(o.grand_total)
                    FILTER (WHERE o.status = 'COMPLETED'), 0)              AS hour_revenue,
 
                AVG(

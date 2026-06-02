@@ -37,9 +37,9 @@ function SalesAnalyticsPage() {
   const monthly = useMonthlySales();
 
   const current = { daily, weekly, monthly }[tab];
-  // Daily:          { success, data: [ {...}, ... ] }          → flat array
-  // Weekly/Monthly: { success, data: { totalRevenue, dailySeries: [...] } } → summary object
-  const responseData = current.data?.data;
+  // Daily:          array of { salesDate, totalRevenue, totalOrders, ... }
+  // Weekly/Monthly: { totalRevenue, dailySeries: [...], ... } summary object
+  const responseData = current.data;
   const isArray = Array.isArray(responseData);
   const rows = isArray ? responseData : (responseData?.dailySeries ?? []);
 
