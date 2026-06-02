@@ -8,11 +8,29 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { submitPartyOrderEstimate } from "@/services/party-order-service";
 import { toast } from "sonner";
 import { X, Plus } from "lucide-react";
+import {
+  ConfettiIcon,
+  CalendarIcon,
+  UsersIcon,
+  CurrencyInrIcon,
+} from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
+import { Textarea } from "../ui/textarea";
+import { Field, FieldContent, FieldLabel } from "../ui/field";
+import { Input } from "../ui/input";
+import { UserIcon } from "@phosphor-icons/react";
 
 function formatCurrency(v) {
   if (!v && v !== 0) return "—";
@@ -57,14 +75,18 @@ export default function PartyOrderEstimateDialog({
       existing.length > 0
         ? existing.map((item) => ({
             itemName: item.itemName || "",
-            quotedPrice: item.quotedPrice != null ? String(item.quotedPrice) : "",
-            estimatedCost: item.estimatedCost != null ? String(item.estimatedCost) : "",
+            quotedPrice:
+              item.quotedPrice != null ? String(item.quotedPrice) : "",
+            estimatedCost:
+              item.estimatedCost != null ? String(item.estimatedCost) : "",
           }))
-        : (Array.isArray(order.menuItems) ? order.menuItems : []).map((name) => ({
-            itemName: name,
-            quotedPrice: "",
-            estimatedCost: "",
-          }));
+        : (Array.isArray(order.menuItems) ? order.menuItems : []).map(
+            (name) => ({
+              itemName: name,
+              quotedPrice: "",
+              estimatedCost: "",
+            }),
+          );
 
     setRows(nextRows);
     setEstimateNote(order.estimateNote || "");
@@ -89,7 +111,7 @@ export default function PartyOrderEstimateDialog({
 
   const updateRow = (idx, field, val) => {
     setRows((prev) =>
-      prev.map((r, i) => (i === idx ? { ...r, [field]: val } : r))
+      prev.map((r, i) => (i === idx ? { ...r, [field]: val } : r)),
     );
   };
 
@@ -99,7 +121,8 @@ export default function PartyOrderEstimateDialog({
       { itemName: "", quotedPrice: "", estimatedCost: "" },
     ]);
 
-  const removeRow = (idx) => setRows((prev) => prev.filter((_, i) => i !== idx));
+  const removeRow = (idx) =>
+    setRows((prev) => prev.filter((_, i) => i !== idx));
 
   const people = order?.numberOfPeople || 1;
 
@@ -109,21 +132,21 @@ export default function PartyOrderEstimateDialog({
       acc.expense += (parseFloat(row.estimatedCost) || 0) * people;
       return acc;
     },
-    { revenue: 0, expense: 0 }
+    { revenue: 0, expense: 0 },
   );
   totals.profit = totals.revenue - totals.expense;
 
   const handleSubmit = (e) => {
     e.preventDefault();
     const validRows = rows.filter(
-      (r) => r.itemName.trim() && r.quotedPrice && r.estimatedCost
+      (r) => r.itemName.trim() && r.quotedPrice && r.estimatedCost,
     );
     if (validRows.length === 0) {
       toast.error("Please add at least one menu item with pricing");
       return;
     }
     const invalidPrices = validRows.some(
-      (r) => parseFloat(r.quotedPrice) <= 0 || parseFloat(r.estimatedCost) < 0
+      (r) => parseFloat(r.quotedPrice) <= 0 || parseFloat(r.estimatedCost) < 0,
     );
     if (invalidPrices) {
       toast.error("All prices must be positive");
@@ -154,58 +177,86 @@ export default function PartyOrderEstimateDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Send Estimate</DialogTitle>
-          <DialogDescription>
-            {order?.userName
-              ? `For ${order.userName}`
-              : "Set per-item pricing and send estimate to customer."}
+          <DialogTitle className="text-base md:text-lg">
+            Send Estimate for{" "}
+            <span className="text-primary">{order.eventType} Event</span>
+          </DialogTitle>
+          <DialogDescription className="text-secondary-foreground">
+            {order?.userName ? (
+              <span className="flex gap-1 items-center">
+                <UserIcon weight="duotone" /> For {order.userName}
+              </span>
+            ) : (
+              "Set per-item pricing and send estimate to customer."
+            )}
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form
+          id={`send-party-estimate-${order.id}`}
+          onSubmit={handleSubmit}
+          className="space-y-4 pb-1 px-1 min-w-0 max-h-[60vh] overflow-y-auto no-scrollbar"
+        >
           {/* Customer summary */}
           {order && (
-            <div className="rounded-lg bg-muted/50 px-3 py-2.5 text-xs space-y-1">
-              {order.eventType && (
-                <div>
-                  <span className="text-muted-foreground">Event: </span>
-                  <span className="font-medium">{order.eventType}</span>
-                </div>
-              )}
-              {order.eventDateTime && (
-                <div>
-                  <span className="text-muted-foreground">Date: </span>
-                  <span className="font-medium">
-                    {new Date(order.eventDateTime).toLocaleString("en-IN", {
-                      dateStyle: "medium",
-                      timeStyle: "short",
-                    })}
-                  </span>
-                </div>
-              )}
-              {order.numberOfPeople && (
-                <div>
-                  <span className="text-muted-foreground">People: </span>
-                  <span className="font-medium">{order.numberOfPeople}</span>
-                </div>
-              )}
-              {order.budgetAmount && (
-                <div>
-                  <span className="text-muted-foreground">Budget: </span>
-                  <span className="font-medium">
-                    {formatCurrency(order.budgetAmount)}
-                  </span>
-                </div>
-              )}
+            <div className="rounded-lg bg-muted/70 px-3 py-4">
+              <p className="text-xs/relaxed text-secondary-foreground/60 uppercase font-medium mb-2">
+                Event Details
+              </p>
+              <div className="grid grid-cols-2 place-items-start gap-x-3 gap-y-2 text-sm">
+                {order.eventType && (
+                  <div className="flex items-center gap-1.5 text-secondary-foreground">
+                    <ConfettiIcon
+                      weight="duotone"
+                      className="size-3.5 text-primary shrink-0"
+                    />
+                    <span className="font-medium">{order.eventType}</span>
+                  </div>
+                )}
+                {order.eventDateTime && (
+                  <div className="flex items-center gap-1.5 font-medium text-secondary-foreground">
+                    <CalendarIcon
+                      weight="duotone"
+                      className="size-3.5 text-primary shrink-0"
+                    />
+                    <span>
+                      {new Date(order.eventDateTime).toLocaleString("en-IN", {
+                        dateStyle: "medium",
+                        timeStyle: "short",
+                      })}
+                    </span>
+                  </div>
+                )}
+                {order.numberOfPeople && (
+                  <div className="flex items-center gap-1.5 font-medium text-secondary-foreground">
+                    <UsersIcon
+                      weight="duotone"
+                      className="size-3.5 text-primary shrink-0"
+                    />
+                    <span>{order.numberOfPeople} people</span>
+                  </div>
+                )}
+                {order.budgetAmount && (
+                  <div className="flex items-center gap-1.5 text-secondary-foreground">
+                    <CurrencyInrIcon
+                      weight="duotone"
+                      className="size-3.5 text-primary shrink-0"
+                    />
+                    <span className="font-medium">
+                      {formatCurrency(order.budgetAmount)}
+                    </span>
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
           {/* Menu items table */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <p className="text-sm font-semibold">Menu Items</p>
+              <p className="text-sm font-medium">Menu Items</p>
               <Button
                 type="button"
                 size="sm"
@@ -216,32 +267,38 @@ export default function PartyOrderEstimateDialog({
               </Button>
             </div>
 
-            <div className="overflow-x-auto rounded-lg border border-input">
-              <table className="w-full text-sm min-w-[500px]">
-                <thead className="bg-muted/50">
-                  <tr>
-                    <th className="text-left px-3 py-2 text-xs font-semibold text-muted-foreground w-[36%]">Menu Item</th>
-                    <th className="text-right px-3 py-2 text-xs font-semibold text-muted-foreground w-[22%]">
+            <div className="overflow-x-auto rounded-sm border border-input">
+              <Table className="min-w-[500px]">
+                <TableHeader className="bg-muted/50">
+                  <TableRow>
+                    <TableHead className="w-[36%]">Menu Item</TableHead>
+                    <TableHead className="text-right w-[22%]">
                       Quoted Price ₹
-                      <span className="block font-normal text-[10px] text-muted-foreground/70">per person</span>
-                    </th>
-                    <th className="text-right px-3 py-2 text-xs font-semibold text-muted-foreground w-[22%]">
+                      <span className="block font-normal text-[10px] text-secondary-foreground/70">
+                        per person
+                      </span>
+                    </TableHead>
+                    <TableHead className="text-right w-[22%]">
                       Est. Cost ₹
-                      <span className="block font-normal text-[10px] text-muted-foreground/70">per person</span>
-                    </th>
-                    <th className="text-right px-3 py-2 text-xs font-semibold text-muted-foreground w-[16%]">
+                      <span className="block font-normal text-[10px] text-secondary-foreground/70">
+                        per person
+                      </span>
+                    </TableHead>
+                    <TableHead className="text-right w-[16%]">
                       Profit ₹
-                      <span className="block font-normal text-[10px] text-muted-foreground/70">× {people} pax</span>
-                    </th>
-                    <th className="w-[4%]"></th>
-                  </tr>
-                </thead>
-                <tbody>
+                      <span className="block font-normal text-[10px] text-secondary-foreground/70">
+                        × {people} pax
+                      </span>
+                    </TableHead>
+                    <TableHead className="w-[4%]"></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {rows.map((row, idx) => {
                     const profit = calcProfit(row);
                     return (
-                      <tr key={idx} className="border-t border-input">
-                        <td className="px-2 py-1.5">
+                      <TableRow key={idx}>
+                        <TableCell className="w-[36%]">
                           <input
                             value={row.itemName}
                             onChange={(e) =>
@@ -250,8 +307,8 @@ export default function PartyOrderEstimateDialog({
                             placeholder="Item name"
                             className="w-full bg-transparent outline-none text-sm placeholder:text-muted-foreground"
                           />
-                        </td>
-                        <td className="px-2 py-1.5">
+                        </TableCell>
+                        <TableCell className="w-[22%]">
                           <input
                             type="number"
                             min="0"
@@ -263,8 +320,8 @@ export default function PartyOrderEstimateDialog({
                             placeholder="0"
                             className="w-full bg-transparent outline-none text-sm text-right placeholder:text-muted-foreground"
                           />
-                        </td>
-                        <td className="px-2 py-1.5">
+                        </TableCell>
+                        <TableCell className="w-[22%]">
                           <input
                             type="number"
                             min="0"
@@ -276,74 +333,99 @@ export default function PartyOrderEstimateDialog({
                             placeholder="0"
                             className="w-full bg-transparent outline-none text-sm text-right placeholder:text-muted-foreground"
                           />
-                        </td>
-                        <td
+                        </TableCell>
+                        <TableCell
                           className={cn(
-                            "px-2 py-1.5 text-right text-xs font-semibold tabular-nums",
-                            profit >= 0 ? "text-emerald-600" : "text-red-500"
+                            "w-[16%] text-right tabular-nums",
+                            profit >= 0 ? "text-emerald-600" : "text-red-500",
                           )}
                         >
                           {row.quotedPrice && row.estimatedCost ? (
                             <span>
-                              <span className="block">{(profit >= 0 ? "+" : "") + (profit * people).toLocaleString("en-IN")}</span>
-                              <span className="font-normal text-muted-foreground text-[10px]">
-                                {(profit >= 0 ? "+" : "") + profit.toLocaleString("en-IN")} × {people}
+                              <span className="block text-xs font-medium">
+                                {(profit >= 0 ? "+" : "") +
+                                  (profit * people).toLocaleString("en-IN")}
+                              </span>
+                              <span className="font-medium text-muted-foreground text-xs">
+                                {(profit >= 0 ? "+" : "") +
+                                  profit.toLocaleString("en-IN")}{" "}
+                                × {people}
                               </span>
                             </span>
-                          ) : "—"}
-                        </td>
-                        <td className="px-1 py-1.5 text-center">
-                          <button
+                          ) : (
+                            "—"
+                          )}
+                        </TableCell>
+                        <TableCell className="w-[4%] text-center">
+                          <Button
+                            size="icon-xs"
+                            variant="secondary"
                             type="button"
                             onClick={() => removeRow(idx)}
-                            className="rounded hover:bg-muted p-0.5 text-muted-foreground hover:text-destructive transition-colors"
                           >
                             <X size={12} />
-                          </button>
-                        </td>
-                      </tr>
+                          </Button>
+                        </TableCell>
+                      </TableRow>
                     );
                   })}
                   {rows.length === 0 && (
-                    <tr>
-                      <td
-                        colSpan={5}
-                        className="text-center text-xs text-muted-foreground py-4"
-                      >
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center">
                         No items — click "Add Item" to start
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   )}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             </div>
 
             {/* Totals */}
             {rows.some((r) => r.quotedPrice || r.estimatedCost) && (
-              <div className="mt-2 rounded-lg bg-muted/50 px-3 py-2 space-y-1 text-xs">
-                <p className="text-muted-foreground font-medium">
+              <div className="mt-2 rounded-lg bg-muted/50 px-3 py-2 space-y-1 text-sm">
+                <p className="text-secondary-foreground font-medium">
                   Total (per person × {people} people)
                 </p>
                 <div className="flex gap-4 flex-wrap">
                   <div>
                     <span className="text-muted-foreground">Revenue: </span>
-                    <span className="font-semibold">{formatCurrency(totals.revenue)}</span>
+                    <span className="font-semibold">
+                      {formatCurrency(totals.revenue)}
+                    </span>
                   </div>
                   <div>
                     <span className="text-muted-foreground">Expense: </span>
-                    <span className="font-semibold">{formatCurrency(totals.expense)}</span>
+                    <span className="font-semibold">
+                      {formatCurrency(totals.expense)}
+                    </span>
                   </div>
                   <div>
                     <span className="text-muted-foreground">Profit: </span>
-                    <span className={cn("font-bold", totals.profit >= 0 ? "text-emerald-600" : "text-red-500")}>
-                      {totals.profit >= 0 ? "+" : ""}{formatCurrency(totals.profit)}
+                    <span
+                      className={cn(
+                        "font-bold",
+                        totals.profit >= 0
+                          ? "text-emerald-600"
+                          : "text-red-500",
+                      )}
+                    >
+                      {totals.profit >= 0 ? "+" : ""}
+                      {formatCurrency(totals.profit)}
                     </span>
                   </div>
                   {order?.budgetAmount && (
                     <div>
                       <span className="text-muted-foreground">vs Budget: </span>
-                      <span className={cn("font-semibold", totals.revenue - order.budgetAmount >= 0 ? "text-red-500" : "text-emerald-600")}>
-                        {totals.revenue - order.budgetAmount >= 0 ? "+" : ""}{formatCurrency(totals.revenue - order.budgetAmount)}
+                      <span
+                        className={cn(
+                          "font-semibold",
+                          totals.revenue - order.budgetAmount >= 0
+                            ? "text-red-500"
+                            : "text-emerald-600",
+                        )}
+                      >
+                        {totals.revenue - order.budgetAmount >= 0 ? "+" : ""}
+                        {formatCurrency(totals.revenue - order.budgetAmount)}
                       </span>
                     </div>
                   )}
@@ -353,68 +435,83 @@ export default function PartyOrderEstimateDialog({
           </div>
 
           {/* Estimate note (visible to customer) */}
-          <div>
-            <label className="block text-sm font-medium mb-1">
+          <Field>
+            <FieldLabel htmlFor="estimate-note">
               Estimate Note{" "}
               <span className="text-muted-foreground text-xs font-normal">
                 (visible to customer)
               </span>
-            </label>
-            <textarea
-              value={estimateNote}
-              onChange={(e) => setEstimateNote(e.target.value)}
-              placeholder="e.g. Includes serving staff, setup, and cleanup…"
-              rows={2}
-              className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring/50 resize-none placeholder:text-muted-foreground"
-            />
-          </div>
+            </FieldLabel>
+
+            <FieldContent>
+              <Textarea
+                value={estimateNote}
+                id="estimate-note"
+                name="estimate-note"
+                onChange={(e) => setEstimateNote(e.target.value)}
+                placeholder="e.g. Includes serving staff, setup, and cleanup…"
+                rows={2}
+                className="resize-none"
+              />
+            </FieldContent>
+          </Field>
 
           {/* Admin notes (internal only) */}
-          <div>
-            <label className="block text-sm font-medium mb-1">
+          <Field>
+            <FieldLabel htmlFor="admin-notes">
               Admin Notes{" "}
               <span className="text-red-500 text-xs font-normal">
                 (internal only — not shown to customer)
               </span>
-            </label>
-            <textarea
-              value={adminNotes}
-              onChange={(e) => setAdminNotes(e.target.value)}
-              placeholder="Internal notes, sourcing, special arrangements…"
-              rows={2}
-              className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring/50 resize-none placeholder:text-muted-foreground"
-            />
-          </div>
+            </FieldLabel>
+            <FieldContent>
+              <Textarea
+                id="admin-notes"
+                name="admin-notes"
+                value={adminNotes}
+                onChange={(e) => setAdminNotes(e.target.value)}
+                placeholder="Internal notes, sourcing, special arrangements…"
+                rows={2}
+                className="resize-none"
+              />
+            </FieldContent>
+          </Field>
 
           {/* Expiry hours */}
-          <div className="flex items-center gap-3">
-            <label className="text-sm font-medium whitespace-nowrap">
-              Estimate valid for
-            </label>
-            <input
-              type="number"
-              min="1"
-              max="720"
-              value={expiryHours}
-              onChange={(e) => setExpiryHours(Number(e.target.value))}
-              className="w-20 rounded-lg border border-input bg-background px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-ring/50"
-            />
+          <Field className="grid grid-cols-[auto_auto_auto] w-fit items-center gap-3">
+            <FieldLabel htmlFor="expiry-hours">Estimate valid for</FieldLabel>
+            <FieldContent>
+              <Input
+                name="expiry-hours"
+                id="expiry-hours"
+                type="number"
+                min="1"
+                max="720"
+                value={expiryHours}
+                onChange={(e) => setExpiryHours(Number(e.target.value))}
+                className="w-20 rounded-lg border border-input bg-background px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-ring/50"
+              />
+            </FieldContent>
             <span className="text-sm text-muted-foreground">hours</span>
-          </div>
-
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => handleOpenChange(false)}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={submitMutation.isPending}>
-              {submitMutation.isPending ? "Submitting…" : "Send Estimate"}
-            </Button>
-          </DialogFooter>
+          </Field>
         </form>
+
+        <DialogFooter>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => handleOpenChange(false)}
+          >
+            Cancel
+          </Button>
+          <Button
+            form={`send-party-estimate-${order.id}`}
+            type="submit"
+            disabled={submitMutation.isPending}
+          >
+            {submitMutation.isPending ? "Submitting…" : "Send Estimate"}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
