@@ -171,6 +171,30 @@ public class PartyOrderServiceImpl implements PartyOrderService {
 
     @Override
     @Transactional
+    public PartyOrderResponse payBalance(Long orderId, String phone) {
+        User user = requireUser(phone);
+        PartyOrder po = requireOwnedOrder(orderId, user.getId());
+
+        if (po.getStatus() != PartyOrderStatus.DELIVERED) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Order is not in DELIVERED state; current: " + po.getStatus());
+        }
+        if (Boolean.TRUE.equals(po.getBalancePaid())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Balance already paid");
+        }
+
+        Instant now = Instant.now();
+        po.setBalancePaid(true);
+        po.setBalancePaidAmount(po.getBalanceAmount());
+        po.setBalancePaidAt(now);
+        po.setStatus(PartyOrderStatus.COMPLETED);
+        po = partyOrderRepo.save(po);
+        log.info("[PartyOrder] Balance paid by userId={}, partyOrderId={}, amount={}", user.getId(), po.getId(), po.getBalancePaidAmount());
+        return PartyOrderResponse.forUser(po);
+    }
+
+    @Override
+    @Transactional
     public PartyOrderResponse requestCallback(Long orderId, String phone) {
         User user = requireUser(phone);
         PartyOrder po = requireOwnedOrder(orderId, user.getId());
@@ -319,6 +343,35 @@ public class PartyOrderServiceImpl implements PartyOrderService {
         po = partyOrderRepo.save(po);
         log.info("[PartyOrder] Admin='{}' changed partyOrderId={} status: {} → {}",
                 adminName, orderId, prev, req.status());
+        return PartyOrderResponse.forAdmin(po);
+    }
+
+    @Override
+    @Transactional
+    public PartyOrderResponse markDelivered(Long orderId, String adminName) {
+        PartyOrder po = requireOrder(orderId);
+
+        if (po.getStatus() != PartyOrderStatus.CONFIRMED) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Order must be CONFIRMED to mark as DELIVERED; current: " + po.getStatus());
+        }
+
+        BigDecimal total = po.getEstimatedTotalAmount() != null
+                ? po.getEstimatedTotalAmount() : po.getEstimatedAmount();
+        if (total == null) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "No total amount set on order");
+        }
+
+        BigDecimal advancePaid = po.getAdvancePaidAmount() != null
+                ? po.getAdvancePaidAmount() : BigDecimal.ZERO;
+        BigDecimal balance = total.subtract(advancePaid).setScale(2, RoundingMode.HALF_UP);
+
+        po.setBalanceAmount(balance);
+        po.setBalancePaid(false);
+        po.setDeliveredAt(Instant.now());
+        po.setStatus(PartyOrderStatus.DELIVERED);
+        po = partyOrderRepo.save(po);
+        log.info("[PartyOrder] Admin='{}' marked partyOrderId={} as DELIVERED, balanceDue={}", adminName, orderId, balance);
         return PartyOrderResponse.forAdmin(po);
     }
 

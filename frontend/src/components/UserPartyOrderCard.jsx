@@ -8,6 +8,7 @@ import {
   acceptPartyOrderEstimate,
   rejectPartyOrderEstimate,
   payPartyOrderAdvance,
+  payPartyOrderBalance,
   requestPartyOrderCallback,
   cancelMyPartyOrder,
 } from "@/services/party-order-service";
@@ -64,6 +65,7 @@ const STATUS_STYLES = {
   CONFIRMED: "bg-emerald-50 text-emerald-700 border-emerald-200",
   REJECTED: "bg-red-50 text-red-700 border-red-200",
   CANCELLED: "bg-zinc-100 text-zinc-500 border-zinc-200",
+  DELIVERED: "bg-blue-50 text-blue-700 border-blue-200",
   COMPLETED: "bg-green-50 text-green-700 border-green-200",
 };
 
@@ -77,6 +79,7 @@ const STATUS_LABEL = {
   CONFIRMED: "Booking Confirmed",
   REJECTED: "Estimate Rejected",
   CANCELLED: "Cancelled",
+  DELIVERED: "Delivered — Balance Due",
   COMPLETED: "Completed",
 };
 
@@ -150,6 +153,16 @@ export default function UserPartyOrderCard({ order }) {
       toast.error(e?.response?.data?.message || "Failed to cancel order"),
   });
 
+  const payBalanceMut = useMutation({
+    mutationFn: () => payPartyOrderBalance(order.id),
+    onSuccess: () => {
+      invalidate();
+      toast.success("Balance payment confirmed! Order is now completed. 🎉");
+    },
+    onError: (e) =>
+      toast.error(e?.response?.data?.message || "Failed to process balance payment"),
+  });
+
   const handleConfirm = () => {
     if (!confirmAction) return;
     if (confirmAction.type === "accept") acceptMut.mutate();
@@ -191,6 +204,7 @@ export default function UserPartyOrderCard({ order }) {
   const isEstimateSent = order.status === "ESTIMATE_SENT";
   const isAdvancePending = order.status === "ADVANCE_PENDING";
   const isConfirmed = order.status === "CONFIRMED";
+  const isDelivered = order.status === "DELIVERED";
   const canCancel = [
     "NEW",
     "UNDER_REVIEW",
@@ -506,6 +520,70 @@ export default function UserPartyOrderCard({ order }) {
                   expiredLabel="Event date passed"
                 />
               )}
+            </div>
+          )}
+
+          {isDelivered && (
+            <div className="col-span-2 w-full rounded-lg bg-blue-50 border border-blue-200 p-3 space-y-2">
+              <span className="text-sm font-semibold text-blue-700 tracking-wide">
+                🎉 Event Delivered — Balance Payment Due
+              </span>
+              <p className="text-xs text-muted-foreground">
+                Your event has been delivered. Please pay the remaining balance to complete your order.
+              </p>
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">Total Amount</span>
+                <span className="text-sm font-medium">
+                  {formatCurrency(totalAmount)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">Advance Paid</span>
+                <span className="text-sm font-medium text-emerald-600">
+                  − {formatCurrency(order.advancePaidAmount)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between border-t border-blue-200 pt-2">
+                <span className="text-sm font-semibold">Balance Due</span>
+                <span className="text-sm font-bold text-blue-700">
+                  {formatCurrency(order.balanceAmount)}
+                </span>
+              </div>
+
+              <AlertDialog>
+                <AlertDialogTrigger
+                  disabled={payBalanceMut.isPending}
+                  render={
+                    <Button size="sm" className="w-full bg-blue-600 hover:bg-blue-700">
+                      {payBalanceMut.isPending
+                        ? "Processing…"
+                        : `Pay Balance — ${formatCurrency(order.balanceAmount)}`}
+                    </Button>
+                  }
+                />
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>
+                      Confirm Balance Payment for {order.eventType} Event
+                    </AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Confirm payment of the remaining balance{" "}
+                      {formatCurrency(order.balanceAmount)} to complete your order.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel disabled={payBalanceMut.isPending}>
+                      Cancel
+                    </AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={() => payBalanceMut.mutate()}
+                      disabled={payBalanceMut.isPending}
+                    >
+                      {payBalanceMut.isPending ? "Processing…" : "Confirm Payment"}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
           )}
 

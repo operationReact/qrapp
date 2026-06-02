@@ -130,6 +130,21 @@ public class PartyOrderController {
         return ResponseEntity.ok(partyOrderService.payAdvance(id, phone));
     }
 
+    // ── Pay balance (after delivery) ───────────────────────────────────────────
+
+    /**
+     * POST /party-order/{id}/pay-balance
+     * User pays remaining balance after event delivery.  DELIVERED → COMPLETED.
+     */
+    @PostMapping("/{id}/pay-balance")
+    public ResponseEntity<PartyOrderResponse> payBalance(
+            @PathVariable Long id,
+            Authentication authentication
+    ) {
+        String phone = requirePhone(authentication);
+        return ResponseEntity.ok(partyOrderService.payBalance(id, phone));
+    }
+
     // ── Callback request ──────────────────────────────────────────────────────
 
     /**

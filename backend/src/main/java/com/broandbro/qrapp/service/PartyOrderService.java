@@ -30,6 +30,9 @@ public interface PartyOrderService {
     /** User pays advance (simulated) — ADVANCE_PENDING → CONFIRMED. */
     PartyOrderResponse payAdvance(Long orderId, String phone);
 
+    /** User pays remaining balance after event delivery — DELIVERED → COMPLETED. */
+    PartyOrderResponse payBalance(Long orderId, String phone);
+
     /** User requests a callback. */
     PartyOrderResponse requestCallback(Long orderId, String phone);
 
@@ -52,8 +55,11 @@ public interface PartyOrderService {
     /**
      * Admin submits an estimate — transitions PENDING_ESTIMATE → ESTIMATE_SENT.
      * Throws 409 if the order is not in PENDING_ESTIMATE state.
-     */
+    /** Admin submits an estimate — transitions PENDING_ESTIMATE → ESTIMATE_SENT. */
     PartyOrderResponse submitEstimate(Long orderId, PartyOrderEstimateRequest req, String adminName);
+
+    /** Admin marks event as delivered — CONFIRMED → DELIVERED. Computes remaining balance. */
+    PartyOrderResponse markDelivered(Long orderId, String adminName);
 
     /** Admin can force any valid status transition. */
     PartyOrderResponse updateStatus(Long orderId, PartyOrderStatusUpdateRequest req, String adminName);

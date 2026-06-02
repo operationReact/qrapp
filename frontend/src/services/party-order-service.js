@@ -20,6 +20,9 @@ export const rejectPartyOrderEstimate = (id) =>
 export const payPartyOrderAdvance = (id) =>
   apiClient.post(`/party-order/${id}/pay-advance`).then((r) => r.data);
 
+export const payPartyOrderBalance = (id) =>
+  apiClient.post(`/party-order/${id}/pay-balance`).then((r) => r.data);
+
 export const requestPartyOrderCallback = (id) =>
   apiClient.post(`/party-order/${id}/callback-request`).then((r) => r.data);
 
@@ -36,3 +39,7 @@ export const submitPartyOrderEstimate = (orderId, data) =>
 
 export const updatePartyOrderStatus = (orderId, status) =>
   apiClient.patch(`/admin/party-orders/${orderId}/status`, { status }).then((r) => r.data);
+
+export const markPartyOrderDelivered = (orderId) =>
+  apiClient.post(`/admin/party-orders/${orderId}/deliver`).then((r) => r.data);
+

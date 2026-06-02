@@ -28,6 +28,9 @@ public enum PartyOrderStatus {
     /** Cancelled by either side before confirmation. */
     CANCELLED,
 
-    /** Event has been delivered; order closed out. */
+    /** Event has been delivered by the team; waiting for user to pay remaining balance. */
+    DELIVERED,
+
+    /** Full payment received; order closed out. */
     COMPLETED
 }

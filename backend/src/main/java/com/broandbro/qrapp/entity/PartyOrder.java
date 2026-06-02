@@ -135,6 +135,26 @@ public class PartyOrder {
     @Builder.Default
     private Boolean callbackRequested = false;
 
+    // ── Balance payment (after DELIVERED) ────────────────────────────────────
+
+    /** Remaining balance = estimatedTotalAmount - advancePaidAmount. Set when admin marks DELIVERED. */
+    @Column(name = "balance_amount", precision = 12, scale = 2)
+    private BigDecimal balanceAmount;
+
+    @Column(name = "balance_paid")
+    @Builder.Default
+    private Boolean balancePaid = false;
+
+    @Column(name = "balance_paid_amount", precision = 12, scale = 2)
+    private BigDecimal balancePaidAmount;
+
+    @Column(name = "balance_paid_at")
+    private Instant balancePaidAt;
+
+    /** When admin marked the order as DELIVERED. */
+    @Column(name = "delivered_at")
+    private Instant deliveredAt;
+
     /** When user confirmed or rejected. */
     @Column(name = "user_responded_at")
     private Instant userRespondedAt;
@@ -156,6 +176,7 @@ public class PartyOrder {
         if (advancePaid == null) advancePaid = false;
         if (eventCountdownStarted == null) eventCountdownStarted = false;
         if (callbackRequested == null) callbackRequested = false;
+        if (balancePaid == null) balancePaid = false;
     }
 
     @PreUpdate

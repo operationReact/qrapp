@@ -52,6 +52,12 @@ public record PartyOrderResponse(
         Boolean eventCountdownStarted,
         Boolean callbackRequested,
         Instant userRespondedAt,
+        // ── Balance (post-delivery) ──
+        BigDecimal balanceAmount,
+        Boolean balancePaid,
+        BigDecimal balancePaidAmount,
+        Instant balancePaidAt,
+        Instant deliveredAt,
         Instant createdAt,
         Instant updatedAt
 ) {
@@ -116,6 +122,8 @@ public record PartyOrderResponse(
                 po.getAdvancePaid(), po.getAdvancePaidAt(),
                 po.getConfirmationStartedAt(), po.getEventCountdownStarted(),
                 po.getCallbackRequested(), po.getUserRespondedAt(),
+                po.getBalanceAmount(), po.getBalancePaid(), po.getBalancePaidAmount(),
+                po.getBalancePaidAt(), po.getDeliveredAt(),
                 po.getCreatedAt(), po.getUpdatedAt()
         );
     }
@@ -136,6 +144,8 @@ public record PartyOrderResponse(
                 po.getAdvancePaid(), po.getAdvancePaidAt(),
                 po.getConfirmationStartedAt(), po.getEventCountdownStarted(),
                 po.getCallbackRequested(), po.getUserRespondedAt(),
+                po.getBalanceAmount(), po.getBalancePaid(), po.getBalancePaidAmount(),
+                po.getBalancePaidAt(), po.getDeliveredAt(),
                 po.getCreatedAt(), po.getUpdatedAt()
         );
     }

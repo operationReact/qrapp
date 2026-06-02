@@ -71,6 +71,22 @@ public class AdminPartyOrderController {
         return ResponseEntity.ok(partyOrderService.submitEstimate(id, req, adminName));
     }
 
+    // ── Mark delivered ────────────────────────────────────────────────────────
+
+    /**
+     * POST /admin/party-orders/{id}/deliver
+     * Admin marks the event as delivered — CONFIRMED → DELIVERED.
+     * Computes remaining balance = totalAmount - advancePaid.
+     */
+    @PostMapping("/{id}/deliver")
+    public ResponseEntity<PartyOrderResponse> markDelivered(
+            @PathVariable Long id,
+            Authentication authentication
+    ) {
+        String adminName = authentication != null ? authentication.getName() : "admin";
+        return ResponseEntity.ok(partyOrderService.markDelivered(id, adminName));
+    }
+
     // ── Update status ─────────────────────────────────────────────────────────
 
     /**
