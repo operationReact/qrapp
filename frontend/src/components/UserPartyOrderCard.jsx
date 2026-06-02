@@ -13,7 +13,17 @@ import {
 } from "@/services/party-order-service";
 import { toast } from "sonner";
 import CountdownTimer from "@/components/CountdownTimer";
-import ConfirmDialog from "@/components/ConfirmDialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import {
   CalendarIcon,
@@ -195,7 +205,7 @@ export default function UserPartyOrderCard({ order }) {
 
   return (
     <>
-      <Card className="overflow-hidden">
+      <Card className="overflow-hidden mb-0">
         <CardHeader className="pb-2 px-4">
           <div>
             <p className="text-sm mb-2">
@@ -346,58 +356,90 @@ export default function UserPartyOrderCard({ order }) {
                 </div>
               )}
               <div className="flex mt-4 gap-2 pt-1">
-                <Button
-                  size="sm"
-                  className="flex-1"
-                  disabled={acceptMut.isPending}
-                  onClick={() =>
-                    setConfirmAction({
-                      type: "accept",
-                      title: "Accept Estimate?",
-                      description: `Accept the estimate of ${formatCurrency(totalAmount)} and proceed to advance payment?`,
-                    })
-                  }
-                >
-                  Accept
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="flex-1"
-                  disabled={rejectMut.isPending}
-                  onClick={() =>
-                    setConfirmAction({
-                      type: "reject",
-                      title: "Reject Estimate?",
-                      description:
-                        "Are you sure you want to reject this estimate? The order will be closed.",
-                    })
-                  }
-                >
-                  Reject
-                </Button>
+                <AlertDialog>
+                  <AlertDialogTrigger
+                    disabled={acceptMut.isPending}
+                    render={
+                      <Button size="sm" className="flex-1">
+                        Accept
+                      </Button>
+                    }
+                  />
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Accept Estimate?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Accept the estimate of {formatCurrency(totalAmount)} and
+                        proceed to advance payment?
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel disabled={acceptMut.isPending}>
+                        Cancel
+                      </AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() => acceptMut.mutate()}
+                        disabled={acceptMut.isPending}
+                      >
+                        {acceptMut.isPending
+                          ? "Accept Estimate…"
+                          : "Accept Estimate"}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+
+                <AlertDialog>
+                  <AlertDialogTrigger
+                    disabled={rejectMut.isPending}
+                    render={
+                      <Button size="sm" variant="outline" className="flex-1">
+                        Reject
+                      </Button>
+                    }
+                  />
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Reject Estimate?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Are you sure you want to reject this estimate? The order
+                        will be closed.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel disabled={rejectMut.isPending}>
+                        Cancel
+                      </AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() => rejectMut.mutate()}
+                        disabled={rejectMut.isPending}
+                        variant="destructive"
+                      >
+                        {rejectMut.isPending ? "Reject…" : "Reject"}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </div>
             </div>
           )}
 
           {isAdvancePending && (
-            <div className="col-span-2 w-full rounded-lg bg-amber-50 border border-amber-200 p-3 space-y-2">
-              <span className="text-xs font-semibold text-amber-700 uppercase tracking-wide">
+            <div className="col-span-2 w-full rounded-lg bg-amber-50/50 border border-amber-100 p-3 space-y-2">
+              <span className="text-sm font-medium text-amber-700 tracking-wide">
                 Advance Payment Due
               </span>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">
-                  Total Estimate
-                </span>
-                <span className="text-sm font-semibold">
+              <div className="flex mt-2 items-center justify-between">
+                <span className="text-sm font-medium">Total Estimate</span>
+                <span className="text-sm font-medium">
                   {formatCurrency(totalAmount)}
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm font-semibold text-amber-800">
+                <span className="text-sm font-medium">
                   Advance Required (30%)
                 </span>
-                <span className="text-base font-bold text-amber-700">
+                <span className="text-sm font-medium">
                   {formatCurrency(
                     order.advanceRequiredAmount ?? totalAmount * 0.3,
                   )}
@@ -406,22 +448,44 @@ export default function UserPartyOrderCard({ order }) {
               <p className="text-xs text-muted-foreground">
                 Your booking will be confirmed after advance payment.
               </p>
-              <Button
-                size="sm"
-                className="w-full bg-amber-600 hover:bg-amber-700"
-                disabled={payMut.isPending}
-                onClick={() =>
-                  setConfirmAction({
-                    type: "pay",
-                    title: "Pay Advance?",
-                    description: `Confirm advance payment of ${formatCurrency(order.advanceRequiredAmount ?? totalAmount * 0.3)}?`,
-                  })
-                }
-              >
-                {payMut.isPending
-                  ? "Processing…"
-                  : `Pay Advance — ${formatCurrency(order.advanceRequiredAmount ?? totalAmount * 0.3)}`}
-              </Button>
+
+              <AlertDialog>
+                <AlertDialogTrigger
+                  disabled={payMut.isPending}
+                  render={
+                    <Button size="sm" className="w-full">
+                      {payMut.isPending
+                        ? "Processing…"
+                        : `Pay Advance — ${formatCurrency(order.advanceRequiredAmount ?? totalAmount * 0.3)}`}
+                    </Button>
+                  }
+                />
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>
+                      Confirm Advance Payment for {order.eventType} Event
+                    </AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Confirm advance payment of{" "}
+                      {formatCurrency(
+                        order.advanceRequiredAmount ?? totalAmount * 0.3,
+                      )}
+                      ?
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel disabled={payMut.isPending}>
+                      Cancel
+                    </AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={() => payMut.mutate()}
+                      disabled={payMut.isPending}
+                    >
+                      {payMut.isPending ? "Processing…" : "Confirm Payment"}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
           )}
 
@@ -440,7 +504,6 @@ export default function UserPartyOrderCard({ order }) {
                   targetDate={order.eventDateTime}
                   label="Event starts in"
                   expiredLabel="Event date passed"
-                  className="text-emerald-700"
                 />
               )}
             </div>
@@ -453,7 +516,7 @@ export default function UserPartyOrderCard({ order }) {
                   weight="duotone"
                   className="size-3.5 text-primary shrink-0 mt-0.5"
                 />
-                Special Notes
+                Your Note
               </span>
               <span className="leading-relaxed text-sm">
                 {order.specialNotes}
@@ -477,42 +540,54 @@ export default function UserPartyOrderCard({ order }) {
                 </Button>
               )}
             {canCancel && (
-              <Button
-                size="sm"
-                variant="secondary"
-                disabled={cancelMut.isPending}
-                onClick={() =>
-                  setConfirmAction({
-                    type: "cancel",
-                    title: "Cancel Order?",
-                    description:
-                      "Are you sure you want to cancel this party order?",
-                  })
-                }
-              >
-                Cancel Order
-              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger
+                  disabled={cancelMut.isPending}
+                  className={buttonVariants({
+                    variant: "secondary",
+                    size: "sm",
+                  })}
+                >
+                  Cancel Order
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>
+                      Cancel order for {order.eventType} Event
+                    </AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Are you sure you want to cancel this order?
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel
+                      disabled={
+                        acceptMut.isPending ||
+                        rejectMut.isPending ||
+                        payMut.isPending ||
+                        cancelMut.isPending
+                      }
+                    >
+                      Cancel
+                    </AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleConfirm}
+                      disabled={
+                        acceptMut.isPending ||
+                        rejectMut.isPending ||
+                        payMut.isPending ||
+                        cancelMut.isPending
+                      }
+                    >
+                      Cancel Order
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             )}
           </div>
         </CardContent>
       </Card>
-
-      {confirmAction && (
-        <ConfirmDialog
-          title={confirmAction.title}
-          message={confirmAction.description}
-          onCancel={() => setConfirmAction(null)}
-          onConfirm={handleConfirm}
-          pending={
-            acceptMut.isPending ||
-            rejectMut.isPending ||
-            payMut.isPending ||
-            cancelMut.isPending
-          }
-          confirmLabel={CONFIRM_STYLES[confirmAction.type]?.label}
-          confirmClassName={CONFIRM_STYLES[confirmAction.type]?.className}
-        />
-      )}
     </>
   );
 }

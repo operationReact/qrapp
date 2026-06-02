@@ -341,9 +341,8 @@ export default function NewPartyOrder({
       queryClient.invalidateQueries({ queryKey: ["party-orders"] });
       if (onSuccess) {
         onSuccess();
-      } else {
-        setSubmitted(true);
       }
+      setSubmitted(true);
     },
     onError: (err) => {
       const message =

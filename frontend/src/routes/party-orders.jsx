@@ -89,7 +89,7 @@ function MyPartyOrdersPage() {
             </EmptyContent>
           </Empty>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-4 grid md:grid-cols-2 gap-4">
             {orders.map((order) => (
               <UserPartyOrderCard key={order.id} order={order} />
             ))}

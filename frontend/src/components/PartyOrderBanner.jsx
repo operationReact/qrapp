@@ -18,6 +18,7 @@ const FORM_ID = "party-order-drawer-form";
 export default function PartyOrderBanner() {
   const [open, setOpen] = useState(false);
   const [pending, setPending] = useState(false);
+  const [partyOrderCreated, setPartyOrderCreated] = useState(false);
 
   return (
     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-primary/5 rounded-lg p-4">
@@ -35,7 +36,13 @@ export default function PartyOrderBanner() {
         </div>
       </div>
 
-      <Drawer open={open} onOpenChange={setOpen}>
+      <Drawer
+        open={open}
+        onOpenChange={(open) => {
+          setOpen(open);
+          setPartyOrderCreated(false);
+        }}
+      >
         <DrawerTrigger
           className={buttonVariants({ variant: "shadow-white", size: "lg" })}
         >
@@ -63,28 +70,31 @@ export default function PartyOrderBanner() {
               hideSubmitButton
               onClose={() => setOpen(false)}
               onPendingChange={setPending}
+              onSuccess={() => setPartyOrderCreated(true)}
             />
           </div>
 
-          <DrawerFooter className="px-2">
-            <Button
-              type="submit"
-              form={FORM_ID}
-              size="lg"
-              className="w-full"
-              disabled={pending}
-            >
-              {pending ? "Submitting…" : "Request Estimate"}
-            </Button>
-            <DrawerClose
-              className={buttonVariants({
-                variant: "ghost",
-                className: "w-full",
-              })}
-            >
-              Cancel
-            </DrawerClose>
-          </DrawerFooter>
+          {!partyOrderCreated && (
+            <DrawerFooter className="px-2">
+              <Button
+                type="submit"
+                form={FORM_ID}
+                size="lg"
+                className="w-full"
+                disabled={pending}
+              >
+                {pending ? "Submitting…" : "Request Estimate"}
+              </Button>
+              <DrawerClose
+                className={buttonVariants({
+                  variant: "ghost",
+                  className: "w-full",
+                })}
+              >
+                Cancel
+              </DrawerClose>
+            </DrawerFooter>
+          )}
         </DrawerContent>
       </Drawer>
     </div>

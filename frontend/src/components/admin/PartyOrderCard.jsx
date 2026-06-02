@@ -194,7 +194,7 @@ export default function PartyOrderCard({ order, onEstimateSubmitted }) {
 
           {/* Menu items chips */}
           {menuItems.length > 0 && (
-            <div className="col-span-2">
+            <div className="col-span-full">
               <p className="text-xs font-medium text-secondary-foreground mb-1.5">
                 Menu
               </p>
@@ -226,122 +226,133 @@ export default function PartyOrderCard({ order, onEstimateSubmitted }) {
             </div>
           )}
 
-          <div className="col-span-full w-full">
-            <Collapsible>
-              <CollapsibleTrigger className={buttonVariants({ variant: "secondary",className:"w-full flex-start justify-between! aria-expanded:rounded-b-none" })}>
-                <span className="text-sm font-medium">Financial Summary</span>
-                <CaretUpDownIcon/>
-              </CollapsibleTrigger>
+          {["ESTIMATE_SENT", "ADVANCE_PENDING", "CONFIRMED"].includes(
+            order.status,
+          ) && (
+            <div className="col-span-full w-full">
+              <Collapsible>
+                <CollapsibleTrigger
+                  className={buttonVariants({
+                    variant: "secondary",
+                    className:
+                      "w-full flex-start justify-between! aria-expanded:rounded-b-none",
+                  })}
+                >
+                  <span className="text-sm font-medium">Financial Summary</span>
+                  <CaretUpDownIcon />
+                </CollapsibleTrigger>
 
-              <CollapsibleContent className="bg-secondary rounded-lg p-4 pt-0 rounded-t-none data-closed:animate-collapsible-up data-open:animate-collapsible-down overflow-clip">
-                {/* Financial summary */}
-                {(order.estimatedTotalAmount || order.estimatedAmount) && (
-                  <div className="rounded-lg grid gap-2 bg-muted/40 py-2 text-xs space-y-1">
-                    <div className="flex items-center gap-2 text-sm font-medium text-secondary-foreground">
-                      <span className="flex items-center gap-1">
-                        <CurrencyInrIcon weight="duotone" /> Revenue:
-                      </span>
-                      <span className="truncate">
-                        {formatK(
-                          order.estimatedTotalAmount ?? order.estimatedAmount,
-                        )}
-                      </span>
-                    </div>
-
-                    {order.estimatedTotalExpense != null && (
-                      <div className="flex items-center gap-2 text-sm font-medium text-secondary-foreground">
-                        <span className="flex items-center gap-0.5">
-                          <ReceiptIcon weight="duotone" /> Expense:
-                        </span>
-                        <span className="truncate">
-                          {formatK(order.estimatedTotalExpense)}
-                        </span>
-                      </div>
-                    )}
-                    {order.estimatedTotalProfit != null && (
+                <CollapsibleContent className="bg-secondary rounded-lg p-4 pt-0 rounded-t-none data-closed:animate-collapsible-up data-open:animate-collapsible-down overflow-clip">
+                  {/* Financial summary */}
+                  {(order.estimatedTotalAmount || order.estimatedAmount) && (
+                    <div className="rounded-lg grid gap-2 bg-muted/40 py-2 text-xs space-y-1">
                       <div className="flex items-center gap-2 text-sm font-medium text-secondary-foreground">
                         <span className="flex items-center gap-1">
-                          <ChartLineIcon weight="duotone" /> Profit:
+                          <CurrencyInrIcon weight="duotone" /> Revenue:
                         </span>
                         <span className="truncate">
-                          <span
-                            className={cn(
-                              "font-bold",
-                              order.estimatedTotalProfit >= 0
-                                ? "text-emerald-600"
-                                : "text-red-500",
-                            )}
-                          >
-                            {order.estimatedTotalProfit >= 0 ? "+" : ""}
-                            {formatK(order.estimatedTotalProfit)}
-                          </span>
-                        </span>
-                      </div>
-                    )}
-
-                    {order.budgetAmount && (
-                      <div className="flex items-center gap-2 text-sm font-medium text-secondary-foreground">
-                        <span className="flex items-center gap-1">
-                          <MoneyIcon weight="duotone" /> Customer Budget:
-                        </span>
-                        <span>
-                          <span className="font-medium">
-                            {formatK(order.budgetAmount)}
-                          </span>
-                          {order.estimatedTotalAmount && (
-                            <span
-                              className={cn(
-                                "ml-1 font-semibold",
-                                order.estimatedTotalAmount -
-                                  order.budgetAmount >=
-                                  0
-                                  ? "text-red-500"
-                                  : "text-emerald-600",
-                              )}
-                            >
-                              (
-                              {order.estimatedTotalAmount -
-                                order.budgetAmount >=
-                              0
-                                ? "+"
-                                : ""}
-                              {formatK(
-                                order.estimatedTotalAmount - order.budgetAmount,
-                              )}
-                              )
-                            </span>
+                          {formatK(
+                            order.estimatedTotalAmount ?? order.estimatedAmount,
                           )}
                         </span>
                       </div>
-                    )}
-                  </div>
-                )}
 
-                {/* Countdown timers */}
-                {order.status === "ESTIMATE_SENT" &&
-                  order.estimateExpiresAt && (
+                      {order.estimatedTotalExpense != null && (
+                        <div className="flex items-center gap-2 text-sm font-medium text-secondary-foreground">
+                          <span className="flex items-center gap-0.5">
+                            <ReceiptIcon weight="duotone" /> Expense:
+                          </span>
+                          <span className="truncate">
+                            {formatK(order.estimatedTotalExpense)}
+                          </span>
+                        </div>
+                      )}
+                      {order.estimatedTotalProfit != null && (
+                        <div className="flex items-center gap-2 text-sm font-medium text-secondary-foreground">
+                          <span className="flex items-center gap-1">
+                            <ChartLineIcon weight="duotone" /> Profit:
+                          </span>
+                          <span className="truncate">
+                            <span
+                              className={cn(
+                                "font-bold",
+                                order.estimatedTotalProfit >= 0
+                                  ? "text-emerald-600"
+                                  : "text-red-500",
+                              )}
+                            >
+                              {order.estimatedTotalProfit >= 0 ? "+" : ""}
+                              {formatK(order.estimatedTotalProfit)}
+                            </span>
+                          </span>
+                        </div>
+                      )}
+
+                      {order.budgetAmount && (
+                        <div className="flex items-center gap-2 text-sm font-medium text-secondary-foreground">
+                          <span className="flex items-center gap-1">
+                            <MoneyIcon weight="duotone" /> Customer Budget:
+                          </span>
+                          <span>
+                            <span className="font-medium">
+                              {formatK(order.budgetAmount)}
+                            </span>
+                            {order.estimatedTotalAmount && (
+                              <span
+                                className={cn(
+                                  "ml-1 font-semibold",
+                                  order.estimatedTotalAmount -
+                                    order.budgetAmount >=
+                                    0
+                                    ? "text-red-500"
+                                    : "text-emerald-600",
+                                )}
+                              >
+                                (
+                                {order.estimatedTotalAmount -
+                                  order.budgetAmount >=
+                                0
+                                  ? "+"
+                                  : ""}
+                                {formatK(
+                                  order.estimatedTotalAmount -
+                                    order.budgetAmount,
+                                )}
+                                )
+                              </span>
+                            )}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Countdown timers */}
+                  {order.status === "ESTIMATE_SENT" &&
+                    order.estimateExpiresAt && (
+                      <CountdownTimer
+                        targetDate={order.estimateExpiresAt}
+                        label="Estimate expires in"
+                        expiredLabel="Estimate expired"
+                        className="w-fit"
+                      />
+                    )}
+                  {order.status === "ADVANCE_PENDING" && (
+                    <p className="text-xs text-muted-foreground">
+                      Waiting for advance payment
+                    </p>
+                  )}
+                  {order.status === "CONFIRMED" && order.eventDateTime && (
                     <CountdownTimer
-                      targetDate={order.estimateExpiresAt}
-                      label="Estimate expires in"
-                      expiredLabel="Estimate expired"
-                      className="w-fit"
+                      targetDate={order.eventDateTime}
+                      label="Event starts in"
+                      expiredLabel="Event date passed"
                     />
                   )}
-                {order.status === "ADVANCE_PENDING" && (
-                  <p className="text-xs text-muted-foreground">
-                    Waiting for advance payment
-                  </p>
-                )}
-                {order.status === "CONFIRMED" && order.eventDateTime && (
-                  <CountdownTimer
-                    targetDate={order.eventDateTime}
-                    label="Event starts in"
-                    expiredLabel="Event date passed"
-                  />
-                )}
-              </CollapsibleContent>
-            </Collapsible>
-          </div>
+                </CollapsibleContent>
+              </Collapsible>
+            </div>
+          )}
 
           {/* Special notes */}
           {order.specialNotes && (
@@ -361,9 +372,16 @@ export default function PartyOrderCard({ order, onEstimateSubmitted }) {
 
           {/* Estimate note */}
           {order.estimateNote && (
-            <p className="text-xs text-muted-foreground italic border-l-2 border-primary/30 pl-2">
-              {order.estimateNote}
-            </p>
+            <div className="p-2 bg-muted/50 border border-muted w-full rounded-lg col-span-full">
+              <span className="flex text-xs mb-1 font-medium items-center gap-2">
+                <NoteIcon
+                  weight="duotone"
+                  className="size-3.5 shrink-0 mt-0.5"
+                />
+                Estimate Note
+              </span>
+              <p className="text-sm/relaxed">{order.estimateNote}</p>
+            </div>
           )}
 
           {/* Admin actions */}
