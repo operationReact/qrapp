@@ -1,31 +1,34 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { useState, useMemo } from 'react'
+import { createFileRoute } from "@tanstack/react-router";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState, useMemo } from "react";
 import AdminHeader from "@/components/admin/AdminHeader";
 import PartyOrderCard from "@/components/admin/PartyOrderCard";
 import { partyOrdersOptions } from "@/query/options/party-orders";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MagnifyingGlassIcon } from "@phosphor-icons/react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 
-export const Route = createFileRoute('/admin/(orders)/party-orders')({
-  component: PartyOrdersPage
-})
+export const Route = createFileRoute("/admin/(orders)/party-orders")({
+  component: PartyOrdersPage,
+});
 
 const STATUS_FILTERS = [
-  { label: "All",             value: null },
-  { label: "New",             value: "NEW" },
-  { label: "Under Review",    value: "UNDER_REVIEW" },
-  { label: "Estimate Sent",   value: "ESTIMATE_SENT" },
+  { label: "All", value: null },
+  { label: "New", value: "NEW" },
+  { label: "Under Review", value: "UNDER_REVIEW" },
+  { label: "Estimate Sent", value: "ESTIMATE_SENT" },
   { label: "Advance Pending", value: "ADVANCE_PENDING" },
-  { label: "Confirmed",       value: "CONFIRMED" },
-  { label: "Expired",         value: "ESTIMATE_EXPIRED" },
-  { label: "Completed",       value: "COMPLETED" },
-  { label: "Cancelled",       value: "CANCELLED" },
+  { label: "Confirmed", value: "CONFIRMED" },
+  { label: "Expired", value: "ESTIMATE_EXPIRED" },
+  { label: "Completed", value: "COMPLETED" },
+  { label: "Cancelled", value: "CANCELLED" },
 ];
 
 function PartyOrdersPage() {
   const queryClient = useQueryClient();
-  const { data: orders = [], isLoading: loading } = useQuery(partyOrdersOptions);
+  const { data: orders = [], isLoading: loading } =
+    useQuery(partyOrdersOptions);
   const [search, setSearch] = useState("");
   const [activeStatus, setActiveStatus] = useState(null);
 
@@ -40,7 +43,7 @@ function PartyOrdersPage() {
           o.userPhone?.toLowerCase().includes(q) ||
           o.venue?.toLowerCase().includes(q) ||
           o.eventType?.toLowerCase().includes(q) ||
-          o.menuItems?.some((m) => m.toLowerCase().includes(q))
+          o.menuItems?.some((m) => m.toLowerCase().includes(q)),
       );
     }
     return result;
@@ -57,10 +60,12 @@ function PartyOrdersPage() {
       />
 
       <div className="px-4 py-4 space-y-4">
-
         {/* ── Search ──────────────────────────────────────────────────── */}
         <div className="relative max-w-sm">
-          <MagnifyingGlassIcon weight="bold" className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+          <MagnifyingGlassIcon
+            weight="bold"
+            className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground"
+          />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -69,54 +74,63 @@ function PartyOrdersPage() {
           />
         </div>
 
-        {/* ── Status filter tabs ───────────────────────────────────────── */}
-        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
-          {STATUS_FILTERS.map(({ label, value }) => {
-            const count = countFor(value);
-            const active = activeStatus === value;
-            return (
-              <button
-                key={label}
-                onClick={() => setActiveStatus(value)}
-                className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-medium transition-all ${
-                  active
-                    ? "bg-primary text-primary-foreground shadow-sm"
-                    : "bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                }`}
-              >
-                {label}
-                <span className={`rounded-full px-1.5 py-0 text-[10px] font-semibold ${active ? "bg-primary-foreground/20 text-primary-foreground" : "bg-background text-foreground"}`}>
-                  {count}
-                </span>
-              </button>
-            );
-          })}
-        </div>
+        <Tabs defaultValue="" onValueChange={setActiveStatus}>
+          <ScrollArea
+            orientation="horizontal"
+            className="[&_[data-orientation=vertical]]:hidden"
+          >
+            <TabsList variant="line">
+              {STATUS_FILTERS.map(({ label, value }) => {
+                const count = countFor(value);
+                const active = activeStatus === value;
+                return (
+                  <TabsTrigger disabled={count === 0} key={label} value={value}>
+                    {label}
+                    <span
+                      className={`rounded-full px-1.5 py-0 text-[10px] font-semibold ${active ? "bg-primary-foreground/50 text-primary" : "bg-muted text-foreground"}`}
+                    >
+                      {count}
+                    </span>
+                  </TabsTrigger>
+                );
+              })}
+            </TabsList>
+            <ScrollBar orientation="horizontal" className="hidden sm:block" />
+          </ScrollArea>
 
-        {/* ── Grid ────────────────────────────────────────────────────── */}
-        {loading ? (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <Skeleton key={i} className="h-64 rounded-xl" />
-            ))}
-          </div>
-        ) : filtered.length === 0 ? (
-          <div className="py-20 text-center rounded-2xl border border-dashed border-muted-foreground/20 bg-muted/20">
-            <p className="text-sm font-medium text-muted-foreground">
-              {orders.length === 0 ? "No party orders yet." : "No orders match your filters."}
-            </p>
-          </div>
-        ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {filtered.map((order) => (
-              <PartyOrderCard
-                key={order.id}
-                order={order}
-                onEstimateSubmitted={() => queryClient.invalidateQueries({ queryKey: ['party-orders'] })}
-              />
-            ))}
-          </div>
-        )}
+          <TabsContent value={activeStatus}>
+            {/* ── Grid ────────────────────────────────────────────────────── */}
+            {loading ? (
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <Skeleton key={i} className="h-64 rounded-xl" />
+                ))}
+              </div>
+            ) : filtered.length === 0 ? (
+              <div className="py-20 text-center rounded-2xl border border-dashed border-muted-foreground/20 bg-muted/20">
+                <p className="text-sm font-medium text-muted-foreground">
+                  {orders.length === 0
+                    ? "No party orders yet."
+                    : "No orders match your filters."}
+                </p>
+              </div>
+            ) : (
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {filtered.map((order) => (
+                  <PartyOrderCard
+                    key={order.id}
+                    order={order}
+                    onEstimateSubmitted={() =>
+                      queryClient.invalidateQueries({
+                        queryKey: ["party-orders"],
+                      })
+                    }
+                  />
+                ))}
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
       </div>
     </>
   );
