@@ -1,8 +1,10 @@
 import { useEffect, useState, useRef } from "react";
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query'
 import PropTypes from "prop-types";
 import { updateMenuItem } from "../services/menu-service";
+import { apiClient } from "../services";
 import { baseURL } from "../services";
+import ComboBoxCreate from "@/components/ui/ComboBoxCreate";
 import { Button } from "@/components/ui/button";
 import {
   Field,
@@ -49,6 +51,28 @@ export default function MenuItemEditModal({
   });
   const [error, setError] = useState(null);
   const queryClient = useQueryClient();
+
+  const { data: allTags = [] } = useQuery({
+    queryKey: ["tags"],
+    queryFn: () => apiClient.get("/tags").then((r) => r.data),
+    staleTime: 1000 * 60 * 5,
+  });
+
+  const createTagMutation = useMutation({
+    mutationFn: (name) => apiClient.post("/tags", { name }).then((r) => r.data),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["tags"] }),
+  });
+
+  const { data: allCategories = [] } = useQuery({
+    queryKey: ["categories"],
+    queryFn: () => apiClient.get("/categories").then((r) => r.data),
+    staleTime: 1000 * 60 * 5,
+  });
+
+  const createCategoryMutation = useMutation({
+    mutationFn: (name) => apiClient.post("/categories", { name }).then((r) => r.data),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["categories"] }),
+  });
 
   useEffect(() => {
     if (item) {
@@ -251,10 +275,13 @@ export default function MenuItemEditModal({
                 <Field>
                   <FieldLabel>Category</FieldLabel>
                   <FieldContent>
-                    <Input
+                    <ComboBoxCreate
+                      items={allCategories.map((c) => ({ id: c.id, name: c.name }))}
                       value={form.category}
-                      onChange={handleChange("category")}
-                      placeholder="e.g. Main Course"
+                      onSelect={(name) => setForm((f) => ({ ...f, category: name }))}
+                      onCreate={(name) => createCategoryMutation.mutateAsync(name)}
+                      creating={createCategoryMutation.isPending}
+                      placeholder="Select or create category…"
                     />
                   </FieldContent>
                 </Field>
@@ -262,10 +289,13 @@ export default function MenuItemEditModal({
                 <Field>
                   <FieldLabel>Tag</FieldLabel>
                   <FieldContent>
-                    <Input
+                    <ComboBoxCreate
+                      items={allTags.map((t) => ({ id: t.id, name: t.name }))}
                       value={form.tag}
-                      onChange={handleChange("tag")}
-                      placeholder="e.g. Bestseller"
+                      onSelect={(name) => setForm((f) => ({ ...f, tag: name }))}
+                      onCreate={(name) => createTagMutation.mutateAsync(name)}
+                      creating={createTagMutation.isPending}
+                      placeholder="Select or create tag…"
                     />
                   </FieldContent>
                 </Field>

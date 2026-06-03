@@ -2,14 +2,15 @@ import {
   createFileRoute,
   Navigate,
   useLocation,
-  useNavigate,
 } from "@tanstack/react-router";
 import { useState, useRef } from "react";
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from "@/context/AuthContext";
 import { baseURL } from "@/services";
+import { apiClient } from "@/services";
 import { createMenuItem } from "@/services/menu-service";
 import { Button } from "@/components/ui/button";
+import ComboBoxCreate from "@/components/ui/ComboBoxCreate";
 import {
   Field,
   FieldContent,
@@ -50,8 +51,31 @@ function AdminCreateMenuPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const queryClient = useQueryClient();
-
   const imageFieldRef = useRef(null);
+
+  // ── Tags ──────────────────────────────────────────────────────────────
+  const { data: allTags = [] } = useQuery({
+    queryKey: ["tags"],
+    queryFn: () => apiClient.get("/tags").then((r) => r.data),
+    staleTime: 1000 * 60 * 5,
+  });
+
+  const createTagMutation = useMutation({
+    mutationFn: (name) => apiClient.post("/tags", { name }).then((r) => r.data),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["tags"] }),
+  });
+
+  // ── Categories ────────────────────────────────────────────────────────
+  const { data: allCategories = [] } = useQuery({
+    queryKey: ["categories"],
+    queryFn: () => apiClient.get("/categories").then((r) => r.data),
+    staleTime: 1000 * 60 * 5,
+  });
+
+  const createCategoryMutation = useMutation({
+    mutationFn: (name) => apiClient.post("/categories", { name }).then((r) => r.data),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["categories"] }),
+  });
 
   const handleChange = (key) => (event) => {
     setError("");
@@ -69,21 +93,9 @@ function AdminCreateMenuPage() {
   const handleFileChange = (event) => {
     const file = event.target.files && event.target.files[0];
     if (!file) return;
-    if (!file.type.startsWith("image/")) {
-      setError("Please select a valid image file");
-      return;
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      setError("Image must be 5MB or smaller");
-      return;
-    }
-    if (previewUrl?.startsWith("blob:")) {
-      try {
-        URL.revokeObjectURL(previewUrl);
-      } catch (err) {
-        console.warn(err);
-      }
-    }
+    if (!file.type.startsWith("image/")) { setError("Please select a valid image file"); return; }
+    if (file.size > 5 * 1024 * 1024) { setError("Image must be 5MB or smaller"); return; }
+    if (previewUrl?.startsWith("blob:")) { try { URL.revokeObjectURL(previewUrl); } catch (err) { console.warn(err); } }
     setImageFile(file);
     setPreviewUrl(URL.createObjectURL(file));
     setError("");
@@ -91,29 +103,14 @@ function AdminCreateMenuPage() {
 
   const handleRemoveFile = () => {
     if (previewUrl?.startsWith("blob:")) {
-      try {
-        URL.revokeObjectURL(previewUrl);
-        imageFieldRef.current.value = "";
-      } catch (err) {
-        console.warn(err);
-      }
+      try { URL.revokeObjectURL(previewUrl); imageFieldRef.current.value = ""; } catch (err) { console.warn(err); }
     }
     setImageFile(null);
     setPreviewUrl("");
   };
 
   const resetForm = () => {
-    setForm({
-      name: "",
-      price: "",
-      category: "Misc",
-      description: "",
-      imageUrl: "",
-      tag: "",
-      available: true,
-      recommended: false,
-      isVeg: false,
-    });
+    setForm({ name: "", price: "", category: "Misc", description: "", imageUrl: "", tag: "", available: true, recommended: false, isVeg: false });
     handleRemoveFile();
   };
 
@@ -126,12 +123,7 @@ function AdminCreateMenuPage() {
       window.setTimeout(() => setSuccess(""), 3000);
     },
     onError: (err) => {
-      console.error(err);
-      setError(
-        err?.response?.data?.message ||
-          err?.response?.data ||
-          "Failed to create menu item",
-      );
+      setError(err?.response?.data?.message || err?.response?.data || "Failed to create menu item");
     },
   });
 
@@ -139,15 +131,8 @@ function AdminCreateMenuPage() {
     event.preventDefault();
     setError("");
     setSuccess("");
-
-    if (!form.name.trim()) {
-      setError("Name is required.");
-      return;
-    }
-    if (!form.price || Number.isNaN(Number(form.price))) {
-      setError("Valid price is required.");
-      return;
-    }
+    if (!form.name.trim()) { setError("Name is required."); return; }
+    if (!form.price || Number.isNaN(Number(form.price))) { setError("Valid price is required."); return; }
 
     if (imageFile) {
       const formData = new FormData();
@@ -178,17 +163,12 @@ function AdminCreateMenuPage() {
 
   const computeImageSrc = (url) => {
     if (!url) return null;
-    if (
-      ["http://", "https://", "blob:"].some((prefix) => url.startsWith(prefix))
-    )
-      return url;
+    if (["http://", "https://", "blob:"].some((prefix) => url.startsWith(prefix))) return url;
     return `${baseURL}${url}`;
   };
 
   if (!isAdmin && !isSuperUser) {
-    return (
-      <Navigate to={"/login"} replace state={{ from: location.pathname }} />
-    );
+    return <Navigate to={"/login"} replace state={{ from: location.pathname }} />;
   }
 
   return (
@@ -202,60 +182,36 @@ function AdminCreateMenuPage() {
       <section>
         <form onSubmit={handleSubmit} className="px-4">
           <div className="mb-4 grid gap-4 lg:grid-rows-2 lg:grid-cols-[350px_1fr]">
+            {/* Visuals */}
             <div className="border p-4 rounded-lg">
               <FieldSet>
                 <FieldLegend className="font-medium">Visuals</FieldLegend>
                 <FieldDescription className="mt-1 text-sm text-muted-foreground">
                   Upload an image or provide an external link.
                 </FieldDescription>
-
                 <FieldGroup className="grid gap-4">
                   <Field>
                     <FieldLabel>Upload Image</FieldLabel>
                     <FieldContent>
                       <div className="flex items-center gap-4">
-                        <Input
-                          type="file"
-                          accept="image/*"
-                          ref={imageFieldRef}
-                          onChange={handleFileChange}
-                        />
+                        <Input type="file" accept="image/*" ref={imageFieldRef} onChange={handleFileChange} />
                       </div>
-                      <p className="mt-2 text-xs text-muted-foreground">
-                        Max 5MB limit.
-                      </p>
+                      <p className="mt-2 text-xs text-muted-foreground">Max 5MB limit.</p>
                     </FieldContent>
                   </Field>
-
                   <Field>
                     <FieldLabel>External Image URL</FieldLabel>
                     <FieldContent>
-                      <Input
-                        value={form.imageUrl}
-                        onChange={handleChange("imageUrl")}
-                        placeholder="https://..."
-                        disabled={!!imageFile}
-                      />
+                      <Input value={form.imageUrl} onChange={handleChange("imageUrl")} placeholder="https://..." disabled={!!imageFile} />
                     </FieldContent>
                   </Field>
-
                   {(previewUrl || form.imageUrl) && (
                     <div className="flex flex-col items-start gap-3">
                       <span className="text-sm font-medium">Preview</span>
                       <div className="relative">
-                        <img
-                          src={computeImageSrc(previewUrl || form.imageUrl)}
-                          alt="Preview"
-                          className="h-32 w-32 rounded-2xl object-cover shadow-sm border"
-                        />
+                        <img src={computeImageSrc(previewUrl || form.imageUrl)} alt="Preview" className="h-32 w-32 rounded-2xl object-cover shadow-sm border" />
                         {previewUrl && (
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            type="button"
-                            onClick={handleRemoveFile}
-                            className="absolute -top-2 -right-2 h-7 w-7 rounded-full p-0"
-                          >
+                          <Button variant="outline" size="icon" type="button" onClick={handleRemoveFile} className="absolute -top-2 -right-2 h-7 w-7 rounded-full p-0">
                             <X className="size-4" />
                           </Button>
                         )}
@@ -266,6 +222,7 @@ function AdminCreateMenuPage() {
               </FieldSet>
             </div>
 
+            {/* Essential Details */}
             <div className="border row-span-2 p-4 rounded-lg">
               <FieldSet>
                 <FieldLegend>Essential Details</FieldLegend>
@@ -276,34 +233,27 @@ function AdminCreateMenuPage() {
                   <Field>
                     <FieldLabel>Name</FieldLabel>
                     <FieldContent>
-                      <Input
-                        value={form.name}
-                        onChange={handleChange("name")}
-                        placeholder="Item name"
-                      />
+                      <Input value={form.name} onChange={handleChange("name")} placeholder="Item name" />
                     </FieldContent>
                   </Field>
 
                   <Field>
                     <FieldLabel>Price</FieldLabel>
                     <FieldContent>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        value={form.price}
-                        onChange={handleChange("price")}
-                        placeholder="e.g. 99.50"
-                      />
+                      <Input type="number" step="0.01" value={form.price} onChange={handleChange("price")} placeholder="e.g. 99.50" />
                     </FieldContent>
                   </Field>
 
                   <Field>
                     <FieldLabel>Category</FieldLabel>
                     <FieldContent>
-                      <Input
+                      <ComboBoxCreate
+                        items={allCategories.map((c) => ({ id: c.id, name: c.name }))}
                         value={form.category}
-                        onChange={handleChange("category")}
-                        placeholder="e.g. Main Course"
+                        onSelect={(name) => setForm((f) => ({ ...f, category: name }))}
+                        onCreate={(name) => createCategoryMutation.mutateAsync(name)}
+                        creating={createCategoryMutation.isPending}
+                        placeholder="Select or create category…"
                       />
                     </FieldContent>
                   </Field>
@@ -311,10 +261,13 @@ function AdminCreateMenuPage() {
                   <Field>
                     <FieldLabel>Tag</FieldLabel>
                     <FieldContent>
-                      <Input
+                      <ComboBoxCreate
+                        items={allTags.map((t) => ({ id: t.id, name: t.name }))}
                         value={form.tag}
-                        onChange={handleChange("tag")}
-                        placeholder="e.g. Bestseller"
+                        onSelect={(name) => setForm((f) => ({ ...f, tag: name }))}
+                        onCreate={(name) => createTagMutation.mutateAsync(name)}
+                        creating={createTagMutation.isPending}
+                        placeholder="Select or create tag…"
                       />
                     </FieldContent>
                   </Field>
@@ -322,67 +275,41 @@ function AdminCreateMenuPage() {
                   <Field className="md:col-span-2">
                     <FieldLabel>Description</FieldLabel>
                     <FieldContent>
-                      <Textarea
-                        value={form.description}
-                        onChange={handleChange("description")}
-                        placeholder="Optional description"
-                        rows={3}
-                        className="resize-none"
-                      />
+                      <Textarea value={form.description} onChange={handleChange("description")} placeholder="Optional description" rows={3} className="resize-none" />
                     </FieldContent>
                   </Field>
                 </FieldGroup>
               </FieldSet>
             </div>
 
+            {/* Attributes */}
             <div className="border p-4 rounded-lg">
               <FieldSet>
                 <FieldLegend className="font-medium">Attributes</FieldLegend>
                 <FieldDescription className="mt-1 text-sm text-muted-foreground">
                   Configure the item's availability and tags.
                 </FieldDescription>
-
                 <FieldGroup className="md:max-w-sm">
                   <Field className="md:max-w-sm" orientation="horizontal">
                     <FieldContent>
                       <FieldLabel htmlFor="available">Available</FieldLabel>
-                      <FieldDescription>
-                        Show this item on the menu
-                      </FieldDescription>
+                      <FieldDescription>Show this item on the menu</FieldDescription>
                     </FieldContent>
-                    <Switch
-                      id="available"
-                      checked={form.available}
-                      onCheckedChange={handleSwitchChange("available")}
-                    />
+                    <Switch id="available" checked={form.available} onCheckedChange={handleSwitchChange("available")} />
                   </Field>
-
                   <Field className="md:max-w-sm" orientation="horizontal">
                     <FieldContent>
                       <FieldLabel htmlFor="recommended">Recommended</FieldLabel>
-                      <FieldDescription>
-                        Show this item in recommendations
-                      </FieldDescription>
+                      <FieldDescription>Show this item in recommendations</FieldDescription>
                     </FieldContent>
-                    <Switch
-                      id="recommended"
-                      checked={form.recommended}
-                      onCheckedChange={handleSwitchChange("recommended")}
-                    />
+                    <Switch id="recommended" checked={form.recommended} onCheckedChange={handleSwitchChange("recommended")} />
                   </Field>
-
                   <Field className="md:max-w-sm" orientation="horizontal">
                     <FieldContent className="space-y-0.5">
                       <FieldLabel htmlFor="isVeg">Veg Item</FieldLabel>
-                      <FieldDescription>
-                        Mark as strictly vegetarian
-                      </FieldDescription>
+                      <FieldDescription>Mark as strictly vegetarian</FieldDescription>
                     </FieldContent>
-                    <Switch
-                      id="isVeg"
-                      checked={form.isVeg}
-                      onCheckedChange={handleSwitchChange("isVeg")}
-                    />
+                    <Switch id="isVeg" checked={form.isVeg} onCheckedChange={handleSwitchChange("isVeg")} />
                   </Field>
                 </FieldGroup>
               </FieldSet>
@@ -390,28 +317,14 @@ function AdminCreateMenuPage() {
           </div>
 
           {error && (
-            <div className="rounded-lg my-3 border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-              {error}
-            </div>
+            <div className="rounded-lg my-3 border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
           )}
-
           {success && (
-            <div className="rounded-xl my-3 border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
-              {success}
-            </div>
+            <div className="rounded-xl my-3 border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">{success}</div>
           )}
 
           <div className="p-4 flex gap-3 justify-end border-t">
-            <Button
-              size="lg"
-              type="button"
-              variant="outline"
-              onClick={() => {
-                resetForm();
-                setError("");
-                setSuccess("");
-              }}
-            >
+            <Button size="lg" type="button" variant="outline" onClick={() => { resetForm(); setError(""); setSuccess(""); }}>
               Reset
             </Button>
             <Button size="lg" type="submit" disabled={createMutation.isPending}>

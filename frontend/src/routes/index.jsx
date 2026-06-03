@@ -70,7 +70,9 @@ function MenuPage() {
   const categories = [...new Set((categoriesData || []).map((c) => c.name))];
 
   const menuItems = menu || [];
-  const highlights = menuItems.slice(0, 6);
+  const preOrderOnly = menuItems.filter(
+    (item) => item.tag?.name === "PreOrderOnly",
+  );
   const freshAndHealthy = menuItems.filter(
     (item) =>
       item.isVeg === true ||
@@ -187,12 +189,13 @@ function MenuPage() {
             </Empty>
           )}
 
+          {preOrderOnly.length > 0 && (
           <Segment tone="red" className="p-2">
             <SegmentHeader>
               <SegmentLabel icon={<FireIcon weight="duotone" />}>
-                <SegmentTitle>Today's Highlights</SegmentTitle>
+                <SegmentTitle>Only available on pre-orders</SegmentTitle>
                 <SegmentDescription>
-                  Chef's special picks curated just for you.
+                  Available only if you pre-order for tomorrow.
                 </SegmentDescription>
               </SegmentLabel>
               <SegmentActions>
@@ -207,7 +210,7 @@ function MenuPage() {
             <SegmentContent>
               <Carousel opts={{ dragFree: true }}>
                 <CarouselContent className="-ml-2 pr-3">
-                  {highlights.map((item) => (
+                  {preOrderOnly.map((item) => (
                     <CarouselItem
                       key={item.id}
                       className="pl-2 basis-1/3 md:basis-1/4"
@@ -229,6 +232,7 @@ function MenuPage() {
               </SegmentAction>
             </SegmentFooter>
           </Segment>
+          )}
 
           <Segment tone="green" className="p-2">
             <SegmentHeader>
