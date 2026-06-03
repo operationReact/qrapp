@@ -47,13 +47,17 @@ jobs:
           AWS_ROLE_ARN:          ${{ secrets.AWS_ROLE_ARN }}
           DEV_RAZORPAY_KEY:      ${{ secrets.DEV_RAZORPAY_KEY }}
           DEV_RAZORPAY_SECRET:   ${{ secrets.DEV_RAZORPAY_SECRET }}
+          AWS_ACCESS_KEY_ID:     ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: |
           MISSING=()
-          [ -z "$DEV_DB_USERNAME" ]     && MISSING+=("DEV_DB_USERNAME")
-          [ -z "$DEV_DB_PASSWORD" ]     && MISSING+=("DEV_DB_PASSWORD")
-          [ -z "$AWS_ROLE_ARN" ]        && MISSING+=("AWS_ROLE_ARN")
-          [ -z "$DEV_RAZORPAY_KEY" ]    && MISSING+=("DEV_RAZORPAY_KEY")
-          [ -z "$DEV_RAZORPAY_SECRET" ] && MISSING+=("DEV_RAZORPAY_SECRET")
+          [ -z "$DEV_DB_USERNAME" ]       && MISSING+=("DEV_DB_USERNAME")
+          [ -z "$DEV_DB_PASSWORD" ]       && MISSING+=("DEV_DB_PASSWORD")
+          [ -z "$AWS_ROLE_ARN" ]          && MISSING+=("AWS_ROLE_ARN")
+          [ -z "$DEV_RAZORPAY_KEY" ]      && MISSING+=("DEV_RAZORPAY_KEY")
+          [ -z "$DEV_RAZORPAY_SECRET" ]   && MISSING+=("DEV_RAZORPAY_SECRET")
+          [ -z "$AWS_ACCESS_KEY_ID" ]     && MISSING+=("AWS_ACCESS_KEY_ID")
+          [ -z "$AWS_SECRET_ACCESS_KEY" ] && MISSING+=("AWS_SECRET_ACCESS_KEY")
           if [ ${#MISSING[@]} -gt 0 ]; then
             echo "❌ Missing required GitHub Secrets: ${MISSING[*]}"
             echo "   Go to: Settings → Secrets and variables → Actions → New repository secret"
@@ -149,10 +153,11 @@ jobs:
           OPENAI_IMAGE_SIZE=1024x1024
 
           # ─── AWS S3 (shared media bucket) ──────────────────────────────────
-          # EC2 instance profile handles auth – no explicit keys needed
           AWS_S3_BUCKET_NAME=broandbro-menu-images
           AWS_S3_REGION=ap-south-1
           AWS_S3_ENABLED=true
+          AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
           # ─── Razorpay ──────────────────────────────────────────────────────
           RAZORPAY_KEY=${{ secrets.DEV_RAZORPAY_KEY }}
