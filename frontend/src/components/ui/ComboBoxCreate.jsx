@@ -52,16 +52,16 @@ export default function ComboBoxCreate({
 
   const showCreate = search.trim().length > 0 && !exactMatch;
 
-  const handleSelect = (name) => {
-    onSelect(name);
+  const handleSelect = (item) => {
+    onSelect(item); // passes { id, name }
     setOpen(false);
     setSearch("");
   };
 
   const handleCreate = async () => {
     if (!search.trim()) return;
-    await onCreate(search.trim());
-    onSelect(search.trim());
+    const created = await onCreate(search.trim()); // should return { id, name }
+    onSelect(created && created.id ? created : { id: null, name: search.trim() });
     setOpen(false);
     setSearch("");
   };
@@ -104,7 +104,7 @@ export default function ComboBoxCreate({
               <li
                 key={item.id}
                 className="flex cursor-pointer items-center gap-2 px-3 py-2 text-sm hover:bg-accent"
-                onClick={() => handleSelect(item.name)}
+                onClick={() => handleSelect(item)}
               >
                 <CheckIcon
                   className={cn(

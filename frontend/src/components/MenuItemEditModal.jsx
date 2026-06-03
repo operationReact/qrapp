@@ -40,11 +40,13 @@ export default function MenuItemEditModal({
     name: "",
     price: "",
     category: "",
+    categoryId: null,
     description: "",
     imageUrl: "",
     available: true,
     recommended: false,
     tag: "",
+    tagId: null,
     isVeg: false,
     imageFile: null,
     previewUrl: "",
@@ -81,11 +83,13 @@ export default function MenuItemEditModal({
         name: item.name || "",
         price: item.price != null ? String(item.price) : "",
         category: item?.category?.name || "",
+        categoryId: item?.category?.id ?? null,
         description: item.description || "",
         imageUrl: item.imageUrl || "",
         available: item.available == null ? true : !!item.available,
         recommended: !!item.recommended,
         tag: item?.tag?.name || "",
+        tagId: item?.tag?.id ?? null,
         isVeg: !!item.isVeg,
         imageFile: null,
         previewUrl: initialPreview,
@@ -176,11 +180,11 @@ export default function MenuItemEditModal({
         const fd = new FormData();
         fd.append("name", form.name.trim());
         fd.append("price", String(Number(form.price)));
-        fd.append("category", form.category.trim());
+        if (form.categoryId != null) fd.append("categoryId", String(form.categoryId));
         fd.append("description", form.description.trim());
         fd.append("available", String(!!form.available));
         fd.append("recommended", String(!!form.recommended));
-        fd.append("tag", form.tag.trim());
+        if (form.tagId != null) fd.append("tagId", String(form.tagId));
         fd.append("isVeg", String(!!form.isVeg));
         fd.append("image", form.imageFile);
         return updateMenuItem(item.id, fd);
@@ -188,12 +192,12 @@ export default function MenuItemEditModal({
       const payload = {
         name: form.name.trim(),
         price: Number(form.price),
-        category: form.category.trim(),
+        categoryId: form.categoryId,
         description: form.description.trim(),
         imageUrl: form.imageUrl ? form.imageUrl.trim() : item.imageUrl || "",
         available: !!form.available,
         recommended: !!form.recommended,
-        tag: form.tag.trim(),
+        tagId: form.tagId,
         isVeg: !!form.isVeg,
       };
       return updateMenuItem(item.id, payload);
@@ -272,33 +276,33 @@ export default function MenuItemEditModal({
                   </FieldContent>
                 </Field>
 
-                <Field>
-                  <FieldLabel>Category</FieldLabel>
-                  <FieldContent>
-                    <ComboBoxCreate
-                      items={allCategories.map((c) => ({ id: c.id, name: c.name }))}
-                      value={form.category}
-                      onSelect={(name) => setForm((f) => ({ ...f, category: name }))}
-                      onCreate={(name) => createCategoryMutation.mutateAsync(name)}
-                      creating={createCategoryMutation.isPending}
-                      placeholder="Select or create category…"
-                    />
-                  </FieldContent>
-                </Field>
+                  <Field>
+                    <FieldLabel>Category</FieldLabel>
+                    <FieldContent>
+                      <ComboBoxCreate
+                        items={allCategories.map((c) => ({ id: c.id, name: c.name }))}
+                        value={form.category}
+                        onSelect={(item) => setForm((f) => ({ ...f, category: item.name, categoryId: item.id }))}
+                        onCreate={(name) => createCategoryMutation.mutateAsync(name)}
+                        creating={createCategoryMutation.isPending}
+                        placeholder="Select or create category…"
+                      />
+                    </FieldContent>
+                  </Field>
 
-                <Field>
-                  <FieldLabel>Tag</FieldLabel>
-                  <FieldContent>
-                    <ComboBoxCreate
-                      items={allTags.map((t) => ({ id: t.id, name: t.name }))}
-                      value={form.tag}
-                      onSelect={(name) => setForm((f) => ({ ...f, tag: name }))}
-                      onCreate={(name) => createTagMutation.mutateAsync(name)}
-                      creating={createTagMutation.isPending}
-                      placeholder="Select or create tag…"
-                    />
-                  </FieldContent>
-                </Field>
+                  <Field>
+                    <FieldLabel>Tag</FieldLabel>
+                    <FieldContent>
+                      <ComboBoxCreate
+                        items={allTags.map((t) => ({ id: t.id, name: t.name }))}
+                        value={form.tag}
+                        onSelect={(item) => setForm((f) => ({ ...f, tag: item.name, tagId: item.id }))}
+                        onCreate={(name) => createTagMutation.mutateAsync(name)}
+                        creating={createTagMutation.isPending}
+                        placeholder="Select or create tag…"
+                      />
+                    </FieldContent>
+                  </Field>
 
                 <Field className="md:col-span-2">
                   <FieldLabel>Description</FieldLabel>

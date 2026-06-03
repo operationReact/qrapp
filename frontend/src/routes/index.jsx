@@ -73,6 +73,25 @@ function MenuPage() {
   const preOrderOnly = menuItems.filter(
     (item) => item.tag?.name === "PreOrderOnly",
   );
+
+  // ── Pre-order window: open 08:00–21:00 local time ─────────────────────────
+  const now = new Date();
+  const todayHour = now.getHours() + now.getMinutes() / 60;
+  const isPreOrderOpen = todayHour >= 8 && todayHour < 21;
+
+  // Target for countdown: today 21:00 if window open, or tomorrow 08:00 if closed
+  const preOrderTarget = (() => {
+    const t = new Date();
+    if (isPreOrderOpen) {
+      t.setHours(21, 0, 0, 0);          // close tonight at 21:00
+    } else {
+      if (todayHour >= 21) {
+        t.setDate(t.getDate() + 1);      // tomorrow
+      }
+      t.setHours(8, 0, 0, 0);           // opens at 08:00
+    }
+    return t.toISOString();
+  })();
   const freshAndHealthy = menuItems.filter(
     (item) =>
       item.isVeg === true ||
@@ -195,42 +214,49 @@ function MenuPage() {
               <SegmentLabel icon={<FireIcon weight="duotone" />}>
                 <SegmentTitle>Only available on pre-orders</SegmentTitle>
                 <SegmentDescription>
-                  Available only if you pre-order for tomorrow.
+                  {isPreOrderOpen
+                    ? "Pre-order now for tomorrow. Window closes at 9 PM."
+                    : "Pre-order window is closed. Opens at 8 AM tomorrow."}
                 </SegmentDescription>
               </SegmentLabel>
               <SegmentActions>
                 <CountdownTimer
-                  targetDate={new Date(
-                    Date.now() + 2 * 60 * 60 * 1000,
-                  ).toISOString()}
-                  label="Preorder closes in"
+                  targetDate={preOrderTarget}
+                  label={isPreOrderOpen ? "Preorder closes in" : "Opens in"}
+                  expiredLabel={isPreOrderOpen ? "Closing…" : "Opening soon"}
                 />
               </SegmentActions>
             </SegmentHeader>
-            <SegmentContent>
-              <Carousel opts={{ dragFree: true }}>
-                <CarouselContent className="-ml-2 pr-3">
-                  {preOrderOnly.map((item) => (
-                    <CarouselItem
-                      key={item.id}
-                      className="pl-2 basis-1/3 md:basis-1/4"
-                    >
-                      <MenuItemCard item={item} />
-                    </CarouselItem>
-                  ))}
-                </CarouselContent>
-              </Carousel>
-            </SegmentContent>
-            <SegmentFooter className="justify-center">
-              <SegmentAction
-                variant="link"
-                className="border-none hover:bg-transparent"
-                size="sm"
-                render={<Link to="/" />}
-              >
-                View all highlights
-              </SegmentAction>
-            </SegmentFooter>
+
+            {isPreOrderOpen ? (
+              <SegmentContent>
+                <Carousel opts={{ dragFree: true }}>
+                  <CarouselContent className="-ml-2 pr-3">
+                    {preOrderOnly.map((item) => (
+                      <CarouselItem
+                        key={item.id}
+                        className="pl-2 basis-1/3 md:basis-1/4"
+                      >
+                        <MenuItemCard item={item} />
+                      </CarouselItem>
+                    ))}
+                  </CarouselContent>
+                </Carousel>
+              </SegmentContent>
+            ) : (
+              <SegmentContent>
+                <div className="flex flex-col items-center justify-center gap-2 py-8 text-center">
+                  <span className="text-3xl">🕘</span>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Pre-orders are closed right now.
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Come back after 8 AM to pre-order for tomorrow.
+                  </p>
+                </div>
+              </SegmentContent>
+            )}
+
           </Segment>
           )}
 

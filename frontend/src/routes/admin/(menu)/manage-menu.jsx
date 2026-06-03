@@ -38,9 +38,11 @@ function AdminCreateMenuPage() {
     name: "",
     price: "",
     category: "Misc",
+    categoryId: null,
     description: "",
     imageUrl: "",
     tag: "",
+    tagId: null,
     available: true,
     recommended: false,
     isVeg: false,
@@ -110,7 +112,7 @@ function AdminCreateMenuPage() {
   };
 
   const resetForm = () => {
-    setForm({ name: "", price: "", category: "Misc", description: "", imageUrl: "", tag: "", available: true, recommended: false, isVeg: false });
+    setForm({ name: "", price: "", category: "Misc", categoryId: null, description: "", imageUrl: "", tag: "", tagId: null, available: true, recommended: false, isVeg: false });
     handleRemoveFile();
   };
 
@@ -138,11 +140,11 @@ function AdminCreateMenuPage() {
       const formData = new FormData();
       formData.append("name", form.name.trim());
       formData.append("price", String(Number(form.price)));
-      formData.append("category", form.category.trim() || "Misc");
+      if (form.categoryId != null) formData.append("categoryId", String(form.categoryId));
       formData.append("description", form.description.trim());
       formData.append("available", String(form.available));
       formData.append("recommended", String(form.recommended));
-      formData.append("tag", form.tag.trim());
+      if (form.tagId != null) formData.append("tagId", String(form.tagId));
       formData.append("isVeg", String(Boolean(form.isVeg)));
       formData.append("image", imageFile);
       createMutation.mutate(formData);
@@ -150,12 +152,12 @@ function AdminCreateMenuPage() {
       createMutation.mutate({
         name: form.name.trim(),
         price: Number(form.price),
-        category: form.category.trim() || "Misc",
+        categoryId: form.categoryId,
         description: form.description.trim(),
         imageUrl: form.imageUrl.trim(),
         available: form.available,
         recommended: form.recommended,
-        tag: form.tag.trim(),
+        tagId: form.tagId,
         isVeg: Boolean(form.isVeg),
       });
     }
@@ -250,7 +252,7 @@ function AdminCreateMenuPage() {
                       <ComboBoxCreate
                         items={allCategories.map((c) => ({ id: c.id, name: c.name }))}
                         value={form.category}
-                        onSelect={(name) => setForm((f) => ({ ...f, category: name }))}
+                        onSelect={(item) => setForm((f) => ({ ...f, category: item.name, categoryId: item.id }))}
                         onCreate={(name) => createCategoryMutation.mutateAsync(name)}
                         creating={createCategoryMutation.isPending}
                         placeholder="Select or create category…"
@@ -264,7 +266,7 @@ function AdminCreateMenuPage() {
                       <ComboBoxCreate
                         items={allTags.map((t) => ({ id: t.id, name: t.name }))}
                         value={form.tag}
-                        onSelect={(name) => setForm((f) => ({ ...f, tag: name }))}
+                        onSelect={(item) => setForm((f) => ({ ...f, tag: item.name, tagId: item.id }))}
                         onCreate={(name) => createTagMutation.mutateAsync(name)}
                         creating={createTagMutation.isPending}
                         placeholder="Select or create tag…"
