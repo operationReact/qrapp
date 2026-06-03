@@ -108,11 +108,31 @@ jobs:
           echo "$KEY" > /tmp/deploy_key
           chmod 600 /tmp/deploy_key
 
-      # ── 7. Copy JAR to EC2 ───────────────────────────────────────────────────
+      # ── 7. Wait for SSH to be ready ──────────────────────────────────────────
+      - name: Wait for SSH on EC2
+        run: |
+          echo "Waiting for SSH to become available on ${{ steps.ec2.outputs.host }}..."
+          for i in $(seq 1 20); do
+            if ssh -i /tmp/deploy_key \
+                -o StrictHostKeyChecking=no \
+                -o ConnectTimeout=10 \
+                -o BatchMode=yes \
+                ec2-user@${{ steps.ec2.outputs.host }} "echo ready" 2>/dev/null; then
+              echo "✅ SSH is ready (attempt $i)"
+              exit 0
+            fi
+            echo "[$i/20] SSH not ready yet, retrying in 15s..."
+            sleep 15
+          done
+          echo "❌ SSH never became available after 5 minutes"
+          exit 1
+
+      # ── 8. Copy JAR to EC2 ───────────────────────────────────────────────────
       - name: Copy JAR to EC2
         run: |
           scp -i /tmp/deploy_key \
             -o StrictHostKeyChecking=no \
+            -o ConnectTimeout=30 \
             backend/build/libs/qrapp-*.jar \
             ec2-user@${{ steps.ec2.outputs.host }}:/tmp/app-new.jar
 
@@ -124,6 +144,7 @@ jobs:
         run: |
           ssh -i /tmp/deploy_key \
             -o StrictHostKeyChecking=no \
+            -o ConnectTimeout=30 \
             ec2-user@${{ steps.ec2.outputs.host }} << 'ENDSSH'
 
             set -euo pipefail
