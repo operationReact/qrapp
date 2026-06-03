@@ -8,6 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.model.S3Exception;
 
@@ -74,6 +75,46 @@ public class S3ImageStorageService implements ImageStorageService {
     // -------------------------------------------------------------------------
     // Private helpers
     // -------------------------------------------------------------------------
+
+    @Override
+    public void deleteImageByUrl(String publicUrl) {
+        if (publicUrl == null || publicUrl.isBlank()) return;
+
+        if (!props.isEnabled()) {
+            log.warn("[S3] Delete disabled (aws.s3.enabled=false). Skipping deletion of {}", publicUrl);
+            return;
+        }
+
+        String key = extractKeyFromUrl(publicUrl);
+        if (key == null) {
+            log.warn("[S3] Could not extract S3 key from URL: {}", publicUrl);
+            return;
+        }
+
+        String bucket = props.getBucketName();
+        try {
+            s3Client.deleteObject(DeleteObjectRequest.builder().bucket(bucket).key(key).build());
+            log.info("[S3] Deleted s3://{}/{}", bucket, key);
+        } catch (S3Exception e) {
+            log.warn("[S3] Failed to delete s3://{}/{}: {}", bucket, key, e.awsErrorDetails().errorMessage());
+        } catch (Exception e) {
+            log.warn("[S3] Unexpected error deleting {}: {}", publicUrl, e.getMessage());
+        }
+    }
+
+    private String extractKeyFromUrl(String publicUrl) {
+        // URL format: https://{bucket}.s3.{region}.amazonaws.com/{key}
+        try {
+            java.net.URI uri = java.net.URI.create(publicUrl);
+            String path = uri.getPath(); // e.g. "/menu-items/1/uuid-epoch.png"
+            if (path.startsWith("/")) {
+                return path.substring(1);
+            }
+            return path;
+        } catch (Exception e) {
+            return null;
+        }
+    }
 
     private String buildS3Key(Long menuItemId) {
         String uuid = UUID.randomUUID().toString();

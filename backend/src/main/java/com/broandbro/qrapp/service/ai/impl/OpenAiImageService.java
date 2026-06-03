@@ -49,19 +49,28 @@ public class OpenAiImageService implements ImageGenerationService {
             maxAttemptsExpression = "#{@openAiProperties.maxRetries}",
             backoff = @Backoff(delay = 2000, multiplier = 2.0, maxDelay = 30000)
     )
-    public byte[] generateFoodImage(String menuItemName, String categoryName, Boolean isVeg) {
+    public byte[] generateFoodImage(String menuItemName, String categoryName, Boolean isVeg,
+                                    String description, String additionalPrompt) {
 
-        String prompt = promptBuilder.buildFoodImagePrompt(menuItemName, categoryName, isVeg);
-        log.info("[OpenAI] Starting image generation for '{}' (category={})", menuItemName, categoryName);
+        String prompt = promptBuilder.buildFoodImagePrompt(menuItemName, categoryName, isVeg, description, additionalPrompt);
+        log.info("[OpenAI] Starting image generation for '{}' (category={}) | model={} | prompt={}",
+                menuItemName, categoryName, props.getImageModel(), prompt);
 
-        // Exact request matching the curl:
-        // { "model": "gpt-image-1", "prompt": "...", "n": 1, "size": "1024x1024" }
+        // gpt-image-1 always returns b64_json and does NOT accept response_format.
+        // dall-e-2 / dall-e-3 require response_format="b64_json" to get base64 back.
+        boolean isGptImage = props.getImageModel() != null && props.getImageModel().startsWith("gpt-image");
+
         OpenAiImageRequest request = OpenAiImageRequest.builder()
                 .model(props.getImageModel())
                 .prompt(prompt)
                 .n(1)
-                .size(props.getImageSize())
+                .size(props.getImageSize())                          // 1024x1024
+                .quality(isGptImage ? props.getImageQuality() : null) // "low" for gpt-image-1
+                .responseFormat(isGptImage ? null : "b64_json")
                 .build();
+
+        log.info("[OpenAI] Request → model={} quality={} size={}",
+                props.getImageModel(), props.getImageQuality(), props.getImageSize());
 
         Instant start = Instant.now();
 

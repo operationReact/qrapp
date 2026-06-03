@@ -244,6 +244,7 @@ public class MenuController {
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     @CacheEvict(cacheNames = {"menu", "menuRecommended"}, allEntries = true)
+    @org.springframework.transaction.annotation.Transactional
     public ResponseEntity<?> updateMenuItemFlexible(
             @PathVariable Long id,
             HttpServletRequest request,
@@ -327,6 +328,14 @@ public class MenuController {
                 // JSON body
                 com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
                 java.util.Map<String, Object> payload = mapper.readValue(request.getInputStream(), new com.fasterxml.jackson.core.type.TypeReference<>(){});
+
+                // ── Payload audit log ──────────────────────────────────────────────────────
+                log.info("[MenuUpdate] PUT /menu/{} — received payload keys: {}", id, payload.keySet());
+                log.info("[MenuUpdate] Payload imageUrl value: '{}' (present={}, null={})",
+                        payload.get("imageUrl"),
+                        payload.containsKey("imageUrl"),
+                        payload.get("imageUrl") == null);
+                // ──────────────────────────────────────────────────────────────────────────
                 // reuse defensive update logic
                 if (payload.containsKey("name")) existing.setName((String) payload.getOrDefault("name", existing.getName()));
                 if (payload.containsKey("price")) {
@@ -388,7 +397,22 @@ public class MenuController {
                     boolean av = a instanceof Boolean ? (Boolean)a : Boolean.parseBoolean(String.valueOf(a));
                     existing.setAvailable(av);
                 }
-                if (payload.containsKey("imageUrl") && payload.get("imageUrl") != null) existing.setImageUrl((String) payload.get("imageUrl"));
+                if (payload.containsKey("imageUrl") && payload.get("imageUrl") != null) {
+                    String newUrl = ((String) payload.get("imageUrl")).trim();
+                    String oldUrl = existing.getImageUrl();
+                    log.info("[MenuUpdate] imageUrl change detected for menuItemId={} | OLD='{}' | NEW='{}'", id, oldUrl, newUrl);
+                    existing.setImageUrl(newUrl);
+                    // Direct SQL update to guarantee imageUrl is persisted regardless of Hibernate session state
+                    int rows = repo.updateImageUrl(id, newUrl.isBlank() ? null : newUrl, java.time.Instant.now());
+                    log.info("[MenuUpdate] Direct SQL updateImageUrl for menuItemId={} | rows updated={} | url='{}'", id, rows, newUrl);
+                    if (rows == 0) {
+                        log.warn("[MenuUpdate] ⚠ updateImageUrl affected 0 rows for menuItemId={} — imageUrl may NOT have been persisted!", id);
+                    } else {
+                        log.info("[MenuUpdate] ✔ imageUrl successfully persisted for menuItemId={}", id);
+                    }
+                } else {
+                    log.debug("[MenuUpdate] imageUrl not in payload or null for menuItemId={} — keeping existing '{}'", id, existing.getImageUrl());
+                }
 
                 MenuItem saved = repo.save(existing);
                 return ResponseEntity.ok(saved);

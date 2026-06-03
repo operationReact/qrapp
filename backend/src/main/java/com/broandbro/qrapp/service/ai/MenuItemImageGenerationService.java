@@ -9,12 +9,18 @@ import com.broandbro.qrapp.repository.MenuRepository;
 import com.broandbro.qrapp.storage.ImageStorageService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
+import java.util.stream.IntStream;
 
 /**
  * Orchestrates the full AI image generation pipeline for a MenuItem.
@@ -34,7 +40,6 @@ import java.util.Objects;
  * </ol>
  */
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class MenuItemImageGenerationService {
 
@@ -42,6 +47,20 @@ public class MenuItemImageGenerationService {
     private final ImageGenerationService imageGenerationService;
     private final ImageStorageService imageStorageService;
     private final FoodImagePromptBuilder promptBuilder;
+    private final Executor imageGenerationExecutor;
+
+    public MenuItemImageGenerationService(
+            MenuRepository menuRepository,
+            ImageGenerationService imageGenerationService,
+            ImageStorageService imageStorageService,
+            FoodImagePromptBuilder promptBuilder,
+            @Qualifier("imageGenerationExecutor") Executor imageGenerationExecutor) {
+        this.menuRepository = menuRepository;
+        this.imageGenerationService = imageGenerationService;
+        this.imageStorageService = imageStorageService;
+        this.promptBuilder = promptBuilder;
+        this.imageGenerationExecutor = imageGenerationExecutor;
+    }
 
     /**
      * Asynchronously generates and stores an AI image for the given MenuItem.
@@ -129,6 +148,123 @@ public class MenuItemImageGenerationService {
     @Async("imageGenerationExecutor")
     public void generateImageForMenuItem(Long menuItemId) {
         generateImageForMenuItem(menuItemId, false);
+    }
+
+    // -------------------------------------------------------------------------
+    // Multi-option generation (synchronous – caller awaits result)
+    // -------------------------------------------------------------------------
+
+    public List<String> generateImageOptions(Long menuItemId, int count) {
+        return generateImageOptions(menuItemId, count, null, null);
+    }    /**
+     * Concurrently generates up to {@code count} AI image options (max 3) for the given menu item.
+     * All image generation + S3 upload tasks run in parallel on the {@code imageGenerationExecutor}
+     * thread pool, so total wall-clock time ≈ single generation time instead of N × single time.
+     *
+     * <p>DB load is done first (short, outside any long transaction), then HTTP calls happen
+     * concurrently without holding a DB connection.
+     *
+     * @param menuItemId           ID of the MenuItem
+     * @param count                Number of images to generate (capped at 3)
+     * @param additionalPrompt     Optional free-text hint from the admin to refine the image
+     * @param previousGeneratedUrls Previous round's URLs to delete before generating new ones
+     * @return List of successfully uploaded image URLs (may be shorter than count on partial failure)
+     */
+    public List<String> generateImageOptions(Long menuItemId, int count,
+                                             String additionalPrompt,
+                                             List<String> previousGeneratedUrls) {
+        int cappedCount = Math.min(count, 1);
+
+        // Delete previous round's images before generating new ones (best-effort)
+        if (previousGeneratedUrls != null && !previousGeneratedUrls.isEmpty()) {
+            previousGeneratedUrls.stream()
+                    .filter(url -> url != null && !url.isBlank())
+                    .forEach(url -> {
+                        try {
+                            imageStorageService.deleteImageByUrl(url);
+                            log.info("[ImgGen] Deleted previous-round image before retry: {}", url);
+                        } catch (Exception e) {
+                            log.warn("[ImgGen] Could not delete previous-round image {}: {}", url, e.getMessage());
+                        }
+                    });
+        }
+
+        // Load entity fields quickly — no transaction held during the long HTTP calls
+        final String itemName;
+        final String categoryName;
+        final Boolean isVeg;
+        final String description;
+        {
+            MenuItem menuItem = menuRepository.findById(menuItemId)
+                    .orElseThrow(() -> new IllegalArgumentException("MenuItem not found: " + menuItemId));
+            itemName     = menuItem.getName();
+            categoryName = menuItem.getCategory() != null ? menuItem.getCategory().getName() : null;
+            isVeg        = menuItem.getIsVeg();
+            description  = menuItem.getDescription();
+        }
+
+        // Fire all generation tasks in parallel on the dedicated thread pool
+        List<CompletableFuture<String>> futures = IntStream.range(0, cappedCount)
+                .mapToObj(i -> CompletableFuture.supplyAsync(() -> {
+                    log.info("[ImgGen] ▶ Starting parallel option {}/{} for menuItemId={}", i + 1, cappedCount, menuItemId);
+                    byte[] imageBytes = imageGenerationService.generateFoodImage(
+                            itemName, categoryName, isVeg, description, additionalPrompt);
+                    String url = imageStorageService.uploadMenuItemImage(imageBytes, menuItemId);
+                    log.info("[ImgGen] ✔ Completed option {}/{} for menuItemId={} url={}", i + 1, cappedCount, menuItemId, url);
+                    return url;
+                }, imageGenerationExecutor)
+                .exceptionally(ex -> {
+                    log.error("[ImgGen] ✘ Failed option {}/{} for menuItemId={}: {}", i + 1, cappedCount, menuItemId, ex.getMessage());
+                    return null;
+                }))
+                .toList();
+
+        // Wait for all to complete, then collect non-null results
+        CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
+
+        return futures.stream()
+                .map(CompletableFuture::join)
+                .filter(Objects::nonNull)
+                .collect(java.util.stream.Collectors.toList());
+    }
+
+    /**
+     * Applies a previously generated image URL to the menu item's imageUrl field,
+     * then deletes the other unselected images from S3 to save storage.
+     *
+     * Uses a direct JPQL UPDATE to bypass Hibernate dirty-check/session quirks and
+     * guarantee the column is written in all cases.
+     */
+    @Transactional
+    public void applyGeneratedImage(Long menuItemId, String selectedUrl, java.util.List<String> allGeneratedUrls) {
+        // Verify item exists
+        if (!menuRepository.existsById(menuItemId)) {
+            throw new IllegalArgumentException("MenuItem not found: " + menuItemId);
+        }
+
+        // Direct SQL UPDATE — bypasses Hibernate entity cache / lazy-proxy issues
+        int updated = menuRepository.applyAiImageUrl(
+                menuItemId, selectedUrl, ImageGenerationStatus.COMPLETED, Instant.now());
+
+        if (updated == 0) {
+            throw new IllegalStateException("applyAiImageUrl updated 0 rows for menuItemId=" + menuItemId);
+        }
+
+        log.info("[ImgGen] Applied AI image for menuItemId={} url={} (rows updated={})", menuItemId, selectedUrl, updated);
+
+        // Delete unselected images from S3 (best-effort)
+        if (allGeneratedUrls != null) {
+            allGeneratedUrls.stream()
+                    .filter(url -> url != null && !url.equals(selectedUrl))
+                    .forEach(url -> {
+                        try {
+                            imageStorageService.deleteImageByUrl(url);
+                            log.info("[ImgGen] Deleted unselected option for menuItemId={} url={}", menuItemId, url);
+                        } catch (Exception e) {
+                            log.warn("[ImgGen] Failed to delete unselected option url={}: {}", url, e.getMessage());
+                        }
+                    });
+        }
     }
 
     // -------------------------------------------------------------------------

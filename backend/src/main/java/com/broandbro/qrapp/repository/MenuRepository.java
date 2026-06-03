@@ -1,8 +1,10 @@
 package com.broandbro.qrapp.repository;
 
 import com.broandbro.qrapp.entity.MenuItem;
+import com.broandbro.qrapp.enums.ImageGenerationStatus;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -64,4 +66,31 @@ public interface MenuRepository extends JpaRepository<MenuItem, Long> {
     Optional<MenuItem> findByNameIgnoreCaseAndCategoryId(
             @Param("name") String name,
             @Param("categoryId") Long categoryId);
+
+    /**
+     * Directly updates imageUrl, aiGeneratedImage flag and generation status in one SQL statement.
+     * Used by the AI image apply flow to avoid full entity load/save which can silently no-op
+     * due to Hibernate session state or lazy-proxy issues.
+     */
+    @Modifying
+    @Query("UPDATE MenuItem m SET " +
+           "m.imageUrl = :imageUrl, " +
+           "m.aiGeneratedImage = true, " +
+           "m.imageGenerationStatus = :status, " +
+           "m.updatedAt = :now " +
+           "WHERE m.id = :id")
+    int applyAiImageUrl(@Param("id") Long id,
+                        @Param("imageUrl") String imageUrl,
+                        @Param("status") ImageGenerationStatus status,
+                        @Param("now") java.time.Instant now);
+
+    /**
+     * Directly updates only the imageUrl column.
+     * Used by the admin PUT /menu/{id} endpoint to guarantee the URL is persisted.
+     */
+    @Modifying
+    @Query("UPDATE MenuItem m SET m.imageUrl = :imageUrl, m.updatedAt = :now WHERE m.id = :id")
+    int updateImageUrl(@Param("id") Long id,
+                       @Param("imageUrl") String imageUrl,
+                       @Param("now") java.time.Instant now);
 }

@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query'
 import PropTypes from "prop-types";
-import { updateMenuItem } from "../services/menu-service";
+import { updateMenuItem, generateAiImageOptions, applyGeneratedImage } from "../services/menu-service";
 import { apiClient } from "../services";
 import { baseURL } from "../services";
 import ComboBoxCreate from "@/components/ui/ComboBoxCreate";
@@ -18,7 +18,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { X } from "lucide-react";
+import { X, Wand2, Check, Loader2 } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -54,6 +54,13 @@ export default function MenuItemEditModal({
   const [error, setError] = useState(null);
   const queryClient = useQueryClient();
 
+  // AI image generation state — v2
+  const [aiImageOptions, setAiImageOptions] = useState([]);
+  const [selectedAiImage, setSelectedAiImage] = useState(null);
+  const [aiGenerateCount, setAiGenerateCount] = useState(0);
+  const [aiError, setAiError] = useState(null);
+  const [additionalPrompt, setAdditionalPrompt] = useState("");
+
   const { data: allTags = [] } = useQuery({
     queryKey: ["tags"],
     queryFn: () => apiClient.get("/tags").then((r) => r.data),
@@ -74,6 +81,29 @@ export default function MenuItemEditModal({
   const createCategoryMutation = useMutation({
     mutationFn: (name) => apiClient.post("/categories", { name }).then((r) => r.data),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["categories"] }),
+  });
+
+  const generateAiOptionsMutation = useMutation({
+    mutationFn: ({ isRetry = false } = {}) =>
+      generateAiImageOptions(
+        item.id,
+        1,
+        additionalPrompt || null,
+        isRetry ? aiImageOptions : []
+      ),
+    onSuccess: (data, variables) => {
+      setAiImageOptions(data.imageUrls || []);
+      setSelectedAiImage(null);
+      if (!variables?.isRetry) setAiGenerateCount((c) => c + 1);
+      setAiError(null);
+    },
+    onError: () => setAiError("Failed to generate AI images. Please try again."),
+  });
+
+  const applyAiImageMutation = useMutation({
+    mutationFn: ({ selectedUrl, unselectedUrls }) =>
+      applyGeneratedImage(item.id, selectedUrl, unselectedUrls),
+    onError: () => setAiError("Failed to clean up unselected images (non-critical)."),
   });
 
   useEffect(() => {
@@ -97,9 +127,16 @@ export default function MenuItemEditModal({
       // ensure previewRef is synced to existing url when initialized
       previewRef.current = initialPreview || null;
       setError(null);
+      // Reset AI state when a new item is opened
+      setAiImageOptions([]);
+      setSelectedAiImage(null);
+      setAiGenerateCount(0);
+      setAiError(null);
+      setAdditionalPrompt("");
       if (onPreviewChange) onPreviewChange(initialPreview);
     }
-  }, [item, onPreviewChange]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [item]);
 
   const computeImageSrc = (url) => {
     if (!url) return null;
@@ -121,6 +158,23 @@ export default function MenuItemEditModal({
     if (form.price === "" || isNaN(Number(form.price)))
       return "Valid price is required";
     return null;
+  };
+
+  // Selecting an AI thumbnail immediately updates the form so "Save Changes" picks it up
+  const selectAiImage = (url) => {
+    if (selectedAiImage === url) {
+      // Deselect — revert to previous imageUrl
+      setSelectedAiImage(null);
+      const prev = item.imageUrl || "";
+      setForm((f) => ({ ...f, imageUrl: prev, previewUrl: prev, imageFile: null }));
+      previewRef.current = prev;
+      if (onPreviewChange) onPreviewChange(prev);
+    } else {
+      setSelectedAiImage(url);
+      setForm((f) => ({ ...f, imageUrl: url, previewUrl: url, imageFile: null }));
+      previewRef.current = url;
+      if (onPreviewChange) onPreviewChange(url);
+    }
   };
 
   // handle file selection and preview
@@ -200,9 +254,22 @@ export default function MenuItemEditModal({
         tagId: form.tagId,
         isVeg: !!form.isVeg,
       };
+      console.log("[MenuItemEditModal] Save Changes payload:", {
+        id: item.id,
+        imageUrl: payload.imageUrl,
+        form_imageUrl: form.imageUrl,
+        item_imageUrl: item.imageUrl,
+      });
       return updateMenuItem(item.id, payload);
     },
     onSuccess: (data) => {
+      // Clean up unselected AI images from S3 (best-effort, non-blocking)
+      if (selectedAiImage && aiImageOptions.length > 0) {
+        const unselected = aiImageOptions.filter(u => u !== selectedAiImage);
+        if (unselected.length > 0) {
+          applyAiImageMutation.mutate({ selectedUrl: selectedAiImage, unselectedUrls: unselected });
+        }
+      }
       onSuccess(data);
       onClose?.();
       queryClient.invalidateQueries({ queryKey: ['menu'] });
@@ -322,7 +389,7 @@ export default function MenuItemEditModal({
             <FieldSet className="mt-6">
               <FieldLegend className="font-medium">Visuals</FieldLegend>
               <FieldDescription className="mt-1 text-sm text-muted-foreground">
-                Upload an image or provide an external link.
+                Upload an image, provide an external link, or generate one with AI.
               </FieldDescription>
 
               <FieldGroup className="mt-4 grid gap-4 md:grid-cols-2">
@@ -379,6 +446,110 @@ export default function MenuItemEditModal({
                   </div>
                 )}
               </FieldGroup>
+
+              {/* AI Image Generation */}
+              <div className="mt-6 rounded-xl border border-dashed border-purple-300 bg-purple-50/50 p-4 space-y-3">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div className="flex items-center gap-2">
+                    <Wand2 className="size-4 text-purple-600" />
+                    <span className="text-sm font-medium text-purple-800">AI Image Generation</span>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="border-purple-300 text-purple-700 hover:bg-purple-100"
+                    disabled={generateAiOptionsMutation.isPending}
+                    onClick={() => generateAiOptionsMutation.mutate({ isRetry: false })}
+                  >
+                    {generateAiOptionsMutation.isPending && !additionalPrompt ? (
+                      <><Loader2 className="size-3.5 mr-1 animate-spin" />Generating…</>
+                    ) : (
+                      <><Wand2 className="size-3.5 mr-1" />{aiImageOptions.length > 0 ? "Regenerate" : "Generate Image"}</>
+                    )}
+                  </Button>
+                </div>
+
+                {/* Additional prompt hint — shown always so admin can pre-fill before first generation too */}
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-purple-700">
+                    Prompt hint <span className="font-normal text-purple-400">(optional – describe what you want)</span>
+                  </label>
+                  <div className="flex gap-2">
+                    <Textarea
+                      value={additionalPrompt}
+                      onChange={(e) => setAdditionalPrompt(e.target.value)}
+                      placeholder='e.g. "add steam rising, more golden colour, show side garnish, rustic wooden plate"'
+                      rows={2}
+                      className="resize-none text-xs bg-white border-purple-200 focus:border-purple-400"
+                      disabled={generateAiOptionsMutation.isPending}
+                    />
+                    {aiImageOptions.length > 0 && (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="self-end shrink-0 border-purple-400 text-purple-700 hover:bg-purple-100"
+                        disabled={generateAiOptionsMutation.isPending || !additionalPrompt.trim()}
+                        onClick={() => generateAiOptionsMutation.mutate({ isRetry: true })}
+                        title="Retry generation with your prompt hint"
+                      >
+                        {generateAiOptionsMutation.isPending && additionalPrompt.trim() ? (
+                          <><Loader2 className="size-3.5 mr-1 animate-spin" />Retrying…</>
+                        ) : (
+                          <><Wand2 className="size-3.5 mr-1" />Retry</>
+                        )}
+                      </Button>
+                    )}
+                  </div>
+                  <p className="text-[10px] text-purple-400">
+                    Your hint is appended to the base prompt. You can retry as many times as needed.
+                  </p>
+                </div>
+
+                {aiError && (
+                  <p className="text-xs text-red-600">{aiError}</p>
+                )}
+
+                {aiImageOptions.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-xs text-muted-foreground">
+                      Click the image to select it — it will be saved when you click <strong>Save Changes</strong>.
+                    </p>
+                    <div className="flex flex-wrap gap-3">
+                      {aiImageOptions.map((url, idx) => (
+                        <button
+                          key={`${url}-${idx}`}
+                          type="button"
+                          onClick={() => selectAiImage(url)}
+                          className={`relative rounded-xl overflow-hidden border-2 transition-all ${
+                            selectedAiImage === url
+                              ? "border-purple-500 ring-2 ring-purple-300"
+                              : "border-transparent hover:border-purple-300"
+                          }`}
+                        >
+                          <img
+                            src={url}
+                            alt="AI generated"
+                            className="h-24 w-24 object-cover"
+                          />
+                          {selectedAiImage === url && (
+                            <div className="absolute inset-0 bg-purple-500/20 flex items-center justify-center">
+                              <Check className="size-6 text-purple-700 bg-white rounded-full p-0.5" />
+                            </div>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                    {selectedAiImage && (
+                      <p className="text-xs text-purple-600 font-medium flex items-center gap-1">
+                        <Check className="size-3" />
+                        AI image selected — click <strong>Save Changes</strong> below to save it.
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
             </FieldSet>
 
             <FieldSet className="mt-6">

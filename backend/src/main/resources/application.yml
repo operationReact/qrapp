@@ -87,6 +87,7 @@ razorpay:
 openai:
   api-key: ${OPENAI_API_KEY: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}
   image-model: ${OPENAI_IMAGE_MODEL:gpt-image-1}
+  image-quality: ${OPENAI_IMAGE_QUALITY:low}
   base-url: https://api.openai.com/v1
   image-size: ${OPENAI_IMAGE_SIZE:1024x1024}
   connect-timeout-ms: ${OPENAI_CONNECT_TIMEOUT_MS:5000}

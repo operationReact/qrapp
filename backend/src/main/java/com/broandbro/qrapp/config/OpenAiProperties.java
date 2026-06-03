@@ -21,6 +21,9 @@ public class OpenAiProperties {
     /** Model identifier for image generation. */
     private String imageModel = "gpt-image-1";
 
+    /** Image quality: "low" | "medium" | "high" — "low" is cheapest. */
+    private String imageQuality = "low";
+
     /** Base URL for OpenAI REST API. */
     private String baseUrl = "https://api.openai.com/v1";
 

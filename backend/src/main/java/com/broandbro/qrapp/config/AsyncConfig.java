@@ -22,8 +22,8 @@ public class AsyncConfig {
     @Bean("imageGenerationExecutor")
     public Executor imageGenerationExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-        executor.setCorePoolSize(2);
-        executor.setMaxPoolSize(5);
+        executor.setCorePoolSize(3);   // 3 = max parallel option generations (one per image)
+        executor.setMaxPoolSize(6);    // headroom for concurrent admin requests
         executor.setQueueCapacity(50);
         executor.setThreadNamePrefix("img-gen-");
         executor.setWaitForTasksToCompleteOnShutdown(true);
