@@ -2,9 +2,11 @@ import { useState } from "react";
 import { useCart } from "../context/CartContext";
 import PropTypes from "prop-types";
 import { baseURL } from "../services";
-import { BagIcon, PlusIcon } from "@phosphor-icons/react";
+
+import { BagIcon, PlusIcon, ProhibitIcon } from "@phosphor-icons/react";
 import { Button } from "./ui/button";
 import { useNavigate } from "@tanstack/react-router";
+import { cn } from "@/lib/utils";
 
 export default function MenuItemCard({ item }) {
   const { cart, addItem } = useCart();
@@ -13,6 +15,20 @@ export default function MenuItemCard({ item }) {
 
   const existing = cart.find((i) => i.id === item.id);
   const qty = existing ? existing.quantity : 0;
+
+  // Treat item as unavailable if available is explicitly false/0/"false"
+  // Undefined or null means available (backwards compat with old API responses)
+  const availableRaw = item.available;
+  const isAvailable =
+    availableRaw === undefined ||
+    availableRaw === null ||
+    availableRaw === true ||
+    availableRaw === "true" ||
+    availableRaw === 1 ||
+    availableRaw === "1";
+
+  const isUnavailable =
+    !isAvailable || item.stockStatus === "OUT_OF_STOCK";
 
   const computeImageSrc = (url) => {
     if (!url) return null;
@@ -29,14 +45,23 @@ export default function MenuItemCard({ item }) {
     item.isVeg === "1";
 
   return (
-    <article className="group bg-background h-full border border-border rounded-lg overflow-hidden">
+    <article
+      className={cn(
+        "group bg-background h-full border border-border rounded-lg overflow-hidden transition-opacity",
+        isUnavailable && "opacity-70"
+      )}
+    >
+      {/* Image */}
       <div className="relative aspect-video w-full">
         {imageSrc && !imgError ? (
           <img
             src={imageSrc}
             alt={item.name}
             onError={() => setImgError(true)}
-            className="w-full h-full object-cover"
+            className={cn(
+              "w-full h-full object-cover transition-all duration-300",
+              isUnavailable && "grayscale"
+            )}
           />
         ) : (
           <div className="w-full overflow-hidden h-full flex items-center justify-center text-5xl bg-linear-to-br from-primary/25 to-primary">
@@ -48,55 +73,77 @@ export default function MenuItemCard({ item }) {
           </div>
         )}
 
-        {/* <div className="absolute bottom-0 inset-x-0 p-1 sm:p-2 flex justify-end">
-          <MenuItemActionButton
-            qty={qty}
-            onAdd={() => addItem(item)}
-            onDecrease={() => decreaseItem(item)}
-          />
-          {item.tag && <Badge variant="secondary">{item.tag.name}</Badge>}
-        </div>*/}
+        {/* Out of Stock overlay badge */}
+        {isUnavailable && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <span className="flex items-center gap-1 rounded-full bg-black/70 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-widest text-white backdrop-blur-sm">
+              <ProhibitIcon weight="bold" className="size-3 shrink-0" />
+              Out of Stock
+            </span>
+          </div>
+        )}
 
-        {/* veg/non-veg badge */}
+        {/* veg/non-veg indicator */}
         <div
           title={veg ? "Veg" : "Non Veg"}
-          className={`absolute origin-top-left scale-75 sm:scale-100 top-2 left-2 p-1.5 border-2 bg-white rounded-sm size-6 flex items-center gap-2 ${veg ? "border-accent-400" : "border-red-600"}`}
+          className={cn(
+            "absolute origin-top-left scale-75 sm:scale-100 top-2 left-2 p-1.5 border-2 bg-white rounded-sm size-6 flex items-center gap-2",
+            veg ? "border-accent-400" : "border-red-600"
+          )}
         >
           <span
-            className={`size-full rounded-full ${veg ? "bg-accent-400" : "bg-red-600"}`}
-          ></span>
+            className={cn(
+              "size-full rounded-full",
+              veg ? "bg-accent-400" : "bg-red-600"
+            )}
+          />
         </div>
       </div>
 
+      {/* Details */}
       <div className="px-2 py-1.5 sm:py-2">
-        {/* name in image */}
-        <h3 className="text-pretty text-xs leading-4 font-semibold sm:text-lg">
+        <h3
+          className={cn(
+            "text-pretty text-xs leading-4 font-semibold sm:text-lg",
+            isUnavailable && "text-muted-foreground"
+          )}
+        >
           {item.name}
         </h3>
-        {/* <p className="line-clamp-2 mt-1 capitalize text-xs text-muted-foreground">
-          {item.description || "Delicious choice"}
-        </p>*/}
 
         <div className="flex mt-1 sm:mt-2 items-center gap-2 justify-between">
-          <span className="font-medium text-sm md:text-base">₹{item.price.toFixed(0)}</span>
-          <Button
-            variant={qty > 0 ? "secondary" : "shadow-white"}
-            size="sm"
-            className="size-8 md:h-9 md:w-auto aspect-square md:aspect-auto"
-            onClick={() => {
-              if (qty > 0) navigate({ to: "/#cart" });
-              else addItem(item);
-            }}
+          <span
+            className={cn(
+              "font-medium text-sm md:text-base",
+              isUnavailable &&
+                "text-muted-foreground line-through decoration-muted-foreground/60"
+            )}
           >
-            {qty > 0 ? <BagIcon weight="bold" /> : <PlusIcon weight="bold" />}
+            ₹{item.price?.toFixed(0) ?? "—"}
+          </span>
 
-            <span className="hidden md:inline animate-in transition-opacity duration-200">
-              {qty > 0 ? "Cart" : "Add"}
+          {isUnavailable ? (
+            <span className="inline-flex items-center gap-1 rounded-md border border-dashed border-muted-foreground/40 px-2 py-1 text-[10px] font-medium text-muted-foreground">
+              <ProhibitIcon weight="duotone" className="size-3" />
+              Unavailable
             </span>
-          </Button>
+          ) : (
+            <Button
+              variant={qty > 0 ? "secondary" : "shadow-white"}
+              size="sm"
+              className="size-8 md:h-9 md:w-auto aspect-square md:aspect-auto"
+              onClick={() => {
+                if (qty > 0) navigate({ to: "/#cart" });
+                else addItem(item);
+              }}
+            >
+              {qty > 0 ? <BagIcon weight="bold" /> : <PlusIcon weight="bold" />}
+              <span className="hidden md:inline animate-in transition-opacity duration-200">
+                {qty > 0 ? "Cart" : "Add"}
+              </span>
+            </Button>
+          )}
         </div>
-
-        {/* CTA */}
       </div>
     </article>
   );

@@ -78,6 +78,9 @@ public class InventoryServiceImpl implements InventoryService {
         // Hidden items are never orderable
         if (Boolean.TRUE.equals(menuItem.getIsHidden())) return false;
 
+        // Explicitly marked unavailable by admin
+        if (Boolean.FALSE.equals(menuItem.getAvailable())) return false;
+
         // UNLIMITED items are always orderable when not hidden
         if (menuItem.getInventoryMode() == InventoryMode.UNLIMITED) return true;
 

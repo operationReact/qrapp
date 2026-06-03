@@ -23,6 +23,10 @@ public class MenuItem {
 
     // Make recommended nullable to avoid forcing a NOT NULL schema change that may time out
     private Boolean recommended;
+
+    @Column(name = "available")
+    private Boolean available = true;
+
     private String description;
     @Column(name = "image_url")
     private String imageUrl;

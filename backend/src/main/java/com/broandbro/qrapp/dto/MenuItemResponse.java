@@ -45,6 +45,7 @@ public class MenuItemResponse {
     private FulfillmentType fulfillmentType;
     private InventoryMode inventoryMode;
     private Boolean isHidden;
+    private Boolean available;
     private Instant createdAt;
     private Instant updatedAt;
 

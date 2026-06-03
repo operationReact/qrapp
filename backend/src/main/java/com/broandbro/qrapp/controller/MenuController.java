@@ -89,7 +89,6 @@ public class MenuController {
     }
 
     @GetMapping
-    @Cacheable(cacheNames = "menu", key = "T(java.lang.String).format('%s|%s|%s|%s|%s', #isVeg, #categoryId, #recommended, #page, #size)")
     public List<MenuItemResponse> getMenu(
             @RequestParam(value = "isVeg", required = false) Boolean isVeg,
             @RequestParam(value = "categoryId", required = false) Long categoryId,
@@ -384,6 +383,11 @@ public class MenuController {
                     boolean iv = v instanceof Boolean ? (Boolean)v : Boolean.parseBoolean(String.valueOf(v));
                     existing.setIsVeg(iv);
                 }
+                if (payload.containsKey("available")) {
+                    Object a = payload.get("available");
+                    boolean av = a instanceof Boolean ? (Boolean)a : Boolean.parseBoolean(String.valueOf(a));
+                    existing.setAvailable(av);
+                }
                 if (payload.containsKey("imageUrl") && payload.get("imageUrl") != null) existing.setImageUrl((String) payload.get("imageUrl"));
 
                 MenuItem saved = repo.save(existing);
@@ -454,6 +458,7 @@ public class MenuController {
             .fulfillmentType(item.getFulfillmentType())
             .inventoryMode(item.getInventoryMode())
             .isHidden(item.getIsHidden())
+            .available(inventoryService.isOrderable(item.getId()))
             .createdAt(item.getCreatedAt())
             .updatedAt(item.getUpdatedAt())
             .stockStatus(inventoryService.getStockStatus(item.getId()))
