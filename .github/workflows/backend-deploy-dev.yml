@@ -146,65 +146,117 @@ jobs:
             --region ap-south-1
           echo "✅ JAR uploaded to S3"
 
-      # ── 9. Deploy & restart via SSM Run Command ───────────────────────────────
-      # No SSH/port-22 required – uses the EC2 instance's IAM role via SSM Agent.
+      # ── 9. Verify SSM connectivity then deploy ────────────────────────────────
       - name: Deploy & restart via SSM
         run: |
           INSTANCE_ID="${{ steps.ec2.outputs.instance_id }}"
 
-          # Build deployment script as a JSON parameters file to avoid quoting issues
-          python3 - << 'PYEOF'
-          import json, subprocess, sys
+          # ── Verify SSM agent is online before deploying ──────────────────────
+          echo "Checking SSM connectivity for $INSTANCE_ID..."
+          SSM_STATUS=$(aws ssm describe-instance-information \
+            --region ap-south-1 \
+            --filters "Key=InstanceIds,Values=$INSTANCE_ID" \
+            --query "InstanceInformationList[0].PingStatus" \
+            --output text 2>/dev/null || echo "None")
+          echo "SSM agent PingStatus: $SSM_STATUS"
+          if [ "$SSM_STATUS" != "Online" ]; then
+            echo "❌ SSM agent is not Online (got: $SSM_STATUS). Cannot deploy."
+            echo "Check: AWS Console → Systems Manager → Fleet Manager → $INSTANCE_ID"
+            exit 1
+          fi
 
-          commands = [
-              "set -euo pipefail",
-              "echo '=== Backing up existing JAR ==='",
-              "[ -f /opt/broandbro/app.jar ] && sudo cp /opt/broandbro/app.jar /opt/broandbro/app.jar.bak || true",
-              "echo '=== Downloading new JAR from S3 ==='",
-              "aws s3 cp s3://broandbro-menu-images/deploy/app-new.jar /tmp/app-new.jar --region ap-south-1",
-              "sudo mv /tmp/app-new.jar /opt/broandbro/app.jar",
-              "sudo chown broandbro:broandbro /opt/broandbro/app.jar",
-              "echo '=== Writing application.env from SSM ==='",
-              "aws ssm get-parameter --name /broandbro/dev/application-env --with-decryption --query Parameter.Value --output text --region ap-south-1 | sudo tee /opt/broandbro/config/application.env > /dev/null",
-              "sudo chmod 640 /opt/broandbro/config/application.env",
-              "sudo chown broandbro:broandbro /opt/broandbro/config/application.env",
-              "echo '=== Restarting service ==='",
-              "sudo systemctl daemon-reload",
-              "sudo systemctl stop broandbro 2>/dev/null || true",
-              "sleep 3",
-              "sudo systemctl start broandbro",
-              "echo '=== Waiting for healthy startup ==='",
-              "for i in $(seq 1 24); do sleep 10; STATUS=$(sudo systemctl is-active broandbro 2>/dev/null || echo inactive); echo \"[$i/24] Service: $STATUS\"; if [ \"$STATUS\" = \"active\" ]; then echo \"broandbro started successfully\"; exit 0; fi; done; echo \"Service failed to start\"; sudo journalctl -u broandbro -n 100 --no-pager; exit 1",
-          ]
+          # ── Write deploy script and base64-encode it ─────────────────────────
+          # Using a single base64-encoded command avoids all quoting/array issues
+          cat > /tmp/deploy.sh << 'DEPLOY_SCRIPT'
+#!/bin/bash
+set -e
+echo "=== [1/6] Backing up existing JAR ==="
+[ -f /opt/broandbro/app.jar ] && cp /opt/broandbro/app.jar /opt/broandbro/app.jar.bak || true
 
-          with open("/tmp/ssm-params.json", "w") as f:
-              json.dump({"commands": commands, "executionTimeout": ["900"]}, f)
-          print("SSM params file written")
-          PYEOF
+echo "=== [2/6] Downloading new JAR from S3 ==="
+aws s3 cp s3://broandbro-menu-images/deploy/app-new.jar /tmp/app-new.jar --region ap-south-1
+mv /tmp/app-new.jar /opt/broandbro/app.jar
+chown broandbro:broandbro /opt/broandbro/app.jar
+echo "JAR installed: $(ls -lh /opt/broandbro/app.jar)"
 
+echo "=== [3/6] Writing application.env from SSM ==="
+aws ssm get-parameter \
+  --name /broandbro/dev/application-env \
+  --with-decryption \
+  --query Parameter.Value \
+  --output text \
+  --region ap-south-1 \
+  > /opt/broandbro/config/application.env
+chmod 640 /opt/broandbro/config/application.env
+chown broandbro:broandbro /opt/broandbro/config/application.env
+echo "application.env written ($(wc -l < /opt/broandbro/config/application.env) lines)"
+
+echo "=== [4/6] Restarting service ==="
+systemctl daemon-reload
+systemctl stop broandbro 2>/dev/null || true
+sleep 2
+systemctl start broandbro
+
+echo "=== [5/6] Waiting for healthy startup (up to 4 min) ==="
+for i in $(seq 1 24); do
+  sleep 10
+  STATUS=$(systemctl is-active broandbro 2>/dev/null || echo inactive)
+  echo "  [$i/24] broandbro: $STATUS"
+  if [ "$STATUS" = "active" ]; then
+    echo "=== [6/6] Service started successfully ==="
+    systemctl status broandbro --no-pager -l
+    exit 0
+  fi
+done
+
+echo "=== SERVICE FAILED TO START ==="
+journalctl -u broandbro -n 150 --no-pager
+exit 1
+DEPLOY_SCRIPT
+
+          # Base64-encode (no line-wrapping) and build SSM JSON
+          SCRIPT_B64=$(base64 -w 0 /tmp/deploy.sh)
+          python3 - "$SCRIPT_B64" << 'PYEOF'
+import json, sys
+b64 = sys.argv[1]
+params = {
+    "commands": [
+        "echo '" + b64 + "' | base64 -d > /tmp/broandbro-deploy.sh",
+        "chmod +x /tmp/broandbro-deploy.sh",
+        "sudo bash /tmp/broandbro-deploy.sh 2>&1"
+    ]
+}
+with open("/tmp/ssm-params.json", "w") as f:
+    json.dump(params, f)
+print("SSM params written, commands: " + str(len(params["commands"])))
+PYEOF
+
+          # ── Send SSM Run Command ──────────────────────────────────────────────
           CMD_ID=$(aws ssm send-command \
             --region ap-south-1 \
             --instance-ids "$INSTANCE_ID" \
             --document-name "AWS-RunShellScript" \
             --parameters file:///tmp/ssm-params.json \
-            --timeout-seconds 900 \
-            --comment "Deploy from GitHub Actions ${{ github.sha }}" \
+            --timeout-seconds 60 \
+            --comment "Deploy ${{ github.sha }}" \
             --query "Command.CommandId" \
             --output text)
-
           echo "SSM Command ID: $CMD_ID"
-          echo "Polling for completion (max 15 min)..."
 
+          # ── Poll for completion (up to 15 min) ────────────────────────────────
           for i in $(seq 1 60); do
             sleep 15
-            STATUS=$(aws ssm get-command-invocation \
+            INVOCATION=$(aws ssm get-command-invocation \
               --command-id "$CMD_ID" \
               --instance-id "$INSTANCE_ID" \
               --region ap-south-1 \
-              --query "Status" --output text 2>/dev/null || echo "Pending")
-            echo "[$i/60] SSM command status: $STATUS"
+              --output json 2>/dev/null || echo '{"Status":"Pending","StatusDetails":"Waiting"}')
+            STATUS=$(echo "$INVOCATION" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('Status','Pending'))")
+            DETAILS=$(echo "$INVOCATION" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('StatusDetails',''))")
+            echo "[$i/60] Status: $STATUS ($DETAILS)"
+
             if [ "$STATUS" = "Success" ]; then
-              echo "Deployment succeeded"
+              echo "✅ Deployment succeeded"
               aws ssm get-command-invocation \
                 --command-id "$CMD_ID" \
                 --instance-id "$INSTANCE_ID" \
@@ -212,12 +264,14 @@ jobs:
                 --query "StandardOutputContent" --output text
               exit 0
             elif [[ "$STATUS" =~ ^(Failed|Cancelled|TimedOut|Cancelling)$ ]]; then
-              echo "❌ Deployment failed: $STATUS"
+              echo "❌ Deployment failed: $STATUS – $DETAILS"
+              echo "--- STDOUT ---"
               aws ssm get-command-invocation \
                 --command-id "$CMD_ID" \
                 --instance-id "$INSTANCE_ID" \
                 --region ap-south-1 \
                 --query "StandardOutputContent" --output text
+              echo "--- STDERR ---"
               aws ssm get-command-invocation \
                 --command-id "$CMD_ID" \
                 --instance-id "$INSTANCE_ID" \
@@ -226,5 +280,5 @@ jobs:
               exit 1
             fi
           done
-          echo "Timed out waiting for SSM command after 15 minutes"
+          echo "❌ Timed out after 15 minutes"
           exit 1
