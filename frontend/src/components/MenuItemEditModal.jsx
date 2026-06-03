@@ -35,6 +35,7 @@ export default function MenuItemEditModal({
 }) {
   const previewRef = useRef(null);
   const imageFieldRef = useRef(null);
+  const formRef = useRef(null); // always points to latest form — prevents stale closure in mutationFn
 
   const [form, setForm] = useState({
     name: "",
@@ -52,6 +53,7 @@ export default function MenuItemEditModal({
     previewUrl: "",
   });
   const [error, setError] = useState(null);
+  formRef.current = form; // keep ref in sync with latest state on every render
   const queryClient = useQueryClient();
 
   // AI image generation state — v2
@@ -136,7 +138,7 @@ export default function MenuItemEditModal({
       if (onPreviewChange) onPreviewChange(initialPreview);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [item]);
+  }, [item?.id]);
 
   const computeImageSrc = (url) => {
     if (!url) return null;
@@ -230,34 +232,35 @@ export default function MenuItemEditModal({
 
   const updateMutation = useMutation({
     mutationFn: () => {
-      if (form.imageFile) {
+      const f = formRef.current; // read latest form — never stale
+      if (f.imageFile) {
         const fd = new FormData();
-        fd.append("name", form.name.trim());
-        fd.append("price", String(Number(form.price)));
-        if (form.categoryId != null) fd.append("categoryId", String(form.categoryId));
-        fd.append("description", form.description.trim());
-        fd.append("available", String(!!form.available));
-        fd.append("recommended", String(!!form.recommended));
-        if (form.tagId != null) fd.append("tagId", String(form.tagId));
-        fd.append("isVeg", String(!!form.isVeg));
-        fd.append("image", form.imageFile);
+        fd.append("name", f.name.trim());
+        fd.append("price", String(Number(f.price)));
+        if (f.categoryId != null) fd.append("categoryId", String(f.categoryId));
+        fd.append("description", f.description.trim());
+        fd.append("available", String(!!f.available));
+        fd.append("recommended", String(!!f.recommended));
+        if (f.tagId != null) fd.append("tagId", String(f.tagId));
+        fd.append("isVeg", String(!!f.isVeg));
+        fd.append("image", f.imageFile);
         return updateMenuItem(item.id, fd);
       }
       const payload = {
-        name: form.name.trim(),
-        price: Number(form.price),
-        categoryId: form.categoryId,
-        description: form.description.trim(),
-        imageUrl: form.imageUrl ? form.imageUrl.trim() : item.imageUrl || "",
-        available: !!form.available,
-        recommended: !!form.recommended,
-        tagId: form.tagId,
-        isVeg: !!form.isVeg,
+        name: f.name.trim(),
+        price: Number(f.price),
+        categoryId: f.categoryId,
+        description: f.description.trim(),
+        imageUrl: f.imageUrl ? f.imageUrl.trim() : item.imageUrl || "",
+        available: !!f.available,
+        recommended: !!f.recommended,
+        tagId: f.tagId,
+        isVeg: !!f.isVeg,
       };
       console.log("[MenuItemEditModal] Save Changes payload:", {
         id: item.id,
         imageUrl: payload.imageUrl,
-        form_imageUrl: form.imageUrl,
+        form_imageUrl: f.imageUrl,
         item_imageUrl: item.imageUrl,
       });
       return updateMenuItem(item.id, payload);
