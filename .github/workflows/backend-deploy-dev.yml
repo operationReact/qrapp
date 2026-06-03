@@ -86,135 +86,143 @@ jobs:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ap-south-1
 
-      # ── 6. Fetch EC2 host from SSM (populated by Terraform) ──────────────────
-      - name: Get EC2 host from SSM
+      # ── 6. Get EC2 instance ID from SSM ──────────────────────────────────────
+      - name: Get EC2 instance ID
         id: ec2
         run: |
           IP=$(aws ssm get-parameter \
             --name "/broandbro/dev/ec2-public-ip" \
+            --region ap-south-1 \
             --query "Parameter.Value" \
             --output text)
           echo "host=$IP" >> "$GITHUB_OUTPUT"
 
-      # ── 6. Fetch SSH private key from SSM (SecureString) ─────────────────────
-      - name: Get SSH private key from SSM
-        id: ssh
-        run: |
-          KEY=$(aws ssm get-parameter \
-            --name "/broandbro/dev/ec2-ssh-private-key" \
-            --with-decryption \
-            --query "Parameter.Value" \
+          INSTANCE_ID=$(aws ec2 describe-instances \
+            --region ap-south-1 \
+            --filters "Name=ip-address,Values=$IP" \
+            --query "Reservations[0].Instances[0].InstanceId" \
             --output text)
-          echo "$KEY" > /tmp/deploy_key
-          chmod 600 /tmp/deploy_key
+          echo "instance_id=$INSTANCE_ID" >> "$GITHUB_OUTPUT"
+          echo "EC2 instance: $INSTANCE_ID ($IP)"
 
-      # ── 7. Wait for SSH to be ready ──────────────────────────────────────────
-      - name: Wait for SSH on EC2
+      # ── 7. Write application.env to SSM Parameter Store ──────────────────────
+      # Secrets are expanded by GitHub Actions here (runner-side) and stored
+      # as a SecureString. The EC2 deployment script reads this at deploy time.
+      - name: Write application.env to SSM
         run: |
-          echo "Waiting for SSH to become available on ${{ steps.ec2.outputs.host }}..."
-          for i in $(seq 1 20); do
-            if ssh -i /tmp/deploy_key \
-                -o StrictHostKeyChecking=no \
-                -o ConnectTimeout=10 \
-                -o BatchMode=yes \
-                ec2-user@${{ steps.ec2.outputs.host }} "echo ready" 2>/dev/null; then
-              echo "✅ SSH is ready (attempt $i)"
-              exit 0
-            fi
-            echo "[$i/20] SSH not ready yet, retrying in 15s..."
-            sleep 15
-          done
-          echo "❌ SSH never became available after 5 minutes"
-          exit 1
-
-      # ── 8. Copy JAR to EC2 ───────────────────────────────────────────────────
-      - name: Copy JAR to EC2
-        run: |
-          scp -i /tmp/deploy_key \
-            -o StrictHostKeyChecking=no \
-            -o ConnectTimeout=30 \
-            backend/build/libs/qrapp-*.jar \
-            ec2-user@${{ steps.ec2.outputs.host }}:/tmp/app-new.jar
-
-      # ── 8. Write application.env + restart service ───────────────────────────
-      # All secrets are injected here — nothing sensitive is ever stored in files
-      # in the repo.  The env file is written with 640 permissions (broandbro user
-      # only) and is never echoed in logs.
-      - name: Deploy & restart
-        run: |
-          ssh -i /tmp/deploy_key \
-            -o StrictHostKeyChecking=no \
-            -o ConnectTimeout=30 \
-            ec2-user@${{ steps.ec2.outputs.host }} << 'ENDSSH'
-
-            set -euo pipefail
-
-            # Backup existing JAR
-            [ -f /opt/broandbro/app.jar ] && \
-              sudo cp /opt/broandbro/app.jar /opt/broandbro/app.jar.bak || true
-
-            # Move new JAR into place
-            sudo mv /tmp/app-new.jar /opt/broandbro/app.jar
-            sudo chown broandbro:broandbro /opt/broandbro/app.jar
-
-            # Write environment file (secrets injected at deploy time)
-            sudo tee /opt/broandbro/config/application.env > /dev/null << EOF
-          # ─── Spring ────────────────────────────────────────────────────────
-          SPRING_PROFILES_ACTIVE=dev
+          aws ssm put-parameter \
+            --region ap-south-1 \
+            --name "/broandbro/dev/application-env" \
+            --type "SecureString" \
+            --overwrite \
+            --value "SPRING_PROFILES_ACTIVE=dev
           SERVER_PORT=8080
-
-          # ─── Database ──────────────────────────────────────────────────────
           SPRING_DATASOURCE_URL=jdbc:postgresql://broandbro-dev.chi2yu0m6hp0.ap-south-1.rds.amazonaws.com:5432/broandbro_dev
           SPRING_DATASOURCE_USERNAME=${{ secrets.DEV_DB_USERNAME }}
           SPRING_DATASOURCE_PASSWORD=${{ secrets.DEV_DB_PASSWORD }}
-
-          # ─── OpenAI (AI image generation) ──────────────────────────────────
           OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
           OPENAI_IMAGE_MODEL=gpt-image-1
           OPENAI_IMAGE_SIZE=1024x1024
-
-          # ─── AWS S3 (shared media bucket) ──────────────────────────────────
           AWS_S3_BUCKET_NAME=broandbro-menu-images
           AWS_S3_REGION=ap-south-1
           AWS_S3_ENABLED=true
           AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}
-
-          # ─── Razorpay ──────────────────────────────────────────────────────
           RAZORPAY_KEY=${{ secrets.DEV_RAZORPAY_KEY }}
           RAZORPAY_SECRET=${{ secrets.DEV_RAZORPAY_SECRET }}
           RAZORPAY_WEBHOOK_SECRET=${{ secrets.DEV_RAZORPAY_WEBHOOK_SECRET }}
-
-          # ─── Twilio / WhatsApp ──────────────────────────────────────────────
           TWILIO_ACCOUNT_SID=${{ secrets.DEV_TWILIO_ACCOUNT_SID }}
           TWILIO_AUTH_TOKEN=${{ secrets.DEV_TWILIO_AUTH_TOKEN }}
           TWILIO_FROM_NUMBER=${{ secrets.DEV_TWILIO_FROM_NUMBER }}
           TWILIO_ORDER_PLACED_CONTENT_SID=${{ secrets.DEV_TWILIO_ORDER_PLACED_CONTENT_SID }}
-          TWILIO_OTP_CONTENT_SID=${{ secrets.DEV_TWILIO_OTP_CONTENT_SID }}
-          EOF
+          TWILIO_OTP_CONTENT_SID=${{ secrets.DEV_TWILIO_OTP_CONTENT_SID }}"
+          echo "✅ application.env written to SSM"
 
-            sudo chmod 640 /opt/broandbro/config/application.env
-            sudo chown broandbro:broandbro /opt/broandbro/config/application.env
+      # ── 8. Upload JAR to S3 (staging path) ───────────────────────────────────
+      - name: Upload JAR to S3
+        run: |
+          aws s3 cp backend/build/libs/qrapp-*.jar \
+            s3://broandbro-menu-images/deploy/app-new.jar \
+            --region ap-south-1
+          echo "✅ JAR uploaded to S3"
 
-            # Restart service
-            sudo systemctl daemon-reload
-            sudo systemctl restart broandbro
+      # ── 9. Deploy & restart via SSM Run Command ───────────────────────────────
+      # No SSH/port-22 required – uses the EC2 instance's IAM role via SSM Agent.
+      - name: Deploy & restart via SSM
+        run: |
+          INSTANCE_ID="${{ steps.ec2.outputs.instance_id }}"
 
-            # Wait up to 60s for healthy startup
-            for i in $(seq 1 12); do
-              sleep 5
-              STATUS=$(sudo systemctl is-active broandbro 2>/dev/null || echo "inactive")
-              echo "[$i/12] Service status: $STATUS"
-              if [ "$STATUS" = "active" ]; then
-                echo "✅ broandbro started successfully"
-                exit 0
-              fi
-            done
-            echo "❌ Service failed to start" && sudo journalctl -u broandbro -n 50 --no-pager && exit 1
-          ENDSSH
+          # Build deployment script as a JSON parameters file to avoid quoting issues
+          python3 - << 'PYEOF'
+          import json, subprocess, sys
 
-      # ── 9. Cleanup ───────────────────────────────────────────────────────────
-      - name: Cleanup SSH key
-        if: always()
-        run: rm -f /tmp/deploy_key
+          commands = [
+              "set -euo pipefail",
+              "echo '=== Backing up existing JAR ==='",
+              "[ -f /opt/broandbro/app.jar ] && sudo cp /opt/broandbro/app.jar /opt/broandbro/app.jar.bak || true",
+              "echo '=== Downloading new JAR from S3 ==='",
+              "aws s3 cp s3://broandbro-menu-images/deploy/app-new.jar /tmp/app-new.jar --region ap-south-1",
+              "sudo mv /tmp/app-new.jar /opt/broandbro/app.jar",
+              "sudo chown broandbro:broandbro /opt/broandbro/app.jar",
+              "echo '=== Writing application.env from SSM ==='",
+              "aws ssm get-parameter --name /broandbro/dev/application-env --with-decryption --query Parameter.Value --output text --region ap-south-1 | sudo tee /opt/broandbro/config/application.env > /dev/null",
+              "sudo chmod 640 /opt/broandbro/config/application.env",
+              "sudo chown broandbro:broandbro /opt/broandbro/config/application.env",
+              "echo '=== Restarting service ==='",
+              "sudo systemctl daemon-reload",
+              "sudo systemctl restart broandbro",
+              "echo '=== Waiting for healthy startup ==='",
+              "for i in $(seq 1 12); do sleep 5; STATUS=$(sudo systemctl is-active broandbro 2>/dev/null || echo inactive); echo \"[$i/12] Service: $STATUS\"; if [ \"$STATUS\" = \"active\" ]; then echo \"✅ broandbro started successfully\"; exit 0; fi; done; echo \"❌ Service failed to start\"; sudo journalctl -u broandbro -n 50 --no-pager; exit 1",
+          ]
 
+          with open("/tmp/ssm-params.json", "w") as f:
+              json.dump({"commands": commands}, f)
+          print("SSM params file written")
+          PYEOF
+
+          CMD_ID=$(aws ssm send-command \
+            --region ap-south-1 \
+            --instance-ids "$INSTANCE_ID" \
+            --document-name "AWS-RunShellScript" \
+            --parameters file:///tmp/ssm-params.json \
+            --timeout-seconds 300 \
+            --comment "Deploy from GitHub Actions ${{ github.sha }}" \
+            --query "Command.CommandId" \
+            --output text)
+
+          echo "SSM Command ID: $CMD_ID"
+          echo "Polling for completion (max 5 min)..."
+
+          for i in $(seq 1 30); do
+            sleep 10
+            STATUS=$(aws ssm get-command-invocation \
+              --command-id "$CMD_ID" \
+              --instance-id "$INSTANCE_ID" \
+              --region ap-south-1 \
+              --query "Status" --output text 2>/dev/null || echo "Pending")
+            echo "[$i/30] SSM command status: $STATUS"
+            if [ "$STATUS" = "Success" ]; then
+              echo "✅ Deployment succeeded"
+              aws ssm get-command-invocation \
+                --command-id "$CMD_ID" \
+                --instance-id "$INSTANCE_ID" \
+                --region ap-south-1 \
+                --query "StandardOutputContent" --output text
+              exit 0
+            elif [[ "$STATUS" =~ ^(Failed|Cancelled|TimedOut|Cancelling)$ ]]; then
+              echo "❌ Deployment failed: $STATUS"
+              aws ssm get-command-invocation \
+                --command-id "$CMD_ID" \
+                --instance-id "$INSTANCE_ID" \
+                --region ap-south-1 \
+                --query "StandardOutputContent" --output text
+              aws ssm get-command-invocation \
+                --command-id "$CMD_ID" \
+                --instance-id "$INSTANCE_ID" \
+                --region ap-south-1 \
+                --query "StandardErrorContent" --output text
+              exit 1
+            fi
+          done
+          echo "❌ Timed out waiting for SSM command after 5 minutes"
+          exit 1
