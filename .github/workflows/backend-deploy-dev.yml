@@ -151,13 +151,38 @@ jobs:
         run: |
           INSTANCE_ID="${{ steps.ec2.outputs.instance_id }}"
 
-          echo "Checking SSM connectivity for $INSTANCE_ID..."
-          SSM_STATUS=$(aws ssm describe-instance-information \
+          if [ -z "$INSTANCE_ID" ] || [ "$INSTANCE_ID" = "None" ]; then
+            echo "❌ No EC2 instance id resolved from SSM IP parameter."
+            exit 1
+          fi
+
+          STATE=$(aws ec2 describe-instances \
             --region ap-south-1 \
-            --filters "Key=InstanceIds,Values=$INSTANCE_ID" \
-            --query "InstanceInformationList[0].PingStatus" \
-            --output text 2>/dev/null || echo "None")
-          echo "SSM agent PingStatus: $SSM_STATUS"
+            --instance-ids "$INSTANCE_ID" \
+            --query "Reservations[0].Instances[0].State.Name" \
+            --output text 2>/dev/null || echo "unknown")
+          echo "EC2 state: $STATE"
+
+          if [ "$STATE" = "stopped" ] || [ "$STATE" = "stopping" ]; then
+            echo "EC2 is $STATE. Starting instance..."
+            aws ec2 start-instances --region ap-south-1 --instance-ids "$INSTANCE_ID"
+            aws ec2 wait instance-running --region ap-south-1 --instance-ids "$INSTANCE_ID"
+            echo "EC2 is running. Waiting for SSM agent to come online..."
+          fi
+
+          echo "Checking SSM connectivity for $INSTANCE_ID..."
+          for i in $(seq 1 30); do
+            SSM_STATUS=$(aws ssm describe-instance-information \
+              --region ap-south-1 \
+              --filters "Key=InstanceIds,Values=$INSTANCE_ID" \
+              --query "InstanceInformationList[0].PingStatus" \
+              --output text 2>/dev/null || echo "None")
+            echo "[$i/30] SSM agent PingStatus: $SSM_STATUS"
+            if [ "$SSM_STATUS" = "Online" ]; then
+              break
+            fi
+            sleep 10
+          done
           if [ "$SSM_STATUS" != "Online" ]; then
             echo "SSM agent is not Online (got: $SSM_STATUS). Cannot deploy."
             echo "Check: AWS Console -> Systems Manager -> Fleet Manager -> $INSTANCE_ID"
