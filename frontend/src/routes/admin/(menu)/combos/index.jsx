@@ -46,6 +46,7 @@ import {
 import { createFileRoute } from "@tanstack/react-router";
 import { useNavigate } from "@tanstack/react-router";
 import { Link } from "@tanstack/react-router";
+import ComboCard from "@/components/admin/combo/ComboCard";
 
 const STATUS_TABS = [
   { key: "ALL", label: "All Combos", badgeProperty: "totalCombos" },
@@ -63,6 +64,7 @@ export default function CombosPage() {
   const [activeTab, setActiveTab] = useState("ALL");
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
+  const [editingCombo, setEditingCombo] = useState(null);
 
   const queryParams = useMemo(() => {
     const p = { size: 50 };
@@ -98,89 +100,102 @@ export default function CombosPage() {
   return (
     <div className="min-h-screen bg-background pb-32">
       {/* HEADER */}
-      <div className="sticky top-0 z-20 bg-card/95 backdrop-blur border-b border-border">
-        <div className="px-4 pt-3 pb-4">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="text-lg font-semibold tracking-tight text-foreground">
-                  Combos
-                </h1>
+      <div className="px-4 pt-3 pb-4 sticky top-0 z-20 bg-card border-b">
+        <div className="flex items-center gap-2 flex-wrap">
+          <h1 className="text-lg font-semibold tracking-tight text-foreground">
+            Combos
+          </h1>
 
-                <Badge variant="secondary" className="rounded-full">
-                  {combos.length}
-                </Badge>
-              </div>
+          <Badge variant="secondary" className="rounded-full">
+            {combos.length}
+          </Badge>
+        </div>
+
+        <p className="text-sm text-muted-foreground mt-1">
+          Bundle popular items into combos that lift basket size and clear slow
+          movers.
+        </p>
+      </div>
+
+      <div className="px-4 pb-4">
+        <div className="flex items-start justify-between gap-3"></div>
+
+        {/* KPI */}
+        <div className="flex gap-3 overflow-x-auto no-scrollbar mt-5 pb-1">
+          <KpiCard title="Total" value={s?.totalCombos ?? 0} tone="primary" />
+          <KpiCard title="Active" value={s?.activeCombos ?? 0} tone="emerald" />
+          <KpiCard
+            title="Revenue"
+            value={`₹${s?.comboRevenue ?? 0}`}
+            tone="amber"
+          />
+        </div>
+
+        {/* TIP */}
+        {combos.length > 0 && (
+          <div className="mt-4 bg-primary/5 border border-primary/10 rounded-lg p-4 flex items-start gap-3">
+            <div className="size-11 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
+              <SparkleIcon size={20} weight="duotone" />
+            </div>
+
+            <div>
+              <p className="text-sm font-semibold text-foreground">
+                Tip: Featured combos sell more
+              </p>
 
               <p className="text-sm text-muted-foreground mt-1">
-                Bundle popular items into combos that lift basket size and clear
-                slow movers.
+                Featured combos on homepage get more visibility.
               </p>
             </div>
           </div>
+        )}
 
-          {/* KPI */}
-          <div className="flex gap-3 overflow-x-auto no-scrollbar mt-5 pb-1">
-            <KpiCard title="Total" value={s?.totalCombos ?? 0} tone="primary" />
+        {/* Tabs */}
+        <Tabs
+          value={activeTab}
+          onValueChange={setActiveTab}
+          className="w-full border-b mt-5"
+        >
+          <TabsList variant="line">
+            {STATUS_TABS.map((tab) => (
+              <TabsTrigger key={tab.key} value={tab.key}>
+                {tab.label}
+                {tab.badgeProperty && (
+                  <Badge variant="secondary" className="ml-2">
+                    {s?.[tab.badgeProperty]}
+                  </Badge>
+                )}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
 
-            <KpiCard
-              title="Active"
-              value={s?.activeCombos ?? 0}
-              tone="emerald"
+        {/* Search */}
+        <div className="mt-4 flex justify-between items-center gap-2">
+          <InputGroup className="h-10 max-w-xs bg-zinc-100">
+            <InputGroupInput
+              placeholder="Search combos..."
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              onBlur={() => setSearch(searchInput.trim())}
             />
+            <InputGroupAddon>
+              <MagnifyingGlassIcon />
+            </InputGroupAddon>
+          </InputGroup>
 
-            <KpiCard
-              title="Revenue"
-              value={`₹${s?.comboRevenue ?? 0}`}
-              tone="amber"
-            />
-          </div>
-
-          {/* Tabs */}
-          <Tabs
-            value={activeTab}
-            onValueChange={setActiveTab}
-            className="w-full border-b mt-5"
+          <Button
+            variant="secondary"
+            size="icon-lg"
+            className="relative"
+            aria-label="Filter combos"
           >
-            <TabsList variant="line">
-              {STATUS_TABS.map((tab) => (
-                <TabsTrigger key={tab.key} value={tab.key}>
-                  {tab.label}
-                  {tab.badgeProperty && (
-                    <Badge variant="secondary" className="ml-2">{s?.[tab.badgeProperty]}</Badge>
-                  )}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          </Tabs>
+            <FunnelIcon />
 
-          {/* Search */}
-          <div className="mt-4 flex justify-between items-center gap-2">
-            <InputGroup className="h-10 max-w-xs bg-zinc-100">
-              <InputGroupInput
-                placeholder="Search combos..."
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
-                onBlur={() => setSearch(searchInput.trim())}
-              />
-              <InputGroupAddon>
-                <MagnifyingGlassIcon />
-              </InputGroupAddon>
-            </InputGroup>
-
-            <Button
-              variant="secondary"
-              size="icon-lg"
-              className="relative"
-              aria-label="Filter combos"
-            >
-              <FunnelIcon />
-
-              <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-[10px] size-5 rounded-full flex items-center justify-center font-bold">
-                2
-              </span>
-            </Button>
-          </div>
+            <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-[10px] size-5 rounded-full flex items-center justify-center font-bold">
+              2
+            </span>
+          </Button>
         </div>
       </div>
 
@@ -190,7 +205,7 @@ export default function CombosPage() {
           Array.from({ length: 4 }).map((_, i) => (
             <div
               key={i}
-              className="bg-card rounded-xl border border-border p-4 h-32 animate-pulse"
+              className="bg-muted rounded-xl border border-border p-4 h-32 animate-pulse"
             />
           ))}
 
@@ -220,148 +235,14 @@ export default function CombosPage() {
         )}
 
         {combos.map((combo) => (
-          <div
+          <ComboCard
             key={combo.id}
-            className="bg-card rounded-xl border border-border overflow-hidden shadow-sm"
-          >
-            <div className="p-4">
-              <div className="flex gap-4">
-                {/* IMAGE */}
-                <div className="relative shrink-0">
-                  <img
-                    src={combo.imageUrl}
-                    alt={combo.comboName}
-                    className="size-28 rounded-xl object-cover bg-muted"
-                  />
-
-                  {combo.isFeatured && (
-                    <div className="absolute top-2 left-2 bg-emerald-500 text-white text-[10px] font-bold px-2 py-1 rounded-full">
-                      Featured
-                    </div>
-                  )}
-                </div>
-
-                {/* CONTENT */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <h3 className="text-lg font-semibold text-foreground line-clamp-1">
-                        {combo.comboName}
-                      </h3>
-
-                      <div className="flex flex-wrap gap-2 mt-2">
-                        <Badge
-                          variant="outline"
-                          className="rounded-full border-red-200 bg-red-50 text-red-600 dark:bg-red-500/10 dark:border-red-500/30"
-                        >
-                          {combo.comboType}
-                        </Badge>
-
-                        <Badge
-                          variant="outline"
-                          className="rounded-full border-blue-200 bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:border-blue-500/30"
-                        >
-                          {combo.timeSlot}
-                        </Badge>
-                      </div>
-                    </div>
-
-                    <DropdownMenu>
-                      <DropdownMenuTrigger
-                        render={
-                          <Button
-                            variant="ghost"
-                            size="icon-sm"
-                            className="rounded-xl bg-muted text-muted-foreground hover:bg-muted/80"
-                          >
-                            <DotsThreeVerticalIcon size={18} weight="bold" />
-                          </Button>
-                        }
-                      />
-
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem
-                          onClick={() =>
-                            navigate(`/admin/combos/${combo.id}/edit`)
-                          }
-                        >
-                          <PencilSimpleIcon
-                            size={16}
-                            data-icon="inline-start"
-                          />
-                          Edit
-                        </DropdownMenuItem>
-
-                        <DropdownMenuItem className="text-red-500 focus:text-red-500">
-                          <TrashIcon size={16} data-icon="inline-start" />
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-
-                  {/* PRICE */}
-                  <div className="mt-4 flex items-end gap-2 flex-wrap">
-                    <span className="text-2xl font-semibold text-foreground">
-                      ₹{combo.comboPrice}
-                    </span>
-
-                    <span className="text-sm text-muted-foreground line-through">
-                      ₹{combo.originalPrice}
-                    </span>
-
-                    <span className="text-xs font-bold text-emerald-600 bg-emerald-500/10 px-2 py-1 rounded-full">
-                      {combo.savingsPercentage}% OFF
-                    </span>
-                  </div>
-
-                  {/* ITEMS */}
-                  <div className="mt-3 text-sm text-muted-foreground line-clamp-2">
-                    {combo.items?.map((i) => i.name).join(", ")}
-                  </div>
-
-                  {/* FOOTER */}
-                  <div className="mt-4 flex items-center justify-between">
-                    <div>
-                      <p className="text-xs text-muted-foreground">
-                        Orders Today
-                      </p>
-
-                      <p className="font-semibold text-foreground">
-                        {combo.ordersToday ?? 0}
-                      </p>
-                    </div>
-
-                    <Switch
-                      checked={combo.isActive}
-                      onCheckedChange={(v) => handleToggle(combo, v)}
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+            combo={combo}
+            onDelete={(combo) => setEditingCombo(combo)}
+            onEdit={(combo) => mutations.update(combo)}
+          />
         ))}
       </div>
-
-      {/* TIP */}
-      {combos.length > 0 && (
-        <div className="mx-4 mt-5 bg-primary/5 border border-primary/15 rounded-xl p-4 flex items-start gap-3">
-          <div className="size-11 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
-            <SparkleIcon size={20} weight="fill" />
-          </div>
-
-          <div>
-            <p className="text-sm font-semibold text-foreground">
-              Tip: Featured combos sell more
-            </p>
-
-            <p className="text-xs text-muted-foreground mt-1">
-              Featured combos on homepage get more visibility.
-            </p>
-          </div>
-        </div>
-      )}
 
       <Link
         to="/admin/combos/create"
