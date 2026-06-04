@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from '@tanstack/react-query'
 import { menuOptions } from "@/query/options/menu";
 import {
@@ -24,7 +24,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { PlusIcon, TrashIcon, MinusIcon } from "@phosphor-icons/react";
 
 const TIME_SLOTS = ["BREAKFAST", "LUNCH", "EVENING", "FULL_DAY", "CUSTOM"];
-const COMBO_TYPES = ["VEG", "NON_VEG", "CONTAINS_EGG", "VEGAN"];
+const COMBO_TYPES = ["VEG", "NON_VEG", "MIXED"];
 
 const BLANK = {
   comboName: "",

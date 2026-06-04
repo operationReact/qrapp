@@ -4,6 +4,12 @@ import { apiClient } from "./index";
 export const getComboAnalyticsSummary = () =>
   apiClient.get("/api/admin/combos/analytics/summary").then((r) => r.data);
 
+// ── Signature Products (combo-attachable) ──────────────────────────────────
+export const listSignatureProducts = (params = {}) =>
+  apiClient
+    .get("/api/admin/signature-products", { params })
+    .then((r) => r.data);
+
 // ── List ───────────────────────────────────────────────────────────────────
 export const listCombos = (params = {}) =>
   apiClient.get("/api/admin/combos", { params }).then((r) => r.data);
