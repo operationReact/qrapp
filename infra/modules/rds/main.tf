@@ -87,7 +87,7 @@ resource "aws_db_subnet_group" "this" {
 data "aws_rds_engine_version" "postgres" {
   engine             = "postgres"
   version            = "16"
-  preferred_versions = ["16.9", "16.8", "16.7", "16.6", "16.5", "16.4", "16.3", "16.2", "16.1"]
+  preferred_versions = ["16.6", "16.5", "16.4", "16.3", "16.2", "16.1"]
 }
 
 # RDS PostgreSQL instance
