@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Navbar from "@/components/shared/Navbar";
-import { updateCurrentUser } from "@/services/auth-service";
+import { updateCurrentUser, getMilestoneCoupons } from "@/services/auth-service";
 import { currentUserOptions } from "@/query/options/auth";
 import { LockKeyhole, Menu, Shield } from "@boxicons/react";
 import { Button } from "@/components/ui/button";
@@ -132,6 +132,22 @@ function ProfilePage() {
 
     updateMutation.mutate(payload);
   };
+
+  const { data: milestoneCoupons = [] } = useQuery({
+    queryKey: ["milestone-coupons"],
+    queryFn: getMilestoneCoupons,
+    enabled: !!user?.token,
+  });
+
+  const MILESTONES = [
+    { amount: 500,   label: "₹500",   reward: "5% off" },
+    { amount: 1000,  label: "₹1,000", reward: "8% off" },
+    { amount: 2500,  label: "₹2,500", reward: "10% off" },
+    { amount: 5000,  label: "₹5,000", reward: "12% off" },
+    { amount: 10000, label: "₹10,000",reward: "15% off" },
+  ];
+
+  const awardedByAmount = Object.fromEntries(milestoneCoupons.map(m => [Number(m.milestoneAmount), m]));
 
   return (
     <div className="page-shell bg-page">
@@ -266,6 +282,49 @@ function ProfilePage() {
                 </div>
               </form>
             )}
+          </section>
+
+          {/* ── Milestones & Rewards ── */}
+          <section className="rounded-xl bg-white shadow-sm overflow-hidden">
+            <div className="p-4 border-b">
+              <h2 className="font-semibold text-base">Milestones &amp; Rewards</h2>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                Spend more, earn personalised coupons automatically.
+              </p>
+            </div>
+            <div className="divide-y">
+              {MILESTONES.map((m) => {
+                const earned = awardedByAmount[m.amount];
+                return (
+                  <div key={m.amount} className="flex items-center gap-4 p-4">
+                    <div className={`size-10 rounded-full flex items-center justify-center text-lg font-bold shrink-0 ${earned ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-400"}`}>
+                      {earned ? "✓" : "🎯"}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-sm">Spend {m.label}</div>
+                      <div className="text-xs text-muted-foreground">{m.reward} (up to milestone value)</div>
+                      {earned && (
+                        <div className="mt-1 flex items-center gap-2 flex-wrap">
+                          <span className="font-mono text-xs bg-green-50 border border-green-200 text-green-800 px-2 py-0.5 rounded">
+                            {earned.couponCode}
+                          </span>
+                          {earned.isValid ? (
+                            <span className="text-xs text-green-600">
+                              Valid until {new Date(earned.expiresAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                            </span>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">Expired / Used</span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    <div className={`text-xs font-medium shrink-0 ${earned ? "text-green-600" : "text-muted-foreground"}`}>
+                      {earned ? "Earned 🎉" : "Locked"}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </section>
 
           <div className="grid">

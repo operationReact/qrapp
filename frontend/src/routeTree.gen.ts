@@ -32,9 +32,11 @@ import { Route as AdminAnalyticsOverviewRouteImport } from './routes/admin/analy
 import { Route as AdminAnalyticsOrdersRouteImport } from './routes/admin/analytics/orders'
 import { Route as AdminAnalyticsMenuRouteImport } from './routes/admin/analytics/menu'
 import { Route as AdminAnalyticsCouponsRouteImport } from './routes/admin/analytics/coupons'
+import { Route as AdminpromotionsPromotionsRouteImport } from './routes/admin/(promotions)/promotions'
 import { Route as AdminordersServiceBoardRouteImport } from './routes/admin/(orders)/service-board'
 import { Route as AdminordersPartyOrdersRouteImport } from './routes/admin/(orders)/party-orders'
 import { Route as AdminordersOperationalQueueRouteImport } from './routes/admin/(orders)/operational-queue'
+import { Route as AdminmilestonesMilestonesRouteImport } from './routes/admin/(milestones)/milestones'
 import { Route as AdminmenuMenuRouteImport } from './routes/admin/(menu)/menu'
 import { Route as AdminmenuManageMenuRouteImport } from './routes/admin/(menu)/manage-menu'
 import { Route as AdmincouponsCouponsRouteImport } from './routes/admin/(coupons)/coupons'
@@ -160,6 +162,12 @@ const AdminAnalyticsCouponsRoute = AdminAnalyticsCouponsRouteImport.update({
   path: '/analytics/coupons',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminpromotionsPromotionsRoute =
+  AdminpromotionsPromotionsRouteImport.update({
+    id: '/(promotions)/promotions',
+    path: '/promotions',
+    getParentRoute: () => AdminRoute,
+  } as any)
 const AdminordersServiceBoardRoute = AdminordersServiceBoardRouteImport.update({
   id: '/(orders)/service-board',
   path: '/service-board',
@@ -174,6 +182,12 @@ const AdminordersOperationalQueueRoute =
   AdminordersOperationalQueueRouteImport.update({
     id: '/(orders)/operational-queue',
     path: '/operational-queue',
+    getParentRoute: () => AdminRoute,
+  } as any)
+const AdminmilestonesMilestonesRoute =
+  AdminmilestonesMilestonesRouteImport.update({
+    id: '/(milestones)/milestones',
+    path: '/milestones',
     getParentRoute: () => AdminRoute,
   } as any)
 const AdminmenuMenuRoute = AdminmenuMenuRouteImport.update({
@@ -238,9 +252,11 @@ export interface FileRoutesByFullPath {
   '/admin/coupons': typeof AdmincouponsCouponsRoute
   '/admin/manage-menu': typeof AdminmenuManageMenuRoute
   '/admin/menu': typeof AdminmenuMenuRoute
+  '/admin/milestones': typeof AdminmilestonesMilestonesRoute
   '/admin/operational-queue': typeof AdminordersOperationalQueueRouteWithChildren
   '/admin/party-orders': typeof AdminordersPartyOrdersRoute
   '/admin/service-board': typeof AdminordersServiceBoardRoute
+  '/admin/promotions': typeof AdminpromotionsPromotionsRoute
   '/admin/analytics/coupons': typeof AdminAnalyticsCouponsRoute
   '/admin/analytics/menu': typeof AdminAnalyticsMenuRoute
   '/admin/analytics/orders': typeof AdminAnalyticsOrdersRoute
@@ -273,8 +289,10 @@ export interface FileRoutesByTo {
   '/admin/coupons': typeof AdmincouponsCouponsRoute
   '/admin/manage-menu': typeof AdminmenuManageMenuRoute
   '/admin/menu': typeof AdminmenuMenuRoute
+  '/admin/milestones': typeof AdminmilestonesMilestonesRoute
   '/admin/party-orders': typeof AdminordersPartyOrdersRoute
   '/admin/service-board': typeof AdminordersServiceBoardRoute
+  '/admin/promotions': typeof AdminpromotionsPromotionsRoute
   '/admin/analytics/coupons': typeof AdminAnalyticsCouponsRoute
   '/admin/analytics/menu': typeof AdminAnalyticsMenuRoute
   '/admin/analytics/orders': typeof AdminAnalyticsOrdersRoute
@@ -309,9 +327,11 @@ export interface FileRoutesById {
   '/admin/(coupons)/coupons': typeof AdmincouponsCouponsRoute
   '/admin/(menu)/manage-menu': typeof AdminmenuManageMenuRoute
   '/admin/(menu)/menu': typeof AdminmenuMenuRoute
+  '/admin/(milestones)/milestones': typeof AdminmilestonesMilestonesRoute
   '/admin/(orders)/operational-queue': typeof AdminordersOperationalQueueRouteWithChildren
   '/admin/(orders)/party-orders': typeof AdminordersPartyOrdersRoute
   '/admin/(orders)/service-board': typeof AdminordersServiceBoardRoute
+  '/admin/(promotions)/promotions': typeof AdminpromotionsPromotionsRoute
   '/admin/analytics/coupons': typeof AdminAnalyticsCouponsRoute
   '/admin/analytics/menu': typeof AdminAnalyticsMenuRoute
   '/admin/analytics/orders': typeof AdminAnalyticsOrdersRoute
@@ -347,9 +367,11 @@ export interface FileRouteTypes {
     | '/admin/coupons'
     | '/admin/manage-menu'
     | '/admin/menu'
+    | '/admin/milestones'
     | '/admin/operational-queue'
     | '/admin/party-orders'
     | '/admin/service-board'
+    | '/admin/promotions'
     | '/admin/analytics/coupons'
     | '/admin/analytics/menu'
     | '/admin/analytics/orders'
@@ -382,8 +404,10 @@ export interface FileRouteTypes {
     | '/admin/coupons'
     | '/admin/manage-menu'
     | '/admin/menu'
+    | '/admin/milestones'
     | '/admin/party-orders'
     | '/admin/service-board'
+    | '/admin/promotions'
     | '/admin/analytics/coupons'
     | '/admin/analytics/menu'
     | '/admin/analytics/orders'
@@ -417,9 +441,11 @@ export interface FileRouteTypes {
     | '/admin/(coupons)/coupons'
     | '/admin/(menu)/manage-menu'
     | '/admin/(menu)/menu'
+    | '/admin/(milestones)/milestones'
     | '/admin/(orders)/operational-queue'
     | '/admin/(orders)/party-orders'
     | '/admin/(orders)/service-board'
+    | '/admin/(promotions)/promotions'
     | '/admin/analytics/coupons'
     | '/admin/analytics/menu'
     | '/admin/analytics/orders'
@@ -615,6 +641,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAnalyticsCouponsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/(promotions)/promotions': {
+      id: '/admin/(promotions)/promotions'
+      path: '/promotions'
+      fullPath: '/admin/promotions'
+      preLoaderRoute: typeof AdminpromotionsPromotionsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/(orders)/service-board': {
       id: '/admin/(orders)/service-board'
       path: '/service-board'
@@ -634,6 +667,13 @@ declare module '@tanstack/react-router' {
       path: '/operational-queue'
       fullPath: '/admin/operational-queue'
       preLoaderRoute: typeof AdminordersOperationalQueueRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/(milestones)/milestones': {
+      id: '/admin/(milestones)/milestones'
+      path: '/milestones'
+      fullPath: '/admin/milestones'
+      preLoaderRoute: typeof AdminmilestonesMilestonesRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/(menu)/menu': {
@@ -718,9 +758,11 @@ interface AdminRouteChildren {
   AdmincouponsCouponsRoute: typeof AdmincouponsCouponsRoute
   AdminmenuManageMenuRoute: typeof AdminmenuManageMenuRoute
   AdminmenuMenuRoute: typeof AdminmenuMenuRoute
+  AdminmilestonesMilestonesRoute: typeof AdminmilestonesMilestonesRoute
   AdminordersOperationalQueueRoute: typeof AdminordersOperationalQueueRouteWithChildren
   AdminordersPartyOrdersRoute: typeof AdminordersPartyOrdersRoute
   AdminordersServiceBoardRoute: typeof AdminordersServiceBoardRoute
+  AdminpromotionsPromotionsRoute: typeof AdminpromotionsPromotionsRoute
   AdminAnalyticsCouponsRoute: typeof AdminAnalyticsCouponsRoute
   AdminAnalyticsMenuRoute: typeof AdminAnalyticsMenuRoute
   AdminAnalyticsOrdersRoute: typeof AdminAnalyticsOrdersRoute
@@ -739,10 +781,12 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdmincouponsCouponsRoute: AdmincouponsCouponsRoute,
   AdminmenuManageMenuRoute: AdminmenuManageMenuRoute,
   AdminmenuMenuRoute: AdminmenuMenuRoute,
+  AdminmilestonesMilestonesRoute: AdminmilestonesMilestonesRoute,
   AdminordersOperationalQueueRoute:
     AdminordersOperationalQueueRouteWithChildren,
   AdminordersPartyOrdersRoute: AdminordersPartyOrdersRoute,
   AdminordersServiceBoardRoute: AdminordersServiceBoardRoute,
+  AdminpromotionsPromotionsRoute: AdminpromotionsPromotionsRoute,
   AdminAnalyticsCouponsRoute: AdminAnalyticsCouponsRoute,
   AdminAnalyticsMenuRoute: AdminAnalyticsMenuRoute,
   AdminAnalyticsOrdersRoute: AdminAnalyticsOrdersRoute,

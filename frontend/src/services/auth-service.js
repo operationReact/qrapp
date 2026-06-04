@@ -6,6 +6,9 @@ export const loginUser = (credentials) =>
 export const getCurrentUser = () =>
   apiClient.get("/auth/me").then((r) => r.data);
 
+export const getMilestoneCoupons = () =>
+  apiClient.get("/auth/me/milestones").then((r) => r.data);
+
 export const updateCurrentUser = (data) =>
   apiClient.put("/auth/me", data).then((r) => r.data);
 

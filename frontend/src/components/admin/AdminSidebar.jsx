@@ -30,6 +30,7 @@ import {
   TicketIcon,
   StarIcon,
   CubeIcon,
+  TrophyIcon,
 } from "@phosphor-icons/react";
 import { useAuth } from "@/context/AuthContext";
 
@@ -180,7 +181,8 @@ export function AdminSidebar() {
         </SidebarGroup>
 
         <SidebarGroup className="group-data-[collapsible=icon]:hidden">
-          <SidebarGroupLabel>Coupons</SidebarGroupLabel>
+
+          <SidebarGroupLabel>Offers</SidebarGroupLabel>
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton
@@ -193,6 +195,36 @@ export function AdminSidebar() {
                       weight={pathname === "/admin/coupons" ? "bold" : "regular"}
                     />
                     <span>Coupons</span>
+                  </Link>
+                }
+              />
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                className="text-zinc-700 font-medium"
+                isActive={pathname === "/admin/promotions"}
+                render={
+                  <Link to={"/admin/promotions"}>
+                    <TicketIcon
+                      className="text-primary"
+                      weight={pathname === "/admin/promotions" ? "bold" : "regular"}
+                    />
+                    <span>Promotions</span>
+                  </Link>
+                }
+              />
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                className="text-zinc-700 font-medium"
+                isActive={pathname === "/admin/milestones"}
+                render={
+                  <Link to={"/admin/milestones"}>
+                    <TrophyIcon
+                      className="text-primary"
+                      weight={pathname === "/admin/milestones" ? "bold" : "regular"}
+                    />
+                    <span>Milestones</span>
                   </Link>
                 }
               />

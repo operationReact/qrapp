@@ -13,6 +13,10 @@ export function CartProvider({ children }) {
     const [lastAdded, setLastAdded] = useState(null);
     const lastAddedTimerRef = useRef(null);
 
+    // ── Promotion state ──────────────────────────────────────────────────────
+    const [appliedPromotion, setAppliedPromotion] = useState(null);
+    // Shape: { id, code, title, rewardDisplay, actualDiscount, isAutoApplied }
+
     useEffect(() => {
         return () => {
             if (lastAddedTimerRef.current) clearTimeout(lastAddedTimerRef.current);
@@ -56,6 +60,22 @@ export function CartProvider({ children }) {
 
     const clearCart = () => {
         setCart([]);
+        setAppliedPromotion(null); // clear promotion when cart is cleared
+    };
+
+    const applyPromotion = (promotion) => {
+        setAppliedPromotion(promotion);
+    };
+
+    const removePromotion = () => {
+        setAppliedPromotion(null);
+    };
+
+    /** Total after promotion discount */
+    const getTotalAfterDiscount = () => {
+        const subtotal = cart.reduce((sum, i) => sum + i.price * i.quantity, 0);
+        const discount = appliedPromotion?.actualDiscount ?? 0;
+        return Math.max(0, subtotal - Number(discount));
     };
 
     const getTotal = () =>
@@ -66,7 +86,13 @@ export function CartProvider({ children }) {
     const toggleDrawer = () => setDrawerOpen(v => !v);
 
     return (
-        <CartContext.Provider value={{ cart, addItem, decreaseItem, removeItem, clearCart, getTotal, drawerOpen, openDrawer, closeDrawer, toggleDrawer, addCount, lastAdded }}>
+        <CartContext.Provider value={{
+            cart, addItem, decreaseItem, removeItem, clearCart,
+            getTotal, getTotalAfterDiscount,
+            drawerOpen, openDrawer, closeDrawer, toggleDrawer,
+            addCount, lastAdded,
+            appliedPromotion, applyPromotion, removePromotion,
+        }}>
             {children}
         </CartContext.Provider>
     );

@@ -13,6 +13,16 @@ import com.broandbro.qrapp.entity.User;
 import com.broandbro.qrapp.enums.OrderPriority;
 import com.broandbro.qrapp.enums.OrderStatus;
 import com.broandbro.qrapp.enums.PaymentMethod;
+import com.broandbro.qrapp.promotion.engine.CartContext;
+import com.broandbro.qrapp.promotion.engine.CartItemContext;
+import com.broandbro.qrapp.promotion.engine.EligibilityContext;
+import com.broandbro.qrapp.promotion.engine.EligibilityResult;
+import com.broandbro.qrapp.promotion.engine.UserContext;
+import com.broandbro.qrapp.promotion.engine.rule.PromotionRuleEngine;
+import com.broandbro.qrapp.promotion.entity.Promotion;
+import com.broandbro.qrapp.promotion.entity.PromotionUsage;
+import com.broandbro.qrapp.promotion.repository.PromotionRepository;
+import com.broandbro.qrapp.promotion.repository.PromotionUsageRepository;
 import com.broandbro.qrapp.repository.MenuRepository;
 import com.broandbro.qrapp.repository.OrderItemRepository;
 import com.broandbro.qrapp.repository.OrderRepository;
@@ -59,6 +69,10 @@ public class OrderService {
     private final WhatsAppService whatsappService;
     private final OrderNumberGenerator orderNumberGenerator;
     private final PricingService pricingService;
+    private final PromotionRepository promotionRepository;
+    private final PromotionUsageRepository promotionUsageRepository;
+    private final PromotionRuleEngine promotionRuleEngine;
+    private final MilestoneCouponService milestoneCouponService;
 
     /**
      * Creates a new order with a human-readable order number.
@@ -75,7 +89,7 @@ public class OrderService {
      * @throws RuntimeException if order number generation fails
      */
     @Transactional
-    public Order createOrder(CreateOrderRequest req, User user) {
+    public CreateOrderResult createOrder(CreateOrderRequest req, User user) {
         LocalDateTime now = LocalDateTime.now();
         Order order = new Order();
         order.setPhone(user != null ? user.getPhone() : req.getPhone());
@@ -106,7 +120,16 @@ public class OrderService {
         }
 
         // ── Step 2: set order-level totals before the first (only) save ─────────
-        java.math.BigDecimal couponDiscount = order.getCouponDiscount() != null ? order.getCouponDiscount() : java.math.BigDecimal.ZERO;
+        java.math.BigDecimal couponDiscount = java.math.BigDecimal.ZERO;
+
+        // Apply promotion if code provided
+        if (req.getPromotionCode() != null && !req.getPromotionCode().isBlank() && user != null) {
+            couponDiscount = resolvePromotionDiscount(req, user, subtotal, couponDiscount);
+            if (couponDiscount.compareTo(java.math.BigDecimal.ZERO) > 0) {
+                order.setCouponCode(req.getPromotionCode().toUpperCase());
+                order.setCouponDiscount(couponDiscount);
+            }
+        }
         java.math.BigDecimal tax = java.math.BigDecimal.ZERO;
         order.setSubtotal(subtotal);
         order.setTax(tax);
@@ -115,6 +138,22 @@ public class OrderService {
         // ── Step 3: single save — order persisted with correct totals + gets ID ─
         order = orderRepo.save(order);
         recordStatusHistory(order.getId(), null, OrderStatus.ORDER_PLACED, "Order created", "SYSTEM", now);
+
+        // Record promotion usage (after order gets its ID)
+        if (req.getPromotionCode() != null && !req.getPromotionCode().isBlank()
+                && user != null && couponDiscount.compareTo(java.math.BigDecimal.ZERO) > 0) {
+            recordPromotionUsage(req.getPromotionCode(), user, order, couponDiscount, subtotal);
+        }
+
+        // ── Milestone coupon check ─────────────────────────────────────────────
+        // Runs in a separate transaction — a failure here never rolls back the order
+        java.util.List<String> awardedCoupons = java.util.List.of();
+        if (user != null) {
+            awardedCoupons = milestoneCouponService.checkAndAwardMilestones(user, order.getGrandTotal());
+            if (!awardedCoupons.isEmpty()) {
+                log.info("Milestone coupons awarded for order {}: {}", order.getId(), awardedCoupons);
+            }
+        }
 
         // ── Step 4: persist order items ──────────────────────────────────────────
         for (Object[] pair : itemSnaps) {
@@ -131,8 +170,11 @@ public class OrderService {
             orderItemRepo.save(oi);
         }
 
-        return order;
+        return new CreateOrderResult(order, awardedCoupons);
     }
+
+    /** Wraps the created order together with any milestone coupons awarded during this order. */
+    public record CreateOrderResult(Order order, java.util.List<String> awardedCoupons) {}
 
     @Transactional(readOnly = true)
     public List<UserOrderSummaryResponse> getOrdersForUser(User user) {
@@ -630,6 +672,85 @@ public class OrderService {
         }
         String trimmed = value.trim();
         return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    /**
+     * Validates and computes the discount for a promotion code.
+     * Returns ZERO if the promotion is not found or fails eligibility.
+     * Logs a warning rather than throwing — order creation must not fail due to a bad promo code.
+     */
+    private java.math.BigDecimal resolvePromotionDiscount(
+            CreateOrderRequest req, User user, java.math.BigDecimal subtotal,
+            java.math.BigDecimal fallback) {
+        try {
+            Promotion promotion = promotionRepository
+                    .findByCode(req.getPromotionCode().toUpperCase())
+                    .orElse(null);
+            if (promotion == null) {
+                log.warn("Promotion not found at order creation: {}", req.getPromotionCode());
+                return fallback;
+            }
+
+            int orderCount = (int) orderRepo.countByUserId(user.getId());
+            java.time.LocalDateTime lastOrderAt = orderRepo.findLastOrderAtByUserId(user.getId()).orElse(null);
+            UserContext userCtx = new UserContext(user.getId(), orderCount, lastOrderAt);
+
+            List<CartItemContext> items = req.getItems().stream()
+                    .map(i -> {
+                        try {
+                            com.broandbro.qrapp.entity.MenuItem mi = menuRepository.findById(i.getItemId()).orElse(null);
+                            Long catId = (mi != null && mi.getCategory() != null) ? mi.getCategory().getId() : null;
+                            java.math.BigDecimal price = (mi != null)
+                                    ? pricingService.getCurrentSellingPrice(mi.getId())
+                                    : java.math.BigDecimal.ZERO;
+                            return new CartItemContext(i.getItemId(), catId, i.getQuantity(), price);
+                        } catch (Exception e) {
+                            return new CartItemContext(i.getItemId(), null, i.getQuantity(), java.math.BigDecimal.ZERO);
+                        }
+                    }).toList();
+
+            Long restaurantId = items.stream()
+                    .findFirst()
+                    .map(CartItemContext::menuItemId)
+                    .map(id -> {
+                        try {
+                            var mi = menuRepository.findById(id).orElse(null);
+                            return (mi != null && mi.getShop() != null) ? mi.getShop().getId() : null;
+                        } catch (Exception e) { return null; }
+                    }).orElse(null);
+
+            CartContext cartCtx = new CartContext(restaurantId, subtotal, java.math.BigDecimal.ZERO, items);
+            EligibilityContext ctx = new EligibilityContext(userCtx, cartCtx, java.time.LocalDateTime.now());
+
+            EligibilityResult result = promotionRuleEngine.evaluate(ctx, promotion);
+            if (!result.eligible()) {
+                log.warn("Promotion {} ineligible at order creation: {}", req.getPromotionCode(), result.failureReason());
+                return fallback;
+            }
+            return result.discount() != null ? result.discount() : fallback;
+        } catch (Exception e) {
+            log.error("Error resolving promotion discount for code: {}", req.getPromotionCode(), e);
+            return fallback;
+        }
+    }
+
+    private void recordPromotionUsage(String code, User user, Order order,
+                                      java.math.BigDecimal discount, java.math.BigDecimal subtotal) {
+        try {
+            promotionRepository.findByCode(code.toUpperCase()).ifPresent(promotion -> {
+                PromotionUsage usage = PromotionUsage.builder()
+                        .promotionId(promotion.getId())
+                        .userId(user.getId())
+                        .orderId(order.getId())
+                        .promotionCode(code.toUpperCase())
+                        .discountAmount(discount)
+                        .orderSubtotal(subtotal)
+                        .build();
+                promotionUsageRepository.save(usage);
+            });
+        } catch (Exception e) {
+            log.error("Failed to record promotion usage for code: {} order: {}", code, order.getId(), e);
+        }
     }
 }
 

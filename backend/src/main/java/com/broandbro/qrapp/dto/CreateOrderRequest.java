@@ -21,6 +21,9 @@ public class CreateOrderRequest {
     @Valid
     private List<Item> items;
 
+    /** Optional promotion code to apply at order creation time */
+    private String promotionCode;
+
     @Data
     public static class Item {
         @NotNull

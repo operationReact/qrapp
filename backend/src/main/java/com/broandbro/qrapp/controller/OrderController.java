@@ -53,7 +53,9 @@ public class OrderController {
             walletService.ensureSufficientBalance(currentUser, amountForWallet);
         }
 
-        Order order = service.createOrder(req, currentUser);
+        OrderService.CreateOrderResult result = service.createOrder(req, currentUser);
+        Order order = result.order();
+        java.util.List<String> awardedCoupons = result.awardedCoupons();
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("orderId", order.getId());
         body.put("orderNumber", order.getOrderNumber());
@@ -64,6 +66,7 @@ public class OrderController {
             service.markOrderPaidByWallet(order.getId());
             body.put("paymentStatus", "PAID");
             body.put("amount", amountForWallet);
+            if (!awardedCoupons.isEmpty()) body.put("awardedCoupons", awardedCoupons);
             return ResponseEntity.status(HttpStatus.CREATED).body(body);
         }
 
@@ -72,6 +75,7 @@ public class OrderController {
         Map<String, Object> payment = paymentService.createRazorpayOrder(order.getId(), amount);
         body.put("paymentStatus", order.getPaymentStatus());
         body.put("payment", payment);
+        if (!awardedCoupons.isEmpty()) body.put("awardedCoupons", awardedCoupons);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(body);
     }

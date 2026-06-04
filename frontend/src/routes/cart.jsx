@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/drawer";
 import { CaretDown, Plus, Receipt } from "@boxicons/react";
 import { ChevronRight } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import Navbar from "@/components/shared/Navbar";
 import { useCart } from "@/context/CartContext";
@@ -47,6 +47,8 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty";
 import { ListStarIcon, ShoppingCartIcon } from "@phosphor-icons/react";
+import { PromotionDrawer } from "@/components/PromotionDrawer";
+import { useCheckoutPromotions } from "@/hooks/useCheckoutPromotions";
 
 function loadRazorpayScript(
   src = "https://checkout.razorpay.com/v1/checkout.js",
@@ -72,11 +74,13 @@ function CartPage() {
   const {
     cart,
     removeItem,
-    getTotal,
     addItem,
     decreaseItem,
     closeDrawer,
     clearCart,
+    appliedPromotion,
+    applyPromotion,
+    removePromotion,
   } = useCart();
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -88,9 +92,58 @@ function CartPage() {
   const [paymentMethod, setPaymentMethod] = useState("RAZORPAY");
   const [submitting, setSubmitting] = useState(false);
 
-  const total = useMemo(() => Number(getTotal() || 0), [getTotal]);
+  // Compute directly from cart so it updates on every cart state change
+  const total = cart.reduce((sum, i) => sum + Number(i.price) * i.quantity, 0);
+
+  // ── Promotion engine ────────────────────────────────────────────────────
+  const {
+    eligiblePromotions,
+    ineligiblePromotions,
+    recommendedPromotion,
+    cartPayload,
+    isLoading: promotionsLoading,
+  } = useCheckoutPromotions(cart, !!user?.token);
+
+  // Derive the live discount directly — no useMemo so it always reads
+  // the freshest eligiblePromotions on every render.
+  const liveAppliedPromotion = (() => {
+    if (!appliedPromotion) return null;
+    return (
+      eligiblePromotions.find(
+        (p) => p.id === appliedPromotion.id || p.code === appliedPromotion.code
+      ) ?? appliedPromotion // fall back to stored value while re-fetching
+    );
+  })();
+
+  const discount = Number(liveAppliedPromotion?.actualDiscount ?? 0);
+  const totalAfterDiscount = Math.max(0, total - discount);
+
   const hasWalletBalance = typeof walletBalance === "number";
-  const walletCanCoverOrder = hasWalletBalance && walletBalance >= total;
+  const walletCanCoverOrder = hasWalletBalance && walletBalance >= totalAfterDiscount;
+
+  // Auto-apply the recommended promotion on first load
+  useEffect(() => {
+    if (recommendedPromotion && !appliedPromotion) {
+      applyPromotion({ ...recommendedPromotion, isAutoApplied: true });
+    }
+    // Only auto-apply once on first recommendation
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recommendedPromotion]);
+
+  // Remove applied promotion if it becomes ineligible after cart changes
+  useEffect(() => {
+    if (!appliedPromotion || promotionsLoading) return;
+    const stillEligible = eligiblePromotions.some(
+      (p) => p.id === appliedPromotion.id || p.code === appliedPromotion.code
+    );
+    const nowIneligible = ineligiblePromotions.some(
+      (p) => p.id === appliedPromotion.id || p.code === appliedPromotion.code
+    );
+    if (!stillEligible && nowIneligible) {
+      removePromotion();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [eligiblePromotions, ineligiblePromotions, promotionsLoading]);
 
   useEffect(() => {
     if (closeDrawer) closeDrawer();
@@ -134,7 +187,7 @@ function CartPage() {
         if (!mounted) return;
         const nextBalance = Number(resp?.balance ?? 0);
         setWalletBalance(nextBalance);
-        if (nextBalance >= total && total > 0) {
+        if (nextBalance >= totalAfterDiscount && totalAfterDiscount > 0) {
           setPaymentMethod((current) =>
             current === "RAZORPAY" ? "WALLET" : current,
           );
@@ -150,7 +203,7 @@ function CartPage() {
     return () => {
       mounted = false;
     };
-  }, [total, user?.token]);
+  }, [totalAfterDiscount, user?.token]);
 
   const handleCheckout = async () => {
     if (!user || !user.token) {
@@ -188,7 +241,12 @@ function CartPage() {
         }
       }
 
-      const res = await createOrder({ items, phone, paymentMethod });
+      const res = await createOrder({
+        items,
+        phone,
+        paymentMethod,
+        promotionCode: appliedPromotion?.code ?? undefined,
+      });
       console.log("Order response:", res);
       const responsePaymentMethod = res?.paymentMethod || paymentMethod;
 
@@ -202,6 +260,7 @@ function CartPage() {
             paymentMethod: "WALLET",
             orderNumber: res?.orderNumber,
             orderId: res?.orderId,
+            awardedCoupons: res?.awardedCoupons ?? [],
           },
         });
         return;
@@ -240,6 +299,7 @@ function CartPage() {
               paymentMethod: "RAZORPAY",
               orderNumber: res?.orderNumber,
               orderId: res?.orderId,
+              awardedCoupons: res?.awardedCoupons ?? [],
             },
           });
         },
@@ -323,6 +383,26 @@ function CartPage() {
             </div>
           )}
 
+          {/* ── Promotion Section ─────────────────────────────────────── */}
+          {cart.length > 0 && cartPayload && (
+            <section className="rounded-lg bg-white shadow-sm p-4">
+              <h4 className="text-sm font-semibold mb-3 text-muted-foreground uppercase tracking-wide">
+                Offers & Coupons
+              </h4>
+              <PromotionDrawer
+                cartPayload={cartPayload}
+                eligiblePromotions={eligiblePromotions}
+                ineligiblePromotions={ineligiblePromotions}
+                appliedPromotion={liveAppliedPromotion}
+                onApply={(promo) => {
+                  if (promo === null) removePromotion();
+                  else applyPromotion(promo);
+                }}
+                isLoading={promotionsLoading}
+              />
+            </section>
+          )}
+
           <section className="rounded-lg bg-white shadow-sm p-4 mb-12">
             <div className="flex items-center justify-between gap-3">
               <div>
@@ -383,8 +463,20 @@ function CartPage() {
                     </svg>{" "}
                     Total
                   </div>
-                  <div className="font-bold text-lg">
-                    ₹{getTotal().toFixed(2)}
+                  <div className="flex flex-col items-end">
+                    {discount > 0 && (
+                      <span className="text-xs text-muted-foreground line-through">
+                        ₹{total.toFixed(2)}
+                      </span>
+                    )}
+                    <div className="font-bold text-lg">
+                      ₹{totalAfterDiscount.toFixed(2)}
+                    </div>
+                    {discount > 0 && liveAppliedPromotion && (
+                      <span className="text-xs text-green-700 font-medium">
+                        -₹{discount.toFixed(2)} with {liveAppliedPromotion.code ?? "offer"}
+                      </span>
+                    )}
                   </div>
                 </div>
 
@@ -522,7 +614,11 @@ function CartPage() {
                     disabled={submitting}
                     className="sm:w-1/2 h-full max-w-2xs font-medium!"
                   >
-                    Place Order <ChevronRight className="size-5" />
+                    Place Order{" "}
+                    {discount > 0
+                      ? `₹${totalAfterDiscount.toFixed(2)}`
+                      : `₹${total.toFixed(2)}`}
+                    <ChevronRight className="size-5" />
                   </Button>
                 </div>
               </div>

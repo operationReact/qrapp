@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Link, useLocation } from "@tanstack/react-router";
-import { Button, buttonVariants } from "@/components/ui/button";
-import { ArchiveIcon, CreditCardIcon, WalletIcon } from "@phosphor-icons/react";
+import { buttonVariants } from "@/components/ui/button";
+import { ArchiveIcon, CreditCardIcon, WalletIcon, GiftIcon } from "@phosphor-icons/react";
 import {
   Card,
   CardContent,
@@ -20,6 +20,7 @@ function SuccessPage() {
   const paymentMethod = location.state?.paymentMethod || "RAZORPAY";
   const orderNumber = location.state?.orderNumber;
   const orderId = location.state?.orderId;
+  const awardedCoupons = location.state?.awardedCoupons ?? [];
   const isWallet = paymentMethod === "WALLET";
 
   return (
@@ -86,6 +87,37 @@ function SuccessPage() {
                 <ArchiveIcon className="size-16" />
               </div>
             </div>
+
+            {awardedCoupons.length > 0 && (
+              <div className="relative overflow-hidden rounded-md bg-linear-to-br from-purple-50 to-purple-100/50 p-2">
+                <div className="flex items-center gap-2">
+                  <span className="rounded-full bg-purple-500/10 p-1.5">
+                    <GiftIcon weight="fill" className="size-4 text-purple-600" />
+                  </span>
+                  <span className="text-xs font-medium text-purple-700">
+                    🎉 Milestone {awardedCoupons.length === 1 ? "Coupon" : "Coupons"} Unlocked!
+                  </span>
+                </div>
+                <div className="mt-2 grid gap-1">
+                  {awardedCoupons.map((code) => (
+                    <div
+                      key={code}
+                      className="flex items-center justify-between rounded bg-purple-100/70 px-2 py-1"
+                    >
+                      <span className="font-mono text-sm font-semibold tracking-wider text-purple-800">
+                        {code}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                <p className="mt-2 text-xs text-purple-600">
+                  Use {awardedCoupons.length === 1 ? "this coupon" : "these coupons"} on your next order for a discount!
+                </p>
+                <div className="absolute -right-2 -bottom-2 opacity-10">
+                  <GiftIcon className="size-16" />
+                </div>
+              </div>
+            )}
           </CardContent>
 
           <CardFooter className="grid gap-3">
