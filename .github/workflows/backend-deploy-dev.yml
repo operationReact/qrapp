@@ -163,6 +163,21 @@ jobs:
             --output text 2>/dev/null || echo "unknown")
           echo "EC2 state: $STATE"
 
+          IAM_PROFILE=$(aws ec2 describe-instances \
+            --region ap-south-1 \
+            --instance-ids "$INSTANCE_ID" \
+            --query "Reservations[0].Instances[0].IamInstanceProfile.Arn" \
+            --output text 2>/dev/null || echo "None")
+          echo "Instance profile: $IAM_PROFILE"
+
+          STATUS_SUMMARY=$(aws ec2 describe-instance-status \
+            --region ap-south-1 \
+            --include-all-instances \
+            --instance-ids "$INSTANCE_ID" \
+            --query "InstanceStatuses[0].{system:SystemStatus.Status,instance:InstanceStatus.Status}" \
+            --output text 2>/dev/null || echo "unknown")
+          echo "EC2 status checks: $STATUS_SUMMARY"
+
           if [ "$STATE" = "stopped" ] || [ "$STATE" = "stopping" ]; then
             echo "EC2 is $STATE. Starting instance..."
             aws ec2 start-instances --region ap-south-1 --instance-ids "$INSTANCE_ID"
@@ -183,6 +198,26 @@ jobs:
             fi
             sleep 10
           done
+
+          if [ "$SSM_STATUS" != "Online" ]; then
+            echo "SSM agent is not Online (got: $SSM_STATUS). Attempting one reboot..."
+            aws ec2 reboot-instances --region ap-south-1 --instance-ids "$INSTANCE_ID"
+            aws ec2 wait instance-status-ok --region ap-south-1 --instance-ids "$INSTANCE_ID"
+            echo "Reboot complete. Re-checking SSM connectivity..."
+            for i in $(seq 1 30); do
+              SSM_STATUS=$(aws ssm describe-instance-information \
+                --region ap-south-1 \
+                --filters "Key=InstanceIds,Values=$INSTANCE_ID" \
+                --query "InstanceInformationList[0].PingStatus" \
+                --output text 2>/dev/null || echo "None")
+              echo "[reboot $i/30] SSM agent PingStatus: $SSM_STATUS"
+              if [ "$SSM_STATUS" = "Online" ]; then
+                break
+              fi
+              sleep 10
+            done
+          fi
+
           if [ "$SSM_STATUS" != "Online" ]; then
             echo "SSM agent is not Online (got: $SSM_STATUS). Cannot deploy."
             echo "Check: AWS Console -> Systems Manager -> Fleet Manager -> $INSTANCE_ID"
