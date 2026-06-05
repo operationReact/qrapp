@@ -6,8 +6,6 @@ import {
   Carousel,
   CarouselContent,
   CarouselItem,
-  CarouselPrevious,
-  CarouselNext,
   useCarousel,
 } from "@/components/ui/carousel";
 import {
@@ -23,9 +21,10 @@ import {
 import NewPartyOrder from "@/components/shared/NewPartyOrder";
 import CombosDrawer from "@/components/CombosDrawer";
 import { cn } from "@/lib/utils";
+import { ArrowRightIcon } from "@phosphor-icons/react";
 
-// ── Carousel dot indicators ────────────────────────────────────────────────
-function CarouselDots({ itemCount }) {
+// ── Slim progress dots ─────────────────────────────────────────────────────
+function ProgressDots({ itemCount }) {
   const { api } = useCarousel();
   const [selectedIndex, setSelectedIndex] = useState(0);
 
@@ -37,13 +36,13 @@ function CarouselDots({ itemCount }) {
   }, [api]);
 
   return (
-    <div className="flex lg:hidden justify-center gap-1.5 mt-2">
+    <div className="flex justify-center gap-1.5 mt-3">
       {Array.from({ length: itemCount }).map((_, i) => (
         <div
           key={i}
           className={cn(
-            "h-1.5 rounded-full transition-all duration-300",
-            selectedIndex === i ? "w-4 bg-primary" : "w-1.5 bg-gray-300",
+            "h-[3px] rounded-full transition-all duration-300",
+            selectedIndex === i ? "w-6 bg-gray-800" : "w-[6px] bg-gray-300",
           )}
         />
       ))}
@@ -51,7 +50,118 @@ function CarouselDots({ itemCount }) {
   );
 }
 
-// ── Party Order card — self-contained with Drawer ─────────────────────────
+// ── Shared card shell ──────────────────────────────────────────────────────
+// Renders two layouts:
+//   • Mobile  (<md): compact 110px horizontal card — image peeking right
+//   • Desktop (md+): full-bleed 190px banner with scrim overlay
+function CardShell({ deal, ctaNode }) {
+  return (
+    <>
+      {/* ── MOBILE: compact horizontal card ──────────────────────── */}
+      <div
+        className="md:hidden relative flex overflow-hidden rounded-2xl"
+        style={{ height: "110px", background: deal.mobileBg }}
+      >
+        {/* Left — text */}
+        <div className="flex min-w-0 flex-1 flex-col justify-between p-3">
+          <span
+            className="self-start rounded-full px-2 py-[2px] text-[9px] font-extrabold leading-none tracking-wide text-white"
+            style={{ background: "rgba(255,255,255,0.20)" }}
+          >
+            {deal.icon} {deal.badge}
+          </span>
+
+          <div className="flex flex-col gap-0.5">
+            <span className="text-[13px] font-extrabold leading-tight text-white line-clamp-2">
+              {deal.title}
+            </span>
+            <span className="line-clamp-1 text-[10px] font-medium leading-snug text-white/70">
+              {deal.subtitle}
+            </span>
+          </div>
+
+          {/* Compact inline CTA */}
+          <span className="flex items-center gap-0.5 text-[10px] font-bold text-white/90">
+            {deal.cta}
+            <ArrowRightIcon weight="bold" className="size-2.5" />
+          </span>
+        </div>
+
+        {/* Right — image peek with left-fade */}
+        <div className="relative w-[88px] flex-shrink-0 overflow-hidden">
+          <img
+            src={deal.imgSrc}
+            alt=""
+            aria-hidden
+            draggable="false"
+            className="h-full w-full object-cover"
+          />
+          {/* Blend image into card background */}
+          <div
+            className="pointer-events-none absolute inset-y-0 left-0 w-10"
+            style={{
+              background: `linear-gradient(to right, ${deal.mobileBgFrom}, transparent)`,
+            }}
+          />
+        </div>
+      </div>
+
+      {/* ── DESKTOP: full-bleed banner ────────────────────────────── */}
+      <div
+        className="hidden md:block relative overflow-hidden rounded-2xl"
+        style={{ height: "190px" }}
+      >
+        <img
+          src={deal.imgSrc}
+          alt={deal.title}
+          draggable="false"
+          className="absolute inset-0 h-full w-full object-cover pointer-events-none"
+        />
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "linear-gradient(to top, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.28) 52%, transparent 100%)",
+          }}
+        />
+        <div className="absolute inset-0 flex flex-col justify-between p-4">
+          <span
+            className="self-start rounded-full px-2.5 py-[3px] text-[10px] font-extrabold leading-none tracking-wide"
+            style={{
+              background: deal.badgeBg ?? "rgba(255,255,255,0.88)",
+              color: deal.badgeColor ?? "#111827",
+            }}
+          >
+            {deal.icon} {deal.badge}
+          </span>
+          <div className="flex items-end justify-between gap-4">
+            <div className="flex min-w-0 flex-1 flex-col gap-[3px]">
+              <span className="text-[18px] font-extrabold leading-tight text-white drop-shadow-sm">
+                {deal.title}
+              </span>
+              <span className="line-clamp-2 text-[11px] font-medium leading-snug text-white/75">
+                {deal.subtitle}
+              </span>
+            </div>
+            {ctaNode}
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
+// Frosted-glass CTA button — used on all card types
+function GlassCTA({ label }) {
+  return (
+    <span className="flex flex-shrink-0 cursor-pointer select-none items-center gap-1 whitespace-nowrap rounded-xl border border-white/35 bg-white/15 px-3 py-[7px] text-[11px] font-bold text-white backdrop-blur-sm transition-colors hover:bg-white/25">
+      {label}
+      <ArrowRightIcon weight="bold" className="size-2.5" />
+    </span>
+  );
+}
+
+// ── Party Order card — triggers full Drawer ────────────────────────────────
 const FORM_ID = "discover-party-order-form";
 
 function PartyOrderCard({ deal }) {
@@ -60,188 +170,152 @@ function PartyOrderCard({ deal }) {
   const [created, setCreated] = useState(false);
 
   return (
-    <div
-      className={cn(
-        "rounded-xl p-2 pr-[68px] pt-2 border relative overflow-clip min-h-[80px]",
-        deal.bgClass,
-      )}
+    <Drawer
+      open={open}
+      onOpenChange={(v) => {
+        setOpen(v);
+        if (!v) setCreated(false);
+      }}
     >
-      <div className="grid gap-0.5 text-wrap">
-        <h3 className="text-sm font-semibold leading-tight pr-2">
-          {deal.icon} {deal.title}
-        </h3>
-        <p className="text-xs text-pretty text-muted-foreground leading-tight mb-0.5">
-          {deal.subtitle}
-        </p>
-
-        <Drawer
-          open={open}
-          onOpenChange={(v) => { setOpen(v); if (!v) setCreated(false); }}
+      <DrawerTrigger asChild>
+        <div
+          role="button"
+          tabIndex={0}
+          className="w-full cursor-pointer"
+          onKeyDown={(e) => e.key === "Enter" && setOpen(true)}
         >
-          <DrawerTrigger asChild>
-            <Button
-              variant="outline"
-              size="sm"
-              className={cn("w-fit h-7 bg-white font-semibold text-xs", deal.btnClass)}
-            >
-              {deal.cta}
-            </Button>
-          </DrawerTrigger>
-          <DrawerContent className="px-4 md:max-w-md md:mx-auto">
-            <DrawerHeader>
-              <DrawerTitle className="text-lg font-semibold text-center">
-                Create Party Order
-              </DrawerTitle>
-              <DrawerDescription>
-                Tell us about your event and preferred menu.
-                <br />
-                We'll get back to you with an estimate.
-              </DrawerDescription>
-            </DrawerHeader>
-            <div
-              className="no-scrollbar flex-1 overflow-y-auto px-1 py-4"
-              style={{ WebkitOverflowScrolling: "touch" }}
-            >
-              <NewPartyOrder
-                formId={FORM_ID}
-                hideSubmitButton
-                onClose={() => setOpen(false)}
-                onPendingChange={setPending}
-                onSuccess={() => setCreated(true)}
-              />
-            </div>
-            {!created && (
-              <DrawerFooter className="px-2">
-                <Button
-                  type="submit"
-                  form={FORM_ID}
-                  size="lg"
-                  className="w-full"
-                  disabled={pending}
-                >
-                  {pending ? "Submitting…" : "Request Estimate"}
-                </Button>
-                <DrawerClose
-                  className={buttonVariants({ variant: "ghost", className: "w-full" })}
-                >
-                  Cancel
-                </DrawerClose>
-              </DrawerFooter>
-            )}
-          </DrawerContent>
-        </Drawer>
-      </div>
+          <CardShell deal={deal} ctaNode={<GlassCTA label={deal.cta} />} />
+        </div>
+      </DrawerTrigger>
 
-      <div
-        className={cn(
-          "absolute -right-4 -bottom-4 w-20 h-20 rounded-full blur-xl opacity-60",
-          deal.blobClass,
+      <DrawerContent className="px-4 md:max-w-md md:mx-auto">
+        <DrawerHeader>
+          <DrawerTitle className="text-center text-lg font-semibold">
+            Create Party Order
+          </DrawerTitle>
+          <DrawerDescription>
+            Tell us about your event and preferred menu.
+            <br />
+            We'll get back to you with an estimate.
+          </DrawerDescription>
+        </DrawerHeader>
+        <div
+          className="no-scrollbar flex-1 overflow-y-auto px-1 py-4"
+          style={{ WebkitOverflowScrolling: "touch" }}
+        >
+          <NewPartyOrder
+            formId={FORM_ID}
+            hideSubmitButton
+            onClose={() => setOpen(false)}
+            onPendingChange={setPending}
+            onSuccess={() => setCreated(true)}
+          />
+        </div>
+        {!created && (
+          <DrawerFooter className="px-2">
+            <Button
+              type="submit"
+              form={FORM_ID}
+              size="lg"
+              className="w-full"
+              disabled={pending}
+            >
+              {pending ? "Submitting…" : "Request Estimate"}
+            </Button>
+            <DrawerClose
+              className={buttonVariants({ variant: "ghost", className: "w-full" })}
+            >
+              Cancel
+            </DrawerClose>
+          </DrawerFooter>
         )}
-      />
-      <img
-        src={deal.imgSrc}
-        alt={deal.title}
-        className={cn(
-          "absolute -right-2 top-1/2 -translate-y-1/2 w-16 h-16 object-cover rounded-full shadow-md z-10",
-          deal.imgClass,
-        )}
-      />
-    </div>
+      </DrawerContent>
+    </Drawer>
   );
 }
 
 // ── Static deal card ───────────────────────────────────────────────────────
-function StaticDealCard({ deal, onClick }) {
+function StaticDealCard({ deal, onClick, categoryName }) {
+  const handleClick = () => {
+    if (categoryName) {
+      // Set the hash — the browser auto-scrolls to the matching section id
+      // and TanStack Router picks up the location change.
+      // Using the raw name (not encoded) so the browser encodes it to
+      // match the section's id={encodeURIComponent(catName)}.
+      window.location.hash = categoryName;
+      return;
+    }
+    onClick?.();
+  };
+
   return (
     <div
-      className={cn(
-        "rounded-xl p-2 pr-[68px] pt-2 border relative overflow-clip min-h-[80px]",
-        deal.bgClass,
-      )}
+      role="button"
+      tabIndex={0}
+      className="w-full cursor-pointer"
+      onClick={handleClick}
+      onKeyDown={(e) => e.key === "Enter" && handleClick()}
     >
-      <div className="grid gap-0.5 text-wrap">
-        <h3 className="text-sm font-semibold leading-tight pr-2">
-          {deal.icon} {deal.title}
-        </h3>
-        <p className="text-xs text-pretty text-muted-foreground leading-tight mb-0.5">
-          {deal.subtitle}
-        </p>
-        <Button
-          variant="outline"
-          size="sm"
-          className={cn("w-fit h-7 bg-white font-semibold text-xs", deal.btnClass)}
-          onClick={onClick}
-        >
-          {deal.cta}
-        </Button>
-      </div>
-
-      <div
-        className={cn(
-          "absolute -right-4 -bottom-4 w-20 h-20 rounded-full blur-xl opacity-60",
-          deal.blobClass,
-        )}
-      />
-      <img
-        src={deal.imgSrc}
-        alt={deal.title}
-        className={cn(
-          "absolute -right-2 top-1/2 -translate-y-1/2 w-16 h-16 object-cover rounded-full shadow-md z-10",
-          deal.imgClass,
-        )}
-      />
+      <CardShell deal={deal} ctaNode={<GlassCTA label={deal.cta} />} />
     </div>
   );
 }
 
 // ── Discovery cards config ─────────────────────────────────────────────────
-// Add new featured experiences here — no layout code changes needed.
 const DISCOVERY_CARDS = [
   {
     id: "party",
-    type: "party",           // renders PartyOrderCard with its Drawer
+    type: "party",
+    badge: "For Groups",
     title: "Party & Team Orders",
-    subtitle: "Ordering for a group? Let us handle the food.",
+    subtitle: "Let us handle catering for your celebration or team lunch.",
     cta: "Start Party Order",
     icon: "🎉",
-    bgClass: "bg-card border-border",
-    blobClass: "bg-zinc-100",
-    btnClass: "border-border text-zinc-700 hover:bg-muted",
+    badgeBg: "rgba(234,88,12,0.88)",
+    badgeColor: "#fff",
+    // Mobile card background
+    mobileBg: "linear-gradient(135deg, #c2410c 0%, #9a1c1c 100%)",
+    mobileBgFrom: "#c2410c",
     imgSrc:
-      "https://images.unsplash.com/photo-1529543544282-ea669407fca3?q=80&w=200&auto=format&fit=crop",
-    imgClass: "border-2 border-white",
+      "https://images.unsplash.com/photo-1529543544282-ea669407fca3?q=80&w=600&auto=format&fit=crop",
   },
   {
     id: "combos",
+    badge: "Save Up To 20%",
     title: "Combo Deals",
-    subtitle: "Bundle your favorite items and save up to 20%.",
-    cta: "Explore Combos",
+    subtitle: "Bundle your favorites and save more with every order.",
+    cta: "Browse Combos",
     icon: "🏷️",
-    bgClass: "bg-card border-border",
-    blobClass: "bg-zinc-100",
-    btnClass: "border-border text-zinc-700 hover:bg-muted",
+    badgeBg: "rgba(5,150,105,0.88)",
+    badgeColor: "#fff",
+    mobileBg: "linear-gradient(135deg, #059669 0%, #0f766e 100%)",
+    mobileBgFrom: "#059669",
     imgSrc:
-      "https://images.unsplash.com/photo-1594212206063-4d6a4a4d6423?q=80&w=200&auto=format&fit=crop",
-    imgClass: "mix-blend-multiply border-transparent shadow-none",
+      "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?q=80&w=600&auto=format&fit=crop",
   },
   {
     id: "signature",
-    title: "BB Signature Products",
-    subtitle: "House-made specialties crafted by our chefs.",
+    badge: "House Specials",
+    title: "BB Exclusive Products",
+    subtitle: "Exclusive recipes crafted by our chefs, nowhere else.",
     cta: "Explore Collection",
     icon: "👑",
-    bgClass: "bg-amber-50/40 border-amber-100/60",
-    blobClass: "bg-amber-100/70",
-    btnClass: "border-amber-200 text-amber-800 hover:bg-amber-50",
+    badgeBg: "rgba(180,83,9,0.88)",
+    badgeColor: "#fff",
+    mobileBg: "linear-gradient(135deg, #92400e 0%, #78350f 100%)",
+    mobileBgFrom: "#92400e",
     imgSrc:
-      "https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&w=200&auto=format&fit=crop",
-    imgClass: "border-2 border-white object-cover",
+      "https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&w=600&auto=format&fit=crop",
+    categoryName: "BB Signature Products",
   },
 ];
 
 // ── Section ────────────────────────────────────────────────────────────────
 export default function DealsSection() {
-  const plugin = useMemo(() => Autoplay({ delay: 2000, stopOnInteraction: true }), []);
+  const plugin = useMemo(
+    () => Autoplay({ delay: 3800, stopOnInteraction: true }),
+    [],
+  );
   const [combosOpen, setCombosOpen] = useState(false);
 
   return (
@@ -249,33 +323,39 @@ export default function DealsSection() {
       <CombosDrawer open={combosOpen} onOpenChange={setCombosOpen} />
 
       <Carousel
+        opts={{ loop: true }}
         plugins={[plugin]}
         onMouseEnter={plugin.stop}
         onMouseLeave={plugin.reset}
       >
-        <div className="flex items-center justify-between mb-2">
-          <h2 className="text-[15px] font-bold">Featured for you</h2>
-          <div className="flex items-center gap-2">
-            <CarouselPrevious className="static translate-y-0 transform-none size-8 bg-zinc-50 hover:bg-gray-100 border-border rounded-md shadow-xs text-secondary-foreground" />
-            <CarouselNext className="static translate-y-0 transform-none size-8 bg-zinc-50 hover:bg-gray-100 border-border rounded-md shadow-xs text-secondary-foreground" />
-          </div>
-        </div>
+        {/* Section label — no arrow buttons */}
+        <h2 className="mb-2.5 text-[15px] font-bold">Featured for you</h2>
 
-        <CarouselContent className="pr-16">
+        <CarouselContent className="-ml-3">
           {DISCOVERY_CARDS.map((deal) => (
-            <CarouselItem key={deal.id} className="md:basis-1/2 lg:basis-1/3">
-              {deal.type === "party"
-                ? <PartyOrderCard deal={deal} />
-                : <StaticDealCard
-                    deal={deal}
-                    onClick={deal.id === "combos" ? () => setCombosOpen(true) : undefined}
-                  />
-              }
+            <CarouselItem
+              key={deal.id}
+              // Mobile: fixed compact width so next card peeks (~1.3 visible)
+              // Desktop: responsive column fractions
+              className="pl-3 basis-[260px] md:basis-full lg:basis-1/3"
+            >
+              {deal.type === "party" ? (
+                <PartyOrderCard deal={deal} />
+              ) : (
+                <StaticDealCard
+                  deal={deal}
+                  categoryName={deal.categoryName}
+                  onClick={
+                    deal.id === "combos" ? () => setCombosOpen(true) : undefined
+                  }
+                />
+              )}
             </CarouselItem>
           ))}
         </CarouselContent>
 
-        <CarouselDots itemCount={DISCOVERY_CARDS.length} />
+        {/* Slim progress indicator — no arrows, no dots clutter */}
+        <ProgressDots itemCount={DISCOVERY_CARDS.length} />
       </Carousel>
     </div>
   );

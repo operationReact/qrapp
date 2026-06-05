@@ -16,10 +16,7 @@ import MobileMenu from "../components/shared/MobileMenu";
 import { useLocation } from "@tanstack/react-router";
 import DealsSection from "@/components/DealsSection";
 import React from "react";
-import CountdownTimer from "@/components/CountdownTimer";
-import { FireIcon, SparkleIcon } from "@phosphor-icons/react";
 import { BowlFoodIcon } from "@phosphor-icons/react";
-import FeaturedSegment from "@/components/featured-segments/FeaturedSegment";
 import {
   Empty,
   EmptyDescription,
@@ -58,48 +55,11 @@ function MenuPage() {
   const categories = [...new Set((categoriesData || []).map((c) => c.name))];
 
   const menuItems = menu || [];
-  const preOrderOnly = menuItems.filter(
-    (item) => item.tag?.name === "PreOrderOnly",
-  );
 
   const getCategoryName = (item) => item.category?.name || "";
   const getTagName = (item) => item.tag?.name || "";
 
-  const normalizeCategoryName = (value) =>
-    String(value || "").replace(/\s+/g, "").toLowerCase();
-  const signatureCategoryName = "BBSignatureProducts";
 
-  const signatureProducts = menuItems.filter(
-    (item) =>
-      normalizeCategoryName(getCategoryName(item)) ===
-      normalizeCategoryName(signatureCategoryName),
-  );
-
-  // ── Pre-order window: open 08:00–21:00 local time ─────────────────────────
-  const now = new Date();
-  const todayHour = now.getHours() + now.getMinutes() / 60;
-  const isPreOrderOpen = todayHour >= 8 && todayHour < 21;
-
-  // Target for countdown: today 21:00 if window open, or tomorrow 08:00 if closed
-  const preOrderTarget = (() => {
-    const t = new Date();
-    if (isPreOrderOpen) {
-      t.setHours(21, 0, 0, 0);          // close tonight at 21:00
-    } else {
-      if (todayHour >= 21) {
-        t.setDate(t.getDate() + 1);      // tomorrow
-      }
-      t.setHours(8, 0, 0, 0);           // opens at 08:00
-    }
-    return t.toISOString();
-  })();
-  const freshAndHealthy = menuItems.filter(
-    (item) =>
-      item.isVeg === true ||
-      item.isVeg === "true" ||
-      item.isVeg === 1 ||
-      item.isVeg === "1",
-  );
   const filtered = menuItems.filter((item) => {
     // Normalize possible server representations for boolean-ish isVeg
     const isVeg =
@@ -209,52 +169,6 @@ function MenuPage() {
             </Empty>
           )}
 
-          {preOrderOnly.length > 0 && (
-            <FeaturedSegment
-              variant="preorder"
-              title="Exclusive items avialable only on  Pre-Order for Tomorrow"
-              subtitle={
-                isPreOrderOpen
-                  ? "Pre-order now for tomorrow. Window closes at 9 PM."
-                  : "Browse tomorrow's menu · Ordering opens at 8 AM."
-              }
-              badge={isPreOrderOpen ? "Limited Time" : "Opens 8 AM"}
-              icon={<FireIcon weight="duotone" />}
-              action={
-                <CountdownTimer
-                  targetDate={preOrderTarget}
-                  label={isPreOrderOpen ? "Closes in" : "Opens in"}
-                  expiredLabel={isPreOrderOpen ? "Closing…" : "Soon"}
-                  className="text-right"
-                />
-              }
-              items={preOrderOnly}
-              itemProps={
-                isPreOrderOpen
-                  ? {}
-                  : { overrideUnavailable: true, unavailableLabel: "Opens 8 AM" }
-              }
-            />
-          )}
-
-          {signatureProducts.length > 0 && (
-            <FeaturedSegment
-              variant="signature"
-              title="BB Signature Products"
-              subtitle="Premium house specialties crafted by our chefs"
-              badge="House Special"
-              items={signatureProducts}
-            />
-          )}
-
-          <FeaturedSegment
-            variant="healthy"
-            title="Fresh & Healthy"
-            subtitle="Balanced meals, fresh ingredients, nourishing bowls"
-            badge="Wholesome"
-            icon={<SparkleIcon weight="duotone" />}
-            items={freshAndHealthy}
-          />
 
           {/* CATEGORY ROWS — compact header + carousel */}
           {Object.entries(groups).map(([catName, items]) => (
