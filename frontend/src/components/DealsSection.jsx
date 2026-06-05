@@ -62,15 +62,15 @@ function PartyOrderCard({ deal }) {
   return (
     <div
       className={cn(
-        "rounded-xl p-2.5 pr-20 pt-3 border relative overflow-clip min-h-[108px]",
+        "rounded-xl p-2 pr-[68px] pt-2 border relative overflow-clip min-h-[80px]",
         deal.bgClass,
       )}
     >
-      <div className="grid gap-1 mb-1 text-wrap">
+      <div className="grid gap-0.5 text-wrap">
         <h3 className="text-sm font-semibold leading-tight pr-2">
           {deal.icon} {deal.title}
         </h3>
-        <p className="text-xs text-pretty text-muted-foreground leading-tight mb-1.5">
+        <p className="text-xs text-pretty text-muted-foreground leading-tight mb-0.5">
           {deal.subtitle}
         </p>
 
@@ -82,7 +82,7 @@ function PartyOrderCard({ deal }) {
             <Button
               variant="outline"
               size="sm"
-              className={cn("w-fit bg-white font-semibold", deal.btnClass)}
+              className={cn("w-fit h-7 bg-white font-semibold text-xs", deal.btnClass)}
             >
               {deal.cta}
             </Button>
@@ -134,7 +134,7 @@ function PartyOrderCard({ deal }) {
 
       <div
         className={cn(
-          "absolute -right-4 -bottom-4 w-24 h-24 rounded-full blur-xl opacity-60",
+          "absolute -right-4 -bottom-4 w-20 h-20 rounded-full blur-xl opacity-60",
           deal.blobClass,
         )}
       />
@@ -142,7 +142,7 @@ function PartyOrderCard({ deal }) {
         src={deal.imgSrc}
         alt={deal.title}
         className={cn(
-          "absolute -right-2 top-1/2 -translate-y-1/2 w-20 h-20 object-cover rounded-full shadow-md z-10",
+          "absolute -right-2 top-1/2 -translate-y-1/2 w-16 h-16 object-cover rounded-full shadow-md z-10",
           deal.imgClass,
         )}
       />
@@ -155,21 +155,21 @@ function StaticDealCard({ deal, onClick }) {
   return (
     <div
       className={cn(
-        "rounded-xl p-2.5 pr-20 pt-3 border relative overflow-clip min-h-[108px]",
+        "rounded-xl p-2 pr-[68px] pt-2 border relative overflow-clip min-h-[80px]",
         deal.bgClass,
       )}
     >
-      <div className="grid gap-1 mb-1 text-wrap">
+      <div className="grid gap-0.5 text-wrap">
         <h3 className="text-sm font-semibold leading-tight pr-2">
           {deal.icon} {deal.title}
         </h3>
-        <p className="text-xs text-pretty text-muted-foreground leading-tight mb-1.5">
+        <p className="text-xs text-pretty text-muted-foreground leading-tight mb-0.5">
           {deal.subtitle}
         </p>
         <Button
           variant="outline"
           size="sm"
-          className={cn("w-fit bg-white font-semibold", deal.btnClass)}
+          className={cn("w-fit h-7 bg-white font-semibold text-xs", deal.btnClass)}
           onClick={onClick}
         >
           {deal.cta}
@@ -178,7 +178,7 @@ function StaticDealCard({ deal, onClick }) {
 
       <div
         className={cn(
-          "absolute -right-4 -bottom-4 w-24 h-24 rounded-full blur-xl opacity-60",
+          "absolute -right-4 -bottom-4 w-20 h-20 rounded-full blur-xl opacity-60",
           deal.blobClass,
         )}
       />
@@ -186,7 +186,7 @@ function StaticDealCard({ deal, onClick }) {
         src={deal.imgSrc}
         alt={deal.title}
         className={cn(
-          "absolute -right-2 top-1/2 -translate-y-1/2 w-20 h-20 object-cover rounded-full shadow-md z-10",
+          "absolute -right-2 top-1/2 -translate-y-1/2 w-16 h-16 object-cover rounded-full shadow-md z-10",
           deal.imgClass,
         )}
       />
