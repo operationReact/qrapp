@@ -1,10 +1,17 @@
 import { queryOptions } from "@tanstack/react-query";
 import {
+  getPublicCombos,
   getComboAnalyticsSummary,
   listCombos,
   getCombo,
   listSignatureProducts,
 } from "../../services/comboService";
+
+export const publicCombosOptions = queryOptions({
+  queryKey: ["combos", "public"],
+  queryFn: getPublicCombos,
+  staleTime: 1000 * 60 * 5,
+});
 
 export const comboSummaryOptions = queryOptions({
   queryKey: ["combos", "summary"],

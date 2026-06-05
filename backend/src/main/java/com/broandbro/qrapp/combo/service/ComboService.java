@@ -5,6 +5,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 import com.broandbro.qrapp.enums.TimeSlot;
+import java.util.List;
+
+import java.util.List;
 
 /**
  * Primary combo management service contract.
@@ -21,6 +24,9 @@ public interface ComboService {
             String search, Long categoryId, Boolean isActive,
             Boolean isFeatured, Boolean isPreorder, TimeSlot timeSlot,
             Pageable pageable);
+
+    /** Public-facing: returns only active, non-deleted combos ordered by displayPriority. */
+    List<ComboCardResponse> getPublicCombos();
 
     ComboResponse updateStatus(Long id, ComboStatusUpdateRequest request, String updatedBy);
 

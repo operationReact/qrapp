@@ -119,7 +119,8 @@ public class SecurityConfig {
                                 HttpMethod.GET,
                                 "/menu",
                                 "/menu/**",
-                                "/categories/**"
+                                "/categories/**",
+                                "/api/combos"
                         ).permitAll()
 
                         .requestMatchers(

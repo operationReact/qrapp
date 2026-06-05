@@ -151,6 +151,14 @@ public class ComboServiceImpl implements ComboService {
         ).map(this::toCardResponse);
     }
 
+    @Override
+    @Cacheable(cacheNames = "combos", key = "'public'")
+    public List<ComboCardResponse> getPublicCombos() {
+        return comboRepo.findAllPublic().stream()
+                .map(this::toCardResponse)
+                .collect(Collectors.toList());
+    }
+
     // ── Status / Delete ────────────────────────────────────────────────────────
 
     @Override

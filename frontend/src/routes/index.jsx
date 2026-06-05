@@ -6,7 +6,6 @@ import Navbar from "../components/shared/Navbar";
 import SearchBar from "../components/shared/SearchBar";
 import CategoryTabs from "../components/CategoryTabs";
 import MenuItemCard from "../components/MenuItemCard";
-import PartyOrderBanner from "../components/PartyOrderBanner";
 import {
   Carousel,
   CarouselContent,
@@ -168,7 +167,6 @@ function MenuPage() {
           <SearchBar onSearch={setSearchQuery} />
         </div>
 
-        <PartyOrderBanner />
         <DealsSection />
       </div>
 

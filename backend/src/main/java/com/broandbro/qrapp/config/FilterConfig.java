@@ -43,8 +43,10 @@ public class FilterConfig extends OncePerRequestFilter {
                         path.startsWith("/admin/menu/bulk-upload/") ||
 
                         path.equals("/menu") ||
+                        path.startsWith("/menu/") ||
 
-                        path.startsWith("/menu/");
+                        // Public combo listing — no token required
+                        path.equals("/api/combos");
     }
 
     @Override

@@ -1,5 +1,9 @@
 import { apiClient } from "./index";
 
+// ── Public (customer-facing) ───────────────────────────────────────────────
+export const getPublicCombos = () =>
+  apiClient.get("/api/combos").then((r) => r.data);
+
 // ── Analytics ──────────────────────────────────────────────────────────────
 export const getComboAnalyticsSummary = () =>
   apiClient.get("/api/admin/combos/analytics/summary").then((r) => r.data);
