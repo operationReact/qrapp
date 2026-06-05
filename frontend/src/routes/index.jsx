@@ -162,19 +162,19 @@ function MenuPage() {
         </div>
       )}
 
-      <div className="container-premium flex flex-col gap-4 py-3">
-        <div className="flex gap-4 w-full">
+      <div className="container-premium flex flex-col gap-2.5 py-2">
+        <div className="flex gap-3 w-full">
           <SearchBar onSearch={setSearchQuery} />
         </div>
 
         <DealsSection />
       </div>
 
-      <div className="container-premium mt-4">
+      <div className="container-premium mt-2">
         <CategoryTabs categories={categories} active={category} />
       </div>
 
-      <main className="container-premium py-4 md:py-6 lg:py-8">
+      <main className="container-premium py-2.5 md:py-4 lg:py-5">
         <div className="page-stack">
           {/* HEADER */}
           <div className="space-y-2 sr-only">
@@ -258,14 +258,14 @@ function MenuPage() {
 
           {/* CATEGORY ROWS — compact header + carousel */}
           {Object.entries(groups).map(([catName, items]) => (
-            <section key={catName} id={encodeURIComponent(catName)} className="flex flex-col gap-2 scroll-mt-4">
+            <section key={catName} id={encodeURIComponent(catName)} className="flex flex-col gap-1.5 scroll-mt-4">
               {/* Compact single-line category header */}
               <div className="flex items-center justify-between gap-2 px-0.5">
                 <div className="flex items-baseline gap-2 min-w-0">
-                  <h2 className="truncate text-[15px] font-bold leading-snug text-gray-900">
+                  <h2 className="truncate text-[14px] font-bold leading-snug text-gray-900">
                     {catName}
                   </h2>
-                  <span className="shrink-0 text-[11px] font-medium text-gray-400">
+                  <span className="shrink-0 text-[10px] font-medium text-gray-400">
                     {items.length} {items.length === 1 ? "item" : "items"}
                   </span>
                 </div>

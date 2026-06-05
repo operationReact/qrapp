@@ -26,7 +26,7 @@ export default function FeaturedSegmentHeader({
 
   return (
     <div
-      className="flex items-center gap-2.5 rounded-2xl px-3.5 py-3 shadow-sm"
+      className="flex items-center gap-2 rounded-xl px-3 py-2 shadow-sm"
       style={{
         background: v.headerBg,
         borderLeft: `3px solid ${v.accentHex}`,
@@ -36,21 +36,21 @@ export default function FeaturedSegmentHeader({
       }}
     >
       {/* Accent-tinted emoji — small, not dominant */}
-      <span className="flex-shrink-0 text-base leading-none">
+      <span className="flex-shrink-0 text-sm leading-none">
         {icon ?? v.emoji}
       </span>
 
       {/* Title + subtitle stack — flex-1 so it owns the space */}
-      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+      <div className="flex min-w-0 flex-1 flex-col gap-0">
         <span
-          className="truncate text-[15px] font-bold leading-snug tracking-[-0.01em]"
+          className="truncate text-[13px] font-bold leading-snug tracking-[-0.01em]"
           style={{ color: v.titleColor }}
         >
           {title}
         </span>
         {subtitle && (
           <span
-            className="truncate text-[12px] font-medium leading-none"
+            className="truncate text-[11px] font-medium leading-none"
             style={{ color: v.subtitleColor }}
           >
             {subtitle}
@@ -63,7 +63,7 @@ export default function FeaturedSegmentHeader({
         <div className="flex-shrink-0">{action}</div>
       ) : badge ? (
         <span
-          className="flex-shrink-0 whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-semibold leading-none"
+          className="flex-shrink-0 whitespace-nowrap rounded-full px-2 py-0.5 text-[10px] font-semibold leading-none"
           style={{
             background: v.badgeBg,
             color: v.badgeColor,

@@ -37,7 +37,7 @@ function CarouselDots({ itemCount }) {
   }, [api]);
 
   return (
-    <div className="flex lg:hidden justify-center gap-1.5 mt-3">
+    <div className="flex lg:hidden justify-center gap-1.5 mt-2">
       {Array.from({ length: itemCount }).map((_, i) => (
         <div
           key={i}
@@ -62,15 +62,15 @@ function PartyOrderCard({ deal }) {
   return (
     <div
       className={cn(
-        "rounded-xl p-3 pr-22 pt-4 border relative overflow-clip min-h-32",
+        "rounded-xl p-2.5 pr-20 pt-3 border relative overflow-clip min-h-[108px]",
         deal.bgClass,
       )}
     >
-      <div className="grid gap-1.5 mb-1 text-wrap">
+      <div className="grid gap-1 mb-1 text-wrap">
         <h3 className="text-sm font-semibold leading-tight pr-2">
           {deal.icon} {deal.title}
         </h3>
-        <p className="text-xs text-pretty text-muted-foreground leading-tight mb-2">
+        <p className="text-xs text-pretty text-muted-foreground leading-tight mb-1.5">
           {deal.subtitle}
         </p>
 
@@ -155,15 +155,15 @@ function StaticDealCard({ deal, onClick }) {
   return (
     <div
       className={cn(
-        "rounded-xl p-3 pr-22 pt-4 border relative overflow-clip min-h-32",
+        "rounded-xl p-2.5 pr-20 pt-3 border relative overflow-clip min-h-[108px]",
         deal.bgClass,
       )}
     >
-      <div className="grid gap-1.5 mb-1 text-wrap">
+      <div className="grid gap-1 mb-1 text-wrap">
         <h3 className="text-sm font-semibold leading-tight pr-2">
           {deal.icon} {deal.title}
         </h3>
-        <p className="text-xs text-pretty text-muted-foreground leading-tight mb-2">
+        <p className="text-xs text-pretty text-muted-foreground leading-tight mb-1.5">
           {deal.subtitle}
         </p>
         <Button
@@ -245,7 +245,7 @@ export default function DealsSection() {
   const [combosOpen, setCombosOpen] = useState(false);
 
   return (
-    <div className="mt-4">
+    <div className="mt-2">
       <CombosDrawer open={combosOpen} onOpenChange={setCombosOpen} />
 
       <Carousel
@@ -253,8 +253,8 @@ export default function DealsSection() {
         onMouseEnter={plugin.stop}
         onMouseLeave={plugin.reset}
       >
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-bold">Featured for you</h2>
+        <div className="flex items-center justify-between mb-2">
+          <h2 className="text-[15px] font-bold">Featured for you</h2>
           <div className="flex items-center gap-2">
             <CarouselPrevious className="static translate-y-0 transform-none size-8 bg-zinc-50 hover:bg-gray-100 border-border rounded-md shadow-xs text-secondary-foreground" />
             <CarouselNext className="static translate-y-0 transform-none size-8 bg-zinc-50 hover:bg-gray-100 border-border rounded-md shadow-xs text-secondary-foreground" />

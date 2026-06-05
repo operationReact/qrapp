@@ -24,7 +24,7 @@ export default function FeaturedSegment({
   className,
 }) {
   return (
-    <div className={cn("flex flex-col gap-2.5", className)}>
+    <div className={cn("flex flex-col gap-1.5", className)}>
       <FeaturedSegmentHeader
         variant={variant}
         title={title}
