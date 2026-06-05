@@ -652,15 +652,21 @@ public class OrderService {
      */
     @Transactional
     public CreateOrderResult createPreOrder(CreatePreOrderRequest req, User user) {
+        log.info("[createPreOrder] Starting — phone={} scheduledAt={} itemCount={}",
+                req.getPhone(), req.getScheduledAt(), req.getItems().size());
+
         // ── Guard: ALL items must be tagged PreOrderOnly ─────────────────────
         List<Long> requestedIds = req.getItems().stream()
                 .map(CreatePreOrderRequest.Item::getItemId)
                 .toList();
         java.util.Set<Long> preOrderOnlyIds = resolvePreOrderOnlyItemIds(requestedIds);
+        log.info("[createPreOrder] PreOrderOnly tag check — requested={} eligible={}", requestedIds, preOrderOnlyIds);
+
         List<Long> nonPreOrderItems = requestedIds.stream()
                 .filter(id -> !preOrderOnlyIds.contains(id))
                 .distinct().toList();
         if (!nonPreOrderItems.isEmpty()) {
+            log.warn("[createPreOrder] Rejected — items not tagged PreOrderOnly: {}", nonPreOrderItems);
             throw new IllegalArgumentException(
                 "Item(s) " + nonPreOrderItems + " are not eligible for pre-orders. " +
                 "Only items tagged 'PreOrderOnly' can be pre-ordered.");
@@ -684,6 +690,7 @@ public class OrderService {
 
         String orderNumber = orderNumberGenerator.generateOrderNumber(now.toLocalDate());
         order.setOrderNumber(orderNumber);
+        log.info("[createPreOrder] Order number generated: {}", orderNumber);
 
         List<Object[]> itemSnaps = new java.util.ArrayList<>();
         java.math.BigDecimal subtotal = java.math.BigDecimal.ZERO;
@@ -697,13 +704,25 @@ public class OrderService {
         }).toList();
 
         for (CreateOrderRequest.Item i : orderItems) {
+            log.info("[createPreOrder] Looking up menuItem id={}", i.getItemId());
             MenuItem menuItem = menuRepository.findById(i.getItemId())
                     .orElseThrow(() -> new RuntimeException("MenuItem not found: " + i.getItemId()));
             Long shopId = menuItem.getShop() != null ? menuItem.getShop().getId() : null;
+            log.info("[createPreOrder] MenuItem found — id={} name='{}' shopId={}", menuItem.getId(), menuItem.getName(), shopId);
+
             PricingService.OrderItemSnapshot snap = pricingService.createSnapshot(i.getItemId(), shopId, i.getQuantity());
+            log.info("[createPreOrder] Snapshot — itemId={} qty={} sellingPrice={} lineTotal={}",
+                    i.getItemId(), i.getQuantity(), snap.sellingPriceSnapshot(), snap.lineTotal());
+
+            if (snap.sellingPriceSnapshot() == null || snap.sellingPriceSnapshot().compareTo(java.math.BigDecimal.ZERO) == 0) {
+                log.warn("[createPreOrder] WARNING — itemId={} has ZERO selling price. Razorpay will reject amount=0.", i.getItemId());
+            }
+
             itemSnaps.add(new Object[]{i, snap});
             subtotal = subtotal.add(snap.lineTotal() != null ? snap.lineTotal() : java.math.BigDecimal.ZERO);
         }
+
+        log.info("[createPreOrder] Subtotal after items: {}", subtotal);
 
         java.math.BigDecimal couponDiscount = java.math.BigDecimal.ZERO;
 
@@ -718,13 +737,20 @@ public class OrderService {
             if (couponDiscount.compareTo(java.math.BigDecimal.ZERO) > 0) {
                 order.setCouponCode(req.getPromotionCode().toUpperCase());
                 order.setCouponDiscount(couponDiscount);
+                log.info("[createPreOrder] Coupon applied — code={} discount={}", req.getPromotionCode(), couponDiscount);
             }
         }
 
         order.setSubtotal(subtotal);
         order.setTax(java.math.BigDecimal.ZERO);
         order.setGrandTotal(subtotal.subtract(couponDiscount));
+        log.info("[createPreOrder] Totals — subtotal={} couponDiscount={} grandTotal={}",
+                subtotal, couponDiscount, order.getGrandTotal());
+
+        log.info("[createPreOrder] Saving order ...");
         order = orderRepo.save(order);
+        log.info("[createPreOrder] Order saved — id={}", order.getId());
+
         recordStatusHistory(order.getId(), null, OrderStatus.PRE_ORDERED, "Pre-order created for " + req.getScheduledAt(), "SYSTEM", now);
 
         for (Object[] pair : itemSnaps) {
@@ -739,8 +765,11 @@ public class OrderService {
             oi.setProfitSnapshot(snap.profitSnapshot());
             oi.setLineTotal(snap.lineTotal());
             orderItemRepo.save(oi);
+            log.info("[createPreOrder] OrderItem saved — orderId={} itemId={} qty={} lineTotal={}",
+                    order.getId(), i.getItemId(), i.getQuantity(), snap.lineTotal());
         }
 
+        log.info("[createPreOrder] Completed — orderId={} orderNumber={}", order.getId(), order.getOrderNumber());
         return new CreateOrderResult(order, java.util.List.of());
     }
 

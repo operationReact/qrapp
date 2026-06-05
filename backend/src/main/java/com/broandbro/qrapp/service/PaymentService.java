@@ -27,6 +27,10 @@ public class PaymentService {
         log.info("PaymentService initialized. razorpay.key={} razorpay.enabled={}", maskedKey, razorpayService.isEnabled());
     }
 
+    public boolean isRazorpayEnabled() {
+        return razorpayService.isEnabled();
+    }
+
     public Map<String, Object> createRazorpayOrder(Long orderId, int amount) {
         if (amount <= 0) {
             throw new IllegalArgumentException("Amount must be greater than zero");

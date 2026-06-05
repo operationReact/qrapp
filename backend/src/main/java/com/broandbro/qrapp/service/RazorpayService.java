@@ -59,9 +59,13 @@ public class RazorpayService {
         }
         try {
             return createLiveOrder(amount, currency, receipt);
+        } catch (IllegalStateException e) {
+            // Razorpay API returned an error — propagate with full details intact
+            log.error("Razorpay API error for receipt={}: {}", receipt, e.getMessage());
+            throw e;
         } catch (Exception e) {
             log.error("Failed to create Razorpay order for receipt={}", receipt, e);
-            throw new RuntimeException("Failed to create Razorpay order", e);
+            throw new RuntimeException("Failed to create Razorpay order: " + e.getMessage(), e);
         }
     }
 
@@ -108,23 +112,33 @@ public class RazorpayService {
         HttpEntity<String> entity = new HttpEntity<>(payload, headers);
         String ordersApiUrl = "https://api.razorpay.com/v1/orders";
 
+        log.info("[Razorpay] Creating order — amount={} paise currency={} receipt={}", amount, currency, receipt);
+
         ResponseEntity<String> resp;
         try {
             resp = restTemplate.postForEntity(ordersApiUrl, entity, String.class);
         } catch (RestClientResponseException ex) {
             String responseBody = ex.getResponseBodyAsString();
+            log.error("[Razorpay] API error — httpStatus={} body={}", ex.getStatusCode().value(), responseBody);
             throw new IllegalStateException("Razorpay order creation failed: status=" + ex.getStatusCode().value()
                     + (StringUtils.hasText(responseBody) ? " body=" + responseBody : ""), ex);
         }
+
+        log.info("[Razorpay] HTTP response status={}", resp.getStatusCode().value());
+
         if (!resp.getStatusCode().is2xxSuccessful()) {
+            log.error("[Razorpay] Non-2xx response — status={} body={}", resp.getStatusCode().value(), resp.getBody());
             throw new RuntimeException("Failed to create order: status=" + resp.getStatusCode().value());
         }
 
         Map<String, Object> map = objectMapper.readValue(resp.getBody(), new TypeReference<>() {});
         Object id = map.get("id");
         if (id == null) {
+            log.error("[Razorpay] Response missing 'id' field — body={}", resp.getBody());
             throw new RuntimeException("Razorpay response missing id");
         }
+
+        log.info("[Razorpay] Order created successfully — rzpOrderId={}", id);
         return id.toString();
     }
 
