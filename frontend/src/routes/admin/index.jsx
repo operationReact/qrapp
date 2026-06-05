@@ -75,7 +75,7 @@ function AdminDashboardPage() {
 
   const flaggedOrders = useMemo(() => {
     return (ordersPage.content || []).filter(
-      (order) => order.delayed || order.priority === "URGENT",
+      (order) => order.delayed,
     );
   }, [ordersPage.content]);
 

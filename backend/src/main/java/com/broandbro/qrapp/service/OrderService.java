@@ -73,6 +73,7 @@ public class OrderService {
     private final PromotionUsageRepository promotionUsageRepository;
     private final PromotionRuleEngine promotionRuleEngine;
     private final MilestoneCouponService milestoneCouponService;
+    private final com.broandbro.qrapp.repository.UserRepository userRepository;
 
     /**
      * Creates a new order with a human-readable order number.
@@ -288,7 +289,6 @@ public class OrderService {
     @Transactional(readOnly = true)
     public Page<AdminOrderResponse> getAdminOrders(Optional<String> status,
                                                    Optional<String> paymentStatus,
-                                                   Optional<String> priority,
                                                    Optional<String> query,
                                                    boolean liveOnly,
                                                    Pageable pageable) {
@@ -304,10 +304,6 @@ public class OrderService {
             specification = specification.and((root, cq, cb) -> cb.equal(cb.upper(root.get("paymentStatus")), normalizedPaymentStatus));
         }
 
-        if (priority.isPresent() && !priority.get().isBlank()) {
-            OrderPriority parsedPriority = parsePriority(priority.get());
-            specification = specification.and((root, cq, cb) -> cb.equal(root.get("priority"), parsedPriority));
-        }
 
         if (liveOnly) {
             specification = specification.and((root, cq, cb) -> root.get("status").in(LIVE_STATUSES));
@@ -360,7 +356,7 @@ public class OrderService {
         response.setLiveOrdersQueue(liveOrders);
         response.setDelayedOrders(liveOrders.stream().filter(AdminOrderResponse::isDelayed).count());
         response.setAttentionOrders(liveOrders.stream()
-                .filter(order -> order.isDelayed() || order.getStatus() == OrderStatus.READY || order.getPriority() == OrderPriority.URGENT)
+                .filter(order -> order.isDelayed() || order.getStatus() == OrderStatus.READY)
                 .limit(6)
                 .toList());
         return response;
@@ -387,9 +383,8 @@ public class OrderService {
                 .orElseThrow(() -> new IllegalArgumentException("Order not found: " + orderId));
 
         boolean hasStatusChange = request != null && request.getStatus() != null && !request.getStatus().isBlank();
-        boolean hasPriorityChange = request != null && request.getPriority() != null && !request.getPriority().isBlank();
         boolean hasNoteChange = request != null && request.getAdminNote() != null;
-        if (!hasStatusChange && !hasPriorityChange && !hasNoteChange) {
+        if (!hasStatusChange && !hasNoteChange) {
             throw new IllegalArgumentException("Nothing to update for the order");
         }
 
@@ -414,10 +409,6 @@ public class OrderService {
                     order.setCompletedAt(now);
                 }
             }
-        }
-
-        if (hasPriorityChange) {
-            order.setPriority(parsePriority(request.getPriority()));
         }
 
         if (hasNoteChange) {
@@ -505,10 +496,19 @@ public class OrderService {
                 : orderStatusHistoryRepository.findAllByOrderIdInOrderByChangedAtDesc(orderIds).stream()
                 .collect(Collectors.groupingBy(OrderStatusHistory::getOrderId));
 
+        // Batch-load users for customer name display
+        Set<Long> userIds = orders.stream()
+                .map(Order::getUserId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        Map<Long, User> userById = userIds.isEmpty() ? Map.of()
+                : userRepository.findAllById(userIds).stream()
+                        .collect(Collectors.toMap(User::getId, u -> u));
+
         LocalDateTime now = LocalDateTime.now();
         List<AdminOrderResponse> responses = new ArrayList<>();
         for (Order order : orders) {
-            responses.add(toAdminOrderResponse(order, itemsByOrderId.getOrDefault(order.getId(), List.of()), menuById, historyByOrderId.getOrDefault(order.getId(), List.of()), now));
+            responses.add(toAdminOrderResponse(order, itemsByOrderId.getOrDefault(order.getId(), List.of()), menuById, historyByOrderId.getOrDefault(order.getId(), List.of()), now, userById));
         }
         return responses;
     }
@@ -517,11 +517,16 @@ public class OrderService {
                                                     List<OrderItem> orderItems,
                                                     Map<Long, MenuItem> menuById,
                                                     List<OrderStatusHistory> historyEntries,
-                                                    LocalDateTime now) {
+                                                    LocalDateTime now,
+                                                    Map<Long, User> userById) {
         AdminOrderResponse response = new AdminOrderResponse();
         response.setId(order.getId());
+        response.setOrderNumber(order.getOrderNumber());
         response.setPhone(order.getPhone());
         response.setUserId(order.getUserId());
+        // Resolve customer display name from users table; fall back to phone
+        User user = order.getUserId() != null ? userById.get(order.getUserId()) : null;
+        response.setUserName(user != null && user.getName() != null ? user.getName() : null);
         response.setStatus(order.getStatus());
         response.setPaymentStatus(order.getPaymentStatus());
         response.setPaymentMethod(order.getPaymentMethod());
@@ -530,7 +535,6 @@ public class OrderService {
         response.setStartedAt(order.getStartedAt());
         response.setReadyAt(order.getReadyAt());
         response.setCompletedAt(order.getCompletedAt());
-        response.setPriority(order.getPriority() != null ? order.getPriority() : OrderPriority.NORMAL);
         response.setAdminNote(order.getAdminNote());
         response.setAssignedAdmin(order.getAssignedAdmin());
         response.setLive(isLive(order));
@@ -642,13 +646,6 @@ public class OrderService {
         }
     }
 
-    private OrderPriority parsePriority(String rawPriority) {
-        try {
-            return OrderPriority.valueOf(rawPriority.trim().toUpperCase(Locale.ROOT));
-        } catch (Exception ex) {
-            throw new IllegalArgumentException("Unsupported order priority: " + rawPriority);
-        }
-    }
 
     private void recordStatusHistory(Long orderId,
                                      OrderStatus previousStatus,

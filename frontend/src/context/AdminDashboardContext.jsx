@@ -27,7 +27,6 @@ export const AdminDashboardProvider = ({ children }) => {
     query: "",
     status: "",
     paymentStatus: "",
-    priority: "",
     liveOnly: false,
   });
 
@@ -35,7 +34,6 @@ export const AdminDashboardProvider = ({ children }) => {
     const params = { page, size };
     if (filters.status) params.status = filters.status;
     if (filters.paymentStatus) params.paymentStatus = filters.paymentStatus;
-    if (filters.priority) params.priority = filters.priority;
     if (filters.query) params.query = filters.query;
     if (typeof filters.liveOnly === "boolean") params.liveOnly = filters.liveOnly;
     return params;

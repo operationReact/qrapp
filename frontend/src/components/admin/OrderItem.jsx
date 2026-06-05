@@ -10,8 +10,6 @@ import {
   ArrowRightIcon,
 } from "@phosphor-icons/react";
 
-// ── Status config ──────────────────────────────────────────────────────────
-// Purple = New, Orange = Preparing, Green = Ready, Slate = Done, Rose = Cancelled
 const STATUS_CONFIG = {
   PLACED: {
     label: "New Order",
@@ -61,10 +59,6 @@ const STATUS_CONFIG = {
 };
 STATUS_CONFIG.ORDER_PLACED = STATUS_CONFIG.PLACED;
 
-const PRIORITY_CONFIG = {
-  HIGH: { label: "High", cls: "bg-orange-100 text-orange-700 border-orange-200" },
-  URGENT: { label: "URGENT", cls: "bg-rose-100 text-rose-700 border-rose-200" },
-};
 
 // Operational labels for transition buttons
 const TRANSITION_LABELS = {
@@ -93,8 +87,6 @@ function elapsedLabel(config, minutes) {
 export default function OrderItem({ order, onAction }) {
   const config = configFor(order.status);
   const isDelayed = order.delayed;
-  const isUrgent = order.priority === "URGENT";
-  const isHigh = order.priority === "HIGH";
 
   const totalItems = (order.items || []).reduce((s, i) => s + (i.quantity || 1), 0);
 
@@ -105,14 +97,13 @@ export default function OrderItem({ order, onAction }) {
         config.accent,
         config.bg,
         isDelayed && "ring-1 ring-rose-300",
-        isUrgent && "ring-1 ring-rose-400"
       )}
     >
-      {/* ── Row 1: order id + status chip + time ── */}
+      {/* ── Row 1: order number + status chip + time ── */}
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <div className="flex items-center gap-2">
           <span className="text-[15px] font-extrabold leading-none text-gray-900">
-            #{order.id}
+            {order.orderNumber ?? `#${order.id}`}
           </span>
 
           {/* Status chip */}
@@ -125,18 +116,6 @@ export default function OrderItem({ order, onAction }) {
             <span className={cn("h-1.5 w-1.5 rounded-full", config.dot)} />
             {config.label}
           </span>
-
-          {/* Priority — only HIGH/URGENT shown */}
-          {(isUrgent || isHigh) && (
-            <span
-              className={cn(
-                "rounded-full border px-2 py-0.5 text-[11px] font-bold",
-                PRIORITY_CONFIG[order.priority].cls
-              )}
-            >
-              {isUrgent ? "🚨 URGENT" : "⚡ High"}
-            </span>
-          )}
         </div>
 
         {/* Elapsed time — operational language */}
@@ -158,8 +137,14 @@ export default function OrderItem({ order, onAction }) {
         </span>
       </div>
 
-      {/* ── Row 2: phone + meta ── */}
+      {/* ── Row 2: customer info + meta ── */}
       <div className="mt-1.5 flex items-center gap-3 text-[12px] text-gray-500">
+        {order.userName && (
+          <>
+            <span className="font-semibold text-gray-800">{order.userName}</span>
+            <span className="text-gray-300">·</span>
+          </>
+        )}
         <span className="font-medium text-gray-700">{order.phone}</span>
         <span className="text-gray-300">·</span>
         <span>

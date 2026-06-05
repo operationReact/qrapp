@@ -3,7 +3,6 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { liveOrdersAdminOptions } from "@/query/options/orders";
 import { updateAdminOrder } from "@/services/order-service";
 import AdminHeader from "@/components/admin/AdminHeader";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
 import { cn } from "@/lib/utils";
@@ -59,12 +58,6 @@ const STAGES = [
   },
 ];
 
-const PRIORITY_META = {
-  HIGH:   { label: "High",   cls: "bg-orange-100 text-orange-700 border-orange-200" },
-  URGENT: { label: "URGENT", cls: "bg-rose-100 text-rose-700 border-rose-200 animate-pulse" },
-};
-
-// ── Elapsed time helper ────────────────────────────────────────────────────
 function useElapsed(createdAt) {
   const [mins, setMins] = useState(() =>
     Math.floor((Date.now() - new Date(createdAt).getTime()) / 60000),
@@ -117,16 +110,11 @@ function VegDot({ isVeg }) {
 
 // ── Single order card ──────────────────────────────────────────────────────
 function KitchenCard({ order, stageMeta, onAction }) {
-  const isUrgent = order.priority === "URGENT";
-  const isHigh   = order.priority === "HIGH";
-
   return (
     <div
       className={cn(
         "bg-white rounded-2xl border shadow-sm flex flex-col gap-3 p-4 transition-all",
-        isUrgent ? "border-rose-300 shadow-rose-100 ring-1 ring-rose-300" :
-        isHigh   ? "border-orange-200" :
-                   stageMeta.cardBorder,
+        order.delayed ? "border-rose-300 shadow-rose-100 ring-1 ring-rose-300" : stageMeta.cardBorder,
       )}
     >
       {/* ── Header row ── */}
@@ -134,20 +122,10 @@ function KitchenCard({ order, stageMeta, onAction }) {
         <div className="flex flex-col gap-0.5 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-lg font-extrabold leading-none text-gray-900">
-              #{order.id}
+              {order.orderNumber ?? `#${order.id}`}
             </span>
-            {isUrgent && (
-              <Badge variant="outline" className={PRIORITY_META.URGENT.cls}>
-                🚨 URGENT
-              </Badge>
-            )}
-            {isHigh && !isUrgent && (
-              <Badge variant="outline" className={PRIORITY_META.HIGH.cls}>
-                ⚡ High
-              </Badge>
-            )}
           </div>
-          <span className="text-[12px] text-gray-400 mt-0.5">{order.phone}</span>
+          <span className="text-[12px] text-gray-400 mt-0.5">{order.userName ? `${order.userName} · ${order.phone}` : order.phone}</span>
         </div>
         <span className="shrink-0 text-[13px] font-bold text-gray-700">
           ₹{Number(order.total).toFixed(0)}

@@ -11,14 +11,12 @@ export const getOrdersAdmin = ({
   size = 10,
   status,
   paymentStatus,
-  priority,
   query,
   liveOnly,
 } = {}) => {
   const params = { page, size };
   if (status) params.status = status;
   if (paymentStatus) params.paymentStatus = paymentStatus;
-  if (priority) params.priority = priority;
   if (query) params.query = query;
   if (typeof liveOnly === "boolean") params.liveOnly = liveOnly;
   return apiClient.get("/admin/orders", { params }).then((r) => r.data);

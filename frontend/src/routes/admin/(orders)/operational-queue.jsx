@@ -25,23 +25,32 @@ import { Filter, Search } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ButtonGroup } from "@/components/ui/button-group";
 import { Button } from "@/components/ui/button";
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+} from "@/components/ui/drawer";
 import OrderItem from "@/components/admin/OrderItem";
+import OrderDetailPanel from "@/components/admin/OrderDetailPanel";
 import { useAdminDashboard } from "@/context/AdminDashboardContext";
 import AdminHeader from "@/components/admin/AdminHeader";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
   PackageIcon,
   CookingPotIcon,
   CheckCircleIcon,
   WarningCircleIcon,
 } from "@phosphor-icons/react";
+
 export const Route = createFileRoute("/admin/(orders)/operational-queue")({
   component: OperationalQueuePage,
 });
@@ -65,15 +74,39 @@ function OperationalQueuePage() {
 
   const { isAdmin, isSuperUser } = useAuth();
 
+  // Mobile bottom-sheet state
+  const isMobile = useIsMobile();
+  const [mobileOrderId, setMobileOrderId] = useState(null);
+
+  // Fetch the order shown in the mobile drawer via the shared hook
+  const { selectedOrder: mobileOrder, actionLoading: mobileActionLoading } =
+    useAdminDashboard(mobileOrderId ? String(mobileOrderId) : undefined);
+
   useEffect(() => {
     loadData({ quiet: true });
   }, []);
+
+  // Close the mobile drawer when viewport grows to desktop
+  useEffect(() => {
+    if (!isMobile) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setTimeout(() => setMobileOrderId(null), 0);
+    }
+  }, [isMobile]);
 
   if (!isAdmin && !isSuperUser) {
     return (
       <Navigate to={"/login"} replace state={{ from: location.pathname }} />
     );
   }
+
+  const handleCardClick = (order, e) => {
+    if (isMobile) {
+      e.preventDefault();
+      setMobileOrderId(order.id);
+    }
+    // on desktop the <Link> navigates normally
+  };
 
   return (
     <>
@@ -82,7 +115,7 @@ function OperationalQueuePage() {
         description="Search any order, filter by workflow state, and open the full detail panel."
       />
 
-      {/* ── KPI summary row ───────────────────────────────────────────── */}
+      {/* ── KPI summary row ── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 px-4 py-3 border-b bg-white">
         {[
           {
@@ -131,6 +164,35 @@ function OperationalQueuePage() {
         ))}
       </div>
 
+      {/* ── Mobile bottom drawer ─────────────────────────────────────── */}
+      <Drawer
+        open={!!mobileOrderId}
+        onOpenChange={(open) => { if (!open) setMobileOrderId(null); }}
+      >
+        <DrawerContent className="max-h-[92dvh]">
+          <DrawerHeader className="pb-1 border-b">
+            <DrawerTitle className="text-[16px] font-bold">
+              {mobileOrder
+                ? mobileOrder.orderNumber ?? `#${mobileOrder.id}`
+                : "Order Details"}
+            </DrawerTitle>
+          </DrawerHeader>
+          <div
+            className="no-scrollbar overflow-y-auto px-4 pb-8 pt-3"
+            style={{ WebkitOverflowScrolling: "touch" }}
+          >
+            <OrderDetailPanel
+              order={mobileOrder}
+              actionLoading={mobileActionLoading}
+              onUpdate={(payload) => {
+                handleOrderUpdate(mobileOrderId, payload);
+              }}
+            />
+          </div>
+        </DrawerContent>
+      </Drawer>
+
+      {/* ── Split-pane grid ── */}
       <div className="grid lg:grid-cols-[450px_1fr] flex-1">
         <div className="flex flex-col border-r h-full">
           <div className="flex gap-2 mt-2 border-b pl-4 pr-5 pb-2 justify-between items-center">
@@ -163,7 +225,7 @@ function OperationalQueuePage() {
                     <div className="space-y-2">
                       <h4 className="leading-none font-medium">Filters</h4>
                       <p className="text-sm text-muted-foreground">
-                        Filter by order status, payment status and priority.
+                        Filter by order status and payment status.
                       </p>
                     </div>
                     <div className="grid gap-2">
@@ -186,26 +248,17 @@ function OperationalQueuePage() {
                           </SelectTrigger>
                           <SelectContent>
                             <SelectGroup>
-                              <SelectLabel className="text-primary">
-                                Order Status
-                              </SelectLabel>
+                              <SelectLabel className="text-primary">Order Status</SelectLabel>
                               <SelectItem value="ALL">All Statuses</SelectItem>
                               <SelectItem value="PLACED">Placed</SelectItem>
-                              <SelectItem value="PREPARING">
-                                Preparing
-                              </SelectItem>
+                              <SelectItem value="PREPARING">Preparing</SelectItem>
                               <SelectItem value="READY">Ready</SelectItem>
-                              <SelectItem value="COMPLETED">
-                                Completed
-                              </SelectItem>
-                              <SelectItem value="CANCELLED">
-                                Cancelled
-                              </SelectItem>
+                              <SelectItem value="COMPLETED">Completed</SelectItem>
+                              <SelectItem value="CANCELLED">Cancelled</SelectItem>
                             </SelectGroup>
                           </SelectContent>
                         </Select>
                       </div>
-
                       <div className="grid grid-cols-2 items-center gap-4">
                         <Label htmlFor="payment-status">Payment Status</Label>
                         <Select
@@ -221,46 +274,12 @@ function OperationalQueuePage() {
                           <SelectTrigger className="text-sm! w-full">
                             <SelectValue placeholder="All Payments" />
                           </SelectTrigger>
-
                           <SelectContent>
                             <SelectGroup>
-                              <SelectLabel className="text-primary">
-                                Payment Status
-                              </SelectLabel>
+                              <SelectLabel className="text-primary">Payment Status</SelectLabel>
                               <SelectItem value="ALL">All Payments</SelectItem>
                               <SelectItem value="PAID">Paid</SelectItem>
                               <SelectItem value="PENDING">Pending</SelectItem>
-                            </SelectGroup>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="grid grid-cols-2 items-center gap-4">
-                        <Label htmlFor="priority">Priority</Label>
-                        <Select
-                          value={filters.priority || "ALL"}
-                          onValueChange={(value) => {
-                            setPage(0);
-                            setFilters((prev) => ({
-                              ...prev,
-                              priority: value.replace("ALL", ""),
-                            }));
-                          }}
-                        >
-                          <SelectTrigger className="text-sm! w-full">
-                            <SelectValue placeholder="All Priorities" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectGroup>
-                              <SelectLabel className="text-primary">
-                                Priority
-                              </SelectLabel>
-                              <SelectItem value="ALL">
-                                All Priorities
-                              </SelectItem>
-                              <SelectItem value="NORMAL">Normal</SelectItem>
-                              <SelectItem value="HIGH">High</SelectItem>
-                              <SelectItem value="URGENT">Urgent</SelectItem>
                             </SelectGroup>
                           </SelectContent>
                         </Select>
@@ -277,10 +296,7 @@ function OperationalQueuePage() {
                 checked={filters.liveOnly}
                 onCheckedChange={(checked) => {
                   setPage(0);
-                  setFilters((prev) => ({
-                    ...prev,
-                    liveOnly: checked,
-                  }));
+                  setFilters((prev) => ({ ...prev, liveOnly: checked }));
                 }}
               />
               <Label htmlFor="live-only">Live only</Label>
@@ -293,28 +309,26 @@ function OperationalQueuePage() {
                 No orders found for the selected filters.
               </div>
             )}
-            {(ordersPage.content || []).map((order) => {
-              return (
-                <Link
+            {(ordersPage.content || []).map((order) => (
+              <Link
+                key={order.id}
+                to={`/admin/operational-queue/${order.id}`}
+                onClick={(e) => handleCardClick(order, e)}
+                className={cn(
+                  "block rounded-lg transition-colors my-1 first:mt-0 p-3 border border-transparent",
+                  order.id === selectedOrderId ? "bg-zinc-100 border-zinc-200" : "",
+                  order.id === mobileOrderId  ? "bg-zinc-100 border-zinc-200" : "",
+                )}
+              >
+                <OrderItem
                   key={order.id}
-                  to={`/admin/operational-queue/${order.id}`}
-                  className={cn(
-                    "block rounded-lg transition-colors my-1 first:mt-0 p-3 border border-transparent",
-                    order.id === selectedOrderId
-                      ? "bg-zinc-100 border-zinc-200"
-                      : "",
-                  )}
-                >
-                  <OrderItem
-                    key={order.id}
-                    order={order}
-                    onAction={(orderId, status) =>
-                      handleOrderUpdate(orderId, { status })
-                    }
-                  />
-                </Link>
-              );
-            })}
+                  order={order}
+                  onAction={(orderId, status) =>
+                    handleOrderUpdate(orderId, { status })
+                  }
+                />
+              </Link>
+            ))}
           </ScrollArea>
 
           <div className="flex border-b lg:border-b-none gap-3 px-2 border-t py-2 text-sm items-center justify-between">
@@ -324,10 +338,7 @@ function OperationalQueuePage() {
             <div className="flex flex-wrap items-center gap-2">
               <Select
                 value={size}
-                onValueChange={(size) => {
-                  setPage(0);
-                  setSize(Number(size));
-                }}
+                onValueChange={(s) => { setPage(0); setSize(Number(s)); }}
                 className="rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700"
               >
                 <SelectTrigger>
@@ -342,25 +353,20 @@ function OperationalQueuePage() {
                   </SelectGroup>
                 </SelectContent>
               </Select>
-
               <ButtonGroup>
                 <Button
-                  onClick={() => setPage((prev) => Math.max(0, prev - 1))}
+                  onClick={() => setPage((p) => Math.max(0, p - 1))}
                   disabled={page === 0}
                   variant="outline"
                 >
                   Prev
                 </Button>
                 <InputGroup className="min-w-21 flex items-center justify-center">
-                  <span>
-                    Page {page + 1} of {ordersPage.totalPages || 1}
-                  </span>
+                  <span>Page {page + 1} of {ordersPage.totalPages || 1}</span>
                 </InputGroup>
                 <Button
                   onClick={() =>
-                    setPage((prev) =>
-                      Math.min((ordersPage.totalPages || 1) - 1, prev + 1),
-                    )
+                    setPage((p) => Math.min((ordersPage.totalPages || 1) - 1, p + 1))
                   }
                   disabled={page >= (ordersPage.totalPages || 1) - 1}
                   variant="outline"
@@ -371,7 +377,9 @@ function OperationalQueuePage() {
             </div>
           </div>
         </div>
-        <div className="flex flex-col h-full">
+
+        {/* Desktop-only detail pane — hidden on mobile */}
+        <div className="hidden lg:flex flex-col h-full">
           <ScrollArea className="py-2 pr-3 lg:max-h-[calc(100vh_-_48.8px)] flex-1">
             <Outlet />
           </ScrollArea>
@@ -380,3 +388,5 @@ function OperationalQueuePage() {
     </>
   );
 }
+
+
