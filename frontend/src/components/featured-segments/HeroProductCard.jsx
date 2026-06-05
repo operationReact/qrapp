@@ -104,7 +104,7 @@ export default function HeroProductCard({ item, badge }) {
         )}
 
         {/* Pre-order pill — bottom left */}
-        <span className="absolute bottom-2.5 left-2.5 flex items-center gap-1 rounded-full bg-amber-600 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white">
+        <span className="absolute bottom-2.5 left-2.5 flex items-center gap-1 rounded-full bg-indigo-950/75 backdrop-blur-sm px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-indigo-100">
           <ClockIcon weight="bold" className="size-3" />
           Pre-Order Only
         </span>

@@ -153,7 +153,7 @@ function MenuPage() {
             <div className="mt-3 flex flex-col gap-2 sm:flex-row">
               <button
                 onClick={() => fetchMenu()}
-                className="touch-button rounded-xl bg-red-500 px-3 py-2 text-sm font-medium text-white"
+                className="touch-button rounded-xl bg-foreground px-3 py-2 text-sm font-medium text-background"
               >
                 Retry
               </button>

@@ -16,14 +16,14 @@
  */
 export const segmentVariants = {
   preorder: {
-    // Warm parchment — exclusive, not discounty
-    headerBg: "linear-gradient(90deg, #faf8f3 0%, #f5f0e8 100%)",
-    accentHex: "#c58b39",          // warm amber — not neon orange
+    // Cool off-white with indigo undertone — reserved, exclusive
+    headerBg: "linear-gradient(90deg, #f8f8fe 0%, #f0f0fc 100%)",
+    accentHex: "#4f46e5",          // indigo — calm, pre-order exclusive
     titleColor: "#111827",
     subtitleColor: "#6B7280",
-    badgeBg: "rgba(197,139,57,0.10)",
-    badgeColor: "#a06b20",
-    badgeBorder: "rgba(197,139,57,0.25)",
+    badgeBg: "rgba(79,70,229,0.08)",
+    badgeColor: "#4338ca",
+    badgeBorder: "rgba(79,70,229,0.20)",
     emoji: "🔥",
   },
   signature: {

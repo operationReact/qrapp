@@ -78,7 +78,7 @@ export default function MenuItemCard({ item, overrideUnavailable = false, unavai
             )}
           />
         ) : (
-          <div className="w-full overflow-hidden h-full flex items-center justify-center text-5xl bg-linear-to-br from-primary/25 to-primary">
+          <div className="w-full overflow-hidden h-full flex items-center justify-center bg-zinc-100">
             <img
               src="/brand/white.png"
               alt="Bro Logo"
@@ -102,7 +102,7 @@ export default function MenuItemCard({ item, overrideUnavailable = false, unavai
         {/* Pre-Order Only badge */}
         {preOrderOnly && !isUnavailable && (
           <div className="absolute top-2 right-2">
-            <span className="flex items-center gap-1 rounded-full bg-violet-600/90 backdrop-blur-sm px-2 py-0.5 text-[10px] font-semibold text-white">
+            <span className="flex items-center gap-1 rounded-full bg-indigo-950/75 backdrop-blur-sm px-2 py-0.5 text-[10px] font-semibold text-indigo-100">
               <CalendarCheckIcon className="size-2.5" weight="fill" />
               Pre-Order
             </span>
@@ -158,7 +158,7 @@ export default function MenuItemCard({ item, overrideUnavailable = false, unavai
           ) : preOrderOnly ? (
             <button
               onClick={() => setPreOrderOpen(true)}
-              className="inline-flex items-center gap-1 rounded-md bg-violet-600 hover:bg-violet-700 text-white px-2.5 py-1.5 text-[11px] font-semibold transition-colors"
+              className="inline-flex items-center gap-1 rounded-md border border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 px-2.5 py-1.5 text-[11px] font-semibold transition-colors"
             >
               <CalendarCheckIcon className="size-3" weight="fill" />
               Pre-Order

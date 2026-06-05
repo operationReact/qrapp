@@ -21,9 +21,9 @@ export default function PartyOrderBanner() {
   const [partyOrderCreated, setPartyOrderCreated] = useState(false);
 
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-primary/5 rounded-lg p-4">
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-zinc-50 border border-zinc-200 rounded-lg p-4">
       <div className="flex items-center gap-3">
-        <div className="text-primary">
+        <div className="text-muted-foreground">
           <ConfettiIcon weight="fill" className="size-9" />
         </div>
         <div>
