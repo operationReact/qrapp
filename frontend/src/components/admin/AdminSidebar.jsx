@@ -16,7 +16,6 @@ import { Button } from "../ui/button";
 import { ButtonGroup } from "../ui/button-group";
 import {
   BowlFoodIcon,
-  KanbanIcon,
   QueueIcon,
   SignOutIcon,
   SquaresFourIcon,
@@ -127,23 +126,6 @@ export function AdminSidebar() {
             <SidebarMenuItem>
               <SidebarMenuButton
                 className="text-zinc-700 font-medium"
-                isActive={pathname === "/admin/service-board"}
-                render={
-                  <Link to={"/admin/service-board"}>
-                    <KanbanIcon
-                      className="text-primary"
-                      weight={
-                        pathname === "/admin/service-board" ? "bold" : "regular"
-                      }
-                    />
-                    <span>Service Board</span>
-                  </Link>
-                }
-              />
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                className="text-zinc-700 font-medium"
                 isActive={pathname.startsWith("/admin/operational-queue")}
                 render={
                   <Link to={"/admin/operational-queue"}>
@@ -155,7 +137,7 @@ export function AdminSidebar() {
                           : "regular"
                       }
                     />
-                    <span>Operational Queue</span>
+                    <span>Kitchen Queue</span>
                   </Link>
                 }
               />

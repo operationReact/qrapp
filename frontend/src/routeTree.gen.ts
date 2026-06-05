@@ -36,6 +36,7 @@ import { Route as AdminpromotionsPromotionsRouteImport } from './routes/admin/(p
 import { Route as AdminordersServiceBoardRouteImport } from './routes/admin/(orders)/service-board'
 import { Route as AdminordersPartyOrdersRouteImport } from './routes/admin/(orders)/party-orders'
 import { Route as AdminordersOperationalQueueRouteImport } from './routes/admin/(orders)/operational-queue'
+import { Route as AdminordersKitchenQueueRouteImport } from './routes/admin/(orders)/kitchen-queue'
 import { Route as AdminmilestonesMilestonesRouteImport } from './routes/admin/(milestones)/milestones'
 import { Route as AdminmenuMenuRouteImport } from './routes/admin/(menu)/menu'
 import { Route as AdminmenuManageMenuRouteImport } from './routes/admin/(menu)/manage-menu'
@@ -184,6 +185,11 @@ const AdminordersOperationalQueueRoute =
     path: '/operational-queue',
     getParentRoute: () => AdminRoute,
   } as any)
+const AdminordersKitchenQueueRoute = AdminordersKitchenQueueRouteImport.update({
+  id: '/(orders)/kitchen-queue',
+  path: '/kitchen-queue',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminmilestonesMilestonesRoute =
   AdminmilestonesMilestonesRouteImport.update({
     id: '/(milestones)/milestones',
@@ -253,6 +259,7 @@ export interface FileRoutesByFullPath {
   '/admin/manage-menu': typeof AdminmenuManageMenuRoute
   '/admin/menu': typeof AdminmenuMenuRoute
   '/admin/milestones': typeof AdminmilestonesMilestonesRoute
+  '/admin/kitchen-queue': typeof AdminordersKitchenQueueRoute
   '/admin/operational-queue': typeof AdminordersOperationalQueueRouteWithChildren
   '/admin/party-orders': typeof AdminordersPartyOrdersRoute
   '/admin/service-board': typeof AdminordersServiceBoardRoute
@@ -290,6 +297,7 @@ export interface FileRoutesByTo {
   '/admin/manage-menu': typeof AdminmenuManageMenuRoute
   '/admin/menu': typeof AdminmenuMenuRoute
   '/admin/milestones': typeof AdminmilestonesMilestonesRoute
+  '/admin/kitchen-queue': typeof AdminordersKitchenQueueRoute
   '/admin/party-orders': typeof AdminordersPartyOrdersRoute
   '/admin/service-board': typeof AdminordersServiceBoardRoute
   '/admin/promotions': typeof AdminpromotionsPromotionsRoute
@@ -328,6 +336,7 @@ export interface FileRoutesById {
   '/admin/(menu)/manage-menu': typeof AdminmenuManageMenuRoute
   '/admin/(menu)/menu': typeof AdminmenuMenuRoute
   '/admin/(milestones)/milestones': typeof AdminmilestonesMilestonesRoute
+  '/admin/(orders)/kitchen-queue': typeof AdminordersKitchenQueueRoute
   '/admin/(orders)/operational-queue': typeof AdminordersOperationalQueueRouteWithChildren
   '/admin/(orders)/party-orders': typeof AdminordersPartyOrdersRoute
   '/admin/(orders)/service-board': typeof AdminordersServiceBoardRoute
@@ -368,6 +377,7 @@ export interface FileRouteTypes {
     | '/admin/manage-menu'
     | '/admin/menu'
     | '/admin/milestones'
+    | '/admin/kitchen-queue'
     | '/admin/operational-queue'
     | '/admin/party-orders'
     | '/admin/service-board'
@@ -405,6 +415,7 @@ export interface FileRouteTypes {
     | '/admin/manage-menu'
     | '/admin/menu'
     | '/admin/milestones'
+    | '/admin/kitchen-queue'
     | '/admin/party-orders'
     | '/admin/service-board'
     | '/admin/promotions'
@@ -442,6 +453,7 @@ export interface FileRouteTypes {
     | '/admin/(menu)/manage-menu'
     | '/admin/(menu)/menu'
     | '/admin/(milestones)/milestones'
+    | '/admin/(orders)/kitchen-queue'
     | '/admin/(orders)/operational-queue'
     | '/admin/(orders)/party-orders'
     | '/admin/(orders)/service-board'
@@ -669,6 +681,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminordersOperationalQueueRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/(orders)/kitchen-queue': {
+      id: '/admin/(orders)/kitchen-queue'
+      path: '/kitchen-queue'
+      fullPath: '/admin/kitchen-queue'
+      preLoaderRoute: typeof AdminordersKitchenQueueRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/(milestones)/milestones': {
       id: '/admin/(milestones)/milestones'
       path: '/milestones'
@@ -759,6 +778,7 @@ interface AdminRouteChildren {
   AdminmenuManageMenuRoute: typeof AdminmenuManageMenuRoute
   AdminmenuMenuRoute: typeof AdminmenuMenuRoute
   AdminmilestonesMilestonesRoute: typeof AdminmilestonesMilestonesRoute
+  AdminordersKitchenQueueRoute: typeof AdminordersKitchenQueueRoute
   AdminordersOperationalQueueRoute: typeof AdminordersOperationalQueueRouteWithChildren
   AdminordersPartyOrdersRoute: typeof AdminordersPartyOrdersRoute
   AdminordersServiceBoardRoute: typeof AdminordersServiceBoardRoute
@@ -782,6 +802,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminmenuManageMenuRoute: AdminmenuManageMenuRoute,
   AdminmenuMenuRoute: AdminmenuMenuRoute,
   AdminmilestonesMilestonesRoute: AdminmilestonesMilestonesRoute,
+  AdminordersKitchenQueueRoute: AdminordersKitchenQueueRoute,
   AdminordersOperationalQueueRoute:
     AdminordersOperationalQueueRouteWithChildren,
   AdminordersPartyOrdersRoute: AdminordersPartyOrdersRoute,

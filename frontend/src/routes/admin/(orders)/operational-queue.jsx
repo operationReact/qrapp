@@ -36,7 +36,12 @@ import { useAdminDashboard } from "@/context/AdminDashboardContext";
 import AdminHeader from "@/components/admin/AdminHeader";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
-
+import {
+  PackageIcon,
+  CookingPotIcon,
+  CheckCircleIcon,
+  WarningCircleIcon,
+} from "@phosphor-icons/react";
 export const Route = createFileRoute("/admin/(orders)/operational-queue")({
   component: OperationalQueuePage,
 });
@@ -44,6 +49,7 @@ export const Route = createFileRoute("/admin/(orders)/operational-queue")({
 function OperationalQueuePage() {
   const {
     ordersPage,
+    dashboard,
     page,
     setPage,
     size,
@@ -51,6 +57,7 @@ function OperationalQueuePage() {
     filters,
     setFilters,
     loadData,
+    handleOrderUpdate,
   } = useAdminDashboard();
 
   const params = useParams({ strict: false });
@@ -70,13 +77,62 @@ function OperationalQueuePage() {
 
   return (
     <>
+      <AdminHeader
+        title="Kitchen Queue"
+        description="Search any order, filter by workflow state, and open the full detail panel."
+      />
+
+      {/* ── KPI summary row ───────────────────────────────────────────── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 px-4 py-3 border-b bg-white">
+        {[
+          {
+            label: "New Orders",
+            value: dashboard?.placedOrders ?? 0,
+            renderIcon: () => <PackageIcon weight="bold" className="size-5" />,
+            iconCls: "bg-violet-100 text-violet-600",
+            valueCls: "text-violet-700",
+          },
+          {
+            label: "Preparing",
+            value: dashboard?.preparingOrders ?? 0,
+            renderIcon: () => <CookingPotIcon weight="bold" className="size-5" />,
+            iconCls: "bg-orange-100 text-orange-600",
+            valueCls: "text-orange-700",
+          },
+          {
+            label: "Ready",
+            value: dashboard?.readyOrders ?? 0,
+            renderIcon: () => <CheckCircleIcon weight="bold" className="size-5" />,
+            iconCls: "bg-emerald-100 text-emerald-600",
+            valueCls: "text-emerald-700",
+          },
+          {
+            label: "Delayed",
+            value: dashboard?.delayedOrders ?? 0,
+            renderIcon: () => <WarningCircleIcon weight="bold" className="size-5" />,
+            iconCls: "bg-rose-100 text-rose-600",
+            valueCls: "text-rose-700",
+          },
+        ].map(({ label, value, renderIcon, iconCls, valueCls }) => (
+          <div
+            key={label}
+            className="flex items-center gap-3 rounded-2xl border bg-white px-4 py-3 shadow-sm"
+          >
+            <span className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-xl", iconCls)}>
+              {renderIcon()}
+            </span>
+            <div>
+              <div className={cn("text-xl font-extrabold leading-none tabular-nums", valueCls)}>
+                {value}
+              </div>
+              <div className="mt-0.5 text-[11px] font-medium text-gray-500">{label}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+
       <div className="grid lg:grid-cols-[450px_1fr] flex-1">
         <div className="flex flex-col border-r h-full">
-          <AdminHeader
-            title="Operational Queue"
-            description="Search any order, filter by workflow state, and open the full detail panel."
-          />
-
           <div className="flex gap-2 mt-2 border-b pl-4 pr-5 pb-2 justify-between items-center">
             <ButtonGroup>
               <InputGroup className="max-w-[300px]">
@@ -249,7 +305,13 @@ function OperationalQueuePage() {
                       : "",
                   )}
                 >
-                  <OrderItem key={order.id} order={order} />
+                  <OrderItem
+                    key={order.id}
+                    order={order}
+                    onAction={(orderId, status) =>
+                      handleOrderUpdate(orderId, { status })
+                    }
+                  />
                 </Link>
               );
             })}
