@@ -36,3 +36,50 @@ export const updateAdminOrder = (id, data) =>
 
 export const updateOrderStatusAdmin = (id, data) =>
   apiClient.patch(`/admin/orders/${id}/status`, data).then((r) => r.data);
+
+// ── Pre-Order Services ────────────────────────────────────────────────────────
+
+export const getAdminPreOrders = ({
+  page = 0,
+  size = 20,
+  status,
+  query,
+  scheduledFrom,
+  scheduledTo,
+} = {}) => {
+  const params = { page, size };
+  if (status) params.status = status;
+  if (query) params.query = query;
+  if (scheduledFrom) params.scheduledFrom = scheduledFrom;
+  if (scheduledTo) params.scheduledTo = scheduledTo;
+  return apiClient.get("/admin/pre-orders", { params }).then((r) => r.data);
+};
+
+export const getAdminPreOrderDashboard = ({ upcomingLimit = 12 } = {}) =>
+  apiClient
+    .get("/admin/pre-orders/dashboard", { params: { upcomingLimit } })
+    .then((r) => r.data);
+
+export const acceptPreOrder = (id, note) =>
+  apiClient
+    .post(`/admin/pre-orders/${id}/accept`, note ? { note } : undefined)
+    .then((r) => r.data);
+
+export const updatePreOrder = (id, data) =>
+  apiClient.patch(`/admin/pre-orders/${id}`, data).then((r) => r.data);
+
+export const createAdminPreOrder = (data) =>
+  apiClient.post("/admin/pre-orders", data).then((r) => r.data);
+
+export const createPreOrder = (data) =>
+  apiClient.post("/orders/pre-order", data).then((r) => r.data);
+
+// Public — no auth required (used on customer-facing menu)
+export const getPreOrderItems = () =>
+  apiClient.get("/orders/pre-order/items").then((r) => r.data);
+
+// Admin — requires ROLE_ADMIN
+export const getAdminPreOrderItems = () =>
+  apiClient.get("/admin/pre-orders/available-items").then((r) => r.data);
+
+

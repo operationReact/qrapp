@@ -216,6 +216,16 @@ function CartPage() {
       return;
     }
 
+    // Guard: PreOrderOnly items cannot go through regular checkout
+    const preOrderItems = cart.filter((i) => i?.tag?.name === "PreOrderOnly");
+    if (preOrderItems.length > 0) {
+      const names = preOrderItems.map((i) => i.name).join(", ");
+      alert(
+        `"${names}" can only be placed as a pre-order.\n\nPlease remove it from the cart and use the "Pre-Order" button on the item card to schedule it.`,
+      );
+      return;
+    }
+
     const items = cart.map((i) => ({
       itemId: i.id,
       quantity: i.quantity,

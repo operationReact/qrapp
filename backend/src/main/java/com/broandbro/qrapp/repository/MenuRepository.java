@@ -60,6 +60,15 @@ public interface MenuRepository extends JpaRepository<MenuItem, Long> {
            "ORDER BY m.id ASC")
     List<MenuItem> findByTagId(@Param("tagId") Long tagId);
 
+    /**
+     * Get all visible (non-hidden) menu items for a specific tag name.
+     * Used for PreOrderOnly item discovery.
+     */
+    @Query("SELECT m FROM MenuItem m " +
+           "WHERE m.tag.name = :tagName AND m.isHidden = false " +
+           "ORDER BY m.id ASC")
+    List<MenuItem> findVisibleByTagName(@Param("tagName") String tagName);
+
     Optional<MenuItem> findBySkuCode(String skuCode);
 
     @Query("SELECT m FROM MenuItem m WHERE LOWER(m.name) = LOWER(:name) AND m.category.id = :categoryId")

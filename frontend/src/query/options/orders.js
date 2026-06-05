@@ -5,6 +5,10 @@ import {
   getAdminOrderDashboard,
   getLiveOrdersAdmin,
   getAdminOrder,
+  getAdminPreOrders,
+  getAdminPreOrderDashboard,
+  getPreOrderItems,
+  getAdminPreOrderItems,
 } from "../../services/order-service";
 
 export const myOrdersOptions = queryOptions({
@@ -41,3 +45,30 @@ export const adminOrderOptions = (id) =>
     enabled: !!id,
     staleTime: 1000 * 30,
   });
+
+export const adminPreOrdersOptions = (params = {}) =>
+  queryOptions({
+    queryKey: ["pre-orders", "admin", params],
+    queryFn: () => getAdminPreOrders(params),
+    staleTime: 1000 * 15,
+  });
+
+export const adminPreOrderDashboardOptions = (upcomingLimit = 12) =>
+  queryOptions({
+    queryKey: ["pre-orders", "admin", "dashboard", { upcomingLimit }],
+    queryFn: () => getAdminPreOrderDashboard({ upcomingLimit }),
+    staleTime: 1000 * 15,
+  });
+
+export const preOrderItemsOptions = queryOptions({
+  queryKey: ["pre-orders", "items"],
+  queryFn: getPreOrderItems,
+  staleTime: 1000 * 60 * 5, // 5 min — public, no auth needed
+});
+
+export const adminPreOrderItemsOptions = queryOptions({
+  queryKey: ["pre-orders", "items", "admin"],
+  queryFn: getAdminPreOrderItems,
+  staleTime: 1000 * 60 * 5,
+});
+

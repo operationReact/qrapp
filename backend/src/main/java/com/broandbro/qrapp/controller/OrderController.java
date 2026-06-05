@@ -1,6 +1,7 @@
 package com.broandbro.qrapp.controller;
 
 import com.broandbro.qrapp.dto.CreateOrderRequest;
+import com.broandbro.qrapp.dto.CreatePreOrderRequest;
 import com.broandbro.qrapp.dto.UserOrderSummaryResponse;
 import com.broandbro.qrapp.entity.Order;
 import com.broandbro.qrapp.entity.User;
@@ -87,6 +88,66 @@ public class OrderController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
         return ResponseEntity.ok(service.getOrdersForUser(currentUser));
+    }
+
+    @PostMapping("/pre-order")
+    @Transactional
+    public ResponseEntity<Map<String, Object>> createPreOrder(@Valid @RequestBody CreatePreOrderRequest req,
+                                                              Authentication authentication) {
+        User currentUser = resolveCurrentUser(authentication);
+        PaymentMethod paymentMethod = req.getPaymentMethod() != null ? req.getPaymentMethod() : PaymentMethod.RAZORPAY;
+
+        if (paymentMethod == PaymentMethod.WALLET && currentUser == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        // Build item list to calculate wallet amount if needed
+        List<CreateOrderRequest.Item> itemsForCalc = req.getItems().stream().map(i -> {
+            CreateOrderRequest.Item item = new CreateOrderRequest.Item();
+            item.setItemId(i.getItemId());
+            item.setQuantity(i.getQuantity());
+            return item;
+        }).toList();
+
+        long amountForWallet = paymentMethod == PaymentMethod.WALLET
+                ? service.calculateAmountForItems(itemsForCalc)
+                : 0L;
+        if (paymentMethod == PaymentMethod.WALLET) {
+            walletService.ensureSufficientBalance(currentUser, amountForWallet);
+        }
+
+        OrderService.CreateOrderResult result = service.createPreOrder(req, currentUser);
+        Order order = result.order();
+
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("orderId", order.getId());
+        body.put("orderNumber", order.getOrderNumber());
+        body.put("scheduledAt", order.getScheduledAt());
+        body.put("paymentMethod", paymentMethod);
+
+        if (paymentMethod == PaymentMethod.WALLET) {
+            walletService.payForOrder(currentUser, order.getId(), amountForWallet);
+            service.markOrderPaidByWallet(order.getId());
+            body.put("paymentStatus", "PAID");
+            body.put("amount", amountForWallet);
+            return ResponseEntity.status(HttpStatus.CREATED).body(body);
+        }
+
+        // Razorpay
+        int amount = service.calculateAmountForOrder(order.getId());
+        Map<String, Object> payment = paymentService.createRazorpayOrder(order.getId(), amount);
+        body.put("paymentStatus", order.getPaymentStatus());
+        body.put("payment", payment);
+        return ResponseEntity.status(HttpStatus.CREATED).body(body);
+    }
+
+    /**
+     * GET /orders/pre-order/items
+     * Returns menu items eligible for pre-ordering (tagged PreOrderOnly).
+     */
+    @GetMapping("/pre-order/items")
+    public ResponseEntity<java.util.List<com.broandbro.qrapp.dto.MenuItemResponse>> preOrderItems() {
+        return ResponseEntity.ok(service.getPreOrderItems());
     }
 
     private User resolveCurrentUser(Authentication authentication) {

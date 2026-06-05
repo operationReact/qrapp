@@ -120,7 +120,8 @@ public class SecurityConfig {
                                 "/menu",
                                 "/menu/**",
                                 "/categories/**",
-                                "/api/combos"
+                                "/api/combos",
+                                "/orders/pre-order/items"
                         ).permitAll()
 
                         .requestMatchers(

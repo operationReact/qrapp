@@ -3,7 +3,9 @@ package com.broandbro.qrapp.service;
 import com.broandbro.qrapp.dto.AdminOrderDashboardResponse;
 import com.broandbro.qrapp.dto.AdminOrderResponse;
 import com.broandbro.qrapp.dto.AdminOrderUpdateRequest;
+import com.broandbro.qrapp.dto.AdminPreOrderDashboardResponse;
 import com.broandbro.qrapp.dto.CreateOrderRequest;
+import com.broandbro.qrapp.dto.CreatePreOrderRequest;
 import com.broandbro.qrapp.dto.UserOrderSummaryResponse;
 import com.broandbro.qrapp.entity.MenuItem;
 import com.broandbro.qrapp.entity.Order;
@@ -61,6 +63,7 @@ import java.util.stream.Collectors;
 public class OrderService {
 
     private static final Set<OrderStatus> LIVE_STATUSES = EnumSet.of(OrderStatus.ORDER_PLACED, OrderStatus.PREPARING, OrderStatus.READY);
+    private static final String PRE_ORDER_ONLY_TAG = "PreOrderOnly";
 
     private final OrderRepository orderRepo;
     private final OrderItemRepository orderItemRepo;
@@ -91,6 +94,17 @@ public class OrderService {
      */
     @Transactional
     public CreateOrderResult createOrder(CreateOrderRequest req, User user) {
+        // ── Guard: reject PreOrderOnly items in regular orders ──────────────
+        List<Long> requestedIds = req.getItems().stream()
+                .map(CreateOrderRequest.Item::getItemId)
+                .toList();
+        java.util.Set<Long> preOrderOnlyIds = resolvePreOrderOnlyItemIds(requestedIds);
+        if (!preOrderOnlyIds.isEmpty()) {
+            throw new IllegalArgumentException(
+                "Item(s) " + preOrderOnlyIds + " are only available as pre-orders. " +
+                "Please use the pre-order flow to schedule them.");
+        }
+
         LocalDateTime now = LocalDateTime.now();
         Order order = new Order();
         order.setPhone(user != null ? user.getPhone() : req.getPhone());
@@ -224,6 +238,8 @@ public class OrderService {
             summary.setStatus(order.getStatus());
             summary.setPaymentStatus(order.getPaymentStatus());
             summary.setCreatedAt(order.getCreatedAt());
+            summary.setScheduledAt(order.getScheduledAt());
+            summary.setPreOrder(order.isPreOrder());
 
             double total = 0;
             List<UserOrderSummaryResponse.ItemSummary> itemSummaries = new ArrayList<>();
@@ -535,6 +551,8 @@ public class OrderService {
         response.setStartedAt(order.getStartedAt());
         response.setReadyAt(order.getReadyAt());
         response.setCompletedAt(order.getCompletedAt());
+        response.setScheduledAt(order.getScheduledAt());
+        response.setPreOrder(order.isPreOrder());
         response.setAdminNote(order.getAdminNote());
         response.setAssignedAdmin(order.getAssignedAdmin());
         response.setLive(isLive(order));
@@ -589,6 +607,249 @@ public class OrderService {
         return response;
     }
 
+    // ── Pre-order methods ────────────────────────────────────────────────────
+
+    /**
+     * Returns all menu items tagged as PreOrderOnly — these are the only items
+     * eligible for pre-orders and must NOT appear in regular orders.
+     */
+    @Transactional(readOnly = true)
+    public List<com.broandbro.qrapp.dto.MenuItemResponse> getPreOrderItems() {
+        List<com.broandbro.qrapp.entity.MenuItem> items =
+                menuRepository.findVisibleByTagName(PRE_ORDER_ONLY_TAG);
+        return items.stream().map(item -> {
+            com.broandbro.qrapp.dto.MenuItemResponse r = new com.broandbro.qrapp.dto.MenuItemResponse();
+            r.setId(item.getId());
+            r.setName(item.getName());
+            r.setDescription(item.getDescription());
+            r.setImageUrl(item.getImageUrl());
+            r.setIsVeg(item.getIsVeg());
+            r.setCategory(item.getCategory());
+            r.setTag(item.getTag());
+            r.setAvailable(item.getAvailable());
+            r.setIsHidden(item.getIsHidden());
+            try {
+                r.setPrice(pricingService.getCurrentSellingPrice(item.getId()));
+            } catch (Exception e) {
+                r.setPrice(java.math.BigDecimal.ZERO);
+            }
+            return r;
+        }).toList();
+    }
+
+    /** Returns the set of item IDs that are tagged PreOrderOnly. */
+    private java.util.Set<Long> resolvePreOrderOnlyItemIds(List<Long> itemIds) {
+        if (itemIds == null || itemIds.isEmpty()) return java.util.Set.of();
+        return menuRepository.findAllById(itemIds).stream()
+                .filter(m -> m.getTag() != null && PRE_ORDER_ONLY_TAG.equals(m.getTag().getName()))
+                .map(com.broandbro.qrapp.entity.MenuItem::getId)
+                .collect(java.util.stream.Collectors.toSet());
+    }
+
+    /**
+     * Creates a pre-order scheduled for a future date/time.
+     * Same flow as createOrder, but with PRE_ORDERED status and scheduledAt set.
+     */
+    @Transactional
+    public CreateOrderResult createPreOrder(CreatePreOrderRequest req, User user) {
+        // ── Guard: ALL items must be tagged PreOrderOnly ─────────────────────
+        List<Long> requestedIds = req.getItems().stream()
+                .map(CreatePreOrderRequest.Item::getItemId)
+                .toList();
+        java.util.Set<Long> preOrderOnlyIds = resolvePreOrderOnlyItemIds(requestedIds);
+        List<Long> nonPreOrderItems = requestedIds.stream()
+                .filter(id -> !preOrderOnlyIds.contains(id))
+                .distinct().toList();
+        if (!nonPreOrderItems.isEmpty()) {
+            throw new IllegalArgumentException(
+                "Item(s) " + nonPreOrderItems + " are not eligible for pre-orders. " +
+                "Only items tagged 'PreOrderOnly' can be pre-ordered.");
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        Order order = new Order();
+        order.setPhone(user != null ? user.getPhone() : req.getPhone());
+        order.setUserId(user != null ? user.getId() : null);
+        order.setStatus(OrderStatus.PRE_ORDERED);
+        order.setPaymentStatus("PENDING");
+        order.setPaymentMethod(req.getPaymentMethod() != null ? req.getPaymentMethod() : PaymentMethod.RAZORPAY);
+        order.setCreatedAt(now);
+        order.setLastStatusChangedAt(now);
+        order.setPriority(OrderPriority.NORMAL);
+        order.setPreOrder(true);
+        order.setScheduledAt(req.getScheduledAt());
+        if (req.getCustomerNote() != null && !req.getCustomerNote().isBlank()) {
+            order.setAdminNote(req.getCustomerNote());
+        }
+
+        String orderNumber = orderNumberGenerator.generateOrderNumber(now.toLocalDate());
+        order.setOrderNumber(orderNumber);
+
+        List<Object[]> itemSnaps = new java.util.ArrayList<>();
+        java.math.BigDecimal subtotal = java.math.BigDecimal.ZERO;
+
+        // Build item list converting from CreatePreOrderRequest items
+        List<CreateOrderRequest.Item> orderItems = req.getItems().stream().map(i -> {
+            CreateOrderRequest.Item item = new CreateOrderRequest.Item();
+            item.setItemId(i.getItemId());
+            item.setQuantity(i.getQuantity());
+            return item;
+        }).toList();
+
+        for (CreateOrderRequest.Item i : orderItems) {
+            MenuItem menuItem = menuRepository.findById(i.getItemId())
+                    .orElseThrow(() -> new RuntimeException("MenuItem not found: " + i.getItemId()));
+            Long shopId = menuItem.getShop() != null ? menuItem.getShop().getId() : null;
+            PricingService.OrderItemSnapshot snap = pricingService.createSnapshot(i.getItemId(), shopId, i.getQuantity());
+            itemSnaps.add(new Object[]{i, snap});
+            subtotal = subtotal.add(snap.lineTotal() != null ? snap.lineTotal() : java.math.BigDecimal.ZERO);
+        }
+
+        java.math.BigDecimal couponDiscount = java.math.BigDecimal.ZERO;
+
+        // Build temp CreateOrderRequest for promotion resolution
+        if (req.getPromotionCode() != null && !req.getPromotionCode().isBlank() && user != null) {
+            CreateOrderRequest tempReq = new CreateOrderRequest();
+            tempReq.setPhone(req.getPhone());
+            tempReq.setPaymentMethod(req.getPaymentMethod());
+            tempReq.setItems(orderItems);
+            tempReq.setPromotionCode(req.getPromotionCode());
+            couponDiscount = resolvePromotionDiscount(tempReq, user, subtotal, couponDiscount);
+            if (couponDiscount.compareTo(java.math.BigDecimal.ZERO) > 0) {
+                order.setCouponCode(req.getPromotionCode().toUpperCase());
+                order.setCouponDiscount(couponDiscount);
+            }
+        }
+
+        order.setSubtotal(subtotal);
+        order.setTax(java.math.BigDecimal.ZERO);
+        order.setGrandTotal(subtotal.subtract(couponDiscount));
+        order = orderRepo.save(order);
+        recordStatusHistory(order.getId(), null, OrderStatus.PRE_ORDERED, "Pre-order created for " + req.getScheduledAt(), "SYSTEM", now);
+
+        for (Object[] pair : itemSnaps) {
+            CreateOrderRequest.Item i = (CreateOrderRequest.Item) pair[0];
+            PricingService.OrderItemSnapshot snap = (PricingService.OrderItemSnapshot) pair[1];
+            OrderItem oi = new OrderItem();
+            oi.setOrderId(order.getId());
+            oi.setItemId(i.getItemId());
+            oi.setQuantity(i.getQuantity());
+            oi.setSellingPriceSnapshot(snap.sellingPriceSnapshot());
+            oi.setCostPriceSnapshot(snap.costPriceSnapshot());
+            oi.setProfitSnapshot(snap.profitSnapshot());
+            oi.setLineTotal(snap.lineTotal());
+            orderItemRepo.save(oi);
+        }
+
+        return new CreateOrderResult(order, java.util.List.of());
+    }
+
+    /**
+     * Returns all pre-orders with optional date-range filtering.
+     */
+    @Transactional(readOnly = true)
+    public Page<AdminOrderResponse> getAdminPreOrders(
+            Optional<String> status,
+            Optional<String> query,
+            Optional<LocalDateTime> scheduledFrom,
+            Optional<LocalDateTime> scheduledTo,
+            Pageable pageable) {
+
+        Specification<Order> spec = (root, cq, cb) -> cb.isTrue(root.get("preOrder"));
+
+        if (status.isPresent() && !status.get().isBlank()) {
+            OrderStatus parsedStatus = parseStatus(status.get());
+            spec = spec.and((root, cq, cb) -> cb.equal(root.get("status"), parsedStatus));
+        }
+
+        if (scheduledFrom.isPresent()) {
+            LocalDateTime from = scheduledFrom.get();
+            spec = spec.and((root, cq, cb) -> cb.greaterThanOrEqualTo(root.get("scheduledAt"), from));
+        }
+
+        if (scheduledTo.isPresent()) {
+            LocalDateTime to = scheduledTo.get();
+            spec = spec.and((root, cq, cb) -> cb.lessThanOrEqualTo(root.get("scheduledAt"), to));
+        }
+
+        if (query.isPresent() && !query.get().isBlank()) {
+            spec = spec.and(matchesQuery(query.get()));
+        }
+
+        Pageable effectivePageable = PageRequest.of(
+                pageable.getPageNumber(),
+                pageable.getPageSize(),
+                Sort.by(Sort.Order.asc("scheduledAt"), Sort.Order.desc("createdAt")));
+        Page<Order> page = orderRepo.findAll(spec, effectivePageable);
+        List<AdminOrderResponse> content = buildAdminOrderResponses(page.getContent());
+        return new PageImpl<>(content, effectivePageable, page.getTotalElements());
+    }
+
+    /**
+     * Returns dashboard stats for the pre-order management panel.
+     */
+    @Transactional(readOnly = true)
+    public AdminPreOrderDashboardResponse getAdminPreOrderDashboard(int upcomingLimit) {
+        Specification<Order> preOrderSpec = (root, cq, cb) -> cb.isTrue(root.get("preOrder"));
+        List<Order> allPreOrders = orderRepo.findAll(preOrderSpec, Sort.by(Sort.Order.asc("scheduledAt")));
+
+        LocalDateTime now = LocalDateTime.now();
+        LocalDate today = LocalDate.now();
+        LocalDate tomorrow = today.plusDays(1);
+
+        AdminPreOrderDashboardResponse response = new AdminPreOrderDashboardResponse();
+        response.setTotalPreOrders(allPreOrders.stream()
+                .filter(o -> o.getStatus() != OrderStatus.CANCELLED).count());
+        response.setTodayPreOrders(allPreOrders.stream()
+                .filter(o -> o.getScheduledAt() != null && today.equals(o.getScheduledAt().toLocalDate()))
+                .filter(o -> o.getStatus() != OrderStatus.CANCELLED).count());
+        response.setTomorrowPreOrders(allPreOrders.stream()
+                .filter(o -> o.getScheduledAt() != null && tomorrow.equals(o.getScheduledAt().toLocalDate()))
+                .filter(o -> o.getStatus() != OrderStatus.CANCELLED).count());
+        response.setPendingPreOrders(allPreOrders.stream()
+                .filter(o -> o.getStatus() == OrderStatus.PRE_ORDERED).count());
+        response.setAcceptedPreOrders(allPreOrders.stream()
+                .filter(o -> o.getStatus() != OrderStatus.PRE_ORDERED && o.getStatus() != OrderStatus.CANCELLED).count());
+        response.setCancelledPreOrders(allPreOrders.stream()
+                .filter(o -> o.getStatus() == OrderStatus.CANCELLED).count());
+        response.setOverduePreOrders(allPreOrders.stream()
+                .filter(o -> o.getStatus() == OrderStatus.PRE_ORDERED)
+                .filter(o -> o.getScheduledAt() != null && o.getScheduledAt().isBefore(now))
+                .count());
+
+        List<Order> upcoming = allPreOrders.stream()
+                .filter(o -> o.getStatus() == OrderStatus.PRE_ORDERED)
+                .filter(o -> o.getScheduledAt() != null)
+                .sorted(Comparator.comparing(Order::getScheduledAt))
+                .limit(upcomingLimit)
+                .toList();
+        response.setUpcomingQueue(buildAdminOrderResponses(upcoming));
+        return response;
+    }
+
+    /**
+     * Accepts a pre-order — transitions PRE_ORDERED → ORDER_PLACED.
+     */
+    @Transactional
+    public AdminOrderResponse acceptPreOrder(Long orderId, String adminNote, String actor) {
+        Order order = orderRepo.findById(orderId)
+                .orElseThrow(() -> new IllegalArgumentException("Pre-order not found: " + orderId));
+        if (order.getStatus() != OrderStatus.PRE_ORDERED) {
+            throw new IllegalStateException("Order " + orderId + " is not in PRE_ORDERED status");
+        }
+        LocalDateTime now = LocalDateTime.now();
+        order.setStatus(OrderStatus.ORDER_PLACED);
+        order.setLastStatusChangedAt(now);
+        if (adminNote != null && !adminNote.isBlank()) {
+            order.setAdminNote(adminNote);
+        }
+        if (actor != null) order.setAssignedAdmin(actor);
+        orderRepo.save(order);
+        recordStatusHistory(order.getId(), OrderStatus.PRE_ORDERED, OrderStatus.ORDER_PLACED,
+                adminNote, actor, now);
+        return getAdminOrder(orderId);
+    }
+
     private void validateTransition(OrderStatus currentStatus, OrderStatus nextStatus) {
         List<OrderStatus> allowed = allowedTransitionsFor(currentStatus);
         if (!allowed.contains(nextStatus)) {
@@ -601,11 +862,12 @@ public class OrderService {
             return List.of();
         }
         return switch (status) {
+            case PRE_ORDERED -> List.of(OrderStatus.ORDER_PLACED, OrderStatus.CANCELLED);
             case ORDER_PLACED -> List.of(OrderStatus.PREPARING, OrderStatus.READY, OrderStatus.COMPLETED, OrderStatus.CANCELLED);
-            case ACKNOWLEDGED -> null;
+            case ACKNOWLEDGED -> List.of();
             case PREPARING -> List.of(OrderStatus.ORDER_PLACED, OrderStatus.READY, OrderStatus.COMPLETED, OrderStatus.CANCELLED);
             case READY -> List.of(OrderStatus.PREPARING, OrderStatus.COMPLETED, OrderStatus.CANCELLED);
-            case DELIVERED -> null;
+            case DELIVERED -> List.of();
             case COMPLETED, CANCELLED -> List.of();
         };
     }

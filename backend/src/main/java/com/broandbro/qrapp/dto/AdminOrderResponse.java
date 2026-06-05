@@ -26,6 +26,8 @@ public class AdminOrderResponse {
     private LocalDateTime startedAt;
     private LocalDateTime readyAt;
     private LocalDateTime completedAt;
+    private LocalDateTime scheduledAt;
+    private boolean preOrder;
     private double total;
     private int totalItems;
     private String adminNote;

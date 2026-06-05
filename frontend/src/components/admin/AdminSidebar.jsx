@@ -30,6 +30,7 @@ import {
   StarIcon,
   CubeIcon,
   TrophyIcon,
+  CalendarCheckIcon,
 } from "@phosphor-icons/react";
 import { useAuth } from "@/context/AuthContext";
 
@@ -155,6 +156,21 @@ export function AdminSidebar() {
                       }
                     />
                     <span>Party Orders</span>
+                  </Link>
+                }
+              />
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                className="text-zinc-700 font-medium"
+                isActive={pathname === "/admin/pre-orders"}
+                render={
+                  <Link to={"/admin/pre-orders"}>
+                    <CalendarCheckIcon
+                      className="text-primary"
+                      weight={pathname === "/admin/pre-orders" ? "bold" : "regular"}
+                    />
+                    <span>Pre-Orders</span>
                   </Link>
                 }
               />

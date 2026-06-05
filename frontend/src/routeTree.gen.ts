@@ -34,6 +34,7 @@ import { Route as AdminAnalyticsMenuRouteImport } from './routes/admin/analytics
 import { Route as AdminAnalyticsCouponsRouteImport } from './routes/admin/analytics/coupons'
 import { Route as AdminpromotionsPromotionsRouteImport } from './routes/admin/(promotions)/promotions'
 import { Route as AdminordersServiceBoardRouteImport } from './routes/admin/(orders)/service-board'
+import { Route as AdminordersPreOrdersRouteImport } from './routes/admin/(orders)/pre-orders'
 import { Route as AdminordersPartyOrdersRouteImport } from './routes/admin/(orders)/party-orders'
 import { Route as AdminordersOperationalQueueRouteImport } from './routes/admin/(orders)/operational-queue'
 import { Route as AdminordersKitchenQueueRouteImport } from './routes/admin/(orders)/kitchen-queue'
@@ -174,6 +175,11 @@ const AdminordersServiceBoardRoute = AdminordersServiceBoardRouteImport.update({
   path: '/service-board',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminordersPreOrdersRoute = AdminordersPreOrdersRouteImport.update({
+  id: '/(orders)/pre-orders',
+  path: '/pre-orders',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminordersPartyOrdersRoute = AdminordersPartyOrdersRouteImport.update({
   id: '/(orders)/party-orders',
   path: '/party-orders',
@@ -262,6 +268,7 @@ export interface FileRoutesByFullPath {
   '/admin/kitchen-queue': typeof AdminordersKitchenQueueRoute
   '/admin/operational-queue': typeof AdminordersOperationalQueueRouteWithChildren
   '/admin/party-orders': typeof AdminordersPartyOrdersRoute
+  '/admin/pre-orders': typeof AdminordersPreOrdersRoute
   '/admin/service-board': typeof AdminordersServiceBoardRoute
   '/admin/promotions': typeof AdminpromotionsPromotionsRoute
   '/admin/analytics/coupons': typeof AdminAnalyticsCouponsRoute
@@ -299,6 +306,7 @@ export interface FileRoutesByTo {
   '/admin/milestones': typeof AdminmilestonesMilestonesRoute
   '/admin/kitchen-queue': typeof AdminordersKitchenQueueRoute
   '/admin/party-orders': typeof AdminordersPartyOrdersRoute
+  '/admin/pre-orders': typeof AdminordersPreOrdersRoute
   '/admin/service-board': typeof AdminordersServiceBoardRoute
   '/admin/promotions': typeof AdminpromotionsPromotionsRoute
   '/admin/analytics/coupons': typeof AdminAnalyticsCouponsRoute
@@ -339,6 +347,7 @@ export interface FileRoutesById {
   '/admin/(orders)/kitchen-queue': typeof AdminordersKitchenQueueRoute
   '/admin/(orders)/operational-queue': typeof AdminordersOperationalQueueRouteWithChildren
   '/admin/(orders)/party-orders': typeof AdminordersPartyOrdersRoute
+  '/admin/(orders)/pre-orders': typeof AdminordersPreOrdersRoute
   '/admin/(orders)/service-board': typeof AdminordersServiceBoardRoute
   '/admin/(promotions)/promotions': typeof AdminpromotionsPromotionsRoute
   '/admin/analytics/coupons': typeof AdminAnalyticsCouponsRoute
@@ -380,6 +389,7 @@ export interface FileRouteTypes {
     | '/admin/kitchen-queue'
     | '/admin/operational-queue'
     | '/admin/party-orders'
+    | '/admin/pre-orders'
     | '/admin/service-board'
     | '/admin/promotions'
     | '/admin/analytics/coupons'
@@ -417,6 +427,7 @@ export interface FileRouteTypes {
     | '/admin/milestones'
     | '/admin/kitchen-queue'
     | '/admin/party-orders'
+    | '/admin/pre-orders'
     | '/admin/service-board'
     | '/admin/promotions'
     | '/admin/analytics/coupons'
@@ -456,6 +467,7 @@ export interface FileRouteTypes {
     | '/admin/(orders)/kitchen-queue'
     | '/admin/(orders)/operational-queue'
     | '/admin/(orders)/party-orders'
+    | '/admin/(orders)/pre-orders'
     | '/admin/(orders)/service-board'
     | '/admin/(promotions)/promotions'
     | '/admin/analytics/coupons'
@@ -667,6 +679,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminordersServiceBoardRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/(orders)/pre-orders': {
+      id: '/admin/(orders)/pre-orders'
+      path: '/pre-orders'
+      fullPath: '/admin/pre-orders'
+      preLoaderRoute: typeof AdminordersPreOrdersRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/(orders)/party-orders': {
       id: '/admin/(orders)/party-orders'
       path: '/party-orders'
@@ -781,6 +800,7 @@ interface AdminRouteChildren {
   AdminordersKitchenQueueRoute: typeof AdminordersKitchenQueueRoute
   AdminordersOperationalQueueRoute: typeof AdminordersOperationalQueueRouteWithChildren
   AdminordersPartyOrdersRoute: typeof AdminordersPartyOrdersRoute
+  AdminordersPreOrdersRoute: typeof AdminordersPreOrdersRoute
   AdminordersServiceBoardRoute: typeof AdminordersServiceBoardRoute
   AdminpromotionsPromotionsRoute: typeof AdminpromotionsPromotionsRoute
   AdminAnalyticsCouponsRoute: typeof AdminAnalyticsCouponsRoute
@@ -806,6 +826,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminordersOperationalQueueRoute:
     AdminordersOperationalQueueRouteWithChildren,
   AdminordersPartyOrdersRoute: AdminordersPartyOrdersRoute,
+  AdminordersPreOrdersRoute: AdminordersPreOrdersRoute,
   AdminordersServiceBoardRoute: AdminordersServiceBoardRoute,
   AdminpromotionsPromotionsRoute: AdminpromotionsPromotionsRoute,
   AdminAnalyticsCouponsRoute: AdminAnalyticsCouponsRoute,

@@ -30,5 +30,12 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
     /** Sum of grandTotal for all COMPLETED orders for a given user */
     @Query("SELECT COALESCE(SUM(o.grandTotal), 0) FROM Order o WHERE o.userId = :userId AND o.status = 'COMPLETED'")
     BigDecimal sumLifetimeSpendByUserId(@Param("userId") Long userId);
+
+    /** All pre-orders scheduled within a time range, sorted by scheduled time */
+    @Query("SELECT o FROM Order o WHERE o.preOrder = true AND o.scheduledAt BETWEEN :from AND :to ORDER BY o.scheduledAt ASC")
+    List<Order> findPreOrdersScheduledBetween(@Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
+
+    /** Count pre-orders by status */
+    long countByPreOrderTrueAndStatus(com.broandbro.qrapp.enums.OrderStatus status);
 }
 

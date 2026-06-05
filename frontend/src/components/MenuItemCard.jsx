@@ -3,13 +3,23 @@ import { useCart } from "../context/CartContext";
 import PropTypes from "prop-types";
 import { baseURL } from "../services";
 
-import { ProhibitIcon, ClockIcon } from "@phosphor-icons/react";
+import { ProhibitIcon, ClockIcon, CalendarCheckIcon } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
 import QuantitySelector from "./QuantitySelector";
+import CustomerPreOrderDialog from "./CustomerPreOrderDialog";
+
+const PRE_ORDER_ONLY_TAG = "PreOrderOnly";
+
+function isPreOrderOnly(item) {
+  return item?.tag?.name === PRE_ORDER_ONLY_TAG;
+}
 
 export default function MenuItemCard({ item, overrideUnavailable = false, unavailableLabel }) {
   const { cart, addItem, decreaseItem } = useCart();
   const [imgError, setImgError] = useState(false);
+  const [preOrderOpen, setPreOrderOpen] = useState(false);
+
+  const preOrderOnly = isPreOrderOnly(item);
 
   const existing = cart.find((i) => i.id === item.id);
   const qty = existing ? existing.quantity : 0;
@@ -89,6 +99,16 @@ export default function MenuItemCard({ item, overrideUnavailable = false, unavai
           </div>
         )}
 
+        {/* Pre-Order Only badge */}
+        {preOrderOnly && !isUnavailable && (
+          <div className="absolute top-2 right-2">
+            <span className="flex items-center gap-1 rounded-full bg-violet-600/90 backdrop-blur-sm px-2 py-0.5 text-[10px] font-semibold text-white">
+              <CalendarCheckIcon className="size-2.5" weight="fill" />
+              Pre-Order
+            </span>
+          </div>
+        )}
+
         {/* veg/non-veg indicator */}
         <div
           title={veg ? "Veg" : "Non Veg"}
@@ -135,6 +155,14 @@ export default function MenuItemCard({ item, overrideUnavailable = false, unavai
                 : <ProhibitIcon weight="duotone" className="size-3" />}
               {bottomLabel}
             </span>
+          ) : preOrderOnly ? (
+            <button
+              onClick={() => setPreOrderOpen(true)}
+              className="inline-flex items-center gap-1 rounded-md bg-violet-600 hover:bg-violet-700 text-white px-2.5 py-1.5 text-[11px] font-semibold transition-colors"
+            >
+              <CalendarCheckIcon className="size-3" weight="fill" />
+              Pre-Order
+            </button>
           ) : (
             <QuantitySelector
               qty={qty}
@@ -144,6 +172,14 @@ export default function MenuItemCard({ item, overrideUnavailable = false, unavai
           )}
         </div>
       </div>
+
+      {preOrderOnly && (
+        <CustomerPreOrderDialog
+          initialItem={item}
+          open={preOrderOpen}
+          onOpenChange={setPreOrderOpen}
+        />
+      )}
     </article>
   );
 }

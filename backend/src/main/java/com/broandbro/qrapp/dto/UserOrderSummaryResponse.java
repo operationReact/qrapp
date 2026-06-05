@@ -14,6 +14,8 @@ public class UserOrderSummaryResponse {
     private OrderStatus status;
     private String paymentStatus;
     private LocalDateTime createdAt;
+    private LocalDateTime scheduledAt;
+    private boolean preOrder;
     private double total;
     private List<ItemSummary> items = new ArrayList<>();
 
