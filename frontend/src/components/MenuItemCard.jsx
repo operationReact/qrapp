@@ -59,119 +59,121 @@ export default function MenuItemCard({ item, overrideUnavailable = false, unavai
     item.isVeg === "1";
 
   return (
-    <article
-      className={cn(
-        "group bg-background h-full border border-border rounded-lg overflow-hidden transition-opacity",
-        isUnavailable && "opacity-70"
-      )}
-    >
-      {/* Image */}
-      <div className="relative aspect-video w-full">
-        {imageSrc && !imgError ? (
-          <img
-            src={imageSrc}
-            alt={item.name}
-            onError={() => setImgError(true)}
-            className={cn(
-              "w-full h-full object-cover transition-all duration-300",
-              isUnavailable && "grayscale"
-            )}
-          />
-        ) : (
-          <div className="w-full overflow-hidden h-full flex items-center justify-center bg-zinc-100">
+    <>
+      <article
+        className={cn(
+          "group bg-background h-full border border-border rounded-lg overflow-hidden transition-opacity",
+          isUnavailable && "opacity-70",
+          // Pre-order items: entire card is the tap target
+          preOrderOnly && !isUnavailable && "cursor-pointer ring-0 hover:ring-2 hover:ring-indigo-300 hover:border-indigo-300 transition-all"
+        )}
+        onClick={preOrderOnly && !isUnavailable ? () => setPreOrderOpen(true) : undefined}
+      >
+        {/* Image */}
+        <div className="relative aspect-video w-full">
+          {imageSrc && !imgError ? (
             <img
-              src="/brand/white.png"
-              alt="Bro Logo"
-              className="opacity-20 size-1/2 object-contain animate-pulse"
+              src={imageSrc}
+              alt={item.name}
+              onError={() => setImgError(true)}
+              className={cn(
+                "w-full h-full object-cover transition-all duration-300",
+                isUnavailable && "grayscale"
+              )}
             />
-          </div>
-        )}
-
-        {/* Unavailable overlay badge — stock or time-gated */}
-        {isUnavailable && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <span className="flex items-center gap-1 rounded-full bg-black/70 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-widest text-white backdrop-blur-sm">
-              {isTimegated
-                ? <ClockIcon weight="bold" className="size-3 shrink-0" />
-                : <ProhibitIcon weight="bold" className="size-3 shrink-0" />}
-              {overlayText}
-            </span>
-          </div>
-        )}
-
-        {/* Pre-Order Only badge */}
-        {preOrderOnly && !isUnavailable && (
-          <div className="absolute top-2 right-2">
-            <span className="flex items-center gap-1 rounded-full bg-indigo-950/75 backdrop-blur-sm px-2 py-0.5 text-[10px] font-semibold text-indigo-100">
-              <CalendarCheckIcon className="size-2.5" weight="fill" />
-              Pre-Order
-            </span>
-          </div>
-        )}
-
-        {/* veg/non-veg indicator */}
-        <div
-          title={veg ? "Veg" : "Non Veg"}
-          className={cn(
-            "absolute origin-top-left scale-75 sm:scale-100 top-2 left-2 p-1.5 border-2 bg-white rounded-sm size-6 flex items-center gap-2",
-            veg ? "border-accent-400" : "border-red-600"
+          ) : (
+            <div className="w-full overflow-hidden h-full flex items-center justify-center bg-zinc-100">
+              <img
+                src="/brand/white.png"
+                alt="Bro Logo"
+                className="opacity-20 size-1/2 object-contain animate-pulse"
+              />
+            </div>
           )}
-        >
-          <span
-            className={cn(
-              "size-full rounded-full",
-              veg ? "bg-accent-400" : "bg-red-600"
-            )}
-          />
-        </div>
-      </div>
 
-      {/* Details */}
-      <div className="px-2 py-1.5 sm:py-2">
-        <h3
-          className={cn(
-            "text-pretty text-xs leading-4 font-semibold sm:text-lg",
-            isUnavailable && "text-muted-foreground"
+          {/* Unavailable overlay badge — stock or time-gated */}
+          {isUnavailable && (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span className="flex items-center gap-1 rounded-full bg-black/70 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-widest text-white backdrop-blur-sm">
+                {isTimegated
+                  ? <ClockIcon weight="bold" className="size-3 shrink-0" />
+                  : <ProhibitIcon weight="bold" className="size-3 shrink-0" />}
+                {overlayText}
+              </span>
+            </div>
           )}
-        >
-          {item.name}
-        </h3>
 
-        <div className="flex mt-1 sm:mt-2 items-center gap-2 justify-between">
-          <span
+          {/* Pre-Order Only badge — top right, passive label only */}
+          {preOrderOnly && !isUnavailable && (
+            <div className="absolute top-2 right-2">
+              <span className="flex items-center gap-1 rounded-full bg-indigo-950/75 backdrop-blur-sm px-2 py-0.5 text-[10px] font-semibold text-indigo-100">
+                <CalendarCheckIcon className="size-2.5" weight="fill" />
+                Pre-Order
+              </span>
+            </div>
+          )}
+
+          {/* veg/non-veg indicator */}
+          <div
+            title={veg ? "Veg" : "Non Veg"}
             className={cn(
-              "font-medium text-sm md:text-base",
-              isUnavailable &&
-                "text-muted-foreground line-through decoration-muted-foreground/60"
+              "absolute origin-top-left scale-75 sm:scale-100 top-2 left-2 p-1.5 border-2 bg-white rounded-sm size-6 flex items-center gap-2",
+              veg ? "border-accent-400" : "border-red-600"
             )}
           >
-            ₹{item.price?.toFixed(0) ?? "—"}
-          </span>
-
-          {isUnavailable ? (
-            <span className="inline-flex items-center gap-1 rounded-md border border-dashed border-muted-foreground/40 px-2 py-1 text-[10px] font-medium text-muted-foreground">
-              {isTimegated
-                ? <ClockIcon weight="duotone" className="size-3" />
-                : <ProhibitIcon weight="duotone" className="size-3" />}
-              {bottomLabel}
-            </span>
-          ) : preOrderOnly ? (
-            <button
-              onClick={() => setPreOrderOpen(true)}
-              className="inline-flex items-center gap-1 rounded-md border border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 px-2.5 py-1.5 text-[11px] font-semibold transition-colors"
-            >
-              <CalendarCheckIcon className="size-3" weight="fill" />
-              Pre-Order
-            </button>
-          ) : (
-            <QuantitySelector
-              qty={qty}
-              onAdd={() => addItem(item)}
-              onRemove={() => decreaseItem(item)}
+            <span
+              className={cn(
+                "size-full rounded-full",
+                veg ? "bg-accent-400" : "bg-red-600"
+              )}
             />
-          )}
+          </div>
         </div>
-      </div>
+
+        {/* Details */}
+        <div className="px-2 py-1.5 sm:py-2">
+          <h3
+            className={cn(
+              "text-pretty text-xs leading-4 font-semibold sm:text-lg",
+              isUnavailable && "text-muted-foreground"
+            )}
+          >
+            {item.name}
+          </h3>
+
+          <div className="flex mt-1 sm:mt-2 items-center gap-2 justify-between">
+            <span
+              className={cn(
+                "font-medium text-sm md:text-base",
+                isUnavailable &&
+                  "text-muted-foreground line-through decoration-muted-foreground/60"
+              )}
+            >
+              ₹{item.price?.toFixed(0) ?? "—"}
+            </span>
+
+            {isUnavailable ? (
+              <span className="inline-flex items-center gap-1 rounded-md border border-dashed border-muted-foreground/40 px-2 py-1 text-[10px] font-medium text-muted-foreground">
+                {isTimegated
+                  ? <ClockIcon weight="duotone" className="size-3" />
+                  : <ProhibitIcon weight="duotone" className="size-3" />}
+                {bottomLabel}
+              </span>
+            ) : preOrderOnly ? (
+              /* No per-card button — the whole card is tappable */
+              <span className="text-[10px] font-medium text-indigo-400 select-none">
+                Tap to pre-order
+              </span>
+            ) : (
+              <QuantitySelector
+                qty={qty}
+                onAdd={() => addItem(item)}
+                onRemove={() => decreaseItem(item)}
+              />
+            )}
+          </div>
+        </div>
+      </article>
 
       {preOrderOnly && (
         <CustomerPreOrderDialog
@@ -180,7 +182,7 @@ export default function MenuItemCard({ item, overrideUnavailable = false, unavai
           onOpenChange={setPreOrderOpen}
         />
       )}
-    </article>
+    </>
   );
 }
 

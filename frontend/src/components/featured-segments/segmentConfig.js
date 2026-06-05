@@ -4,7 +4,7 @@ export const FEATURED_SEGMENTS = [
   {
     id: "preorder",
     variant: "preorder",
-    title: "Pre-Order Specials",
+    title: "Available on Pre-Order for Tomorrow",
     subtitle: "Reserve tomorrow's favorites today",
     badge: "Limited Time",
   },

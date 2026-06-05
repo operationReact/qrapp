@@ -212,7 +212,7 @@ function MenuPage() {
           {preOrderOnly.length > 0 && (
             <FeaturedSegment
               variant="preorder"
-              title="Pre-Order Specials"
+              title="Exclusive items avialable only on  Pre-Order for Tomorrow"
               subtitle={
                 isPreOrderOpen
                   ? "Pre-order now for tomorrow. Window closes at 9 PM."

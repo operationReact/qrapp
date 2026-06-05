@@ -271,9 +271,9 @@ function KitchenQueuePage() {
     setLastRefreshed(new Date());
   };
 
-  // ── Group orders by status ──
+  // ── Group orders by status — pre-orders are explicitly excluded; they live in the Pre-Orders page ──
   const grouped = STAGES.reduce((acc, s) => {
-    acc[s.key] = liveOrders.filter((o) => String(o.status).includes(s.key));
+    acc[s.key] = liveOrders.filter((o) => !o.preOrder && String(o.status).includes(s.key));
     return acc;
   }, {});
 

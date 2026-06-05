@@ -22,6 +22,9 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
     List<Order> findAllByPhoneOrderByCreatedAtDescIdDesc(String phone);
     List<Order> findAllByStatusInOrderByCreatedAtAscIdAsc(Collection<OrderStatus> statuses, Pageable pageable);
 
+    /** Same as above but strictly excludes pre-orders (for kitchen queue). */
+    List<Order> findAllByStatusInAndPreOrderFalseOrderByCreatedAtAscIdAsc(Collection<OrderStatus> statuses, Pageable pageable);
+
     long countByUserId(Long userId);
 
     @Query("SELECT MAX(o.createdAt) FROM Order o WHERE o.userId = :userId")

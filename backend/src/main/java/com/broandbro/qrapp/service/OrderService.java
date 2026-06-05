@@ -308,7 +308,8 @@ public class OrderService {
                                                    Optional<String> query,
                                                    boolean liveOnly,
                                                    Pageable pageable) {
-        Specification<Order> specification = Specification.where(null);
+        // Pre-orders are managed exclusively via /admin/pre-orders — exclude them here
+        Specification<Order> specification = (root, cq, cb) -> cb.isFalse(root.get("preOrder"));
 
         if (status.isPresent() && !status.get().isBlank()) {
             OrderStatus parsedStatus = parseStatus(status.get());
@@ -319,7 +320,6 @@ public class OrderService {
             String normalizedPaymentStatus = paymentStatus.get().trim().toUpperCase(Locale.ROOT);
             specification = specification.and((root, cq, cb) -> cb.equal(cb.upper(root.get("paymentStatus")), normalizedPaymentStatus));
         }
-
 
         if (liveOnly) {
             specification = specification.and((root, cq, cb) -> root.get("status").in(LIVE_STATUSES));
@@ -338,14 +338,18 @@ public class OrderService {
     @Transactional(readOnly = true)
     public List<AdminOrderResponse> getLiveOrders(int limit) {
         int safeLimit = Math.max(1, Math.min(30, limit));
+        // Explicitly exclude pre-orders — they are managed via the pre-orders admin page only
         return buildAdminOrderResponses(
-                orderRepo.findAllByStatusInOrderByCreatedAtAscIdAsc(LIVE_STATUSES, PageRequest.of(0, safeLimit))
+                orderRepo.findAllByStatusInAndPreOrderFalseOrderByCreatedAtAscIdAsc(
+                        LIVE_STATUSES, PageRequest.of(0, safeLimit))
         );
     }
 
     @Transactional(readOnly = true)
     public AdminOrderDashboardResponse getAdminDashboard(int liveLimit) {
-        List<Order> allOrders = orderRepo.findAll(Sort.by(Sort.Order.desc("createdAt"), Sort.Order.desc("id")));
+        // Exclude pre-orders — they have their own dashboard
+        List<Order> allOrders = orderRepo.findAll(Sort.by(Sort.Order.desc("createdAt"), Sort.Order.desc("id")))
+                .stream().filter(o -> !o.isPreOrder()).toList();
         AdminOrderDashboardResponse response = new AdminOrderDashboardResponse();
         response.setTotalOrders(allOrders.size());
         response.setPlacedOrders(countByStatus(allOrders, OrderStatus.ORDER_PLACED));
