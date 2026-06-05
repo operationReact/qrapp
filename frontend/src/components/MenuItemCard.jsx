@@ -3,21 +3,17 @@ import { useCart } from "../context/CartContext";
 import PropTypes from "prop-types";
 import { baseURL } from "../services";
 
-import { BagIcon, PlusIcon, ProhibitIcon } from "@phosphor-icons/react";
-import { Button } from "./ui/button";
-import { useNavigate } from "@tanstack/react-router";
+import { ProhibitIcon, ClockIcon } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
+import QuantitySelector from "./QuantitySelector";
 
-export default function MenuItemCard({ item }) {
-  const { cart, addItem } = useCart();
+export default function MenuItemCard({ item, overrideUnavailable = false, unavailableLabel }) {
+  const { cart, addItem, decreaseItem } = useCart();
   const [imgError, setImgError] = useState(false);
-  const navigate = useNavigate();
 
   const existing = cart.find((i) => i.id === item.id);
   const qty = existing ? existing.quantity : 0;
 
-  // Treat item as unavailable if available is explicitly false/0/"false"
-  // Undefined or null means available (backwards compat with old API responses)
   const availableRaw = item.available;
   const isAvailable =
     availableRaw === undefined ||
@@ -27,8 +23,16 @@ export default function MenuItemCard({ item }) {
     availableRaw === 1 ||
     availableRaw === "1";
 
-  const isUnavailable =
-    !isAvailable || item.stockStatus === "OUT_OF_STOCK";
+  // overrideUnavailable lets callers (e.g. time-gated segments) disable
+  // ordering without touching the item data itself.
+  const isUnavailable = overrideUnavailable || !isAvailable || item.stockStatus === "OUT_OF_STOCK";
+
+  // Decide what the overlay badge and bottom action label should say.
+  // Time-window callers supply unavailableLabel ("Opens 8 AM").
+  // Stock callers fall back to the standard "Out of Stock" / "Unavailable".
+  const isTimegated = overrideUnavailable && !!unavailableLabel;
+  const overlayText  = isTimegated ? unavailableLabel : "Out of Stock";
+  const bottomLabel  = isTimegated ? unavailableLabel : "Unavailable";
 
   const computeImageSrc = (url) => {
     if (!url) return null;
@@ -73,12 +77,14 @@ export default function MenuItemCard({ item }) {
           </div>
         )}
 
-        {/* Out of Stock overlay badge */}
+        {/* Unavailable overlay badge — stock or time-gated */}
         {isUnavailable && (
           <div className="absolute inset-0 flex items-center justify-center">
             <span className="flex items-center gap-1 rounded-full bg-black/70 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-widest text-white backdrop-blur-sm">
-              <ProhibitIcon weight="bold" className="size-3 shrink-0" />
-              Out of Stock
+              {isTimegated
+                ? <ClockIcon weight="bold" className="size-3 shrink-0" />
+                : <ProhibitIcon weight="bold" className="size-3 shrink-0" />}
+              {overlayText}
             </span>
           </div>
         )}
@@ -124,24 +130,17 @@ export default function MenuItemCard({ item }) {
 
           {isUnavailable ? (
             <span className="inline-flex items-center gap-1 rounded-md border border-dashed border-muted-foreground/40 px-2 py-1 text-[10px] font-medium text-muted-foreground">
-              <ProhibitIcon weight="duotone" className="size-3" />
-              Unavailable
+              {isTimegated
+                ? <ClockIcon weight="duotone" className="size-3" />
+                : <ProhibitIcon weight="duotone" className="size-3" />}
+              {bottomLabel}
             </span>
           ) : (
-            <Button
-              variant={qty > 0 ? "secondary" : "shadow-white"}
-              size="sm"
-              className="size-8 md:h-9 md:w-auto aspect-square md:aspect-auto"
-              onClick={() => {
-                if (qty > 0) navigate({ to: "/#cart" });
-                else addItem(item);
-              }}
-            >
-              {qty > 0 ? <BagIcon weight="bold" /> : <PlusIcon weight="bold" />}
-              <span className="hidden md:inline animate-in transition-opacity duration-200">
-                {qty > 0 ? "Cart" : "Add"}
-              </span>
-            </Button>
+            <QuantitySelector
+              qty={qty}
+              onAdd={() => addItem(item)}
+              onRemove={() => decreaseItem(item)}
+            />
           )}
         </div>
       </div>
@@ -151,6 +150,8 @@ export default function MenuItemCard({ item }) {
 
 MenuItemCard.propTypes = {
   item: PropTypes.object.isRequired,
+  overrideUnavailable: PropTypes.bool,
+  unavailableLabel: PropTypes.string,
   onEdit: PropTypes.func,
   onDelete: PropTypes.func,
 };

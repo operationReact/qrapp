@@ -1,6 +1,13 @@
 import { useCountdown } from "@/hooks/useCountdown";
 import { cn } from "@/lib/utils";
 
+/**
+ * CountdownTimer
+ *
+ * Compact right-slot timer for FeaturedSegmentHeader.
+ * Renders on light warm backgrounds — uses near-black text with
+ * accent-tinted pill. No white-on-dark styles.
+ */
 export default function CountdownTimer({
   targetDate,
   label,
@@ -13,9 +20,19 @@ export default function CountdownTimer({
 
   if (expired) {
     return (
-      <div className={cn("text-destructive text-xs font-medium", className)}>
+      <span
+        className={cn(
+          "rounded-full px-2.5 py-1 text-[11px] font-semibold leading-none",
+          className,
+        )}
+        style={{
+          background: "rgba(0,0,0,0.05)",
+          color: "#6B7280",
+          border: "1px solid rgba(0,0,0,0.08)",
+        }}
+      >
         {expiredLabel}
-      </div>
+      </span>
     );
   }
 
@@ -26,15 +43,25 @@ export default function CountdownTimer({
   parts.push(`${String(seconds).padStart(2, "0")}s`);
 
   return (
-    <div className={cn("text-xs md:text-sm grid gap-0.5", className)}>
-      {label && <span className="text-muted-foreground">{label}</span>}
-      <div className="tabular-nums flex justify-center bg-white p-0.5 rounded border-muted shadow-xs gap-0.5 font-medium text-primary">
-        {parts.map((part, index) => (
-          <span key={index} className="rounded">
-            {part} {index < parts.length - 1 && ":"}
-          </span>
-        ))}
-      </div>
+    <div className={cn("flex flex-col items-end gap-0.5", className)}>
+      {label && (
+        <span
+          className="text-[9px] font-semibold uppercase tracking-widest leading-none"
+          style={{ color: "#9CA3AF" }}
+        >
+          {label}
+        </span>
+      )}
+      <span
+        className="tabular-nums rounded-full px-2.5 py-1 text-[11px] font-bold leading-none"
+        style={{
+          background: "rgba(0,0,0,0.05)",
+          color: "#374151",
+          border: "1px solid rgba(0,0,0,0.08)",
+        }}
+      >
+        {parts.join(" : ")}
+      </span>
     </div>
   );
 }

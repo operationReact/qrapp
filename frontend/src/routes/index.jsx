@@ -16,21 +16,11 @@ import { usePreferences } from "@/context/PreferencesContext";
 import MobileMenu from "../components/shared/MobileMenu";
 import { useLocation } from "@tanstack/react-router";
 import DealsSection from "@/components/DealsSection";
-import {
-  Segment,
-  SegmentHeader,
-  SegmentLabel,
-  SegmentTitle,
-  SegmentDescription,
-  SegmentContent,
-  SegmentFooter,
-  SegmentActions,
-  SegmentAction,
-} from "@/components/shared/segment";
 import React from "react";
 import CountdownTimer from "@/components/CountdownTimer";
 import { FireIcon, SparkleIcon } from "@phosphor-icons/react";
 import { BowlFoodIcon } from "@phosphor-icons/react";
+import FeaturedSegment from "@/components/featured-segments/FeaturedSegment";
 import {
   Empty,
   EmptyDescription,
@@ -38,7 +28,7 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty";
-import { Button } from "@/components/ui/button";
+
 
 export const Route = createFileRoute("/")({
   component: MenuPage,
@@ -61,7 +51,6 @@ function MenuPage() {
     data: menu,
     isLoading: loading,
     isError: offline,
-    error: fetchError,
     refetch: fetchMenu,
   } = useQuery(menuOptions(opts));
 
@@ -72,6 +61,19 @@ function MenuPage() {
   const menuItems = menu || [];
   const preOrderOnly = menuItems.filter(
     (item) => item.tag?.name === "PreOrderOnly",
+  );
+
+  const getCategoryName = (item) => item.category?.name || "";
+  const getTagName = (item) => item.tag?.name || "";
+
+  const normalizeCategoryName = (value) =>
+    String(value || "").replace(/\s+/g, "").toLowerCase();
+  const signatureCategoryName = "BBSignatureProducts";
+
+  const signatureProducts = menuItems.filter(
+    (item) =>
+      normalizeCategoryName(getCategoryName(item)) ===
+      normalizeCategoryName(signatureCategoryName),
   );
 
   // ── Pre-order window: open 08:00–21:00 local time ─────────────────────────
@@ -109,8 +111,8 @@ function MenuPage() {
     const haystack = [
       item.name,
       item.description,
-      item.category.name,
-      item.tag?.name,
+      getCategoryName(item),
+      getTagName(item),
     ]
       .filter(Boolean)
       .join(" ")
@@ -126,10 +128,11 @@ function MenuPage() {
   });
 
   const groups = filtered.reduce((acc, item) => {
-    if (acc[item.category.name]) {
-      acc[item.category.name].push(item);
+    const categoryName = getCategoryName(item) || "Specials";
+    if (acc[categoryName]) {
+      acc[categoryName].push(item);
     } else {
-      acc[item.category.name] = [item];
+      acc[categoryName] = [item];
     }
 
     return acc;
@@ -173,7 +176,7 @@ function MenuPage() {
         <CategoryTabs categories={categories} active={category} />
       </div>
 
-      <main className="container-premium py-4">
+      <main className="container-premium py-4 md:py-6 lg:py-8">
         <div className="page-stack">
           {/* HEADER */}
           <div className="space-y-2 sr-only">
@@ -209,112 +212,88 @@ function MenuPage() {
           )}
 
           {preOrderOnly.length > 0 && (
-          <Segment tone="red" className="p-2">
-            <SegmentHeader>
-              <SegmentLabel icon={<FireIcon weight="duotone" />}>
-                <SegmentTitle>Only available on pre-orders</SegmentTitle>
-                <SegmentDescription>
-                  {isPreOrderOpen
-                    ? "Pre-order now for tomorrow. Window closes at 9 PM."
-                    : "Pre-order window is closed. Opens at 8 AM tomorrow."}
-                </SegmentDescription>
-              </SegmentLabel>
-              <SegmentActions>
+            <FeaturedSegment
+              variant="preorder"
+              title="Pre-Order Specials"
+              subtitle={
+                isPreOrderOpen
+                  ? "Pre-order now for tomorrow. Window closes at 9 PM."
+                  : "Browse tomorrow's menu · Ordering opens at 8 AM."
+              }
+              badge={isPreOrderOpen ? "Limited Time" : "Opens 8 AM"}
+              icon={<FireIcon weight="duotone" />}
+              action={
                 <CountdownTimer
                   targetDate={preOrderTarget}
-                  label={isPreOrderOpen ? "Preorder closes in" : "Opens in"}
-                  expiredLabel={isPreOrderOpen ? "Closing…" : "Opening soon"}
+                  label={isPreOrderOpen ? "Closes in" : "Opens in"}
+                  expiredLabel={isPreOrderOpen ? "Closing…" : "Soon"}
+                  className="text-right"
                 />
-              </SegmentActions>
-            </SegmentHeader>
-
-            {isPreOrderOpen ? (
-              <SegmentContent>
-                <Carousel opts={{ dragFree: true }}>
-                  <CarouselContent className="-ml-2 pr-3">
-                    {preOrderOnly.map((item) => (
-                      <CarouselItem
-                        key={item.id}
-                        className="pl-2 basis-1/3 md:basis-1/4"
-                      >
-                        <MenuItemCard item={item} />
-                      </CarouselItem>
-                    ))}
-                  </CarouselContent>
-                </Carousel>
-              </SegmentContent>
-            ) : (
-              <SegmentContent>
-                <div className="flex flex-col items-center justify-center gap-2 py-8 text-center">
-                  <span className="text-3xl">🕘</span>
-                  <p className="text-sm font-medium text-muted-foreground">
-                    Pre-orders are closed right now.
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Come back after 8 AM to pre-order for tomorrow.
-                  </p>
-                </div>
-              </SegmentContent>
-            )}
-
-          </Segment>
+              }
+              items={preOrderOnly}
+              itemProps={
+                isPreOrderOpen
+                  ? {}
+                  : { overrideUnavailable: true, unavailableLabel: "Opens 8 AM" }
+              }
+            />
           )}
 
-          <Segment tone="green" className="p-2">
-            <SegmentHeader>
-              <SegmentLabel icon={<SparkleIcon weight="duotone" />}>
-                <SegmentTitle>Fresh & Healthy</SegmentTitle>
-                <SegmentDescription>
-                  Light bites, salads, and nourishing bowls.
-                </SegmentDescription>
-              </SegmentLabel>
-              <SegmentActions>
-                <SegmentAction variant="outline" size="sm">
-                  View All
-                </SegmentAction>
-              </SegmentActions>
-            </SegmentHeader>
+          {signatureProducts.length > 0 && (
+            <FeaturedSegment
+              variant="signature"
+              title="BB Signature Products"
+              subtitle="Premium house specialties crafted by our chefs"
+              badge="House Special"
+              items={signatureProducts}
+            />
+          )}
 
-            <SegmentContent>
-              <Carousel opts={{ dragFree: true }}>
-                <CarouselContent className="-ml-2 pr-3">
-                  {freshAndHealthy.map((item) => (
-                    <CarouselItem
-                      key={item.id}
-                      className="pl-2 basis-1/3 md:basis-1/4"
-                    >
-                      <MenuItemCard item={item} />
-                    </CarouselItem>
-                  ))}
-                </CarouselContent>
-              </Carousel>
-            </SegmentContent>
-          </Segment>
+          <FeaturedSegment
+            variant="healthy"
+            title="Fresh & Healthy"
+            subtitle="Balanced meals, fresh ingredients, nourishing bowls"
+            badge="Wholesome"
+            icon={<SparkleIcon weight="duotone" />}
+            items={freshAndHealthy}
+          />
 
-          {/* ITEMS */}
-          {Object.entries(groups).map(([category, items]) => (
-            <Segment key={category} id={category}>
-              <SegmentHeader>
-                <SegmentLabel>
-                  <SegmentTitle>{category || "Specials"}</SegmentTitle>
-                </SegmentLabel>
-              </SegmentHeader>
+          {/* CATEGORY ROWS — compact header + carousel */}
+          {Object.entries(groups).map(([catName, items]) => (
+            <section key={catName} id={encodeURIComponent(catName)} className="flex flex-col gap-2 scroll-mt-4">
+              {/* Compact single-line category header */}
+              <div className="flex items-center justify-between gap-2 px-0.5">
+                <div className="flex items-baseline gap-2 min-w-0">
+                  <h2 className="truncate text-[15px] font-bold leading-snug text-gray-900">
+                    {catName}
+                  </h2>
+                  <span className="shrink-0 text-[11px] font-medium text-gray-400">
+                    {items.length} {items.length === 1 ? "item" : "items"}
+                  </span>
+                </div>
+              </div>
 
-              <SegmentContent>
+              {/* Products */}
+              {items.length === 1 ? (
+                // Single item — expand to a wider featured card, no empty space
+                <div className="w-full max-w-xs sm:max-w-sm md:max-w-[220px] lg:max-w-[200px]">
+                  <MenuItemCard item={items[0]} />
+                </div>
+              ) : (
                 <Carousel opts={{ dragFree: true }}>
                   <CarouselContent className="-ml-2 pr-3">
                     {items.map((item) => (
                       <CarouselItem
                         key={item.id}
-                        className="pl-2 basis-1/3 md:basis-1/4"
+                        className="pl-2 basis-1/3 sm:basis-1/4 md:basis-1/5 lg:basis-1/6"
                       >
                         <MenuItemCard item={item} />
                       </CarouselItem>
                     ))}
                   </CarouselContent>
                 </Carousel>
-              </SegmentContent>
-            </Segment>
+              )}
+            </section>
           ))}
         </div>
       </main>
