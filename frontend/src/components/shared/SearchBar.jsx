@@ -15,7 +15,7 @@ export default function SearchBar({ onSearch = () => { }, autoFocus = false }) {
   }, [searchQuery]);
 
   return (
-    <InputGroup className="h-10 bg-gray-50 focus-within:bg-white border-gray-200 focus:border-primary focus:ring-1 focus:ring-primary focus-within:border-primary! focus-within:ring-1! focus-within:ring-primary!">
+    <InputGroup className="h-10 bg-card border-border focus-within:border-primary! focus-within:ring-1! focus-within:ring-primary!">
       <InputGroupAddon className="pl-3 pr-2">
         <Search className="size-5 text-gray-400" />
       </InputGroupAddon>

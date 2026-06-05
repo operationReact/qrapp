@@ -65,7 +65,7 @@ function OrdersPage() {
   const statuses = Object.keys(groupedOrders);
 
   return (
-    <div className="page-shell bg-white pb-mobile-nav! md:pb-[initial]!">
+    <div className="page-shell bg-background pb-mobile-nav! md:pb-[initial]!">
       <Navbar />
       <MobileMenu />
 
@@ -81,7 +81,7 @@ function OrdersPage() {
           </div>
 
           {loading && (
-            <div className="rounded-3xl bg-white px-6 py-16 text-center text-gray-500 shadow-sm border border-gray-100">
+            <div className="rounded-3xl bg-card px-6 py-16 text-center text-gray-500 shadow-xs border border-border">
               Loading your order history...
             </div>
           )}

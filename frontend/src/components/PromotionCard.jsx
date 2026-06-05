@@ -20,7 +20,7 @@ export function PromotionCard({ promotion, mode, isApplied, onApply, onNavigateT
         eligible
           ? isApplied
             ? "border-green-300 bg-green-50"
-            : "border-border bg-white"
+            : "border-border bg-card"
           : "border-border bg-muted/40 opacity-75"
       )}
     >

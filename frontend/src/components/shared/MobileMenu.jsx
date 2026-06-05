@@ -189,7 +189,7 @@ export default function MobileMenu() {
   if (!isMobile) return null;
 
   return (
-    <nav className="fixed border-x left-0 right-0 bottom-0 z-40 w-full max-w-md isolate mx-auto flex justify-between items-end px-2 py-3 bg-white shadow-[0_8px_38px_rgba(0,0,0,0.06)] border-t border-zinc-200/70">
+    <nav className="fixed border-x left-0 right-0 bottom-0 z-40 w-full max-w-md isolate mx-auto flex justify-between items-end px-2 py-3 bg-card shadow-[0_8px_38px_rgba(0,0,0,0.06)] border-t border-border">
       {items.slice(0, -2).map((item) => {
         const isActive = location.pathname === item.path;
         return (

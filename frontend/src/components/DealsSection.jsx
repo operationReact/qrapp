@@ -204,9 +204,9 @@ const DISCOVERY_CARDS = [
     subtitle: "Ordering for a group? Let us handle the food.",
     cta: "Start Party Order",
     icon: "🎉",
-    bgClass: "bg-white border-zinc-200",
+    bgClass: "bg-card border-border",
     blobClass: "bg-zinc-100",
-    btnClass: "border-zinc-200 text-zinc-700 hover:bg-zinc-50",
+    btnClass: "border-border text-zinc-700 hover:bg-muted",
     imgSrc:
       "https://images.unsplash.com/photo-1529543544282-ea669407fca3?q=80&w=200&auto=format&fit=crop",
     imgClass: "border-2 border-white",
@@ -217,9 +217,9 @@ const DISCOVERY_CARDS = [
     subtitle: "Bundle your favorite items and save up to 20%.",
     cta: "Explore Combos",
     icon: "🏷️",
-    bgClass: "bg-white border-zinc-200",
+    bgClass: "bg-card border-border",
     blobClass: "bg-zinc-100",
-    btnClass: "border-zinc-200 text-zinc-700 hover:bg-zinc-50",
+    btnClass: "border-border text-zinc-700 hover:bg-muted",
     imgSrc:
       "https://images.unsplash.com/photo-1594212206063-4d6a4a4d6423?q=80&w=200&auto=format&fit=crop",
     imgClass: "mix-blend-multiply border-transparent shadow-none",

@@ -33,7 +33,7 @@ export default function CartItem({ item, removeItem, addItem, decreaseItem }) {
             className="size-16 object-cover rounded-md"
           />
         ) : (
-          <div className="w-full h-full flex items-center rounded-lg justify-center text-5xl bg-linear-to-br from-red-50 to-red-100">
+          <div className="w-full h-full flex items-center rounded-lg justify-center bg-zinc-100">
             <img
               src="/brand/white.png"
               alt="Bro Logo"

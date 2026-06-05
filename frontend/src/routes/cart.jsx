@@ -379,7 +379,7 @@ function CartPage() {
 
           {cart.length > 0 && (
             <div className="grid gap-5 xl:grid-cols-[1.55fr,0.95fr] xl:gap-6">
-              <section className="space-y-0 rounded-lg bg-white shadow-sm py-2 px-4">
+              <section className="space-y-0 rounded-xl bg-card border border-border shadow-xs py-2 px-4">
                 {cart.map((item) => (
                   <CartItem
                     key={item.id}
@@ -395,7 +395,7 @@ function CartPage() {
 
           {/* ── Promotion Section ─────────────────────────────────────── */}
           {cart.length > 0 && cartPayload && (
-            <section className="rounded-lg bg-white shadow-sm p-4">
+            <section className="rounded-xl bg-card border border-border shadow-xs p-4">
               <h4 className="text-sm font-semibold mb-3 text-muted-foreground uppercase tracking-wide">
                 Offers & Coupons
               </h4>
@@ -413,7 +413,7 @@ function CartPage() {
             </section>
           )}
 
-          <section className="rounded-lg bg-white shadow-sm p-4 mb-12">
+          <section className="rounded-xl bg-card border border-border shadow-xs p-4 mb-12">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <h4 className="text-base font-semibold mb-2">Add Ons</h4>
@@ -458,7 +458,7 @@ function CartPage() {
           </section>
 
           {cart.length > 0 ? (
-            <div className="fixed z-5 min-h-35 border-t bg-white inset-x-0 bottom-0">
+            <div className="fixed z-5 min-h-35 border-t border-border bg-card/95 backdrop-blur-sm inset-x-0 bottom-0">
               <div className="container-premium">
                 <div className="flex items-center justify-between rounded-xl pt-4 pb-2">
                   <div className="text-muted-foreground flex gap-2 items-center font-medium">
