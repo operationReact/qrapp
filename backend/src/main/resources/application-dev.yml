@@ -61,6 +61,6 @@ aws:
     enabled: ${AWS_S3_ENABLED:true}
     bucket-name: ${AWS_S3_BUCKET_NAME:broandbro-menu-images}
     region: ${AWS_S3_REGION:ap-south-1}
-    access-key: ${AWS_ACCESS_KEY_ID:AKIA5AJB42RXR6A5YRUL}
-    secret-key: ${AWS_SECRET_ACCESS_KEY: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}
+    access-key: ${AWS_ACCESS_KEY_ID}
+    secret-key: ${AWS_SECRET_ACCESS_KEY}
 
