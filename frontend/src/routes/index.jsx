@@ -258,9 +258,18 @@ function MenuPage() {
 
           {/* CATEGORY ROWS — compact header + carousel */}
           {Object.entries(groups).map(([catName, items]) => (
-            <section key={catName} id={encodeURIComponent(catName)} className="flex flex-col gap-1.5 scroll-mt-4">
+            <section
+              key={catName}
+              id={encodeURIComponent(catName)}
+              className="flex flex-col gap-2 scroll-mt-4 rounded-2xl p-3"
+              style={{
+                background: "#FAFAFA",
+                border: "1px solid rgba(0,0,0,0.06)",
+                borderLeft: "3px solid #9CA3AF",
+              }}
+            >
               {/* Compact single-line category header */}
-              <div className="flex items-center justify-between gap-2 px-0.5">
+              <div className="flex items-center justify-between gap-2">
                 <div className="flex items-baseline gap-2 min-w-0">
                   <h2 className="truncate text-[14px] font-bold leading-snug text-gray-900">
                     {catName}

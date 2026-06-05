@@ -1,12 +1,15 @@
 import { cn } from "@/lib/utils";
 import FeaturedSegmentHeader from "./FeaturedSegmentHeader";
 import FeaturedSegmentCarousel from "./FeaturedSegmentCarousel";
+import { segmentVariants } from "./segmentVariants";
 
 /**
  * FeaturedSegment
  *
- * Netflix-row layout. No big colored container.
- * Header is a standalone pill. Products live below it, unrestricted.
+ * Shelf-card layout. Each segment is its own curated container —
+ * subtle #FAFAFA background, rounded corners, hairline border, and a
+ * 3 px left accent stripe drawn from the variant colour so every
+ * "chapter" has a distinct visual identity.
  *
  * Visual ratio target: 15% header / 85% products.
  */
@@ -23,8 +26,17 @@ export default function FeaturedSegment({
   itemProps = {},
   className,
 }) {
+  const v = segmentVariants[variant] ?? segmentVariants.generic;
+
   return (
-    <div className={cn("flex flex-col gap-1.5", className)}>
+    <div
+      className={cn("flex flex-col gap-2 rounded-2xl p-3", className)}
+      style={{
+        background: "#FAFAFA",
+        border: "1px solid rgba(0,0,0,0.06)",
+        borderLeft: `3px solid ${v.accentHex}`,
+      }}
+    >
       <FeaturedSegmentHeader
         variant={variant}
         title={title}
@@ -37,3 +49,5 @@ export default function FeaturedSegment({
     </div>
   );
 }
+
+
