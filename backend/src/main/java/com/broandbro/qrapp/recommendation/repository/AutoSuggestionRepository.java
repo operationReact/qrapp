@@ -13,13 +13,27 @@ import java.util.Optional;
 @Repository
 public interface AutoSuggestionRepository extends JpaRepository<AutoSuggestion, Long> {
 
-    List<AutoSuggestion> findByStatusOrderByConfidenceDesc(SuggestionStatus status);
+    @Query("""
+           SELECT a FROM AutoSuggestion a
+           JOIN FETCH a.itemA
+           JOIN FETCH a.itemB
+           WHERE a.status = :status
+           ORDER BY a.confidence DESC
+           """)
+    List<AutoSuggestion> findByStatusOrderByConfidenceDesc(@Param("status") SuggestionStatus status);
+
+    @Query("""
+           SELECT a FROM AutoSuggestion a
+           JOIN FETCH a.itemA
+           JOIN FETCH a.itemB
+           ORDER BY a.confidence DESC
+           """)
+    List<AutoSuggestion> findAllWithItems();
 
     Optional<AutoSuggestion> findByItemAIdAndItemBId(Long itemAId, Long itemBId);
 
     boolean existsByItemAIdAndItemBIdAndStatusIn(Long itemAId, Long itemBId, List<SuggestionStatus> statuses);
 
-    /** Accepted pairs for a given set of source item IDs — used by the engine. */
     @Query("""
            SELECT a FROM AutoSuggestion a
            JOIN FETCH a.itemA ia
@@ -31,4 +45,3 @@ public interface AutoSuggestionRepository extends JpaRepository<AutoSuggestion, 
 
     long countByStatus(SuggestionStatus status);
 }
-

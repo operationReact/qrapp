@@ -14,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -51,6 +52,7 @@ public class RecommendationEngineService {
 
     // ── Public API ────────────────────────────────────────────────────────────
 
+    @Transactional(readOnly = true)
     public CartRecommendationResponse getCartSuggestions(CartRecommendationRequest req) {
         List<Long> cartItemIds   = req.getItemIds()     != null ? req.getItemIds()     : List.of();
         List<Long> cartCatIds    = req.getCategoryIds() != null ? req.getCategoryIds() : List.of();

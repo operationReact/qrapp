@@ -32,15 +32,17 @@ public class ManualRecommendationService {
 
     // ── Query ─────────────────────────────────────────────────────────────────
 
+    @Transactional(readOnly = true)
     public List<ItemRecommendationResponse> getForSource(Long sourceItemId) {
-        List<ItemRecommendation> recs = recRepo.findBySourceItemIdOrderByDisplayOrderAsc(sourceItemId);
+        List<ItemRecommendation> recs = recRepo.findBySourceItemIdWithItems(sourceItemId);
         List<Long> targetIds = recs.stream().map(r -> r.getTargetItem().getId()).toList();
         Map<Long, BigDecimal> prices = loadPrices(targetIds);
         return recs.stream().map(r -> toResponse(r, prices)).toList();
     }
 
+    @Transactional(readOnly = true)
     public List<ItemRecommendationResponse> getAll() {
-        List<ItemRecommendation> all = recRepo.findAll();
+        List<ItemRecommendation> all = recRepo.findAllWithItems();
         List<Long> targetIds = all.stream().map(r -> r.getTargetItem().getId()).toList();
         Map<Long, BigDecimal> prices = loadPrices(targetIds);
         return all.stream().map(r -> toResponse(r, prices)).toList();

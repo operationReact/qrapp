@@ -28,5 +28,21 @@ public interface ItemRecommendationRepository extends JpaRepository<ItemRecommen
     List<ItemRecommendation> findBySourceItemIds(@Param("itemIds") List<Long> itemIds);
 
     void deleteBySourceItemIdAndTargetItemId(Long sourceItemId, Long targetItemId);
-}
 
+    @Query("""
+           SELECT r FROM ItemRecommendation r
+           JOIN FETCH r.sourceItem
+           JOIN FETCH r.targetItem
+           ORDER BY r.sourceItem.id, r.displayOrder ASC
+           """)
+    List<ItemRecommendation> findAllWithItems();
+
+    @Query("""
+           SELECT r FROM ItemRecommendation r
+           JOIN FETCH r.sourceItem
+           JOIN FETCH r.targetItem
+           WHERE r.sourceItem.id = :sourceItemId
+           ORDER BY r.displayOrder ASC
+           """)
+    List<ItemRecommendation> findBySourceItemIdWithItems(@Param("sourceItemId") Long sourceItemId);
+}

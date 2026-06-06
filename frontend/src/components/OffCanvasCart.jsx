@@ -20,7 +20,7 @@ import { useQuery } from "@tanstack/react-query";
 import { getCartRecommendations } from "@/services/recommendation-service";
 import { PlusCircleIcon } from "@phosphor-icons/react";
 
-function CartRecommendations({ cart, addItem }) {
+function CartRecommendations({ cart, addItem, isOpen }) {
   const itemIds = cart.map((i) => i.id);
   const categoryIds = [
     ...new Set(cart.filter((i) => i.category?.id).map((i) => i.category.id)),
@@ -28,7 +28,7 @@ function CartRecommendations({ cart, addItem }) {
   const cartTotal = cart.reduce((s, i) => s + i.price * i.quantity, 0);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["cart-recommendations", itemIds.sort().join(",")],
+    queryKey: ["cart-recommendations", itemIds.slice().sort().join(",")],
     queryFn: () =>
       getCartRecommendations({
         itemIds,
@@ -36,7 +36,7 @@ function CartRecommendations({ cart, addItem }) {
         cartTotal,
         maxResults: 5,
       }),
-    enabled: itemIds.length > 0,
+    enabled: isOpen && itemIds.length > 0,  // only fetch when drawer is open
     staleTime: 1000 * 60 * 2,
   });
 
@@ -96,7 +96,7 @@ function CartRecommendations({ cart, addItem }) {
   );
 }
 
-function CartContent({ onClose }) {
+function CartContent({ onClose, isOpen }) {
   const { cart, getTotal, addItem, decreaseItem, removeItem } = useCart();
   const navigate = useNavigate();
 
@@ -121,7 +121,9 @@ function CartContent({ onClose }) {
             />
           ))}
         </div>
-        {cart.length > 0 && <CartRecommendations cart={cart} addItem={addItem} />}
+        {cart.length > 0 && (
+          <CartRecommendations cart={cart} addItem={addItem} isOpen={isOpen} />
+        )}
       </div>
 
       <div className="shrink-0 border-t pt-4 pb-6 px-4 mt-auto">
@@ -177,7 +179,7 @@ function MobileCart({ open, onClose }) {
             <X className="size-4" />
           </Button>
         </DrawerHeader>
-        <CartContent onClose={onClose} />
+        <CartContent onClose={onClose} isOpen={open} />
       </DrawerContent>
     </Drawer>
   );
@@ -199,7 +201,7 @@ function DesktopCart({ open, onClose }) {
             </p>
           </div>
         </SheetHeader>
-        <CartContent onClose={onClose} />
+        <CartContent onClose={onClose} isOpen={open} />
       </SheetContent>
     </Sheet>
   );

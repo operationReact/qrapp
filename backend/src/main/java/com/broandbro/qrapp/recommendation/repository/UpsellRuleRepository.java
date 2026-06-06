@@ -1,7 +1,6 @@
 package com.broandbro.qrapp.recommendation.repository;
 
 import com.broandbro.qrapp.recommendation.entity.UpsellRule;
-import com.broandbro.qrapp.recommendation.enums.TriggerType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -12,7 +11,26 @@ import java.util.List;
 @Repository
 public interface UpsellRuleRepository extends JpaRepository<UpsellRule, Long> {
 
+    @Query("""
+           SELECT DISTINCT r FROM UpsellRule r
+           LEFT JOIN FETCH r.targets t
+           LEFT JOIN FETCH t.item
+           LEFT JOIN FETCH r.triggerItem
+           LEFT JOIN FETCH r.triggerCategory
+           WHERE r.isActive = TRUE
+           ORDER BY r.displayOrder ASC
+           """)
     List<UpsellRule> findByIsActiveTrueOrderByDisplayOrderAsc();
+
+    @Query("""
+           SELECT DISTINCT r FROM UpsellRule r
+           LEFT JOIN FETCH r.targets t
+           LEFT JOIN FETCH t.item
+           LEFT JOIN FETCH r.triggerItem
+           LEFT JOIN FETCH r.triggerCategory
+           ORDER BY r.displayOrder ASC
+           """)
+    List<UpsellRule> findAllWithDetails();
 
     @Query("""
            SELECT DISTINCT r FROM UpsellRule r
@@ -31,4 +49,3 @@ public interface UpsellRuleRepository extends JpaRepository<UpsellRule, Long> {
             @Param("categoryIds") List<Long> categoryIds,
             @Param("cartTotal") java.math.BigDecimal cartTotal);
 }
-

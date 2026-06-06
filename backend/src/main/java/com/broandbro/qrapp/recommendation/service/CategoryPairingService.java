@@ -24,10 +24,12 @@ public class CategoryPairingService {
 
     // ── Query ─────────────────────────────────────────────────────────────────
 
+    @Transactional(readOnly = true)
     public List<CategoryPairingResponse> getAll() {
-        return toResponseList(pairingRepo.findAll());
+        return toResponseList(pairingRepo.findAllWithCategories());
     }
 
+    @Transactional(readOnly = true)
     public List<CategoryPairingResponse> getActive() {
         return toResponseList(pairingRepo.findByIsActiveTrueOrderByDisplayOrderAsc());
     }

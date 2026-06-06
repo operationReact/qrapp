@@ -39,13 +39,14 @@ public class UpsellRuleService {
 
     // ── Query ─────────────────────────────────────────────────────────────────
 
+    @Transactional(readOnly = true)
     public List<UpsellRuleResponse> getAll() {
-        List<UpsellRule> rules = ruleRepo.findByIsActiveTrueOrderByDisplayOrderAsc();
-        return toResponseList(rules);
+        return toResponseList(ruleRepo.findByIsActiveTrueOrderByDisplayOrderAsc());
     }
 
+    @Transactional(readOnly = true)
     public List<UpsellRuleResponse> getAllIncludingInactive() {
-        return toResponseList(ruleRepo.findAll());
+        return toResponseList(ruleRepo.findAllWithDetails());
     }
 
     // ── Mutation ──────────────────────────────────────────────────────────────

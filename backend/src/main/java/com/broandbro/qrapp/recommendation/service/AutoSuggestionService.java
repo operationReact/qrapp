@@ -6,7 +6,6 @@ import com.broandbro.qrapp.recommendation.entity.ItemRecommendation;
 import com.broandbro.qrapp.recommendation.enums.SuggestionStatus;
 import com.broandbro.qrapp.recommendation.repository.AutoSuggestionRepository;
 import com.broandbro.qrapp.recommendation.repository.ItemRecommendationRepository;
-import com.broandbro.qrapp.repository.MenuRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -26,18 +25,20 @@ public class AutoSuggestionService {
 
     private final AutoSuggestionRepository suggRepo;
     private final ItemRecommendationRepository recRepo;
-    private final MenuRepository menuRepo;
 
     // ── Query ─────────────────────────────────────────────────────────────────
 
+    @Transactional(readOnly = true)
     public List<AutoSuggestionResponse> getPending() {
         return toResponseList(suggRepo.findByStatusOrderByConfidenceDesc(SuggestionStatus.PENDING));
     }
 
+    @Transactional(readOnly = true)
     public List<AutoSuggestionResponse> getAll() {
-        return toResponseList(suggRepo.findAll());
+        return toResponseList(suggRepo.findAllWithItems());
     }
 
+    @Transactional(readOnly = true)
     public long countPending() {
         return suggRepo.countByStatus(SuggestionStatus.PENDING);
     }

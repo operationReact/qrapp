@@ -11,9 +11,32 @@ import java.util.List;
 @Repository
 public interface CategoryPairingRuleRepository extends JpaRepository<CategoryPairingRule, Long> {
 
+    @Query("""
+           SELECT cp FROM CategoryPairingRule cp
+           JOIN FETCH cp.sourceCategory
+           JOIN FETCH cp.targetCategory
+           ORDER BY cp.displayOrder ASC
+           """)
+    List<CategoryPairingRule> findAllWithCategories();
+
+    @Query("""
+           SELECT cp FROM CategoryPairingRule cp
+           JOIN FETCH cp.sourceCategory
+           JOIN FETCH cp.targetCategory
+           WHERE cp.isActive = TRUE
+           ORDER BY cp.displayOrder ASC
+           """)
     List<CategoryPairingRule> findByIsActiveTrueOrderByDisplayOrderAsc();
 
-    List<CategoryPairingRule> findBySourceCategoryIdAndIsActiveTrueOrderByDisplayOrderAsc(Long sourceCategoryId);
+    @Query("""
+           SELECT cp FROM CategoryPairingRule cp
+           JOIN FETCH cp.sourceCategory
+           JOIN FETCH cp.targetCategory
+           WHERE cp.sourceCategory.id = :sourceCategoryId AND cp.isActive = TRUE
+           ORDER BY cp.displayOrder ASC
+           """)
+    List<CategoryPairingRule> findBySourceCategoryIdAndIsActiveTrueOrderByDisplayOrderAsc(
+            @Param("sourceCategoryId") Long sourceCategoryId);
 
     @Query("""
            SELECT cp FROM CategoryPairingRule cp
@@ -25,4 +48,3 @@ public interface CategoryPairingRuleRepository extends JpaRepository<CategoryPai
 
     boolean existsBySourceCategoryIdAndTargetCategoryId(Long sourceId, Long targetId);
 }
-
