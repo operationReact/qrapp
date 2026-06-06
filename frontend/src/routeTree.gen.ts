@@ -43,6 +43,10 @@ import { Route as AdminordersKitchenQueueRouteImport } from './routes/admin/(ord
 import { Route as AdminmilestonesMilestonesRouteImport } from './routes/admin/(milestones)/milestones'
 import { Route as AdminmenuMenuRouteImport } from './routes/admin/(menu)/menu'
 import { Route as AdminmenuManageMenuRouteImport } from './routes/admin/(menu)/manage-menu'
+import { Route as AdmingrowthUpsellRulesRouteImport } from './routes/admin/(growth)/upsell-rules'
+import { Route as AdmingrowthRecommendationsRouteImport } from './routes/admin/(growth)/recommendations'
+import { Route as AdmingrowthCategoryPairingsRouteImport } from './routes/admin/(growth)/category-pairings'
+import { Route as AdmingrowthAutoSuggestionsRouteImport } from './routes/admin/(growth)/auto-suggestions'
 import { Route as AdmincouponsCouponsRouteImport } from './routes/admin/(coupons)/coupons'
 import { Route as AdminordersOperationalQueueIndexRouteImport } from './routes/admin/(orders)/operational-queue/index'
 import { Route as AdminmenuCombosIndexRouteImport } from './routes/admin/(menu)/combos/index'
@@ -225,6 +229,29 @@ const AdminmenuManageMenuRoute = AdminmenuManageMenuRouteImport.update({
   path: '/manage-menu',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdmingrowthUpsellRulesRoute = AdmingrowthUpsellRulesRouteImport.update({
+  id: '/(growth)/upsell-rules',
+  path: '/upsell-rules',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdmingrowthRecommendationsRoute =
+  AdmingrowthRecommendationsRouteImport.update({
+    id: '/(growth)/recommendations',
+    path: '/recommendations',
+    getParentRoute: () => AdminRoute,
+  } as any)
+const AdmingrowthCategoryPairingsRoute =
+  AdmingrowthCategoryPairingsRouteImport.update({
+    id: '/(growth)/category-pairings',
+    path: '/category-pairings',
+    getParentRoute: () => AdminRoute,
+  } as any)
+const AdmingrowthAutoSuggestionsRoute =
+  AdmingrowthAutoSuggestionsRouteImport.update({
+    id: '/(growth)/auto-suggestions',
+    path: '/auto-suggestions',
+    getParentRoute: () => AdminRoute,
+  } as any)
 const AdmincouponsCouponsRoute = AdmincouponsCouponsRouteImport.update({
   id: '/(coupons)/coupons',
   path: '/coupons',
@@ -275,6 +302,10 @@ export interface FileRoutesByFullPath {
   '/categories/$categoryId': typeof CategoriesCategoryIdRoute
   '/admin/': typeof AdminIndexRoute
   '/admin/coupons': typeof AdmincouponsCouponsRoute
+  '/admin/auto-suggestions': typeof AdmingrowthAutoSuggestionsRoute
+  '/admin/category-pairings': typeof AdmingrowthCategoryPairingsRoute
+  '/admin/recommendations': typeof AdmingrowthRecommendationsRoute
+  '/admin/upsell-rules': typeof AdmingrowthUpsellRulesRoute
   '/admin/manage-menu': typeof AdminmenuManageMenuRoute
   '/admin/menu': typeof AdminmenuMenuRoute
   '/admin/milestones': typeof AdminmilestonesMilestonesRoute
@@ -316,6 +347,10 @@ export interface FileRoutesByTo {
   '/categories/$categoryId': typeof CategoriesCategoryIdRoute
   '/admin': typeof AdminIndexRoute
   '/admin/coupons': typeof AdmincouponsCouponsRoute
+  '/admin/auto-suggestions': typeof AdmingrowthAutoSuggestionsRoute
+  '/admin/category-pairings': typeof AdmingrowthCategoryPairingsRoute
+  '/admin/recommendations': typeof AdmingrowthRecommendationsRoute
+  '/admin/upsell-rules': typeof AdmingrowthUpsellRulesRoute
   '/admin/manage-menu': typeof AdminmenuManageMenuRoute
   '/admin/menu': typeof AdminmenuMenuRoute
   '/admin/milestones': typeof AdminmilestonesMilestonesRoute
@@ -358,6 +393,10 @@ export interface FileRoutesById {
   '/categories/$categoryId': typeof CategoriesCategoryIdRoute
   '/admin/': typeof AdminIndexRoute
   '/admin/(coupons)/coupons': typeof AdmincouponsCouponsRoute
+  '/admin/(growth)/auto-suggestions': typeof AdmingrowthAutoSuggestionsRoute
+  '/admin/(growth)/category-pairings': typeof AdmingrowthCategoryPairingsRoute
+  '/admin/(growth)/recommendations': typeof AdmingrowthRecommendationsRoute
+  '/admin/(growth)/upsell-rules': typeof AdmingrowthUpsellRulesRoute
   '/admin/(menu)/manage-menu': typeof AdminmenuManageMenuRoute
   '/admin/(menu)/menu': typeof AdminmenuMenuRoute
   '/admin/(milestones)/milestones': typeof AdminmilestonesMilestonesRoute
@@ -402,6 +441,10 @@ export interface FileRouteTypes {
     | '/categories/$categoryId'
     | '/admin/'
     | '/admin/coupons'
+    | '/admin/auto-suggestions'
+    | '/admin/category-pairings'
+    | '/admin/recommendations'
+    | '/admin/upsell-rules'
     | '/admin/manage-menu'
     | '/admin/menu'
     | '/admin/milestones'
@@ -443,6 +486,10 @@ export interface FileRouteTypes {
     | '/categories/$categoryId'
     | '/admin'
     | '/admin/coupons'
+    | '/admin/auto-suggestions'
+    | '/admin/category-pairings'
+    | '/admin/recommendations'
+    | '/admin/upsell-rules'
     | '/admin/manage-menu'
     | '/admin/menu'
     | '/admin/milestones'
@@ -484,6 +531,10 @@ export interface FileRouteTypes {
     | '/categories/$categoryId'
     | '/admin/'
     | '/admin/(coupons)/coupons'
+    | '/admin/(growth)/auto-suggestions'
+    | '/admin/(growth)/category-pairings'
+    | '/admin/(growth)/recommendations'
+    | '/admin/(growth)/upsell-rules'
     | '/admin/(menu)/manage-menu'
     | '/admin/(menu)/menu'
     | '/admin/(milestones)/milestones'
@@ -767,6 +818,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminmenuManageMenuRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/(growth)/upsell-rules': {
+      id: '/admin/(growth)/upsell-rules'
+      path: '/upsell-rules'
+      fullPath: '/admin/upsell-rules'
+      preLoaderRoute: typeof AdmingrowthUpsellRulesRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/(growth)/recommendations': {
+      id: '/admin/(growth)/recommendations'
+      path: '/recommendations'
+      fullPath: '/admin/recommendations'
+      preLoaderRoute: typeof AdmingrowthRecommendationsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/(growth)/category-pairings': {
+      id: '/admin/(growth)/category-pairings'
+      path: '/category-pairings'
+      fullPath: '/admin/category-pairings'
+      preLoaderRoute: typeof AdmingrowthCategoryPairingsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/(growth)/auto-suggestions': {
+      id: '/admin/(growth)/auto-suggestions'
+      path: '/auto-suggestions'
+      fullPath: '/admin/auto-suggestions'
+      preLoaderRoute: typeof AdmingrowthAutoSuggestionsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/(coupons)/coupons': {
       id: '/admin/(coupons)/coupons'
       path: '/coupons'
@@ -833,6 +912,10 @@ const AdminordersOperationalQueueRouteWithChildren =
 interface AdminRouteChildren {
   AdminIndexRoute: typeof AdminIndexRoute
   AdmincouponsCouponsRoute: typeof AdmincouponsCouponsRoute
+  AdmingrowthAutoSuggestionsRoute: typeof AdmingrowthAutoSuggestionsRoute
+  AdmingrowthCategoryPairingsRoute: typeof AdmingrowthCategoryPairingsRoute
+  AdmingrowthRecommendationsRoute: typeof AdmingrowthRecommendationsRoute
+  AdmingrowthUpsellRulesRoute: typeof AdmingrowthUpsellRulesRoute
   AdminmenuManageMenuRoute: typeof AdminmenuManageMenuRoute
   AdminmenuMenuRoute: typeof AdminmenuMenuRoute
   AdminmilestonesMilestonesRoute: typeof AdminmilestonesMilestonesRoute
@@ -860,6 +943,10 @@ interface AdminRouteChildren {
 const AdminRouteChildren: AdminRouteChildren = {
   AdminIndexRoute: AdminIndexRoute,
   AdmincouponsCouponsRoute: AdmincouponsCouponsRoute,
+  AdmingrowthAutoSuggestionsRoute: AdmingrowthAutoSuggestionsRoute,
+  AdmingrowthCategoryPairingsRoute: AdmingrowthCategoryPairingsRoute,
+  AdmingrowthRecommendationsRoute: AdmingrowthRecommendationsRoute,
+  AdmingrowthUpsellRulesRoute: AdmingrowthUpsellRulesRoute,
   AdminmenuManageMenuRoute: AdminmenuManageMenuRoute,
   AdminmenuMenuRoute: AdminmenuMenuRoute,
   AdminmilestonesMilestonesRoute: AdminmilestonesMilestonesRoute,

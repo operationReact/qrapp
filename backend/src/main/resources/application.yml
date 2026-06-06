@@ -77,6 +77,11 @@ analytics:
     # Example: BB-20260515-0001
     shop-code: "${APP_ORDER_SHOP_CODE:BB}"
 
+# Recommendation Engine configuration
+recommendation:
+  cron:
+    co-occurrence: "${RECOMMENDATION_CRON_CO_OCCURRENCE:0 30 1 * * *}"
+
 # Razorpay settings - read from env if available, otherwise fall back to the YAML value below.
 razorpay:
   key: ${RAZORPAY_KEY:YOUR_KEY}

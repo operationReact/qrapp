@@ -16,6 +16,85 @@ import { useAuth } from "@/context/AuthContext";
 import { useEffect } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { Empty, EmptyDescription, EmptyHeader } from "./ui/empty";
+import { useQuery } from "@tanstack/react-query";
+import { getCartRecommendations } from "@/services/recommendation-service";
+import { PlusCircleIcon } from "@phosphor-icons/react";
+
+function CartRecommendations({ cart, addItem }) {
+  const itemIds = cart.map((i) => i.id);
+  const categoryIds = [
+    ...new Set(cart.filter((i) => i.category?.id).map((i) => i.category.id)),
+  ];
+  const cartTotal = cart.reduce((s, i) => s + i.price * i.quantity, 0);
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["cart-recommendations", itemIds.sort().join(",")],
+    queryFn: () =>
+      getCartRecommendations({
+        itemIds,
+        categoryIds,
+        cartTotal,
+        maxResults: 5,
+      }),
+    enabled: itemIds.length > 0,
+    staleTime: 1000 * 60 * 2,
+  });
+
+  const suggestions = data?.suggestions ?? [];
+  if (isLoading || suggestions.length === 0) return null;
+
+  return (
+    <div className="px-4 py-3 border-t">
+      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+        Complete your meal
+      </p>
+      <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:thin]">
+        {suggestions.map((s) => (
+          <div
+            key={s.itemId}
+            className="flex-shrink-0 w-32 border rounded-xl p-2 bg-background hover:bg-muted/40 transition-colors"
+          >
+            {s.imageUrl && (
+              <img
+                src={s.imageUrl}
+                alt={s.itemName}
+                className="w-full h-16 object-cover rounded-lg mb-1.5"
+              />
+            )}
+            <p className="text-xs font-medium leading-tight line-clamp-2 mb-1">
+              {s.itemName}
+            </p>
+            <div className="flex items-center justify-between gap-1">
+              <span className="text-xs text-muted-foreground">
+                {s.discountLabel ? (
+                  <span className="text-emerald-600 font-medium">
+                    {s.discountLabel}
+                  </span>
+                ) : (
+                  `₹${s.price}`
+                )}
+              </span>
+              <button
+                onClick={() =>
+                  addItem({
+                    id: s.itemId,
+                    name: s.itemName,
+                    imageUrl: s.imageUrl,
+                    price: s.price,
+                  })
+                }
+                className="text-primary hover:text-primary/80 transition-colors"
+                aria-label={`Add ${s.itemName}`}
+              >
+                <PlusCircleIcon className="size-5" weight="fill" />
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 function CartContent({ onClose }) {
   const { cart, getTotal, addItem, decreaseItem, removeItem } = useCart();
@@ -23,23 +102,26 @@ function CartContent({ onClose }) {
 
   return (
     <>
-      <div className="flex-1 min-h-0 overflow-y-auto px-4 [scrollbar-width:thin]">
-        {cart.length === 0 && (
-          <Empty className="p-4 border mb-4">
-            <EmptyHeader>
-              <EmptyDescription>Your cart is empty</EmptyDescription>
-            </EmptyHeader>
-          </Empty>
-        )}
-        {cart.map((item) => (
-          <CartItem
-            item={item}
-            key={item.id}
-            addItem={addItem}
-            decreaseItem={decreaseItem}
-            removeItem={removeItem}
-          />
-        ))}
+      <div className="flex-1 min-h-0 overflow-y-auto [scrollbar-width:thin]">
+        <div className="px-4">
+          {cart.length === 0 && (
+            <Empty className="p-4 border mb-4">
+              <EmptyHeader>
+                <EmptyDescription>Your cart is empty</EmptyDescription>
+              </EmptyHeader>
+            </Empty>
+          )}
+          {cart.map((item) => (
+            <CartItem
+              item={item}
+              key={item.id}
+              addItem={addItem}
+              decreaseItem={decreaseItem}
+              removeItem={removeItem}
+            />
+          ))}
+        </div>
+        {cart.length > 0 && <CartRecommendations cart={cart} addItem={addItem} />}
       </div>
 
       <div className="shrink-0 border-t pt-4 pb-6 px-4 mt-auto">

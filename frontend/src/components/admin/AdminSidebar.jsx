@@ -31,6 +31,10 @@ import {
   TrophyIcon,
   CalendarCheckIcon,
   SlidersIcon,
+  LightningIcon,
+  ArrowsOutSimpleIcon,
+  MagicWandIcon,
+  ListPlusIcon,
 } from "@phosphor-icons/react";
 import { useAuth } from "@/context/AuthContext";
 
@@ -212,6 +216,37 @@ export function AdminSidebar() {
                 }
               />
             </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarGroup>
+
+        <SidebarGroup className="group-data-[collapsible=icon]:hidden">
+          <SidebarGroupLabel>Growth Tools</SidebarGroupLabel>
+          <SidebarMenu>
+            {[
+              { to: "/admin/recommendations",  label: "Recommendations",  icon: ListPlusIcon },
+              { to: "/admin/auto-suggestions", label: "Auto Suggestions",  icon: MagicWandIcon },
+              { to: "/admin/upsell-rules",     label: "Upsell Rules",      icon: LightningIcon },
+              { to: "/admin/category-pairings",label: "Category Pairings", icon: ArrowsOutSimpleIcon },
+            ].map(({ to, label, icon }) => {
+              const ItemIcon = icon;
+              return (
+                <SidebarMenuItem key={to}>
+                  <SidebarMenuButton
+                    className="text-zinc-700 font-medium"
+                    isActive={pathname === to}
+                    render={
+                      <Link to={to}>
+                        <ItemIcon
+                          className="text-primary"
+                          weight={pathname === to ? "bold" : "regular"}
+                        />
+                        <span>{label}</span>
+                      </Link>
+                    }
+                  />
+                </SidebarMenuItem>
+              );
+            })}
           </SidebarMenu>
         </SidebarGroup>
 
