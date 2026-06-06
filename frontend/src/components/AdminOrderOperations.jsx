@@ -4,6 +4,7 @@ import { useLocation, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { getAdminOrderDashboard, getOrdersAdmin, updateAdminOrder } from "@/services/order-service";
 import { useAuth } from "@/context/AuthContext";
+import { formatAge } from "@/lib/utils";
 
 const STATUS_META = {
   PLACED: {
@@ -407,7 +408,7 @@ export default function AdminOrderOperations({ embedded = false }) {
                     {toneForPriority(order.priority).label}
                   </span>
                   <span className="rounded-full bg-slate-100 px-2.5 py-1 font-semibold text-slate-600">
-                    {order.stageAgeMinutes} min in stage
+                    {formatAge(order.stageAgeMinutes)} in stage
                   </span>
                 </div>
               </button>
@@ -474,7 +475,7 @@ export default function AdminOrderOperations({ embedded = false }) {
                       <div className="text-right text-xs text-slate-500">
                         <div>{formatDateTime(order.createdAt)}</div>
                         <div className="mt-1 font-semibold text-slate-700">
-                          {order.ageMinutes} min old
+                          {formatAge(order.ageMinutes)} old
                         </div>
                       </div>
                     </div>
@@ -667,7 +668,7 @@ export default function AdminOrderOperations({ embedded = false }) {
                         {formatCurrency(order.total)}
                       </span>
                       <span className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-700">
-                        {order.stageAgeMinutes} min in stage
+                        {formatAge(order.stageAgeMinutes)} in stage
                       </span>
                     </div>
                   </div>
@@ -773,7 +774,7 @@ export default function AdminOrderOperations({ embedded = false }) {
                       Age
                     </div>
                     <div className="mt-1 text-lg font-bold text-slate-900">
-                      {selectedOrder.ageMinutes} min
+                      {formatAge(selectedOrder.ageMinutes)}
                     </div>
                   </div>
                   <div className="rounded-2xl bg-slate-50 p-3">

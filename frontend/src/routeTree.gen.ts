@@ -32,6 +32,8 @@ import { Route as AdminAnalyticsOverviewRouteImport } from './routes/admin/analy
 import { Route as AdminAnalyticsOrdersRouteImport } from './routes/admin/analytics/orders'
 import { Route as AdminAnalyticsMenuRouteImport } from './routes/admin/analytics/menu'
 import { Route as AdminAnalyticsCouponsRouteImport } from './routes/admin/analytics/coupons'
+import { Route as AdminsettingsSettingsRouteImport } from './routes/admin/(settings)/settings'
+import { Route as AdminsettingsGlobalControlsRouteImport } from './routes/admin/(settings)/global-controls'
 import { Route as AdminpromotionsPromotionsRouteImport } from './routes/admin/(promotions)/promotions'
 import { Route as AdminordersServiceBoardRouteImport } from './routes/admin/(orders)/service-board'
 import { Route as AdminordersPreOrdersRouteImport } from './routes/admin/(orders)/pre-orders'
@@ -164,6 +166,17 @@ const AdminAnalyticsCouponsRoute = AdminAnalyticsCouponsRouteImport.update({
   path: '/analytics/coupons',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminsettingsSettingsRoute = AdminsettingsSettingsRouteImport.update({
+  id: '/(settings)/settings',
+  path: '/settings',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminsettingsGlobalControlsRoute =
+  AdminsettingsGlobalControlsRouteImport.update({
+    id: '/(settings)/global-controls',
+    path: '/global-controls',
+    getParentRoute: () => AdminRoute,
+  } as any)
 const AdminpromotionsPromotionsRoute =
   AdminpromotionsPromotionsRouteImport.update({
     id: '/(promotions)/promotions',
@@ -271,6 +284,8 @@ export interface FileRoutesByFullPath {
   '/admin/pre-orders': typeof AdminordersPreOrdersRoute
   '/admin/service-board': typeof AdminordersServiceBoardRoute
   '/admin/promotions': typeof AdminpromotionsPromotionsRoute
+  '/admin/global-controls': typeof AdminsettingsGlobalControlsRoute
+  '/admin/settings': typeof AdminsettingsSettingsRoute
   '/admin/analytics/coupons': typeof AdminAnalyticsCouponsRoute
   '/admin/analytics/menu': typeof AdminAnalyticsMenuRoute
   '/admin/analytics/orders': typeof AdminAnalyticsOrdersRoute
@@ -309,6 +324,8 @@ export interface FileRoutesByTo {
   '/admin/pre-orders': typeof AdminordersPreOrdersRoute
   '/admin/service-board': typeof AdminordersServiceBoardRoute
   '/admin/promotions': typeof AdminpromotionsPromotionsRoute
+  '/admin/global-controls': typeof AdminsettingsGlobalControlsRoute
+  '/admin/settings': typeof AdminsettingsSettingsRoute
   '/admin/analytics/coupons': typeof AdminAnalyticsCouponsRoute
   '/admin/analytics/menu': typeof AdminAnalyticsMenuRoute
   '/admin/analytics/orders': typeof AdminAnalyticsOrdersRoute
@@ -350,6 +367,8 @@ export interface FileRoutesById {
   '/admin/(orders)/pre-orders': typeof AdminordersPreOrdersRoute
   '/admin/(orders)/service-board': typeof AdminordersServiceBoardRoute
   '/admin/(promotions)/promotions': typeof AdminpromotionsPromotionsRoute
+  '/admin/(settings)/global-controls': typeof AdminsettingsGlobalControlsRoute
+  '/admin/(settings)/settings': typeof AdminsettingsSettingsRoute
   '/admin/analytics/coupons': typeof AdminAnalyticsCouponsRoute
   '/admin/analytics/menu': typeof AdminAnalyticsMenuRoute
   '/admin/analytics/orders': typeof AdminAnalyticsOrdersRoute
@@ -392,6 +411,8 @@ export interface FileRouteTypes {
     | '/admin/pre-orders'
     | '/admin/service-board'
     | '/admin/promotions'
+    | '/admin/global-controls'
+    | '/admin/settings'
     | '/admin/analytics/coupons'
     | '/admin/analytics/menu'
     | '/admin/analytics/orders'
@@ -430,6 +451,8 @@ export interface FileRouteTypes {
     | '/admin/pre-orders'
     | '/admin/service-board'
     | '/admin/promotions'
+    | '/admin/global-controls'
+    | '/admin/settings'
     | '/admin/analytics/coupons'
     | '/admin/analytics/menu'
     | '/admin/analytics/orders'
@@ -470,6 +493,8 @@ export interface FileRouteTypes {
     | '/admin/(orders)/pre-orders'
     | '/admin/(orders)/service-board'
     | '/admin/(promotions)/promotions'
+    | '/admin/(settings)/global-controls'
+    | '/admin/(settings)/settings'
     | '/admin/analytics/coupons'
     | '/admin/analytics/menu'
     | '/admin/analytics/orders'
@@ -665,6 +690,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAnalyticsCouponsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/(settings)/settings': {
+      id: '/admin/(settings)/settings'
+      path: '/settings'
+      fullPath: '/admin/settings'
+      preLoaderRoute: typeof AdminsettingsSettingsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/(settings)/global-controls': {
+      id: '/admin/(settings)/global-controls'
+      path: '/global-controls'
+      fullPath: '/admin/global-controls'
+      preLoaderRoute: typeof AdminsettingsGlobalControlsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/(promotions)/promotions': {
       id: '/admin/(promotions)/promotions'
       path: '/promotions'
@@ -803,6 +842,8 @@ interface AdminRouteChildren {
   AdminordersPreOrdersRoute: typeof AdminordersPreOrdersRoute
   AdminordersServiceBoardRoute: typeof AdminordersServiceBoardRoute
   AdminpromotionsPromotionsRoute: typeof AdminpromotionsPromotionsRoute
+  AdminsettingsGlobalControlsRoute: typeof AdminsettingsGlobalControlsRoute
+  AdminsettingsSettingsRoute: typeof AdminsettingsSettingsRoute
   AdminAnalyticsCouponsRoute: typeof AdminAnalyticsCouponsRoute
   AdminAnalyticsMenuRoute: typeof AdminAnalyticsMenuRoute
   AdminAnalyticsOrdersRoute: typeof AdminAnalyticsOrdersRoute
@@ -829,6 +870,8 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminordersPreOrdersRoute: AdminordersPreOrdersRoute,
   AdminordersServiceBoardRoute: AdminordersServiceBoardRoute,
   AdminpromotionsPromotionsRoute: AdminpromotionsPromotionsRoute,
+  AdminsettingsGlobalControlsRoute: AdminsettingsGlobalControlsRoute,
+  AdminsettingsSettingsRoute: AdminsettingsSettingsRoute,
   AdminAnalyticsCouponsRoute: AdminAnalyticsCouponsRoute,
   AdminAnalyticsMenuRoute: AdminAnalyticsMenuRoute,
   AdminAnalyticsOrdersRoute: AdminAnalyticsOrdersRoute,

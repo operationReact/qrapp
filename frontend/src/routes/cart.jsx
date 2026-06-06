@@ -11,19 +11,22 @@ import {
   Drawer,
   DrawerClose,
   DrawerContent,
+  DrawerDescription,
   DrawerFooter,
   DrawerHeader,
   DrawerTitle,
   DrawerTrigger,
 } from "@/components/ui/drawer";
-import { CaretDown, Plus, Receipt } from "@boxicons/react";
+import { CaretDown, Plus } from "@boxicons/react";
 import { ChevronRight } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import Navbar from "@/components/shared/Navbar";
 import { useCart } from "@/context/CartContext";
 import { useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { createOrder } from "@/services/order-service";
+import { paymentConfigOptions } from "@/query/options/orders";
 import { getCurrentUser } from "@/services/auth-service";
 import { walletGetBalance } from "@/services/wallet-service";
 import { getRecommendedMenu } from "@/services/menu-service";
@@ -36,7 +39,6 @@ import {
   FieldTitle,
 } from "@/components/ui/field";
 import { Badge } from "@/components/ui/badge";
-import MobileMenu from "@/components/shared/MobileMenu";
 import { useAuth } from "@/context/AuthContext";
 import {
   Empty,
@@ -91,6 +93,10 @@ function CartPage() {
   const [walletLoading, setWalletLoading] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState("RAZORPAY");
   const [submitting, setSubmitting] = useState(false);
+
+  // Fetch payment config via React Query — auto-retries & caches
+  const { data: paymentConfig } = useQuery(paymentConfigOptions);
+  const payAtStallEnabled = !!paymentConfig?.payAtStallEnabled;
 
   // Compute directly from cart so it updates on every cart state change
   const total = cart.reduce((sum, i) => sum + Number(i.price) * i.quantity, 0);
@@ -148,6 +154,7 @@ function CartPage() {
   useEffect(() => {
     if (closeDrawer) closeDrawer();
   }, [closeDrawer]);
+
 
   useEffect(() => {
     let mounted = true;
@@ -268,6 +275,20 @@ function CartPage() {
           to: "/success",
           state: {
             paymentMethod: "WALLET",
+            orderNumber: res?.orderNumber,
+            orderId: res?.orderId,
+            awardedCoupons: res?.awardedCoupons ?? [],
+          },
+        });
+        return;
+      }
+
+      if (responsePaymentMethod === "PAY_AT_STALL") {
+        clearCart?.();
+        navigate({
+          to: "/success",
+          state: {
+            paymentMethod: "PAY_AT_STALL",
             orderNumber: res?.orderNumber,
             orderId: res?.orderId,
             awardedCoupons: res?.awardedCoupons ?? [],
@@ -503,22 +524,24 @@ function CartPage() {
                         <div className="font-semibold">
                           {paymentMethod === "WALLET"
                             ? "Bro Wallet"
+                            : paymentMethod === "PAY_AT_STALL"
+                            ? "Pay at Stall"
                             : "Razorpay"}
                         </div>
                       </Button>
                     </DrawerTrigger>
-                    <DrawerContent
-                      aria-describedby="change-payment-title"
-                      className="max-w-md mx-auto"
-                    >
+                    <DrawerContent className="max-w-md mx-auto">
                       <DrawerHeader>
                         <DrawerTitle className="text-xl font-semibold">
                           Pay Using
                         </DrawerTitle>
+                        <DrawerDescription className="sr-only">
+                          Select your preferred payment method to place the order.
+                        </DrawerDescription>
                       </DrawerHeader>
                       <div className="p-4">
                         <RadioGroup
-                          defaultValue={paymentMethod}
+                          value={paymentMethod}
                           onValueChange={(value) => setPaymentMethod(value)}
                         >
                           <FieldLabel htmlFor="wallet">
@@ -598,6 +621,27 @@ function CartPage() {
                               <RadioGroupItem value="RAZORPAY" id="razorpay" />
                             </Field>
                           </FieldLabel>
+
+                          {payAtStallEnabled && (
+                            <FieldLabel htmlFor="pay-at-stall">
+                              <Field orientation="horizontal">
+                                <FieldContent className="flex flex-row gap-2 items-start">
+                                  <div className="size-11 flex items-center justify-center rounded-lg bg-amber-50 border border-amber-200 shrink-0">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="size-6 text-amber-600" fill="currentColor" viewBox="0 0 256 256">
+                                      <path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm48-88a48,48,0,0,1-40,47.29V184a8,8,0,0,1-16,0v-8.71A48,48,0,0,1,80,128a8,8,0,0,1,16,0,32,32,0,1,0,32-32,48,48,0,0,1,0-96V92.71A32,32,0,0,0,96,124a8,8,0,0,1-16,0A48,48,0,0,1,120,76.71V72a8,8,0,0,1,16,0v4.71A48,48,0,0,1,176,128Z"/>
+                                    </svg>
+                                  </div>
+                                  <div>
+                                    <FieldTitle>Pay at Stall</FieldTitle>
+                                    <FieldDescription>
+                                      Pay in cash or card when you collect your order at the counter.
+                                    </FieldDescription>
+                                  </div>
+                                </FieldContent>
+                                <RadioGroupItem value="PAY_AT_STALL" id="pay-at-stall" />
+                              </Field>
+                            </FieldLabel>
+                          )}
                         </RadioGroup>
                       </div>
 
@@ -611,6 +655,8 @@ function CartPage() {
                             <span className="font-semibold">
                               {paymentMethod === "WALLET"
                                 ? "Wallet"
+                                : paymentMethod === "PAY_AT_STALL"
+                                ? "Pay at Stall"
                                 : "Razorpay"}
                             </span>
                           </Button>

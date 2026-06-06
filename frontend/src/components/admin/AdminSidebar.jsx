@@ -19,7 +19,6 @@ import {
   QueueIcon,
   SignOutIcon,
   SquaresFourIcon,
-  TagIcon,
   UsersThreeIcon,
   ChartLineUpIcon,
   ChartBarIcon,
@@ -31,6 +30,7 @@ import {
   CubeIcon,
   TrophyIcon,
   CalendarCheckIcon,
+  SlidersIcon,
 } from "@phosphor-icons/react";
 import { useAuth } from "@/context/AuthContext";
 
@@ -185,21 +185,6 @@ export function AdminSidebar() {
             <SidebarMenuItem>
               <SidebarMenuButton
                 className="text-zinc-700 font-medium"
-                isActive={pathname === "/admin/coupons"}
-                render={
-                  <Link to={"/admin/coupons"}>
-                    <TagIcon
-                      className="text-primary"
-                      weight={pathname === "/admin/coupons" ? "bold" : "regular"}
-                    />
-                    <span>Coupons</span>
-                  </Link>
-                }
-              />
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                className="text-zinc-700 font-medium"
                 isActive={pathname === "/admin/promotions"}
                 render={
                   <Link to={"/admin/promotions"}>
@@ -231,6 +216,27 @@ export function AdminSidebar() {
         </SidebarGroup>
 
         <SidebarGroup className="group-data-[collapsible=icon]:hidden">
+          <SidebarGroupLabel>Global Controls</SidebarGroupLabel>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                className="text-zinc-700 font-medium"
+                isActive={pathname === "/admin/global-controls"}
+                render={
+                  <Link to={"/admin/global-controls"}>
+                    <SlidersIcon
+                      className="text-primary"
+                      weight={pathname === "/admin/global-controls" ? "bold" : "regular"}
+                    />
+                    <span>Settings</span>
+                  </Link>
+                }
+              />
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarGroup>
+
+        <SidebarGroup className="group-data-[collapsible=icon]:hidden">
           <SidebarGroupLabel>Analytics</SidebarGroupLabel>
           <SidebarMenu>
             {[
@@ -239,7 +245,7 @@ export function AdminSidebar() {
               { to: "/admin/analytics/orders", label: "Orders", icon: ShoppingCartSimpleIcon },
               { to: "/admin/analytics/menu", label: "Menu", icon: ForkKnifeIcon },
               { to: "/admin/analytics/users", label: "Users", icon: UserCircleIcon },
-              { to: "/admin/analytics/coupons", label: "Coupons", icon: TicketIcon },
+              { to: "/admin/analytics/coupons", label: "Promotions", icon: TicketIcon },
               { to: "/admin/analytics/recommendations", label: "Recommendations", icon: StarIcon },
             ].map(({ to, label, icon }) => {
               const ItemIcon = icon;

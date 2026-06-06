@@ -6,10 +6,8 @@ import com.broandbro.qrapp.dto.UserOrderSummaryResponse;
 import com.broandbro.qrapp.entity.Order;
 import com.broandbro.qrapp.entity.User;
 import com.broandbro.qrapp.enums.PaymentMethod;
-import com.broandbro.qrapp.service.OrderService;
-import com.broandbro.qrapp.service.PaymentService;
-import com.broandbro.qrapp.service.UserService;
-import com.broandbro.qrapp.service.WalletService;
+import com.broandbro.qrapp.service.AppSettingService;
+import com.broandbro.qrapp.service.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -39,6 +37,7 @@ public class OrderController {
     private final PaymentService paymentService;
     private final UserService userService;
     private final WalletService walletService;
+    private final AppSettingService appSettingService;
 
     @PostMapping
     @Transactional
@@ -49,6 +48,12 @@ public class OrderController {
 
         if (paymentMethod == PaymentMethod.WALLET && currentUser == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        // Guard: Pay at Stall must be enabled by admin
+        if (paymentMethod == PaymentMethod.PAY_AT_STALL && !appSettingService.isPayAtStallEnabled()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("error", "Pay at Stall is not available at this time."));
         }
 
         long amountForWallet = paymentMethod == PaymentMethod.WALLET
@@ -65,6 +70,13 @@ public class OrderController {
         body.put("orderId", order.getId());
         body.put("orderNumber", order.getOrderNumber());
         body.put("paymentMethod", paymentMethod);
+
+        // ── Pay at Stall: no money collected, order stays PENDING ──
+        if (paymentMethod == PaymentMethod.PAY_AT_STALL) {
+            body.put("paymentStatus", "PENDING");
+            if (!awardedCoupons.isEmpty()) body.put("awardedCoupons", awardedCoupons);
+            return ResponseEntity.status(HttpStatus.CREATED).body(body);
+        }
 
         if (paymentMethod == PaymentMethod.WALLET) {
             walletService.payForOrder(currentUser, order.getId(), amountForWallet);

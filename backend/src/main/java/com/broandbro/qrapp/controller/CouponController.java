@@ -1,9 +1,17 @@
 package com.broandbro.qrapp.controller;
 
-import com.broandbro.qrapp.dto.*;
+import com.broandbro.qrapp.dto.ApplyCouponRequest;
+import com.broandbro.qrapp.dto.ApplyCouponResponse;
 import com.broandbro.qrapp.entity.User;
-import com.broandbro.qrapp.repository.UserRepository;
-import com.broandbro.qrapp.service.CouponService;
+import com.broandbro.qrapp.promotion.dto.ValidatePromotionRequest;
+import com.broandbro.qrapp.promotion.dto.ValidatePromotionResponse;
+import com.broandbro.qrapp.promotion.entity.Promotion;
+import com.broandbro.qrapp.promotion.exception.PromotionIneligibleException;
+import com.broandbro.qrapp.promotion.exception.PromotionNotFoundException;
+import com.broandbro.qrapp.promotion.repository.PromotionRepository;
+import com.broandbro.qrapp.promotion.service.PromotionEligibilityService;
+import com.broandbro.qrapp.service.UserService;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -12,68 +20,99 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
- * Coupon Controller - REST API endpoints for coupon operations.
+ * Backward-compatible Coupon API — all endpoints now delegate to the
+ * unified Promotion engine.  The legacy /api/coupons/* paths are preserved
+ * so existing mobile clients and integrations keep working without changes.
  *
- * User endpoints:
- * - Apply coupon to cart
- * - Get available coupons
- *
- * Admin endpoints:
- * - Create/update/delete coupons
- * - View coupon analytics
- * - Toggle coupon status
+ * Admin CRUD endpoints have been removed; use /api/admin/promotions instead.
  */
 @Slf4j
 @RestController
 @RequestMapping("/api/coupons")
+@RequiredArgsConstructor
 public class CouponController {
 
-    private final CouponService couponService;
+    private final PromotionEligibilityService eligibilityService;
+    private final PromotionRepository promotionRepository;
+    private final UserService userService;
 
-    public CouponController(CouponService couponService) {
-        this.couponService = couponService;
-    }
+    // ── User-facing endpoints ─────────────────────────────────────────────────
 
     /**
-     * Apply coupon to current order (user endpoint).
+     * Validate a coupon/promo code against an order subtotal.
      * POST /api/coupons/apply
+     *
+     * Delegates to the Promotion rule engine; response shape is unchanged
+     * so existing clients need no modification.
      */
     @PostMapping("/apply")
     public ResponseEntity<ApplyCouponResponse> applyCoupon(
             @RequestBody ApplyCouponRequest request) {
 
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(ApplyCouponResponse.builder()
+                            .isValid(false)
+                            .errorMessage("User not authenticated")
+                            .build());
+        }
+
+        User user = userService.findByPhone(auth.getName()).orElse(null);
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(ApplyCouponResponse.builder()
+                            .isValid(false)
+                            .errorMessage("User not found")
+                            .build());
+        }
+
+        if (request.getCouponCode() == null || request.getCouponCode().isBlank()) {
+            return ResponseEntity.badRequest()
+                    .body(ApplyCouponResponse.builder()
+                            .isValid(false)
+                            .errorMessage("Coupon code is required")
+                            .build());
+        }
+
         try {
-            // Get authenticated user from SecurityContext
-            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            if (authentication == null || !authentication.isAuthenticated()) {
-                return ResponseEntity.status(401)
-                        .body(ApplyCouponResponse.builder()
-                                .isValid(false)
-                                .errorMessage("User not authenticated")
-                                .build());
-            }
+            ValidatePromotionRequest promoReq = new ValidatePromotionRequest();
+            promoReq.setPromotionCode(request.getCouponCode().toUpperCase());
+            promoReq.setSubtotal(request.getOrderSubtotal() != null
+                    ? request.getOrderSubtotal() : java.math.BigDecimal.ZERO);
 
-            // Extract user ID from principal (assuming it's stored in the token)
-            String userIdentifier = authentication.getPrincipal().toString();
-            Long userId = Long.parseLong(userIdentifier);
+            ValidatePromotionResponse promoResp = eligibilityService.validatePromotion(user, promoReq);
 
-            ApplyCouponResponse response = couponService.validateAndApplyCoupon(
-                    request.getCouponCode(),
-                    request.getOrderSubtotal(),
-                    userId,
-                    null
-            );
+            return ResponseEntity.ok(ApplyCouponResponse.builder()
+                    .isValid(true)
+                    .couponCode(request.getCouponCode().toUpperCase())
+                    .discountAmount(promoResp.getActualDiscount())
+                    .discountDescription(promoResp.getRewardDisplay())
+                    .build());
 
-            if (response.getIsValid()) {
-                return ResponseEntity.ok(response);
-            } else {
-                return ResponseEntity.badRequest().body(response);
-            }
+        } catch (PromotionNotFoundException e) {
+            return ResponseEntity.badRequest()
+                    .body(ApplyCouponResponse.builder()
+                            .isValid(false)
+                            .couponCode(request.getCouponCode())
+                            .errorMessage("Coupon not found")
+                            .build());
+        } catch (PromotionIneligibleException e) {
+            return ResponseEntity.badRequest()
+                    .body(ApplyCouponResponse.builder()
+                            .isValid(false)
+                            .couponCode(request.getCouponCode())
+                            .errorMessage(e.getMessage())
+                            .build());
         } catch (Exception e) {
-            log.error("Error applying coupon", e);
+            log.error("Error applying coupon {}", request.getCouponCode(), e);
             return ResponseEntity.internalServerError()
                     .body(ApplyCouponResponse.builder()
                             .isValid(false)
@@ -83,145 +122,85 @@ public class CouponController {
     }
 
     /**
-     * Get all active coupons available for users.
+     * Returns all currently active code-based promotions.
      * GET /api/coupons/available
+     *
+     * Returns the active promotion list; the shape is a minimal summary
+     * compatible with discount-display use cases.
      */
     @GetMapping("/available")
-    public ResponseEntity<List<CouponResponse>> getAvailableCoupons() {
-        List<CouponResponse> coupons = couponService.getAllActiveCoupons();
-        return ResponseEntity.ok(coupons);
+    public ResponseEntity<List<Map<String, Object>>> getAvailableCoupons() {
+        List<Promotion> promotions = promotionRepository.findActiveCandidates(LocalDateTime.now());
+        List<Map<String, Object>> result = promotions.stream()
+                .filter(p -> p.getCode() != null)   // code-based only
+                .map(p -> {
+                    Map<String, Object> m = new LinkedHashMap<>();
+                    m.put("code",        p.getCode());
+                    m.put("title",       p.getTitle());
+                    m.put("description", p.getDescription());
+                    m.put("expiresAt",   p.getExpiresAt());
+                    return m;
+                })
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(result);
     }
 
-    /**
-     * Admin: Create a new coupon.
-     * POST /api/coupons
-     *
-     * ONLY SUPER USERS can create coupons.
-     * Regular admins can only manage existing coupons.
-     */
+    // ── Deprecated admin stubs — return 410 Gone ──────────────────────────────
+    // Admin coupon management has been consolidated into /api/admin/promotions.
+
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<CouponResponse> createCoupon(
-            @RequestBody CouponCreateUpdateRequest request) {
-
-        String adminUsername = getAuthenticatedAdminUsername();
-
-        try {
-            CouponResponse response = couponService.createCoupon(request, adminUsername);
-            return ResponseEntity.status(HttpStatus.CREATED).body(response);
-        } catch (IllegalArgumentException e) {
-            log.error("Invalid coupon creation request", e);
-            return ResponseEntity.badRequest().build();
-        }
+    public ResponseEntity<Map<String, String>> createCoupon(@RequestBody Object ignored) {
+        return ResponseEntity.status(HttpStatus.GONE)
+                .body(Map.of("message",
+                        "Coupon management has been moved. Use POST /api/admin/promotions instead."));
     }
 
-    /**
-     * Admin: Get all coupons (active and inactive).
-     * GET /api/coupons/admin/all
-     */
     @GetMapping("/admin/all")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<List<CouponResponse>> getAllCoupons() {
-        List<CouponResponse> coupons = couponService.getAllCoupons();
-        return ResponseEntity.ok(coupons);
+    public ResponseEntity<Map<String, String>> getAllCoupons() {
+        return ResponseEntity.status(HttpStatus.GONE)
+                .body(Map.of("message",
+                        "Coupon management has been moved. Use GET /api/admin/promotions instead."));
     }
 
-    /**
-     * Admin: Get single coupon by ID.
-     * GET /api/coupons/admin/{id}
-     */
     @GetMapping("/admin/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<CouponResponse> getCouponById(@PathVariable Long id) {
-        return couponService.getCouponById(id)
-                .map(coupon -> ResponseEntity.ok(couponService.getCouponResponseWithStats(coupon)))
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<Map<String, String>> getCouponById(@PathVariable Long id) {
+        return ResponseEntity.status(HttpStatus.GONE)
+                .body(Map.of("message",
+                        "Coupon management has been moved. Use GET /api/admin/promotions/" + id + " instead."));
     }
 
-    /**
-     * Admin: Update an existing coupon.
-     * PUT /api/coupons/admin/{id}
-     */
     @PutMapping("/admin/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<CouponResponse> updateCoupon(
-            @PathVariable Long id,
-            @RequestBody CouponCreateUpdateRequest request) {
-
-        String adminUsername = getAuthenticatedAdminUsername();
-
-        try {
-            CouponResponse response = couponService.updateCoupon(id, request, adminUsername);
-            return ResponseEntity.ok(response);
-        } catch (IllegalArgumentException e) {
-            log.error("Coupon not found for update", e);
-            return ResponseEntity.notFound().build();
-        }
+    public ResponseEntity<Map<String, String>> updateCoupon(@PathVariable Long id, @RequestBody Object ignored) {
+        return ResponseEntity.status(HttpStatus.GONE)
+                .body(Map.of("message",
+                        "Coupon management has been moved. Use PUT /api/admin/promotions/" + id + " instead."));
     }
 
-    /**
-     * Admin: Toggle coupon active/inactive status.
-     * PATCH /api/coupons/admin/{id}/toggle
-     */
     @PatchMapping("/admin/{id}/toggle")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<CouponResponse> toggleCouponStatus(@PathVariable Long id) {
-
-        String adminUsername = getAuthenticatedAdminUsername();
-
-        try {
-            CouponResponse response = couponService.toggleCouponStatus(id, adminUsername);
-            return ResponseEntity.ok(response);
-        } catch (IllegalArgumentException e) {
-            log.error("Coupon not found for toggle", e);
-            return ResponseEntity.notFound().build();
-        }
+    public ResponseEntity<Map<String, String>> toggleCouponStatus(@PathVariable Long id) {
+        return ResponseEntity.status(HttpStatus.GONE)
+                .body(Map.of("message",
+                        "Coupon management has been moved. Use PATCH /api/admin/promotions/" + id + "/toggle instead."));
     }
 
-    /**
-     * Admin: Get coupon analytics.
-     * GET /api/coupons/admin/{id}/analytics
-     */
     @GetMapping("/admin/{id}/analytics")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<CouponAnalyticsResponse> getCouponAnalytics(@PathVariable Long id) {
-        try {
-            CouponAnalyticsResponse response = couponService.getCouponAnalytics(id);
-            return ResponseEntity.ok(response);
-        } catch (IllegalArgumentException e) {
-            log.error("Coupon not found for analytics", e);
-            return ResponseEntity.notFound().build();
-        }
+    public ResponseEntity<Map<String, String>> getCouponAnalytics(@PathVariable Long id) {
+        return ResponseEntity.status(HttpStatus.GONE)
+                .body(Map.of("message",
+                        "Coupon analytics have been moved. Use GET /api/v1/analytics/coupons/performance instead."));
     }
 
-    /**
-     * Admin: Delete a coupon.
-     * DELETE /api/coupons/admin/{id}
-     */
     @DeleteMapping("/admin/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Void> deleteCoupon(@PathVariable Long id) {
-        try {
-            couponService.deleteCoupon(id);
-            return ResponseEntity.noContent().build();
-        } catch (IllegalArgumentException e) {
-            log.error("Coupon not found for deletion", e);
-            return ResponseEntity.notFound().build();
-        } catch (Exception e) {
-            log.error("Error deleting coupon", e);
-            return ResponseEntity.internalServerError().build();
-        }
-    }
-
-    /**
-     * Helper method to get authenticated admin username from SecurityContext.
-     */
-    private String getAuthenticatedAdminUsername() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication != null && authentication.isAuthenticated()) {
-            return authentication.getName();
-        }
-        return "system";
+    public ResponseEntity<Map<String, String>> deleteCoupon(@PathVariable Long id) {
+        return ResponseEntity.status(HttpStatus.GONE)
+                .body(Map.of("message",
+                        "Coupon management has been moved. Use DELETE /api/admin/promotions/" + id + " instead."));
     }
 }
-

@@ -5,32 +5,7 @@ import {
   useParams,
   Link,
 } from "@tanstack/react-router";
-import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupInput,
-} from "@/components/ui/input-group";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
-import { Filter, Search } from "lucide-react";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { ButtonGroup } from "@/components/ui/button-group";
-import { Button } from "@/components/ui/button";
-import React, { useEffect, useState } from "react";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Drawer,
   DrawerContent,
@@ -40,16 +15,73 @@ import {
 import OrderItem from "@/components/admin/OrderItem";
 import OrderDetailPanel from "@/components/admin/OrderDetailPanel";
 import { useAdminDashboard } from "@/context/AdminDashboardContext";
-import AdminHeader from "@/components/admin/AdminHeader";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import { useIsMobile } from "@/hooks/use-mobile";
+import React, { useEffect, useState } from "react";
 import {
-  PackageIcon,
-  CookingPotIcon,
+  ArrowCounterClockwiseIcon,
+  MagnifyingGlassIcon,
+  CaretLeftIcon,
+  CaretRightIcon,
   CheckCircleIcon,
-  WarningCircleIcon,
 } from "@phosphor-icons/react";
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Static config
+// ─────────────────────────────────────────────────────────────────────────────
+const STATUS_CHIPS = [
+  { value: "",             label: "All" },
+  { value: "ORDER_PLACED", label: "New" },
+  { value: "PREPARING",    label: "Preparing" },
+  { value: "READY",        label: "Ready" },
+  { value: "COMPLETED",    label: "Completed" },
+  { value: "CANCELLED",    label: "Cancelled" },
+];
+
+const STATUS_ACTIVE = {
+  "":             "bg-gray-900 border-gray-900 text-white",
+  "ORDER_PLACED": "bg-violet-600 border-violet-600 text-white",
+  "PREPARING":    "bg-orange-500 border-orange-500 text-white",
+  "READY":        "bg-green-600 border-green-600 text-white",
+  "COMPLETED":    "bg-blue-600 border-blue-600 text-white",
+  "CANCELLED":    "bg-red-600 border-red-600 text-white",
+};
+
+const STATS_CONFIG = [
+  {
+    key:       "ORDER_PLACED",
+    label:     "New",
+    dashKey:   "placedOrders",
+    bg:        "bg-violet-50",
+    numCls:    "text-violet-700",
+    lblCls:    "text-violet-400",
+  },
+  {
+    key:       "PREPARING",
+    label:     "Cooking",
+    dashKey:   "preparingOrders",
+    bg:        "bg-orange-50",
+    numCls:    "text-orange-700",
+    lblCls:    "text-orange-400",
+  },
+  {
+    key:       "READY",
+    label:     "Ready",
+    dashKey:   "readyOrders",
+    bg:        "bg-green-50",
+    numCls:    "text-green-700",
+    lblCls:    "text-green-400",
+  },
+  {
+    key:       "DELAYED",
+    label:     "Delayed",
+    dashKey:   "delayedOrders",
+    bg:        null, // computed
+    numCls:    null,
+    lblCls:    null,
+  },
+];
 
 export const Route = createFileRoute("/admin/(orders)/operational-queue")({
   component: OperationalQueuePage,
@@ -65,106 +97,339 @@ function OperationalQueuePage() {
     setSize,
     filters,
     setFilters,
-    loadData,
     handleOrderUpdate,
+    refreshing,
+    loading,
   } = useAdminDashboard();
 
-  const params = useParams({ strict: false });
-  const selectedOrderId = params?.orderId ? Number(params.orderId) : undefined;
-
+  const params        = useParams({ strict: false });
+  const selectedId    = params?.orderId ? Number(params.orderId) : undefined;
   const { isAdmin, isSuperUser } = useAuth();
-
-  // Mobile bottom-sheet state
-  const isMobile = useIsMobile();
+  const isMobile      = useIsMobile();
+  const queryClient   = useQueryClient();
   const [mobileOrderId, setMobileOrderId] = useState(null);
 
-  // Fetch the order shown in the mobile drawer via the shared hook
   const { selectedOrder: mobileOrder, actionLoading: mobileActionLoading } =
     useAdminDashboard(mobileOrderId ? String(mobileOrderId) : undefined);
 
-  useEffect(() => {
-    loadData({ quiet: true });
-  }, []);
-
-  // Close the mobile drawer when viewport grows to desktop
-  useEffect(() => {
-    if (!isMobile) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setTimeout(() => setMobileOrderId(null), 0);
-    }
-  }, [isMobile]);
+  // Close mobile drawer when viewport expands to desktop
+  useEffect(() => { if (!isMobile) setTimeout(() => setMobileOrderId(null), 0); }, [isMobile]);
 
   if (!isAdmin && !isSuperUser) {
-    return (
-      <Navigate to={"/login"} replace state={{ from: location.pathname }} />
-    );
+    return <Navigate to="/login" replace state={{ from: location.pathname }} />;
   }
 
-  const handleCardClick = (order, e) => {
-    if (isMobile) {
-      e.preventDefault();
-      setMobileOrderId(order.id);
-    }
-    // on desktop the <Link> navigates normally
+  const orders       = ordersPage?.content ?? [];
+  const totalPages   = ordersPage?.totalPages ?? 1;
+  const totalElements = ordersPage?.totalElements ?? 0;
+  const isActive     = refreshing || loading;
+
+  // ── Filter setters ──
+  const setStatus = (value) => {
+    setPage(0);
+    setFilters((p) => ({ ...p, status: value, liveOnly: false }));
+  };
+  const setPayment = (paymentStatus) => {
+    setPage(0);
+    setFilters((p) => ({ ...p, paymentStatus }));
+  };
+  const toggleLive = () => {
+    setPage(0);
+    setFilters((p) => ({ ...p, liveOnly: !p.liveOnly, status: "" }));
+  };
+  const handleSearch = (e) => {
+    setPage(0);
+    setFilters((p) => ({ ...p, query: e.target.value }));
+  };
+  const clearSearch = () => {
+    setPage(0);
+    setFilters((p) => ({ ...p, query: "" }));
   };
 
-  return (
-    <>
-      <AdminHeader
-        title="Kitchen Queue"
-        description="Search any order, filter by workflow state, and open the full detail panel."
-      />
+  const handleCardClick = (order, e) => {
+    if (isMobile) { e.preventDefault(); setMobileOrderId(order.id); }
+  };
 
-      {/* ── KPI summary row ── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 px-4 py-3 border-b bg-white">
-        {[
-          {
-            label: "New Orders",
-            value: dashboard?.placedOrders ?? 0,
-            renderIcon: () => <PackageIcon weight="bold" className="size-5" />,
-            iconCls: "bg-violet-100 text-violet-600",
-            valueCls: "text-violet-700",
-          },
-          {
-            label: "Preparing",
-            value: dashboard?.preparingOrders ?? 0,
-            renderIcon: () => <CookingPotIcon weight="bold" className="size-5" />,
-            iconCls: "bg-orange-100 text-orange-600",
-            valueCls: "text-orange-700",
-          },
-          {
-            label: "Ready",
-            value: dashboard?.readyOrders ?? 0,
-            renderIcon: () => <CheckCircleIcon weight="bold" className="size-5" />,
-            iconCls: "bg-emerald-100 text-emerald-600",
-            valueCls: "text-emerald-700",
-          },
-          {
-            label: "Delayed",
-            value: dashboard?.delayedOrders ?? 0,
-            renderIcon: () => <WarningCircleIcon weight="bold" className="size-5" />,
-            iconCls: "bg-rose-100 text-rose-600",
-            valueCls: "text-rose-700",
-          },
-        ].map(({ label, value, renderIcon, iconCls, valueCls }) => (
-          <div
-            key={label}
-            className="flex items-center gap-3 rounded-2xl border bg-white px-4 py-3 shadow-sm"
-          >
-            <span className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-xl", iconCls)}>
-              {renderIcon()}
+  // ── Dynamic stat chip styling (delayed turns red when > 0) ──
+  const delayedCount = dashboard?.delayedOrders ?? 0;
+  const STATS = STATS_CONFIG.map((s) => {
+    if (s.key !== "DELAYED") return { ...s, count: dashboard?.[s.dashKey] ?? 0 };
+    return {
+      ...s,
+      count:  delayedCount,
+      bg:     delayedCount > 0 ? "bg-red-50"    : "bg-gray-50",
+      numCls: delayedCount > 0 ? "text-red-700"  : "text-gray-300",
+      lblCls: delayedCount > 0 ? "text-red-400"  : "text-gray-300",
+    };
+  });
+
+  return (
+    <div className="flex flex-col h-full min-h-0 bg-gray-50">
+
+      {/* ══════════════════════════════════════════════════
+          Sticky header
+          ══════════════════════════════════════════════════ */}
+      <div className="bg-white border-b sticky top-0 z-20 px-4 pt-3 pb-3 space-y-3">
+
+        {/* Title + Refresh */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-[17px] font-black text-gray-900 tracking-tight">
+              Kitchen Queue
             </span>
-            <div>
-              <div className={cn("text-xl font-extrabold leading-none tabular-nums", valueCls)}>
-                {value}
-              </div>
-              <div className="mt-0.5 text-[11px] font-medium text-gray-500">{label}</div>
-            </div>
+            {isActive && (
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+              </span>
+            )}
           </div>
-        ))}
+          <button
+            onClick={() => queryClient.invalidateQueries({ queryKey: ["orders", "admin"] })}
+            disabled={isActive}
+            className="flex items-center gap-1.5 rounded-full bg-gray-100 px-3 py-1.5 text-[12px] font-semibold text-gray-600 active:bg-gray-200 disabled:opacity-50 transition-colors"
+          >
+            <ArrowCounterClockwiseIcon
+              weight="bold"
+              className={cn("size-3.5", isActive && "animate-spin")}
+            />
+            Refresh
+          </button>
+        </div>
+
+        {/* Compact stats chips — tap to quick-filter */}
+        <div className="grid grid-cols-4 gap-2">
+          {STATS.map((s) => {
+            const isStatActive =
+              s.key === "DELAYED" ? filters.liveOnly : filters.status === s.key;
+            return (
+              <button
+                key={s.key}
+                onClick={() => {
+                  if (s.key === "DELAYED") toggleLive();
+                  else setStatus(filters.status === s.key ? "" : s.key);
+                }}
+                className={cn(
+                  "flex flex-col items-center justify-center rounded-xl py-2 px-1 transition-all active:scale-95",
+                  s.bg,
+                  isStatActive && "ring-2 ring-current ring-offset-1",
+                )}
+              >
+                <span className={cn("text-[20px] font-black leading-none tabular-nums", s.numCls)}>
+                  {s.count}
+                </span>
+                <span className={cn("text-[10px] font-semibold mt-0.5 leading-none", s.lblCls)}>
+                  {s.label}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Search input */}
+        <div className="relative">
+          <MagnifyingGlassIcon
+            weight="bold"
+            className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-gray-400 pointer-events-none"
+          />
+          <input
+            type="text"
+            value={filters.query}
+            onChange={handleSearch}
+            placeholder="Search by order ID or phone…"
+            className="w-full rounded-xl border border-gray-200 bg-gray-50 pl-9 pr-8 py-2.5 text-[13px] text-gray-700 placeholder:text-gray-400 outline-none focus:border-gray-400 focus:bg-white transition-colors"
+          />
+          {filters.query && (
+            <button
+              onClick={clearSearch}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-[16px] leading-none text-gray-400 hover:text-gray-600"
+            >
+              ×
+            </button>
+          )}
+        </div>
+
+        {/* Inline filter chips */}
+        <div
+          className="flex gap-2 overflow-x-auto pb-0.5"
+          style={{ scrollbarWidth: "none", WebkitOverflowScrolling: "touch" }}
+        >
+          {/* Status */}
+          {STATUS_CHIPS.map((c) => {
+            const active = (filters.status || "") === c.value && !filters.liveOnly;
+            return (
+              <button
+                key={`s-${c.value}`}
+                onClick={() => setStatus(c.value)}
+                className={cn(
+                  "shrink-0 flex items-center gap-1 rounded-full px-3 py-1.5 text-[12px] font-semibold border transition-all whitespace-nowrap",
+                  active
+                    ? STATUS_ACTIVE[c.value]
+                    : "bg-white border-gray-200 text-gray-600",
+                )}
+              >
+                {c.label}
+              </button>
+            );
+          })}
+
+          {/* Divider */}
+          <div className="w-px bg-gray-200 shrink-0 my-0.5" />
+
+          {/* Payment */}
+          {[
+            { value: "",        label: "All Payments" },
+            { value: "PAID",    label: "Paid" },
+            { value: "PENDING", label: "Unpaid" },
+          ].map((c) => {
+            const active = (filters.paymentStatus || "") === c.value;
+            return (
+              <button
+                key={`p-${c.value}`}
+                onClick={() => setPayment(c.value)}
+                className={cn(
+                  "shrink-0 flex items-center gap-1 rounded-full px-3 py-1.5 text-[12px] font-semibold border transition-all whitespace-nowrap",
+                  active
+                    ? c.value === "PAID"
+                      ? "bg-green-600 border-green-600 text-white"
+                      : c.value === "PENDING"
+                      ? "bg-amber-500 border-amber-500 text-white"
+                      : "bg-gray-900 border-gray-900 text-white"
+                    : "bg-white border-gray-200 text-gray-600",
+                )}
+              >
+                {c.label}
+              </button>
+            );
+          })}
+
+          {/* Divider */}
+          <div className="w-px bg-gray-200 shrink-0 my-0.5" />
+
+          {/* Live only */}
+          <button
+            onClick={toggleLive}
+            className={cn(
+              "shrink-0 flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-semibold border transition-all whitespace-nowrap",
+              filters.liveOnly
+                ? "bg-emerald-600 border-emerald-600 text-white"
+                : "bg-white border-gray-200 text-gray-600",
+            )}
+          >
+            <span className="relative flex h-1.5 w-1.5 shrink-0">
+              {filters.liveOnly ? (
+                <>
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75" />
+                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-white" />
+                </>
+              ) : (
+                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-gray-400" />
+              )}
+            </span>
+            Live Only
+          </button>
+        </div>
       </div>
 
-      {/* ── Mobile bottom drawer ─────────────────────────────────────── */}
+      {/* ══════════════════════════════════════════════════
+          Split content — list left, detail right (desktop)
+          ══════════════════════════════════════════════════ */}
+      <div className="flex flex-1 min-h-0 overflow-hidden">
+
+        {/* ── Order list pane ── */}
+        <div
+          className={cn(
+            "flex flex-col",
+            "flex-1 lg:flex-none lg:w-[460px] lg:border-r",
+          )}
+        >
+          {/* List */}
+          <div className="flex-1 overflow-y-auto overscroll-contain px-3 pt-2 pb-2">
+            {loading && orders.length === 0 ? (
+              <div className="space-y-2">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <div key={i} className="h-24 animate-pulse rounded-2xl bg-gray-200" />
+                ))}
+              </div>
+            ) : orders.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 gap-3">
+                <CheckCircleIcon weight="thin" className="size-14 text-gray-300" />
+                <span className="text-[13px] font-semibold text-gray-400">No orders found</span>
+              </div>
+            ) : (
+              <div className="space-y-1.5">
+                {orders.map((order) => (
+                  <Link
+                    key={order.id}
+                    to={`/admin/operational-queue/${order.id}`}
+                    onClick={(e) => handleCardClick(order, e)}
+                    className={cn(
+                      "block rounded-2xl border bg-white overflow-hidden transition-colors",
+                      order.id === selectedId || order.id === mobileOrderId
+                        ? "border-gray-300 bg-gray-50/80"
+                        : "border-gray-100 shadow-sm hover:border-gray-200",
+                    )}
+                  >
+                    <OrderItem
+                      order={order}
+                      onAction={(orderId, status) => handleOrderUpdate(orderId, { status })}
+                    />
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Pagination */}
+          <div className="shrink-0 border-t bg-white px-4 py-2.5 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] text-gray-400 font-medium">
+                {totalElements} orders
+              </span>
+              {/* Page size select — desktop only */}
+              <select
+                value={size}
+                onChange={(e) => { setPage(0); setSize(Number(e.target.value)); }}
+                className="hidden lg:block text-[11px] text-gray-500 border border-gray-200 rounded-lg px-1.5 py-1 bg-white outline-none"
+              >
+                {[10, 20, 30].map((n) => (
+                  <option key={n} value={n}>{n}/page</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => setPage((p) => Math.max(0, p - 1))}
+                disabled={page === 0}
+                className="flex items-center gap-1 rounded-xl border border-gray-200 bg-white px-2.5 py-1.5 text-[12px] font-semibold text-gray-600 disabled:opacity-40 active:bg-gray-100 transition-colors"
+              >
+                <CaretLeftIcon weight="bold" className="size-3" />
+                Prev
+              </button>
+              <span className="text-[11px] text-gray-400 font-medium px-1 tabular-nums">
+                {page + 1} / {totalPages}
+              </span>
+              <button
+                onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+                disabled={page >= totalPages - 1}
+                className="flex items-center gap-1 rounded-xl border border-gray-200 bg-white px-2.5 py-1.5 text-[12px] font-semibold text-gray-600 disabled:opacity-40 active:bg-gray-100 transition-colors"
+              >
+                Next
+                <CaretRightIcon weight="bold" className="size-3" />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Desktop detail pane ── */}
+        <div className="hidden lg:flex flex-col flex-1 min-h-0 bg-white overflow-y-auto">
+          <div className="p-4">
+            <Outlet />
+          </div>
+        </div>
+      </div>
+
+      {/* ── Mobile bottom drawer ── */}
       <Drawer
         open={!!mobileOrderId}
         onOpenChange={(open) => { if (!open) setMobileOrderId(null); }}
@@ -178,215 +443,18 @@ function OperationalQueuePage() {
             </DrawerTitle>
           </DrawerHeader>
           <div
-            className="no-scrollbar overflow-y-auto px-4 pb-8 pt-3"
+            className="overflow-y-auto px-4 pb-8 pt-3"
             style={{ WebkitOverflowScrolling: "touch" }}
           >
             <OrderDetailPanel
               order={mobileOrder}
               actionLoading={mobileActionLoading}
-              onUpdate={(payload) => {
-                handleOrderUpdate(mobileOrderId, payload);
-              }}
+              onUpdate={(payload) => handleOrderUpdate(mobileOrderId, payload)}
             />
           </div>
         </DrawerContent>
       </Drawer>
-
-      {/* ── Split-pane grid ── */}
-      <div className="grid lg:grid-cols-[450px_1fr] flex-1">
-        <div className="flex flex-col border-r h-full">
-          <div className="flex gap-2 mt-2 border-b pl-4 pr-5 pb-2 justify-between items-center">
-            <ButtonGroup>
-              <InputGroup className="max-w-[300px]">
-                <InputGroupInput
-                  value={filters.query}
-                  onChange={(e) => {
-                    setPage(0);
-                    setFilters((prev) => ({ ...prev, query: e.target.value }));
-                  }}
-                  placeholder="Search by order id or Phone..."
-                  className="text-sm!"
-                />
-                <InputGroupAddon>
-                  <Search />
-                </InputGroupAddon>
-              </InputGroup>
-              <Popover>
-                <PopoverTrigger
-                  render={
-                    <Button variant="outline">
-                      <Filter />
-                      Filter
-                    </Button>
-                  }
-                />
-                <PopoverContent className="w-80">
-                  <div className="grid gap-4">
-                    <div className="space-y-2">
-                      <h4 className="leading-none font-medium">Filters</h4>
-                      <p className="text-sm text-muted-foreground">
-                        Filter by order status and payment status.
-                      </p>
-                    </div>
-                    <div className="grid gap-2">
-                      <div className="grid grid-cols-2 items-center gap-4">
-                        <Label htmlFor="order-status">Order Status</Label>
-                        <Select
-                          defaultValue="ALL"
-                          name="order-status"
-                          value={filters.status || "ALL"}
-                          onValueChange={(value) => {
-                            setPage(0);
-                            setFilters((prev) => ({
-                              ...prev,
-                              status: value.replace("ALL", ""),
-                            }));
-                          }}
-                        >
-                          <SelectTrigger className="text-sm! w-full">
-                            <SelectValue placeholder="Order status" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectGroup>
-                              <SelectLabel className="text-primary">Order Status</SelectLabel>
-                              <SelectItem value="ALL">All Statuses</SelectItem>
-                              <SelectItem value="PLACED">Placed</SelectItem>
-                              <SelectItem value="PREPARING">Preparing</SelectItem>
-                              <SelectItem value="READY">Ready</SelectItem>
-                              <SelectItem value="COMPLETED">Completed</SelectItem>
-                              <SelectItem value="CANCELLED">Cancelled</SelectItem>
-                            </SelectGroup>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="grid grid-cols-2 items-center gap-4">
-                        <Label htmlFor="payment-status">Payment Status</Label>
-                        <Select
-                          value={filters.paymentStatus || "ALL"}
-                          onValueChange={(value) => {
-                            setPage(0);
-                            setFilters((prev) => ({
-                              ...prev,
-                              paymentStatus: value.replace("ALL", ""),
-                            }));
-                          }}
-                        >
-                          <SelectTrigger className="text-sm! w-full">
-                            <SelectValue placeholder="All Payments" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectGroup>
-                              <SelectLabel className="text-primary">Payment Status</SelectLabel>
-                              <SelectItem value="ALL">All Payments</SelectItem>
-                              <SelectItem value="PAID">Paid</SelectItem>
-                              <SelectItem value="PENDING">Pending</SelectItem>
-                            </SelectGroup>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                  </div>
-                </PopoverContent>
-              </Popover>
-            </ButtonGroup>
-
-            <div className="flex items-center space-x-1">
-              <Switch
-                id="live-only"
-                checked={filters.liveOnly}
-                onCheckedChange={(checked) => {
-                  setPage(0);
-                  setFilters((prev) => ({ ...prev, liveOnly: checked }));
-                }}
-              />
-              <Label htmlFor="live-only">Live only</Label>
-            </div>
-          </div>
-
-          <ScrollArea className="pl-2 pr-3 max-h-[calc(100vh_-_48.8px_-_80px_-_44.8px_-_8px_-_53.6px)] py-2 flex-1">
-            {(ordersPage.content || []).length === 0 && (
-              <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-500">
-                No orders found for the selected filters.
-              </div>
-            )}
-            {(ordersPage.content || []).map((order) => (
-              <Link
-                key={order.id}
-                to={`/admin/operational-queue/${order.id}`}
-                onClick={(e) => handleCardClick(order, e)}
-                className={cn(
-                  "block rounded-lg transition-colors my-1 first:mt-0 p-3 border border-transparent",
-                  order.id === selectedOrderId ? "bg-zinc-100 border-zinc-200" : "",
-                  order.id === mobileOrderId  ? "bg-zinc-100 border-zinc-200" : "",
-                )}
-              >
-                <OrderItem
-                  key={order.id}
-                  order={order}
-                  onAction={(orderId, status) =>
-                    handleOrderUpdate(orderId, { status })
-                  }
-                />
-              </Link>
-            ))}
-          </ScrollArea>
-
-          <div className="flex border-b lg:border-b-none gap-3 px-2 border-t py-2 text-sm items-center justify-between">
-            <div className="text-muted-foreground">
-              {ordersPage.totalElements || 0} orders
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <Select
-                value={size}
-                onValueChange={(s) => { setPage(0); setSize(Number(s)); }}
-                className="rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700"
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="items/page" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    <SelectLabel>Items Per Page</SelectLabel>
-                    <SelectItem value={10}>10 / page</SelectItem>
-                    <SelectItem value={20}>20 / page</SelectItem>
-                    <SelectItem value={30}>30 / page</SelectItem>
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-              <ButtonGroup>
-                <Button
-                  onClick={() => setPage((p) => Math.max(0, p - 1))}
-                  disabled={page === 0}
-                  variant="outline"
-                >
-                  Prev
-                </Button>
-                <InputGroup className="min-w-21 flex items-center justify-center">
-                  <span>Page {page + 1} of {ordersPage.totalPages || 1}</span>
-                </InputGroup>
-                <Button
-                  onClick={() =>
-                    setPage((p) => Math.min((ordersPage.totalPages || 1) - 1, p + 1))
-                  }
-                  disabled={page >= (ordersPage.totalPages || 1) - 1}
-                  variant="outline"
-                >
-                  Next
-                </Button>
-              </ButtonGroup>
-            </div>
-          </div>
-        </div>
-
-        {/* Desktop-only detail pane — hidden on mobile */}
-        <div className="hidden lg:flex flex-col h-full">
-          <ScrollArea className="py-2 pr-3 lg:max-h-[calc(100vh_-_48.8px)] flex-1">
-            <Outlet />
-          </ScrollArea>
-        </div>
-      </div>
-    </>
+    </div>
   );
 }
-
 

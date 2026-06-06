@@ -1,4 +1,4 @@
-import { cn } from "@/lib/utils";
+import { cn, isOrderPaid } from "@/lib/utils";
 import {
   ClockCountdownIcon,
   CreditCardIcon,
@@ -72,9 +72,19 @@ function configFor(status) {
   return STATUS_CONFIG[status] ?? STATUS_CONFIG.PLACED;
 }
 
+/** Convert raw minutes → "15m" / "2h" / "1d 3h" */
+function formatAge(minutes) {
+  const m = minutes ?? 0;
+  if (m < 60) return `${m}m`;
+  if (m < 1440) return `${Math.floor(m / 60)}h`;
+  const d = Math.floor(m / 1440);
+  const h = Math.floor((m % 1440) / 60);
+  return h > 0 ? `${d}d ${h}h` : `${d}d`;
+}
+
 function elapsedLabel(config, minutes) {
   if (!config.timeLabel) return null;
-  return `${config.timeLabel} ${minutes ?? 0}m`;
+  return `${config.timeLabel} ${formatAge(minutes)}`;
 }
 
 // ── Component ──────────────────────────────────────────────────────────────
@@ -132,7 +142,7 @@ export default function OrderItem({ order, onAction }) {
           {isDelayed && <WarningCircleIcon weight="fill" className="size-3" />}
           <ClockCountdownIcon weight="bold" className="size-3" />
           {isDelayed
-            ? `Delayed ${order.stageAgeMinutes ?? 0}m`
+            ? `Delayed ${formatAge(order.stageAgeMinutes)}`
             : elapsedLabel(config, order.stageAgeMinutes)}
         </span>
       </div>
@@ -154,7 +164,7 @@ export default function OrderItem({ order, onAction }) {
         <span className="font-semibold text-gray-800">
           ₹{Number(order.total || 0).toFixed(0)}
         </span>
-        {order.paymentStatus === "PAID" ? (
+        {isOrderPaid(order) ? (
           <span className="flex items-center gap-0.5 text-emerald-600 font-medium">
             <CreditCardIcon weight="fill" className="size-3" /> Paid
           </span>

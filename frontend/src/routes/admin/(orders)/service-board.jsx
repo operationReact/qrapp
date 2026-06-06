@@ -14,7 +14,7 @@ import {
   TimerIcon,
   WarningCircleIcon,
 } from "@phosphor-icons/react";
-import { formatDate } from "@/lib/utils";
+import { formatDate, formatAge } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 
 const STATUS_META = {
@@ -220,7 +220,7 @@ function ServiceBoardPage() {
                           <div className="flex flex-wrap items-center gap-2 mt-2">
                             <Badge variant="ghost" className="h-auto">
                               <ClockCountdownIcon weight="bold" />
-                              {order.stageAgeMinutes} min in stage
+                              {formatAge(order.stageAgeMinutes)} in stage
                             </Badge>
                           </div>
 

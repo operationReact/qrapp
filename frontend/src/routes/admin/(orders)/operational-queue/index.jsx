@@ -7,7 +7,7 @@ import {
   InputGroupButton,
   InputGroupTextarea,
 } from "@/components/ui/input-group";
-import { cn, formatDate } from "@/lib/utils";
+import { cn, formatDate, formatAge } from "@/lib/utils";
 import { useState, useEffect } from "react";
 import { useAdminDashboard } from "@/context/AdminDashboardContext";
 import {
@@ -166,7 +166,7 @@ function SelectedOrderPage() {
                   <ClockCountdownIcon weight="fill" className="size-4" /> Age
                 </div>
                 <div className="mt-1 text-base font-semibold text-slate-900">
-                  {selectedOrder.ageMinutes} min
+                  {formatAge(selectedOrder.ageMinutes)}
                 </div>
               </div>
               <div className="rounded-r-xl rounded-tr-none xl:rounded-tr-xl p-2 border bg-primary-foreground/30 border border-primary-foreground">

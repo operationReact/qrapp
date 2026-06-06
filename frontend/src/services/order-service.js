@@ -82,4 +82,16 @@ export const getPreOrderItems = () =>
 export const getAdminPreOrderItems = () =>
   apiClient.get("/admin/pre-orders/available-items").then((r) => r.data);
 
+// ── Payment Config ────────────────────────────────────────────────────────────
 
+/** Public — returns { razorpayEnabled, walletEnabled, payAtStallEnabled } */
+export const getPaymentConfig = () =>
+  apiClient.get("/api/payment/config").then((r) => r.data);
+
+/** Admin — returns { payAtStallEnabled, razorpayEnabled } */
+export const getAdminSettings = () =>
+  apiClient.get("/admin/settings").then((r) => r.data);
+
+/** Admin — toggle Pay at Stall on/off */
+export const adminSetPayAtStall = (enabled) =>
+  apiClient.patch("/admin/settings/pay-at-stall", { enabled }).then((r) => r.data);

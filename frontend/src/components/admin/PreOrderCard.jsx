@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { acceptPreOrder, updatePreOrder } from "@/services/order-service";
-import { Button } from "@/components/ui/button";
 import {
   CheckCircleIcon,
   XCircleIcon,
@@ -10,34 +9,31 @@ import {
   NoteIcon,
   CaretRightIcon,
   CalendarCheckIcon,
-  WarningCircleIcon,
+  HandWavingIcon,
 } from "@phosphor-icons/react";
-import { cn } from "@/lib/utils";
+import { cn, isOrderPaid } from "@/lib/utils";
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
-/** "Mon, 8 Jun · 06:30 AM" */
+/** "Today · 06:30 AM" / "Tomorrow · 02:00 PM" / "Mon, 8 Jun · 06:30 AM" */
 function formatScheduled(dt) {
   if (!dt) return "Not scheduled";
-  const d = new Date(dt);
-  return (
-    d.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" }) +
-    " · " +
-    d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true })
-  );
+  const d   = new Date(dt);
+  const now = new Date();
+  const tmw = new Date(now); tmw.setDate(now.getDate() + 1);
+  const time = d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true });
+  if (d.toDateString() === now.toDateString()) return `Today · ${time}`;
+  if (d.toDateString() === tmw.toDateString()) return `Tomorrow · ${time}`;
+  return d.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" }) + ` · ${time}`;
 }
 
-function formatCurrency(amount) {
-  return new Intl.NumberFormat("en-IN", {
-    style: "currency", currency: "INR", maximumFractionDigits: 0,
-  }).format(amount ?? 0);
-}
+function formatCurrency(v) { return `₹${Number(v || 0).toFixed(0)}`; }
 
-// ── Veg dot — matches Kitchen Queue exactly ────────────────────────────────
+// ── Veg dot — identical to Kitchen Queue ──────────────────────────────────
 function VegDot({ isVeg }) {
   return (
     <span className={cn(
-      "inline-flex shrink-0 h-3 w-3 rounded-sm border-2 items-center justify-center mt-0.5",
+      "shrink-0 inline-flex h-3 w-3 rounded-sm border-2 items-center justify-center mt-px",
       isVeg ? "border-green-600" : "border-red-500",
     )}>
       <span className={cn("block h-1.5 w-1.5 rounded-full", isVeg ? "bg-green-600" : "bg-red-500")} />
@@ -45,30 +41,21 @@ function VegDot({ isVeg }) {
   );
 }
 
-// ── Status config — mirrors Kitchen Queue stage colours ─────────────────────
+// ── Status config ──────────────────────────────────────────────────────────
 const STATUS_CFG = {
-  PRE_ORDERED:  {
-    label: "Pending",
-    pill: "bg-violet-100 text-violet-700",
-    cardBorder: "border-violet-200",
-  },
-  ORDER_PLACED: {
-    label: "Accepted",
-    pill: "bg-amber-100 text-amber-800",
-    cardBorder: "border-amber-200",
-  },
-  PREPARING:    {
-    label: "Preparing",
-    pill: "bg-sky-100 text-sky-800",
-    cardBorder: "border-sky-200",
-  },
-  READY:        {
-    label: "Ready",
-    pill: "bg-emerald-100 text-emerald-800",
-    cardBorder: "border-emerald-200",
-  },
-  COMPLETED:    { label: "Completed", pill: "bg-green-100 text-green-700",  cardBorder: "border-gray-200" },
-  CANCELLED:    { label: "Cancelled", pill: "bg-gray-100 text-gray-500",    cardBorder: "border-gray-200" },
+  PRE_ORDERED:  { label: "Pending",   dot: "bg-violet-500", chipCls: "bg-violet-100 text-violet-700 border-violet-200",  strip: "bg-violet-500",  btnCls: "bg-violet-600 active:bg-violet-700 text-white" },
+  ORDER_PLACED: { label: "Accepted",  dot: "bg-amber-400",  chipCls: "bg-amber-100 text-amber-800 border-amber-200",     strip: "bg-amber-400",   btnCls: "bg-amber-500 active:bg-amber-600 text-white" },
+  PREPARING:    { label: "Preparing", dot: "bg-orange-500", chipCls: "bg-orange-100 text-orange-700 border-orange-200",  strip: "bg-orange-500",  btnCls: "bg-orange-500 active:bg-orange-600 text-white" },
+  READY:        { label: "Ready",     dot: "bg-green-500",  chipCls: "bg-green-100 text-green-700 border-green-200",     strip: "bg-green-500",   btnCls: "bg-green-600 active:bg-green-700 text-white" },
+  COMPLETED:    { label: "Completed", dot: "bg-slate-400",  chipCls: "bg-slate-100 text-slate-600 border-slate-200",     strip: "bg-slate-300",   btnCls: null },
+  CANCELLED:    { label: "Cancelled", dot: "bg-gray-400",   chipCls: "bg-gray-100 text-gray-500 border-gray-200",        strip: "bg-gray-300",    btnCls: null },
+};
+
+const NEXT_ACTION = {
+  PRE_ORDERED:  { label: "Accept",           Icon: CheckCircleIcon },
+  ORDER_PLACED: { status: "PREPARING",       label: "Start Preparing", Icon: CookingPotIcon  },
+  PREPARING:    { status: "READY",           label: "Mark Ready",      Icon: CheckCircleIcon },
+  READY:        { status: "COMPLETED",       label: "Hand Over",       Icon: HandWavingIcon  },
 };
 
 // ── Component ──────────────────────────────────────────────────────────────
@@ -100,205 +87,167 @@ export default function PreOrderCard({ order, onUpdated }) {
     onError:   (e) => toast.error(e?.response?.data?.message ?? "Failed to save note"),
   });
 
-  const isPending   = order.status === "PRE_ORDERED";
-  const isAccepted  = order.status === "ORDER_PLACED";
-  const isPreparing = order.status === "PREPARING";
-  const isReady     = order.status === "READY";
-  const isDone      = ["COMPLETED", "CANCELLED"].includes(order.status);
-  const isOverdue   = isPending && order.scheduledAt && new Date(order.scheduledAt) < new Date();
-  const loading     = acceptMut.isPending || updateMut.isPending || noteMut.isPending;
+  const isOverdue = order.status === "PRE_ORDERED" && order.scheduledAt && new Date(order.scheduledAt) < new Date();
+  const isDone    = ["COMPLETED", "CANCELLED"].includes(order.status);
+  const loading   = acceptMut.isPending || updateMut.isPending || noteMut.isPending;
+  const isPaid    = isOrderPaid(order);
 
   const cfg = isOverdue
-    ? { label: "Overdue", pill: "bg-rose-100 text-rose-700", cardBorder: "border-rose-300" }
+    ? { label: "Overdue", dot: "bg-red-500", chipCls: "bg-red-100 text-red-700 border-red-200", strip: "bg-red-500", btnCls: "bg-red-600 active:bg-red-700 text-white" }
     : (STATUS_CFG[order.status] ?? STATUS_CFG.PRE_ORDERED);
 
-  const hasActions = !isDone;
+  const nextAction = NEXT_ACTION[order.status];
+
+  const handlePrimary = () => {
+    if (loading) return;
+    if (order.status === "PRE_ORDERED") {
+      acceptMut.mutate({ id: order.id, note: noteInput || undefined });
+    } else if (nextAction?.status) {
+      const msgs = { PREPARING: "Preparation started", READY: "Order marked ready", COMPLETED: "Order handed over" };
+      updateMut.mutate({ id: order.id, status: nextAction.status, msg: msgs[nextAction.status] });
+    }
+  };
 
   return (
     <div className={cn(
-      "bg-white rounded-2xl border shadow-sm flex flex-col gap-3 p-4 transition-all",
-      isOverdue
-        ? "border-rose-300 shadow-rose-100 ring-1 ring-rose-200"
-        : cfg.cardBorder,
-      isDone && "opacity-60",
+      "bg-white rounded-2xl border overflow-hidden transition-opacity",
+      isOverdue ? "border-red-300 ring-1 ring-red-200" : "border-gray-100 shadow-sm",
+      (isDone || loading) && "opacity-60",
     )}>
+      {/* Colored top strip */}
+      <div className={cn("h-[3px] w-full", cfg.strip)} />
 
-      {/* ── Header row — order number + customer + amount ─────────────── */}
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex flex-col gap-0.5 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-lg font-extrabold leading-none text-gray-900">
-              {order.orderNumber ?? `#${order.id}`}
-            </span>
-            {/* Status pill */}
-            <span className={cn(
-              "rounded-full px-2 py-0.5 text-[11px] font-semibold leading-none border",
-              cfg.pill,
-              isOverdue ? "border-rose-200" : "border-transparent",
-            )}>
-              {cfg.label}
-            </span>
-            {isOverdue && (
-              <span className="flex items-center gap-0.5 text-[11px] font-semibold text-rose-600">
-                <WarningCircleIcon weight="fill" className="size-3" />
-                Overdue
-              </span>
-            )}
-          </div>
-          {/* Customer */}
-          <span className="text-[12px] text-gray-400 mt-0.5">
-            {[order.userName, order.phone].filter(Boolean).join(" · ")}
+      <div className="px-3.5 pt-3 pb-3.5 flex flex-col gap-2.5">
+
+        {/* ── Row 1: Order # + status chip + scheduled badge ── */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-[15px] font-black text-gray-900 tracking-tight leading-none">
+            {order.orderNumber ?? `#${order.id}`}
+          </span>
+          <span className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold border", cfg.chipCls)}>
+            <span className={cn("h-1.5 w-1.5 rounded-full", cfg.dot)} />
+            {cfg.label}
+          </span>
+          {/* Scheduled time badge */}
+          <span className={cn(
+            "ml-auto shrink-0 flex items-center gap-0.5 text-[11px] font-semibold tabular-nums rounded-full px-2 py-0.5",
+            isOverdue ? "bg-red-100 text-red-700" : "bg-violet-50 text-violet-600",
+          )}>
+            <CalendarCheckIcon weight={isOverdue ? "fill" : "regular"} className="size-3" />
+            {formatScheduled(order.scheduledAt)}
           </span>
         </div>
-        <span className="shrink-0 text-[13px] font-bold text-gray-700">
-          {formatCurrency(order.total)}
-        </span>
-      </div>
 
-      {/* ── Scheduled metadata — secondary, compact ────────────────────── */}
-      <div className="flex items-center gap-1.5 text-[11px] text-gray-400">
-        <CalendarCheckIcon className="size-3 shrink-0" weight="fill" />
-        <span>Scheduled: {formatScheduled(order.scheduledAt)}</span>
-        <span className="text-gray-300">·</span>
-        <span>{order.totalItems ?? 0} item{(order.totalItems ?? 0) !== 1 ? "s" : ""}</span>
-      </div>
-
-      {/* ── Items list — dashed border, same as KitchenCard ─────────────── */}
-      {order.items?.length > 0 && (
-        <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50/60 divide-y divide-gray-100">
-          {order.items.map((item, i) => (
-            <div key={i} className="flex items-center gap-2 px-3 py-2">
+        {/* ── Row 2: Items ── */}
+        <div className="space-y-1.5">
+          {(order.items ?? []).map((item, i) => (
+            <div key={i} className="flex items-center gap-1.5">
               <VegDot isVeg={item.isVeg} />
-              <span className="flex-1 text-[13px] font-medium text-gray-800 leading-snug truncate">
-                {item.name}
-              </span>
-              <span className="shrink-0 text-[13px] font-bold text-gray-900">
-                ×{item.quantity}
-              </span>
+              <span className="flex-1 text-[13px] font-semibold text-gray-800 leading-tight truncate">{item.name}</span>
+              <span className="shrink-0 text-[12px] font-bold text-gray-400 tabular-nums">×{item.quantity}</span>
             </div>
           ))}
+          {(!order.items || order.items.length === 0) && (
+            <span className="text-[12px] text-gray-400 italic">No items</span>
+          )}
         </div>
-      )}
 
-      {/* ── Admin note ──────────────────────────────────────────────────── */}
-      {order.adminNote && !showNote && (
-        <div className="flex items-start gap-1.5 text-[11px] text-amber-700 bg-amber-50 rounded-xl px-3 py-2 border border-amber-100">
-          <NoteIcon className="size-3.5 mt-0.5 shrink-0 text-amber-500" weight="fill" />
-          <span className="leading-relaxed">{order.adminNote}</span>
+        {/* ── Row 3: Customer + amount + payment pill ── */}
+        <div className="flex items-center gap-1.5 pt-1.5 border-t border-gray-50">
+          <span className="flex-1 text-[11px] text-gray-400 truncate">
+            {order.userName
+              ? `${order.userName}${order.phone ? ` · ${order.phone}` : ""}`
+              : (order.phone ?? "Guest")}
+          </span>
+          <span className="text-[12px] font-bold text-gray-700 shrink-0">{formatCurrency(order.total)}</span>
+          <span className={cn(
+            "shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-bold border",
+            isPaid ? "bg-green-50 text-green-700 border-green-200" : "bg-amber-50 text-amber-700 border-amber-200",
+          )}>
+            {isPaid ? "Paid" : "Unpaid"}
+          </span>
         </div>
-      )}
 
-      {/* ── Note input ──────────────────────────────────────────────────── */}
-      {showNote && (
-        <div className="space-y-2">
-          <textarea
-            rows={2}
-            value={noteInput}
-            onChange={(e) => setNoteInput(e.target.value)}
-            placeholder="Add an internal note…"
-            className="w-full rounded-xl border border-gray-200 bg-gray-50 text-sm p-3 resize-none focus:outline-none focus:ring-2 focus:ring-violet-300 focus:bg-white transition-all"
-          />
-          <div className="flex gap-2">
-            <Button
-              size="sm"
-              className="h-8 text-xs bg-violet-600 hover:bg-violet-700"
-              disabled={loading}
-              onClick={() => noteMut.mutate({ id: order.id, note: noteInput })}
-            >
-              Save
-            </Button>
-            <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={() => setShowNote(false)}>
-              Cancel
-            </Button>
+        {/* ── Admin note (read-only) ── */}
+        {order.adminNote && !showNote && (
+          <div className="flex items-start gap-1.5 text-[11px] text-amber-700 bg-amber-50 rounded-xl px-3 py-2 border border-amber-100">
+            <NoteIcon className="size-3.5 mt-0.5 shrink-0 text-amber-500" weight="fill" />
+            <span className="leading-relaxed">{order.adminNote}</span>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* ── Action buttons — same h-10 rounded-xl pattern as KitchenCard ── */}
-      {hasActions && (
-        <div className="flex flex-wrap gap-2 pt-1">
-
-          {isPending && (
-            <Button
-              size="sm"
-              variant="default"
-              disabled={loading}
-              className="flex-1 gap-1.5 h-10 rounded-xl font-semibold text-sm bg-violet-600 hover:bg-violet-700"
-              onClick={() => acceptMut.mutate({ id: order.id, note: noteInput || undefined })}
-            >
-              <CheckCircleIcon weight="bold" className="size-4" />
-              Accept
-              <CaretRightIcon weight="bold" className="size-3.5" />
-            </Button>
-          )}
-
-          {isAccepted && (
-            <Button
-              size="sm"
-              variant="default"
-              disabled={loading}
-              className="flex-1 gap-1.5 h-10 rounded-xl font-semibold text-sm bg-amber-500 hover:bg-amber-600"
-              onClick={() => updateMut.mutate({ id: order.id, status: "PREPARING", msg: "Preparation started" })}
-            >
-              <CookingPotIcon weight="bold" className="size-4" />
-              Start Preparation
-              <CaretRightIcon weight="bold" className="size-3.5" />
-            </Button>
-          )}
-
-          {isPreparing && (
-            <Button
-              size="sm"
-              variant="default"
-              disabled={loading}
-              className="flex-1 gap-1.5 h-10 rounded-xl font-semibold text-sm bg-emerald-600 hover:bg-emerald-700"
-              onClick={() => updateMut.mutate({ id: order.id, status: "READY", msg: "Order marked ready" })}
-            >
-              <CheckCircleIcon weight="bold" className="size-4" />
-              Mark Ready
-              <CaretRightIcon weight="bold" className="size-3.5" />
-            </Button>
-          )}
-
-          {isReady && (
-            <div className="flex-1 h-10 flex items-center justify-center gap-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm font-semibold">
-              <CheckCircleIcon weight="fill" className="size-4" />
-              Ready to Serve
+        {/* ── Note input ── */}
+        {showNote && (
+          <div className="space-y-2">
+            <textarea
+              rows={2}
+              value={noteInput}
+              onChange={(e) => setNoteInput(e.target.value)}
+              placeholder="Add an internal note…"
+              className="w-full rounded-xl border border-gray-200 bg-gray-50 text-sm p-3 resize-none focus:outline-none focus:ring-2 focus:ring-violet-300 focus:bg-white transition-all"
+            />
+            <div className="flex gap-2">
+              <button
+                disabled={loading}
+                onClick={() => noteMut.mutate({ id: order.id, note: noteInput })}
+                className="flex-1 h-8 rounded-lg bg-violet-600 text-white text-xs font-bold disabled:opacity-50 active:bg-violet-700 transition-colors"
+              >
+                Save
+              </button>
+              <button
+                onClick={() => setShowNote(false)}
+                className="h-8 px-4 rounded-lg bg-gray-100 text-gray-600 text-xs font-semibold hover:bg-gray-200 transition-colors"
+              >
+                Cancel
+              </button>
             </div>
-          )}
+          </div>
+        )}
 
-          {/* Reject — secondary outline, only when still actionable */}
-          {(isPending || isAccepted || isPreparing) && (
-            <Button
-              size="sm"
-              variant="outline"
+        {/* ── Actions: primary button + reject + note ── */}
+        {!isDone && nextAction && (
+          <div className="flex gap-2">
+            <button
+              onClick={handlePrimary}
               disabled={loading}
-              className="gap-1.5 h-10 rounded-xl font-semibold text-sm border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300"
-              onClick={() => {
-                if (window.confirm("Cancel this pre-order?")) {
-                  updateMut.mutate({ id: order.id, status: "CANCELLED", msg: "Pre-order cancelled" });
-                }
-              }}
+              className={cn(
+                "flex-1 flex items-center gap-2 rounded-xl py-3 px-4 text-[13px] font-bold transition-all select-none",
+                isOverdue ? "bg-red-600 active:bg-red-700 text-white" : (cfg.btnCls ?? "bg-gray-700 text-white"),
+                loading && "opacity-50 cursor-not-allowed",
+              )}
             >
-              <XCircleIcon weight="bold" className="size-4" />
-              Reject
-            </Button>
-          )}
+              <nextAction.Icon weight="bold" className="size-4 shrink-0" />
+              <span className="flex-1 text-left">{nextAction.label}</span>
+              <CaretRightIcon weight="bold" className="size-3.5 shrink-0" />
+            </button>
 
-          {/* Note icon button */}
-          {!showNote && (
-            <Button
-              size="sm"
-              variant="ghost"
-              title={order.adminNote ? "Edit note" : "Add note"}
-              className="h-10 w-10 p-0 rounded-xl text-gray-400 hover:text-gray-700 hover:bg-gray-100"
-              onClick={() => { setNoteInput(order.adminNote ?? ""); setShowNote(true); }}
-            >
-              <NoteIcon className="size-4" />
-            </Button>
-          )}
-        </div>
-      )}
+            {/* Reject button — icon only */}
+            {["PRE_ORDERED", "ORDER_PLACED", "PREPARING"].includes(order.status) && (
+              <button
+                disabled={loading}
+                onClick={() => {
+                  if (window.confirm("Cancel this pre-order?")) {
+                    updateMut.mutate({ id: order.id, status: "CANCELLED", msg: "Pre-order cancelled" });
+                  }
+                }}
+                className="flex items-center justify-center w-11 rounded-xl border border-red-200 text-red-500 hover:bg-red-50 active:bg-red-100 transition-colors disabled:opacity-50"
+              >
+                <XCircleIcon weight="bold" className="size-5" />
+              </button>
+            )}
+
+            {/* Note button — icon only */}
+            {!showNote && (
+              <button
+                onClick={() => { setNoteInput(order.adminNote ?? ""); setShowNote(true); }}
+                className="flex items-center justify-center w-11 rounded-xl border border-gray-200 text-gray-400 hover:text-gray-700 hover:bg-gray-100 active:bg-gray-200 transition-colors"
+              >
+                <NoteIcon className="size-4" />
+              </button>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

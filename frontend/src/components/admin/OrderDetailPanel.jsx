@@ -1,13 +1,14 @@
 import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { baseURL } from "@/services";
 import {
   InputGroup,
   InputGroupAddon,
   InputGroupButton,
   InputGroupTextarea,
 } from "@/components/ui/input-group";
-import { cn, formatDate } from "@/lib/utils";
+import { cn, formatDate, formatAge, isOrderPaid } from "@/lib/utils";
 import {
   ArchiveIcon,
   ClockCountdownIcon,
@@ -17,6 +18,7 @@ import {
   SealWarningIcon,
   UsersIcon,
   CaretRightIcon,
+  CheckCircleIcon,
 } from "@phosphor-icons/react";
 
 const STATUS_META = {
@@ -35,6 +37,36 @@ function formatDateTime(v) {
   return Number.isNaN(d.getTime()) ? "—" : d.toLocaleString();
 }
 function toneForStatus(s) { return STATUS_META[s] || STATUS_META.PLACED; }
+
+/** Small thumbnail with veg/non-veg dot overlay and graceful fallback */
+function ItemThumb({ src, alt, isVeg }) {
+  const [errored, setErrored] = useState(false);
+  return (
+    <div className="relative shrink-0 w-14 h-14 rounded-lg overflow-hidden bg-slate-100 border border-slate-200">
+      {src && !errored ? (
+        <img
+          src={src}
+          alt={alt}
+          onError={() => setErrored(true)}
+          className="w-full h-full object-cover"
+        />
+      ) : (
+        <div className="w-full h-full flex items-center justify-center text-slate-300 text-[10px] font-semibold text-center px-1 leading-tight">
+          No Image
+        </div>
+      )}
+      {/* Veg / non-veg indicator */}
+      <span
+        className={cn(
+          "absolute bottom-1 right-1 inline-flex h-3.5 w-3.5 rounded-sm border-2 items-center justify-center bg-white",
+          isVeg ? "border-green-600" : "border-red-500",
+        )}
+      >
+        <span className={cn("block h-1.5 w-1.5 rounded-full", isVeg ? "bg-green-600" : "bg-red-500")} />
+      </span>
+    </div>
+  );
+}
 
 /**
  * OrderDetailPanel
@@ -105,8 +137,7 @@ export default function OrderDetailPanel({ order, actionLoading, onUpdate }) {
         <div className="mt-4 grid grid-cols-2 gap-1 text-sm text-slate-600 xl:grid-cols-4">
           {[
             { label: "Total",    renderIcon: () => <CurrencyInrIcon weight="fill" className="size-4" />,    value: formatCurrency(order.total) },
-            { label: "Payment",  renderIcon: () => <CreditCardIcon weight="fill" className="size-4" />,     value: order.paymentStatus || "Pending" },
-            { label: "Age",      renderIcon: () => <ClockCountdownIcon weight="fill" className="size-4" />, value: `${order.ageMinutes} min` },
+            { label: "Age",      renderIcon: () => <ClockCountdownIcon weight="fill" className="size-4" />, value: formatAge(order.ageMinutes) },
             { label: "Assigned", renderIcon: () => <UsersIcon weight="fill" className="size-4" />,          value: order.assignedAdmin || "Unassigned" },
           ].map(({ renderIcon, label, value }, i) => (
             <div
@@ -114,9 +145,8 @@ export default function OrderDetailPanel({ order, actionLoading, onUpdate }) {
               className={cn(
                 "p-2 border bg-primary-foreground/30 border-primary-foreground",
                 i === 0 && "rounded-l-xl rounded-bl-none xl:rounded-bl-xl",
-                i === 1 && "rounded-tr-xl xl:rounded-tr-none",
-                i === 2 && "rounded-bl-xl xl:rounded-bl-none",
-                i === 3 && "rounded-r-xl rounded-tr-none xl:rounded-tr-xl",
+                i === 1 && "rounded-tr-xl xl:rounded-tr-none xl:rounded-r-none",
+                i === 2 && "rounded-r-xl rounded-tl-none xl:rounded-tl-none xl:rounded-tr-none xl:rounded-r-none",
               )}
             >
               <div className="flex items-center gap-1 text-xs font-semibold capitalize text-primary">
@@ -126,6 +156,40 @@ export default function OrderDetailPanel({ order, actionLoading, onUpdate }) {
               <div className="mt-1 text-base font-semibold text-slate-900">{value}</div>
             </div>
           ))}
+          {/* Payment cell — shows Mark as Paid button when unpaid */}
+          <div
+            className={cn(
+              "p-2 border bg-primary-foreground/30 border-primary-foreground",
+              "rounded-bl-xl xl:rounded-bl-none xl:rounded-r-xl",
+            )}
+          >
+            <div className="flex items-center gap-1 text-xs font-semibold capitalize text-primary">
+              <CreditCardIcon weight="fill" className="size-4" />
+              Payment
+            </div>
+            {isOrderPaid(order) ? (
+              <div className="mt-1 flex items-center gap-1 text-base font-semibold text-emerald-600">
+                <CheckCircleIcon weight="fill" className="size-4" />
+                Paid
+              </div>
+            ) : (
+              <div className="mt-1 flex items-center gap-1.5 flex-wrap">
+                <span className="text-sm font-semibold text-amber-600">
+                  {order.paymentStatus || "Pending"}
+                </span>
+                {order.paymentMethod === "PAY_AT_STALL" && (
+                  <button
+                    onClick={() => onUpdate({ paymentStatus: "PAID" })}
+                    disabled={actionLoading}
+                    className="flex items-center gap-1 rounded-lg bg-emerald-600 px-2 py-0.5 text-[11px] font-bold text-white hover:bg-emerald-700 disabled:opacity-50 transition-colors"
+                  >
+                    <CheckCircleIcon weight="bold" className="size-3" />
+                    Mark Paid
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -190,35 +254,47 @@ export default function OrderDetailPanel({ order, actionLoading, onUpdate }) {
       {/* ── Items ── */}
       <div>
         <h3 className="text-sm font-medium capitalize">Items</h3>
-        <ul className="mt-3 pl-4 marker:text-muted-foreground/50 rounded-xl list-disc">
-          {(order.items || []).map((item, i) => (
-            <li
-              key={`${i}-${item.name}`}
-              className="py-2 bg-white shadow-sm border-b last:border-b-0 group/item first:rounded-t-md last:rounded-b-md px-4"
-            >
-              <div className="flex gap-3 items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Badge
-                    className={cn(
-                      "bg-transparent border-2 rounded-sm font-medium p-1",
-                      item.isVeg
-                        ? "text-accent-400 border-accent-400"
-                        : "text-red-500 border-red-500",
-                    )}
-                  >
-                    <span>{item.isVeg ? "VEG" : "NON-VEG"}</span>
-                  </Badge>
-                  <div className="text-base">
-                    <span className="font-medium">{item.quantity}x •</span>{" "}
-                    {item.name || "Menu Item"}
+        <ul className="mt-3 rounded-xl overflow-hidden border border-slate-100 divide-y divide-slate-100">
+          {(order.items || []).map((item, i) => {
+            const rawUrl = item.imageUrl;
+            const imgSrc = rawUrl
+              ? rawUrl.startsWith("http")
+                ? rawUrl
+                : `${baseURL}${rawUrl}`
+              : null;
+            return (
+              <li
+                key={`${i}-${item.name}`}
+                className="py-2.5 bg-white group/item px-4"
+              >
+                <div className="flex gap-3 items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    {/* Thumbnail */}
+                    <ItemThumb src={imgSrc} alt={item.name} isVeg={item.isVeg} />
+                    <div className="flex flex-col gap-0.5">
+                      <Badge
+                        className={cn(
+                          "bg-transparent border-2 rounded-sm font-medium p-1 w-fit",
+                          item.isVeg
+                            ? "text-accent-400 border-accent-400"
+                            : "text-red-500 border-red-500",
+                        )}
+                      >
+                        <span>{item.isVeg ? "VEG" : "NON-VEG"}</span>
+                      </Badge>
+                      <div className="text-base">
+                        <span className="font-medium">{item.quantity}x •</span>{" "}
+                        {item.name || "Menu Item"}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-base font-semibold shrink-0">
+                    {formatCurrency(item.subtotal || item.price * item.quantity)}
                   </div>
                 </div>
-                <div className="text-base font-semibold">
-                  {formatCurrency(item.subtotal || item.price * item.quantity)}
-                </div>
-              </div>
-            </li>
-          ))}
+              </li>
+            );
+          })}
         </ul>
       </div>
 

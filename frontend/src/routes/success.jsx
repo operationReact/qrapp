@@ -95,7 +95,7 @@ function SuccessPage() {
                     <GiftIcon weight="fill" className="size-4 text-purple-600" />
                   </span>
                   <span className="text-xs font-medium text-purple-700">
-                    🎉 Milestone {awardedCoupons.length === 1 ? "Coupon" : "Coupons"} Unlocked!
+                    🎉 Milestone {awardedCoupons.length === 1 ? "Reward" : "Rewards"} Unlocked!
                   </span>
                 </div>
                 <div className="mt-2 grid gap-1">
@@ -111,7 +111,7 @@ function SuccessPage() {
                   ))}
                 </div>
                 <p className="mt-2 text-xs text-purple-600">
-                  Use {awardedCoupons.length === 1 ? "this coupon" : "these coupons"} on your next order for a discount!
+                  Use {awardedCoupons.length === 1 ? "this promo code" : "these promo codes"} on your next order for a discount!
                 </p>
                 <div className="absolute -right-2 -bottom-2 opacity-10">
                   <GiftIcon className="size-16" />

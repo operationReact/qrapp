@@ -100,6 +100,11 @@ public interface CouponAnalyticsRepository extends JpaRepository<CouponAnalytics
      * Idempotent upsert of coupon performance for a target date.
      * Uses PostgreSQL FILTER and conditional aggregates for efficiency.
      */
+    /**
+     * Idempotent upsert of promotion/coupon performance for a target date.
+     * Reads from the unified `promotion` table so both legacy-migrated coupons
+     * and new promotions are captured in a single pass.
+     */
     @Modifying
     @Transactional
     @Query(value = """
@@ -111,8 +116,8 @@ public interface CouponAnalyticsRepository extends JpaRepository<CouponAnalytics
                created_at, updated_at
            )
            SELECT
-               c.id                                                             AS coupon_id,
-               c.code                                                           AS coupon_code,
+               p.id                                                             AS coupon_id,
+               p.code                                                           AS coupon_code,
                :targetDate,
 
                COUNT(o.id)                                                      AS total_redemptions,
@@ -123,21 +128,21 @@ public interface CouponAnalyticsRepository extends JpaRepository<CouponAnalytics
                COALESCE(SUM(o.coupon_discount)
                    FILTER (WHERE o.status = 'COMPLETED'), 0)                   AS total_discount_given,
 
-               COALESCE(SUM(o.final_amount)
+               COALESCE(SUM(o.grand_total)
                    FILTER (WHERE o.status = 'COMPLETED'), 0)                   AS total_revenue_generated,
 
                CASE
                    WHEN COUNT(o.id) FILTER (WHERE o.status = 'COMPLETED') = 0 THEN NULL
-                   ELSE SUM(o.final_amount) FILTER (WHERE o.status = 'COMPLETED')
-                        / COUNT(o.id) FILTER (WHERE o.status = 'COMPLETED')
+                   ELSE SUM(o.grand_total) FILTER (WHERE o.status = 'COMPLETED')
+                        / COUNT(o.id)      FILTER (WHERE o.status = 'COMPLETED')
                END                                                              AS avg_order_value,
 
                CASE
-                   WHEN SUM(o.final_amount) FILTER (WHERE o.status = 'COMPLETED') = 0 THEN NULL
+                   WHEN SUM(o.grand_total) FILTER (WHERE o.status = 'COMPLETED') = 0 THEN NULL
                    ELSE ROUND(
                        100.0
                        * SUM(o.coupon_discount) FILTER (WHERE o.status = 'COMPLETED')
-                       / SUM(o.final_amount)    FILTER (WHERE o.status = 'COMPLETED'),
+                       / SUM(o.grand_total)     FILTER (WHERE o.status = 'COMPLETED'),
                    2)
                END                                                              AS discount_cost_ratio,
 
@@ -145,29 +150,30 @@ public interface CouponAnalyticsRepository extends JpaRepository<CouponAnalytics
                 FROM (
                     SELECT user_id
                     FROM orders
-                    WHERE coupon_code = c.code
+                    WHERE coupon_code = p.code
                       AND created_at::date = :targetDate
                     GROUP BY user_id
                     HAVING COUNT(*) > 1
                 ) abuse)                                                        AS repeat_user_count,
 
                NOW(), NOW()
-           FROM coupon c
-           JOIN orders o ON o.coupon_code = c.code
+           FROM promotion p
+           JOIN orders o ON o.coupon_code = p.code
                AND o.created_at::date = :targetDate
-           GROUP BY c.id, c.code
+           WHERE p.code IS NOT NULL
+           GROUP BY p.id, p.code
 
            ON CONFLICT (coupon_code, snapshot_date) DO UPDATE SET
-               total_redemptions      = EXCLUDED.total_redemptions,
-               successful_redemptions = EXCLUDED.successful_redemptions,
-               cancelled_redemptions  = EXCLUDED.cancelled_redemptions,
-               unique_users           = EXCLUDED.unique_users,
-               total_discount_given   = EXCLUDED.total_discount_given,
+               total_redemptions       = EXCLUDED.total_redemptions,
+               successful_redemptions  = EXCLUDED.successful_redemptions,
+               cancelled_redemptions   = EXCLUDED.cancelled_redemptions,
+               unique_users            = EXCLUDED.unique_users,
+               total_discount_given    = EXCLUDED.total_discount_given,
                total_revenue_generated = EXCLUDED.total_revenue_generated,
-               avg_order_value        = EXCLUDED.avg_order_value,
-               discount_cost_ratio    = EXCLUDED.discount_cost_ratio,
-               repeat_user_count      = EXCLUDED.repeat_user_count,
-               updated_at             = NOW()
+               avg_order_value         = EXCLUDED.avg_order_value,
+               discount_cost_ratio     = EXCLUDED.discount_cost_ratio,
+               repeat_user_count       = EXCLUDED.repeat_user_count,
+               updated_at              = NOW()
            """,
            nativeQuery = true)
     void upsertCouponSnapshot(@Param("targetDate") LocalDate targetDate);

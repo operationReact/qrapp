@@ -1,11 +1,16 @@
 package com.broandbro.qrapp.service;
 
-import com.broandbro.qrapp.entity.Coupon;
 import com.broandbro.qrapp.entity.MilestoneConfig;
 import com.broandbro.qrapp.entity.User;
 import com.broandbro.qrapp.entity.UserMilestone;
-import com.broandbro.qrapp.enums.DiscountType;
-import com.broandbro.qrapp.repository.CouponRepository;
+import com.broandbro.qrapp.promotion.entity.Promotion;
+import com.broandbro.qrapp.promotion.entity.PromotionReward;
+import com.broandbro.qrapp.promotion.entity.PromotionRuleEntity;
+import com.broandbro.qrapp.promotion.enums.PromoType;
+import com.broandbro.qrapp.promotion.enums.RewardType;
+import com.broandbro.qrapp.promotion.enums.RuleType;
+import com.broandbro.qrapp.promotion.enums.StackMode;
+import com.broandbro.qrapp.promotion.repository.PromotionRepository;
 import com.broandbro.qrapp.repository.MilestoneConfigRepository;
 import com.broandbro.qrapp.repository.OrderRepository;
 import com.broandbro.qrapp.repository.UserMilestoneRepository;
@@ -28,7 +33,7 @@ import java.util.List;
 public class MilestoneCouponService {
 
     private final OrderRepository orderRepository;
-    private final CouponRepository couponRepository;
+    private final PromotionRepository promotionRepository;
     private final UserMilestoneRepository milestoneRepository;
     private final MilestoneConfigRepository milestoneConfigRepository;
 
@@ -62,17 +67,14 @@ public class MilestoneCouponService {
      * Called after an order is saved.
      * Runs in its own transaction so a failure here never rolls back the order.
      *
-     * @return list of newly issued coupon codes (empty if none)
+     * @return list of newly issued promo codes (empty if none)
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public List<String> checkAndAwardMilestones(User user, BigDecimal orderGrandTotal) {
         if (user == null || user.getId() == null) return List.of();
         try {
-            // Current lifetime spend INCLUDING this order (already committed to DB)
             BigDecimal lifetimeSpend = orderRepository.sumLifetimeSpendByUserId(user.getId());
-            // If the order isn't COMPLETED yet (just placed), add grandTotal manually
             if (lifetimeSpend == null) lifetimeSpend = BigDecimal.ZERO;
-            // Add the just-placed order's value (status may still be ORDER_PLACED)
             BigDecimal effectiveSpend = lifetimeSpend.add(orderGrandTotal);
 
             List<MilestoneConfig> configs = milestoneConfigRepository.findAllByIsActiveTrueOrderByThresholdAmountAsc();
@@ -84,29 +86,52 @@ public class MilestoneCouponService {
 
                     String code = buildCouponCode(user.getName(), cfg.getThresholdAmount());
                     // Ensure uniqueness — append user id suffix if code already exists
-                    if (couponRepository.findByCode(code).isPresent()) {
+                    if (promotionRepository.findByCode(code).isPresent()) {
                         code = code + user.getId();
                     }
 
-                    Coupon coupon = Coupon.builder()
+                    // Build the Promotion (replaces the old Coupon)
+                    Promotion promotion = Promotion.builder()
                         .code(code)
                         .title("₹" + cfg.getThresholdAmount().toPlainString() + " Milestone Reward 🎉")
                         .description("You've spent ₹" + cfg.getThresholdAmount().toPlainString()
                             + " with us! Enjoy " + cfg.getDiscountPct().toPlainString()
                             + "% off your next order (max ₹" + cfg.getMaxCap().toPlainString() + ").")
-                        .discountType(DiscountType.PERCENTAGE)
-                        .discountValue(cfg.getDiscountPct())
-                        .maxDiscountAmount(cfg.getMaxCap())
+                        .promoType(PromoType.COUPON_CODE)
+                        .stackMode(StackMode.NONE)
+                        .isActive(true)
+                        .isFirstOrderOnly(false)
                         .totalUsageLimit(1)
                         .perUserLimit(1)
-                        .isFirstOrderOnly(false)
-                        .isActive(true)
                         .createdBy("SYSTEM_MILESTONE")
                         .updatedBy("SYSTEM_MILESTONE")
                         .expiresAt(LocalDateTime.now().plusDays(cfg.getValidityDays()))
                         .build();
 
-                    couponRepository.save(coupon);
+                    // Attach reward
+                    PromotionReward reward = PromotionReward.builder()
+                        .promotion(promotion)
+                        .rewardType(RewardType.PERCENTAGE_DISCOUNT)
+                        .value(cfg.getDiscountPct())
+                        .maxCap(cfg.getMaxCap())
+                        .build();
+                    promotion.setReward(reward);
+
+                    // Attach explicit usage-limit rule rows so the rule engine enforces them
+                    PromotionRuleEntity totalLimitRule = PromotionRuleEntity.builder()
+                        .promotion(promotion)
+                        .ruleType(RuleType.TOTAL_USAGE_LIMIT)
+                        .params("{}")
+                        .build();
+                    PromotionRuleEntity perUserLimitRule = PromotionRuleEntity.builder()
+                        .promotion(promotion)
+                        .ruleType(RuleType.PER_USER_LIMIT)
+                        .params("{}")
+                        .build();
+                    promotion.getRules().add(totalLimitRule);
+                    promotion.getRules().add(perUserLimitRule);
+
+                    promotionRepository.save(promotion);
                     milestoneRepository.save(UserMilestone.builder()
                         .userId(user.getId())
                         .milestoneAmount(cfg.getThresholdAmount())
@@ -115,7 +140,7 @@ public class MilestoneCouponService {
                         .build());
 
                     awarded.add(code);
-                    log.info("Milestone coupon issued: user={} milestone={} code={}", user.getId(), cfg.getThresholdAmount(), code);
+                    log.info("Milestone promotion issued: user={} milestone={} code={}", user.getId(), cfg.getThresholdAmount(), code);
                 }
             }
             return awarded;
@@ -126,23 +151,27 @@ public class MilestoneCouponService {
     }
 
     /**
-     * Returns all milestone coupons ever issued to a user, enriched with
-     * expiry/discount info from the live Coupon record.
+     * Returns all milestone promo codes ever issued to a user, enriched with
+     * expiry/discount info from the live Promotion record.
      */
     @Transactional(readOnly = true)
     public List<MilestoneCouponInfo> getUserMilestoneCoupons(Long userId) {
         return milestoneRepository.findAllByUserIdOrderByMilestoneAmountAsc(userId).stream()
             .map(m -> {
-                Coupon c = couponRepository.findByCode(m.getCouponCode()).orElse(null);
+                Promotion p = promotionRepository.findByCode(m.getCouponCode()).orElse(null);
+                BigDecimal discountPct  = (p != null && p.getReward() != null) ? p.getReward().getValue()  : null;
+                BigDecimal maxCap       = (p != null && p.getReward() != null) ? p.getReward().getMaxCap() : null;
+                boolean isValid = p != null
+                        && Boolean.TRUE.equals(p.getIsActive())
+                        && (p.getExpiresAt() == null || p.getExpiresAt().isAfter(LocalDateTime.now()));
                 return new MilestoneCouponInfo(
                     m.getMilestoneAmount(),
                     m.getCouponCode(),
                     m.getAwardedAt(),
-                    c != null ? c.getDiscountValue() : null,
-                    c != null ? c.getMaxDiscountAmount() : null,
-                    c != null ? c.getExpiresAt() : null,
-                    c != null && Boolean.TRUE.equals(c.getIsActive())
-                        && (c.getExpiresAt() == null || c.getExpiresAt().isAfter(LocalDateTime.now()))
+                    discountPct,
+                    maxCap,
+                    p != null ? p.getExpiresAt() : null,
+                    isValid
                 );
             })
             .toList();
@@ -167,7 +196,6 @@ public class MilestoneCouponService {
     public MilestoneConfig updateConfig(Long id, MilestoneConfig req) {
         MilestoneConfig existing = milestoneConfigRepository.findById(id)
             .orElseThrow(() -> new IllegalArgumentException("Milestone config not found: " + id));
-        // If threshold changed, ensure no duplicate
         if (existing.getThresholdAmount().compareTo(req.getThresholdAmount()) != 0
                 && milestoneConfigRepository.existsByThresholdAmount(req.getThresholdAmount())) {
             throw new IllegalArgumentException("Milestone for ₹" + req.getThresholdAmount() + " already exists");
@@ -221,6 +249,6 @@ public class MilestoneCouponService {
                 prefix = normalised.substring(0, Math.min(6, normalised.length()));
             }
         }
-        return prefix + milestone.toBigInteger();
+        return prefix + milestone.toBigInteger().toString();
     }
 }

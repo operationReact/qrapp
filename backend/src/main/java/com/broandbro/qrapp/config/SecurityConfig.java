@@ -145,6 +145,9 @@ public class SecurityConfig {
                         .requestMatchers("/api/cache/**").permitAll()
                         .requestMatchers("/admin/menu/bulk-upload/**").permitAll()
 
+                        // Payment config — publicly readable (controls which methods are shown)
+                        .requestMatchers(HttpMethod.GET, "/api/payment/**").permitAll()
+
 
 
                         .anyRequest()

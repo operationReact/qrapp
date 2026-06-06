@@ -404,7 +404,8 @@ public class OrderService {
 
         boolean hasStatusChange = request != null && request.getStatus() != null && !request.getStatus().isBlank();
         boolean hasNoteChange = request != null && request.getAdminNote() != null;
-        if (!hasStatusChange && !hasNoteChange) {
+        boolean hasPaymentStatusChange = request != null && request.getPaymentStatus() != null && !request.getPaymentStatus().isBlank();
+        if (!hasStatusChange && !hasNoteChange && !hasPaymentStatusChange) {
             throw new IllegalArgumentException("Nothing to update for the order");
         }
 
@@ -429,6 +430,14 @@ public class OrderService {
                     order.setCompletedAt(now);
                 }
             }
+        }
+
+        if (hasPaymentStatusChange) {
+            String normalized = request.getPaymentStatus().trim().toUpperCase();
+            if (!normalized.equals("PAID") && !normalized.equals("PENDING") && !normalized.equals("FAILED")) {
+                throw new IllegalArgumentException("Invalid paymentStatus: " + request.getPaymentStatus());
+            }
+            order.setPaymentStatus(normalized);
         }
 
         if (hasNoteChange) {

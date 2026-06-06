@@ -73,10 +73,9 @@ function AdminDashboardPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+
   const flaggedOrders = useMemo(() => {
-    return (ordersPage.content || []).filter(
-      (order) => order.delayed,
-    );
+    return (ordersPage.content || []).filter((order) => order.delayed);
   }, [ordersPage.content]);
 
   if (!isAdmin && !isSuperUser) {
@@ -125,3 +124,4 @@ function AdminDashboardPage() {
     </>
   );
 }
+

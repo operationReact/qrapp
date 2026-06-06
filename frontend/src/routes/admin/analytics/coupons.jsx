@@ -79,8 +79,8 @@ function CouponAnalyticsPage() {
   return (
     <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6">
       <AnalyticsPageHeader
-        title="Coupon Analytics"
-        description="Coupon usage, effectiveness and revenue impact."
+        title="Promotion Analytics"
+        description="Promotion usage, effectiveness and revenue impact."
       />
 
       {/* Date range filter */}
@@ -111,7 +111,7 @@ function CouponAnalyticsPage() {
       {/* 2 cols on mobile → 4 on sm */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
         <MetricCard
-          title="Active Coupons"
+          title="Active Promotions"
           value={summary.activeCoupons}
           icon={<Tag size={14} />}
           loading={coupons.loading}
@@ -129,7 +129,7 @@ function CouponAnalyticsPage() {
           loading={coupons.loading}
         />
         <MetricCard
-          title="Coupon Revenue"
+          title="Promo Revenue"
           value={fmt(summary.revenueFromCoupons)}
           icon={<DollarSign size={14} />}
           loading={coupons.loading}
@@ -138,8 +138,8 @@ function CouponAnalyticsPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
         <ChartContainer
-          title="Coupon Usage"
-          subtitle="Uses per coupon"
+          title="Promotion Usage"
+          subtitle="Uses per promotion code"
           loading={coupons.loading}
           error={coupons.error}
           onRetry={coupons.refetch}
@@ -153,7 +153,7 @@ function CouponAnalyticsPage() {
               label="Uses"
             />
           ) : (
-            <EmptyState title="No coupon data" />
+            <EmptyState title="No promotion data" />
           )}
         </ChartContainer>
 
@@ -181,7 +181,7 @@ function CouponAnalyticsPage() {
 
       <div className="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-100 dark:border-zinc-800 shadow-sm p-3 sm:p-5">
         <h3 className="text-xs sm:text-sm font-semibold text-zinc-800 dark:text-zinc-100 mb-3 sm:mb-4">
-          Coupon Performance
+          Promotion Performance
         </h3>
         <AnalyticsTable columns={columns} rows={couponsRows} />
       </div>

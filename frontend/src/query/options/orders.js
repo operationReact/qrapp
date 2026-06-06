@@ -9,6 +9,8 @@ import {
   getAdminPreOrderDashboard,
   getPreOrderItems,
   getAdminPreOrderItems,
+  getPaymentConfig,
+  getAdminSettings,
 } from "../../services/order-service";
 
 export const myOrdersOptions = queryOptions({
@@ -72,3 +74,17 @@ export const adminPreOrderItemsOptions = queryOptions({
   staleTime: 1000 * 60 * 5,
 });
 
+/** Public — no auth needed. Used in cart to show Pay at Stall option. */
+export const paymentConfigOptions = queryOptions({
+  queryKey: ["payment", "config"],
+  queryFn: getPaymentConfig,
+  staleTime: 1000 * 60,   // 1 min
+  retry: 2,
+});
+
+/** Admin — payment + feature flag settings. */
+export const adminSettingsOptions = queryOptions({
+  queryKey: ["admin", "settings"],
+  queryFn: getAdminSettings,
+  staleTime: 1000 * 30,
+});
