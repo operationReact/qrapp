@@ -20,6 +20,7 @@ import com.broandbro.qrapp.promotion.engine.CartItemContext;
 import com.broandbro.qrapp.promotion.engine.EligibilityContext;
 import com.broandbro.qrapp.promotion.engine.EligibilityResult;
 import com.broandbro.qrapp.promotion.engine.UserContext;
+import com.broandbro.qrapp.combo.service.ComboCampaignService;
 import com.broandbro.qrapp.promotion.engine.rule.PromotionRuleEngine;
 import com.broandbro.qrapp.promotion.entity.Promotion;
 import com.broandbro.qrapp.promotion.entity.PromotionUsage;
@@ -77,6 +78,7 @@ public class OrderService {
     private final PromotionRuleEngine promotionRuleEngine;
     private final MilestoneCouponService milestoneCouponService;
     private final com.broandbro.qrapp.repository.UserRepository userRepository;
+    private final ComboCampaignService comboCampaignService;
 
     /**
      * Creates a new order with a human-readable order number.
@@ -143,6 +145,36 @@ public class OrderService {
             if (couponDiscount.compareTo(java.math.BigDecimal.ZERO) > 0) {
                 order.setCouponCode(req.getPromotionCode().toUpperCase());
                 order.setCouponDiscount(couponDiscount);
+            }
+        }
+
+        // Apply BYOC combo discount if no promotion code was used
+        if (couponDiscount.compareTo(java.math.BigDecimal.ZERO) == 0
+                && req.getByocCampaignId() != null) {
+            java.util.List<com.broandbro.qrapp.promotion.engine.CartItemContext> cartItems =
+                    new java.util.ArrayList<>();
+            for (CreateOrderRequest.Item i : req.getItems()) {
+                MenuItem mi = menuRepository.findById(i.getItemId()).orElse(null);
+                Long catId = (mi != null && mi.getCategory() != null) ? mi.getCategory().getId() : null;
+                java.math.BigDecimal unitPrice = pricingService.getCurrentSellingPrice(i.getItemId());
+                cartItems.add(new com.broandbro.qrapp.promotion.engine.CartItemContext(
+                        i.getItemId(), catId, i.getQuantity(), unitPrice));
+            }
+            com.broandbro.qrapp.promotion.engine.CartContext byocCart =
+                    new com.broandbro.qrapp.promotion.engine.CartContext(null, subtotal, java.math.BigDecimal.ZERO, cartItems);
+            try {
+                com.broandbro.qrapp.combo.dto.campaign.ComboCartEvaluationResponse evalResp =
+                        comboCampaignService.evaluateCart(byocCart);
+                if (evalResp.bestDiscountAmount() != null
+                        && evalResp.bestDiscountAmount().compareTo(java.math.BigDecimal.ZERO) > 0) {
+                    couponDiscount = evalResp.bestDiscountAmount();
+                    order.setCouponCode("BYOC_" + req.getByocCampaignId());
+                    order.setCouponDiscount(couponDiscount);
+                    log.info("BYOC discount ₹{} applied from campaign {} on order {}",
+                            couponDiscount, req.getByocCampaignId(), orderNumber);
+                }
+            } catch (Exception ex) {
+                log.warn("BYOC evaluation failed (non-fatal): {}", ex.getMessage());
             }
         }
         java.math.BigDecimal tax = java.math.BigDecimal.ZERO;

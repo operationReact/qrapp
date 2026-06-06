@@ -17,6 +17,10 @@ export function CartProvider({ children }) {
     const [appliedPromotion, setAppliedPromotion] = useState(null);
     // Shape: { id, code, title, rewardDisplay, actualDiscount, isAutoApplied }
 
+    // ── BYOC (Build Your Own Combo) discount state ────────────────────────────
+    // Shape: { campaignId, campaignName, discountAmount }
+    const [byocDiscount, setByocDiscount] = useState(null);
+
     useEffect(() => {
         return () => {
             if (lastAddedTimerRef.current) clearTimeout(lastAddedTimerRef.current);
@@ -61,21 +65,34 @@ export function CartProvider({ children }) {
     const clearCart = () => {
         setCart([]);
         setAppliedPromotion(null); // clear promotion when cart is cleared
+        setByocDiscount(null);
     };
 
     const applyPromotion = (promotion) => {
         setAppliedPromotion(promotion);
+        setByocDiscount(null); // mutual exclusion — clear BYOC when promo applied
     };
 
     const removePromotion = () => {
         setAppliedPromotion(null);
     };
 
-    /** Total after promotion discount */
+    const applyByocDiscount = ({ campaignId, campaignName, discountAmount }) => {
+        if (!appliedPromotion) {
+            setByocDiscount({ campaignId, campaignName, discountAmount });
+        }
+    };
+
+    const removeByocDiscount = () => setByocDiscount(null);
+
+    /** Total after promotion discount OR BYOC discount (whichever is applied) */
     const getTotalAfterDiscount = () => {
         const subtotal = cart.reduce((sum, i) => sum + i.price * i.quantity, 0);
-        const discount = appliedPromotion?.actualDiscount ?? 0;
-        return Math.max(0, subtotal - Number(discount));
+        const promoDiscount = appliedPromotion?.actualDiscount ?? 0;
+        const byocAmt = byocDiscount?.discountAmount ?? 0;
+        // Take the larger of the two (only one is active at a time)
+        const discount = Math.max(Number(promoDiscount), Number(byocAmt));
+        return Math.max(0, subtotal - discount);
     };
 
     const getTotal = () =>
@@ -92,6 +109,7 @@ export function CartProvider({ children }) {
             drawerOpen, openDrawer, closeDrawer, toggleDrawer,
             addCount, lastAdded,
             appliedPromotion, applyPromotion, removePromotion,
+            byocDiscount, applyByocDiscount, removeByocDiscount,
         }}>
             {children}
         </CartContext.Provider>

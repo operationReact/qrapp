@@ -35,6 +35,7 @@ import {
   ArrowsOutSimpleIcon,
   MagicWandIcon,
   ListPlusIcon,
+  SparkleIcon,
 } from "@phosphor-icons/react";
 import { useAuth } from "@/context/AuthContext";
 
@@ -118,6 +119,21 @@ export function AdminSidebar() {
                       weight={pathname === "/admin/combos" ? "bold" : "regular"}
                     />
                     <span>Combos</span>
+                  </Link>
+                }
+              />
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                className="text-zinc-700 font-medium"
+                isActive={pathname === "/admin/combo-campaigns"}
+                render={
+                  <Link to={"/admin/combo-campaigns"}>
+                    <SparkleIcon
+                      className="text-primary"
+                      weight={pathname === "/admin/combo-campaigns" ? "bold" : "regular"}
+                    />
+                    <span>BYOC Campaigns</span>
                   </Link>
                 }
               />

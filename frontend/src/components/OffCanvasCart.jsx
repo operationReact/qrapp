@@ -19,6 +19,8 @@ import { Empty, EmptyDescription, EmptyHeader } from "./ui/empty";
 import { useQuery } from "@tanstack/react-query";
 import { getCartRecommendations } from "@/services/recommendation-service";
 import { PlusCircleIcon } from "@phosphor-icons/react";
+import ComboProgressBanner from "@/components/ComboProgressBanner";
+import { useByocDiscount } from "@/hooks/useByocDiscount";
 
 function CartRecommendations({ cart, addItem, isOpen }) {
   const itemIds = cart.map((i) => i.id);
@@ -100,6 +102,10 @@ function CartContent({ onClose, isOpen }) {
   const { cart, getTotal, addItem, decreaseItem, removeItem } = useCart();
   const navigate = useNavigate();
 
+  // BYOC progress
+  const { campaigns: byocCampaigns } = useByocDiscount(cart, isOpen);
+  const primaryCampaign = byocCampaigns[0] ?? null;
+
   return (
     <>
       <div className="flex-1 min-h-0 overflow-y-auto [scrollbar-width:thin]">
@@ -123,6 +129,13 @@ function CartContent({ onClose, isOpen }) {
         </div>
         {cart.length > 0 && (
           <CartRecommendations cart={cart} addItem={addItem} isOpen={isOpen} />
+        )}
+
+        {/* BYOC combo progress */}
+        {cart.length > 0 && primaryCampaign && (
+          <div className="px-4 pb-3">
+            <ComboProgressBanner campaign={primaryCampaign} />
+          </div>
         )}
       </div>
 

@@ -51,6 +51,8 @@ import {
 import { ListStarIcon, ShoppingCartIcon } from "@phosphor-icons/react";
 import { PromotionDrawer } from "@/components/PromotionDrawer";
 import { useCheckoutPromotions } from "@/hooks/useCheckoutPromotions";
+import { useByocDiscount } from "@/hooks/useByocDiscount";
+import ComboProgressBanner from "@/components/ComboProgressBanner";
 
 function loadRazorpayScript(
   src = "https://checkout.razorpay.com/v1/checkout.js",
@@ -83,6 +85,9 @@ function CartPage() {
     appliedPromotion,
     applyPromotion,
     removePromotion,
+    byocDiscount,
+    applyByocDiscount,
+    removeByocDiscount,
   } = useCart();
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -110,6 +115,30 @@ function CartPage() {
     isLoading: promotionsLoading,
   } = useCheckoutPromotions(cart, !!user?.token);
 
+  // ── BYOC combo discount engine ─────────────────────────────────────────
+  const {
+    campaigns: byocCampaigns,
+    bestDiscountAmount: byocBestAmount,
+    bestCampaignId: byocBestId,
+    bestCampaignName: byocBestName,
+    hasDiscount: byocHasDiscount,
+  } = useByocDiscount(cart, true);
+  const primaryByocCampaign = byocCampaigns[0] ?? null;
+
+  // Auto-apply BYOC discount when unlocked (if no promo code already applied)
+  useEffect(() => {
+    if (byocHasDiscount && !appliedPromotion && byocBestId) {
+      applyByocDiscount({
+        campaignId: byocBestId,
+        campaignName: byocBestName,
+        discountAmount: byocBestAmount,
+      });
+    } else if (!byocHasDiscount) {
+      removeByocDiscount();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [byocHasDiscount, byocBestAmount, byocBestId]);
+
   // Derive the live discount directly — no useMemo so it always reads
   // the freshest eligiblePromotions on every render.
   const liveAppliedPromotion = (() => {
@@ -121,7 +150,10 @@ function CartPage() {
     );
   })();
 
-  const discount = Number(liveAppliedPromotion?.actualDiscount ?? 0);
+  const promoDiscount = Number(liveAppliedPromotion?.actualDiscount ?? 0);
+  const byocDiscountAmt = Number(byocDiscount?.discountAmount ?? 0);
+  // Apply only the active one (BYOC is cleared when promo is applied)
+  const discount = appliedPromotion ? promoDiscount : byocDiscountAmt;
   const totalAfterDiscount = Math.max(0, total - discount);
 
   const hasWalletBalance = typeof walletBalance === "number";
@@ -263,6 +295,7 @@ function CartPage() {
         phone,
         paymentMethod,
         promotionCode: appliedPromotion?.code ?? undefined,
+        byocCampaignId: !appliedPromotion && byocDiscount?.campaignId ? byocDiscount.campaignId : undefined,
       });
       console.log("Order response:", res);
       const responsePaymentMethod = res?.paymentMethod || paymentMethod;
@@ -414,6 +447,13 @@ function CartPage() {
             </div>
           )}
 
+          {/* ── BYOC Combo Progress ───────────────────────────────────── */}
+          {cart.length > 0 && primaryByocCampaign && (
+            <section className="rounded-xl bg-card border border-border shadow-xs p-4">
+              <ComboProgressBanner campaign={primaryByocCampaign} />
+            </section>
+          )}
+
           {/* ── Promotion Section ─────────────────────────────────────── */}
           {cart.length > 0 && cartPayload && (
             <section className="rounded-xl bg-card border border-border shadow-xs p-4">
@@ -506,6 +546,11 @@ function CartPage() {
                     {discount > 0 && liveAppliedPromotion && (
                       <span className="text-xs text-green-700 font-medium">
                         -₹{discount.toFixed(2)} with {liveAppliedPromotion.code ?? "offer"}
+                      </span>
+                    )}
+                    {discount > 0 && !liveAppliedPromotion && byocDiscount && (
+                      <span className="text-xs text-emerald-700 font-medium">
+                        🔥 -₹{discount.toFixed(2)} combo savings
                       </span>
                     )}
                   </div>

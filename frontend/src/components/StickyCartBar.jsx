@@ -3,6 +3,8 @@ import { useNavigate, useLocation } from "@tanstack/react-router";
 import { Button } from "./ui/button";
 import { Cart } from "@boxicons/react";
 import { useAuth } from "@/context/AuthContext";
+import { useByocDiscount } from "@/hooks/useByocDiscount";
+import ComboProgressBanner from "@/components/ComboProgressBanner";
 
 const pluralRules = new Intl.PluralRules("en-US");
 
@@ -25,14 +27,18 @@ export default function StickyCartBar() {
   const location = useLocation();
   const { isAdmin } = useAuth();
 
+  const totalItems = cart.reduce((s, i) => s + (i.quantity || 0), 0);
+  const totalPrice = getTotal();
+
+  // BYOC nudge — only evaluated when cart has items
+  const { campaigns: byocCampaigns } = useByocDiscount(cart, totalItems > 0);
+  const primaryByoc = byocCampaigns[0] ?? null;
+
   // Only show the sticky cart bar on the landing page (home)
   if (location && !stickyCartBarVisibleRoutes.includes(location.pathname))
     return null;
 
   if (isAdmin) return null;
-
-  const totalItems = cart.reduce((s, i) => s + (i.quantity || 0), 0);
-  const totalPrice = getTotal();
 
   const handleViewCart = () => {
     if (location.pathname === "/") {
@@ -47,6 +53,12 @@ export default function StickyCartBar() {
 
   return (
     <div className="fixed inset-x-0 bottom-0 pb-mobile-nav md:px-2.5 md:pb-2.5 z-39 pointer-events-auto">
+      {/* BYOC compact nudge strip — shown above the bar when progress exists */}
+      {primaryByoc && primaryByoc.nextTier && (
+        <div className="max-w-md md:max-w-1/2 mx-auto px-4 py-1.5 bg-emerald-50 border border-b-0 border-emerald-200 rounded-t-xl flex items-center justify-center">
+          <ComboProgressBanner campaign={primaryByoc} compact />
+        </div>
+      )}
       <div className="rounded-t-xl max-w-md md:rounded-xl md:max-w-1/2 mx-auto border border-b-0 md:border-b border-border bg-card/95 backdrop-blur-sm pb-[env(safe-area-inset-bottom)]">
         <div className="w-full px-8 sm:px-4 md:mx-auto md:max-w-4xl lg:max-w-5xl xl:max-w-6xl">
           <div className="flex md:min-h-[72px] items-center md:py-3">

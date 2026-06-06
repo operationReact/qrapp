@@ -121,8 +121,12 @@ public class SecurityConfig {
                                 "/menu/**",
                                 "/categories/**",
                                 "/api/combos",
+                                "/api/combo-campaigns",
                                 "/orders/pre-order/items"
                         ).permitAll()
+
+                        // BYOC cart evaluation — publicly accessible (no auth needed)
+                        .requestMatchers(HttpMethod.POST, "/api/combo-campaigns/evaluate").permitAll()
 
                         .requestMatchers(
                                 HttpMethod.POST,

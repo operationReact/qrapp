@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/drawer";
 import NewPartyOrder from "@/components/shared/NewPartyOrder";
 import CombosDrawer from "@/components/CombosDrawer";
+import BuildYourOwnComboDrawer from "@/components/BuildYourOwnComboDrawer";
 import { cn } from "@/lib/utils";
 import { ArrowRightIcon } from "@phosphor-icons/react";
 
@@ -280,6 +281,21 @@ const DISCOVERY_CARDS = [
       "https://images.unsplash.com/photo-1529543544282-ea669407fca3?q=80&w=600&auto=format&fit=crop",
   },
   {
+    id: "byoc",
+    type: "byoc",
+    badge: "Save up to 20%",
+    title: "Build Your Own Combo",
+    subtitle: "Mix & match your favorites. Add more items, unlock bigger savings.",
+    cta: "Start Building",
+    icon: "🔥",
+    badgeBg: "rgba(16,185,129,0.88)",
+    badgeColor: "#fff",
+    mobileBg: "linear-gradient(135deg, #059669 0%, #0f766e 100%)",
+    mobileBgFrom: "#059669",
+    imgSrc:
+      "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?q=80&w=600&auto=format&fit=crop",
+  },
+  {
     id: "combos",
     badge: "Save Up To 20%",
     title: "Combo Deals",
@@ -317,10 +333,12 @@ export default function DealsSection() {
     [],
   );
   const [combosOpen, setCombosOpen] = useState(false);
+  const [byocOpen, setByocOpen] = useState(false);
 
   return (
     <div className="mt-2">
       <CombosDrawer open={combosOpen} onOpenChange={setCombosOpen} />
+      <BuildYourOwnComboDrawer open={byocOpen} onOpenChange={setByocOpen} />
 
       <Carousel
         opts={{ loop: true }}
@@ -346,7 +364,11 @@ export default function DealsSection() {
                   deal={deal}
                   categoryName={deal.categoryName}
                   onClick={
-                    deal.id === "combos" ? () => setCombosOpen(true) : undefined
+                    deal.id === "combos"
+                      ? () => setCombosOpen(true)
+                      : deal.id === "byoc"
+                      ? () => setByocOpen(true)
+                      : undefined
                   }
                 />
               )}
