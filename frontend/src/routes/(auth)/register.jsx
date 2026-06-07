@@ -1,7 +1,7 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useNavigate, useSearch } from "@tanstack/react-router";
-import { useMutation } from '@tanstack/react-query'
+import { useMutation } from "@tanstack/react-query";
 import { generateOTP, loginUser, registerUser } from "@/services/auth-service";
 import { setUserAuth } from "@/services";
 import { Link } from "@tanstack/react-router";
@@ -14,7 +14,7 @@ import { PasswordInput } from "@/components/ui/password-input";
 import { PhoneInput } from "@/components/ui/phone-input";
 import { useAuth } from "@/context/AuthContext";
 
-export const Route = createFileRoute('/(auth)/register')({
+export const Route = createFileRoute("/(auth)/register")({
   component: function Register() {
     const navigate = useNavigate();
     const { setUser } = useAuth();
@@ -28,7 +28,7 @@ export const Route = createFileRoute('/(auth)/register')({
     const otpMutation = useMutation({
       mutationFn: () => generateOTP({ userName: name, phone }),
       onSuccess: () => {
-        navigate({ to: '/register', search: { verify: true } });
+        navigate({ to: "/register", search: { verify: true } });
       },
       onError: (err) => {
         setError(err?.response?.data || "Failed to generate OTP");
@@ -91,9 +91,7 @@ export const Route = createFileRoute('/(auth)/register')({
               alt="Your Easy Access To Delicious Meals"
               className="w-full border border-muted login-banner rounded-[14px] overflow-hidden"
             />
-            <h1 className="mb-2 mt-4 text-2xl font-semibold">
-              Create Account
-            </h1>
+            <h1 className="my-4 text-lg font-medium">Create Account</h1>
             {error && (
               <div className="mb-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
                 {error}
@@ -153,9 +151,9 @@ export const Route = createFileRoute('/(auth)/register')({
           </div>
         </div>
         <OTPVerifyDialog
-          open={'verify' in search && !!phone}
+          open={"verify" in search && !!phone}
           onOpenChange={(next) => {
-            if (!next) navigate({ to: '/register', search: {} });
+            if (!next) navigate({ to: "/register", search: {} });
           }}
           phone={phone}
           onVerified={handleOTPVerified}
@@ -163,5 +161,5 @@ export const Route = createFileRoute('/(auth)/register')({
         />
       </div>
     );
-  }
-})
+  },
+});

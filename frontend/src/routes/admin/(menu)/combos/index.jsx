@@ -162,7 +162,7 @@ export default function CombosPage() {
 
         {/* Search */}
         <div className="mt-4 flex justify-between items-center gap-2">
-          <InputGroup className="h-10 max-w-xs bg-zinc-100">
+          <InputGroup className="h-10 max-w-xs">
             <InputGroupInput
               placeholder="Search combos..."
               value={searchInput}
@@ -173,24 +173,11 @@ export default function CombosPage() {
               <MagnifyingGlassIcon />
             </InputGroupAddon>
           </InputGroup>
-
-          <Button
-            variant="secondary"
-            size="icon-lg"
-            className="relative"
-            aria-label="Filter combos"
-          >
-            <FunnelIcon />
-
-            <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-[10px] size-5 rounded-full flex items-center justify-center font-bold">
-              2
-            </span>
-          </Button>
         </div>
       </div>
 
       {/* LIST */}
-      <div className="px-4 pt-5 flex flex-col gap-4">
+      <div className="px-4 flex flex-col gap-4">
         {list.loading &&
           Array.from({ length: 4 }).map((_, i) => (
             <div

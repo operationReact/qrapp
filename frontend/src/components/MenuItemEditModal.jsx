@@ -321,7 +321,7 @@ export default function MenuItemEditModal({
         }
       }}
     >
-      <SheetContent>
+      <SheetContent className="max-w-md!">
         <SheetHeader className="border-b">
           <SheetTitle className="font-medium">Update Menu Item</SheetTitle>
         </SheetHeader>
@@ -483,10 +483,10 @@ export default function MenuItemEditModal({
               </FieldGroup>
 
               {/* AI Image Generation */}
-              <div className="mt-6 rounded-xl border border-dashed border-purple-300 bg-purple-50/50 p-4 space-y-3">
+              <div className="mt-6 rounded-lg border border-dashed border-purple-300 bg-purple-50/50 p-4 space-y-3">
                 <div className="flex items-center justify-between flex-wrap gap-2">
                   <div className="flex items-center gap-2">
-                    <Wand2 className="size-4 text-purple-600" />
+                    <Wand2 className="size-4 text-purple-700" />
                     <span className="text-sm font-medium text-purple-800">AI Image Generation</span>
                   </div>
                   <Button
@@ -507,10 +507,10 @@ export default function MenuItemEditModal({
 
                 {/* Additional prompt hint — shown always so admin can pre-fill before first generation too */}
                 <div className="space-y-1">
-                  <label className="text-xs font-medium text-purple-700">
-                    Prompt hint <span className="font-normal text-purple-400">(optional – describe what you want)</span>
+                  <label className="text-sm font-medium text-purple-700">
+                    Prompt hint <span className="text-purple-500 font-medium">(optional – describe what you want)</span>
                   </label>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 mt-1">
                     <Textarea
                       value={additionalPrompt}
                       onChange={(e) => setAdditionalPrompt(e.target.value)}
@@ -537,7 +537,7 @@ export default function MenuItemEditModal({
                       </Button>
                     )}
                   </div>
-                  <p className="text-[10px] text-purple-400">
+                  <p className="text-xs text-purple-500 font-medium">
                     Your hint is appended to the base prompt. You can retry as many times as needed.
                   </p>
                 </div>

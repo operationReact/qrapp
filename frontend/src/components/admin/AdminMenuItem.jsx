@@ -149,12 +149,12 @@ export default function AdminMenuItem({
             )}
             {/* Cost status badge */}
             {missingCostOnActive ? (
-              <Badge className="bg-amber-100 text-amber-700 border border-amber-300 gap-1">
+              <Badge className="bg-amber-100 text-amber-700 border border-amber-300">
                 <WarningCircleIcon weight="fill" className="size-3" />
                 No cost set
               </Badge>
             ) : hasCost ? (
-              <Badge className="bg-emerald-50 text-emerald-700 border border-emerald-200 gap-1">
+              <Badge className="bg-emerald-50 text-emerald-700 border border-emerald-200">
                 <CurrencyInrIcon weight="bold" className="size-3" />
                 Cost ₹{Number(item.estimatedCost).toFixed(0)}
                 {marginPct != null && ` · ${marginPct}%`}

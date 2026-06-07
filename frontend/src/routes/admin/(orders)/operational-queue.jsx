@@ -356,7 +356,7 @@ function OperationalQueuePage() {
       {/* ══════════════════════════════════════════════════
           Split content — list left, detail right (desktop)
           ══════════════════════════════════════════════════ */}
-      <div className="flex max-h-[calc(100vh-212.4px-48.8px)] flex-1 min-h-0 overflow-hidden">
+      <div className="flex max-h-[calc(100vh-218.4px-48.8px)] flex-1 min-h-0 overflow-hidden">
         {/* ── Order list pane ── */}
         <div
           className={cn(

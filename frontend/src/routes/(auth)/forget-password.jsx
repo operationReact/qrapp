@@ -86,7 +86,7 @@ export const Route = createFileRoute("/(auth)/forget-password")({
               alt="Your Easy Access To Delicious Meals"
               className="w-full border border-muted login-banner rounded-[14px] overflow-hidden"
             />
-            <h1 className="mb-2 mt-4 text-2xl font-semibold">Forgot Password</h1>
+            <h1 className="my-4 text-lg font-medium">Reset Your Password</h1>
             <PasswordResetForm
               phone={phone}
               onPhoneChange={setPhone}
