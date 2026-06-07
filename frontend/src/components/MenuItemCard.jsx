@@ -108,7 +108,7 @@ export default function MenuItemCard({
 
           {/* Unavailable overlay badge — stock or time-gated */}
           {isUnavailable && (
-            <div className="absolute bottom-2 inset-0 flex items-center justify-center">
+            <div className="absolute inset-x-0 bottom-1 flex items-center justify-start pl-1">
               <span className="flex items-center gap-1 rounded-full bg-black/70 px-2.5 py-1 text-[10px] font-semibold text-white backdrop-blur-sm">
                 {isTimegated ? (
                   <ClockIcon weight="bold" className="size-3 shrink-0" />
@@ -122,7 +122,7 @@ export default function MenuItemCard({
 
           {/* Pre-Order Only badge — top right, passive label only */}
           {preOrderOnly && !isUnavailable && (
-            <div className="absolute top-2 right-2">
+            <div className="absolute top-2 right-1">
               <span className="flex items-center gap-1 rounded-full bg-indigo-950/75 backdrop-blur-sm px-2 py-0.5 text-[10px] font-semibold text-indigo-100">
                 <CalendarCheckIcon className="size-2.5" weight="fill" />
                 Pre-Order
