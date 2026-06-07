@@ -42,11 +42,11 @@ public class RazorpayService {
 
         String[] activeProfiles = environment.getActiveProfiles();
         String profileSummary = activeProfiles.length == 0 ? "(default)" : String.join(",", activeProfiles);
-       /* log.info("RazorpayService initialized. activeProfiles={} key={} secretSet={} enabled={}",
+        log.info("RazorpayService initialized. activeProfiles={} key={} secretSet={} enabled={}",
                 profileSummary,
                 maskKey(this.keyId),
                 StringUtils.hasText(this.keySecret),
-                this.enabled);*/
+                this.enabled);
     }
 
     /**
