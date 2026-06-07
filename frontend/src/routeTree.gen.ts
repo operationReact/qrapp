@@ -16,7 +16,6 @@ import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as PartyOrdersRouteImport } from './routes/party-orders'
 import { Route as OrdersRouteImport } from './routes/orders'
 import { Route as NewPartyOrderRouteImport } from './routes/new-party-order'
-import { Route as MilestonesRouteImport } from './routes/milestones'
 import { Route as CartRouteImport } from './routes/cart'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
@@ -91,11 +90,6 @@ const OrdersRoute = OrdersRouteImport.update({
 const NewPartyOrderRoute = NewPartyOrderRouteImport.update({
   id: '/new-party-order',
   path: '/new-party-order',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const MilestonesRoute = MilestonesRouteImport.update({
-  id: '/milestones',
-  path: '/milestones',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CartRoute = CartRouteImport.update({
@@ -315,7 +309,6 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
   '/cart': typeof CartRoute
-  '/milestones': typeof MilestonesRoute
   '/new-party-order': typeof NewPartyOrderRoute
   '/orders': typeof OrdersRoute
   '/party-orders': typeof PartyOrdersRoute
@@ -364,7 +357,6 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/cart': typeof CartRoute
-  '/milestones': typeof MilestonesRoute
   '/new-party-order': typeof NewPartyOrderRoute
   '/orders': typeof OrdersRoute
   '/party-orders': typeof PartyOrdersRoute
@@ -414,7 +406,6 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
   '/cart': typeof CartRoute
-  '/milestones': typeof MilestonesRoute
   '/new-party-order': typeof NewPartyOrderRoute
   '/orders': typeof OrdersRoute
   '/party-orders': typeof PartyOrdersRoute
@@ -466,7 +457,6 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/cart'
-    | '/milestones'
     | '/new-party-order'
     | '/orders'
     | '/party-orders'
@@ -515,7 +505,6 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/cart'
-    | '/milestones'
     | '/new-party-order'
     | '/orders'
     | '/party-orders'
@@ -564,7 +553,6 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/cart'
-    | '/milestones'
     | '/new-party-order'
     | '/orders'
     | '/party-orders'
@@ -615,7 +603,6 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRouteWithChildren
   CartRoute: typeof CartRoute
-  MilestonesRoute: typeof MilestonesRoute
   NewPartyOrderRoute: typeof NewPartyOrderRoute
   OrdersRoute: typeof OrdersRoute
   PartyOrdersRoute: typeof PartyOrdersRoute
@@ -678,13 +665,6 @@ declare module '@tanstack/react-router' {
       path: '/new-party-order'
       fullPath: '/new-party-order'
       preLoaderRoute: typeof NewPartyOrderRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/milestones': {
-      id: '/milestones'
-      path: '/milestones'
-      fullPath: '/milestones'
-      preLoaderRoute: typeof MilestonesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/cart': {
@@ -1063,7 +1043,6 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRouteWithChildren,
   CartRoute: CartRoute,
-  MilestonesRoute: MilestonesRoute,
   NewPartyOrderRoute: NewPartyOrderRoute,
   OrdersRoute: OrdersRoute,
   PartyOrdersRoute: PartyOrdersRoute,
