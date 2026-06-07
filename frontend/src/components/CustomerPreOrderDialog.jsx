@@ -318,7 +318,7 @@ export default function CustomerPreOrderDialog({
                         </span>
                         <Button
                           size="icon-sm"
-                          variant="secondary"
+                          variant="outline"
                           onClick={() => setQty(item.id, 1)}
                         >
                           <PlusIcon weight="bold" />
