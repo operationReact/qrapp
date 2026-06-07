@@ -18,6 +18,10 @@ public record DailySalesResponse(
         int totalItemsSold,
         BigDecimal walletRevenue,
         BigDecimal onlineRevenue,
-        BigDecimal codRevenue
+        BigDecimal codRevenue,
+        // ── Profitability fields ───────────────────────────────────────────
+        BigDecimal totalEstimatedCost,
+        BigDecimal totalEstimatedProfit,
+        BigDecimal avgProfitMargin
 ) {}
 

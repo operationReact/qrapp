@@ -19,6 +19,8 @@ import {
   PencilSimpleLineIcon,
   StarIcon,
   TrashIcon,
+  WarningCircleIcon,
+  CurrencyInrIcon,
 } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
 import { Badge } from "../ui/badge";
@@ -51,8 +53,26 @@ export default function AdminMenuItem({
     setTogglingRecommended(false);
   };
 
+  const hasCost = item.estimatedCost != null && Number(item.estimatedCost) >= 0;
+  const isActive = item.available;
+  const missingCostOnActive = isActive && !hasCost;
+
+  const marginPct =
+    hasCost && item.price && Number(item.price) > 0
+      ? (
+          ((Number(item.price) - Number(item.estimatedCost)) /
+            Number(item.price)) *
+          100
+        ).toFixed(1)
+      : null;
+
   return (
-    <article className="group p-2.5 sm:p-3 bg-card border border-border rounded-lg transition-colors hover:border-primary/20 hover:shadow-sm">
+    <article
+      className={cn(
+        "group p-2.5 sm:p-3 bg-card border border-border rounded-lg transition-colors hover:border-primary/20 hover:shadow-sm",
+        missingCostOnActive && "border-amber-300 bg-amber-50/30",
+      )}
+    >
       <div className="flex gap-2.5 sm:gap-3">
         {/* IMAGE */}
         <div className="relative size-20 sm:w-20 sm:h-20 shrink-0 rounded-md overflow-hidden bg-muted">
@@ -120,20 +140,44 @@ export default function AdminMenuItem({
             </p>
           )}
 
-          {item.recommended && (
-            <div className="flex flex-wrap gap-1">
+          <div className="flex flex-wrap gap-1">
+            {item.recommended && (
               <Badge className="bg-amber-100 text-amber-800">
                 <StarIcon weight="fill" />
                 Recommended
               </Badge>
-            </div>
-          )}
+            )}
+            {/* Cost status badge */}
+            {missingCostOnActive ? (
+              <Badge className="bg-amber-100 text-amber-700 border border-amber-300 gap-1">
+                <WarningCircleIcon weight="fill" className="size-3" />
+                No cost set
+              </Badge>
+            ) : hasCost ? (
+              <Badge className="bg-emerald-50 text-emerald-700 border border-emerald-200 gap-1">
+                <CurrencyInrIcon weight="bold" className="size-3" />
+                Cost ₹{Number(item.estimatedCost).toFixed(0)}
+                {marginPct != null && ` · ${marginPct}%`}
+              </Badge>
+            ) : null}
+          </div>
 
           <p className="text-sm sm:text-base font-semibold leading-none mt-auto">
             ₹{item.price}
           </p>
         </div>
       </div>
+
+      {/* Missing cost callout */}
+      {missingCostOnActive && (
+        <div className="mt-2 rounded-lg bg-amber-100 border border-amber-300 px-3 py-2 flex items-center gap-2 text-xs text-amber-800">
+          <WarningCircleIcon weight="fill" className="size-3.5 shrink-0 text-amber-600" />
+          <span>
+            Profitability data unavailable — click{" "}
+            <strong>Edit</strong> to set Estimated Cost.
+          </span>
+        </div>
+      )}
 
       <div className="mt-2 pt-2 border-t flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <Field orientation="horizontal" className="py-2 w-full sm:w-fit">

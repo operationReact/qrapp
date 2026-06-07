@@ -15,6 +15,7 @@ import MenuItemEditModal from "@/components/MenuItemEditModal";
 import { Button } from "@/components/ui/button";
 import AdminMenuFilters from "@/components/admin/AdminMenuFilters";
 import BulkMenuUploadModal from "@/components/admin/BulkMenuUploadModal";
+import BulkCostEditSheet from "@/components/admin/BulkCostEditSheet";
 import SummaryMetrics from "@/components/admin/SummaryMetrics";
 import CategoriesScroll from "@/components/admin/CategoriesScroll";
 import CategoriesManageModal from "@/components/admin/CategoriesManageModal";
@@ -39,6 +40,8 @@ import {
   PlusIcon,
   SparkleIcon,
   UploadIcon,
+  WarningCircleIcon,
+  CurrencyInrIcon,
 } from "@phosphor-icons/react";
 import { ButtonGroup } from "@/components/ui/button-group";
 
@@ -72,6 +75,7 @@ export const Route = createFileRoute("/admin/(menu)/menu")({
     const queryClient = useQueryClient();
     const [editingItem, setEditingItem] = useState(null);
     const [bulkUploadOpen, setBulkUploadOpen] = useState(false);
+    const [bulkCostOpen, setBulkCostOpen] = useState(false);
     const [filterSheetOpen, setFilterSheetOpen] = useState(false);
     const [categoriesModalOpen, setCategoriesModalOpen] = useState(false);
 
@@ -121,28 +125,17 @@ export const Route = createFileRoute("/admin/(menu)/menu")({
       () => menu.filter((m) => m.available).length,
       [menu],
     );
-    const unavailableCount = totalItems - availableCount;
-    const recommendedCount = useMemo(
-      () => menu.filter((m) => m.recommended).length,
+
+    // Profitability coverage
+    const activeItemCount = availableCount;
+    const activeWithCost  = useMemo(
+      () => menu.filter((m) => m.available && m.estimatedCost != null).length,
       [menu],
     );
-
-    const quickFilterCounts = useMemo(() => {
-      return {
-        ALL: totalItems,
-        AVAILABLE: availableCount,
-        UNAVAILABLE: unavailableCount,
-        RECOMMENDED: recommendedCount,
-        VEG: menu.filter((m) => {
-          const v =
-            m.isVeg === true ||
-            m.isVeg === "true" ||
-            m.isVeg === 1 ||
-            m.isVeg === "1";
-          return v;
-        }).length,
-      };
-    }, [menu, totalItems, availableCount, unavailableCount, recommendedCount]);
+    const coveragePct = activeItemCount > 0
+      ? Math.round((activeWithCost / activeItemCount) * 100)
+      : 100;
+    const missingCostCount = activeItemCount - activeWithCost;
 
     const categoryCounts = useMemo(() => {
       const counts = { ALL: totalItems };
@@ -256,6 +249,14 @@ export const Route = createFileRoute("/admin/(menu)/menu")({
         }
       }
 
+      // MISSING_COST quick-filter
+      if (quickFilter === "MISSING_COST") {
+        return item.available && item.estimatedCost == null;
+      }
+
+      if (quickFilter === "AVAILABLE"   && !item.available) return false;
+      if (quickFilter === "UNAVAILABLE" &&  item.available) return false;
+
       return true;
     });
 
@@ -285,6 +286,15 @@ export const Route = createFileRoute("/admin/(menu)/menu")({
         value: allCategories?.length || 0,
         icon: LegoIcon,
         tone: "rose",
+      },
+      {
+        label: "Cost Coverage",
+        value: `${coveragePct}%`,
+        subtext: missingCostCount > 0
+          ? `${missingCostCount} active item${missingCostCount !== 1 ? "s" : ""} need cost`
+          : "All active items costed",
+        icon: CurrencyInrIcon,
+        tone: coveragePct === 100 ? "emerald" : missingCostCount > 0 ? "amber" : "emerald",
       },
     ];
 
@@ -350,6 +360,16 @@ export const Route = createFileRoute("/admin/(menu)/menu")({
             >
               <LegoIcon /> Manage Categories
             </Button>
+            {missingCostCount > 0 && (
+              <Button
+                variant="outline"
+                className="border-amber-300 text-amber-700 hover:bg-amber-50 gap-1.5"
+                onClick={() => setBulkCostOpen(true)}
+              >
+                <WarningCircleIcon weight="fill" className="size-4" />
+                Set Costs ({missingCostCount})
+              </Button>
+            )}
             <Button onClick={() => setBulkUploadOpen(true)} variant="outline">
               <UploadIcon data-icon="inline-start" />
               <span className="sm:hidden">Bulk Actions</span>
@@ -375,6 +395,23 @@ export const Route = createFileRoute("/admin/(menu)/menu")({
             onChange={setActiveCategoryId}
             onManageClick={() => setCategoriesModalOpen(true)}
           />
+
+          {/* Profitability / Missing-cost quick filter pills */}
+          {missingCostCount > 0 && (
+            <div className="flex gap-2 flex-wrap">
+              <button
+                onClick={() => setQuickFilter(quickFilter === "MISSING_COST" ? "ALL" : "MISSING_COST")}
+                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold border transition-colors ${
+                  quickFilter === "MISSING_COST"
+                    ? "bg-amber-500 text-white border-amber-500"
+                    : "bg-amber-50 text-amber-700 border-amber-300 hover:bg-amber-100"
+                }`}
+              >
+                <WarningCircleIcon weight="fill" className="size-3.5" />
+                Missing Cost · {missingCostCount}
+              </button>
+            </div>
+          )}
 
           <div className="grid md:grid-cols-2 gap-4">
             {loadingMenu &&
@@ -502,6 +539,12 @@ export const Route = createFileRoute("/admin/(menu)/menu")({
             setBulkUploadOpen(false);
             queryClient.invalidateQueries({ queryKey: ["menu"] });
           }}
+        />
+
+        <BulkCostEditSheet
+          open={bulkCostOpen}
+          onOpenChange={setBulkCostOpen}
+          items={menu}
         />
 
         <CategoriesManageModal

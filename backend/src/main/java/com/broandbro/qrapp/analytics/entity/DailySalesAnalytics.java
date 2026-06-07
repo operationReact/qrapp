@@ -96,6 +96,27 @@ public class DailySalesAnalytics {
     @Column(name = "cod_revenue", nullable = false, precision = 10, scale = 2)
     private BigDecimal codRevenue;
 
+    // ============================================================================
+    // PROFITABILITY TRACKING FIELDS
+    // ============================================================================
+
+    /**
+     * Sum of COALESCE(cost_price_snapshot, estimated_cost, 0) × qty
+     * across all completed order_items on this date.
+     */
+    @Column(name = "total_estimated_cost", nullable = false, precision = 12, scale = 2)
+    @Builder.Default
+    private BigDecimal totalEstimatedCost = BigDecimal.ZERO;
+
+    /** total_revenue - total_estimated_cost. */
+    @Column(name = "total_estimated_profit", nullable = false, precision = 12, scale = 2)
+    @Builder.Default
+    private BigDecimal totalEstimatedProfit = BigDecimal.ZERO;
+
+    /** Overall daily profit margin % = (total_estimated_profit / total_revenue) × 100. Null when revenue = 0. */
+    @Column(name = "avg_profit_margin", precision = 8, scale = 4)
+    private BigDecimal avgProfitMargin;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

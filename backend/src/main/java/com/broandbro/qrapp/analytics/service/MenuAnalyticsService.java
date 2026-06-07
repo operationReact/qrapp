@@ -13,4 +13,10 @@ public interface MenuAnalyticsService {
     List<TopMenuItemResponse> getTopItemsByQty(LocalDate from, LocalDate to, int limit);
     List<TopMenuItemResponse> getCategoryRevenueRollup(LocalDate from, LocalDate to);
     Page<TopMenuItemResponse> getTopItemsPaged(LocalDate from, LocalDate to, String sortBy, Pageable pageable);
+
+    /** Top N items ranked by estimated profit (revenue - cost). */
+    List<TopMenuItemResponse> getTopItemsByProfit(LocalDate from, LocalDate to, int limit);
+
+    /** Top N items ranked by profit margin % (highest margin first). */
+    List<TopMenuItemResponse> getHighestMarginItems(LocalDate from, LocalDate to, int limit);
 }

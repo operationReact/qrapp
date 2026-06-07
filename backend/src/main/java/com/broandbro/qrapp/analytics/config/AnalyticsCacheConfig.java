@@ -30,15 +30,16 @@ import java.util.concurrent.TimeUnit;
 public class AnalyticsCacheConfig {
 
     // ── Cache name constants — use these in @Cacheable annotations ────────────
-    public static final String CACHE_DASHBOARD       = "analytics::dashboard";
-    public static final String CACHE_DAILY_SALES     = "analytics::daily-sales";
-    public static final String CACHE_HOURLY_ORDERS   = "analytics::hourly-orders";
-    public static final String CACHE_PEAK_HOURS      = "analytics::peak-hours";
-    public static final String CACHE_TOP_ITEMS       = "analytics::top-items";
-    public static final String CACHE_CATEGORY_ROLLUP = "analytics::category-rollup";
-    public static final String CACHE_USER_SEGMENT    = "analytics::user-segment";
-    public static final String CACHE_COUPON_PERF     = "analytics::coupon-perf";
-    public static final String CACHE_RECOMMENDATIONS = "analytics::recommendations";
+    public static final String CACHE_DASHBOARD        = "analytics::dashboard";
+    public static final String CACHE_DAILY_SALES      = "analytics::daily-sales";
+    public static final String CACHE_HOURLY_ORDERS    = "analytics::hourly-orders";
+    public static final String CACHE_PEAK_HOURS       = "analytics::peak-hours";
+    public static final String CACHE_TOP_ITEMS        = "analytics::top-items";
+    public static final String CACHE_CATEGORY_ROLLUP  = "analytics::category-rollup";
+    public static final String CACHE_USER_SEGMENT     = "analytics::user-segment";
+    public static final String CACHE_COUPON_PERF      = "analytics::coupon-perf";
+    public static final String CACHE_RECOMMENDATIONS  = "analytics::recommendations";
+    public static final String CACHE_PROFITABILITY    = "analytics::profitability";
 
     private final AnalyticsProperties props;
 

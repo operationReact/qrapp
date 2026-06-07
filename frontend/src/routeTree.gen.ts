@@ -21,6 +21,7 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as CategoriesCategoryIdRouteImport } from './routes/categories.$categoryId'
+import { Route as AdminOpsCenterRouteImport } from './routes/admin/ops-center'
 import { Route as authRegisterRouteImport } from './routes/(auth)/register'
 import { Route as authLoginRouteImport } from './routes/(auth)/login'
 import { Route as authForgetPasswordRouteImport } from './routes/(auth)/forget-password'
@@ -28,6 +29,7 @@ import { Route as AdminAnalyticsIndexRouteImport } from './routes/admin/analytic
 import { Route as AdminAnalyticsUsersRouteImport } from './routes/admin/analytics/users'
 import { Route as AdminAnalyticsSalesRouteImport } from './routes/admin/analytics/sales'
 import { Route as AdminAnalyticsRecommendationsRouteImport } from './routes/admin/analytics/recommendations'
+import { Route as AdminAnalyticsProfitabilityRouteImport } from './routes/admin/analytics/profitability'
 import { Route as AdminAnalyticsOverviewRouteImport } from './routes/admin/analytics/overview'
 import { Route as AdminAnalyticsOrdersRouteImport } from './routes/admin/analytics/orders'
 import { Route as AdminAnalyticsMenuRouteImport } from './routes/admin/analytics/menu'
@@ -115,6 +117,11 @@ const CategoriesCategoryIdRoute = CategoriesCategoryIdRouteImport.update({
   path: '/categories/$categoryId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminOpsCenterRoute = AdminOpsCenterRouteImport.update({
+  id: '/ops-center',
+  path: '/ops-center',
+  getParentRoute: () => AdminRoute,
+} as any)
 const authRegisterRoute = authRegisterRouteImport.update({
   id: '/(auth)/register',
   path: '/register',
@@ -149,6 +156,12 @@ const AdminAnalyticsRecommendationsRoute =
   AdminAnalyticsRecommendationsRouteImport.update({
     id: '/analytics/recommendations',
     path: '/analytics/recommendations',
+    getParentRoute: () => AdminRoute,
+  } as any)
+const AdminAnalyticsProfitabilityRoute =
+  AdminAnalyticsProfitabilityRouteImport.update({
+    id: '/analytics/profitability',
+    path: '/analytics/profitability',
     getParentRoute: () => AdminRoute,
   } as any)
 const AdminAnalyticsOverviewRoute = AdminAnalyticsOverviewRouteImport.update({
@@ -306,6 +319,7 @@ export interface FileRoutesByFullPath {
   '/forget-password': typeof authForgetPasswordRoute
   '/login': typeof authLoginRoute
   '/register': typeof authRegisterRoute
+  '/admin/ops-center': typeof AdminOpsCenterRoute
   '/categories/$categoryId': typeof CategoriesCategoryIdRoute
   '/admin/': typeof AdminIndexRoute
   '/admin/coupons': typeof AdmincouponsCouponsRoute
@@ -328,6 +342,7 @@ export interface FileRoutesByFullPath {
   '/admin/analytics/menu': typeof AdminAnalyticsMenuRoute
   '/admin/analytics/orders': typeof AdminAnalyticsOrdersRoute
   '/admin/analytics/overview': typeof AdminAnalyticsOverviewRoute
+  '/admin/analytics/profitability': typeof AdminAnalyticsProfitabilityRoute
   '/admin/analytics/recommendations': typeof AdminAnalyticsRecommendationsRoute
   '/admin/analytics/sales': typeof AdminAnalyticsSalesRoute
   '/admin/analytics/users': typeof AdminAnalyticsUsersRoute
@@ -352,6 +367,7 @@ export interface FileRoutesByTo {
   '/forget-password': typeof authForgetPasswordRoute
   '/login': typeof authLoginRoute
   '/register': typeof authRegisterRoute
+  '/admin/ops-center': typeof AdminOpsCenterRoute
   '/categories/$categoryId': typeof CategoriesCategoryIdRoute
   '/admin': typeof AdminIndexRoute
   '/admin/coupons': typeof AdmincouponsCouponsRoute
@@ -373,6 +389,7 @@ export interface FileRoutesByTo {
   '/admin/analytics/menu': typeof AdminAnalyticsMenuRoute
   '/admin/analytics/orders': typeof AdminAnalyticsOrdersRoute
   '/admin/analytics/overview': typeof AdminAnalyticsOverviewRoute
+  '/admin/analytics/profitability': typeof AdminAnalyticsProfitabilityRoute
   '/admin/analytics/recommendations': typeof AdminAnalyticsRecommendationsRoute
   '/admin/analytics/sales': typeof AdminAnalyticsSalesRoute
   '/admin/analytics/users': typeof AdminAnalyticsUsersRoute
@@ -399,6 +416,7 @@ export interface FileRoutesById {
   '/(auth)/forget-password': typeof authForgetPasswordRoute
   '/(auth)/login': typeof authLoginRoute
   '/(auth)/register': typeof authRegisterRoute
+  '/admin/ops-center': typeof AdminOpsCenterRoute
   '/categories/$categoryId': typeof CategoriesCategoryIdRoute
   '/admin/': typeof AdminIndexRoute
   '/admin/(coupons)/coupons': typeof AdmincouponsCouponsRoute
@@ -421,6 +439,7 @@ export interface FileRoutesById {
   '/admin/analytics/menu': typeof AdminAnalyticsMenuRoute
   '/admin/analytics/orders': typeof AdminAnalyticsOrdersRoute
   '/admin/analytics/overview': typeof AdminAnalyticsOverviewRoute
+  '/admin/analytics/profitability': typeof AdminAnalyticsProfitabilityRoute
   '/admin/analytics/recommendations': typeof AdminAnalyticsRecommendationsRoute
   '/admin/analytics/sales': typeof AdminAnalyticsSalesRoute
   '/admin/analytics/users': typeof AdminAnalyticsUsersRoute
@@ -448,6 +467,7 @@ export interface FileRouteTypes {
     | '/forget-password'
     | '/login'
     | '/register'
+    | '/admin/ops-center'
     | '/categories/$categoryId'
     | '/admin/'
     | '/admin/coupons'
@@ -470,6 +490,7 @@ export interface FileRouteTypes {
     | '/admin/analytics/menu'
     | '/admin/analytics/orders'
     | '/admin/analytics/overview'
+    | '/admin/analytics/profitability'
     | '/admin/analytics/recommendations'
     | '/admin/analytics/sales'
     | '/admin/analytics/users'
@@ -494,6 +515,7 @@ export interface FileRouteTypes {
     | '/forget-password'
     | '/login'
     | '/register'
+    | '/admin/ops-center'
     | '/categories/$categoryId'
     | '/admin'
     | '/admin/coupons'
@@ -515,6 +537,7 @@ export interface FileRouteTypes {
     | '/admin/analytics/menu'
     | '/admin/analytics/orders'
     | '/admin/analytics/overview'
+    | '/admin/analytics/profitability'
     | '/admin/analytics/recommendations'
     | '/admin/analytics/sales'
     | '/admin/analytics/users'
@@ -540,6 +563,7 @@ export interface FileRouteTypes {
     | '/(auth)/forget-password'
     | '/(auth)/login'
     | '/(auth)/register'
+    | '/admin/ops-center'
     | '/categories/$categoryId'
     | '/admin/'
     | '/admin/(coupons)/coupons'
@@ -562,6 +586,7 @@ export interface FileRouteTypes {
     | '/admin/analytics/menu'
     | '/admin/analytics/orders'
     | '/admin/analytics/overview'
+    | '/admin/analytics/profitability'
     | '/admin/analytics/recommendations'
     | '/admin/analytics/sales'
     | '/admin/analytics/users'
@@ -677,6 +702,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CategoriesCategoryIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/ops-center': {
+      id: '/admin/ops-center'
+      path: '/ops-center'
+      fullPath: '/admin/ops-center'
+      preLoaderRoute: typeof AdminOpsCenterRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/(auth)/register': {
       id: '/(auth)/register'
       path: '/register'
@@ -724,6 +756,13 @@ declare module '@tanstack/react-router' {
       path: '/analytics/recommendations'
       fullPath: '/admin/analytics/recommendations'
       preLoaderRoute: typeof AdminAnalyticsRecommendationsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/analytics/profitability': {
+      id: '/admin/analytics/profitability'
+      path: '/analytics/profitability'
+      fullPath: '/admin/analytics/profitability'
+      preLoaderRoute: typeof AdminAnalyticsProfitabilityRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/analytics/overview': {
@@ -930,6 +969,7 @@ const AdminordersOperationalQueueRouteWithChildren =
   )
 
 interface AdminRouteChildren {
+  AdminOpsCenterRoute: typeof AdminOpsCenterRoute
   AdminIndexRoute: typeof AdminIndexRoute
   AdmincouponsCouponsRoute: typeof AdmincouponsCouponsRoute
   AdmingrowthAutoSuggestionsRoute: typeof AdmingrowthAutoSuggestionsRoute
@@ -951,6 +991,7 @@ interface AdminRouteChildren {
   AdminAnalyticsMenuRoute: typeof AdminAnalyticsMenuRoute
   AdminAnalyticsOrdersRoute: typeof AdminAnalyticsOrdersRoute
   AdminAnalyticsOverviewRoute: typeof AdminAnalyticsOverviewRoute
+  AdminAnalyticsProfitabilityRoute: typeof AdminAnalyticsProfitabilityRoute
   AdminAnalyticsRecommendationsRoute: typeof AdminAnalyticsRecommendationsRoute
   AdminAnalyticsSalesRoute: typeof AdminAnalyticsSalesRoute
   AdminAnalyticsUsersRoute: typeof AdminAnalyticsUsersRoute
@@ -962,6 +1003,7 @@ interface AdminRouteChildren {
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
+  AdminOpsCenterRoute: AdminOpsCenterRoute,
   AdminIndexRoute: AdminIndexRoute,
   AdmincouponsCouponsRoute: AdmincouponsCouponsRoute,
   AdmingrowthAutoSuggestionsRoute: AdmingrowthAutoSuggestionsRoute,
@@ -984,6 +1026,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminAnalyticsMenuRoute: AdminAnalyticsMenuRoute,
   AdminAnalyticsOrdersRoute: AdminAnalyticsOrdersRoute,
   AdminAnalyticsOverviewRoute: AdminAnalyticsOverviewRoute,
+  AdminAnalyticsProfitabilityRoute: AdminAnalyticsProfitabilityRoute,
   AdminAnalyticsRecommendationsRoute: AdminAnalyticsRecommendationsRoute,
   AdminAnalyticsSalesRoute: AdminAnalyticsSalesRoute,
   AdminAnalyticsUsersRoute: AdminAnalyticsUsersRoute,

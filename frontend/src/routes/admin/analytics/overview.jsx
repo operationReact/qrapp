@@ -5,6 +5,7 @@ import {
   Zap,
   Package,
   Tag,
+  TrendingUp,
 } from "lucide-react";
 import MetricCard from "@/components/analytics/MetricCard";
 import ChartContainer from "@/components/analytics/ChartContainer";
@@ -18,6 +19,7 @@ import {
   useDailySales,
   useHourlyOrders,
   useTopSellingItems,
+  useProfitabilityDashboard,
 } from "@/hooks/useAnalytics";
 import { createFileRoute } from "@tanstack/react-router";
 
@@ -39,10 +41,17 @@ function AnalyticsOverviewPage() {
   const daily = useDailySales();
   const hourly = useHourlyOrders();
   const topItems = useTopSellingItems({ limit: 6 });
+  const today = new Date().toISOString().slice(0, 10);
+  const profitData = useProfitabilityDashboard({ from: today, to: today });
 
   const k = (kpis.data && typeof kpis.data === "object" && !Array.isArray(kpis.data))
     ? kpis.data
     : {};
+
+  const pd = profitData.data ?? {};
+
+  const fmtProfitMargin = (v) =>
+    v != null && !isNaN(Number(v)) ? `${Number(v).toFixed(1)}%` : "—";
 
   const kpiCards = [
     {
@@ -79,6 +88,21 @@ function AnalyticsOverviewPage() {
     },
   ];
 
+  const profitKpiCards = [
+    {
+      title: "Est. Profit Today",
+      value: fmt(pd.totalEstimatedProfit),
+      icon: <TrendingUp size={14} />,
+      subtitle: "revenue – estimated cost",
+    },
+    {
+      title: "Profit Margin Today",
+      value: fmtProfitMargin(pd.avgProfitMargin),
+      icon: <TrendingUp size={14} />,
+      subtitle: "estimated margin %",
+    },
+  ];
+
   const dailyRows  = Array.isArray(daily.data)    ? daily.data    : [];
   const hourlyRows = Array.isArray(hourly.data)   ? hourly.data   : [];
   const topRows    = Array.isArray(topItems.data) ? topItems.data : [];
@@ -105,6 +129,13 @@ function AnalyticsOverviewPage() {
       <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-2 sm:gap-3 md:gap-4">
         {kpiCards.map((c) => (
           <MetricCard key={c.title} {...c} loading={kpis.loading} />
+        ))}
+      </div>
+
+      {/* Profitability KPI strip */}
+      <div className="grid grid-cols-2 gap-2 sm:gap-3 md:gap-4">
+        {profitKpiCards.map((c) => (
+          <MetricCard key={c.title} {...c} loading={profitData.loading} className="border-emerald-100 dark:border-emerald-900/40" />
         ))}
       </div>
 

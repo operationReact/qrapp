@@ -51,6 +51,7 @@ export default function MenuItemEditModal({
     isVeg: false,
     imageFile: null,
     previewUrl: "",
+    estimatedCost: "",
   });
   const [error, setError] = useState(null);
   formRef.current = form; // keep ref in sync with latest state on every render
@@ -125,6 +126,7 @@ export default function MenuItemEditModal({
         isVeg: !!item.isVeg,
         imageFile: null,
         previewUrl: initialPreview,
+        estimatedCost: item.estimatedCost != null ? String(item.estimatedCost) : "",
       });
       // ensure previewRef is synced to existing url when initialized
       previewRef.current = initialPreview || null;
@@ -159,6 +161,11 @@ export default function MenuItemEditModal({
     if (!form.name.trim()) return "Name is required";
     if (form.price === "" || isNaN(Number(form.price)))
       return "Valid price is required";
+    // Profitability gate: cannot activate without an estimated cost
+    const costMissing = form.estimatedCost === "" || isNaN(Number(form.estimatedCost));
+    if (form.available && costMissing) {
+      return "MISSING_COST";
+    }
     return null;
   };
 
@@ -256,6 +263,9 @@ export default function MenuItemEditModal({
         recommended: !!f.recommended,
         tagId: f.tagId,
         isVeg: !!f.isVeg,
+        estimatedCost: f.estimatedCost !== "" && !isNaN(Number(f.estimatedCost))
+          ? Number(f.estimatedCost)
+          : null,
       };
       console.log("[MenuItemEditModal] Save Changes payload:", {
         id: item.id,
@@ -279,13 +289,18 @@ export default function MenuItemEditModal({
     },
     onError: (err) => {
       console.error(err);
-      setError(err?.response?.data || "Failed to update menu item");
+      const serverMsg = err?.response?.data?.message || err?.response?.data;
+      setError(serverMsg || "Failed to update menu item");
     },
   });
 
   const handleSubmit = (e) => {
     e.preventDefault();
     const v = validate();
+    if (v === "MISSING_COST") {
+      setError("MISSING_COST");
+      return;
+    }
     if (v) {
       setError(v);
       return;
@@ -342,6 +357,23 @@ export default function MenuItemEditModal({
                       value={form.price}
                       onChange={handleChange("price")}
                       placeholder="e.g. 99.50"
+                    />
+                  </FieldContent>
+                </Field>
+
+                <Field>
+                  <FieldLabel>
+                    Estimated Cost{" "}
+                    <span className="text-xs font-normal text-muted-foreground">(optional, for profit tracking)</span>
+                  </FieldLabel>
+                  <FieldContent>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={form.estimatedCost}
+                      onChange={handleChange("estimatedCost")}
+                      placeholder="e.g. 35.00"
                     />
                   </FieldContent>
                 </Field>
@@ -620,11 +652,19 @@ export default function MenuItemEditModal({
               </FieldGroup>
             </FieldSet>
 
-            {error && (
+            {error === "MISSING_COST" ? (
+              <div className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800 flex items-start gap-2">
+                <span className="text-amber-500 mt-0.5 shrink-0">⚠</span>
+                <span>
+                  <strong>Estimated cost required to activate.</strong>{" "}
+                  Set an Estimated Cost above, or toggle <em>Available</em> off to save as a draft.
+                </span>
+              </div>
+            ) : error ? (
               <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                 {error}
               </div>
-            )}
+            ) : null}
           </div>
         </form>
         <SheetFooter>

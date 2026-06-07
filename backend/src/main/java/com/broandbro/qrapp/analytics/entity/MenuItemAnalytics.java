@@ -96,6 +96,30 @@ public class MenuItemAnalytics {
     @Column(name = "qty_rank")
     private Integer qtyRank;
 
+    // ============================================================================
+    // PROFITABILITY TRACKING FIELDS
+    // ============================================================================
+
+    /**
+     * Total estimated cost = qty × COALESCE(cost_price_snapshot, estimated_cost, 0).
+     */
+    @Column(name = "total_cost", nullable = false, precision = 12, scale = 2)
+    @Builder.Default
+    private BigDecimal totalCost = BigDecimal.ZERO;
+
+    /** total_revenue - total_cost. */
+    @Column(name = "total_profit", nullable = false, precision = 12, scale = 2)
+    @Builder.Default
+    private BigDecimal totalProfit = BigDecimal.ZERO;
+
+    /** Weighted average cost per unit sold on this date. Null when qty = 0. */
+    @Column(name = "avg_cost_price", precision = 10, scale = 2)
+    private BigDecimal avgCostPrice;
+
+    /** Profit margin % = (total_profit / total_revenue) × 100. Null when revenue = 0. */
+    @Column(name = "avg_profit_margin", precision = 8, scale = 4)
+    private BigDecimal avgProfitMargin;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

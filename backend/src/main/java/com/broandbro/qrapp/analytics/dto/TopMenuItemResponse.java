@@ -12,6 +12,12 @@ public record TopMenuItemResponse(
         BigDecimal totalRevenue,
         long totalOrderCount,
         BigDecimal avgSellingPrice,
-        int rank
+        int rank,
+        // ── Profitability fields ───────────────────────────────────────────
+        BigDecimal totalCost,
+        BigDecimal totalProfit,
+        BigDecimal avgProfitMargin,
+        // Menu item image URL — null for category rollups
+        String imageUrl
 ) {}
 

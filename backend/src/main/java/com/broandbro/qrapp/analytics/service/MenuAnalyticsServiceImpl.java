@@ -4,6 +4,7 @@ import com.broandbro.qrapp.analytics.config.AnalyticsCacheConfig;
 import com.broandbro.qrapp.analytics.dto.TopMenuItemResponse;
 import com.broandbro.qrapp.analytics.projection.TopMenuItemProjection;
 import com.broandbro.qrapp.analytics.repository.MenuItemAnalyticsRepository;
+import com.broandbro.qrapp.repository.MenuRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
@@ -17,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
@@ -27,6 +29,7 @@ import java.util.stream.Collectors;
 public class MenuAnalyticsServiceImpl implements MenuAnalyticsService {
 
     private final MenuItemAnalyticsRepository menuItemRepo;
+    private final MenuRepository menuRepository;
 
     @Override
     @Cacheable(
@@ -36,11 +39,7 @@ public class MenuAnalyticsServiceImpl implements MenuAnalyticsService {
     )
     public List<TopMenuItemResponse> getTopItemsByRevenue(LocalDate from, LocalDate to, int limit) {
         log.debug("[MenuService] getTopItemsByRevenue from={} to={} limit={}", from, to, limit);
-        AtomicInteger rank = new AtomicInteger(1);
-        return menuItemRepo.findTopItemsByRevenue(from, to, PageRequest.of(0, limit))
-                .stream()
-                .map(p -> toResponse(p, rank.getAndIncrement()))
-                .collect(Collectors.toList());
+        return enrichWithImages(menuItemRepo.findTopItemsByRevenue(from, to, PageRequest.of(0, limit)));
     }
 
     @Override
@@ -51,11 +50,7 @@ public class MenuAnalyticsServiceImpl implements MenuAnalyticsService {
     )
     public List<TopMenuItemResponse> getTopItemsByQty(LocalDate from, LocalDate to, int limit) {
         log.debug("[MenuService] getTopItemsByQty from={} to={} limit={}", from, to, limit);
-        AtomicInteger rank = new AtomicInteger(1);
-        return menuItemRepo.findTopItemsByQty(from, to, PageRequest.of(0, limit))
-                .stream()
-                .map(p -> toResponse(p, rank.getAndIncrement()))
-                .collect(Collectors.toList());
+        return enrichWithImages(menuItemRepo.findTopItemsByQty(from, to, PageRequest.of(0, limit)));
     }
 
     @Override
@@ -66,11 +61,7 @@ public class MenuAnalyticsServiceImpl implements MenuAnalyticsService {
     )
     public List<TopMenuItemResponse> getLeastSellingItems(LocalDate from, LocalDate to, int limit) {
         log.debug("[MenuService] getLeastSellingItems from={} to={} limit={}", from, to, limit);
-        AtomicInteger rank = new AtomicInteger(1);
-        return menuItemRepo.findLeastItemsByRevenue(from, to, PageRequest.of(0, limit))
-                .stream()
-                .map(p -> toResponse(p, rank.getAndIncrement()))
-                .collect(Collectors.toList());
+        return enrichWithImages(menuItemRepo.findLeastItemsByRevenue(from, to, PageRequest.of(0, limit)));
     }
 
     @Override
@@ -82,10 +73,33 @@ public class MenuAnalyticsServiceImpl implements MenuAnalyticsService {
     public List<TopMenuItemResponse> getCategoryRevenueRollup(LocalDate from, LocalDate to) {
         log.debug("[MenuService] getCategoryRevenueRollup from={} to={}", from, to);
         AtomicInteger rank = new AtomicInteger(1);
+        // Category rollup: no individual menuItem imageUrl
         return menuItemRepo.findCategoryRevenueRollup(from, to)
                 .stream()
-                .map(p -> toResponse(p, rank.getAndIncrement()))
+                .map(p -> toResponse(p, rank.getAndIncrement(), null))
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    @Cacheable(
+        cacheManager = "analyticsCacheManager",
+        cacheNames   = AnalyticsCacheConfig.CACHE_TOP_ITEMS,
+        key           = "'profit:' + #from + ':' + #to + ':' + #limit"
+    )
+    public List<TopMenuItemResponse> getTopItemsByProfit(LocalDate from, LocalDate to, int limit) {
+        log.debug("[MenuService] getTopItemsByProfit from={} to={} limit={}", from, to, limit);
+        return enrichWithImages(menuItemRepo.findTopItemsByProfit(from, to, PageRequest.of(0, limit)));
+    }
+
+    @Override
+    @Cacheable(
+        cacheManager = "analyticsCacheManager",
+        cacheNames   = AnalyticsCacheConfig.CACHE_TOP_ITEMS,
+        key           = "'margin:' + #from + ':' + #to + ':' + #limit"
+    )
+    public List<TopMenuItemResponse> getHighestMarginItems(LocalDate from, LocalDate to, int limit) {
+        log.debug("[MenuService] getHighestMarginItems from={} to={} limit={}", from, to, limit);
+        return enrichWithImages(menuItemRepo.findTopItemsByMargin(from, to, PageRequest.of(0, limit)));
     }
 
     @Override
@@ -101,18 +115,47 @@ public class MenuAnalyticsServiceImpl implements MenuAnalyticsService {
             return new PageImpl<>(List.of(), pageable, projections.size());
         }
 
+        // Batch-fetch imageUrls for the current page slice
+        List<TopMenuItemProjection> pageSlice = projections.subList(start, end);
+        List<Long> pageIds = pageSlice.stream().map(TopMenuItemProjection::getMenuItemId).collect(Collectors.toList());
+        Map<Long, String> imageUrls = fetchImageUrlMap(pageIds);
+
         AtomicInteger rank = new AtomicInteger(start + 1);
-        List<TopMenuItemResponse> page = projections.subList(start, end)
-                .stream()
-                .map(p -> toResponse(p, rank.getAndIncrement()))
+        List<TopMenuItemResponse> page = pageSlice.stream()
+                .map(p -> toResponse(p, rank.getAndIncrement(), imageUrls.get(p.getMenuItemId())))
                 .collect(Collectors.toList());
 
         return new PageImpl<>(page, pageable, projections.size());
     }
 
+    // ── Helpers ──────────────────────────────────────────────────────────────
+
+    /** Batch-fetches imageUrls for projections and maps to TopMenuItemResponse. */
+    private List<TopMenuItemResponse> enrichWithImages(List<TopMenuItemProjection> projections) {
+        List<Long> ids = projections.stream()
+                .map(TopMenuItemProjection::getMenuItemId)
+                .collect(Collectors.toList());
+        Map<Long, String> imageUrls = fetchImageUrlMap(ids);
+        AtomicInteger rank = new AtomicInteger(1);
+        return projections.stream()
+                .map(p -> toResponse(p, rank.getAndIncrement(), imageUrls.get(p.getMenuItemId())))
+                .collect(Collectors.toList());
+    }
+
+    /** Single batch query: menuItemId → imageUrl. */
+    private Map<Long, String> fetchImageUrlMap(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) return Map.of();
+        return menuRepository.findAllById(ids).stream()
+                .filter(m -> m.getImageUrl() != null)
+                .collect(Collectors.toMap(
+                        m -> m.getId(),
+                        m -> m.getImageUrl(),
+                        (a, b) -> a));
+    }
+
     // ── Mapper ────────────────────────────────────────────────────────────────
 
-    private TopMenuItemResponse toResponse(TopMenuItemProjection p, int rank) {
+    private TopMenuItemResponse toResponse(TopMenuItemProjection p, int rank, String imageUrl) {
         return new TopMenuItemResponse(
                 p.getMenuItemId(),
                 p.getMenuItemName(),
@@ -122,8 +165,11 @@ public class MenuAnalyticsServiceImpl implements MenuAnalyticsService {
                 p.getTotalRevenue() != null ? p.getTotalRevenue() : BigDecimal.ZERO,
                 p.getTotalOrderCount() != null ? p.getTotalOrderCount() : 0L,
                 p.getAvgSellingPrice(),
-                p.getRevenueRank() != null ? p.getRevenueRank() : rank
+                p.getRevenueRank() != null ? p.getRevenueRank() : rank,
+                p.getTotalCost(),
+                p.getTotalProfit(),
+                p.getAvgProfitMargin(),
+                imageUrl
         );
     }
 }
-

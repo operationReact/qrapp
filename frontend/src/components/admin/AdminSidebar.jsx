@@ -36,6 +36,8 @@ import {
   MagicWandIcon,
   ListPlusIcon,
   SparkleIcon,
+  CurrencyInrIcon,
+  TerminalWindowIcon,
 } from "@phosphor-icons/react";
 import { useAuth } from "@/context/AuthContext";
 
@@ -239,10 +241,11 @@ export function AdminSidebar() {
           <SidebarGroupLabel>Growth Tools</SidebarGroupLabel>
           <SidebarMenu>
             {[
-              { to: "/admin/recommendations",  label: "Recommendations",  icon: ListPlusIcon },
-              { to: "/admin/auto-suggestions", label: "Auto Suggestions",  icon: MagicWandIcon },
-              { to: "/admin/upsell-rules",     label: "Upsell Rules",      icon: LightningIcon },
-              { to: "/admin/category-pairings",label: "Category Pairings", icon: ArrowsOutSimpleIcon },
+              { to: "/admin/recommendations",   label: "Recommendations",  icon: ListPlusIcon },
+              { to: "/admin/auto-suggestions",  label: "Auto Suggestions", icon: MagicWandIcon },
+              { to: "/admin/upsell-rules",      label: "Upsell Rules",     icon: LightningIcon },
+              { to: "/admin/category-pairings", label: "Category Pairings",icon: ArrowsOutSimpleIcon },
+              { to: "/admin/analytics/profitability", label: "Profitability", icon: CurrencyInrIcon },
             ].map(({ to, label, icon }) => {
               const ItemIcon = icon;
               return (
@@ -280,6 +283,27 @@ export function AdminSidebar() {
                       weight={pathname === "/admin/global-controls" ? "bold" : "regular"}
                     />
                     <span>Settings</span>
+                  </Link>
+                }
+              />
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarGroup>
+
+        <SidebarGroup className="group-data-[collapsible=icon]:hidden">
+          <SidebarGroupLabel>Operations</SidebarGroupLabel>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                className="text-zinc-700 font-medium"
+                isActive={pathname === "/admin/ops-center"}
+                render={
+                  <Link to={"/admin/ops-center"}>
+                    <TerminalWindowIcon
+                      className="text-primary"
+                      weight={pathname === "/admin/ops-center" ? "bold" : "regular"}
+                    />
+                    <span>Operations Center</span>
                   </Link>
                 }
               />

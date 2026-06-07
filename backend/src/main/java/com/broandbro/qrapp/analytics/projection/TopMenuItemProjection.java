@@ -15,5 +15,10 @@ public interface TopMenuItemProjection {
     Long getTotalOrderCount();
     BigDecimal getAvgSellingPrice();
     Integer getRevenueRank();
+
+    // ── Profitability fields (null when not computed by the query) ─────────
+    BigDecimal getTotalCost();
+    BigDecimal getTotalProfit();
+    BigDecimal getAvgProfitMargin();
 }
 

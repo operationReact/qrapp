@@ -57,4 +57,14 @@ public class MenuItemResponse {
      * Current stock status (for display to customer).
      */
     private StockStatus stockStatus;
+
+    // ============================================================================
+    // PROFITABILITY FIELDS (admin-only)
+    // ============================================================================
+
+    /**
+     * Estimated per-unit production cost. Used for profit margin calculations.
+     * Null for items without a cost configured.
+     */
+    private BigDecimal estimatedCost;
 }

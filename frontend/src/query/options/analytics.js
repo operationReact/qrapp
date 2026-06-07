@@ -18,6 +18,9 @@ import {
   fetchUsersBySegment,
   fetchCouponPerformance,
   fetchRecommendations,
+  fetchProfitabilityDashboard,
+  fetchMostProfitableItems,
+  fetchHighestMarginItems,
 } from "../../services/analyticsService";
 
 export const overviewKpisOptions = queryOptions({
@@ -144,3 +147,27 @@ export const recommendationsOptions = (userId) =>
     enabled: !!userId,
     staleTime: 1000 * 60 * 5,
   });
+
+// ── Profitability ──────────────────────────────────────────────────────────
+
+export const profitabilityDashboardOptions = (params) =>
+  queryOptions({
+    queryKey: ["analytics", "profitability", "dashboard", params],
+    queryFn: () => fetchProfitabilityDashboard(params),
+    staleTime: 1000 * 60 * 2,
+  });
+
+export const mostProfitableItemsOptions = (params) =>
+  queryOptions({
+    queryKey: ["analytics", "profitability", "items", params],
+    queryFn: () => fetchMostProfitableItems(params),
+    staleTime: 1000 * 60 * 2,
+  });
+
+export const highestMarginItemsOptions = (params) =>
+  queryOptions({
+    queryKey: ["analytics", "profitability", "margin", params],
+    queryFn: () => fetchHighestMarginItems(params),
+    staleTime: 1000 * 60 * 2,
+  });
+

@@ -44,23 +44,7 @@ public class SalesAnalyticsServiceImpl implements SalesAnalyticsService {
 
         List<DailySalesResponse> series = getDailySeries(from, to);
 
-        return new DashboardSummaryResponse(
-                from, to,
-                nullSafe(kpi.getTotalRevenue()),
-                nullSafe(kpi.getNetRevenue()),
-                nullSafe(kpi.getTotalDiscount()),
-                nullSafeLong(kpi.getTotalOrders()),
-                nullSafeLong(kpi.getCompletedOrders()),
-                nullSafeLong(kpi.getCancelledOrders()),
-                nullSafe(kpi.getAverageOrderValue()),
-                nullSafeLong(kpi.getUniqueCustomers()),
-                nullSafeLong(kpi.getNewCustomers()),
-                nullSafeLong(kpi.getTotalItemsSold()),
-                nullSafe(kpi.getWalletRevenue()),
-                nullSafe(kpi.getOnlineRevenue()),
-                nullSafe(kpi.getCodRevenue()),
-                series
-        );
+        return buildDashboardResponse(from, to, kpi, series);
     }
 
     // ── Time-series ────────────────────────────────────────────────────────────
@@ -137,7 +121,10 @@ public class SalesAnalyticsServiceImpl implements SalesAnalyticsService {
                 nullSafe(kpi.getWalletRevenue()),
                 nullSafe(kpi.getOnlineRevenue()),
                 nullSafe(kpi.getCodRevenue()),
-                series
+                series,
+                nullSafe(kpi.getTotalEstimatedCost()),
+                nullSafe(kpi.getTotalEstimatedProfit()),
+                kpi.getAvgProfitMargin()
         );
     }
 
@@ -156,7 +143,8 @@ public class SalesAnalyticsServiceImpl implements SalesAnalyticsService {
                 nullSafeInt(p.getUniqueCustomers()),
                 nullSafeInt(p.getNewCustomers()),
                 nullSafeInt(p.getTotalItemsSold()),
-                BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO  // not projected in summary
+                BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,  // payment channels — not in summary projection
+                BigDecimal.ZERO, BigDecimal.ZERO, null              // profit fields — not in summary projection
         );
     }
 
@@ -175,7 +163,10 @@ public class SalesAnalyticsServiceImpl implements SalesAnalyticsService {
                 e.getTotalItemsSold(),
                 e.getWalletRevenue(),
                 e.getOnlineRevenue(),
-                e.getCodRevenue()
+                e.getCodRevenue(),
+                e.getTotalEstimatedCost(),
+                e.getTotalEstimatedProfit(),
+                e.getAvgProfitMargin()
         );
     }
 

@@ -75,19 +75,24 @@ public interface DailySalesAnalyticsRepository extends JpaRepository<DailySalesA
      */
     @Query(value = """
            SELECT                    
-               SUM(total_revenue)          AS totalRevenue,
-               SUM(net_revenue)            AS netRevenue,
-               SUM(total_discount)         AS totalDiscount,
-               SUM(completed_orders)       AS completedOrders,
-               SUM(total_orders)           AS totalOrders,
-               SUM(cancelled_orders)       AS cancelledOrders,
-               SUM(unique_customers)       AS uniqueCustomers,
-               SUM(new_customers)          AS newCustomers,
-               SUM(total_items_sold)       AS totalItemsSold,
-               AVG(average_order_value)    AS averageOrderValue,
-               SUM(wallet_revenue)         AS walletRevenue,
-               SUM(online_revenue)         AS onlineRevenue,
-               SUM(cod_revenue)            AS codRevenue
+               SUM(total_revenue)              AS totalRevenue,
+               SUM(net_revenue)                AS netRevenue,
+               SUM(total_discount)             AS totalDiscount,
+               SUM(completed_orders)           AS completedOrders,
+               SUM(total_orders)               AS totalOrders,
+               SUM(cancelled_orders)           AS cancelledOrders,
+               SUM(unique_customers)           AS uniqueCustomers,
+               SUM(new_customers)              AS newCustomers,
+               SUM(total_items_sold)           AS totalItemsSold,
+               AVG(average_order_value)        AS averageOrderValue,
+               SUM(wallet_revenue)             AS walletRevenue,
+               SUM(online_revenue)             AS onlineRevenue,
+               SUM(cod_revenue)                AS codRevenue,
+               SUM(total_estimated_cost)       AS totalEstimatedCost,
+               SUM(total_estimated_profit)     AS totalEstimatedProfit,
+               CASE WHEN SUM(total_revenue) > 0
+                    THEN (SUM(total_estimated_profit) / SUM(total_revenue) * 100)
+                    ELSE NULL END               AS avgProfitMargin
            FROM analytics_daily_sales
            WHERE sales_date BETWEEN :from AND :to
            """,
@@ -111,6 +116,7 @@ public interface DailySalesAnalyticsRepository extends JpaRepository<DailySalesA
                total_revenue, net_revenue, total_discount, average_order_value,
                unique_customers, new_customers, total_items_sold,
                wallet_revenue, online_revenue, cod_revenue,
+               total_estimated_cost, total_estimated_profit, avg_profit_margin,
                created_at, updated_at
            )
            SELECT
@@ -163,25 +169,64 @@ public interface DailySalesAnalyticsRepository extends JpaRepository<DailySalesA
                    FILTER (WHERE o.status = 'COMPLETED'
                              AND o.payment_method = 'COD'), 0)               AS cod_revenue,
 
+               COALESCE((
+                   SELECT SUM(oi.quantity * COALESCE(oi.cost_price_snapshot, mi.estimated_cost, 0))
+                   FROM order_item oi
+                   JOIN menu_item mi ON mi.id = oi.item_id
+                   JOIN orders o2 ON o2.id = oi.order_id
+                   WHERE o2.created_at::date = :targetDate
+                     AND o2.status = 'COMPLETED'
+               ), 0)                                                          AS total_estimated_cost,
+
+               COALESCE(SUM(o.grand_total)
+                   FILTER (WHERE o.status = 'COMPLETED'), 0) -
+               COALESCE((
+                   SELECT SUM(oi.quantity * COALESCE(oi.cost_price_snapshot, mi.estimated_cost, 0))
+                   FROM order_item oi
+                   JOIN menu_item mi ON mi.id = oi.item_id
+                   JOIN orders o2 ON o2.id = oi.order_id
+                   WHERE o2.created_at::date = :targetDate
+                     AND o2.status = 'COMPLETED'
+               ), 0)                                                          AS total_estimated_profit,
+
+               CASE
+                   WHEN COALESCE(SUM(o.grand_total)
+                            FILTER (WHERE o.status = 'COMPLETED'), 0) = 0 THEN NULL
+                   ELSE (
+                       COALESCE(SUM(o.grand_total) FILTER (WHERE o.status = 'COMPLETED'), 0) -
+                       COALESCE((
+                           SELECT SUM(oi.quantity * COALESCE(oi.cost_price_snapshot, mi.estimated_cost, 0))
+                           FROM order_item oi
+                           JOIN menu_item mi ON mi.id = oi.item_id
+                           JOIN orders o2 ON o2.id = oi.order_id
+                           WHERE o2.created_at::date = :targetDate
+                             AND o2.status = 'COMPLETED'
+                       ), 0)
+                   ) / COALESCE(SUM(o.grand_total) FILTER (WHERE o.status = 'COMPLETED'), 1) * 100
+               END                                                            AS avg_profit_margin,
+
                NOW(), NOW()
            FROM orders o
            WHERE o.created_at::date = :targetDate
 
            ON CONFLICT (sales_date) DO UPDATE SET
-               total_orders         = EXCLUDED.total_orders,
-               completed_orders     = EXCLUDED.completed_orders,
-               cancelled_orders     = EXCLUDED.cancelled_orders,
-               total_revenue        = EXCLUDED.total_revenue,
-               net_revenue          = EXCLUDED.net_revenue,
-               total_discount       = EXCLUDED.total_discount,
-               average_order_value  = EXCLUDED.average_order_value,
-               unique_customers     = EXCLUDED.unique_customers,
-               new_customers        = EXCLUDED.new_customers,
-               total_items_sold     = EXCLUDED.total_items_sold,
-               wallet_revenue       = EXCLUDED.wallet_revenue,
-               online_revenue       = EXCLUDED.online_revenue,
-               cod_revenue          = EXCLUDED.cod_revenue,
-               updated_at           = NOW()
+               total_orders             = EXCLUDED.total_orders,
+               completed_orders         = EXCLUDED.completed_orders,
+               cancelled_orders         = EXCLUDED.cancelled_orders,
+               total_revenue            = EXCLUDED.total_revenue,
+               net_revenue              = EXCLUDED.net_revenue,
+               total_discount           = EXCLUDED.total_discount,
+               average_order_value      = EXCLUDED.average_order_value,
+               unique_customers         = EXCLUDED.unique_customers,
+               new_customers            = EXCLUDED.new_customers,
+               total_items_sold         = EXCLUDED.total_items_sold,
+               wallet_revenue           = EXCLUDED.wallet_revenue,
+               online_revenue           = EXCLUDED.online_revenue,
+               cod_revenue              = EXCLUDED.cod_revenue,
+               total_estimated_cost     = EXCLUDED.total_estimated_cost,
+               total_estimated_profit   = EXCLUDED.total_estimated_profit,
+               avg_profit_margin        = EXCLUDED.avg_profit_margin,
+               updated_at               = NOW()
            """,
            nativeQuery = true)
     void upsertDailySnapshot(@Param("targetDate") LocalDate targetDate);
@@ -216,6 +261,9 @@ public interface DailySalesAnalyticsRepository extends JpaRepository<DailySalesA
         BigDecimal getWalletRevenue();
         BigDecimal getOnlineRevenue();
         BigDecimal getCodRevenue();
+        BigDecimal getTotalEstimatedCost();
+        BigDecimal getTotalEstimatedProfit();
+        BigDecimal getAvgProfitMargin();
     }
 
     interface RevenueTrendProjection {

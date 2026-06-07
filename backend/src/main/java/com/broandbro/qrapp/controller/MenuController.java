@@ -15,23 +15,13 @@ import org.slf4j.LoggerFactory;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.http.MediaType;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.bind.annotation.RequestParam;
 
 import org.springframework.util.StringUtils;
 import java.io.IOException;
@@ -47,7 +37,6 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import org.springframework.web.bind.annotation.RequestHeader;
 
 import jakarta.servlet.http.HttpServletRequest;
 
@@ -147,6 +136,7 @@ public class MenuController {
             @RequestPart(value = "tagId", required = false) String tagIdStr,
             @RequestPart(value = "isVeg", required = false) String isVegStr,
             @RequestPart(value = "inventoryMode", required = false) String inventoryModeStr,
+            @RequestPart(value = "estimatedCost", required = false) String estimatedCostStr,
             @RequestPart(value = "image", required = false) MultipartFile image
     ) {
         try {
@@ -205,6 +195,17 @@ public class MenuController {
 
             if (isVegStr != null) {
                 item.setIsVeg(Boolean.parseBoolean(isVegStr));
+            }
+            // Set estimated cost for profitability tracking
+            if (estimatedCostStr != null && !estimatedCostStr.isBlank()) {
+                try {
+                    BigDecimal estimatedCost = new BigDecimal(estimatedCostStr);
+                    if (estimatedCost.compareTo(BigDecimal.ZERO) >= 0) {
+                        item.setEstimatedCost(estimatedCost);
+                    }
+                } catch (NumberFormatException nfe) {
+                    return ResponseEntity.badRequest().body("Invalid estimatedCost format");
+                }
             }
             if (image != null && !image.isEmpty()) {
                 try {
@@ -397,6 +398,16 @@ public class MenuController {
                     boolean av = a instanceof Boolean ? (Boolean)a : Boolean.parseBoolean(String.valueOf(a));
                     existing.setAvailable(av);
                 }
+                if (payload.containsKey("estimatedCost")) {
+                    Object ec = payload.get("estimatedCost");
+                    if (ec == null) {
+                        existing.setEstimatedCost(null);
+                    } else {
+                        try {
+                            existing.setEstimatedCost(new java.math.BigDecimal(String.valueOf(ec)));
+                        } catch (Exception ex) { /* ignore invalid format */ }
+                    }
+                }
                 if (payload.containsKey("imageUrl") && payload.get("imageUrl") != null) {
                     String newUrl = ((String) payload.get("imageUrl")).trim();
                     String oldUrl = existing.getImageUrl();
@@ -413,6 +424,21 @@ public class MenuController {
                 } else {
                     log.debug("[MenuUpdate] imageUrl not in payload or null for menuItemId={} — keeping existing '{}'", id, existing.getImageUrl());
                 }
+
+                // ── Profitability gate: cannot activate without an estimated cost ─────────
+                if (payload.containsKey("available")) {
+                    Object av = payload.get("available");
+                    boolean activating = av instanceof Boolean ? (Boolean) av : Boolean.parseBoolean(String.valueOf(av));
+                    if (activating && existing.getEstimatedCost() == null) {
+                        return ResponseEntity.unprocessableEntity().body(Map.of(
+                                "error", "MISSING_ESTIMATED_COST",
+                                "message", "Estimated cost is required to activate this menu item. " +
+                                           "Set an estimated cost (₹) and try again.",
+                                "field", "estimatedCost"
+                        ));
+                    }
+                }
+                // ─────────────────────────────────────────────────────────────────────────
 
                 MenuItem saved = repo.save(existing);
                 return ResponseEntity.ok(saved);
@@ -486,6 +512,103 @@ public class MenuController {
             .createdAt(item.getCreatedAt())
             .updatedAt(item.getUpdatedAt())
             .stockStatus(inventoryService.getStockStatus(item.getId()))
+            .estimatedCost(item.getEstimatedCost())
             .build();
+    }
+
+    // ── Profitability: Update Estimated Cost ──────────────────────────────────
+
+    /**
+     * PATCH /admin/menu/{id}/estimated-cost
+     * Sets (or clears) the estimated per-unit cost for a menu item.
+     * Used by the admin profitability dashboard to configure costs for SELF_PREPARED items.
+     */
+    @PatchMapping("/admin/menu/{id}/estimated-cost")
+    @PreAuthorize("hasRole('ADMIN')")
+    @CacheEvict(cacheNames = {"menu", "menuRecommended"}, allEntries = true)
+    public ResponseEntity<?> updateEstimatedCost(
+            @PathVariable Long id,
+            @RequestBody java.util.Map<String, BigDecimal> body) {
+
+        Optional<MenuItem> optItem = repo.findById(id);
+        if (optItem.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        MenuItem item = optItem.get();
+        BigDecimal cost = body.get("estimatedCost");
+        if (cost != null && cost.compareTo(BigDecimal.ZERO) < 0) {
+            return ResponseEntity.badRequest().body("estimatedCost must be >= 0");
+        }
+        BigDecimal previousCost = item.getEstimatedCost();
+        item.setEstimatedCost(cost);
+        repo.save(item);
+        log.info("[CostAudit] estimatedCost updated | item={} name='{}' | was={} | now={}",
+                id, item.getName(), previousCost, cost);
+        return ResponseEntity.ok(java.util.Map.of(
+                "id", id,
+                "estimatedCost", cost != null ? cost : BigDecimal.ZERO,
+                "previousCost", previousCost != null ? previousCost : BigDecimal.ZERO));
+    }
+
+    /**
+     * POST /admin/menu/bulk-estimated-cost
+     * Bulk-updates the estimated cost for multiple menu items in a single request.
+     * Each entry may set or clear the cost (null = clear).
+     * Items that would result in an active item with no cost are skipped with an error entry.
+     */
+    @PostMapping("/admin/menu/bulk-estimated-cost")
+    @PreAuthorize("hasRole('ADMIN')")
+    @CacheEvict(cacheNames = {"menu", "menuRecommended"}, allEntries = true)
+    @org.springframework.transaction.annotation.Transactional
+    public ResponseEntity<?> bulkUpdateEstimatedCost(
+            @RequestBody List<java.util.Map<String, Object>> updates) {
+
+        int updated = 0;
+        List<java.util.Map<String, Object>> errors = new java.util.ArrayList<>();
+
+        for (java.util.Map<String, Object> entry : updates) {
+            Object rawId   = entry.get("id");
+            Object rawCost = entry.get("estimatedCost");
+
+            if (rawId == null) { continue; }
+
+            long itemId;
+            try { itemId = rawId instanceof Number ? ((Number) rawId).longValue() : Long.parseLong(String.valueOf(rawId)); }
+            catch (NumberFormatException e) { continue; }
+
+            Optional<MenuItem> optItem = repo.findById(itemId);
+            if (optItem.isEmpty()) {
+                errors.add(Map.of("id", itemId, "error", "Item not found"));
+                continue;
+            }
+            MenuItem item = optItem.get();
+
+            BigDecimal newCost = null;
+            if (rawCost != null) {
+                try {
+                    newCost = new BigDecimal(String.valueOf(rawCost));
+                    if (newCost.compareTo(BigDecimal.ZERO) < 0) {
+                        errors.add(Map.of("id", itemId, "error", "Cost must be >= 0"));
+                        continue;
+                    }
+                } catch (NumberFormatException e) {
+                    errors.add(Map.of("id", itemId, "error", "Invalid cost format"));
+                    continue;
+                }
+            }
+
+            BigDecimal previousCost = item.getEstimatedCost();
+            item.setEstimatedCost(newCost);
+            repo.save(item);
+            log.info("[CostAudit] estimatedCost BULK updated | item={} name='{}' | was={} | now={}",
+                    itemId, item.getName(), previousCost, newCost);
+            updated++;
+        }
+
+        return ResponseEntity.ok(Map.of(
+                "updated", updated,
+                "errors",  errors,
+                "timestamp", java.time.Instant.now().toString()
+        ));
     }
 }

@@ -72,3 +72,25 @@ export const fetchRecommendations = (userId) =>
 
 export const fetchTrendingItems = () =>
   apiClient.get("/api/v1/recommendations/trending").then((r) => r.data?.data);
+
+// ── Profitability ──────────────────────────────────────────────────────────
+export const fetchProfitabilityDashboard = (params) =>
+  apiClient.get("/api/v1/analytics/profitability/dashboard", { params }).then((r) => r.data?.data);
+
+export const fetchMostProfitableItems = (params) =>
+  apiClient.get("/api/v1/analytics/profitability/items", { params }).then((r) => r.data?.data);
+
+export const fetchHighestMarginItems = (params) =>
+  apiClient.get("/api/v1/analytics/profitability/margin", { params }).then((r) => r.data?.data);
+
+export const updateItemEstimatedCost = (itemId, estimatedCost) =>
+  apiClient.patch(`/admin/menu/${itemId}/estimated-cost`, { estimatedCost }).then((r) => r.data);
+
+export const updateItemSellingPrice = (menuItemId, sellingPrice) =>
+  apiClient.post("/api/pricing/menu-items/set-price", {
+    menuItemId,
+    sellingPrice,
+    effectiveFrom: null,
+    reason: "Updated via Profitability Dashboard",
+  }).then((r) => r.data);
+

@@ -62,4 +62,9 @@ export const generateAiImageOptions = (menuItemId, count = 3, additionalPrompt =
 export const applyGeneratedImage = (menuItemId, imageUrl, allGeneratedUrls = []) =>
   apiClient.post(`/admin/menu-items/${menuItemId}/apply-generated-image`, { imageUrl, allGeneratedUrls }).then((r) => r.data);
 
-
+/**
+ * Bulk-update estimated costs for multiple menu items.
+ * @param {Array<{id: number, estimatedCost: number|null}>} updates
+ */
+export const bulkUpdateEstimatedCosts = (updates) =>
+  apiClient.post("/admin/menu/bulk-estimated-cost", updates).then((r) => r.data);

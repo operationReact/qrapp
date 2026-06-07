@@ -21,6 +21,10 @@ public record DashboardSummaryResponse(
         BigDecimal walletRevenue,
         BigDecimal onlineRevenue,
         BigDecimal codRevenue,
-        List<DailySalesResponse> dailySeries
+        List<DailySalesResponse> dailySeries,
+        // ── Profitability fields ───────────────────────────────────────────
+        BigDecimal totalEstimatedCost,
+        BigDecimal totalEstimatedProfit,
+        BigDecimal avgProfitMargin
 ) {}
 

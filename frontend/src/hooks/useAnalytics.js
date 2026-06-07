@@ -18,6 +18,9 @@ import {
   usersBySegmentOptions,
   couponPerformanceOptions,
   recommendationsOptions,
+  profitabilityDashboardOptions,
+  mostProfitableItemsOptions,
+  highestMarginItemsOptions,
 } from '@/query/options/analytics'
 
 function useQueryWrapper(options) {
@@ -78,3 +81,15 @@ export const useTrendingItems = () =>
 
 export const useRecommendations = (userId) =>
   useQueryWrapper(recommendationsOptions(userId))
+
+// ── Profitability ──────────────────────────────────────────────────────────
+
+export const useProfitabilityDashboard = (params) =>
+  useQueryWrapper(profitabilityDashboardOptions(params))
+
+export const useMostProfitableItems = (params) =>
+  useQueryWrapper(mostProfitableItemsOptions(params))
+
+export const useHighestMarginItems = (params) =>
+  useQueryWrapper(highestMarginItemsOptions(params))
+

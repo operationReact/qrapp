@@ -98,6 +98,25 @@ public class MenuItem {
     @Column(name = "image_prompt", columnDefinition = "TEXT")
     private String imagePrompt;
 
+    // ============================================================================
+    // PROFITABILITY TRACKING
+    // ============================================================================
+
+    /**
+     * Optional estimated per-unit production cost (₹).
+     * Used to calculate profit margin for SELF_PREPARED items where no vendor
+     * cost record exists in {@code vendor_menu_item_cost_history}.
+     *
+     * <p>Cost resolution order at analytics snapshot time:
+     * <ol>
+     *   <li>{@code order_item.cost_price_snapshot}  — vendor cost captured at order time</li>
+     *   <li>{@code menu_item.estimated_cost}         — this field</li>
+     *   <li>0                                        — no cost known → profit = revenue</li>
+     * </ol>
+     */
+    @Column(name = "estimated_cost", precision = 10, scale = 2)
+    private java.math.BigDecimal estimatedCost;
+
     @Column(name = "image_prompt_hash")
     private String imagePromptHash;
 
