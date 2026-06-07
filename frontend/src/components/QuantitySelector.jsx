@@ -1,5 +1,6 @@
 import { MinusIcon, PlusIcon } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
+import { Button } from "./ui/button";
 
 /**
  * QuantitySelector
@@ -23,29 +24,27 @@ export default function QuantitySelector({ qty, onAdd, onRemove, className }) {
   /* ── "Add" pill ─────────────────────────────────── */
   if (qty === 0) {
     return (
-      <button
+      <Button
         onClick={onAdd}
+        size="xs"
+        variant="branded-secondary"
         aria-label="Add to cart"
         className={cn(
           // shape & layout
           "flex items-center gap-1 rounded-full px-3",
-          "h-8 select-none",
-          // color
-          "bg-primary text-primary-foreground",
+          "h-8 font-semibold",
+
           // elevation — soft shadow lifts it off the card
-          "shadow-[0_2px_10px_rgba(0,0,0,0.18)]",
+          "shadow-xs",
           // interaction
           "transition-all duration-150 ease-out",
-          "hover:shadow-[0_4px_14px_rgba(0,0,0,0.22)] hover:brightness-110",
-          "active:scale-95 active:shadow-none",
+          "hover:sm hover:brightness-110",
           className,
         )}
       >
-        <PlusIcon weight="bold" className="size-3.5 shrink-0" />
-        <span className="text-[11px] font-bold leading-none tracking-wide">
-          Add
-        </span>
-      </button>
+        <PlusIcon weight="bold" />
+        <span>Add</span>
+      </Button>
     );
   }
 
@@ -54,11 +53,11 @@ export default function QuantitySelector({ qty, onAdd, onRemove, className }) {
     <div
       className={cn(
         // pill container
-        "flex items-center rounded-full overflow-hidden",
+        "grid grid-cols-3 items-center rounded-sm overflow-hidden",
         "h-8 select-none",
         // soft elevated background
         "bg-background",
-        "shadow-[0_2px_10px_rgba(0,0,0,0.12)]",
+        "shadow-xs",
         // hairline border using primary tint
         "ring-1 ring-primary/20",
         className,
@@ -69,10 +68,10 @@ export default function QuantitySelector({ qty, onAdd, onRemove, className }) {
         onClick={onRemove}
         aria-label="Remove one"
         className={cn(
-          "flex h-full w-8 shrink-0 items-center justify-center",
+          "flex rounded-sm h-full bg-primary/5 w-8 shrink-0 items-center justify-center",
           "text-primary/60",
           "transition-all duration-100",
-          "hover:bg-primary/6 hover:text-primary",
+          "hover:bg-primary/10 hover:text-primary",
           "active:scale-90",
         )}
       >
@@ -83,8 +82,8 @@ export default function QuantitySelector({ qty, onAdd, onRemove, className }) {
       <span
         key={qty}
         className={cn(
-          "min-w-[1.5rem] text-center",
-          "text-[12px] font-extrabold tabular-nums leading-none text-primary",
+          "text-center",
+          "text-xs font-bold tabular-nums leading-none",
           // tw-animate-css utilities — remount animation on qty change
           "animate-in zoom-in-75 fade-in duration-150 ease-out",
         )}
@@ -97,7 +96,7 @@ export default function QuantitySelector({ qty, onAdd, onRemove, className }) {
         onClick={onAdd}
         aria-label="Add one more"
         className={cn(
-          "flex h-full w-8 shrink-0 items-center justify-center",
+          "flex rounded-sm h-full w-8 shrink-0 items-center justify-center",
           "bg-primary text-primary-foreground",
           "transition-all duration-100",
           "hover:brightness-110",
@@ -109,4 +108,3 @@ export default function QuantitySelector({ qty, onAdd, onRemove, className }) {
     </div>
   );
 }
-

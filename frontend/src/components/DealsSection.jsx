@@ -22,7 +22,8 @@ import NewPartyOrder from "@/components/shared/NewPartyOrder";
 import CombosDrawer from "@/components/CombosDrawer";
 import BuildYourOwnComboDrawer from "@/components/BuildYourOwnComboDrawer";
 import { cn } from "@/lib/utils";
-import { ArrowRightIcon } from "@phosphor-icons/react";
+import { ArrowRightIcon, CaretRightIcon } from "@phosphor-icons/react";
+import { Badge } from "./ui/badge";
 
 // ── Slim progress dots ─────────────────────────────────────────────────────
 function ProgressDots({ itemCount }) {
@@ -60,49 +61,46 @@ function CardShell({ deal, ctaNode }) {
     <>
       {/* ── MOBILE: compact horizontal card ──────────────────────── */}
       <div
-        className="md:hidden relative flex overflow-hidden rounded-2xl"
+        className="md:hidden relative flex overflow-hidden rounded-lg"
         style={{ height: "110px", background: deal.mobileBg }}
       >
         {/* Left — text */}
         <div className="flex min-w-0 flex-1 flex-col justify-between p-3">
-          <span
-            className="self-start rounded-full px-2 py-[2px] text-[9px] font-extrabold leading-none tracking-wide text-white"
+          <Badge
+            className="text-[10px] font-bold mb-2 leading-none tracking-wide  text-white"
             style={{ background: "rgba(255,255,255,0.20)" }}
           >
             {deal.icon} {deal.badge}
-          </span>
+          </Badge>
 
           <div className="flex flex-col gap-0.5">
-            <span className="text-[13px] font-extrabold leading-tight text-white line-clamp-2">
+            <span className="text-xs font-bold leading-tight text-white line-clamp-2">
               {deal.title}
             </span>
-            <span className="line-clamp-1 text-[10px] font-medium leading-snug text-white/70">
+            <span className="line-clamp-1 text-[10px] leading-snug text-white/70">
               {deal.subtitle}
             </span>
           </div>
 
           {/* Compact inline CTA */}
-          <span className="flex items-center gap-0.5 text-[10px] font-bold text-white/90">
+          <Button
+            variant="link"
+            size="xs"
+            className="text-white mt-2 pl-0! justify-start"
+          >
             {deal.cta}
-            <ArrowRightIcon weight="bold" className="size-2.5" />
-          </span>
+            <CaretRightIcon weight="bold" />
+          </Button>
         </div>
 
         {/* Right — image peek with left-fade */}
-        <div className="relative w-[88px] flex-shrink-0 overflow-hidden">
+        <div className="relative w-22 shrink-0 overflow-clip">
           <img
             src={deal.imgSrc}
             alt=""
             aria-hidden
             draggable="false"
-            className="h-full w-full object-cover"
-          />
-          {/* Blend image into card background */}
-          <div
-            className="pointer-events-none absolute inset-y-0 left-0 w-10"
-            style={{
-              background: `linear-gradient(to right, ${deal.mobileBgFrom}, transparent)`,
-            }}
+            className="h-full w-full object-cover mastk-l-from-50% mask-l-to-95%"
           />
         </div>
       </div>
@@ -126,21 +124,21 @@ function CardShell({ deal, ctaNode }) {
           }}
         />
         <div className="absolute inset-0 flex flex-col justify-between p-4">
-          <span
-            className="self-start rounded-full px-2.5 py-[3px] text-[10px] font-extrabold leading-none tracking-wide"
+          <Badge
+            className="self-start font-semibold"
             style={{
               background: deal.badgeBg ?? "rgba(255,255,255,0.88)",
               color: deal.badgeColor ?? "#111827",
             }}
           >
             {deal.icon} {deal.badge}
-          </span>
+          </Badge>
           <div className="flex items-end justify-between gap-4">
-            <div className="flex min-w-0 flex-1 flex-col gap-[3px]">
-              <span className="text-[18px] font-extrabold leading-tight text-white drop-shadow-sm">
+            <div className="flex min-w-0 flex-1 flex-col gap-0.75">
+              <span className="text-lg font-semibold leading-tight text-background drop-shadow-sm">
                 {deal.title}
               </span>
-              <span className="line-clamp-2 text-[11px] font-medium leading-snug text-white/75">
+              <span className="line-clamp-2 text-sm font-medium leading-snug text-white/75">
                 {deal.subtitle}
               </span>
             </div>
@@ -155,10 +153,14 @@ function CardShell({ deal, ctaNode }) {
 // Frosted-glass CTA button — used on all card types
 function GlassCTA({ label }) {
   return (
-    <span className="flex flex-shrink-0 cursor-pointer select-none items-center gap-1 whitespace-nowrap rounded-xl border border-white/35 bg-white/15 px-3 py-[7px] text-[11px] font-bold text-white backdrop-blur-sm transition-colors hover:bg-white/25">
+    <Button
+      size="xs"
+      variant="ghost"
+      className="border h-9 border-white/30 bg-white/20 px-3 text-white backdrop-blur-xs hover:text-white transition-colors hover:bg-white/25 shadow-lg shadow-black"
+    >
       {label}
-      <ArrowRightIcon weight="bold" className="size-2.5" />
-    </span>
+      <CaretRightIcon weight="bold" className="size-3" />
+    </Button>
   );
 }
 
@@ -224,7 +226,10 @@ function PartyOrderCard({ deal }) {
               {pending ? "Submitting…" : "Request Estimate"}
             </Button>
             <DrawerClose
-              className={buttonVariants({ variant: "ghost", className: "w-full" })}
+              className={buttonVariants({
+                variant: "ghost",
+                className: "w-full",
+              })}
             >
               Cancel
             </DrawerClose>
@@ -285,7 +290,8 @@ const DISCOVERY_CARDS = [
     type: "byoc",
     badge: "Save up to 20%",
     title: "Build Your Own Combo",
-    subtitle: "Mix & match your favorites. Add more items, unlock bigger savings.",
+    subtitle:
+      "Mix & match your favorites. Add more items, unlock bigger savings.",
     cta: "Start Building",
     icon: "🔥",
     badgeBg: "rgba(16,185,129,0.88)",
@@ -367,8 +373,8 @@ export default function DealsSection() {
                     deal.id === "combos"
                       ? () => setCombosOpen(true)
                       : deal.id === "byoc"
-                      ? () => setByocOpen(true)
-                      : undefined
+                        ? () => setByocOpen(true)
+                        : undefined
                   }
                 />
               )}

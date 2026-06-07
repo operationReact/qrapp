@@ -158,7 +158,7 @@ export default function MenuItemCard({
             {item.name}
           </h3>
 
-          <div className="flex mt-1 sm:mt-2 items-center gap-2 justify-between">
+          <div className="flex flex-wrap mt-1 sm:mt-2 items-center gap-2 justify-between">
             <span
               className={cn(
                 "font-medium text-sm md:text-base",
