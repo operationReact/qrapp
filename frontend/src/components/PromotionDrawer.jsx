@@ -1,21 +1,26 @@
 import PropTypes from "prop-types";
 import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import {
-  Drawer,
-  DrawerClose,
-  DrawerContent,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerTrigger,
-} from "@/components/ui/drawer";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PromotionCard } from "@/components/PromotionCard";
 import { validatePromotion } from "@/services/promotion-service";
 import { TagIcon } from "@phosphor-icons/react";
 import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "./ui/dialog";
+import { Empty } from "./ui/empty";
+import { Separator } from "./ui/separator";
+import { Field, FieldContent, FieldLabel } from "./ui/field";
+import { ButtonGroup } from "./ui/button-group";
 
 /**
  * Full-featured promotion drawer for the cart page.
@@ -77,7 +82,11 @@ export function PromotionDrawer({
     // Already applied — show compact badge
     <button className="w-full flex items-center justify-between gap-2 rounded-xl border border-green-300 bg-green-50 px-4 py-3 text-left">
       <div className="flex items-center gap-2">
-        <TagIcon weight="duotone" size={18} className="text-green-700 shrink-0" />
+        <TagIcon
+          weight="duotone"
+          size={18}
+          className="text-green-700 shrink-0"
+        />
         <div>
           <p className="text-sm font-semibold text-green-800">
             {appliedPromotion.code ?? "Offer"} applied
@@ -93,13 +102,23 @@ export function PromotionDrawer({
     // Not applied
     <button className="w-full flex items-center justify-between gap-2 rounded-xl border border-dashed border-border px-4 py-3 text-left hover:bg-muted/30 transition-colors">
       <div className="flex items-center gap-2">
-        <TagIcon weight="duotone" size={18} className="text-muted-foreground shrink-0" />
+        <TagIcon
+          weight="duotone"
+          size={18}
+          className="text-muted-foreground shrink-0"
+        />
         <div>
           <p className="text-sm font-medium">
-            {isLoading ? "Loading offers…" : totalEligible > 0 ? `${totalEligible} offer${totalEligible > 1 ? "s" : ""} available` : "Add a promo code"}
+            {isLoading
+              ? "Loading offers…"
+              : totalEligible > 0
+                ? `${totalEligible} offer${totalEligible > 1 ? "s" : ""} available`
+                : "Add a promo code"}
           </p>
           {totalEligible > 0 && !isLoading && (
-            <p className="text-xs text-muted-foreground">Tap to view and apply</p>
+            <p className="text-xs text-muted-foreground">
+              Tap to view and apply
+            </p>
           )}
         </div>
       </div>
@@ -108,32 +127,31 @@ export function PromotionDrawer({
   );
 
   return (
-    <Drawer>
-      <DrawerTrigger asChild>{trigger}</DrawerTrigger>
+    <Dialog className="px-4">
+      <DialogTrigger className="w-full" render={trigger} />
 
-      <DrawerContent className="max-w-md mx-auto max-h-[85vh] flex flex-col">
-        <DrawerHeader className="shrink-0 pb-2">
-          <DrawerTitle className="text-lg font-semibold">
+      <DialogContent className="max-w-sm mx-auto max-h-[85vh] flex flex-col">
+        <DialogHeader>
+          <DialogTitle className="text-lg font-semibold">
             Available Offers
             {totalEligible > 0 && (
               <span className="ml-2 text-sm font-normal text-muted-foreground">
                 ({totalEligible})
               </span>
             )}
-          </DrawerTitle>
-        </DrawerHeader>
+          </DialogTitle>
+        </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-3">
-
+        <div className="flex-1 overflow-y-auto pb-4 space-y-3">
           {/* Eligible promotions */}
           {isLoading ? (
             <p className="text-sm text-muted-foreground py-4 text-center">
               Checking available offers…
             </p>
           ) : eligiblePromotions.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-4 text-center">
+            <Empty className="text-sm border text-muted-foreground py-4 text-center">
               No offers available for this cart.
-            </p>
+            </Empty>
           ) : (
             eligiblePromotions.map((promo) => (
               <PromotionCard
@@ -161,7 +179,10 @@ export function PromotionDrawer({
               >
                 <ChevronDown
                   size={14}
-                  className={cn("transition-transform", showIneligible && "rotate-180")}
+                  className={cn(
+                    "transition-transform",
+                    showIneligible && "rotate-180",
+                  )}
                 />
                 Not applicable ({ineligiblePromotions.length})
               </button>
@@ -178,44 +199,57 @@ export function PromotionDrawer({
             </div>
           )}
 
+          <div className="flex gap-2 items-center">
+            <Separator className="data-horizontal:flex-1" />
+            <span className="text-muted-foreground tracking-widest font-medium text-xs">
+              OR
+            </span>
+            <Separator className="data-horizontal:flex-1" />
+          </div>
+
           {/* Manual code entry */}
-          <div className="pt-2 border-t space-y-2">
-            <p className="text-xs font-medium text-muted-foreground">Or enter a code</p>
-            <div className="flex gap-2">
-              <Input
-                value={manualCode}
-                onChange={(e) => {
-                  setManualCode(e.target.value.toUpperCase());
-                  setManualError(null);
-                }}
-                placeholder="e.g. SAVE120"
-                className="h-9 text-sm uppercase"
-                onKeyDown={(e) => e.key === "Enter" && handleManualApply()}
-              />
-              <Button
-                size="sm"
-                className="h-9 shrink-0"
-                disabled={!manualCode.trim() || manualLoading}
-                onClick={handleManualApply}
-              >
-                {manualLoading ? "…" : "Apply"}
-              </Button>
-            </div>
+          <Field className="px-1">
+            <FieldLabel htmlFor="manual-code">Enter a code</FieldLabel>
+            <FieldContent>
+              <ButtonGroup className="w-full">
+                <Input
+                  value={manualCode}
+                  onChange={(e) => {
+                    setManualCode(e.target.value.toUpperCase());
+                    setManualError(null);
+                  }}
+                  placeholder="e.g. SAVE120"
+                  className="h-9 text-sm uppercase"
+                  onKeyDown={(e) => e.key === "Enter" && handleManualApply()}
+                />
+                <Button
+                  variant="branded-secondary"
+                  size="sm"
+                  className="h-9 shrink-0"
+                  disabled={!manualCode.trim() || manualLoading}
+                  onClick={handleManualApply}
+                >
+                  {manualLoading ? "…" : "Apply"}
+                </Button>
+              </ButtonGroup>
+            </FieldContent>
             {manualError && (
               <p className="text-xs text-red-600">{manualError}</p>
             )}
-          </div>
+          </Field>
         </div>
 
-        <div className="shrink-0 px-4 pb-4 pt-2 border-t">
-          <DrawerClose asChild>
-            <Button variant="outline" className="w-full h-10">
-              Done
-            </Button>
-          </DrawerClose>
-        </div>
-      </DrawerContent>
-    </Drawer>
+        <DialogFooter>
+          <DialogClose
+            className={buttonVariants({
+              variant: "secondary",
+            })}
+          >
+            Done
+          </DialogClose>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -227,4 +261,3 @@ PromotionDrawer.propTypes = {
   onApply: PropTypes.func.isRequired,
   isLoading: PropTypes.bool,
 };
-

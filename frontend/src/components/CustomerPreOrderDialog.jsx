@@ -45,24 +45,34 @@ function loadRazorpayScript() {
 function getNextWorkingDay() {
   const d = new Date();
   d.setHours(12, 0, 0, 0);
-  do { d.setDate(d.getDate() + 1); } while (d.getDay() === 0 || d.getDay() === 6);
+  do {
+    d.setDate(d.getDate() + 1);
+  } while (d.getDay() === 0 || d.getDay() === 6);
   return d;
 }
 
 function formatDeliveryDate(d) {
   return d.toLocaleDateString("en-IN", {
-    weekday: "long", day: "numeric", month: "long",
+    weekday: "long",
+    day: "numeric",
+    month: "long",
   });
 }
 
 function formatCurrency(n) {
   return new Intl.NumberFormat("en-IN", {
-    style: "currency", currency: "INR", maximumFractionDigits: 0,
+    style: "currency",
+    currency: "INR",
+    maximumFractionDigits: 0,
   }).format(n ?? 0);
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
-export default function CustomerPreOrderDialog({ initialItem, open, onOpenChange }) {
+export default function CustomerPreOrderDialog({
+  initialItem,
+  open,
+  onOpenChange,
+}) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { data: allItems = [], isLoading } = useQuery(preOrderItemsOptions);
@@ -89,7 +99,10 @@ export default function CustomerPreOrderDialog({ initialItem, open, onOpenChange
 
   // Load wallet balance when logged in
   useEffect(() => {
-    if (!user?.token) { setWalletBalance(null); return; }
+    if (!user?.token) {
+      setWalletBalance(null);
+      return;
+    }
     walletGetBalance()
       .then((r) => setWalletBalance(Number(r?.balance ?? 0)))
       .catch(() => setWalletBalance(null));
@@ -98,26 +111,37 @@ export default function CustomerPreOrderDialog({ initialItem, open, onOpenChange
   const setQty = (itemId, delta) => {
     setQuantities((prev) => {
       const next = (prev[itemId] ?? 0) + delta;
-      if (next <= 0) { const { [itemId]: _, ...rest } = prev; return rest; }
+      if (next <= 0) {
+        const { [itemId]: _, ...rest } = prev;
+        return rest;
+      }
       return { ...prev, [itemId]: next };
     });
   };
 
   const selectedItems = useMemo(
-    () => Object.entries(quantities).filter(([, q]) => q > 0)
-      .map(([id, q]) => {
-        const item = allItems.find((i) => String(i.id) === String(id));
-        return item ? { item, qty: q } : null;
-      }).filter(Boolean),
+    () =>
+      Object.entries(quantities)
+        .filter(([, q]) => q > 0)
+        .map(([id, q]) => {
+          const item = allItems.find((i) => String(i.id) === String(id));
+          return item ? { item, qty: q } : null;
+        })
+        .filter(Boolean),
     [quantities, allItems],
   );
 
   const grandTotal = useMemo(
-    () => selectedItems.reduce((s, { item, qty }) => s + (item.price ?? 0) * qty, 0),
+    () =>
+      selectedItems.reduce(
+        (s, { item, qty }) => s + (item.price ?? 0) * qty,
+        0,
+      ),
     [selectedItems],
   );
 
-  const canPayWallet = walletBalance !== null && walletBalance >= grandTotal && grandTotal > 0;
+  const canPayWallet =
+    walletBalance !== null && walletBalance >= grandTotal && grandTotal > 0;
   const isValid = phone.trim().length >= 10 && selectedItems.length > 0;
 
   const handleCheckout = async () => {
@@ -129,7 +153,10 @@ export default function CustomerPreOrderDialog({ initialItem, open, onOpenChange
         scheduledAt,
         paymentMethod,
         customerNote: note.trim() || undefined,
-        items: selectedItems.map(({ item, qty }) => ({ itemId: item.id, quantity: qty })),
+        items: selectedItems.map(({ item, qty }) => ({
+          itemId: item.id,
+          quantity: qty,
+        })),
       });
 
       if (paymentMethod === "WALLET") {
@@ -147,7 +174,8 @@ export default function CustomerPreOrderDialog({ initialItem, open, onOpenChange
 
       // Razorpay
       const { payment } = res;
-      const rzpOrderId = payment?.rzpOrderId || payment?.orderId || payment?.order_id;
+      const rzpOrderId =
+        payment?.rzpOrderId || payment?.orderId || payment?.order_id;
       if (!rzpOrderId) {
         toast.error("Payment preparation failed. Please try again.");
         return;
@@ -170,11 +198,16 @@ export default function CustomerPreOrderDialog({ initialItem, open, onOpenChange
         },
       });
       rzp.on("payment.failed", (e) => {
-        toast.error("Payment failed: " + (e?.error?.description ?? "Unknown error"));
+        toast.error(
+          "Payment failed: " + (e?.error?.description ?? "Unknown error"),
+        );
       });
       rzp.open();
     } catch (err) {
-      const msg = err?.response?.data?.message || err?.message || "Failed to place pre-order";
+      const msg =
+        err?.response?.data?.message ||
+        err?.message ||
+        "Failed to place pre-order";
       toast.error(msg);
     } finally {
       setSubmitting(false);
@@ -182,24 +215,27 @@ export default function CustomerPreOrderDialog({ initialItem, open, onOpenChange
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-sm max-h-[92vh] flex flex-col gap-0 p-0 overflow-hidden">
+    <Dialog open={open} onOpenChange={onOpenChange} className="px-4">
+      <DialogContent className="max-w-sm max-h-[70vh] flex flex-col gap-0 p-0 overflow-hidden">
         <DialogHeader className="px-5 pt-5 pb-3 border-b shrink-0">
           <DialogTitle className="flex items-center gap-2 text-base">
-            <CalendarCheckIcon className="size-5 text-violet-600" weight="fill" />
+            <CalendarCheckIcon className="size-5 text-primary" weight="fill" />
             Place Pre-Order
           </DialogTitle>
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
           {/* Delivery banner */}
-          <div className="rounded-xl bg-violet-50 border border-violet-200 px-4 py-3 flex items-start gap-3">
-            <TruckIcon className="size-5 text-violet-600 shrink-0 mt-0.5" weight="fill" />
+          <div className="rounded-lg bg-primary/3 border border-primary/5 px-4 py-3 flex items-start gap-3">
+            <TruckIcon
+              className="size-5 text-primary shrink-0 mt-0.5"
+              weight="fill"
+            />
             <div>
-              <p className="text-sm font-semibold text-violet-800">
+              <p className="text-sm font-semibold text-primary">
                 Delivery on {deliveryLabel}
               </p>
-              <p className="text-xs text-violet-600 mt-0.5">
+              <p className="text-xs text-primary mt-0.5">
                 Pre-orders are prepared and delivered on the next working day.
               </p>
             </div>
@@ -208,15 +244,19 @@ export default function CustomerPreOrderDialog({ initialItem, open, onOpenChange
           {/* Items */}
           <div className="space-y-1.5">
             <div className="flex items-center gap-1.5">
-              <span className="text-xs font-semibold text-zinc-600">Select items</span>
-              <Badge className="h-4 bg-violet-100 text-violet-700 border-violet-200 text-[10px] px-1.5">
+              <span className="text-xs font-semibold text-zinc-600">
+                Select items
+              </span>
+              <Badge className="h-4 bg-primary/10 text-primary border-primary/20 text-[10px] px-1.5">
                 Pre-order only
               </Badge>
             </div>
 
             {isLoading ? (
               <div className="space-y-2">
-                {[1, 2, 3].map((i) => <Skeleton key={i} className="h-16 rounded-xl" />)}
+                {[1, 2, 3].map((i) => (
+                  <Skeleton key={i} className="h-16 rounded-lg" />
+                ))}
               </div>
             ) : allItems.length === 0 ? (
               <div className="rounded-xl border border-dashed border-zinc-200 py-6 text-center text-sm text-zinc-400">
@@ -227,30 +267,62 @@ export default function CustomerPreOrderDialog({ initialItem, open, onOpenChange
                 {allItems.map((item) => {
                   const qty = quantities[item.id] ?? 0;
                   return (
-                    <div key={item.id}
-                      className={cn("flex items-center gap-3 px-3 py-2.5 transition-colors", qty > 0 && "bg-violet-50")}>
-                      {item.imageUrl
-                        ? <img src={item.imageUrl} alt={item.name} className="size-11 rounded-lg object-cover shrink-0" />
-                        : <div className="size-11 rounded-lg bg-zinc-100 shrink-0" />}
+                    <div
+                      key={item.id}
+                      className={cn(
+                        "flex items-center gap-3 px-3 py-2.5 transition-colors",
+                        qty > 0 && "bg-primary/10",
+                      )}
+                    >
+                      {item.imageUrl ? (
+                        <img
+                          src={item.imageUrl}
+                          alt={item.name}
+                          className="size-11 rounded-lg object-cover shrink-0"
+                        />
+                      ) : (
+                        <div className="size-11 rounded-lg bg-zinc-100 shrink-0" />
+                      )}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1 flex-wrap">
-                          <span className="text-sm font-medium text-zinc-800 truncate">{item.name}</span>
-                          {item.isVeg && <LeafIcon className="size-3.5 text-emerald-500 shrink-0" weight="fill" />}
+                          <span className="text-sm font-medium text-zinc-800 truncate">
+                            {item.name}
+                          </span>
+                          {item.isVeg && (
+                            <LeafIcon
+                              className="size-3.5 text-emerald-500 shrink-0"
+                              weight="fill"
+                            />
+                          )}
                         </div>
-                        <span className="text-xs text-zinc-500">{formatCurrency(item.price)}</span>
+                        <span className="text-xs text-zinc-500">
+                          {formatCurrency(item.price)}
+                        </span>
                       </div>
                       <div className="flex items-center gap-1.5 shrink-0">
-                        <button onClick={() => setQty(item.id, -1)} disabled={qty === 0}
-                          className="size-7 rounded-full border border-zinc-200 flex items-center justify-center text-zinc-500 disabled:opacity-25 hover:bg-zinc-100 transition-colors">
-                          <MinusIcon className="size-3.5" weight="bold" />
-                        </button>
-                        <span className={cn("w-5 text-center text-sm font-bold", qty > 0 ? "text-violet-700" : "text-zinc-300")}>
+                        <Button
+                          size="icon-sm"
+                          variant="ghost"
+                          onClick={() => setQty(item.id, -1)}
+                          disabled={qty === 0}
+                        >
+                          <MinusIcon weight="bold" />
+                        </Button>
+                        <span
+                          className={cn(
+                            "w-5 text-center text-sm font-bold",
+                            qty > 0 ? "text-primary" : "text-zinc-300",
+                          )}
+                        >
                           {qty || "—"}
                         </span>
-                        <button onClick={() => setQty(item.id, 1)}
-                          className="size-7 rounded-full border border-violet-200 bg-violet-50 flex items-center justify-center text-violet-600 hover:bg-violet-100 transition-colors">
-                          <PlusIcon className="size-3.5" weight="bold" />
-                        </button>
+                        <Button
+                          size="icon-sm"
+                          variant="outline"
+                          onClick={() => setQty(item.id, 1)}
+                        >
+                          <PlusIcon weight="bold" />
+                        </Button>
                       </div>
                     </div>
                   );
@@ -265,36 +337,55 @@ export default function CustomerPreOrderDialog({ initialItem, open, onOpenChange
               <PhoneIcon className="size-3.5" weight="fill" />
               Your phone number
             </label>
-            <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)}
+            <input
+              type="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
               placeholder="91XXXXXXXXXX"
-              className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-violet-300" />
+              className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/30"
+            />
           </div>
 
           {/* Note */}
           <div className="space-y-1.5">
             <label className="text-xs font-semibold text-zinc-600">
-              Special instructions <span className="font-normal text-zinc-400">(optional)</span>
+              Special instructions{" "}
+              <span className="font-normal text-zinc-400">(optional)</span>
             </label>
-            <textarea rows={2} value={note} onChange={(e) => setNote(e.target.value)}
+            <textarea
+              rows={2}
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
               placeholder="Allergies, preferences…"
-              className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm resize-none outline-none focus:ring-2 focus:ring-violet-300" />
+              className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm resize-none outline-none focus:ring-2 focus:ring-primary/30"
+            />
           </div>
 
           {/* Payment method */}
           <div className="space-y-1.5">
-            <span className="text-xs font-semibold text-zinc-600">Payment method</span>
-            <div className="grid grid-cols-2 gap-2">
+            <span className="text-xs font-semibold text-zinc-600">
+              Payment method
+            </span>
+            <div className="grid mt-2 grid-cols-2 gap-2">
               {/* Razorpay */}
               <button
                 onClick={() => setPaymentMethod("RAZORPAY")}
                 className={cn(
-                  "flex items-center gap-2 rounded-xl border px-3 py-2.5 text-sm font-medium transition-colors",
+                  "flex items-center gap-2 rounded-sm border px-3 py-2.5 text-sm font-medium transition-colors",
                   paymentMethod === "RAZORPAY"
-                    ? "border-violet-400 bg-violet-50 text-violet-800"
+                    ? "border-primary/40 bg-primary/5 text-primary"
                     : "border-zinc-200 text-zinc-600 hover:bg-zinc-50",
                 )}
               >
-                <CreditCardIcon className={cn("size-4", paymentMethod === "RAZORPAY" ? "text-violet-600" : "text-zinc-400")} weight="fill" />
+                <CreditCardIcon
+                  className={cn(
+                    "size-4",
+                    paymentMethod === "RAZORPAY"
+                      ? "text-primary"
+                      : "text-zinc-400",
+                  )}
+                  weight="fill"
+                />
                 <span>Pay Online</span>
               </button>
               {/* Wallet */}
@@ -302,15 +393,24 @@ export default function CustomerPreOrderDialog({ initialItem, open, onOpenChange
                 onClick={() => user?.token && setPaymentMethod("WALLET")}
                 disabled={!user?.token || !canPayWallet}
                 className={cn(
-                  "flex flex-col items-start rounded-xl border px-3 py-2 text-sm font-medium transition-colors",
+                  "flex flex-col items-start rounded-sm border px-3 py-2 text-sm font-medium transition-colors",
                   paymentMethod === "WALLET"
-                    ? "border-violet-400 bg-violet-50 text-violet-800"
+                    ? "border-primary/40 bg-primary/5 text-primary"
                     : "border-zinc-200 text-zinc-600 hover:bg-zinc-50",
-                  (!user?.token || !canPayWallet) && "opacity-50 cursor-not-allowed",
+                  (!user?.token || !canPayWallet) &&
+                    "opacity-50 cursor-not-allowed",
                 )}
               >
                 <div className="flex items-center gap-2">
-                  <WalletIcon className={cn("size-4", paymentMethod === "WALLET" ? "text-violet-600" : "text-zinc-400")} weight="fill" />
+                  <WalletIcon
+                    className={cn(
+                      "size-4",
+                      paymentMethod === "WALLET"
+                        ? "text-primary"
+                        : "text-zinc-400",
+                    )}
+                    weight="fill"
+                  />
                   <span>Wallet</span>
                 </div>
                 {walletBalance !== null && (
@@ -326,33 +426,49 @@ export default function CustomerPreOrderDialog({ initialItem, open, onOpenChange
           {/* Info */}
           <div className="flex items-start gap-2 text-xs text-zinc-400">
             <InfoIcon className="size-3.5 shrink-0 mt-0.5" weight="fill" />
-            <span>Our team will confirm your order via phone before delivery.</span>
+            <span>
+              Our team will confirm your order via phone before delivery.
+            </span>
           </div>
         </div>
 
         {/* Footer */}
-        <DialogFooter className="px-5 py-3 border-t bg-zinc-50 shrink-0 flex items-center justify-between gap-3">
+        <DialogFooter className="px-5 py-3 border-t bg-zinc-50 shrink-0 flex flex-row items-center justify-between gap-3">
           <div className="text-sm">
             {selectedItems.length > 0 ? (
               <div className="flex items-center gap-2">
-                <Badge className="bg-violet-100 text-violet-700 border-violet-200">
+                <Badge className="bg-primary/10 text-primary border-primary/20">
                   {selectedItems.reduce((a, { qty }) => a + qty, 0)} items
                 </Badge>
-                <span className="font-semibold text-zinc-700">{formatCurrency(grandTotal)}</span>
+                <span className="font-semibold text-zinc-700">
+                  {formatCurrency(grandTotal)}
+                </span>
               </div>
             ) : (
               <span className="text-zinc-400 text-xs">No items selected</span>
             )}
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => onOpenChange(false)} disabled={submitting}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onOpenChange(false)}
+              disabled={submitting}
+            >
               Cancel
             </Button>
-            <Button size="sm" disabled={!isValid || submitting}
-              className="bg-violet-600 hover:bg-violet-700 text-white gap-1.5"
-              onClick={handleCheckout}>
+            <Button
+              size="sm"
+              disabled={!isValid || submitting}
+              className="bg-primary hover:bg-primary text-white gap-1.5"
+              onClick={handleCheckout}
+            >
               <CalendarCheckIcon className="size-4" weight="fill" />
-              {submitting ? "Processing…" : paymentMethod === "WALLET" ? "Pay & Pre-Order" : "Pay Online"}
+              {submitting
+                ? "Processing…"
+                : paymentMethod === "WALLET"
+                  ? "Pay & Pre-Order"
+                  : "Pay Online"}
             </Button>
           </div>
         </DialogFooter>
@@ -360,4 +476,3 @@ export default function CustomerPreOrderDialog({ initialItem, open, onOpenChange
     </Dialog>
   );
 }
-

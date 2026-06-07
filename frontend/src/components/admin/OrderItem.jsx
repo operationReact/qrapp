@@ -9,6 +9,7 @@ import {
   XCircleIcon,
   ArrowRightIcon,
 } from "@phosphor-icons/react";
+import { Button } from "../ui/button";
 
 const STATUS_CONFIG = {
   PLACED: {
@@ -59,7 +60,6 @@ const STATUS_CONFIG = {
 };
 STATUS_CONFIG.ORDER_PLACED = STATUS_CONFIG.PLACED;
 
-
 // Operational labels for transition buttons
 const TRANSITION_LABELS = {
   PREPARING: { label: "Start Preparing", icon: CookingPotIcon },
@@ -94,25 +94,29 @@ function elapsedLabel(config, minutes) {
  * onAction(orderId, nextStatus) — optional. When provided, renders quick-action
  * buttons that stop propagation so the parent <Link> is not triggered.
  */
-export default function OrderItem({ order, onAction }) {
+export default function OrderItem({ order, className, onAction }) {
   const config = configFor(order.status);
   const isDelayed = order.delayed;
 
-  const totalItems = (order.items || []).reduce((s, i) => s + (i.quantity || 1), 0);
+  const totalItems = (order.items || []).reduce(
+    (s, i) => s + (i.quantity || 1),
+    0,
+  );
 
   return (
     <article
       className={cn(
-        "border-l-4 rounded-r-xl rounded-l-none px-3 py-3 transition-colors",
+        "border-l-4 rounded-r-lg rounded-l-none px-3 py-3 transition-colors",
         config.accent,
         config.bg,
-        isDelayed && "ring-1 ring-rose-300",
+        isDelayed && "ring-1 ring-red-500/40",
+        className,
       )}
     >
       {/* ── Row 1: order number + status chip + time ── */}
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <div className="flex items-center gap-2">
-          <span className="text-[15px] font-extrabold leading-none text-gray-900">
+          <span className="text-[15px] font-bold leading-none">
             {order.orderNumber ?? `#${order.id}`}
           </span>
 
@@ -120,7 +124,7 @@ export default function OrderItem({ order, onAction }) {
           <span
             className={cn(
               "flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold",
-              config.badgeCls
+              config.badgeCls,
             )}
           >
             <span className={cn("h-1.5 w-1.5 rounded-full", config.dot)} />
@@ -135,8 +139,8 @@ export default function OrderItem({ order, onAction }) {
             isDelayed
               ? "bg-rose-100 text-rose-700"
               : order.stageAgeMinutes >= 10
-              ? "bg-amber-100 text-amber-700"
-              : "bg-slate-100 text-slate-600"
+                ? "bg-amber-100 text-amber-700"
+                : "bg-slate-100 text-slate-600",
           )}
         >
           {isDelayed && <WarningCircleIcon weight="fill" className="size-3" />}
@@ -148,22 +152,25 @@ export default function OrderItem({ order, onAction }) {
       </div>
 
       {/* ── Row 2: customer info + meta ── */}
-      <div className="mt-1.5 flex items-center gap-3 text-[12px] text-gray-500">
+      <div className="mt-1.5 flex items-center gap-1.5 text-[12px] text-gray-500">
         {order.userName && (
           <>
-            <span className="font-semibold text-gray-800">{order.userName}</span>
-            <span className="text-gray-300">·</span>
+            <span className="font-semibold text-zinc-800">
+              {order.userName}
+            </span>
+            <span>·</span>
           </>
         )}
-        <span className="font-medium text-gray-700">{order.phone}</span>
-        <span className="text-gray-300">·</span>
+        <span className="font-medium text-zinc-700">{order.phone}</span>
+        <span>·</span>
         <span>
           {totalItems} item{totalItems !== 1 ? "s" : ""}
         </span>
-        <span className="text-gray-300">·</span>
-        <span className="font-semibold text-gray-800">
+        <span>·</span>
+        <span className="font-semibold text-foreground">
           ₹{Number(order.total || 0).toFixed(0)}
         </span>
+        <span>·</span>
         {isOrderPaid(order) ? (
           <span className="flex items-center gap-0.5 text-emerald-600 font-medium">
             <CreditCardIcon weight="fill" className="size-3" /> Paid
@@ -197,23 +204,22 @@ export default function OrderItem({ order, onAction }) {
             const BtnIcon = meta?.icon ?? ArrowRightIcon;
             const isPrimary = idx === 0;
             return (
-              <button
+              <Button
+                size="sm"
+                variant={isPrimary ? "" : "outline"}
                 key={nextStatus}
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
                   onAction(order.id, nextStatus);
                 }}
-                className={cn(
-                  "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12px] font-semibold transition-all active:scale-95",
-                  isPrimary
-                    ? "bg-gray-900 text-white hover:bg-gray-700"
-                    : "bg-white border border-gray-200 text-gray-700 hover:border-gray-300"
-                )}
+                className={
+                  isPrimary && "bg-zinc-900 text-background hover:bg-zinc-700"
+                }
               >
                 <BtnIcon weight="bold" className="size-3.5" />
                 {meta?.label ?? `→ ${nextStatus}`}
-              </button>
+              </Button>
             );
           })}
         </div>

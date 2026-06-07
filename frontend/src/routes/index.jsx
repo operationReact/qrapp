@@ -135,7 +135,7 @@ function MenuPage() {
       </div>
 
       <main className="container-premium py-2.5 md:py-4 lg:py-5">
-        <div className="page-stack">
+        <div className="page-stack gap-2!">
           {/* HEADER */}
           <div className="space-y-2 sr-only">
             <h1 className="text-2xl font-bold sm:text-3xl">Menu</h1>
@@ -175,20 +175,15 @@ function MenuPage() {
             <section
               key={catName}
               id={encodeURIComponent(catName)}
-              className="flex flex-col gap-2 scroll-mt-4 rounded-2xl p-3"
-              style={{
-                background: "#FAFAFA",
-                border: "1px solid rgba(0,0,0,0.06)",
-                borderLeft: "3px solid #9CA3AF",
-              }}
+              className="flex flex-col gap-2 scroll-mt-4 rounded-lg py-2"
             >
               {/* Compact single-line category header */}
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-baseline gap-2 min-w-0">
-                  <h2 className="truncate text-[14px] font-bold leading-snug text-gray-900">
+                  <h2 className="truncate text-md font-bold leading-snug">
                     {catName}
                   </h2>
-                  <span className="shrink-0 text-[10px] font-medium text-gray-400">
+                  <span className="shrink-0 text-xs text-zinc-600">
                     {items.length} {items.length === 1 ? "item" : "items"}
                   </span>
                 </div>

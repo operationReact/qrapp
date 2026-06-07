@@ -95,7 +95,7 @@ function AdminDashboardPage() {
           {stats.map((stat) => (
             <div
               key={stat.label}
-              className="rounded-lg flex flex-col gap-2 overflow-hidden relative border pt-3"
+              className="rounded-lg bg-white flex flex-col gap-2 overflow-hidden relative border pt-4"
             >
               <span
                 className={`absolute size-7 grid place-items-center rounded-lg right-2 top-2 ${stat.tone}`}
@@ -124,4 +124,3 @@ function AdminDashboardPage() {
     </>
   );
 }
-

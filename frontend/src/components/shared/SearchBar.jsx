@@ -40,10 +40,6 @@ export default function SearchBar({ onSearch = () => { }, autoFocus = false }) {
           <X className="size-4 text-gray-500" />
         </Button>
       )}
-
-      <InputGroupAddon align="inline-end" className="pr-3">
-        <SlidersHorizontal className="size-5 text-gray-500" />
-      </InputGroupAddon>
     </InputGroup>
   );
 }
