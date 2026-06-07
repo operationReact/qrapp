@@ -121,20 +121,20 @@ export default function CreatePreOrderDialog({ open, onOpenChange }) {
       <DialogContent className="max-w-xl max-h-[90vh] flex flex-col gap-0 p-0 overflow-hidden">
         <DialogHeader className="px-5 pt-5 pb-3 border-b shrink-0">
           <DialogTitle className="flex items-center gap-2 text-base">
-            <CalendarCheckIcon className="size-5 text-violet-600" weight="fill" />
+            <CalendarCheckIcon className="size-5 text-primary" weight="fill" />
             Create Pre-Order
           </DialogTitle>
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
           {/* ── Delivery date banner ─────────────────────────────────── */}
-          <div className="rounded-xl bg-violet-50 border border-violet-200 px-4 py-3 flex items-start gap-3">
-            <TruckIcon className="size-5 text-violet-600 shrink-0 mt-0.5" weight="fill" />
+          <div className="rounded-lg bg-primary/5 border border-primary/20 px-4 py-3 flex items-start gap-3">
+            <TruckIcon className="size-5 text-primary shrink-0 mt-0.5" weight="fill" />
             <div>
-              <p className="text-sm font-semibold text-violet-800">
+              <p className="text-sm font-semibold text-primary">
                 Delivery on {formatDeliveryDate(deliveryDate)}
               </p>
-              <p className="text-xs text-violet-600 mt-0.5">
+              <p className="text-xs text-primary mt-0.5">
                 Pre-orders are fulfilled on the next working day.
               </p>
             </div>
@@ -151,7 +151,7 @@ export default function CreatePreOrderDialog({ open, onOpenChange }) {
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               placeholder="91XXXXXXXXXX"
-              className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-violet-300"
+              className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/30"
             />
           </div>
 
@@ -166,7 +166,7 @@ export default function CreatePreOrderDialog({ open, onOpenChange }) {
               value={note}
               onChange={(e) => setNote(e.target.value)}
               placeholder="Special instructions…"
-              className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm resize-none outline-none focus:ring-2 focus:ring-violet-300"
+              className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm resize-none outline-none focus:ring-2 focus:ring-primary/30"
             />
           </div>
 
@@ -196,7 +196,7 @@ export default function CreatePreOrderDialog({ open, onOpenChange }) {
                       key={item.id}
                       className={cn(
                         "flex items-center gap-3 px-3 py-2.5 transition-colors",
-                        qty > 0 && "bg-violet-50",
+                        qty > 0 && "bg-primary/5",
                       )}
                     >
                       {item.imageUrl ? (
@@ -237,14 +237,14 @@ export default function CreatePreOrderDialog({ open, onOpenChange }) {
                         <span
                           className={cn(
                             "w-6 text-center text-sm font-semibold",
-                            qty > 0 ? "text-violet-700" : "text-zinc-300",
+                            qty > 0 ? "text-primary" : "text-zinc-300",
                           )}
                         >
                           {qty || "—"}
                         </span>
                         <button
                           onClick={() => setQty(item.id, 1)}
-                          className="size-7 rounded-full border border-violet-200 bg-violet-50 flex items-center justify-center text-violet-600 hover:bg-violet-100 transition-colors"
+                          className="size-7 rounded-full border border-primary/20 bg-primary/5 flex items-center justify-center text-primary hover:bg-primary/10 transition-colors"
                         >
                           <PlusIcon className="size-3.5" weight="bold" />
                         </button>
@@ -262,7 +262,7 @@ export default function CreatePreOrderDialog({ open, onOpenChange }) {
           <div className="flex items-center gap-1.5 text-sm">
             {selectedItems.length > 0 ? (
               <>
-                <Badge className="bg-violet-100 text-violet-700 border-violet-200">
+                <Badge className="bg-primary/10 text-primary border-primary/20">
                   {selectedItems.reduce((a, { qty }) => a + qty, 0)} items
                 </Badge>
                 <span className="font-semibold text-zinc-700 flex items-center gap-0.5">
@@ -285,7 +285,7 @@ export default function CreatePreOrderDialog({ open, onOpenChange }) {
             </Button>
             <Button
               size="sm"
-              className="bg-violet-600 hover:bg-violet-700 text-white gap-1.5"
+              className="bg-primary hover:bg-primary text-white gap-1.5"
               disabled={!isValid || mutation.isPending}
               onClick={handleSubmit}
             >
@@ -298,4 +298,3 @@ export default function CreatePreOrderDialog({ open, onOpenChange }) {
     </Dialog>
   );
 }
-
