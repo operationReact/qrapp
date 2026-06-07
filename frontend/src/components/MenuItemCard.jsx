@@ -3,7 +3,11 @@ import { useCart } from "../context/CartContext";
 import PropTypes from "prop-types";
 import { baseURL } from "../services";
 
-import { ProhibitIcon, ClockIcon, CalendarCheckIcon } from "@phosphor-icons/react";
+import {
+  ProhibitIcon,
+  ClockIcon,
+  CalendarCheckIcon,
+} from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
 import QuantitySelector from "./QuantitySelector";
 import CustomerPreOrderDialog from "./CustomerPreOrderDialog";
@@ -14,7 +18,11 @@ function isPreOrderOnly(item) {
   return item?.tag?.name === PRE_ORDER_ONLY_TAG;
 }
 
-export default function MenuItemCard({ item, overrideUnavailable = false, unavailableLabel }) {
+export default function MenuItemCard({
+  item,
+  overrideUnavailable = false,
+  unavailableLabel,
+}) {
   const { cart, addItem, decreaseItem } = useCart();
   const [imgError, setImgError] = useState(false);
   const [preOrderOpen, setPreOrderOpen] = useState(false);
@@ -35,14 +43,15 @@ export default function MenuItemCard({ item, overrideUnavailable = false, unavai
 
   // overrideUnavailable lets callers (e.g. time-gated segments) disable
   // ordering without touching the item data itself.
-  const isUnavailable = overrideUnavailable || !isAvailable || item.stockStatus === "OUT_OF_STOCK";
+  const isUnavailable =
+    overrideUnavailable || !isAvailable || item.stockStatus === "OUT_OF_STOCK";
 
   // Decide what the overlay badge and bottom action label should say.
   // Time-window callers supply unavailableLabel ("Opens 8 AM").
   // Stock callers fall back to the standard "Out of Stock" / "Unavailable".
   const isTimegated = overrideUnavailable && !!unavailableLabel;
-  const overlayText  = isTimegated ? unavailableLabel : "Out of Stock";
-  const bottomLabel  = isTimegated ? unavailableLabel : "Unavailable";
+  const overlayText = isTimegated ? unavailableLabel : "Out of Stock";
+  const bottomLabel = isTimegated ? unavailableLabel : "Unavailable";
 
   const computeImageSrc = (url) => {
     if (!url) return null;
@@ -65,9 +74,15 @@ export default function MenuItemCard({ item, overrideUnavailable = false, unavai
           "group bg-background h-full border border-border rounded-lg overflow-hidden transition-opacity",
           isUnavailable && "opacity-70",
           // Pre-order items: entire card is the tap target
-          preOrderOnly && !isUnavailable && "cursor-pointer ring-0 hover:ring-2 hover:ring-indigo-300 hover:border-indigo-300 transition-all"
+          preOrderOnly &&
+            !isUnavailable &&
+            "cursor-pointer ring-0 hover:ring-2 hover:ring-indigo-300 hover:border-indigo-300 transition-all",
         )}
-        onClick={preOrderOnly && !isUnavailable ? () => setPreOrderOpen(true) : undefined}
+        onClick={
+          preOrderOnly && !isUnavailable
+            ? () => setPreOrderOpen(true)
+            : undefined
+        }
       >
         {/* Image */}
         <div className="relative aspect-video w-full">
@@ -78,7 +93,7 @@ export default function MenuItemCard({ item, overrideUnavailable = false, unavai
               onError={() => setImgError(true)}
               className={cn(
                 "w-full h-full object-cover transition-all duration-300",
-                isUnavailable && "grayscale"
+                isUnavailable && "grayscale",
               )}
             />
           ) : (
@@ -95,9 +110,11 @@ export default function MenuItemCard({ item, overrideUnavailable = false, unavai
           {isUnavailable && (
             <div className="absolute inset-0 flex items-center justify-center">
               <span className="flex items-center gap-1 rounded-full bg-black/70 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-widest text-white backdrop-blur-sm">
-                {isTimegated
-                  ? <ClockIcon weight="bold" className="size-3 shrink-0" />
-                  : <ProhibitIcon weight="bold" className="size-3 shrink-0" />}
+                {isTimegated ? (
+                  <ClockIcon weight="bold" className="size-3 shrink-0" />
+                ) : (
+                  <ProhibitIcon weight="bold" className="size-3 shrink-0" />
+                )}
                 {overlayText}
               </span>
             </div>
@@ -118,13 +135,13 @@ export default function MenuItemCard({ item, overrideUnavailable = false, unavai
             title={veg ? "Veg" : "Non Veg"}
             className={cn(
               "absolute origin-top-left scale-75 sm:scale-100 top-2 left-2 p-1.5 border-2 bg-white rounded-sm size-6 flex items-center gap-2",
-              veg ? "border-accent-400" : "border-red-600"
+              veg ? "border-accent-400" : "border-red-600",
             )}
           >
             <span
               className={cn(
                 "size-full rounded-full",
-                veg ? "bg-accent-400" : "bg-red-600"
+                veg ? "bg-accent-400" : "bg-red-600",
               )}
             />
           </div>
@@ -135,7 +152,7 @@ export default function MenuItemCard({ item, overrideUnavailable = false, unavai
           <h3
             className={cn(
               "text-pretty text-xs leading-4 font-semibold sm:text-lg",
-              isUnavailable && "text-muted-foreground"
+              isUnavailable && "text-muted-foreground",
             )}
           >
             {item.name}
@@ -146,7 +163,7 @@ export default function MenuItemCard({ item, overrideUnavailable = false, unavai
               className={cn(
                 "font-medium text-sm md:text-base",
                 isUnavailable &&
-                  "text-muted-foreground line-through decoration-muted-foreground/60"
+                  "text-muted-foreground line-through decoration-muted-foreground/60",
               )}
             >
               ₹{item.price?.toFixed(0) ?? "—"}
@@ -154,9 +171,11 @@ export default function MenuItemCard({ item, overrideUnavailable = false, unavai
 
             {isUnavailable ? (
               <span className="inline-flex items-center gap-1 rounded-md border border-dashed border-muted-foreground/40 px-2 py-1 text-[10px] font-medium text-muted-foreground">
-                {isTimegated
-                  ? <ClockIcon weight="duotone" className="size-3" />
-                  : <ProhibitIcon weight="duotone" className="size-3" />}
+                {isTimegated ? (
+                  <ClockIcon weight="duotone" className="size-3" />
+                ) : (
+                  <ProhibitIcon weight="duotone" className="size-3" />
+                )}
                 {bottomLabel}
               </span>
             ) : preOrderOnly ? (
