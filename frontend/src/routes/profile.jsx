@@ -1,24 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Navbar from "@/components/shared/Navbar";
-import { updateCurrentUser, getMilestoneCoupons } from "@/services/auth-service";
+import { updateCurrentUser } from "@/services/auth-service";
 import { currentUserOptions } from "@/query/options/auth";
-import { LockKeyhole, Menu, Shield } from "@boxicons/react";
 import { Button } from "@/components/ui/button";
-import {
-  Field,
-  FieldContent,
-  FieldDescription,
-  FieldGroup,
-  FieldLabel,
-  FieldLegend,
-  FieldSet,
-} from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/context/AuthContext";
 import { PasswordInput } from "@/components/ui/password-input";
+import { ChevronRight, KeyRound, Package, PartyPopper, Trophy } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/profile")({
   component: ProfilePage,
@@ -35,11 +27,7 @@ function ProfilePage() {
     }
   }, [user?.token, navigate]);
 
-  const {
-    data: profile,
-    isLoading,
-    error: loadError,
-  } = useQuery({
+  const { data: profile, isLoading } = useQuery({
     ...currentUserOptions,
     enabled: !!user?.token,
   });
@@ -52,318 +40,214 @@ function ProfilePage() {
     confirmPassword: "",
   });
 
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError]     = useState("");
+  const [success, setSuccess] = useState("");
+
   useEffect(() => {
     if (profile) {
-      setForm((current) => ({
-        ...current,
-        name: profile.name || "",
-        phone: profile.phone || "",
-      }));
-      setUser((current) => (current ? { ...current, info: profile } : current));
+      setForm((c) => ({ ...c, name: profile.name || "", phone: profile.phone || "" }));
+      setUser((c) => (c ? { ...c, info: profile } : c));
     }
   }, [profile, setUser]);
-
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
 
   const updateMutation = useMutation({
     mutationFn: updateCurrentUser,
     onSuccess: (data) => {
-      setUser((current) => (current ? { ...current, info: data } : current));
-      setForm((current) => ({
-        ...current,
+      setUser((c) => (c ? { ...c, info: data } : c));
+      setForm((c) => ({
+        ...c,
         name: data.name || "",
         phone: data.phone || "",
         currentPassword: "",
         newPassword: "",
         confirmPassword: "",
       }));
+      setShowPassword(false);
       setSuccess("Profile updated successfully.");
       queryClient.invalidateQueries({ queryKey: currentUserOptions.queryKey });
     },
     onError: (err) => {
-      const message = err?.response?.data || "Failed to update profile.";
-      setError(
-        typeof message === "string" ? message : "Failed to update profile.",
-      );
+      const msg = err?.response?.data || "Failed to update profile.";
+      setError(typeof msg === "string" ? msg : "Failed to update profile.");
     },
   });
 
   const saving = updateMutation.isPending;
 
-  const passwordHint = useMemo(
-    () =>
-      form.newPassword
-        ? "Changing password requires your current password."
-        : "Leave password fields empty if you only want to update name or phone.",
-    [form.newPassword],
-  );
-
-  const handleChange = (key) => (event) => {
-    setError("");
-    setSuccess("");
-    setForm((current) => ({ ...current, [key]: event.target.value }));
+  const handleChange = (key) => (e) => {
+    setError(""); setSuccess("");
+    setForm((c) => ({ ...c, [key]: e.target.value }));
   };
 
-  const handleSubmit = (event) => {
-    event.preventDefault();
-    setError("");
-    setSuccess("");
-
-    if (!form.phone.trim()) {
-      setError("Phone number is required.");
-      return;
-    }
-
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    setError(""); setSuccess("");
+    if (!form.phone.trim()) { setError("Phone number is required."); return; }
     if (form.newPassword && form.newPassword !== form.confirmPassword) {
-      setError("New password and confirm password do not match.");
-      return;
+      setError("New password and confirm password do not match."); return;
     }
-
-    const payload = {
-      name: form.name,
-      phone: form.phone,
-    };
-
+    const payload = { name: form.name, phone: form.phone };
     if (form.newPassword) {
       payload.currentPassword = form.currentPassword;
-      payload.newPassword = form.newPassword;
+      payload.newPassword     = form.newPassword;
     }
-
     updateMutation.mutate(payload);
   };
 
-  const { data: milestoneCoupons = [] } = useQuery({
-    queryKey: ["milestone-coupons"],
-    queryFn: getMilestoneCoupons,
-    enabled: !!user?.token,
-  });
+  const initials = useMemo(() => {
+    const src = (profile?.name || user?.info?.name || user?.info?.phone || "U").trim();
+    return src.slice(0, 1).toUpperCase();
+  }, [profile, user]);
 
-  const MILESTONES = [
-    { amount: 500,   label: "₹500",   reward: "5% off" },
-    { amount: 1000,  label: "₹1,000", reward: "8% off" },
-    { amount: 2500,  label: "₹2,500", reward: "10% off" },
-    { amount: 5000,  label: "₹5,000", reward: "12% off" },
-    { amount: 10000, label: "₹10,000",reward: "15% off" },
+  const quickLinks = [
+    { to: "/orders",       label: "My Orders",            icon: Package,      color: "bg-blue-50 text-blue-600" },
+    { to: "/party-orders", label: "Party Orders",          icon: PartyPopper,  color: "bg-purple-50 text-purple-600" },
+    { to: "/milestones",   label: "Milestones & Rewards",  icon: Trophy,       color: "bg-amber-50 text-amber-600" },
   ];
-
-  const awardedByAmount = Object.fromEntries(milestoneCoupons.map(m => [Number(m.milestoneAmount), m]));
 
   return (
     <div className="page-shell bg-page">
       <Navbar />
 
-      <main className="container-premium py-6">
-        <div className="mx-auto space-y-5 sm:space-y-6">
-          <div>
-            <h1 className="text-lg font-semibold sm:text-2xl">Profile</h1>
-            <p className="text-sm text-muted-foreground">
-              Keep your account details updated so your orders and payments stay
-              smooth.
-            </p>
+      <main className="pb-10">
+        {/* ── Avatar hero ── */}
+        <div className="bg-white border-b">
+          <div className="container-premium py-6 flex items-center gap-4">
+            <div className="size-14 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+              <span className="text-xl font-bold text-primary">{initials}</span>
+            </div>
+            <div className="min-w-0">
+              <p className="font-semibold text-base truncate">
+                {profile?.name || user?.info?.name || "—"}
+              </p>
+              <p className="text-sm text-muted-foreground truncate">
+                {profile?.phone || user?.info?.phone || ""}
+              </p>
+            </div>
           </div>
+        </div>
 
-          <section className="rounded-xl border bg-white shadow-sm">
+        <div className="container-premium py-5 space-y-4">
+
+          {/* ── Feedback banners ── */}
+          {error && (
+            <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {error}
+            </div>
+          )}
+          {success && (
+            <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+              {success}
+            </div>
+          )}
+
+          {/* ── Profile form ── */}
+          <section className="rounded-xl bg-white border border-gray-100 shadow-sm overflow-hidden">
+            <div className="px-4 pt-4 pb-1">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                Personal Information
+              </p>
+            </div>
+
             {isLoading ? (
-              <div className="py-10 text-center text-muted-foreground">
-                Loading Profile...
-              </div>
+              <div className="py-8 text-center text-sm text-muted-foreground">Loading…</div>
             ) : (
-              <form onSubmit={handleSubmit}>
-                <div className="p-4 sm:py-6 space-y-2">
-                  {error && (
-                    <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                      {error}
-                    </div>
-                  )}
-
-                  {success && (
-                    <div className="rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
-                      {success}
-                    </div>
-                  )}
-
-                  <FieldSet>
-                    <FieldLegend>Personal Information</FieldLegend>
-                    <FieldGroup className="grid gap-4 md:grid-cols-2">
-                      <Field>
-                        <FieldLabel htmlFor="name">Name</FieldLabel>
-                        <FieldContent>
-                          <Input
-                            value={form.name}
-                            onChange={handleChange("name")}
-                            placeholder="Enter Your Name"
-                            name="name"
-                            id="name"
-                          />
-                        </FieldContent>
-                      </Field>
-
-                      <Field>
-                        <FieldLabel htmlFor="phone">Phone Number</FieldLabel>
-                        <FieldContent>
-                          <Input
-                            value={form.phone}
-                            onChange={handleChange("phone")}
-                            placeholder="e.g. 1234567890"
-                            name="phone"
-                            id="phone"
-                          />
-                        </FieldContent>
-                      </Field>
-                    </FieldGroup>
-                  </FieldSet>
-
-                  <FieldSet className="mt-4">
-                    <FieldLegend>Change Password</FieldLegend>
-                    <FieldDescription className="text-sm text-muted-foreground">
-                      {passwordHint}
-                    </FieldDescription>
-
-                    <FieldGroup className="grid gap-4 md:grid-cols-3">
-                      <Field>
-                        <FieldLabel htmlFor="current-password">
-                          Current Password
-                        </FieldLabel>
-                        <FieldContent>
-                          <PasswordInput
-                            type="password"
-                            value={form.currentPassword}
-                            onChange={handleChange("currentPassword")}
-                            placeholder="Current Password"
-                            name="current-password"
-                            id="current-password"
-                          />
-                        </FieldContent>
-                      </Field>
-
-                      <Field>
-                        <FieldLabel htmlFor="new-password">New Password</FieldLabel>
-                        <FieldContent>
-                          <PasswordInput
-                            type="password"
-                            value={form.newPassword}
-                            onChange={handleChange("newPassword")}
-                            placeholder="Set New Password"
-                            name="new-password"
-                            id="new-password"
-                          />
-                        </FieldContent>
-                      </Field>
-
-                      <Field>
-                        <FieldLabel htmlFor="confirm-password">
-                          Confirm Password
-                        </FieldLabel>
-                        <FieldContent>
-                          <PasswordInput
-                            type="password"
-                            value={form.confirmPassword}
-                            onChange={handleChange("confirmPassword")}
-                            placeholder="Confirm Password"
-                            name="confirm-password"
-                            id="confirm-password"
-                          />
-                        </FieldContent>
-                      </Field>
-                    </FieldGroup>
-                  </FieldSet>
+              <form onSubmit={handleSubmit} className="p-4 space-y-4">
+                {/* Name + Phone — stacked on mobile, 2-col on md */}
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <label htmlFor="name" className="text-sm font-medium">Name</label>
+                    <Input
+                      id="name" name="name"
+                      value={form.name}
+                      onChange={handleChange("name")}
+                      placeholder="Your name"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label htmlFor="phone" className="text-sm font-medium">Phone</label>
+                    <Input
+                      id="phone" name="phone"
+                      value={form.phone}
+                      onChange={handleChange("phone")}
+                      placeholder="10-digit mobile number"
+                    />
+                  </div>
                 </div>
 
-                <div className="p-4 flex justify-end border-t">
-                  <Button
-                    size="lg"
-                    type="submit"
-                    disabled={saving}
-                    className="w-full sm:max-w-37"
+                {/* Change Password toggle */}
+                <div className="border-t pt-3">
+                  <button
+                    type="button"
+                    onClick={() => { setShowPassword((v) => !v); setError(""); setSuccess(""); }}
+                    className="flex items-center gap-2 text-sm font-medium text-primary"
                   >
-                    {saving ? "Saving Changes..." : "Update Profile"}
-                  </Button>
+                    <KeyRound size={15} />
+                    {showPassword ? "Cancel password change" : "Change password"}
+                  </button>
+
+                  {showPassword && (
+                    <div className="mt-3 grid gap-3 sm:grid-cols-3">
+                      <div className="space-y-1.5">
+                        <label htmlFor="current-password" className="text-sm font-medium">Current Password</label>
+                        <PasswordInput
+                          id="current-password"
+                          value={form.currentPassword}
+                          onChange={handleChange("currentPassword")}
+                          placeholder="Current password"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label htmlFor="new-password" className="text-sm font-medium">New Password</label>
+                        <PasswordInput
+                          id="new-password"
+                          value={form.newPassword}
+                          onChange={handleChange("newPassword")}
+                          placeholder="New password"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label htmlFor="confirm-password" className="text-sm font-medium">Confirm Password</label>
+                        <PasswordInput
+                          id="confirm-password"
+                          value={form.confirmPassword}
+                          onChange={handleChange("confirmPassword")}
+                          placeholder="Confirm password"
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
+
+                <Button
+                  type="submit"
+                  disabled={saving}
+                  className="w-full sm:w-auto sm:min-w-36"
+                >
+                  {saving ? "Saving…" : "Save Changes"}
+                </Button>
               </form>
             )}
           </section>
 
-          {/* ── Milestones & Rewards ── */}
-          <section className="rounded-xl bg-white shadow-sm overflow-hidden">
-            <div className="p-4 border-b">
-              <h2 className="font-semibold text-base">Milestones &amp; Rewards</h2>
-              <p className="text-sm text-muted-foreground mt-0.5">
-                Spend more, earn personalised coupons automatically.
-              </p>
-            </div>
-            <div className="divide-y">
-              {MILESTONES.map((m) => {
-                const earned = awardedByAmount[m.amount];
-                return (
-                  <div key={m.amount} className="flex items-center gap-4 p-4">
-                    <div className={`size-10 rounded-full flex items-center justify-center text-lg font-bold shrink-0 ${earned ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-400"}`}>
-                      {earned ? "✓" : "🎯"}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="font-medium text-sm">Spend {m.label}</div>
-                      <div className="text-xs text-muted-foreground">{m.reward} (up to milestone value)</div>
-                      {earned && (
-                        <div className="mt-1 flex items-center gap-2 flex-wrap">
-                          <span className="font-mono text-xs bg-green-50 border border-green-200 text-green-800 px-2 py-0.5 rounded">
-                            {earned.couponCode}
-                          </span>
-                          {earned.isValid ? (
-                            <span className="text-xs text-green-600">
-                              Valid until {new Date(earned.expiresAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
-                            </span>
-                          ) : (
-                            <span className="text-xs text-muted-foreground">Expired / Used</span>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                    <div className={`text-xs font-medium shrink-0 ${earned ? "text-green-600" : "text-muted-foreground"}`}>
-                      {earned ? "Earned 🎉" : "Locked"}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+          {/* ── Quick links ── */}
+          <section className="rounded-xl bg-white border border-gray-100 shadow-sm overflow-hidden divide-y divide-gray-100">
+            {quickLinks.map(({ to, label, icon: Icon, color }) => (
+              <Link
+                key={to}
+                to={to}
+                className="flex items-center gap-3 px-4 py-3.5 hover:bg-gray-50 transition-colors group"
+              >
+                <span className={cn("size-9 rounded-lg flex items-center justify-center shrink-0", color)}>
+                  <Icon size={17} />
+                </span>
+                <span className="flex-1 text-sm font-medium">{label}</span>
+                <ChevronRight size={16} className="text-gray-300 group-hover:text-gray-500 transition-colors" />
+              </Link>
+            ))}
           </section>
 
-          <div className="grid">
-            <div className="rounded-t-xl bg-white flex gap-3 items-start sm:items-center p-4 shadow-sm border border-gray-100 border-b-none">
-              <span className="size-10 grid place-items-center bg-green-500/10 p-2 rounded-md">
-                <Shield pack="filled" className="fill-green-400 size-6" />
-              </span>
-              <div>
-                <div className="font-medium">Save Your Preferences</div>
-                <div className="mt-0.5 text-sm text-muted-foreground">
-                  Your menu, wallet, and order history are linked to this
-                  account.
-                </div>
-              </div>
-            </div>
-            <div className="bg-white flex gap-3 items-start sm:items-center p-4 shadow-sm border border-gray-100 ">
-              <span className="size-10 grid place-items-center bg-red-500/10 p-2 rounded-md">
-                <Menu pack="filled" className="fill-red-400 size-6" />
-              </span>
-              <div>
-                <div className="font-medium">Quick Access To Your Account</div>
-                <div className="mt-1 text-sm text-muted-foreground">
-                  Use the hamburger menu any time to open your account
-                  shortcuts.
-                </div>
-              </div>
-            </div>
-            <div className="rounded-b-xl bg-white flex gap-3 items-start sm:items-center p-4 shadow-sm border border-gray-100 border-t-none">
-              <span className="size-10 grid place-items-center bg-blue-500/10 p-2 rounded-md">
-                <LockKeyhole pack="filled" className="fill-blue-400 size-6" />
-              </span>
-              <div>
-                <div className="font-medium">Secure Password Protection</div>
-                <div className="mt-1 text-sm text-muted-foreground">
-                  You'll need your current password before setting a new one.
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
       </main>
     </div>

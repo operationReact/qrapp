@@ -21,6 +21,7 @@ import {
   LockKeyIcon,
   ShoppingCartSimpleIcon,
   SignOutIcon,
+  TrophyIcon,
   UserGearIcon,
   WalletIcon,
 } from "@phosphor-icons/react";
@@ -82,16 +83,11 @@ export default function Navbar() {
       label: "Party Orders",
       icon: ConfettiIcon,
     },
-    // {
-    //   to: "/wallet",
-    //   label: "Wallet",
-    //   icon: WalletIcon,
-    // },
-    // {
-    //   to: "/",
-    //   label: "Menu",
-    //   icon: BowlFoodIcon,
-    // },
+    {
+      to: "/milestones",
+      label: "Milestones & Rewards",
+      icon: TrophyIcon,
+    },
   ];
 
   return (
