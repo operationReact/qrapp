@@ -180,7 +180,7 @@ export default function MenuItemCard({
               </span>
             ) : preOrderOnly ? (
               /* No per-card button — the whole card is tappable */
-              <span className="text-[10px] font-medium text-indigo-400 select-none">
+              <span className="text-[10px] font-medium text-indigo-600 select-none">
                 Tap to pre-order
               </span>
             ) : (
