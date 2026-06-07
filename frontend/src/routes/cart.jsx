@@ -457,7 +457,7 @@ function CartPage() {
           {/* ── Promotion Section ─────────────────────────────────────── */}
           {cart.length > 0 && cartPayload && (
             <section className="rounded-xl bg-card border border-border shadow-xs p-4">
-              <h4 className="text-sm font-semibold mb-3 text-muted-foreground uppercase tracking-wide">
+              <h4 className="text-sm font-medium mb-3 text-secondary-foreground">
                 Offers & Coupons
               </h4>
               <PromotionDrawer
