@@ -8,10 +8,16 @@ import {
   DrawerDescription,
 } from "@/components/ui/drawer";
 import { cn } from "@/lib/utils";
-import { TagIcon, ClockIcon, StarIcon, ProhibitIcon } from "@phosphor-icons/react";
+import {
+  TagIcon,
+  ClockIcon,
+  StarIcon,
+  ProhibitIcon,
+} from "@phosphor-icons/react";
 import { baseURL } from "@/services";
 import { useCart } from "@/context/CartContext";
 import QuantitySelector from "@/components/QuantitySelector";
+import { Badge } from "./ui/badge";
 
 // ── Combo → cart item shape ────────────────────────────────────────────────
 // Combos are not menu items, so we give them a prefixed id to avoid
@@ -47,12 +53,12 @@ function ComboCard({ combo }) {
   return (
     <div
       className={cn(
-        "flex gap-3 rounded-2xl border border-border bg-white p-3 shadow-sm",
+        "flex gap-3 rounded-lg border border-border bg-white p-2",
         !isAvailable && "opacity-60",
       )}
     >
       {/* ── Thumbnail ─────────────────────────────── */}
-      <div className="relative h-[88px] w-[88px] shrink-0 overflow-hidden rounded-xl bg-muted">
+      <div className="relative size-20 shrink-0 overflow-hidden rounded-lg bg-muted">
         {imageSrc ? (
           <img
             src={imageSrc}
@@ -68,35 +74,35 @@ function ComboCard({ combo }) {
             />
           </div>
         )}
-
-        {/* Featured badge — overlaid on image */}
-        {combo.isFeatured && (
-          <span className="absolute bottom-1 left-1 right-1 flex items-center justify-center gap-0.5 rounded-md bg-amber-500/90 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white backdrop-blur-sm">
-            <StarIcon weight="fill" className="size-2.5" />
-            Featured
-          </span>
-        )}
       </div>
 
       {/* ── Content ───────────────────────────────── */}
       <div className="flex min-w-0 flex-1 flex-col justify-between gap-1.5">
-
         {/* Row 1: name + savings badge */}
         <div className="flex items-start justify-between gap-1">
-          <h3 className="line-clamp-2 flex-1 text-[14px] font-bold leading-snug text-gray-900">
-            {combo.comboName}
-          </h3>
+          <div className="flex flex-wrap items-center gap-1">
+            <h3 className="flex-1 shrink-0 text-sm font-semibold leading-snug">
+              {combo.comboName}
+            </h3>
+            {/* Featured badge — overlaid on image */}
+            {combo.isFeatured && (
+              <Badge className="bg-amber-100 text-amber-700">
+                <StarIcon weight="fill" className="size-2.5" />
+                Featured
+              </Badge>
+            )}
+          </div>
           {savings > 0 && (
-            <span className="ml-1 flex shrink-0 items-center gap-0.5 rounded-full bg-green-50 px-2 py-0.5 text-[10px] font-bold text-green-700 ring-1 ring-green-100">
+            <Badge className="ml-1 bg-green-50 text-green-700 border-green-100">
               <TagIcon weight="bold" className="size-2.5" />
               {savings.toFixed(0)}% off
-            </span>
+            </Badge>
           )}
         </div>
 
         {/* Row 2: item names */}
         {combo.itemNames?.length > 0 && (
-          <p className="line-clamp-1 text-[11px] leading-tight text-gray-500">
+          <p className="line-clamp-1 text-xs leading-tight text-zinc-500">
             {combo.itemNames.join(" · ")}
           </p>
         )}
@@ -105,12 +111,12 @@ function ComboCard({ combo }) {
         <div className="flex items-center justify-between gap-2">
           {/* Pricing */}
           <div className="flex items-baseline gap-1.5">
-            <span className="text-[15px] font-extrabold leading-none text-gray-900">
+            <span className="text-sm font-semibold leading-none">
               ₹{Number(combo.comboPrice).toFixed(0)}
             </span>
             {combo.originalPrice &&
               Number(combo.originalPrice) > Number(combo.comboPrice) && (
-                <span className="text-[11px] text-gray-400 line-through">
+                <span className="text-xs text-zinc-500 line-through">
                   ₹{Number(combo.originalPrice).toFixed(0)}
                 </span>
               )}
@@ -124,15 +130,24 @@ function ComboCard({ combo }) {
               onRemove={() => decreaseItem(cartItem)}
             />
           ) : (
-            <span className="flex items-center gap-1 rounded-full border border-dashed border-gray-300 px-2.5 py-1 text-[10px] font-medium text-gray-400">
+            <Badge className="border-dashed border-gray-300 bg-gray-50 text-gray-500">
               {combo.availabilityStatus === "SCHEDULE_INACTIVE" ? (
-                <><ClockIcon weight="duotone" className="size-3" />Available later</>
+                <>
+                  <ClockIcon weight="duotone" className="size-3" />
+                  Available later
+                </>
               ) : combo.availabilityStatus === "PREORDER_CLOSED" ? (
-                <><ClockIcon weight="duotone" className="size-3" />Pre-order closed</>
+                <>
+                  <ClockIcon weight="duotone" className="size-3" />
+                  Pre-order closed
+                </>
               ) : (
-                <><ProhibitIcon weight="duotone" className="size-3" />Unavailable</>
+                <>
+                  <ProhibitIcon weight="duotone" className="size-3" />
+                  Unavailable
+                </>
               )}
-            </span>
+            </Badge>
           )}
         </div>
       </div>
@@ -142,7 +157,11 @@ function ComboCard({ combo }) {
 
 // ── Drawer ─────────────────────────────────────────────────────────────────
 export default function CombosDrawer({ open, onOpenChange }) {
-  const { data: combos = [], isLoading, isError } = useQuery({
+  const {
+    data: combos = [],
+    isLoading,
+    isError,
+  } = useQuery({
     ...publicCombosOptions,
     enabled: open,
   });
@@ -151,7 +170,9 @@ export default function CombosDrawer({ open, onOpenChange }) {
     <Drawer open={open} onOpenChange={onOpenChange}>
       <DrawerContent className="max-h-[90dvh] md:max-w-lg md:mx-auto">
         <DrawerHeader className="pb-1">
-          <DrawerTitle className="text-[17px] font-bold">🏷️ Combo Deals</DrawerTitle>
+          <DrawerTitle className="text-[17px] font-bold">
+            🏷️ Combo Deals
+          </DrawerTitle>
           <DrawerDescription className="text-[13px]">
             Bundle and save — exclusive combo pricing on your favourites.
           </DrawerDescription>
@@ -165,7 +186,10 @@ export default function CombosDrawer({ open, onOpenChange }) {
           {isLoading && (
             <div className="flex flex-col gap-3">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="h-[106px] animate-pulse rounded-2xl bg-gray-100" />
+                <div
+                  key={i}
+                  className="h-[106px] animate-pulse rounded-2xl bg-gray-100"
+                />
               ))}
             </div>
           )}
