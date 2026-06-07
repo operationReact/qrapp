@@ -5,6 +5,7 @@ import { bulkUpdateEstimatedCosts } from "@/services/menu-service";
 import {
   Sheet,
   SheetContent,
+  SheetDescription,
   SheetFooter,
   SheetHeader,
   SheetTitle,
@@ -20,6 +21,12 @@ import {
   MagnifyingGlassIcon,
 } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from "../ui/input-group";
+import { ButtonGroup } from "../ui/button-group";
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -89,9 +96,10 @@ export default function BulkCostEditSheet({ open, onOpenChange, items = [] }) {
     if (filterMissing) {
       list = list.filter((item) => {
         const localCost = localCosts[item.id];
-        const hasCost = localCost !== undefined
-          ? (localCost !== "" && !isNaN(Number(localCost)))
-          : (item.estimatedCost != null);
+        const hasCost =
+          localCost !== undefined
+            ? localCost !== "" && !isNaN(Number(localCost))
+            : item.estimatedCost != null;
         return !hasCost;
       });
     }
@@ -103,96 +111,123 @@ export default function BulkCostEditSheet({ open, onOpenChange, items = [] }) {
   }, [items, filterMissing, search, localCosts]);
 
   // Coverage stats
-  const activeItems   = useMemo(() => items.filter((i) => i.available), [items]);
-  const coveredActive = useMemo(() => activeItems.filter((i) => {
-    const lc = localCosts[i.id];
-    return lc !== undefined
-      ? (lc !== "" && !isNaN(Number(lc)))
-      : (i.estimatedCost != null);
-  }).length, [activeItems, localCosts]);
+  const activeItems = useMemo(() => items.filter((i) => i.available), [items]);
+  const coveredActive = useMemo(
+    () =>
+      activeItems.filter((i) => {
+        const lc = localCosts[i.id];
+        return lc !== undefined
+          ? lc !== "" && !isNaN(Number(lc))
+          : i.estimatedCost != null;
+      }).length,
+    [activeItems, localCosts],
+  );
 
-  const coveragePct = activeItems.length > 0
-    ? Math.round((coveredActive / activeItems.length) * 100)
-    : 100;
+  const coveragePct =
+    activeItems.length > 0
+      ? Math.round((coveredActive / activeItems.length) * 100)
+      : 100;
 
   const missingCount = activeItems.length - coveredActive;
 
   return (
     <Sheet open={open} onOpenChange={handleOpenChange}>
-      <SheetContent className="w-full sm:max-w-xl flex flex-col">
-        <SheetHeader className="border-b pb-3">
+      <SheetContent>
+        <SheetHeader className="border-b">
           <SheetTitle className="font-semibold">Set Estimated Costs</SheetTitle>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Set per-unit production cost for each menu item to enable profitability reporting.
-          </p>
+          <SheetDescription>
+            Set per-unit production cost for each menu item to enable
+            profitability reporting.
+          </SheetDescription>
         </SheetHeader>
 
         {/* Coverage strip */}
-        <div className={cn(
-          "mx-0 rounded-xl border px-4 py-3 flex items-center gap-3 shrink-0",
-          coveragePct === 100 ? "bg-emerald-50 border-emerald-200" :
-          missingCount > 0    ? "bg-amber-50 border-amber-200"     :
-          "bg-zinc-50 border-zinc-200"
-        )}>
+        <div
+          className={cn(
+            "rounded-lg mx-4 border py-4 px-2 items-center gap-3 shrink-0",
+            coveragePct === 100
+              ? "bg-emerald-50 border-emerald-200"
+              : missingCount > 0
+                ? "bg-amber-50 border-amber-200"
+                : "bg-zinc-50 border-zinc-200",
+          )}
+        >
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
               {missingCount > 0 ? (
-                <WarningCircleIcon weight="fill" className="size-4 text-amber-500 shrink-0" />
+                <WarningCircleIcon
+                  weight="fill"
+                  className="size-4 text-amber-500 shrink-0"
+                />
               ) : (
-                <CheckCircleIcon weight="fill" className="size-4 text-emerald-500 shrink-0" />
+                <CheckCircleIcon
+                  weight="fill"
+                  className="size-4 text-emerald-500 shrink-0"
+                />
               )}
               <span className="text-sm font-semibold">
                 {coveragePct}% cost coverage
               </span>
-              {missingCount > 0 && (
-                <Badge className="bg-amber-100 text-amber-700 border-amber-300 text-xs">
-                  {missingCount} active item{missingCount !== 1 ? "s" : ""} missing cost
-                </Badge>
-              )}
             </div>
             <p className="text-xs text-muted-foreground mt-0.5 ml-6">
-              {coveredActive} of {activeItems.length} active items have a cost set.
+              {coveredActive} of {activeItems.length} active items have a cost
+              set.
             </p>
+            {missingCount > 0 && (
+              <Badge className="ml-6 mt-2 bg-amber-100 text-amber-700 border-amber-300 text-xs">
+                {missingCount} active item{missingCount !== 1 ? "s" : ""}{" "}
+                missing cost
+              </Badge>
+            )}
           </div>
         </div>
 
         {/* Filter bar */}
-        <div className="flex gap-2 shrink-0">
-          <div className="relative flex-1">
-            <MagnifyingGlassIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-            <Input
-              placeholder="Search items…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-8 h-9"
-            />
-          </div>
-          <Button
-            size="sm"
-            variant={filterMissing ? "default" : "outline"}
-            className="shrink-0 h-9"
-            onClick={() => setFilterMissing((v) => !v)}
-          >
-            <WarningCircleIcon weight={filterMissing ? "fill" : "regular"} className="size-4 mr-1" />
-            Missing Only
-          </Button>
+        <div className="flex px-4 gap-2 shrink-0">
+          <ButtonGroup className="w-full">
+            <InputGroup>
+              <InputGroupAddon>
+                <MagnifyingGlassIcon />
+              </InputGroupAddon>
+              <InputGroupInput
+                placeholder="Search items…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </InputGroup>
+            <Button
+              size="xs"
+              variant={filterMissing ? "branded-secondary" : "outline"}
+              className="h-9"
+              onClick={() => setFilterMissing((v) => !v)}
+            >
+              <WarningCircleIcon weight={filterMissing ? "fill" : "regular"} />
+              Missing Only
+            </Button>
+          </ButtonGroup>
         </div>
 
         {/* Item list */}
-        <div className="flex-1 overflow-y-auto space-y-1 pr-0.5 -mr-0.5 no-scrollbar">
+        <div className="flex-1 px-4 overflow-y-auto space-y-2 -mr-0.5 no-scrollbar">
           {displayItems.length === 0 && (
             <div className="py-12 text-center text-sm text-muted-foreground">
-              {filterMissing ? "All active items have a cost set 🎉" : "No items found."}
+              {filterMissing
+                ? "All active items have a cost set 🎉"
+                : "No items found."}
             </div>
           )}
           {displayItems.map((item) => {
-            const currentCost = localCosts[item.id] !== undefined
-              ? localCosts[item.id]
-              : (item.estimatedCost != null ? String(item.estimatedCost) : "");
+            const currentCost =
+              localCosts[item.id] !== undefined
+                ? localCosts[item.id]
+                : item.estimatedCost != null
+                  ? String(item.estimatedCost)
+                  : "";
 
-            const hasLocalCost = currentCost !== "" && !isNaN(Number(currentCost));
+            const hasLocalCost =
+              currentCost !== "" && !isNaN(Number(currentCost));
             const isDirty = localCosts[item.id] !== undefined;
-            const margin  = calcMargin(item.price, currentCost);
+            const margin = calcMargin(item.price, currentCost);
             const isMissing = !hasLocalCost && item.available;
 
             return (
@@ -203,29 +238,40 @@ export default function BulkCostEditSheet({ open, onOpenChange, items = [] }) {
                   isMissing
                     ? "border-amber-200 bg-amber-50/50"
                     : isDirty
-                      ? "border-emerald-300 bg-emerald-50/40"
-                      : "border-zinc-100 bg-white hover:bg-zinc-50/60"
+                      ? "border-emerald-200 bg-emerald-50/40"
+                      : "border-zinc-100 bg-white hover:bg-zinc-50/60",
                 )}
               >
                 {/* Item info */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-sm font-medium truncate">{item.name}</span>
+                    <span className="text-sm font-medium truncate">
+                      {item.name}
+                    </span>
                     {!item.available && (
-                      <Badge className="text-[10px] bg-zinc-100 text-zinc-500 shrink-0">Draft</Badge>
+                      <Badge className="bg-zinc-100 text-zinc-500 shrink-0">
+                        Draft
+                      </Badge>
                     )}
                     {isDirty && (
-                      <Badge className="text-[10px] bg-emerald-100 text-emerald-700 shrink-0">Modified</Badge>
+                      <Badge className="bg-emerald-100 text-emerald-700 shrink-0">
+                        Modified
+                      </Badge>
                     )}
                   </div>
                   <div className="text-xs text-muted-foreground flex items-center gap-2 mt-0.5">
                     <span>₹{item.price}</span>
                     {margin != null && (
-                      <span className={cn(
-                        "font-medium",
-                        Number(margin) >= 60 ? "text-emerald-600" :
-                        Number(margin) >= 30 ? "text-amber-600" : "text-red-600"
-                      )}>
+                      <span
+                        className={cn(
+                          "font-medium",
+                          Number(margin) >= 60
+                            ? "text-emerald-600"
+                            : Number(margin) >= 30
+                              ? "text-amber-600"
+                              : "text-red-600",
+                        )}
+                      >
                         → {margin}% margin
                       </span>
                     )}
@@ -256,14 +302,20 @@ export default function BulkCostEditSheet({ open, onOpenChange, items = [] }) {
               ? `${pendingUpdates.length} change${pendingUpdates.length !== 1 ? "s" : ""} ready to save`
               : "No changes yet"}
           </div>
-          <Button variant="outline" onClick={() => handleOpenChange(false)} disabled={saveMutation.isPending}>
+          <Button
+            variant="outline"
+            onClick={() => handleOpenChange(false)}
+            disabled={saveMutation.isPending}
+          >
             Cancel
           </Button>
           <Button
             onClick={handleSave}
             disabled={saveMutation.isPending || pendingUpdates.length === 0}
           >
-            {saveMutation.isPending ? "Saving…" : `Save ${pendingUpdates.length > 0 ? `(${pendingUpdates.length})` : ""}`}
+            {saveMutation.isPending
+              ? "Saving…"
+              : `Save ${pendingUpdates.length > 0 ? `(${pendingUpdates.length})` : ""}`}
           </Button>
         </SheetFooter>
       </SheetContent>
@@ -276,4 +328,3 @@ BulkCostEditSheet.propTypes = {
   onOpenChange: PropTypes.func.isRequired,
   items: PropTypes.array,
 };
-

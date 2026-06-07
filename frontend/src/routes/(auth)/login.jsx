@@ -87,8 +87,11 @@ export const Route = createFileRoute("/(auth)/login")({
               alt="Your Easy Access To Delicious Meals"
               className="w-full border border-muted login-banner rounded-[14px] overflow-hidden"
             />
-            <div className="mb-2 mt-4">
-              <h1 className="text-2xl font-semibold">Login Your Account</h1>
+            <div className="mb-4 mt-4">
+              <h1 className="text-lg font-medium">
+                Welcome back,
+                <span className="text-primary"> Login Your Account</span>
+              </h1>
             </div>
             {(loginMutation.isError || noToken) && (
               <div className="mb-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
@@ -99,7 +102,7 @@ export const Route = createFileRoute("/(auth)/login")({
             )}
             <form onSubmit={submit} className="space-y-4">
               <Field>
-                <FieldLabel>Phone Number / Username</FieldLabel>
+                <FieldLabel htmlFor="identifier">Phone Number / Username</FieldLabel>
                 <FieldContent>
                   <Input
                     ref={firstFormField}
@@ -108,23 +111,31 @@ export const Route = createFileRoute("/(auth)/login")({
                     required
                     placeholder="e.g. 1234567890 or admin"
                     className="h-10"
+                    name="identifier"
+                    id="identifier"
                   />
                 </FieldContent>
               </Field>
               <Field>
-                <FieldLabel>Password</FieldLabel>
+                <FieldLabel htmlFor="password">Password</FieldLabel>
                 <FieldContent>
                   <PasswordInput
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="h-10"
                     required
+                    name="password"
+                    id="password"
                   />
                 </FieldContent>
               </Field>
               <Link
                 to="/forget-password"
-                className={buttonVariants({ variant: "link", size: "sm",className:"mt-0 mr-0 ml-auto flex! w-fit justify-end" })}
+                className={buttonVariants({
+                  variant: "link",
+                  size: "sm",
+                  className: "mt-0 mr-0 ml-auto flex! w-fit justify-end",
+                })}
               >
                 Forgot Password?
               </Link>

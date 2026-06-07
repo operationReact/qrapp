@@ -6,6 +6,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { useQuery } from "@tanstack/react-query";
 import { categoriesOptions } from "@/query/options/menu";
 import { PlusIcon, TrashIcon } from "@phosphor-icons/react";
+import {
+  Field,
+  FieldContent,
+  FieldDescription,
+  FieldLabel,
+} from "@/components/ui/field";
 
 const DISCOUNT_TYPES = [
   { value: "PERCENTAGE", label: "%" },
@@ -14,7 +20,7 @@ const DISCOUNT_TYPES = [
 
 function TierRow({ tier, index, onChange, onRemove, isLast }) {
   return (
-    <div className="flex items-center gap-2 rounded-xl border bg-muted/30 p-2.5">
+    <div className="flex items-center gap-2 rounded-sm border bg-muted/30 p-2.5">
       <div className="flex items-center gap-1.5 flex-1 min-w-0">
         <span className="text-xs font-medium text-muted-foreground w-16 shrink-0">
           {index + 1}. ≥ items
@@ -43,7 +49,9 @@ function TierRow({ tier, index, onChange, onRemove, isLast }) {
           className="h-8 rounded-md border bg-background px-2 text-sm"
         >
           {DISCOUNT_TYPES.map((t) => (
-            <option key={t.value} value={t.value}>{t.label}</option>
+            <option key={t.value} value={t.value}>
+              {t.label}
+            </option>
           ))}
         </select>
         <Input
@@ -68,11 +76,25 @@ function TierRow({ tier, index, onChange, onRemove, isLast }) {
   );
 }
 
-export default function ComboCampaignForm({ initialData, onSubmit, submitting }) {
+export default function ComboCampaignForm({
+  initialData,
+  onSubmit,
+  submitting,
+}) {
   const [name, setName] = useState(initialData?.name ?? "");
-  const [description, setDescription] = useState(initialData?.description ?? "");
-  const [startsAt, setStartsAt] = useState(initialData?.startsAt ? new Date(initialData.startsAt).toISOString().slice(0, 16) : "");
-  const [endsAt, setEndsAt] = useState(initialData?.endsAt ? new Date(initialData.endsAt).toISOString().slice(0, 16) : "");
+  const [description, setDescription] = useState(
+    initialData?.description ?? "",
+  );
+  const [startsAt, setStartsAt] = useState(
+    initialData?.startsAt
+      ? new Date(initialData.startsAt).toISOString().slice(0, 16)
+      : "",
+  );
+  const [endsAt, setEndsAt] = useState(
+    initialData?.endsAt
+      ? new Date(initialData.endsAt).toISOString().slice(0, 16)
+      : "",
+  );
   const displayPriority = initialData?.displayPriority ?? 0;
 
   const [tiers, setTiers] = useState(
@@ -84,28 +106,55 @@ export default function ComboCampaignForm({ initialData, onSubmit, submitting })
           tierLabel: t.tierLabel ?? "",
         }))
       : [
-          { minItems: 2, discountType: "PERCENTAGE", discountValue: 5, tierLabel: "5% OFF" },
-          { minItems: 3, discountType: "PERCENTAGE", discountValue: 10, tierLabel: "10% OFF" },
-          { minItems: 4, discountType: "PERCENTAGE", discountValue: 15, tierLabel: "15% OFF" },
-          { minItems: 5, discountType: "PERCENTAGE", discountValue: 20, tierLabel: "20% OFF" },
-        ]
+          {
+            minItems: 2,
+            discountType: "PERCENTAGE",
+            discountValue: 5,
+            tierLabel: "5% OFF",
+          },
+          {
+            minItems: 3,
+            discountType: "PERCENTAGE",
+            discountValue: 10,
+            tierLabel: "10% OFF",
+          },
+          {
+            minItems: 4,
+            discountType: "PERCENTAGE",
+            discountValue: 15,
+            tierLabel: "15% OFF",
+          },
+          {
+            minItems: 5,
+            discountType: "PERCENTAGE",
+            discountValue: 20,
+            tierLabel: "20% OFF",
+          },
+        ],
   );
 
   const [eligibleCategoryIds, setEligibleCategoryIds] = useState(
-    initialData?.eligibleCategoryIds ?? []
+    initialData?.eligibleCategoryIds ?? [],
   );
 
   const { data: categories = [] } = useQuery(categoriesOptions);
 
   const handleTierChange = (idx, key, value) => {
-    setTiers((prev) => prev.map((t, i) => (i === idx ? { ...t, [key]: value } : t)));
+    setTiers((prev) =>
+      prev.map((t, i) => (i === idx ? { ...t, [key]: value } : t)),
+    );
   };
 
   const addTier = () => {
     const lastMin = tiers[tiers.length - 1]?.minItems ?? 1;
     setTiers((prev) => [
       ...prev,
-      { minItems: lastMin + 1, discountType: "PERCENTAGE", discountValue: "", tierLabel: "" },
+      {
+        minItems: lastMin + 1,
+        discountType: "PERCENTAGE",
+        discountValue: "",
+        tierLabel: "",
+      },
     ]);
   };
 
@@ -115,7 +164,7 @@ export default function ComboCampaignForm({ initialData, onSubmit, submitting })
 
   const toggleCategory = (id) => {
     setEligibleCategoryIds((prev) =>
-      prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]
+      prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id],
     );
   };
 
@@ -142,106 +191,155 @@ export default function ComboCampaignForm({ initialData, onSubmit, submitting })
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5">
+    <form
+      id="combo-campaign-form"
+      onSubmit={handleSubmit}
+      className="space-y-5 px-1"
+    >
       {/* Basic info */}
       <div className="space-y-3">
-        <div>
-          <Label htmlFor="camp-name">Campaign Name *</Label>
-          <Input
-            id="camp-name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder='e.g. "Build Your Meal & Save"'
-            required
-          />
-        </div>
-        <div>
-          <Label htmlFor="camp-desc">Description</Label>
-          <Textarea
-            id="camp-desc"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="Add more items to unlock bigger discounts"
-            rows={2}
-          />
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <Label>Starts At</Label>
-            <Input type="datetime-local" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} />
-          </div>
-          <div>
-            <Label>Ends At</Label>
-            <Input type="datetime-local" value={endsAt} onChange={(e) => setEndsAt(e.target.value)} />
-          </div>
-        </div>
+        <Field>
+          <FieldLabel htmlFor="camp-name">Campaign Name *</FieldLabel>
+          <FieldContent>
+            <Input
+              id="camp-name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder='e.g. "Build Your Meal & Save"'
+              required
+            />
+          </FieldContent>
+        </Field>
+        <Field>
+          <FieldLabel htmlFor="camp-desc">Description</FieldLabel>
+          <FieldContent>
+            <Textarea
+              id="camp-desc"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Add more items to unlock bigger discounts"
+              rows={2}
+            />
+          </FieldContent>
+        </Field>
+        <Field>
+          <FieldLabel htmlFor="camp-starts-at">Starts At</FieldLabel>
+          <FieldContent>
+            <Input
+              type="datetime-local"
+              value={startsAt}
+              onChange={(e) => setStartsAt(e.target.value)}
+            />
+          </FieldContent>
+        </Field>
+        <Field>
+          <FieldLabel htmlFor="camp-ends-at">Ends At</FieldLabel>
+          <FieldContent>
+            <Input
+              type="datetime-local"
+              value={endsAt}
+              onChange={(e) => setEndsAt(e.target.value)}
+            />
+          </FieldContent>
+        </Field>
       </div>
 
       {/* Discount tiers */}
       <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <Label className="text-sm font-semibold">Discount Ladder *</Label>
-          <Button type="button" variant="ghost" size="sm" onClick={addTier} className="gap-1">
-            <PlusIcon className="size-3.5" /> Add Tier
-          </Button>
-        </div>
-        <p className="text-xs text-muted-foreground">
-          Items ≥ threshold → unlock that discount. Example: 2 items → 5%, 3 items → 10%
-        </p>
-        {tiers.map((tier, idx) => (
-          <TierRow
-            key={idx}
-            tier={tier}
-            index={idx}
-            onChange={handleTierChange}
-            onRemove={removeTier}
-            isLast={idx === tiers.length - 1}
-          />
-        ))}
-      </div>
+        <Field>
+          <div className="flex items-baseline justify-between gap-2">
+            <div>
+              <FieldLabel htmlFor="camp-tiers">Discount Ladder *</FieldLabel>
+              <FieldDescription>
+                Items ≥ threshold → unlock that discount. Example: 2 items → 5%,
+                3 items → 10%
+              </FieldDescription>
+            </div>
 
-      {/* Category eligibility */}
-      <div className="space-y-2">
-        <Label className="text-sm font-semibold">Eligible Categories</Label>
-        <p className="text-xs text-muted-foreground">
-          Leave blank to make all items eligible. Select specific categories to restrict.
-        </p>
-        <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto border rounded-xl p-2">
-          {categories.length === 0 && (
-            <span className="text-xs text-muted-foreground">Loading categories…</span>
-          )}
-          {categories.map((cat) => {
-            const selected = eligibleCategoryIds.includes(cat.id);
-            return (
-              <button
-                key={cat.id}
-                type="button"
-                onClick={() => toggleCategory(cat.id)}
-                className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                  selected
-                    ? "bg-emerald-500 text-white"
-                    : "bg-muted text-muted-foreground hover:bg-muted/80"
-                }`}
-              >
-                {selected ? "✓ " : ""}{cat.name}
-              </button>
-            );
-          })}
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={addTier}
+              className="gap-1"
+            >
+              <PlusIcon className="size-3.5" /> Add Tier
+            </Button>
+          </div>
+          <FieldContent>
+            {tiers.map((tier, idx) => (
+              <TierRow
+                key={idx}
+                tier={tier}
+                index={idx}
+                onChange={handleTierChange}
+                onRemove={removeTier}
+                isLast={idx === tiers.length - 1}
+              />
+            ))}
+          </FieldContent>
+        </Field>
+
+        {/* Category eligibility */}
+        <div className="space-y-2 mt-4">
+          <Field>
+            <FieldLabel htmlFor="camp-categories">
+              Eligible Categories
+            </FieldLabel>
+            <FieldDescription>
+              {" "}
+              Leave blank to make all items eligible. Select specific categories
+              to restrict.
+            </FieldDescription>
+            <FieldContent>
+              <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto border rounded-xl p-2">
+                {categories.length === 0 && (
+                  <span className="text-xs text-muted-foreground">
+                    Loading categories…
+                  </span>
+                )}
+                {categories.map((cat) => {
+                  const selected = eligibleCategoryIds.includes(cat.id);
+                  return (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      onClick={() => toggleCategory(cat.id)}
+                      className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                        selected
+                          ? "bg-emerald-500 text-white"
+                          : "bg-muted text-muted-foreground hover:bg-muted/80"
+                      }`}
+                    >
+                      {selected ? "✓ " : ""}
+                      {cat.name}
+                    </button>
+                  );
+                })}
+              </div>
+              {eligibleCategoryIds.length > 0 && (
+                <p className="text-xs text-emerald-700 font-medium">
+                  {eligibleCategoryIds.length} category(s) selected
+                </p>
+              )}
+            </FieldContent>
+          </Field>
         </div>
-        {eligibleCategoryIds.length > 0 && (
-          <p className="text-xs text-emerald-700 font-medium">
-            {eligibleCategoryIds.length} category(s) selected
-          </p>
-        )}
       </div>
 
       {/* Submit */}
       <div className="flex justify-end gap-2 pt-2">
-        <Button type="submit" disabled={submitting || !name.trim() || tiers.length === 0}>
-          {submitting ? "Saving…" : initialData ? "Update Campaign" : "Create Campaign"}
+        <Button
+          type="submit"
+          disabled={submitting || !name.trim() || tiers.length === 0}
+        >
+          {submitting
+            ? "Saving…"
+            : initialData
+              ? "Update Campaign"
+              : "Create Campaign"}
         </Button>
       </div>
     </form>
   );
 }
-

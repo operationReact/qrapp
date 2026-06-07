@@ -236,7 +236,7 @@ export default function PromotionForm({ initialData, onSubmit, id }) {
   const isAutomatic = form.promoType === "AUTOMATIC_DISCOUNT";
 
   return (
-    <form id={id} onSubmit={handleSubmit} className="space-y-5">
+    <form id={id} onSubmit={handleSubmit} className="space-y-5 px-1">
 
       {/* ── Promotion Type ── */}
       <div className="space-y-2">
@@ -266,13 +266,13 @@ export default function PromotionForm({ initialData, onSubmit, id }) {
           <Label>Stack Mode</Label>
           <p className="text-xs text-muted-foreground mt-0.5">Can this promotion be combined with others at checkout?</p>
         </div>
-        <div className="grid grid-cols-3 gap-2">
+        <div className="flex flex-wrap gap-2">
           {STACK_MODES.map(t => (
             <button
               key={t.value}
               type="button"
               onClick={() => set("stackMode", t.value)}
-              className={`text-left rounded-lg border p-3 transition-colors ${
+              className={`text-left flex-1 min-w-fit rounded-lg border p-3 transition-colors ${
                 form.stackMode === t.value
                   ? "border-primary bg-primary/5"
                   : "border-border hover:border-primary/50"
@@ -323,7 +323,7 @@ export default function PromotionForm({ initialData, onSubmit, id }) {
 
       {/* ── Reward ── */}
       <div className="rounded-lg border p-3 space-y-3">
-        <p className="text-sm font-semibold">Reward</p>
+        <p className="text-sm font-medium">Reward</p>
         <div className="space-y-1.5">
           <Label>Reward Type</Label>
           <Select value={form.rewardType} onValueChange={v => set("rewardType", v)}>
@@ -368,7 +368,7 @@ export default function PromotionForm({ initialData, onSubmit, id }) {
       {/* ── Rules ── */}
       <div className="rounded-lg border p-3 space-y-3">
         <div className="flex items-center justify-between">
-          <p className="text-sm font-semibold">Rules</p>
+          <p className="text-sm font-medium">Rules</p>
           <Button type="button" variant="outline" size="sm" onClick={addRule}>
             <PlusIcon className="size-3.5" /> Add Rule
           </Button>
@@ -426,7 +426,7 @@ export default function PromotionForm({ initialData, onSubmit, id }) {
       <div className="rounded-lg border p-3 space-y-3">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm font-semibold">Targeting (Scopes)</p>
+            <p className="text-sm font-medium">Targeting (Scopes)</p>
             <p className="text-xs text-muted-foreground">Restrict this promotion to specific categories or items. Leave empty to apply to everything.</p>
           </div>
           <Button type="button" variant="outline" size="sm" onClick={addScope}>
@@ -493,4 +493,3 @@ PromotionForm.propTypes = {
   onSubmit:    PropTypes.func.isRequired,
   id:          PropTypes.string,
 };
-
