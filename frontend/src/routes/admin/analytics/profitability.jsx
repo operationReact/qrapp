@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import {
   TrendingUp,
@@ -12,6 +12,8 @@ import {
   PencilLine,
   ChevronDown,
   ChevronUp,
+  X,
+  Tag,
 } from "lucide-react";
 import MetricCard from "@/components/analytics/MetricCard";
 import ChartContainer from "@/components/analytics/ChartContainer";
@@ -326,7 +328,6 @@ export const Route = createFileRoute("/admin/analytics/profitability")({
 });
 
 function ProfitabilityPage() {
-  const navigate = useNavigate();
   const [from, setFrom] = useState(THIRTY_DAYS_AGO);
   const [to, setTo] = useState(TODAY);
   const [editingCostId, setEditingCostId] = useState(null);
@@ -360,38 +361,176 @@ function ProfitabilityPage() {
     { title: "Avg Margin",       value: fmtMargin(d.avgProfitMargin),        icon: <Target size={14} /> },
   ];
 
-  // Profitability table columns — image + name in first column
+  // Profitability table — Cost cell handles its own inline editing
   const profitColumns = [
-    { key: "rank",            header: "#",        render: (_, _row, i) => <span className="text-zinc-400 font-medium text-xs">#{i + 1}</span> },
-    { key: "menuItemName",    header: "Item",     render: (v, row) => (
+    { key: "rank",            header: "#",       render: (_, _row, i) => <span className="text-zinc-400 font-medium text-xs">#{i + 1}</span> },
+    { key: "menuItemName",    header: "Item",    render: (v, row) => (
       <div className="flex items-center gap-2 min-w-0">
         <ItemAvatar imageUrl={row.imageUrl} name={v} className="w-7 h-7 shrink-0" />
         <span className="truncate text-xs font-medium">{v}</span>
       </div>
     )},
-    { key: "totalQtySold",    header: "Qty",      render: (v) => <span className="text-xs">{Number(v).toLocaleString("en-IN")}</span> },
-    { key: "totalRevenue",    header: "Revenue",  render: (v) => <span className="text-xs">{fmtCurrency(v)}</span> },
-    { key: "totalCost",       header: "Cost",     render: (v) => v != null && Number(v) > 0 ? <span className="text-xs">{fmtCurrency(v)}</span> : <span className="text-zinc-400 text-xs">—</span> },
-    { key: "totalProfit",     header: "Profit",   render: (v, row) => {
+    { key: "totalQtySold",    header: "Qty",        render: (v) => <span className="text-xs">{Number(v).toLocaleString("en-IN")}</span> },
+    { key: "totalRevenue",    header: "Revenue",    render: (v) => <span className="text-xs">{fmtCurrency(v)}</span> },
+    { key: "avgSellingPrice", header: "Sell Price", render: (v, row) => {
+      // Use avgSellingPrice from analytics; fall back to revenue ÷ qty
+      const sp = v != null && Number(v) > 0
+        ? Number(v)
+        : Number(row.totalQtySold) > 0
+          ? Number(row.totalRevenue) / Number(row.totalQtySold)
+          : null;
+      return sp != null
+        ? <span className="text-xs font-semibold text-primary">{fmtCurrency(sp)}</span>
+        : <span className="text-zinc-400 text-xs">—</span>;
+    }},
+    { key: "totalCost",       header: "Cost",    render: (v, row, i) => {
+      const itemId    = row.menuItemId;
+      const rowKey    = `${itemId}_${i}`;
+      const isEditing = editingCostId === rowKey;
+      const isSaving  = costSaving && editingCostId === rowKey;
+      const hasCost   = v != null && Number(v) > 0;
+      const perUnit   = hasCost && Number(row.totalQtySold) > 0
+        ? Number(v) / Number(row.totalQtySold)
+        : 0;
+
+      // Best available selling price — always shown for context
+      const sellPrice =
+        row.avgSellingPrice != null && Number(row.avgSellingPrice) > 0
+          ? Number(row.avgSellingPrice)
+          : Number(row.totalQtySold) > 0
+            ? Number(row.totalRevenue) / Number(row.totalQtySold)
+            : null;
+
+      // ── EDITING STATE ──────────────────────────────────────────────────
+      if (isEditing) {
+        const entered    = parseFloat(editCostValue);
+        const liveMargin = !isNaN(entered) && entered > 0 && sellPrice > 0
+          ? (((sellPrice - entered) / sellPrice) * 100)
+          : null;
+        const marginColor =
+          liveMargin === null    ? ""
+          : liveMargin >= 50     ? "bg-emerald-100 text-emerald-700 border-emerald-200"
+          : liveMargin >= 25     ? "bg-amber-100 text-amber-700 border-amber-200"
+          :                        "bg-red-100 text-red-600 border-red-200";
+
+        return (
+          <div className="flex flex-col gap-1.5 py-1 min-w-[170px]">
+            {/* Selling price + live margin */}
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <div className="flex items-center gap-1 bg-zinc-100 rounded-full px-2 py-0.5">
+                <Tag size={9} className="text-zinc-400" />
+                <span className="text-[10px] font-semibold text-zinc-600">{fmtCurrency(sellPrice)}</span>
+              </div>
+              {liveMargin !== null && (
+                <span className={cn("text-[10px] font-bold px-1.5 py-0.5 rounded-full border", marginColor)}>
+                  {liveMargin.toFixed(1)}% margin
+                </span>
+              )}
+            </div>
+            {/* Styled input group */}
+            <div className="flex items-center gap-1.5">
+              <div className="flex items-center border-2 border-primary/40 rounded-lg overflow-hidden bg-white focus-within:border-primary transition-colors">
+                <span className="text-[11px] text-zinc-400 px-1.5 bg-zinc-50 border-r border-zinc-200 self-stretch flex items-center">₹</span>
+                <input
+                  autoFocus
+                  type="number" min="0" step="0.50"
+                  value={editCostValue}
+                  onChange={(e) => setEditCostValue(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleSaveCost(itemId);
+                    if (e.key === "Escape") setEditingCostId(null);
+                  }}
+                  placeholder="cost / unit"
+                  className="text-xs px-2 py-1.5 w-24 focus:outline-none bg-white"
+                />
+              </div>
+              <button
+                disabled={isSaving || !editCostValue}
+                onClick={() => handleSaveCost(itemId)}
+                className="text-[11px] font-bold text-white bg-primary hover:bg-primary/90 px-2.5 py-1.5 rounded-lg disabled:opacity-40 transition-colors whitespace-nowrap shadow-sm"
+              >
+                {isSaving ? "…" : "Save"}
+              </button>
+              <button onClick={() => setEditingCostId(null)}
+                className="p-1 rounded-md text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 transition-colors">
+                <X size={13} />
+              </button>
+            </div>
+          </div>
+        );
+      }
+
+      // ── NO COST SET ────────────────────────────────────────────────────
+      if (!hasCost) {
+        return (
+          <div className="flex flex-col gap-1.5">
+            {/* Selling price — always visible */}
+            {sellPrice != null && (
+              <div className="flex items-center gap-1">
+                <Tag size={9} className="text-zinc-400 shrink-0" />
+                <span className="text-[11px] font-semibold text-zinc-600">{fmtCurrency(sellPrice)}</span>
+                <span className="text-[10px] text-zinc-400">selling</span>
+              </div>
+            )}
+            {/* Set cost CTA */}
+            <button
+              onClick={() => { setEditingCostId(rowKey); setEditCostValue(""); }}
+              className="group inline-flex items-center gap-1 text-[11px] font-semibold text-amber-700 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-lg px-2.5 py-1 hover:from-amber-100 hover:to-orange-100 hover:border-amber-300 hover:shadow-sm transition-all"
+            >
+              <PencilLine size={10} className="group-hover:rotate-12 transition-transform" />
+              Set cost
+            </button>
+          </div>
+        );
+      }
+
+      // ── HAS COST ──────────────────────────────────────────────────────
+      const margin = sellPrice && perUnit > 0
+        ? (((sellPrice - perUnit) / sellPrice) * 100)
+        : null;
+      const marginColor =
+        margin === null  ? "bg-zinc-100 text-zinc-500"
+        : margin >= 50   ? "bg-emerald-100 text-emerald-700"
+        : margin >= 25   ? "bg-amber-100 text-amber-700"
+        :                  "bg-red-100 text-red-600";
+
+      return (
+        <div className="flex flex-col gap-1 group/costcell">
+          {/* Cost + margin badge */}
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs font-semibold text-zinc-800">{fmtCurrency(v)}</span>
+            {margin !== null && (
+              <span className={cn("text-[10px] font-bold px-1.5 py-0.5 rounded-full", marginColor)}>
+                {margin.toFixed(0)}%
+              </span>
+            )}
+            <button
+              onClick={() => { setEditingCostId(rowKey); setEditCostValue(perUnit.toFixed(2)); }}
+              className="ml-auto opacity-0 group-hover/costcell:opacity-100 text-zinc-400 hover:text-primary transition-all p-0.5 rounded"
+              title="Edit cost"
+            >
+              <PencilLine size={11} />
+            </button>
+          </div>
+          {/* Per-unit + selling price context */}
+          <div className="text-[10px] text-zinc-400 leading-tight">
+            ₹{perUnit.toFixed(0)}/unit · sells {fmtCurrency(sellPrice)}
+          </div>
+        </div>
+      );
+    }},
+    { key: "totalProfit",     header: "Profit",  render: (v, row) => {
       if (!row.totalCost || Number(row.totalCost) === 0)
         return <span className="text-[11px] text-amber-500 font-medium italic">Set cost first</span>;
       const n = Number(v ?? 0);
       return <span className={cn("text-xs font-semibold", n >= 0 ? "text-emerald-600" : "text-red-500")}>{fmtCurrency(v)}</span>;
     }},
-    { key: "avgProfitMargin", header: "Margin",   render: (v, row) => {
+    { key: "avgProfitMargin", header: "Margin",  render: (v, row) => {
       if (!row.totalCost || Number(row.totalCost) === 0)
         return <span className="text-zinc-400 text-xs">—</span>;
       const n = Number(v ?? 0);
       return <span className={cn("text-xs font-semibold", n >= 50 ? "text-emerald-600" : n >= 25 ? "text-amber-500" : "text-red-500")}>{fmtMargin(v)}</span>;
     }},
-    { key: "menuItemId",      header: "Cost ✎",   render: (id, row) => (
-      <button
-        className="text-primary text-xs font-medium flex items-center gap-1 hover:underline"
-        onClick={() => { setEditingCostId(id); setEditCostValue(""); }}
-      >
-        <PencilLine size={12} /> Edit
-      </button>
-    )},
   ];
 
   const handleSaveCost = async (itemId) => {
@@ -400,6 +539,7 @@ function ProfitabilityPage() {
     try {
       await updateItemEstimatedCost(itemId, parseFloat(editCostValue) || 0);
       setEditingCostId(null);
+      setEditCostValue("");
       refetchAll();
     } catch (e) {
       console.error("Failed to update estimated cost", e);
@@ -430,28 +570,6 @@ function ProfitabilityPage() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
         {kpiCards.map((c) => <MetricCard key={c.title} {...c} loading={dashboard.loading} />)}
       </div>
-
-      {/* ── Inline cost editor ── */}
-      {editingCostId != null && (
-        <div className="bg-white border border-primary/40 rounded-xl p-3 flex flex-wrap items-center gap-3 shadow-sm">
-          <PencilLine size={16} className="text-primary shrink-0" />
-          <span className="text-sm font-medium">Set cost for item #{editingCostId}</span>
-          <input
-            type="number" min="0" step="0.50" value={editCostValue}
-            onChange={(e) => setEditCostValue(e.target.value)}
-            placeholder="₹ cost per unit"
-            className="border border-zinc-200 rounded-md px-3 py-1.5 text-sm flex-1 min-w-[120px] bg-white"
-          />
-          <div className="flex gap-2">
-            <button disabled={costSaving} onClick={() => handleSaveCost(editingCostId)}
-              className="bg-primary text-white text-xs font-semibold px-4 py-1.5 rounded-lg disabled:opacity-50">
-              {costSaving ? "Saving…" : "Save"}
-            </button>
-            <button onClick={() => setEditingCostId(null)}
-              className="text-xs text-zinc-500 hover:text-zinc-700 underline">Cancel</button>
-          </div>
-        </div>
-      )}
 
       {/* ── Charts — stacked on mobile, side-by-side on lg ── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">

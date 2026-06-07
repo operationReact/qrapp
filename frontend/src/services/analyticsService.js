@@ -84,7 +84,7 @@ export const fetchHighestMarginItems = (params) =>
   apiClient.get("/api/v1/analytics/profitability/margin", { params }).then((r) => r.data?.data);
 
 export const updateItemEstimatedCost = (itemId, estimatedCost) =>
-  apiClient.patch(`/admin/menu/${itemId}/estimated-cost`, { estimatedCost }).then((r) => r.data);
+  apiClient.patch(`/menu/${itemId}/estimated-cost`, { estimatedCost }).then((r) => r.data);
 
 export const updateItemSellingPrice = (menuItemId, sellingPrice) =>
   apiClient.post("/api/pricing/menu-items/set-price", {

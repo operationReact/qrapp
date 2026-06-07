@@ -1,5 +1,7 @@
 package com.broandbro.qrapp.controller;
 
+import com.broandbro.qrapp.analytics.config.AnalyticsCacheConfig;
+import com.broandbro.qrapp.analytics.repository.MenuItemAnalyticsRepository;
 import com.broandbro.qrapp.entity.MenuItem;
 import com.broandbro.qrapp.entity.Category;
 import com.broandbro.qrapp.entity.Tag;
@@ -12,8 +14,12 @@ import com.broandbro.qrapp.service.PricingService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.HttpStatus;
@@ -62,6 +68,11 @@ public class MenuController {
     private final InventoryService inventoryService;
     private final PricingService pricingService;
     private final ApplicationEventPublisher eventPublisher;
+    private final MenuItemAnalyticsRepository analyticsMenuItemRepo;
+
+    @Autowired
+    @Qualifier("analyticsCacheManager")
+    private CacheManager analyticsCacheManager;
 
     // helper to store uploaded file under resources/static/uploads and return public URL
     private String storeUploadedFile(MultipartFile file) throws IOException {
@@ -523,10 +534,15 @@ public class MenuController {
      * Sets (or clears) the estimated per-unit cost for a menu item.
      * Used by the admin profitability dashboard to configure costs for SELF_PREPARED items.
      */
-    @PatchMapping("/admin/menu/{id}/estimated-cost")
-    @PreAuthorize("hasRole('ADMIN')")
-    @CacheEvict(cacheNames = {"menu", "menuRecommended"}, allEntries = true)
-    public ResponseEntity<?> updateEstimatedCost(
+@PatchMapping("/{id}/estimated-cost")
+@PreAuthorize("hasRole('ADMIN')")
+@Caching(evict = {
+    @CacheEvict(cacheNames = {"menu", "menuRecommended"}, allEntries = true),
+    @CacheEvict(cacheManager = "analyticsCacheManager",
+                cacheNames  = {AnalyticsCacheConfig.CACHE_TOP_ITEMS, AnalyticsCacheConfig.CACHE_DASHBOARD},
+                allEntries  = true)
+})
+public ResponseEntity<?> updateEstimatedCost(
             @PathVariable Long id,
             @RequestBody java.util.Map<String, BigDecimal> body) {
 
@@ -542,11 +558,17 @@ public class MenuController {
         BigDecimal previousCost = item.getEstimatedCost();
         item.setEstimatedCost(cost);
         repo.save(item);
-        log.info("[CostAudit] estimatedCost updated | item={} name='{}' | was={} | now={}",
-                id, item.getName(), previousCost, cost);
+
+        // Immediately backfill analytics_menu_item so the profitability dashboard
+        // shows the new cost without waiting for the next nightly scheduler run.
+        BigDecimal effectiveCost = cost != null ? cost : BigDecimal.ZERO;
+        int rowsUpdated = analyticsMenuItemRepo.updateEstimatedCostForItem(id, effectiveCost);
+        log.info("[CostAudit] estimatedCost updated | item={} name='{}' | was={} | now={} | analyticsRowsUpdated={}",
+                id, item.getName(), previousCost, cost, rowsUpdated);
+
         return ResponseEntity.ok(java.util.Map.of(
                 "id", id,
-                "estimatedCost", cost != null ? cost : BigDecimal.ZERO,
+                "estimatedCost", effectiveCost,
                 "previousCost", previousCost != null ? previousCost : BigDecimal.ZERO));
     }
 
@@ -556,9 +578,14 @@ public class MenuController {
      * Each entry may set or clear the cost (null = clear).
      * Items that would result in an active item with no cost are skipped with an error entry.
      */
-    @PostMapping("/admin/menu/bulk-estimated-cost")
-    @PreAuthorize("hasRole('ADMIN')")
-    @CacheEvict(cacheNames = {"menu", "menuRecommended"}, allEntries = true)
+@PostMapping("/bulk-estimated-cost")
+@PreAuthorize("hasRole('ADMIN')")
+@Caching(evict = {
+    @CacheEvict(cacheNames = {"menu", "menuRecommended"}, allEntries = true),
+    @CacheEvict(cacheManager = "analyticsCacheManager",
+                cacheNames  = {AnalyticsCacheConfig.CACHE_TOP_ITEMS, AnalyticsCacheConfig.CACHE_DASHBOARD},
+                allEntries  = true)
+})
     @org.springframework.transaction.annotation.Transactional
     public ResponseEntity<?> bulkUpdateEstimatedCost(
             @RequestBody List<java.util.Map<String, Object>> updates) {
@@ -600,6 +627,10 @@ public class MenuController {
             BigDecimal previousCost = item.getEstimatedCost();
             item.setEstimatedCost(newCost);
             repo.save(item);
+
+            // Backfill analytics immediately so the dashboard reflects the new cost.
+            BigDecimal effectiveCost = newCost != null ? newCost : BigDecimal.ZERO;
+            analyticsMenuItemRepo.updateEstimatedCostForItem(itemId, effectiveCost);
             log.info("[CostAudit] estimatedCost BULK updated | item={} name='{}' | was={} | now={}",
                     itemId, item.getName(), previousCost, newCost);
             updated++;

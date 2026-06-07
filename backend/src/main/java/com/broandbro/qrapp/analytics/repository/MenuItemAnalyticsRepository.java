@@ -10,7 +10,9 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
+
 import java.util.List;
 import java.util.Optional;
 
@@ -187,6 +189,41 @@ public interface MenuItemAnalyticsRepository extends JpaRepository<MenuItemAnaly
             @Param("from") LocalDate from,
             @Param("to") LocalDate to,
             Pageable pageable);
+
+    // ── Cost override — immediate backfill ───────────────────────────────────
+
+    /**
+     * Immediately recomputes cost/profit columns in {@code analytics_menu_item}
+     * for a single menu item using its newly-saved {@code estimated_cost}.
+     *
+     * <p>Called synchronously from {@code MenuController.updateEstimatedCost} so
+     * that the profitability dashboard reflects the new cost on the very next
+     * request — without waiting for the next nightly scheduler run.</p>
+     *
+     * <p>Pass {@code estimatedCost = 0} to clear the cost (null-cost state).
+     * When cost is 0 the margin columns are set to {@code NULL} so the UI can
+     * distinguish "zero cost" from "cost not set".</p>
+     */
+    @Modifying
+    @Transactional
+    @Query(value = """
+           UPDATE analytics_menu_item
+           SET    total_cost        = total_qty_sold * :estimatedCost,
+                  total_profit      = total_revenue - (total_qty_sold * :estimatedCost),
+                  avg_cost_price    = CASE WHEN :estimatedCost > 0 THEN :estimatedCost ELSE NULL END,
+                  avg_profit_margin = CASE
+                                          WHEN :estimatedCost > 0 AND total_revenue > 0
+                                          THEN ((total_revenue - (total_qty_sold * :estimatedCost))
+                                                / total_revenue * 100)
+                                          ELSE NULL
+                                      END,
+                  updated_at        = NOW()
+           WHERE  menu_item_id = :menuItemId
+           """,
+           nativeQuery = true)
+    int updateEstimatedCostForItem(
+            @Param("menuItemId") Long menuItemId,
+            @Param("estimatedCost") BigDecimal estimatedCost);
 
     // ── Scheduler UPSERT ──────────────────────────────────────────────────────
 
