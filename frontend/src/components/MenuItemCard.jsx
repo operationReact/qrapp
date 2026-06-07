@@ -108,8 +108,8 @@ export default function MenuItemCard({
 
           {/* Unavailable overlay badge — stock or time-gated */}
           {isUnavailable && (
-            <div className="absolute inset-0 flex items-center justify-center">
-              <span className="flex items-center gap-1 rounded-full bg-black/70 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-widest text-white backdrop-blur-sm">
+            <div className="absolute bottom-2 inset-0 flex items-center justify-center">
+              <span className="flex items-center gap-1 rounded-full bg-black/70 px-2.5 py-1 text-[10px] font-semibold text-white backdrop-blur-sm">
                 {isTimegated ? (
                   <ClockIcon weight="bold" className="size-3 shrink-0" />
                 ) : (
