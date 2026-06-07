@@ -318,7 +318,7 @@ function PreOrdersPage() {
             >
               <span
                 className={cn(
-                  "text-[20px] font-black leading-none tabular-nums",
+                  "text-2xl font-bold leading-none tabular-nums",
                   s.numCls,
                 )}
               >
@@ -326,7 +326,7 @@ function PreOrdersPage() {
               </span>
               <span
                 className={cn(
-                  "text-[10px] font-semibold mt-0.5 leading-none",
+                  "text-xs font-medium mt-0.5 leading-none",
                   s.lblCls,
                 )}
               >
