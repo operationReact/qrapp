@@ -24,17 +24,7 @@ import {
   PlusIcon,
   SparkleIcon,
   FunnelIcon,
-  PencilSimpleIcon,
-  TrashIcon,
-  DotsThreeVerticalIcon,
 } from "@phosphor-icons/react";
-
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 
 import { toast } from "sonner";
 

@@ -26,60 +26,66 @@ import {
   CaretRightIcon,
   CheckCircleIcon,
 } from "@phosphor-icons/react";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from "@/components/ui/input-group";
+import { Button } from "@/components/ui/button";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Static config
 // ─────────────────────────────────────────────────────────────────────────────
 const STATUS_CHIPS = [
-  { value: "",             label: "All" },
+  { value: "", label: "All" },
   { value: "ORDER_PLACED", label: "New" },
-  { value: "PREPARING",    label: "Preparing" },
-  { value: "READY",        label: "Ready" },
-  { value: "COMPLETED",    label: "Completed" },
-  { value: "CANCELLED",    label: "Cancelled" },
+  { value: "PREPARING", label: "Preparing" },
+  { value: "READY", label: "Ready" },
+  { value: "COMPLETED", label: "Completed" },
+  { value: "CANCELLED", label: "Cancelled" },
 ];
 
 const STATUS_ACTIVE = {
-  "":             "bg-gray-900 border-gray-900 text-white",
-  "ORDER_PLACED": "bg-violet-600 border-violet-600 text-white",
-  "PREPARING":    "bg-orange-500 border-orange-500 text-white",
-  "READY":        "bg-green-600 border-green-600 text-white",
-  "COMPLETED":    "bg-blue-600 border-blue-600 text-white",
-  "CANCELLED":    "bg-red-600 border-red-600 text-white",
+  "": "bg-gray-900 border-gray-900 text-white",
+  ORDER_PLACED: "bg-violet-600 border-violet-600 text-white",
+  PREPARING: "bg-orange-500 border-orange-500 text-white",
+  READY: "bg-green-600 border-green-600 text-white",
+  COMPLETED: "bg-blue-600 border-blue-600 text-white",
+  CANCELLED: "bg-red-600 border-red-600 text-white",
 };
 
 const STATS_CONFIG = [
   {
-    key:       "ORDER_PLACED",
-    label:     "New",
-    dashKey:   "placedOrders",
-    bg:        "bg-violet-50",
-    numCls:    "text-violet-700",
-    lblCls:    "text-violet-400",
+    key: "ORDER_PLACED",
+    label: "New",
+    dashKey: "placedOrders",
+    bg: "bg-violet-50",
+    numCls: "text-violet-700",
+    lblCls: "text-violet-600",
   },
   {
-    key:       "PREPARING",
-    label:     "Cooking",
-    dashKey:   "preparingOrders",
-    bg:        "bg-orange-50",
-    numCls:    "text-orange-700",
-    lblCls:    "text-orange-400",
+    key: "PREPARING",
+    label: "Cooking",
+    dashKey: "preparingOrders",
+    bg: "bg-orange-50",
+    numCls: "text-orange-700",
+    lblCls: "text-orange-600",
   },
   {
-    key:       "READY",
-    label:     "Ready",
-    dashKey:   "readyOrders",
-    bg:        "bg-green-50",
-    numCls:    "text-green-700",
-    lblCls:    "text-green-400",
+    key: "READY",
+    label: "Ready",
+    dashKey: "readyOrders",
+    bg: "bg-green-50",
+    numCls: "text-green-700",
+    lblCls: "text-green-600",
   },
   {
-    key:       "DELAYED",
-    label:     "Delayed",
-    dashKey:   "delayedOrders",
-    bg:        null, // computed
-    numCls:    null,
-    lblCls:    null,
+    key: "DELAYED",
+    label: "Delayed",
+    dashKey: "delayedOrders",
+    bg: null, // computed
+    numCls: null,
+    lblCls: null,
   },
 ];
 
@@ -102,27 +108,29 @@ function OperationalQueuePage() {
     loading,
   } = useAdminDashboard();
 
-  const params        = useParams({ strict: false });
-  const selectedId    = params?.orderId ? Number(params.orderId) : undefined;
+  const params = useParams({ strict: false });
+  const selectedId = params?.orderId ? Number(params.orderId) : undefined;
   const { isAdmin, isSuperUser } = useAuth();
-  const isMobile      = useIsMobile();
-  const queryClient   = useQueryClient();
+  const isMobile = useIsMobile();
+  const queryClient = useQueryClient();
   const [mobileOrderId, setMobileOrderId] = useState(null);
 
   const { selectedOrder: mobileOrder, actionLoading: mobileActionLoading } =
     useAdminDashboard(mobileOrderId ? String(mobileOrderId) : undefined);
 
   // Close mobile drawer when viewport expands to desktop
-  useEffect(() => { if (!isMobile) setTimeout(() => setMobileOrderId(null), 0); }, [isMobile]);
+  useEffect(() => {
+    if (!isMobile) setTimeout(() => setMobileOrderId(null), 0);
+  }, [isMobile]);
 
   if (!isAdmin && !isSuperUser) {
     return <Navigate to="/login" replace state={{ from: location.pathname }} />;
   }
 
-  const orders       = ordersPage?.content ?? [];
-  const totalPages   = ordersPage?.totalPages ?? 1;
+  const orders = ordersPage?.content ?? [];
+  const totalPages = ordersPage?.totalPages ?? 1;
   const totalElements = ordersPage?.totalElements ?? 0;
-  const isActive     = refreshing || loading;
+  const isActive = refreshing || loading;
 
   // ── Filter setters ──
   const setStatus = (value) => {
@@ -147,36 +155,38 @@ function OperationalQueuePage() {
   };
 
   const handleCardClick = (order, e) => {
-    if (isMobile) { e.preventDefault(); setMobileOrderId(order.id); }
+    if (isMobile) {
+      e.preventDefault();
+      setMobileOrderId(order.id);
+    }
   };
 
   // ── Dynamic stat chip styling (delayed turns red when > 0) ──
   const delayedCount = dashboard?.delayedOrders ?? 0;
   const STATS = STATS_CONFIG.map((s) => {
-    if (s.key !== "DELAYED") return { ...s, count: dashboard?.[s.dashKey] ?? 0 };
+    if (s.key !== "DELAYED")
+      return { ...s, count: dashboard?.[s.dashKey] ?? 0 };
     return {
       ...s,
-      count:  delayedCount,
-      bg:     delayedCount > 0 ? "bg-red-50"    : "bg-gray-50",
-      numCls: delayedCount > 0 ? "text-red-700"  : "text-gray-300",
-      lblCls: delayedCount > 0 ? "text-red-400"  : "text-gray-300",
+      count: delayedCount,
+      bg: delayedCount > 0 ? "bg-red-50" : "bg-gray-50",
+      numCls: delayedCount > 0 ? "text-red-700" : "text-gray-300",
+      lblCls: delayedCount > 0 ? "text-red-400" : "text-gray-300",
     };
   });
 
   return (
-    <div className="flex flex-col h-full min-h-0 bg-gray-50">
-
+    <div className="flex flex-col h-full min-h-0">
       {/* ══════════════════════════════════════════════════
           Sticky header
           ══════════════════════════════════════════════════ */}
-      <div className="bg-white border-b sticky top-0 z-20 px-4 pt-3 pb-3 space-y-3">
-
+      <div className="border-b bg-white sticky top-0 z-20 px-4 pt-3 pb-3 space-y-3">
         {/* Title + Refresh */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="text-[17px] font-black text-gray-900 tracking-tight">
+            <h1 className="text-lg font-semibold tracking-tight text-foreground">
               Kitchen Queue
-            </span>
+            </h1>
             {isActive && (
               <span className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
@@ -184,21 +194,24 @@ function OperationalQueuePage() {
               </span>
             )}
           </div>
-          <button
-            onClick={() => queryClient.invalidateQueries({ queryKey: ["orders", "admin"] })}
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() =>
+              queryClient.invalidateQueries({ queryKey: ["orders", "admin"] })
+            }
             disabled={isActive}
-            className="flex items-center gap-1.5 rounded-full bg-gray-100 px-3 py-1.5 text-[12px] font-semibold text-gray-600 active:bg-gray-200 disabled:opacity-50 transition-colors"
           >
             <ArrowCounterClockwiseIcon
               weight="bold"
-              className={cn("size-3.5", isActive && "animate-spin")}
+              className={cn(isActive && "animate-spin")}
             />
             Refresh
-          </button>
+          </Button>
         </div>
 
         {/* Compact stats chips — tap to quick-filter */}
-        <div className="grid grid-cols-4 gap-2">
+        <div className="grid grid-cols-4 gap-3">
           {STATS.map((s) => {
             const isStatActive =
               s.key === "DELAYED" ? filters.liveOnly : filters.status === s.key;
@@ -210,15 +223,25 @@ function OperationalQueuePage() {
                   else setStatus(filters.status === s.key ? "" : s.key);
                 }}
                 className={cn(
-                  "flex flex-col items-center justify-center rounded-xl py-2 px-1 transition-all active:scale-95",
+                  "flex flex-col gap-1 items-center justify-center rounded-sm py-2 px-1 transition-all active:scale-95",
                   s.bg,
-                  isStatActive && "ring-2 ring-current ring-offset-1",
+                  isStatActive && "ring-1 ring-foreground",
                 )}
               >
-                <span className={cn("text-[20px] font-black leading-none tabular-nums", s.numCls)}>
+                <span
+                  className={cn(
+                    "text-lg font-bold leading-none tabular-nums",
+                    s.numCls,
+                  )}
+                >
                   {s.count}
                 </span>
-                <span className={cn("text-[10px] font-semibold mt-0.5 leading-none", s.lblCls)}>
+                <span
+                  className={cn(
+                    "text-xs font-medium mt-0.5 leading-none",
+                    s.lblCls,
+                  )}
+                >
                   {s.label}
                 </span>
               </button>
@@ -227,17 +250,15 @@ function OperationalQueuePage() {
         </div>
 
         {/* Search input */}
-        <div className="relative">
-          <MagnifyingGlassIcon
-            weight="bold"
-            className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-gray-400 pointer-events-none"
-          />
-          <input
+        <InputGroup className="h-10">
+          <InputGroupAddon>
+            <MagnifyingGlassIcon weight="bold" />
+          </InputGroupAddon>
+          <InputGroupInput
             type="text"
             value={filters.query}
             onChange={handleSearch}
             placeholder="Search by order ID or phone…"
-            className="w-full rounded-xl border border-gray-200 bg-gray-50 pl-9 pr-8 py-2.5 text-[13px] text-gray-700 placeholder:text-gray-400 outline-none focus:border-gray-400 focus:bg-white transition-colors"
           />
           {filters.query && (
             <button
@@ -247,7 +268,7 @@ function OperationalQueuePage() {
               ×
             </button>
           )}
-        </div>
+        </InputGroup>
 
         {/* Inline filter chips */}
         <div
@@ -256,7 +277,8 @@ function OperationalQueuePage() {
         >
           {/* Status */}
           {STATUS_CHIPS.map((c) => {
-            const active = (filters.status || "") === c.value && !filters.liveOnly;
+            const active =
+              (filters.status || "") === c.value && !filters.liveOnly;
             return (
               <button
                 key={`s-${c.value}`}
@@ -278,8 +300,8 @@ function OperationalQueuePage() {
 
           {/* Payment */}
           {[
-            { value: "",        label: "All Payments" },
-            { value: "PAID",    label: "Paid" },
+            { value: "", label: "All Payments" },
+            { value: "PAID", label: "Paid" },
             { value: "PENDING", label: "Unpaid" },
           ].map((c) => {
             const active = (filters.paymentStatus || "") === c.value;
@@ -293,8 +315,8 @@ function OperationalQueuePage() {
                     ? c.value === "PAID"
                       ? "bg-green-600 border-green-600 text-white"
                       : c.value === "PENDING"
-                      ? "bg-amber-500 border-amber-500 text-white"
-                      : "bg-gray-900 border-gray-900 text-white"
+                        ? "bg-amber-500 border-amber-500 text-white"
+                        : "bg-gray-900 border-gray-900 text-white"
                     : "bg-white border-gray-200 text-gray-600",
                 )}
               >
@@ -334,8 +356,7 @@ function OperationalQueuePage() {
       {/* ══════════════════════════════════════════════════
           Split content — list left, detail right (desktop)
           ══════════════════════════════════════════════════ */}
-      <div className="flex flex-1 min-h-0 overflow-hidden">
-
+      <div className="flex max-h-[calc(100vh-212.4px-48.8px)] flex-1 min-h-0 overflow-hidden">
         {/* ── Order list pane ── */}
         <div
           className={cn(
@@ -344,17 +365,25 @@ function OperationalQueuePage() {
           )}
         >
           {/* List */}
-          <div className="flex-1 overflow-y-auto overscroll-contain px-3 pt-2 pb-2">
+          <div className="flex-1 overflow-y-auto overscroll-contain no-scrollbar px-3 pt-2 pb-2">
             {loading && orders.length === 0 ? (
               <div className="space-y-2">
                 {Array.from({ length: 5 }).map((_, i) => (
-                  <div key={i} className="h-24 animate-pulse rounded-2xl bg-gray-200" />
+                  <div
+                    key={i}
+                    className="h-24 animate-pulse rounded-2xl bg-gray-200"
+                  />
                 ))}
               </div>
             ) : orders.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 gap-3">
-                <CheckCircleIcon weight="thin" className="size-14 text-gray-300" />
-                <span className="text-[13px] font-semibold text-gray-400">No orders found</span>
+                <CheckCircleIcon
+                  weight="thin"
+                  className="size-14 text-gray-300"
+                />
+                <span className="text-[13px] font-semibold text-gray-400">
+                  No orders found
+                </span>
               </div>
             ) : (
               <div className="space-y-1.5">
@@ -364,15 +393,17 @@ function OperationalQueuePage() {
                     to={`/admin/operational-queue/${order.id}`}
                     onClick={(e) => handleCardClick(order, e)}
                     className={cn(
-                      "block rounded-2xl border bg-white overflow-hidden transition-colors",
+                      "block border bg-transparent pl-0 rounded-r-lg transition-all",
                       order.id === selectedId || order.id === mobileOrderId
-                        ? "border-gray-300 bg-gray-50/80"
-                        : "border-gray-100 shadow-sm hover:border-gray-200",
+                        ? "border-gray-200 bg-white"
+                        : "bg-white md:bg-transparent border-gray-100 hover:border-gray-200",
                     )}
                   >
                     <OrderItem
                       order={order}
-                      onAction={(orderId, status) => handleOrderUpdate(orderId, { status })}
+                      onAction={(orderId, status) =>
+                        handleOrderUpdate(orderId, { status })
+                      }
                     />
                   </Link>
                 ))}
@@ -389,11 +420,16 @@ function OperationalQueuePage() {
               {/* Page size select — desktop only */}
               <select
                 value={size}
-                onChange={(e) => { setPage(0); setSize(Number(e.target.value)); }}
+                onChange={(e) => {
+                  setPage(0);
+                  setSize(Number(e.target.value));
+                }}
                 className="hidden lg:block text-[11px] text-gray-500 border border-gray-200 rounded-lg px-1.5 py-1 bg-white outline-none"
               >
                 {[10, 20, 30].map((n) => (
-                  <option key={n} value={n}>{n}/page</option>
+                  <option key={n} value={n}>
+                    {n}/page
+                  </option>
                 ))}
               </select>
             </div>
@@ -432,13 +468,15 @@ function OperationalQueuePage() {
       {/* ── Mobile bottom drawer ── */}
       <Drawer
         open={!!mobileOrderId}
-        onOpenChange={(open) => { if (!open) setMobileOrderId(null); }}
+        onOpenChange={(open) => {
+          if (!open) setMobileOrderId(null);
+        }}
       >
         <DrawerContent className="max-h-[92dvh]">
           <DrawerHeader className="pb-1 border-b">
             <DrawerTitle className="text-[16px] font-bold">
               {mobileOrder
-                ? mobileOrder.orderNumber ?? `#${mobileOrder.id}`
+                ? (mobileOrder.orderNumber ?? `#${mobileOrder.id}`)
                 : "Order Details"}
             </DrawerTitle>
           </DrawerHeader>
@@ -457,4 +495,3 @@ function OperationalQueuePage() {
     </div>
   );
 }
-
