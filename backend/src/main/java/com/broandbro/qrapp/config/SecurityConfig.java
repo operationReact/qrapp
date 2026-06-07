@@ -139,8 +139,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/admin/**")
                         .hasRole("ADMIN")
 
-                        // Profitability analytics — admin only
-                        .requestMatchers("/api/v1/analytics/profitability/**")
+                        // All analytics endpoints — admin only
+                        .requestMatchers("/api/v1/analytics/**")
                         .hasRole("ADMIN")
 
                         // Allow wallet endpoints to pass through (controller will handle auth)
