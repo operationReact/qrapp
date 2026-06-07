@@ -76,7 +76,7 @@ export default function MenuItemCard({
           // Pre-order items: entire card is the tap target
           preOrderOnly &&
             !isUnavailable &&
-            "cursor-pointer ring-0 hover:ring-2 hover:ring-indigo-300 hover:border-indigo-300 transition-all",
+            "cursor-pointer ring-0 border-primary/20 hover:border-primary/30 transition-all",
         )}
         onClick={
           preOrderOnly && !isUnavailable
@@ -180,7 +180,7 @@ export default function MenuItemCard({
               </span>
             ) : preOrderOnly ? (
               /* No per-card button — the whole card is tappable */
-              <span className="text-[10px] font-medium text-indigo-600 select-none">
+              <span className="text-[10px] font-medium text-primary select-none">
                 Tap to pre-order
               </span>
             ) : (

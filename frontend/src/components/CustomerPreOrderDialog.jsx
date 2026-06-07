@@ -433,7 +433,7 @@ export default function CustomerPreOrderDialog({
         </div>
 
         {/* Footer */}
-        <DialogFooter className="px-5 py-3 border-t bg-zinc-50 shrink-0 flex flex-row items-center justify-between gap-3">
+        <DialogFooter className="px-5 py-3 border-t bg-zinc-100 shrink-0 flex flex-row items-center justify-between! gap-3">
           <div className="text-sm">
             {selectedItems.length > 0 ? (
               <div className="flex items-center gap-2">

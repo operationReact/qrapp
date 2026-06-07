@@ -107,7 +107,7 @@ function CardShell({ deal, ctaNode }) {
 
       {/* ── DESKTOP: full-bleed banner ────────────────────────────── */}
       <div
-        className="hidden md:block relative overflow-hidden rounded-2xl"
+        className="hidden md:block relative overflow-hidden rounded-lg"
         style={{ height: "190px" }}
       >
         <img
@@ -120,7 +120,7 @@ function CardShell({ deal, ctaNode }) {
           className="absolute inset-0"
           style={{
             background:
-              "linear-gradient(to top, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.28) 52%, transparent 100%)",
+              "linear-gradient(to top, rgba(0, 0, 0, 0.82) 0%, rgba(0, 0, 0, 0.8) 34%, transparent 100%)",
           }}
         />
         <div className="absolute inset-0 flex flex-col justify-between p-4">
@@ -135,7 +135,7 @@ function CardShell({ deal, ctaNode }) {
           </Badge>
           <div className="flex items-end justify-between gap-4">
             <div className="flex min-w-0 flex-1 flex-col gap-0.75">
-              <span className="text-lg font-semibold leading-tight text-background drop-shadow-sm">
+              <span className="text-sm font-semibold leading-tight text-background drop-shadow-sm">
                 {deal.title}
               </span>
               <span className="line-clamp-2 text-sm font-medium leading-snug text-white/75">
