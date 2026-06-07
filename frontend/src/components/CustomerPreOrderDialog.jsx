@@ -216,7 +216,7 @@ export default function CustomerPreOrderDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-sm mx-4 mx-auto max-h-[70vh] flex flex-col gap-0 p-0 overflow-hidden">
+      <DialogContent className="max-w-xs sm:max-w-sm mx-auto max-h-[70vh] flex flex-col gap-0 p-0 overflow-hidden">
         <DialogHeader className="px-5 pt-5 pb-3 border-b shrink-0">
           <DialogTitle className="flex items-center gap-2 text-base">
             <CalendarCheckIcon className="size-5 text-primary" weight="fill" />
