@@ -88,7 +88,7 @@ export const Route = createFileRoute("/(auth)/login")({
               className="w-full border border-muted login-banner rounded-[14px] overflow-hidden"
             />
             <div className="mb-4 mt-4">
-              <h1 className="text-lg font-medium">
+              <h1 className="text-lg font-semibold">
                 Welcome back,
                 <span className="text-primary"> Login Your Account</span>
               </h1>

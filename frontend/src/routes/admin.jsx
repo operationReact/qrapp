@@ -8,6 +8,8 @@ import {
 import { AdminDashboardProvider } from "@/context/AdminDashboardContext";
 import { Bell, Menu as MenuIcon } from "lucide-react";
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { SidebarIcon } from "@phosphor-icons/react";
 
 export const Route = createFileRoute("/admin")({
   component: AdminLayout,
@@ -20,28 +22,31 @@ function SubPageHeader() {
 
   return (
     <header className="sticky top-0 z-40 bg-white border-b border-zinc-100 shadow-[0_1px_3px_rgba(0,0,0,.04)]">
-      <div className="flex items-center justify-between px-3.5 h-12 max-w-lg mx-auto">
+      <div className="flex items-center justify-between px-4 h-12">
         {/* hamburger */}
-        <button
+        <Button
+          size="icon"
+          variant="ghost"
           onClick={toggleSidebar}
           aria-label="Open menu"
-          className="size-8 flex items-center justify-center rounded-lg hover:bg-zinc-100 transition-colors -ml-1"
         >
-          <MenuIcon size={18} className="text-zinc-700" />
-        </button>
+          <SidebarIcon />
+        </Button>
 
         {/* bell */}
-        <button
+        <Button
           aria-label="Notifications"
-          className="size-8 flex items-center justify-center rounded-lg hover:bg-zinc-100 transition-colors relative -mr-1"
+          size="icon"
+          variant="ghost"
+          className="relative"
         >
-          <Bell size={18} className="text-zinc-700" />
+          <Bell />
           {notifCount > 0 && (
-            <span className="absolute top-0.5 right-0.5 size-3.5 bg-red-500 text-white text-[8px] font-bold rounded-full flex items-center justify-center leading-none">
+            <span className="absolute top-0.5 right-0.5 size-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center leading-none">
               {notifCount}
             </span>
           )}
-        </button>
+        </Button>
       </div>
     </header>
   );
