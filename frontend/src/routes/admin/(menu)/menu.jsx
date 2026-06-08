@@ -570,7 +570,6 @@ export const Route = createFileRoute("/admin/(menu)/menu")({
               </div>
             )}
           </div>
-        </div>
 
         <AdminMenuFilters
           open={filterSheetOpen}
