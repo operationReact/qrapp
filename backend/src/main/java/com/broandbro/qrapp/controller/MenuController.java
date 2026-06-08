@@ -16,6 +16,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
@@ -73,14 +74,17 @@ public class MenuController {
     @Qualifier("analyticsCacheManager")
     private CacheManager analyticsCacheManager;
 
-    // helper to store uploaded file under resources/static/uploads and return public URL
+    @Value("${app.upload.dir:uploads}")
+    private String uploadDir;
+
+    // helper to store uploaded file under the uploads directory and return public URL
     private String storeUploadedFile(MultipartFile file) throws IOException {
         if (file == null || file.isEmpty()) return null;
-        Path uploadDir = Paths.get("src/main/resources/static/uploads");
-        Files.createDirectories(uploadDir);
+        Path uploadPath = Paths.get(uploadDir).toAbsolutePath();
+        Files.createDirectories(uploadPath);
         String original = StringUtils.cleanPath(file.getOriginalFilename() == null ? "file" : file.getOriginalFilename());
         String filename = UUID.randomUUID() + "_" + original;
-        Path target = uploadDir.resolve(filename);
+        Path target = uploadPath.resolve(filename);
         try (InputStream in = file.getInputStream()) {
             Files.copy(in, target, StandardCopyOption.REPLACE_EXISTING);
         }
@@ -458,9 +462,9 @@ public class MenuController {
             try (InputStream in = request.getInputStream()) {
                 String original = xFilename != null && !xFilename.isBlank() ? StringUtils.cleanPath(xFilename) : "upload";
                 String filename = UUID.randomUUID() + "_" + original;
-                Path uploadDir = Paths.get("src/main/resources/static/uploads");
-                Files.createDirectories(uploadDir);
-                Path target = uploadDir.resolve(filename);
+                Path uploadPath = Paths.get(uploadDir).toAbsolutePath();
+                Files.createDirectories(uploadPath);
+                Path target = uploadPath.resolve(filename);
                 Files.copy(in, target, StandardCopyOption.REPLACE_EXISTING);
                 String url = "/uploads/" + filename;
                 existing.setImageUrl(url);

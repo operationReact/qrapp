@@ -25,6 +25,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { X, Wand2, Check, Loader2 } from "lucide-react";
 import AdminHeader from "@/components/admin/AdminHeader";
+import ClassificationSection from "@/components/admin/ClassificationSection";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/admin/(menu)/manage-menu")({
@@ -68,6 +69,7 @@ function AdminCreateMenuPage() {
   const [selectedAiImage, setSelectedAiImage] = useState(null);
   const [aiError, setAiError] = useState(null);
   const [additionalPrompt, setAdditionalPrompt] = useState("");
+  const [classifyItemId, setClassifyItemId] = useState(null);
 
   // ── Tags ──────────────────────────────────────────────────────────────────
   const { data: allTags = [] } = useQuery({
@@ -131,6 +133,7 @@ function AdminCreateMenuPage() {
     setSelectedAiImage(null);
     setAiError(null);
     setAdditionalPrompt("");
+    setClassifyItemId(null);
   };
 
   // ── Validation ────────────────────────────────────────────────────────────
@@ -180,11 +183,11 @@ function AdminCreateMenuPage() {
   // ── Create mutation (normal flow) ─────────────────────────────────────────
   const createMutation = useMutation({
     mutationFn: (payload) => createMenuItem(payload),
-    onSuccess: () => {
-      setSuccess("Menu item created successfully.");
+    onSuccess: (data) => {
+      const newId = data?.id;
       resetForm();
+      if (newId) setClassifyItemId(newId);
       queryClient.invalidateQueries({ queryKey: ["menu"] });
-      window.setTimeout(() => setSuccess(""), 4000);
     },
     onError: (err) => {
       setError(err?.response?.data?.message || err?.response?.data || "Failed to create menu item");
@@ -257,10 +260,10 @@ function AdminCreateMenuPage() {
       if (selectedAiImage) {
         await applyGeneratedImage(createdItemId, selectedAiImage, aiImageOptions);
       }
-      setSuccess("Menu item created with AI image.");
+      const finishedId = createdItemId;
       resetForm();
+      setClassifyItemId(finishedId);
       queryClient.invalidateQueries({ queryKey: ["menu"] });
-      window.setTimeout(() => setSuccess(""), 4000);
     } catch {
       setAiError("Failed to apply selected image (non-critical). Item was still saved.");
       setAiPhase("options");
@@ -275,6 +278,31 @@ function AdminCreateMenuPage() {
 
   if (!isAdmin && !isSuperUser) {
     return <Navigate to="/login" replace state={{ from: location.pathname }} />;
+  }
+
+  // ── Post-creation: Meal Classification step ───────────────────────────────
+  if (classifyItemId) {
+    return (
+      <>
+        <AdminHeader
+          title="Meal Classification"
+          description="Assign combo role, meal types, and cuisine types. Used by the recommendation engine."
+          className="mb-4"
+        />
+        <div className="px-4 pb-6 max-w-lg space-y-4">
+          <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 flex items-center gap-2 text-sm text-green-700">
+            <Check className="size-4 shrink-0" />
+            Item created successfully! Classify it below, or skip.
+          </div>
+          <ClassificationSection itemId={classifyItemId} />
+          <div className="flex justify-end pt-1">
+            <Button type="button" onClick={() => setClassifyItemId(null)}>
+              Done →
+            </Button>
+          </div>
+        </div>
+      </>
+    );
   }
 
   const aiActive = ["creating", "generating", "options", "applying"].includes(aiPhase);

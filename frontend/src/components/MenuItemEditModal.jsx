@@ -26,6 +26,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import ClassificationSection from "@/components/admin/ClassificationSection";
 
 export default function MenuItemEditModal({
   item,
@@ -36,6 +37,8 @@ export default function MenuItemEditModal({
   const previewRef = useRef(null);
   const imageFieldRef = useRef(null);
   const formRef = useRef(null); // always points to latest form — prevents stale closure in mutationFn
+  const selectedAiImageRef = useRef(null); // always points to latest selectedAiImage — prevents stale closure
+  const aiImageOptionsRef = useRef([]);    // always points to latest aiImageOptions — prevents stale closure
 
   const [form, setForm] = useState({
     name: "",
@@ -63,6 +66,8 @@ export default function MenuItemEditModal({
   const [aiGenerateCount, setAiGenerateCount] = useState(0);
   const [aiError, setAiError] = useState(null);
   const [additionalPrompt, setAdditionalPrompt] = useState("");
+  selectedAiImageRef.current = selectedAiImage; // keep ref in sync with latest state on every render
+  aiImageOptionsRef.current = aiImageOptions;   // keep ref in sync with latest state on every render
 
   const { data: allTags = [] } = useQuery({
     queryKey: ["tags"],
@@ -258,7 +263,8 @@ export default function MenuItemEditModal({
         price: Number(f.price),
         categoryId: f.categoryId,
         description: f.description.trim(),
-        imageUrl: f.imageUrl ? f.imageUrl.trim() : item.imageUrl || "",
+        // Prefer: selected AI image > form text field > existing item URL
+        imageUrl: selectedAiImageRef.current || (f.imageUrl ? f.imageUrl.trim() : item.imageUrl || ""),
         available: !!f.available,
         recommended: !!f.recommended,
         tagId: f.tagId,
@@ -271,16 +277,19 @@ export default function MenuItemEditModal({
         id: item.id,
         imageUrl: payload.imageUrl,
         form_imageUrl: f.imageUrl,
+        selectedAiImage,
         item_imageUrl: item.imageUrl,
       });
       return updateMenuItem(item.id, payload);
     },
-    onSuccess: (data) => {
-      // Clean up unselected AI images from S3 (best-effort, non-blocking)
-      if (selectedAiImage && aiImageOptions.length > 0) {
-        const unselected = aiImageOptions.filter(u => u !== selectedAiImage);
-        if (unselected.length > 0) {
-          applyAiImageMutation.mutate({ selectedUrl: selectedAiImage, unselectedUrls: unselected });
+    onSuccess: async (data) => {
+      // Apply selected AI image (sets aiGeneratedImage flag, status, and deletes unselected S3 files)
+      if (selectedAiImageRef.current) {
+        const unselected = aiImageOptionsRef.current.filter(u => u !== selectedAiImageRef.current);
+        try {
+          await applyAiImageMutation.mutateAsync({ selectedUrl: selectedAiImageRef.current, unselectedUrls: unselected });
+        } catch {
+          // Non-critical — image URL is already saved; only S3 cleanup may be incomplete
         }
       }
       onSuccess(data);
@@ -586,6 +595,13 @@ export default function MenuItemEditModal({
                 )}
               </div>
             </FieldSet>
+
+            {/* ── Meal Recommendation Classification ── */}
+            {item?.id && (
+              <div className="mt-6">
+                <ClassificationSection itemId={item.id} />
+              </div>
+            )}
 
             <FieldSet className="mt-6">
               <FieldLegend className="font-medium">Attributes</FieldLegend>

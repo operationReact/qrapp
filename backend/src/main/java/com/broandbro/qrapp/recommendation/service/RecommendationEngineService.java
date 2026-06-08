@@ -2,6 +2,8 @@ package com.broandbro.qrapp.recommendation.service;
 
 import com.broandbro.qrapp.analytics.projection.TopMenuItemProjection;
 import com.broandbro.qrapp.analytics.repository.MenuItemAnalyticsRepository;
+import com.broandbro.qrapp.classification.dto.ClassificationDtos.ItemClassificationResponse;
+import com.broandbro.qrapp.classification.service.ClassificationService;
 import com.broandbro.qrapp.entity.MenuItem;
 import com.broandbro.qrapp.entity.MenuItemSellingPriceHistory;
 import com.broandbro.qrapp.recommendation.dto.RecommendationDtos.*;
@@ -23,126 +25,173 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * Core Recommendation Priority Engine.
+ * Core Recommendation Priority Engine — with Classification-Aware Scoring.
  *
  * <pre>
- * Priority 1 – L1 Manual product mapping
- * Priority 2 – L2 Accepted auto suggestions
- * Priority 3 – L4 Upsell rule targets
- * Priority 4 – L5 Category pairing fallback
- * Priority 5 – L6 Best sellers (analytics)
+ * Priority (affinity) tiers — preserved unchanged:
+ *   L1 MANUAL       affinity = 1000
+ *   L2 AUTO         affinity = 800
+ *   L3 UPSELL       affinity = 600
+ *   L4 CATEGORY     affinity = 400
+ *   L5 BEST_SELLER  affinity = 200
+ *
+ * Classification scoring layer (added on top of affinity):
+ *   Meal Type boost    +20 per shared meal type  (cap +40)
+ *   Meal Type penalty  -15 when meal times incompatible (not "Anytime")
+ *   Cuisine boost      +20 per shared cuisine    (cap +40)
+ *   Cuisine penalty    -20 when cuisines incompatible
+ *
+ * FinalScore = AffinityScore + MealTypeScore + CuisineTypeScore
  * </pre>
  *
- * Never returns items already in the cart.
+ * The engine collects up to {@code POOL_MULTIPLIER × maxResults} candidates
+ * across all tiers, applies the classification delta, then returns the
+ * top {@code maxResults} by FinalScore descending.
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class RecommendationEngineService {
 
-    private final ItemRecommendationRepository manualRecRepo;
-    private final AutoSuggestionRepository autoSuggRepo;
-    private final UpsellRuleRepository upsellRuleRepo;
-    private final CategoryPairingRuleRepository catPairingRepo;
-    private final MenuItemAnalyticsRepository analyticsRepo;
-    private final MenuRepository menuRepo;
+    private final ItemRecommendationRepository      manualRecRepo;
+    private final AutoSuggestionRepository          autoSuggRepo;
+    private final UpsellRuleRepository              upsellRuleRepo;
+    private final CategoryPairingRuleRepository     catPairingRepo;
+    private final MenuItemAnalyticsRepository       analyticsRepo;
+    private final MenuRepository                    menuRepo;
     private final MenuItemSellingPriceHistoryRepository priceRepo;
+    private final ClassificationService             classificationSvc;
 
-    private static final int DEFAULT_MAX = 8;
+    // ── Tuning constants ──────────────────────────────────────────────────────
+    private static final int DEFAULT_MAX        = 8;
+    /** How many candidates to gather before classification re-ranking. */
+    private static final int POOL_MULTIPLIER    = 3;
+
+    // Affinity tier scores
+    private static final int TIER_MANUAL        = 1000;
+    private static final int TIER_AUTO          = 800;
+    private static final int TIER_UPSELL        = 600;
+    private static final int TIER_CATEGORY      = 400;
+    private static final int TIER_BEST_SELLER   = 200;
+
+    // Classification deltas
+    private static final int MEAL_TYPE_BOOST    =  20;   // per shared meal type
+    private static final int MEAL_TYPE_BOOST_CAP=  40;
+    private static final int MEAL_TYPE_PENALTY  = -15;   // incompatible meal time
+    private static final int CUISINE_BOOST      =  20;   // per shared cuisine
+    private static final int CUISINE_BOOST_CAP  =  40;
+    private static final int CUISINE_PENALTY    = -20;   // incompatible cuisine
 
     // ── Public API ────────────────────────────────────────────────────────────
 
     @Transactional(readOnly = true)
     public CartRecommendationResponse getCartSuggestions(CartRecommendationRequest req) {
-        List<Long> cartItemIds   = req.getItemIds()     != null ? req.getItemIds()     : List.of();
-        List<Long> cartCatIds    = req.getCategoryIds() != null ? req.getCategoryIds() : List.of();
-        BigDecimal cartTotal     = req.getCartTotal()   != null ? req.getCartTotal()   : BigDecimal.ZERO;
-        int        maxResults    = req.getMaxResults() > 0      ? req.getMaxResults()  : DEFAULT_MAX;
-        Set<Long>  cartItemSet   = new HashSet<>(cartItemIds);
+        List<Long> cartItemIds = req.getItemIds()     != null ? req.getItemIds()     : List.of();
+        List<Long> cartCatIds  = req.getCategoryIds() != null ? req.getCategoryIds() : List.of();
+        BigDecimal cartTotal   = req.getCartTotal()   != null ? req.getCartTotal()   : BigDecimal.ZERO;
+        int        maxResults  = req.getMaxResults() > 0      ? req.getMaxResults()  : DEFAULT_MAX;
+        int        poolSize    = maxResults * POOL_MULTIPLIER;
+        Set<Long>  cartItemSet = new HashSet<>(cartItemIds);
 
-        LinkedHashMap<Long, RecommendationSuggestion> seen = new LinkedHashMap<>();
+        // Collect scored candidates: itemId → ScoredCandidate
+        LinkedHashMap<Long, ScoredCandidate> pool = new LinkedHashMap<>();
         String resolvedBy = "NONE";
 
-        // ── P1: Manual item mappings ──────────────────────────────────────────
+        // ── P1: Manual item→item mappings ─────────────────────────────────────
         if (!cartItemIds.isEmpty()) {
-            List<ItemRecommendation> manuals = manualRecRepo.findBySourceItemIds(cartItemIds);
-            for (ItemRecommendation r : manuals) {
+            for (ItemRecommendation r : manualRecRepo.findBySourceItemIds(cartItemIds)) {
                 Long tid = r.getTargetItem().getId();
-                if (!cartItemSet.contains(tid) && !seen.containsKey(tid)) {
-                    seen.put(tid, buildSuggestion(r.getTargetItem(), RecommendationSource.MANUAL, null, null));
+                if (!cartItemSet.contains(tid) && !pool.containsKey(tid)) {
+                    pool.put(tid, new ScoredCandidate(
+                            buildSuggestion(r.getTargetItem(), RecommendationSource.MANUAL, null, null),
+                            TIER_MANUAL));
+                    if (pool.size() >= poolSize) break;
                 }
             }
-            if (!seen.isEmpty()) resolvedBy = "MANUAL";
+            if (!pool.isEmpty()) resolvedBy = "MANUAL";
         }
 
-        // ── P2: Accepted auto suggestions ────────────────────────────────────
-        if (seen.size() < maxResults && !cartItemIds.isEmpty()) {
-            List<AutoSuggestion> accepted = autoSuggRepo.findAcceptedByItemIds(cartItemIds);
-            for (AutoSuggestion s : accepted) {
+        // ── P2: Accepted co-occurrence auto suggestions ───────────────────────
+        if (pool.size() < poolSize && !cartItemIds.isEmpty()) {
+            for (AutoSuggestion s : autoSuggRepo.findAcceptedByItemIds(cartItemIds)) {
                 Long tid = s.getItemB().getId();
-                if (!cartItemSet.contains(tid) && !seen.containsKey(tid)) {
-                    seen.put(tid, buildSuggestion(s.getItemB(), RecommendationSource.AUTO, null, null));
+                if (!cartItemSet.contains(tid) && !pool.containsKey(tid)) {
+                    pool.put(tid, new ScoredCandidate(
+                            buildSuggestion(s.getItemB(), RecommendationSource.AUTO, null, null),
+                            TIER_AUTO));
+                    if (pool.size() >= poolSize) break;
                 }
             }
-            if (resolvedBy.equals("NONE") && !seen.isEmpty()) resolvedBy = "AUTO";
+            if (resolvedBy.equals("NONE") && !pool.isEmpty()) resolvedBy = "AUTO";
         }
 
         // ── P3: Upsell rule targets ───────────────────────────────────────────
-        if (seen.size() < maxResults) {
+        if (pool.size() < poolSize) {
             List<Long> safeItemIds = cartItemIds.isEmpty() ? List.of(-1L) : cartItemIds;
             List<Long> safeCatIds  = cartCatIds.isEmpty()  ? List.of(-1L) : cartCatIds;
-            List<UpsellRule> rules = upsellRuleRepo.findMatchingRules(safeItemIds, safeCatIds, cartTotal);
-            for (UpsellRule rule : rules) {
+            outer:
+            for (UpsellRule rule : upsellRuleRepo.findMatchingRules(safeItemIds, safeCatIds, cartTotal)) {
                 for (UpsellRuleTarget t : rule.getTargets()) {
                     Long tid = t.getItem().getId();
-                    if (!cartItemSet.contains(tid) && !seen.containsKey(tid)) {
-                        seen.put(tid, buildSuggestion(t.getItem(), RecommendationSource.UPSELL,
-                                rule.getRewardValue(), rule.getRewardType().name()));
+                    if (!cartItemSet.contains(tid) && !pool.containsKey(tid)) {
+                        pool.put(tid, new ScoredCandidate(
+                                buildSuggestion(t.getItem(), RecommendationSource.UPSELL,
+                                        rule.getRewardValue(), rule.getRewardType().name()),
+                                TIER_UPSELL));
+                        if (pool.size() >= poolSize) break outer;
                     }
                 }
             }
-            if (resolvedBy.equals("NONE") && !seen.isEmpty()) resolvedBy = "UPSELL";
+            if (resolvedBy.equals("NONE") && !pool.isEmpty()) resolvedBy = "UPSELL";
         }
 
         // ── P4: Category pairing fallback ─────────────────────────────────────
-        if (seen.size() < maxResults && !cartCatIds.isEmpty()) {
-            List<CategoryPairingRule> pairings = catPairingRepo.findByCategoryIds(cartCatIds);
-            for (CategoryPairingRule p : pairings) {
+        if (pool.size() < poolSize && !cartCatIds.isEmpty()) {
+            for (CategoryPairingRule p : catPairingRepo.findByCategoryIds(cartCatIds)) {
                 Long targetCatId = p.getTargetCategory().getId();
-                List<MenuItem> items = menuRepo.findByFilters(null, targetCatId, null,
-                        PageRequest.of(0, maxResults));
-                for (MenuItem item : items) {
-                    if (!cartItemSet.contains(item.getId()) && !seen.containsKey(item.getId())) {
-                        seen.put(item.getId(), buildSuggestion(item, RecommendationSource.CATEGORY, null, null));
-                        if (seen.size() >= maxResults) break;
+                for (MenuItem item : menuRepo.findByFilters(null, targetCatId, null, PageRequest.of(0, poolSize))) {
+                    if (!cartItemSet.contains(item.getId()) && !pool.containsKey(item.getId())) {
+                        pool.put(item.getId(), new ScoredCandidate(
+                                buildSuggestion(item, RecommendationSource.CATEGORY, null, null),
+                                TIER_CATEGORY));
+                        if (pool.size() >= poolSize) break;
                     }
                 }
+                if (pool.size() >= poolSize) break;
             }
-            if (resolvedBy.equals("NONE") && !seen.isEmpty()) resolvedBy = "CATEGORY";
+            if (resolvedBy.equals("NONE") && !pool.isEmpty()) resolvedBy = "CATEGORY";
         }
 
         // ── P5: Best sellers ─────────────────────────────────────────────────
-        if (seen.size() < maxResults) {
+        if (pool.size() < poolSize) {
             LocalDate today = LocalDate.now();
-            List<TopMenuItemProjection> topItems = analyticsRepo.findTopItemsByQty(
-                    today.minusDays(30), today, PageRequest.of(0, maxResults + cartItemSet.size()));
-            for (TopMenuItemProjection top : topItems) {
-                if (!cartItemSet.contains(top.getMenuItemId()) && !seen.containsKey(top.getMenuItemId())) {
-                    // Lazy-load just the menu item we need
+            for (TopMenuItemProjection top : analyticsRepo.findTopItemsByQty(
+                    today.minusDays(30), today, PageRequest.of(0, poolSize + cartItemSet.size()))) {
+                if (!cartItemSet.contains(top.getMenuItemId()) && !pool.containsKey(top.getMenuItemId())) {
                     menuRepo.findById(top.getMenuItemId()).ifPresent(item ->
-                            seen.put(item.getId(), buildSuggestion(item, RecommendationSource.BEST_SELLER, null, null)));
+                            pool.put(item.getId(), new ScoredCandidate(
+                                    buildSuggestion(item, RecommendationSource.BEST_SELLER, null, null),
+                                    TIER_BEST_SELLER)));
                 }
-                if (seen.size() >= maxResults) break;
+                if (pool.size() >= poolSize) break;
             }
-            if (resolvedBy.equals("NONE") && !seen.isEmpty()) resolvedBy = "BEST_SELLER";
+            if (resolvedBy.equals("NONE") && !pool.isEmpty()) resolvedBy = "BEST_SELLER";
         }
 
-        // ── Enrich with live prices ───────────────────────────────────────────
-        List<Long> suggItemIds = new ArrayList<>(seen.keySet());
-        Map<Long, BigDecimal> prices = loadPrices(suggItemIds);
-        List<RecommendationSuggestion> suggestions = seen.values().stream()
-                .peek(s -> s.setPrice(prices.getOrDefault(s.getItemId(), BigDecimal.ZERO)))
+        // ── Classification scoring layer ──────────────────────────────────────
+        applyClassificationScoring(cartItemIds, pool);
+
+        // ── Sort by finalScore desc, enrich with live prices, trim to maxResults ──
+        List<Long> rankedIds = pool.entrySet().stream()
+                .sorted(Comparator.comparingInt((Map.Entry<Long, ScoredCandidate> e) -> e.getValue().finalScore).reversed())
+                .map(Map.Entry::getKey)
                 .limit(maxResults)
+                .toList();
+
+        Map<Long, BigDecimal> prices = loadPrices(rankedIds);
+        List<RecommendationSuggestion> suggestions = rankedIds.stream()
+                .map(id -> pool.get(id).suggestion)
+                .peek(s -> s.setPrice(prices.getOrDefault(s.getItemId(), BigDecimal.ZERO)))
                 .toList();
 
         return CartRecommendationResponse.builder()
@@ -151,10 +200,145 @@ public class RecommendationEngineService {
                 .build();
     }
 
+    // ── Classification scoring ────────────────────────────────────────────────
+
+    /**
+     * Batch-loads classification for all cart items and all candidates, then
+     * adjusts each candidate's {@link ScoredCandidate#finalScore} by the
+     * classification delta.
+     *
+     * <p>FinalScore = AffinityScore + MealTypeScore + CuisineTypeScore
+     *
+     * <p>Fails silently: if classification data cannot be loaded, affinity
+     * ordering is preserved unchanged.
+     */
+    private void applyClassificationScoring(List<Long> cartItemIds,
+                                             LinkedHashMap<Long, ScoredCandidate> pool) {
+        if (pool.isEmpty()) return;
+
+        // Collect all IDs that need classification data in one batch query
+        List<Long> allIds = new ArrayList<>(cartItemIds.size() + pool.size());
+        allIds.addAll(cartItemIds);
+        allIds.addAll(pool.keySet());
+
+        Map<Long, ItemClassificationResponse> classifs;
+        try {
+            classifs = classificationSvc.getItemClassificationBatch(allIds);
+        } catch (Exception ex) {
+            log.warn("[RecEngine] Classification batch load failed — skipping scoring: {}", ex.getMessage());
+            return;
+        }
+
+        // Build cart context: union of ALL cart items' meal types and cuisine types
+        Set<Long> cartMealTypeIds = cartItemIds.stream()
+                .map(classifs::get)
+                .filter(Objects::nonNull)
+                .flatMap(c -> c.getMealTypes().stream().map(mt -> mt.getId()))
+                .collect(Collectors.toSet());
+
+        Set<Long> cartCuisineIds = cartItemIds.stream()
+                .map(classifs::get)
+                .filter(Objects::nonNull)
+                .flatMap(c -> c.getCuisineTypes().stream().map(ct -> ct.getId()))
+                .collect(Collectors.toSet());
+
+        // No cart classification data → nothing to score against
+        if (cartMealTypeIds.isEmpty() && cartCuisineIds.isEmpty()) return;
+
+        log.debug("[RecEngine] Classification context — cartMealTypes={} cartCuisines={}",
+                cartMealTypeIds, cartCuisineIds);
+
+        // Apply delta to every candidate
+        for (Map.Entry<Long, ScoredCandidate> entry : pool.entrySet()) {
+            ItemClassificationResponse candClassif = classifs.get(entry.getKey());
+            int delta = computeClassificationDelta(cartMealTypeIds, cartCuisineIds, candClassif);
+            if (delta != 0) {
+                ScoredCandidate c = entry.getValue();
+                c.finalScore = c.affinityScore + delta;
+                log.debug("[RecEngine] item={} affinity={} classifDelta={} final={}",
+                        entry.getKey(), c.affinityScore, delta, c.finalScore);
+            }
+        }
+    }
+
+    /**
+     * Computes the classification score delta for one candidate.
+     *
+     * <pre>
+     * Rules:
+     *   Meal Type shared     → +20 per shared type, capped at +40
+     *   Meal Type no overlap → -15 (unless candidate has "Anytime" type)
+     *   Cuisine shared       → +20 per shared cuisine, capped at +40
+     *   Cuisine no overlap   → -20
+     *
+     * If either side has no classification data, that dimension is skipped (neutral).
+     * </pre>
+     */
+    private int computeClassificationDelta(Set<Long> cartMealTypeIds,
+                                            Set<Long> cartCuisineIds,
+                                            ItemClassificationResponse candClassif) {
+        if (candClassif == null) return 0;
+        int score = 0;
+
+        // ── Dimension 2: Meal Type ────────────────────────────────────────────
+        List<?> candMealTypes = candClassif.getMealTypes();
+        if (!cartMealTypeIds.isEmpty() && candMealTypes != null && !candMealTypes.isEmpty()) {
+
+            boolean hasAnytime = candClassif.getMealTypes().stream()
+                    .anyMatch(mt -> "Anytime".equalsIgnoreCase(mt.getName()));
+
+            long shared = candClassif.getMealTypes().stream()
+                    .filter(mt -> cartMealTypeIds.contains(mt.getId()))
+                    .count();
+
+            if (shared > 0) {
+                // Boost for contextual fit
+                score += (int) Math.min(shared * MEAL_TYPE_BOOST, MEAL_TYPE_BOOST_CAP);
+            } else if (!hasAnytime) {
+                // Penalize incompatible meal time (e.g. Pizza at Breakfast)
+                score += MEAL_TYPE_PENALTY;
+            }
+            // "Anytime" candidates with no overlap → 0 (neutral, no penalty)
+        }
+
+        // ── Dimension 3: Cuisine Type ─────────────────────────────────────────
+        List<?> candCuisines = candClassif.getCuisineTypes();
+        if (!cartCuisineIds.isEmpty() && candCuisines != null && !candCuisines.isEmpty()) {
+
+            long shared = candClassif.getCuisineTypes().stream()
+                    .filter(ct -> cartCuisineIds.contains(ct.getId()))
+                    .count();
+
+            if (shared > 0) {
+                // Boost for cuisine match (e.g. South Indian item with South Indian cart)
+                score += (int) Math.min(shared * CUISINE_BOOST, CUISINE_BOOST_CAP);
+            } else {
+                // Penalize cuisine mismatch (e.g. Pizza with Biryani)
+                score += CUISINE_PENALTY;
+            }
+        }
+
+        return score;
+    }
+
+    // ── Internal scored-candidate holder ─────────────────────────────────────
+
+    private static final class ScoredCandidate {
+        final RecommendationSuggestion suggestion;
+        final int affinityScore;
+        int finalScore;
+
+        ScoredCandidate(RecommendationSuggestion suggestion, int affinityScore) {
+            this.suggestion    = suggestion;
+            this.affinityScore = affinityScore;
+            this.finalScore    = affinityScore;   // classification delta applied later
+        }
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private RecommendationSuggestion buildSuggestion(MenuItem item, RecommendationSource source,
-                                                       BigDecimal rewardValue, String rewardType) {
+                                                      BigDecimal rewardValue, String rewardType) {
         String discountLabel = null;
         if (rewardValue != null && rewardValue.compareTo(BigDecimal.ZERO) > 0) {
             discountLabel = "PERCENT_DISCOUNT".equals(rewardType)
@@ -165,7 +349,7 @@ public class RecommendationEngineService {
                 .itemId(item.getId())
                 .itemName(item.getName())
                 .imageUrl(item.getImageUrl())
-                .price(BigDecimal.ZERO)   // filled later by price enrichment
+                .price(BigDecimal.ZERO)
                 .source(source.name())
                 .discountAmount(rewardValue)
                 .discountLabel(discountLabel)

@@ -5,6 +5,9 @@ import com.broandbro.qrapp.entity.Tag;
 import com.broandbro.qrapp.enums.FulfillmentType;
 import com.broandbro.qrapp.enums.InventoryMode;
 import com.broandbro.qrapp.enums.StockStatus;
+import com.broandbro.qrapp.classification.dto.ClassificationDtos.ComboRoleView;
+import com.broandbro.qrapp.classification.dto.ClassificationDtos.MealTypeView;
+import com.broandbro.qrapp.classification.dto.ClassificationDtos.CuisineTypeView;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.*;
 
@@ -67,4 +70,26 @@ public class MenuItemResponse {
      * Null for items without a cost configured.
      */
     private BigDecimal estimatedCost;
+
+    // ============================================================================
+    // CLASSIFICATION FIELDS (3-Dimension Menu Classification System)
+    // ============================================================================
+
+    /**
+     * The meal role this item plays (Primary / Accompaniment / Drink / Dessert / Addon).
+     * Null if not yet classified.
+     */
+    private ComboRoleView comboRole;
+
+    /**
+     * When this item is typically consumed (Breakfast / Lunch / Dinner / Snack / Anytime).
+     * Empty list if not yet classified.
+     */
+    private java.util.List<MealTypeView> mealTypes;
+
+    /**
+     * Food style / cuisine of this item (SouthIndian / NorthIndian / Chinese / etc.).
+     * Empty list if not yet classified.
+     */
+    private java.util.List<CuisineTypeView> cuisineTypes;
 }

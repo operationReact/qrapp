@@ -1,5 +1,6 @@
 package com.broandbro.qrapp.recommendation.controller;
 
+import com.broandbro.qrapp.recommendation.dto.RecommendationAnalyticsDtos.*;
 import com.broandbro.qrapp.recommendation.dto.RecommendationDtos.*;
 import com.broandbro.qrapp.recommendation.scheduler.CoOccurrenceScheduler;
 import com.broandbro.qrapp.recommendation.service.*;
@@ -57,6 +58,7 @@ public class GrowthAdminController {
     private final UpsellRuleService upsellSvc;
     private final CategoryPairingService catPairingSvc;
     private final CoOccurrenceScheduler scheduler;
+    private final RecommendationInteractionService interactionService;
 
     // ── L1: Manual Recommendations ───────────────────────────────────────────
 
@@ -238,6 +240,28 @@ public class GrowthAdminController {
     public ResponseEntity<Void> deletePairing(@PathVariable Long id) {
         catPairingSvc.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    // ── L6: Recommendation Analytics ─────────────────────────────────────────
+
+    /**
+     * Returns the full recommendation pairing analytics dashboard for a restaurant.
+     *
+     * <p>Includes four admin dashboard cards:
+     * <ol>
+     *   <li>Total recommendation views</li>
+     *   <li>Overall acceptance rate</li>
+     *   <li>Top pairing (most-viewed)</li>
+     *   <li>Highest-converting pairing (best acceptance rate, min 5 views)</li>
+     * </ol>
+     *
+     * <p>Strict multi-vendor isolation: analytics are scoped to the given
+     * {@code restaurantId} — admins must supply their own restaurant ID.
+     */
+    @GetMapping("/rec-analytics")
+    public ResponseEntity<RecommendationAnalyticsDashboard> getRecommendationAnalytics(
+            @RequestParam Long restaurantId) {
+        return ResponseEntity.ok(interactionService.getAnalytics(restaurantId));
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────

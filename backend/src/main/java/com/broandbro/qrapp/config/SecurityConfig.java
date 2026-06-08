@@ -128,6 +128,14 @@ public class SecurityConfig {
                         // BYOC cart evaluation — publicly accessible (no auth needed)
                         .requestMatchers(HttpMethod.POST, "/api/combo-campaigns/evaluate").permitAll()
 
+                        // Recommendation: cart suggestions, complete-meal, and interaction tracking
+                        // are all public (no customer login required). The analytics endpoint is
+                        // protected at the controller level via @PreAuthorize.
+                        .requestMatchers(HttpMethod.GET,  "/api/recommendations/cart").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/recommendations/cart").permitAll()
+                        .requestMatchers(HttpMethod.GET,  "/api/recommendations/complete-meal").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/recommendations/interactions").permitAll()
+
                         .requestMatchers(
                                 HttpMethod.POST,
                                 "/menu"

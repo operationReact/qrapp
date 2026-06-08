@@ -124,3 +124,25 @@ export const toggleCategoryPairing = (id) =>
 export const deleteCategoryPairing = (id) =>
   apiClient.delete(`/api/admin/growth/category-pairings/${id}`).then((r) => r.data);
 
+// ── Admin: Item Pairings ──────────────────────────────────────────────────────
+
+/** All pairings (active + inactive) for a source item, sorted by priority DESC. */
+export const fetchItemPairingsList = (itemId) =>
+  apiClient.get(`/api/admin/growth/item-pairings/${itemId}/list`).then((r) => r.data);
+
+/** Active pairings grouped by role: { drinks, sides, desserts, addons }. */
+export const fetchItemPairingsGrouped = (itemId) =>
+  apiClient.get(`/api/admin/growth/item-pairings/${itemId}`).then((r) => r.data);
+
+/** Create a new pairing: { sourceItemId, targetItemId, pairingRole, priority }. */
+export const addItemPairing = (data) =>
+  apiClient.post("/api/admin/growth/item-pairings", data).then((r) => r.data);
+
+/** Hard-delete a pairing by ID. */
+export const removeItemPairing = (id) =>
+  apiClient.delete(`/api/admin/growth/item-pairings/${id}`).then((r) => r.data);
+
+/** Update the sort priority of a pairing. Higher = shown first. */
+export const updatePairingPriority = (id, priority) =>
+  apiClient.patch(`/api/admin/growth/item-pairings/${id}/priority`, { priority }).then((r) => r.data);
+

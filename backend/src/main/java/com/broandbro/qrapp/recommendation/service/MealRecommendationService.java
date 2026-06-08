@@ -1,6 +1,5 @@
 package com.broandbro.qrapp.recommendation.service;
 
-import com.broandbro.qrapp.bundle.entity.ItemComboRole;
 import com.broandbro.qrapp.bundle.repository.ComboRoleRepository;
 import com.broandbro.qrapp.bundle.repository.ItemComboRoleRepository;
 import com.broandbro.qrapp.recommendation.dto.MealRecommendationDtos.*;
@@ -16,14 +15,13 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * "Complete Your Meal" recommendation service — V1.
  *
  * <p>Algorithm (kept intentionally simple):
  * <ol>
- *   <li>Identify the MAIN item in the cart (first item carrying the MAIN role).</li>
+ *   <li>Identify the PRIMARY item in the cart (first item carrying the PRIMARY role).</li>
  *   <li>Ask the {@link RecommendationEngineService} for related items.</li>
  *   <li>Classify each suggestion by its bundle combo role (SIDE / DRINK / DESSERT).</li>
  *   <li>Pick one item per role — first-match wins.</li>
@@ -67,10 +65,10 @@ public class MealRecommendationService {
 
         if (cartIds.isEmpty()) return Optional.empty();
 
-        // ── Step 1: identify the MAIN item in the cart ────────────────────────
+        // ── Step 1: identify the PRIMARY item in the cart ─────────────────────
         Map<Long, String> cartRoles = batchRoles(cartIds);
         Long mainItemId = cartIds.stream()
-                .filter(id -> "MAIN".equals(cartRoles.get(id)))
+                .filter(id -> "PRIMARY".equals(cartRoles.get(id)))
                 .findFirst()
                 .orElse(null);
 
@@ -96,16 +94,16 @@ public class MealRecommendationService {
         Map<String, MealItemView> picked = new LinkedHashMap<>();
         for (RecommendationSuggestion s : suggestions) {
             String role = sugRoles.getOrDefault(s.getItemId(), "ADDON");
-            if (List.of("SIDE", "DRINK", "DESSERT").contains(role) && !picked.containsKey(role)) {
+            if (List.of("ACCOMPANIMENT", "DRINK", "DESSERT").contains(role) && !picked.containsKey(role)) {
                 picked.put(role, toView(s, role));
             }
         }
 
-        // ── Step 4: fallback for SIDE and DRINK (DESSERT is optional) ─────────
+        // ── Step 4: fallback for ACCOMPANIMENT and DRINK (DESSERT is optional) ─
         Set<Long> usedIds = new HashSet<>(cartIds);
         usedIds.addAll(sugIds);
 
-        for (String target : List.of("SIDE", "DRINK")) {
+        for (String target : List.of("ACCOMPANIMENT", "DRINK")) {
             if (!picked.containsKey(target)) {
                 fallback(target, usedIds).ifPresent(v -> {
                     picked.put(target, v);
@@ -197,16 +195,18 @@ public class MealRecommendationService {
     }
 
     /**
-     * Maps a raw role name (e.g. "Main Course", "Cold Drink") to one of
-     * MAIN | SIDE | DRINK | DESSERT | ADDON.
+     * Maps a raw role name (e.g. "Primary", "Main Course", "Cold Drink") to one of
+     * PRIMARY | ACCOMPANIMENT | DRINK | DESSERT | ADDON.
      */
     static String canonical(String raw) {
         if (raw == null) return "ADDON";
-        String lc = raw.toLowerCase(Locale.ROOT);
-        if (lc.contains("main")  || lc.contains("entree") || lc.contains("course") || lc.contains("meal"))
-            return "MAIN";
-        if (lc.contains("side")  || lc.contains("accompaniment") || lc.contains("raita") || lc.contains("salad"))
-            return "SIDE";
+        String lc = raw.toLowerCase(java.util.Locale.ROOT);
+        if (lc.contains("primary") || lc.contains("main")  || lc.contains("entree")
+                || lc.contains("course") || lc.contains("meal"))
+            return "PRIMARY";
+        if (lc.contains("accompaniment") || lc.contains("side") || lc.contains("raita")
+                || lc.contains("salad"))
+            return "ACCOMPANIMENT";
         if (lc.contains("drink") || lc.contains("beverage") || lc.contains("juice") || lc.contains("coffee")
                 || lc.contains("tea")   || lc.contains("water")   || lc.contains("soda")  || lc.contains("shake")
                 || lc.contains("coke")  || lc.contains("cola")    || lc.contains("lassi"))

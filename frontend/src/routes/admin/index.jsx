@@ -558,7 +558,7 @@ function InsightsTab({ d }) {
 
       {/* Smart Recommendations — from trending items engine */}
       <div>
-        <SectionLabel action="View all" to="/admin/recommendations">
+        <SectionLabel action="View all" to="/admin/item-recommendations">
           <span className="flex items-center gap-1.5">Smart Recommendations <Zap className="text-amber-700 size-3.5" /></span>
         </SectionLabel>
         {trending.loading ? (
@@ -578,7 +578,7 @@ function InsightsTab({ d }) {
                   <p className="text-xs font-medium text-zinc-700 leading-snug">{name} is trending</p>
                   <p className="text-xs font-semibold text-emerald-600 mt-0.5">{count} orders recently</p>
                 </div>
-                <Link to="/admin/recommendations"
+                <Link to="/admin/item-recommendations"
                   className="shrink-0 text-[10px] font-bold text-primary bg-primary/5 border border-primary/10 px-2 py-1 rounded-lg">
                   Boost
                 </Link>

@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import AdminMenuFilters from "@/components/admin/AdminMenuFilters";
 import BulkMenuUploadModal from "@/components/admin/BulkMenuUploadModal";
 import BulkCostEditSheet from "@/components/admin/BulkCostEditSheet";
+import MissingImagesSheet from "@/components/admin/MissingImagesSheet";
 import SummaryMetrics from "@/components/admin/SummaryMetrics";
 import CategoriesScroll from "@/components/admin/CategoriesScroll";
 import CategoriesManageModal from "@/components/admin/CategoriesManageModal";
@@ -37,6 +38,7 @@ import {
   ArrowCounterClockwiseIcon,
   BowlFoodIcon,
   FunnelIcon,
+  ImageIcon,
   LegoIcon,
   MagnifyingGlassIcon,
   PlusIcon,
@@ -79,6 +81,7 @@ export const Route = createFileRoute("/admin/(menu)/menu")({
     const [editingItem, setEditingItem] = useState(null);
     const [bulkUploadOpen, setBulkUploadOpen] = useState(false);
     const [bulkCostOpen, setBulkCostOpen] = useState(false);
+    const [missingImagesOpen, setMissingImagesOpen] = useState(false);
     const [filterSheetOpen, setFilterSheetOpen] = useState(false);
     const [categoriesModalOpen, setCategoriesModalOpen] = useState(false);
     const [trashOpen, setTrashOpen] = useState(false);
@@ -159,6 +162,11 @@ export const Route = createFileRoute("/admin/(menu)/menu")({
       ? Math.round((activeWithCost / activeItemCount) * 100)
       : 100;
     const missingCostCount = activeItemCount - activeWithCost;
+
+    const missingImageCount = useMemo(
+      () => menu.filter((m) => !m.imageUrl).length,
+      [menu],
+    );
 
     const categoryCounts = useMemo(() => {
       const counts = { ALL: totalItems };
@@ -278,6 +286,11 @@ export const Route = createFileRoute("/admin/(menu)/menu")({
         return item.available && item.estimatedCost == null;
       }
 
+      // MISSING_IMAGE quick-filter
+      if (quickFilter === "MISSING_IMAGE") {
+        return !item.imageUrl;
+      }
+
       if (quickFilter === "AVAILABLE"   && !item.available) return false;
       if (quickFilter === "UNAVAILABLE" &&  item.available) return false;
 
@@ -319,6 +332,13 @@ export const Route = createFileRoute("/admin/(menu)/menu")({
           : "All active items costed",
         icon: CurrencyInrIcon,
         tone: coveragePct === 100 ? "emerald" : missingCostCount > 0 ? "amber" : "emerald",
+      },
+      {
+        label: "Missing Images",
+        value: missingImageCount,
+        subtext: missingImageCount > 0 ? "Items without a photo" : "All items have images",
+        icon: ImageIcon,
+        tone: missingImageCount > 0 ? "amber" : "emerald",
       },
     ];
 
@@ -413,6 +433,16 @@ export const Route = createFileRoute("/admin/(menu)/menu")({
                 Set Costs ({missingCostCount})
               </Button>
             )}
+            {missingImageCount > 0 && (
+              <Button
+                variant="outline"
+                className="border-amber-300 text-amber-700 hover:bg-amber-50 gap-1.5"
+                onClick={() => setMissingImagesOpen(true)}
+              >
+                <ImageIcon weight="fill" className="size-4" />
+                Fix Images ({missingImageCount})
+              </Button>
+            )}
             <Button onClick={() => setBulkUploadOpen(true)} variant="outline">
               <UploadIcon data-icon="inline-start" />
               <span className="sm:hidden">Bulk Actions</span>
@@ -440,19 +470,34 @@ export const Route = createFileRoute("/admin/(menu)/menu")({
           />
 
           {/* Profitability / Missing-cost quick filter pills */}
-          {missingCostCount > 0 && (
+          {(missingCostCount > 0 || missingImageCount > 0) && (
             <div className="flex gap-2 flex-wrap">
-              <button
-                onClick={() => setQuickFilter(quickFilter === "MISSING_COST" ? "ALL" : "MISSING_COST")}
-                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold border transition-colors ${
-                  quickFilter === "MISSING_COST"
-                    ? "bg-amber-500 text-white border-amber-500"
-                    : "bg-amber-50 text-amber-700 border-amber-300 hover:bg-amber-100"
-                }`}
-              >
-                <WarningCircleIcon weight="fill" className="size-3.5" />
-                Missing Cost · {missingCostCount}
-              </button>
+              {missingCostCount > 0 && (
+                <button
+                  onClick={() => setQuickFilter(quickFilter === "MISSING_COST" ? "ALL" : "MISSING_COST")}
+                  className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold border transition-colors ${
+                    quickFilter === "MISSING_COST"
+                      ? "bg-amber-500 text-white border-amber-500"
+                      : "bg-amber-50 text-amber-700 border-amber-300 hover:bg-amber-100"
+                  }`}
+                >
+                  <WarningCircleIcon weight="fill" className="size-3.5" />
+                  Missing Cost · {missingCostCount}
+                </button>
+              )}
+              {missingImageCount > 0 && (
+                <button
+                  onClick={() => setQuickFilter(quickFilter === "MISSING_IMAGE" ? "ALL" : "MISSING_IMAGE")}
+                  className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold border transition-colors ${
+                    quickFilter === "MISSING_IMAGE"
+                      ? "bg-amber-500 text-white border-amber-500"
+                      : "bg-amber-50 text-amber-700 border-amber-300 hover:bg-amber-100"
+                  }`}
+                >
+                  <ImageIcon weight="fill" className="size-3.5" />
+                  Missing Image · {missingImageCount}
+                </button>
+              )}
             </div>
           )}
 
@@ -678,6 +723,12 @@ export const Route = createFileRoute("/admin/(menu)/menu")({
         <BulkCostEditSheet
           open={bulkCostOpen}
           onOpenChange={setBulkCostOpen}
+          items={menu}
+        />
+
+        <MissingImagesSheet
+          open={missingImagesOpen}
+          onOpenChange={setMissingImagesOpen}
           items={menu}
         />
 

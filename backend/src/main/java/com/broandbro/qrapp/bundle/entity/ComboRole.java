@@ -26,6 +26,9 @@ public class ComboRole {
     @Column(name = "name", nullable = false, unique = true, length = 100)
     private String name;
 
+    @Column(name = "description", columnDefinition = "TEXT")
+    private String description;
+
     @Column(name = "display_order", nullable = false)
     private int displayOrder;
 

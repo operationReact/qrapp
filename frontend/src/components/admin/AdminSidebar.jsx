@@ -143,14 +143,14 @@ export function AdminSidebar() {
             <SidebarMenuItem>
               <SidebarMenuButton
                 className="text-zinc-700 font-medium"
-                isActive={pathname === "/admin/meal-roles"}
+                isActive={pathname === "/admin/classification"}
                 render={
-                  <Link to={"/admin/meal-roles"}>
+                  <Link to={"/admin/classification"}>
                     <ForkKnifeIcon
                       className="text-primary"
-                      weight={pathname === "/admin/meal-roles" ? "bold" : "regular"}
+                      weight={pathname === "/admin/classification" ? "bold" : "regular"}
                     />
-                    <span>Meal Roles</span>
+                    <span>Recommendation Setup</span>
                   </Link>
                 }
               />
@@ -256,7 +256,7 @@ export function AdminSidebar() {
           <SidebarGroupLabel>Growth Tools</SidebarGroupLabel>
           <SidebarMenu>
             {[
-              { to: "/admin/recommendations",   label: "Recommendations",  icon: ListPlusIcon },
+              { to: "/admin/item-recommendations", label: "Item Pairings",    icon: ListPlusIcon },
               { to: "/admin/auto-suggestions",  label: "Auto Suggestions", icon: MagicWandIcon },
               { to: "/admin/upsell-rules",      label: "Upsell Rules",     icon: LightningIcon },
               { to: "/admin/category-pairings", label: "Category Pairings",icon: ArrowsOutSimpleIcon },
