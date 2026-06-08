@@ -8,7 +8,18 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ConfettiIcon, MagnifyingGlassIcon } from "@phosphor-icons/react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from "@/components/ui/input-group";
 
 export const Route = createFileRoute("/admin/(orders)/party-orders")({
   component: PartyOrdersPage,
@@ -62,18 +73,16 @@ function PartyOrdersPage() {
 
       <div className="px-4 py-4 space-y-4">
         {/* ── Search ──────────────────────────────────────────────────── */}
-        <div className="relative max-w-sm">
-          <MagnifyingGlassIcon
-            weight="bold"
-            className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground"
-          />
-          <input
+        <InputGroup className="w-full max-w-sm">
+          <InputGroupAddon>
+            <MagnifyingGlassIcon weight="bold" />
+          </InputGroupAddon>
+          <InputGroupInput
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by name, phone, menu item…"
-            className="w-full pl-9 pr-3 py-2 rounded-lg border border-input bg-background text-sm outline-none focus:ring-2 focus:ring-ring/50 placeholder:text-muted-foreground transition-all"
           />
-        </div>
+        </InputGroup>
 
         <Tabs defaultValue="" onValueChange={setActiveStatus}>
           <ScrollArea

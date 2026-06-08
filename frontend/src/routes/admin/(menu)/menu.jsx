@@ -8,7 +8,12 @@ import {
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { updateMenuItem, deleteMenuItem, getDeletedMenuItems, restoreMenuItem } from "@/services/menu-service";
+import {
+  updateMenuItem,
+  deleteMenuItem,
+  getDeletedMenuItems,
+  restoreMenuItem,
+} from "@/services/menu-service";
 import { menuOptions } from "@/query/options/menu";
 import { useAuth } from "@/context/AuthContext";
 import AdminMenuItem from "@/components/admin/AdminMenuItem";
@@ -89,9 +94,13 @@ export const Route = createFileRoute("/admin/(menu)/menu")({
 
     const { data: menu = [], isLoading: loadingMenu } = useQuery(menuOptions());
 
-    const { data: deletedItems = [], isLoading: loadingDeleted, isFetching: fetchingDeleted } = useQuery({
+    const {
+      data: deletedItems = [],
+      isLoading: loadingDeleted,
+      isFetching: fetchingDeleted,
+    } = useQuery({
       queryKey: ["menu-deleted"],
-      queryFn:  getDeletedMenuItems,
+      queryFn: getDeletedMenuItems,
       staleTime: 30_000,
     });
 
@@ -103,7 +112,11 @@ export const Route = createFileRoute("/admin/(menu)/menu")({
         toast.success("Item restored successfully");
       },
       onError: (err) => {
-        toast.error(err?.response?.data?.message || err?.message || "Failed to restore item");
+        toast.error(
+          err?.response?.data?.message ||
+            err?.message ||
+            "Failed to restore item",
+        );
       },
     });
 
@@ -154,13 +167,14 @@ export const Route = createFileRoute("/admin/(menu)/menu")({
 
     // Profitability coverage
     const activeItemCount = availableCount;
-    const activeWithCost  = useMemo(
+    const activeWithCost = useMemo(
       () => menu.filter((m) => m.available && m.estimatedCost != null).length,
       [menu],
     );
-    const coveragePct = activeItemCount > 0
-      ? Math.round((activeWithCost / activeItemCount) * 100)
-      : 100;
+    const coveragePct =
+      activeItemCount > 0
+        ? Math.round((activeWithCost / activeItemCount) * 100)
+        : 100;
     const missingCostCount = activeItemCount - activeWithCost;
 
     const missingImageCount = useMemo(
@@ -327,11 +341,17 @@ export const Route = createFileRoute("/admin/(menu)/menu")({
       {
         label: "Cost Coverage",
         value: `${coveragePct}%`,
-        subtext: missingCostCount > 0
-          ? `${missingCostCount} active item${missingCostCount !== 1 ? "s" : ""} need cost`
-          : "All active items costed",
+        subtext:
+          missingCostCount > 0
+            ? `${missingCostCount} active item${missingCostCount !== 1 ? "s" : ""} need cost`
+            : "All active items costed",
         icon: CurrencyInrIcon,
-        tone: coveragePct === 100 ? "emerald" : missingCostCount > 0 ? "amber" : "emerald",
+        tone:
+          coveragePct === 100
+            ? "emerald"
+            : missingCostCount > 0
+              ? "amber"
+              : "emerald",
       },
       {
         label: "Missing Images",
@@ -344,13 +364,20 @@ export const Route = createFileRoute("/admin/(menu)/menu")({
 
     const handleOpenTrash = () => {
       setTrashOpen(true);
-      setTimeout(() => trashRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+      setTimeout(
+        () =>
+          trashRef.current?.scrollIntoView({
+            behavior: "smooth",
+            block: "start",
+          }),
+        50,
+      );
     };
 
     return (
       <>
         {/* STICKY HEADER */}
-        <div className="flex items-start gap-3 border-b px-4 pt-3 pb-4 border-border sticky top-0 z-5 bg-background">
+        <div className="flex sr-only items-start gap-3 border-b px-4 pt-3 pb-4 border-border">
           <Button
             variant="ghost"
             size="icon-sm"
@@ -544,28 +571,26 @@ export const Route = createFileRoute("/admin/(menu)/menu")({
               </Empty>
             )}
 
-            {!loadingMenu &&
-              menu.length > 0 &&
-              filteredItems.length === 0 && (
-                <Empty className="border col-span-2 border-dashed border-border bg-card py-12">
-                  <EmptyHeader>
-                    <EmptyMedia variant="icon">
-                      <MagnifyingGlassIcon size={20} weight="bold" />
-                    </EmptyMedia>
-                    <EmptyTitle>No Matching Items!</EmptyTitle>
-                    <EmptyDescription>
-                      Try adjusting your search or filters.
-                    </EmptyDescription>
-                  </EmptyHeader>
-                  <Button
-                    onClick={handleClearAll}
-                    variant="outline"
-                    className="border-border!"
-                  >
-                    Clear Filters
-                  </Button>
-                </Empty>
-              )}
+            {!loadingMenu && menu.length > 0 && filteredItems.length === 0 && (
+              <Empty className="border col-span-2 border-dashed border-border bg-card py-12">
+                <EmptyHeader>
+                  <EmptyMedia variant="icon">
+                    <MagnifyingGlassIcon size={20} weight="bold" />
+                  </EmptyMedia>
+                  <EmptyTitle>No Matching Items!</EmptyTitle>
+                  <EmptyDescription>
+                    Try adjusting your search or filters.
+                  </EmptyDescription>
+                </EmptyHeader>
+                <Button
+                  onClick={handleClearAll}
+                  variant="outline"
+                  className="border-border!"
+                >
+                  Clear Filters
+                </Button>
+              </Empty>
+            )}
 
             {!loadingMenu && menu.length > 0 && filteredItems.length === 0 && (
               <div className="py-20 text-center rounded-lg border border-dashed border-border bg-card">
@@ -585,96 +610,100 @@ export const Route = createFileRoute("/admin/(menu)/menu")({
           </div>
         </div>
 
-          {/* ── Trash / Deleted Items ─────────────────────────────────── */}
-          <div className="px-4 pb-4 mt-2" ref={trashRef}>
-
-            <div className="border border-dashed border-zinc-300 rounded-xl overflow-hidden">
-
-              {/* Toggle header */}
-              <button
-                type="button"
-                onClick={() => setTrashOpen((v) => !v)}
-                className="w-full flex items-center gap-2 px-4 py-3 text-sm font-medium text-zinc-500 hover:bg-zinc-50 transition-colors"
-              >
-                <TrashIcon className="size-4" />
-                <span>Deleted Items</span>
-                {deletedItems.length > 0 && (
-                  <span className="bg-zinc-200 text-zinc-600 text-xs font-semibold rounded-full px-2 py-0.5">
-                    {deletedItems.length}
-                  </span>
-                )}
-                <span className="ml-auto text-xs text-zinc-400">
-                  {trashOpen ? "▲ Hide" : "▼ Show"}
+        {/* ── Trash / Deleted Items ─────────────────────────────────── */}
+        <div className="px-4 pb-4 mt-2" ref={trashRef}>
+          <div className="border border-dashed border-zinc-300 rounded-xl overflow-hidden">
+            {/* Toggle header */}
+            <button
+              type="button"
+              onClick={() => setTrashOpen((v) => !v)}
+              className="w-full flex items-center gap-2 px-4 py-3 text-sm font-medium text-zinc-500 hover:bg-zinc-50 transition-colors"
+            >
+              <TrashIcon className="size-4" />
+              <span>Deleted Items</span>
+              {deletedItems.length > 0 && (
+                <span className="bg-zinc-200 text-zinc-600 text-xs font-semibold rounded-full px-2 py-0.5">
+                  {deletedItems.length}
                 </span>
-              </button>
+              )}
+              <span className="ml-auto text-xs text-zinc-400">
+                {trashOpen ? "▲ Hide" : "▼ Show"}
+              </span>
+            </button>
 
-              {/* Panel body */}
-              {trashOpen && (
-                <div className="border-t border-zinc-200 divide-y divide-zinc-100">
-                  {/* Loading skeleton */}
-                  {(loadingDeleted || fetchingDeleted) && deletedItems.length === 0 && (
+            {/* Panel body */}
+            {trashOpen && (
+              <div className="border-t border-zinc-200 divide-y divide-zinc-100">
+                {/* Loading skeleton */}
+                {(loadingDeleted || fetchingDeleted) &&
+                  deletedItems.length === 0 && (
                     <div className="px-4 py-3 space-y-2">
                       {Array.from({ length: 3 }).map((_, i) => (
-                        <div key={i} className="h-14 rounded-lg bg-zinc-100 animate-pulse" />
+                        <div
+                          key={i}
+                          className="h-14 rounded-lg bg-zinc-100 animate-pulse"
+                        />
                       ))}
                     </div>
                   )}
 
-                  {/* Empty state */}
-                  {!loadingDeleted && !fetchingDeleted && deletedItems.length === 0 && (
+                {/* Empty state */}
+                {!loadingDeleted &&
+                  !fetchingDeleted &&
+                  deletedItems.length === 0 && (
                     <p className="py-8 text-center text-sm text-zinc-400">
                       No deleted items in trash.
                     </p>
                   )}
 
-                  {/* Item rows */}
-                  {deletedItems.map((item) => (
-                    <div
-                      key={item.id}
-                      className="flex items-center gap-3 px-4 py-3 bg-white hover:bg-zinc-50/60 transition-colors"
-                    >
-                      {/* Thumbnail */}
-                      <div className="size-10 rounded-md bg-zinc-100 shrink-0 overflow-hidden">
-                        {item.imageUrl ? (
-                          <img
-                            src={item.imageUrl}
-                            alt={item.name}
-                            className="size-full object-cover opacity-60"
-                          />
-                        ) : (
-                          <div className="size-full flex items-center justify-center text-zinc-300 text-lg">
-                            🍽️
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Name + category */}
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-zinc-400 line-through truncate">
-                          {item.name}
-                        </p>
-                        <p className="text-xs text-zinc-400 truncate">
-                          {item.categoryName ?? "No category"}
-                        </p>
-                      </div>
-
-                      {/* Restore button */}
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="shrink-0 gap-1.5 text-xs border-zinc-200 hover:border-green-400 hover:text-green-700 hover:bg-green-50"
-                        disabled={restoreMutation.isPending}
-                        onClick={() => restoreMutation.mutate(item.id)}
-                      >
-                        <ArrowCounterClockwiseIcon className="size-3.5" />
-                        Restore
-                      </Button>
+                {/* Item rows */}
+                {deletedItems.map((item) => (
+                  <div
+                    key={item.id}
+                    className="flex items-center gap-3 px-4 py-3 bg-white hover:bg-zinc-50/60 transition-colors"
+                  >
+                    {/* Thumbnail */}
+                    <div className="size-10 rounded-md bg-zinc-100 shrink-0 overflow-hidden">
+                      {item.imageUrl ? (
+                        <img
+                          src={item.imageUrl}
+                          alt={item.name}
+                          className="size-full object-cover opacity-60"
+                        />
+                      ) : (
+                        <div className="size-full flex items-center justify-center text-zinc-300 text-lg">
+                          🍽️
+                        </div>
+                      )}
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
+
+                    {/* Name + category */}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-zinc-400 line-through truncate">
+                        {item.name}
+                      </p>
+                      <p className="text-xs text-zinc-400 truncate">
+                        {item.categoryName ?? "No category"}
+                      </p>
+                    </div>
+
+                    {/* Restore button */}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="shrink-0 gap-1.5 text-xs border-zinc-200 hover:border-green-400 hover:text-green-700 hover:bg-green-50"
+                      disabled={restoreMutation.isPending}
+                      onClick={() => restoreMutation.mutate(item.id)}
+                    >
+                      <ArrowCounterClockwiseIcon className="size-3.5" />
+                      Restore
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
+        </div>
 
         <AdminMenuFilters
           open={filterSheetOpen}

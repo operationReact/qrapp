@@ -141,7 +141,7 @@ function AdminAutoSuggestionsPage() {
           <span className="text-sm text-muted-foreground ml-auto">{filtered.length} suggestions</span>
         </div>
 
-        <div className="rounded-md border">
+        <div className="rounded-md bg-white">
           <Table>
             <TableHeader>
               <TableRow>
@@ -222,4 +222,3 @@ function AdminAutoSuggestionsPage() {
     </>
   );
 }
-

@@ -90,7 +90,7 @@ export default function CombosPage() {
   return (
     <div className="min-h-screen bg-background pb-32">
       {/* HEADER */}
-      <div className="px-4 pt-3 pb-4 sticky top-0 z-20 bg-card border-b">
+      <div className="px-4 pt-3">
         <div className="flex items-center gap-2 flex-wrap">
           <h1 className="text-lg font-semibold tracking-tight text-foreground">
             Combos

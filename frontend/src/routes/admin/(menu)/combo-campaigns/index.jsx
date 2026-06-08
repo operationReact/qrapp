@@ -36,6 +36,12 @@ import {
 } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import ComboCampaignForm from "@/components/admin/combo/ComboCampaignForm";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+} from "@/components/ui/empty";
 
 export const Route = createFileRoute("/admin/(menu)/combo-campaigns/")({
   component: ComboCampaignsPage,
@@ -114,9 +120,10 @@ export default function ComboCampaignsPage() {
       <AdminHeader
         title="BYOC Campaigns"
         subtitle="Build Your Own Combo — configure discount ladders for customers"
+        className="sr-only"
       />
 
-      <div className=" px-4 py-6 max-w-6xl space-y-6">
+      <div className="px-4 pb-6 pt-4 space-y-4 md:space-y-6">
         {/* KPI strip */}
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {[
@@ -137,127 +144,131 @@ export default function ComboCampaignsPage() {
               ),
             },
           ].map((k) => (
-            <div
-              key={k.label}
-              className="rounded-xl border bg-card p-4 shadow-xs"
-            >
-              <p className="text-xs font-medium text-muted-foreground">
-                {k.label}
-              </p>
-              <p className="mt-1 text-2xl font-bold">{k.value}</p>
+            <div key={k.label} className="rounded-lg bg-card p-4">
+              <p className="text-sm font-medium text-primary">{k.label}</p>
+              <p className="text-2xl font-semibold">{k.value}</p>
             </div>
           ))}
         </div>
 
-        {/* Toolbar */}
-        <div className="flex items-center justify-between">
-          <h2 className="text-base font-semibold">All Campaigns</h2>
-          <Button
-            onClick={() => setCreateOpen(true)}
-            size="sm"
-            className="gap-1.5"
-          >
-            <PlusIcon className="size-4" />
-            New Campaign
-          </Button>
-        </div>
+        <div>
+          {/* Toolbar */}
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-base font-semibold">All Campaigns</h2>
+            <Button
+              onClick={() => setCreateOpen(true)}
+              size="sm"
+              variant="branded-secondary"
+              className="gap-1.5"
+            >
+              <PlusIcon className="size-4" />
+              New Campaign
+            </Button>
+          </div>
 
-        {/* Table */}
-        {isLoading ? (
-          <p className="text-sm text-muted-foreground">Loading…</p>
-        ) : campaigns.length === 0 ? (
-          <div className="rounded-xl border p-8 text-center text-sm text-muted-foreground">
-            <SparkleIcon className="mx-auto mb-3 size-8 text-muted-foreground/40" />
-            No campaigns yet. Create your first BYOC campaign.
-          </div>
-        ) : (
-          <div className="rounded-xl border bg-card overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Tiers</TableHead>
-                  <TableHead>Eligible</TableHead>
-                  <TableHead>Date Range</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {campaigns.map((c) => (
-                  <TableRow key={c.id}>
-                    <TableCell>
-                      <div className="font-medium">{c.name}</div>
-                      {c.description && (
-                        <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">
-                          {c.description}
-                        </p>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Switch
-                          checked={c.isActive}
-                          onCheckedChange={(v) => handleToggle(c, v)}
-                        />
-                        <Badge variant={c.isActive ? "default" : "secondary"}>
-                          {c.isActive ? "Active" : "Inactive"}
-                        </Badge>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex flex-wrap gap-1">
-                        {(c.tiers ?? []).map((t) => (
-                          <Badge
-                            key={t.id}
-                            variant="outline"
-                            className="text-xs"
-                          >
-                            {t.minItems}→{t.discountValue}
-                            {t.discountType === "PERCENTAGE" ? "%" : "₹"}
-                          </Badge>
-                        ))}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <span className="text-xs text-muted-foreground">
-                        {(c.eligibleCategoryIds?.length ?? 0) +
-                          (c.eligibleMenuItemIds?.length ?? 0) ===
-                        0
-                          ? "All items"
-                          : `${c.eligibleCategoryIds?.length ?? 0} cats · ${c.eligibleMenuItemIds?.length ?? 0} items`}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <span className="text-xs text-muted-foreground">
-                        {formatDate(c.startsAt)} – {formatDate(c.endsAt)}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center justify-end gap-2">
-                        <Button
-                          variant="ghost"
-                          size="icon-sm"
-                          onClick={() => setEditTarget(c)}
-                        >
-                          <PencilSimpleIcon className="size-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon-sm"
-                          className="text-destructive hover:text-destructive"
-                          onClick={() => setDeleteTarget(c)}
-                        >
-                          <TrashIcon className="size-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
+          {/* Table */}
+          {isLoading ? (
+            <p className="text-sm text-muted-foreground">Loading…</p>
+          ) : campaigns.length === 0 ? (
+            <Empty className="border bg-white">
+              <EmptyHeader>
+                <EmptyMedia variant="icon">
+                  <SparkleIcon />
+                </EmptyMedia>
+                <EmptyDescription>
+                  No campaigns yet. Create your first BYOC campaign.
+                </EmptyDescription>
+              </EmptyHeader>
+            </Empty>
+          ) : (
+            <div className="rounded-lg border bg-card overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Tiers</TableHead>
+                    <TableHead>Eligible</TableHead>
+                    <TableHead>Date Range</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        )}
+                </TableHeader>
+                <TableBody>
+                  {campaigns.map((c) => (
+                    <TableRow key={c.id}>
+                      <TableCell>
+                        <div className="font-medium">{c.name}</div>
+                        {c.description && (
+                          <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">
+                            {c.description}
+                          </p>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Switch
+                            checked={c.isActive}
+                            onCheckedChange={(v) => handleToggle(c, v)}
+                          />
+                          <Badge variant={c.isActive ? "default" : "secondary"}>
+                            {c.isActive ? "Active" : "Inactive"}
+                          </Badge>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1">
+                          {(c.tiers ?? []).map((t) => (
+                            <Badge
+                              key={t.id}
+                              variant="outline"
+                              className="text-xs"
+                            >
+                              {t.minItems}→{t.discountValue}
+                              {t.discountType === "PERCENTAGE" ? "%" : "₹"}
+                            </Badge>
+                          ))}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-xs text-muted-foreground">
+                          {(c.eligibleCategoryIds?.length ?? 0) +
+                            (c.eligibleMenuItemIds?.length ?? 0) ===
+                          0
+                            ? "All items"
+                            : `${c.eligibleCategoryIds?.length ?? 0} cats · ${c.eligibleMenuItemIds?.length ?? 0} items`}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-xs text-muted-foreground">
+                          {formatDate(c.startsAt)} – {formatDate(c.endsAt)}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center justify-end gap-2">
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            onClick={() => setEditTarget(c)}
+                          >
+                            <PencilSimpleIcon className="size-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            className="text-destructive hover:text-destructive"
+                            onClick={() => setDeleteTarget(c)}
+                          >
+                            <TrashIcon className="size-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Create dialog */}

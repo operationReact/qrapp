@@ -403,7 +403,7 @@ function AdminUpsellRulesPage() {
       </div>
 
       <div className="px-4">
-        <div className="rounded-md border">
+        <div className="rounded-md bg-white">
           <Table>
             <TableHeader>
               <TableRow>
