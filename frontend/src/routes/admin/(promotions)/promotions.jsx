@@ -146,7 +146,7 @@ function AdminPromotionsPage() {
       </div>
 
       <div className="px-4 space-y-6">
-        <div className="rounded-md border">
+        <div className="rounded-md bg-white">
           <Table>
             <TableHeader>
               <TableRow>

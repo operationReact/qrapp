@@ -159,7 +159,7 @@ function AdminRecommendationsPage() {
           </div>
         )}
 
-        <div className="rounded-md border">
+        <div className="rounded-md bg-white">
           <Table>
             <TableHeader>
               <TableRow>
@@ -238,4 +238,3 @@ function AdminRecommendationsPage() {
     </>
   );
 }
-

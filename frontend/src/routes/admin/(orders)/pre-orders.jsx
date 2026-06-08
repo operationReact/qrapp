@@ -226,7 +226,7 @@ function PreOrdersPage() {
       count: dashLoad ? null : dash.pendingPreOrders,
       bg: dash.pendingPreOrders > 0 ? "bg-violet-50" : "bg-gray-50",
       numCls: dash.pendingPreOrders > 0 ? "text-violet-700" : "text-gray-300",
-      lblCls: dash.pendingPreOrders > 0 ? "text-violet-400" : "text-gray-300",
+      lblCls: dash.pendingPreOrders > 0 ? "text-violet-600" : "text-gray-300",
     },
     {
       key: "TODAY",
@@ -234,7 +234,7 @@ function PreOrdersPage() {
       count: dashLoad ? null : dash.todayPreOrders,
       bg: dash.todayPreOrders > 0 ? "bg-amber-50" : "bg-gray-50",
       numCls: dash.todayPreOrders > 0 ? "text-amber-700" : "text-gray-300",
-      lblCls: dash.todayPreOrders > 0 ? "text-amber-400" : "text-gray-300",
+      lblCls: dash.todayPreOrders > 0 ? "text-amber-600" : "text-gray-300",
     },
     {
       key: "TOMORROW",
@@ -242,7 +242,7 @@ function PreOrdersPage() {
       count: dashLoad ? null : dash.tomorrowPreOrders,
       bg: dash.tomorrowPreOrders > 0 ? "bg-sky-50" : "bg-gray-50",
       numCls: dash.tomorrowPreOrders > 0 ? "text-sky-700" : "text-gray-300",
-      lblCls: dash.tomorrowPreOrders > 0 ? "text-sky-400" : "text-gray-300",
+      lblCls: dash.tomorrowPreOrders > 0 ? "text-sky-600" : "text-gray-300",
     },
     {
       key: "OVERDUE",
@@ -250,16 +250,16 @@ function PreOrdersPage() {
       count: dashLoad ? null : dash.overduePreOrders,
       bg: dash.overduePreOrders > 0 ? "bg-red-50" : "bg-gray-50",
       numCls: dash.overduePreOrders > 0 ? "text-red-700" : "text-gray-300",
-      lblCls: dash.overduePreOrders > 0 ? "text-red-400" : "text-gray-300",
+      lblCls: dash.overduePreOrders > 0 ? "text-red-600" : "text-gray-300",
     },
   ];
 
   return (
-    <div className="flex flex-col h-full min-h-0 bg-gray-50">
+    <div className="flex flex-col h-full min-h-0">
       {/* ════════════════════════════════════════════════════
           Sticky header
           ════════════════════════════════════════════════════ */}
-      <div className="bg-white border-b sticky top-0 z-20 px-4 pt-3 pb-3 space-y-3">
+      <div className="border-b px-4 pt-3 pb-3 space-y-3">
         {/* ── Title row ── */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -268,8 +268,8 @@ function PreOrdersPage() {
             </span>
             {isFetching && !isLoading && (
               <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-violet-400 opacity-75" />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-violet-500" />
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary-foreground opacity-75" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
               </span>
             )}
           </div>
@@ -337,7 +337,7 @@ function PreOrdersPage() {
         </div>
 
         {/* ── Search ── */}
-        <InputGroup className="relative bg-muted/50">
+        <InputGroup className="max-w-sm">
           <InputGroupAddon>
             <MagnifyingGlassIcon
               weight="bold"
