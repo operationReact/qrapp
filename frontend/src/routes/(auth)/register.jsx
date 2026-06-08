@@ -91,7 +91,7 @@ export const Route = createFileRoute("/(auth)/register")({
               alt="Your Easy Access To Delicious Meals"
               className="w-full border border-muted login-banner rounded-[14px] overflow-hidden"
             />
-            <h1 className="my-4 text-lg font-medium">Create Account</h1>
+            <h1 className="my-4 text-lg font-semibold">Create Account</h1>
             {error && (
               <div className="mb-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
                 {error}

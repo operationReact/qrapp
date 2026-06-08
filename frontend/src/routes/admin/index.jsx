@@ -26,6 +26,9 @@ import {
   AlertTriangle, Menu as MenuIcon,
   Flame, Plus, RotateCw, Tag,
 } from "lucide-react";
+import { SidebarIcon } from "@phosphor-icons/react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 
 export const Route = createFileRoute("/admin/")({ component: AdminDashboardPage });
 
@@ -49,39 +52,47 @@ function CombinedNav({ active, onChange, d, toggleSidebar }) {
   const notifCount = Math.min((d.delayedOrders ?? 0) + (d.placedOrders ?? 0), 9);
   return (
     <header className="sticky top-0 z-40 bg-white border-b border-zinc-100 shadow-[0_1px_3px_rgba(0,0,0,.04)]">
-      <div className="flex items-center h-12 px-2 max-w-lg mx-auto">
+      <div className="flex items-center h-12 px-2">
         {/* hamburger */}
-        <button onClick={toggleSidebar} aria-label="Open menu"
-          className="size-8 shrink-0 flex items-center justify-center rounded-lg hover:bg-zinc-100 transition-colors">
-          <MenuIcon size={18} className="text-zinc-700" />
-        </button>
+        <Button
+          size="icon"
+          variant="ghost"
+          onClick={toggleSidebar}
+          aria-label="Open menu"
+        >
+          <SidebarIcon />
+        </Button>
 
         {/* tabs — fill all remaining space */}
-        <div className="flex flex-1">
+        <div className="flex flex-1 max-w-lg mx-auto">
           {TABS.map((tab) => (
             <button key={tab} onClick={() => onChange(tab)}
               className={cn(
-                "flex-1 relative h-12 text-[12px] font-semibold transition-colors",
-                active === tab ? "text-violet-600" : "text-zinc-400 hover:text-zinc-600"
+                "flex-1 relative h-12 text-sm font-medium transition-colors",
+                active === tab ? "text-primary" : "text-zinc-400 hover:text-zinc-600"
               )}>
               {tab}
               {active === tab && (
-                <span className="absolute bottom-0 left-2 right-2 h-0.5 bg-violet-600 rounded-full" />
+                <span className="absolute bottom-0 left-2 right-2 h-0.5 bg-primary rounded-full" />
               )}
             </button>
           ))}
         </div>
 
         {/* bell */}
-        <button aria-label="Notifications"
-          className="size-8 shrink-0 flex items-center justify-center rounded-lg hover:bg-zinc-100 transition-colors relative">
-          <Bell size={18} className="text-zinc-700" />
+        <Button
+          aria-label="Notifications"
+          size="icon"
+          variant="ghost"
+          className="relative"
+        >
+          <Bell />
           {notifCount > 0 && (
-            <span className="absolute top-0.5 right-0.5 size-3.5 bg-red-500 text-white text-[8px] font-bold rounded-full flex items-center justify-center leading-none">
+            <span className="absolute top-0.5 right-0.5 size-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center leading-none">
               {notifCount}
             </span>
           )}
-        </button>
+        </Button>
       </div>
     </header>
   );
@@ -97,9 +108,9 @@ function ChartTooltip({ active, payload }) {
 function SectionLabel({ children, action, to }) {
   return (
     <div className="flex items-center justify-between mb-2.5">
-      <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-wide">{children}</p>
+      <p className="text-sm font-medium text-zinc-500">{children}</p>
       {action && (
-        <Link to={to ?? "#"} className="flex items-center gap-0.5 text-[11px] font-semibold text-violet-500">
+        <Link to={to ?? "#"} className="flex items-center gap-0.5 text-sm hover:underline font-medium text-primary">
           {action} <ChevronRight size={11} />
         </Link>
       )}
@@ -170,11 +181,11 @@ function OverviewTab({ d, ownerName }) {
   const profitLoading  = profit.loading;
 
   return (
-    <div className="px-4 py-4 space-y-4 max-w-lg mx-auto">
+    <div className="px-4 py-4 space-y-4 md:space-y-6">
       {/* Greeting */}
       <div>
-        <p className="text-[11px] text-zinc-400 font-medium">{todayLabel()}</p>
-        <h1 className="text-[17px] font-bold text-zinc-900 leading-tight">
+        <p className="text-xs uppercase tracking-wide font-medium text-primary">{todayLabel()}</p>
+        <h1 className="text-xl md:text-2xl font-semibold capitalize leading-tight mt-1.5">
           {greet()}{ownerName ? `, ${ownerName}` : ""} 👋
         </h1>
       </div>
@@ -192,53 +203,52 @@ function OverviewTab({ d, ownerName }) {
       )}
 
       {/* Revenue Hero */}
-      <div className="bg-gradient-to-br from-violet-600 to-violet-700 rounded-2xl p-4 text-white shadow-[0_4px_20px_rgba(124,58,237,0.25)]">
+      <div className="bg-white border-card rounded-lg p-4">
         <div className="flex items-start justify-between mb-1">
-          <span className="text-[11px] font-medium text-violet-200 uppercase tracking-wide">Today's Revenue</span>
-          <TrendingUp size={14} className="text-violet-300 mt-0.5" />
+          <span className="text-sm font-medium text-primary">Today's Revenue</span>
+          <TrendingUp className="text-primary mt-0.5 size-5" />
         </div>
         {revenueLoading ? (
           <Skeleton className="h-9 w-36 bg-white/20 mt-0.5" />
         ) : (
-          <div className="text-[30px] font-bold leading-tight tracking-tight">
-            {fmtCur(todayRevenue ?? 0)}
+          <div className="text-2xl font-semibold leading-tight tracking-tight">
+            {fmtCur(todayRevenue ?? 0)} <span className="tracking-normal font-medium uppercase text-xs text-zinc-500 ml-1">/ Live</span>
           </div>
         )}
         <div className="flex items-center gap-1 mt-1.5">
           {revenueTrend != null && (
             <>
               {revenueTrend >= 0
-                ? <ArrowUpRight size={12} className="text-emerald-300" />
-                : <ArrowDownRight size={12} className="text-red-300" />
+                ? <ArrowUpRight size={12} className="text-emerald-500" />
+                : <ArrowDownRight size={12} className="text-red-500" />
               }
-              <span className={cn("text-[11px] font-semibold", revenueTrend >= 0 ? "text-emerald-300" : "text-red-300")}>
+              <span className={cn("text-[11px] font-semibold", revenueTrend >= 0 ? "text-emerald-500" : "text-red-500")}>
                 {trendSign(revenueTrend)} vs yesterday
               </span>
             </>
           )}
-          <span className="text-[11px] text-violet-300 ml-1">· live</span>
         </div>
       </div>
 
       {/* Profit + Orders */}
       <div className="grid grid-cols-2 gap-3">
-        <div className="bg-white rounded-xl p-3.5 shadow-[0_1px_8px_rgba(0,0,0,.06)] border border-zinc-100">
-          <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wide">Est. Profit</span>
+        <div className="bg-white rounded-lg p-3.5 border-card">
+          <span className="text-sm font-medium text-primary">   Est. Profit</span>
           {profitLoading ? (
             <Skeleton className="h-7 w-24 mt-1" />
           ) : (
-            <div className="text-[21px] font-bold text-zinc-900 mt-0.5 tracking-tight">{fmtCur(estProfit ?? 0)}</div>
+            <div className="text-2xl font-semibold mt-0.5 tracking-tight">{fmtCur(estProfit ?? 0)}</div>
           )}
-          <div className="text-[10px] text-emerald-500 font-semibold mt-0.5">
+          <div className="text-[10px] text-emerald-700 font-semibold mt-0.5">
             {margin != null ? `${fmtPct(margin)} margin` : "—"}
           </div>
         </div>
-        <div className="bg-white rounded-xl p-3.5 shadow-[0_1px_8px_rgba(0,0,0,.06)] border border-zinc-100">
-          <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wide">Orders</span>
-          <div className="text-[21px] font-bold text-zinc-900 mt-0.5 tracking-tight">{fmt(todayOrders || 0)}</div>
+        <div className="bg-white rounded-lg p-3.5 border-card">
+           <span className="text-sm font-medium text-primary">Orders</span>
+          <div className="text-2xl font-semibold mt-0.5 tracking-tight">{fmt(todayOrders || 0)}</div>
           {pendingOrders > 0
-            ? <div className="text-[10px] text-amber-500 font-semibold mt-0.5">{pendingOrders} pending</div>
-            : <div className="text-[10px] text-zinc-400 mt-0.5">today</div>
+            ? <div className="text-xs text-amber-700 font-medium mt-0.5">{pendingOrders} pending orders</div>
+            : <div className="text-xs text-zinc-500 mt-0.5">today</div>
           }
         </div>
       </div>
@@ -249,11 +259,11 @@ function OverviewTab({ d, ownerName }) {
         <div className="grid grid-cols-4 gap-2">
           {quickActions.map(({ label, icon: Icon, bgCls, iconCls, to }) => ( // eslint-disable-line no-unused-vars
             <Link key={label} to={to}
-              className="flex flex-col items-center gap-1.5 bg-white rounded-xl p-2.5 shadow-[0_1px_6px_rgba(0,0,0,.05)] border border-zinc-100 active:scale-95 transition-transform">
+              className="flex flex-col items-center gap-2 bg-white rounded-lg hover:shadow-sm p-2.5 border border-zinc-200 active:scale-95 transition-all">
               <div className={cn("size-9 rounded-lg flex items-center justify-center", bgCls)}>
-                <Icon size={16} className={iconCls} />
+                <Icon weight="duotone" size={16} className={iconCls} />
               </div>
-              <span className="text-[9.5px] font-semibold text-zinc-600 text-center leading-tight">{label}</span>
+              <span className="text-xs font-medium text-zinc-600 text-center leading-tight">{label}</span>
             </Link>
           ))}
         </div>
@@ -271,10 +281,10 @@ function OverviewTab({ d, ownerName }) {
           <div className="space-y-2">
             {priorities.map(({ dotCls, tagCls, tagBg, text, tag, to }) => (
               <Link key={text} to={to}
-                className="flex items-center gap-2.5 bg-white rounded-xl px-3 py-2.5 shadow-[0_1px_6px_rgba(0,0,0,.04)] border border-zinc-100 active:bg-zinc-50">
-                <span className={cn("size-1.5 rounded-full shrink-0", dotCls)} />
-                <span className="text-[12px] text-zinc-700 font-medium leading-snug flex-1">{text}</span>
-                <span className={cn("text-[10px] font-bold px-1.5 py-0.5 rounded-md shrink-0", tagCls, tagBg)}>{tag}</span>
+                className="flex items-center gap-2.5 bg-white rounded-sm border-card px-3 py-2.5 shadow-[0_1px_6px_rgba(0,0,0,.04)] border border-zinc-100 active:bg-zinc-50">
+                <span className={cn("size-1.5 rounded-[2px] shrink-0", dotCls)} />
+                <span className="text-sm flex-1">{text}</span>
+                <Badge className={cn(tagCls, tagBg)}>{tag}</Badge>
               </Link>
             ))}
           </div>
@@ -614,7 +624,7 @@ function AdminDashboardPage() {
   const d = dashboard ?? {};
 
   return (
-    <div className="min-h-screen bg-zinc-50">
+    <div className="min-h-screen">
       <CombinedNav
         active={activeTab}
         onChange={setActiveTab}
