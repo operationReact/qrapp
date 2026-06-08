@@ -17,3 +17,10 @@ export const updateCategory = (id, payload) =>
 
 export const deleteCategory = (id) =>
   apiClient.delete(`/categories/${id}`).then((r) => r.data);
+
+export const getDeletedCategories = () =>
+  apiClient.get("/admin/categories/deleted").then((r) => r.data);
+
+export const restoreCategory = (id) =>
+  apiClient.patch(`/admin/categories/${id}/restore`).then((r) => r.data);
+

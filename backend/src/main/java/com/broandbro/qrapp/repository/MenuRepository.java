@@ -73,6 +73,17 @@ public interface MenuRepository extends JpaRepository<MenuItem, Long> {
 
     Optional<MenuItem> findBySkuCode(String skuCode);
 
+    /** All soft-deleted menu items (admin trash view). */
+    @Query("SELECT m FROM MenuItem m WHERE m.isDeleted = true ORDER BY m.id DESC")
+    List<MenuItem> findByIsDeletedTrue();
+
+    /**
+     * Soft-deleted items under a specific category — used when restoring a category
+     * to also restore items that were cascade-deleted with it.
+     */
+    @Query("SELECT m FROM MenuItem m WHERE m.category.id = :categoryId AND m.isDeleted = true ORDER BY m.id ASC")
+    List<MenuItem> findByCategoryIdAndIsDeletedTrue(@Param("categoryId") Long categoryId);
+
     @Query("SELECT m FROM MenuItem m WHERE LOWER(m.name) = LOWER(:name) AND m.category.id = :categoryId")
     Optional<MenuItem> findByNameIgnoreCaseAndCategoryId(
             @Param("name") String name,

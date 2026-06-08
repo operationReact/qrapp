@@ -39,6 +39,12 @@ export const updateMenuItem = (id, data) => {
 export const deleteMenuItem = (id) =>
   apiClient.delete(`/menu/${id}`).then((r) => r.data);
 
+export const getDeletedMenuItems = () =>
+  apiClient.get("/admin/menu/deleted").then((r) => r.data);
+
+export const restoreMenuItem = (id) =>
+  apiClient.patch(`/admin/menu/${id}/restore`).then((r) => r.data);
+
 export const bulkMenuValidate = (file) => {
   const form = new FormData();
   form.append("file", file);

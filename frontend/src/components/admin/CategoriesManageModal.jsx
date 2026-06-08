@@ -6,6 +6,7 @@ import {
   TrashIcon,
   TagIcon,
   MagnifyingGlassIcon,
+  ArrowCounterClockwiseIcon,
 } from "@phosphor-icons/react";
 
 import {
@@ -33,6 +34,8 @@ import { cn } from "@/lib/utils";
 import {
   createCategory,
   deleteCategory,
+  getDeletedCategories,
+  restoreCategory,
 } from "@/services/category-service";
 import { categoriesOptions, menuOptions } from "@/query/options/menu";
 
@@ -42,11 +45,18 @@ export default function CategoriesManageModal({
 }) {
   const [search, setSearch] = useState("");
   const [newName, setNewName] = useState("");
+  const [tab, setTab] = useState("active"); // "active" | "trash"
   const queryClient = useQueryClient();
 
   const { data: categories = [], isLoading: loadingCategories } = useQuery({
     ...categoriesOptions,
     enabled: open,
+  });
+
+  const { data: deletedCategories = [], isLoading: loadingDeleted } = useQuery({
+    queryKey: ["categories-deleted"],
+    queryFn:  getDeletedCategories,
+    enabled:  open && tab === "trash",
   });
 
   const { data: menu = [] } = useQuery(menuOptions());
@@ -99,6 +109,21 @@ export default function CategoriesManageModal({
     },
   });
 
+  const restoreMutation = useMutation({
+    mutationFn: (id) => restoreCategory(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["categories"] });
+      queryClient.invalidateQueries({ queryKey: ["categories-deleted"] });
+      queryClient.invalidateQueries({ queryKey: ["menu"] });
+      toast.success("Category restored");
+    },
+    onError: (err) => {
+      toast.error(
+        err?.response?.data?.message || err?.message || "Failed to restore category",
+      );
+    },
+  });
+
   const handleCreate = (e) => {
     e.preventDefault();
     const name = newName.trim();
@@ -125,121 +150,189 @@ export default function CategoriesManageModal({
           </DialogDescription>
         </DialogHeader>
 
-        <form
-          onSubmit={handleCreate}
-          className="px-5 py-3 border-b flex gap-2"
-        >
-          <Input
-            value={newName}
-            onChange={(e) => setNewName(e.target.value)}
-            placeholder="New category name"
-            className="h-10"
-            disabled={createMutation.isPending}
-          />
-          <Button
-            type="submit"
-            disabled={!newName.trim() || createMutation.isPending}
-            className="shrink-0"
-          >
-            <PlusIcon data-icon="inline-start" />
-            Add
-          </Button>
-        </form>
-
-        <div className="px-5 py-2 border-b">
-          <div className="relative">
-            <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
-            <Input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Filter categories..."
-              className="h-9 pl-9"
-            />
-          </div>
+        {/* ── Tabs ── */}
+        <div className="flex border-b px-5 gap-4">
+          {[
+            { key: "active", label: "Active" },
+            {
+              key: "trash",
+              label: `Trash${deletedCategories.length ? ` (${deletedCategories.length})` : ""}`,
+            },
+          ].map(({ key, label }) => (
+            <button
+              key={key}
+              onClick={() => setTab(key)}
+              className={cn(
+                "py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors",
+                tab === key
+                  ? "border-primary text-primary"
+                  : "border-transparent text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {label}
+            </button>
+          ))}
         </div>
 
-        <div className="flex-1 overflow-y-auto px-5 py-3">
-          {loadingCategories ? (
-            <div className="space-y-2">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <div
-                  key={i}
-                  className="h-14 rounded-md border border-border bg-muted/50 animate-pulse"
+        {tab === "active" && (
+          <>
+            <form
+              onSubmit={handleCreate}
+              className="px-5 py-3 border-b flex gap-2"
+            >
+              <Input
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                placeholder="New category name"
+                className="h-10"
+                disabled={createMutation.isPending}
+              />
+              <Button
+                type="submit"
+                disabled={!newName.trim() || createMutation.isPending}
+                className="shrink-0"
+              >
+                <PlusIcon data-icon="inline-start" />
+                Add
+              </Button>
+            </form>
+
+            <div className="px-5 py-2 border-b">
+              <div className="relative">
+                <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
+                <Input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Filter categories..."
+                  className="h-9 pl-9"
                 />
-              ))}
+              </div>
             </div>
-          ) : sortedCategories.length === 0 ? (
-            <div className="py-12 text-center text-sm text-muted-foreground">
-              No categories yet. Add one above to get started.
-            </div>
-          ) : filtered.length === 0 ? (
-            <div className="py-12 text-center text-sm text-muted-foreground">
-              No categories match "{search}".
-            </div>
-          ) : (
-            <ul className="flex flex-col gap-1.5">
-              {filtered.map((cat) => {
-                const name = cat.name ?? cat;
-                const id = cat.id ?? name;
-                const count = counts[name] ?? 0;
-                return (
-                  <li
-                    key={id}
-                    className="flex items-center gap-3 p-2.5 rounded-md border border-border bg-card"
-                  >
+
+            <div className="flex-1 overflow-y-auto px-5 py-3">
+              {loadingCategories ? (
+                <div className="space-y-2">
+                  {Array.from({ length: 4 }).map((_, i) => (
                     <div
-                      className={cn(
-                        "size-8 rounded-md flex items-center justify-center bg-primary/10 text-primary shrink-0",
-                      )}
-                    >
+                      key={i}
+                      className="h-14 rounded-md border border-border bg-muted/50 animate-pulse"
+                    />
+                  ))}
+                </div>
+              ) : sortedCategories.length === 0 ? (
+                <div className="py-12 text-center text-sm text-muted-foreground">
+                  No categories yet. Add one above to get started.
+                </div>
+              ) : filtered.length === 0 ? (
+                <div className="py-12 text-center text-sm text-muted-foreground">
+                  No categories match "{search}".
+                </div>
+              ) : (
+                <ul className="flex flex-col gap-1.5">
+                  {filtered.map((cat) => {
+                    const name = cat.name ?? cat;
+                    const id = cat.id ?? name;
+                    const count = counts[name] ?? 0;
+                    return (
+                      <li
+                        key={id}
+                        className="flex items-center gap-3 p-2.5 rounded-md border border-border bg-card"
+                      >
+                        <div
+                          className={cn(
+                            "size-8 rounded-md flex items-center justify-center bg-primary/10 text-primary shrink-0",
+                          )}
+                        >
+                          <TagIcon size={14} weight="bold" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{name}</p>
+                          <p className="text-[11px] text-muted-foreground">
+                            {count} {count === 1 ? "item" : "items"}
+                          </p>
+                        </div>
+                        <AlertDialog>
+                          <AlertDialogTrigger
+                            render={
+                              <Button
+                                variant="ghost"
+                                size="icon-sm"
+                                className="text-muted-foreground hover:text-destructive"
+                                disabled={deleteMutation.isPending}
+                                aria-label={`Delete ${name}`}
+                              >
+                                <TrashIcon />
+                              </Button>
+                            }
+                          />
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete category?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                "{name}" has {count} {count === 1 ? "item" : "items"}.
+                                All items in this category will also be soft-deleted and hidden from the menu.
+                                You can restore them later from the Trash tab.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => deleteMutation.mutate(id)}
+                                className="bg-destructive text-white hover:bg-destructive/90"
+                              >
+                                Delete
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+          </>
+        )}
+
+        {tab === "trash" && (
+          <div className="flex-1 overflow-y-auto px-5 py-3">
+            {loadingDeleted ? (
+              <div className="space-y-2">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="h-14 rounded-md border border-border bg-muted/50 animate-pulse" />
+                ))}
+              </div>
+            ) : deletedCategories.length === 0 ? (
+              <div className="py-12 text-center text-sm text-muted-foreground">
+                No deleted categories.
+              </div>
+            ) : (
+              <ul className="flex flex-col gap-1.5">
+                {deletedCategories.map((cat) => (
+                  <li key={cat.id} className="flex items-center gap-3 p-2.5 rounded-md border border-border bg-card opacity-70">
+                    <div className="size-8 rounded-md flex items-center justify-center bg-muted text-muted-foreground shrink-0">
                       <TagIcon size={14} weight="bold" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{name}</p>
-                      <p className="text-[11px] text-muted-foreground">
-                        {count} {count === 1 ? "item" : "items"}
-                      </p>
+                      <p className="text-sm font-medium truncate line-through text-muted-foreground">{cat.name}</p>
+                      <p className="text-[11px] text-muted-foreground">Deleted — restoring will also restore its menu items</p>
                     </div>
-                    <AlertDialog>
-                      <AlertDialogTrigger
-                        render={
-                          <Button
-                            variant="ghost"
-                            size="icon-sm"
-                            className="text-muted-foreground hover:text-destructive"
-                            disabled={deleteMutation.isPending}
-                            aria-label={`Delete ${name}`}
-                          >
-                            <TrashIcon />
-                          </Button>
-                        }
-                      />
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Delete category?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            "{name}" is used by {count}{" "}
-                            {count === 1 ? "item" : "items"}. Deleting this
-                            category will unassign those items.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={() => deleteMutation.mutate(id)}
-                            className="bg-destructive text-white hover:bg-destructive/90"
-                          >
-                            Delete
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="shrink-0 gap-1.5 text-xs"
+                      disabled={restoreMutation.isPending}
+                      onClick={() => restoreMutation.mutate(cat.id)}
+                    >
+                      <ArrowCounterClockwiseIcon size={13} />
+                      Restore
+                    </Button>
                   </li>
-                );
-              })}
-            </ul>
-          )}
-        </div>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );

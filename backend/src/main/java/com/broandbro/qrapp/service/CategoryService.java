@@ -56,4 +56,23 @@ public class CategoryService {
         category.setIsDeleted(true);
         categoryRepository.save(category);
     }
+
+    public List<Category> getDeletedCategories() {
+        return categoryRepository.findByIsDeletedTrue();
+    }
+
+    @Transactional
+    public void restoreCategory(Long id) {
+        Category category = categoryRepository.findByIdAndIsDeletedTrue(id)
+                .orElseThrow(() -> new RuntimeException("Deleted category not found: " + id));
+
+        // Restore the category
+        category.setIsDeleted(false);
+        categoryRepository.save(category);
+
+        // Restore menu items that were cascade-deleted with this category
+        var items = menuRepository.findByCategoryIdAndIsDeletedTrue(id);
+        items.forEach(item -> item.setIsDeleted(false));
+        menuRepository.saveAll(items);
+    }
 }
