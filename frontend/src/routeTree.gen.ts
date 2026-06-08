@@ -45,6 +45,7 @@ import { Route as AdminordersOperationalQueueRouteImport } from './routes/admin/
 import { Route as AdminordersKitchenQueueRouteImport } from './routes/admin/(orders)/kitchen-queue'
 import { Route as AdminmilestonesMilestonesRouteImport } from './routes/admin/(milestones)/milestones'
 import { Route as AdminmenuMenuRouteImport } from './routes/admin/(menu)/menu'
+import { Route as AdminmenuMealRolesRouteImport } from './routes/admin/(menu)/meal-roles'
 import { Route as AdminmenuManageMenuRouteImport } from './routes/admin/(menu)/manage-menu'
 import { Route as AdmingrowthUpsellRulesRouteImport } from './routes/admin/(growth)/upsell-rules'
 import { Route as AdmingrowthRecommendationsRouteImport } from './routes/admin/(growth)/recommendations'
@@ -244,6 +245,11 @@ const AdminmenuMenuRoute = AdminmenuMenuRouteImport.update({
   path: '/menu',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminmenuMealRolesRoute = AdminmenuMealRolesRouteImport.update({
+  id: '/(menu)/meal-roles',
+  path: '/meal-roles',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminmenuManageMenuRoute = AdminmenuManageMenuRouteImport.update({
   id: '/(menu)/manage-menu',
   path: '/manage-menu',
@@ -335,6 +341,7 @@ export interface FileRoutesByFullPath {
   '/admin/recommendations': typeof AdmingrowthRecommendationsRoute
   '/admin/upsell-rules': typeof AdmingrowthUpsellRulesRoute
   '/admin/manage-menu': typeof AdminmenuManageMenuRoute
+  '/admin/meal-roles': typeof AdminmenuMealRolesRoute
   '/admin/menu': typeof AdminmenuMenuRoute
   '/admin/milestones': typeof AdminmilestonesMilestonesRoute
   '/admin/kitchen-queue': typeof AdminordersKitchenQueueRoute
@@ -384,6 +391,7 @@ export interface FileRoutesByTo {
   '/admin/recommendations': typeof AdmingrowthRecommendationsRoute
   '/admin/upsell-rules': typeof AdmingrowthUpsellRulesRoute
   '/admin/manage-menu': typeof AdminmenuManageMenuRoute
+  '/admin/meal-roles': typeof AdminmenuMealRolesRoute
   '/admin/menu': typeof AdminmenuMenuRoute
   '/admin/milestones': typeof AdminmilestonesMilestonesRoute
   '/admin/kitchen-queue': typeof AdminordersKitchenQueueRoute
@@ -434,6 +442,7 @@ export interface FileRoutesById {
   '/admin/(growth)/recommendations': typeof AdmingrowthRecommendationsRoute
   '/admin/(growth)/upsell-rules': typeof AdmingrowthUpsellRulesRoute
   '/admin/(menu)/manage-menu': typeof AdminmenuManageMenuRoute
+  '/admin/(menu)/meal-roles': typeof AdminmenuMealRolesRoute
   '/admin/(menu)/menu': typeof AdminmenuMenuRoute
   '/admin/(milestones)/milestones': typeof AdminmilestonesMilestonesRoute
   '/admin/(orders)/kitchen-queue': typeof AdminordersKitchenQueueRoute
@@ -486,6 +495,7 @@ export interface FileRouteTypes {
     | '/admin/recommendations'
     | '/admin/upsell-rules'
     | '/admin/manage-menu'
+    | '/admin/meal-roles'
     | '/admin/menu'
     | '/admin/milestones'
     | '/admin/kitchen-queue'
@@ -535,6 +545,7 @@ export interface FileRouteTypes {
     | '/admin/recommendations'
     | '/admin/upsell-rules'
     | '/admin/manage-menu'
+    | '/admin/meal-roles'
     | '/admin/menu'
     | '/admin/milestones'
     | '/admin/kitchen-queue'
@@ -584,6 +595,7 @@ export interface FileRouteTypes {
     | '/admin/(growth)/recommendations'
     | '/admin/(growth)/upsell-rules'
     | '/admin/(menu)/manage-menu'
+    | '/admin/(menu)/meal-roles'
     | '/admin/(menu)/menu'
     | '/admin/(milestones)/milestones'
     | '/admin/(orders)/kitchen-queue'
@@ -883,6 +895,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminmenuMenuRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/(menu)/meal-roles': {
+      id: '/admin/(menu)/meal-roles'
+      path: '/meal-roles'
+      fullPath: '/admin/meal-roles'
+      preLoaderRoute: typeof AdminmenuMealRolesRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/(menu)/manage-menu': {
       id: '/admin/(menu)/manage-menu'
       path: '/manage-menu'
@@ -997,6 +1016,7 @@ interface AdminRouteChildren {
   AdmingrowthRecommendationsRoute: typeof AdmingrowthRecommendationsRoute
   AdmingrowthUpsellRulesRoute: typeof AdmingrowthUpsellRulesRoute
   AdminmenuManageMenuRoute: typeof AdminmenuManageMenuRoute
+  AdminmenuMealRolesRoute: typeof AdminmenuMealRolesRoute
   AdminmenuMenuRoute: typeof AdminmenuMenuRoute
   AdminmilestonesMilestonesRoute: typeof AdminmilestonesMilestonesRoute
   AdminordersKitchenQueueRoute: typeof AdminordersKitchenQueueRoute
@@ -1031,6 +1051,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdmingrowthRecommendationsRoute: AdmingrowthRecommendationsRoute,
   AdmingrowthUpsellRulesRoute: AdmingrowthUpsellRulesRoute,
   AdminmenuManageMenuRoute: AdminmenuManageMenuRoute,
+  AdminmenuMealRolesRoute: AdminmenuMealRolesRoute,
   AdminmenuMenuRoute: AdminmenuMenuRoute,
   AdminmilestonesMilestonesRoute: AdminmilestonesMilestonesRoute,
   AdminordersKitchenQueueRoute: AdminordersKitchenQueueRoute,

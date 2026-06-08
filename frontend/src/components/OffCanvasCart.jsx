@@ -17,11 +17,12 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { Empty, EmptyDescription, EmptyHeader } from "./ui/empty";
 import { useQuery } from "@tanstack/react-query";
-import { getCartRecommendations, getRecommendedBundle } from "@/services/recommendation-service";
+import { getCartRecommendations, getRecommendedBundle, getMealRecommendation } from "@/services/recommendation-service";
 import { PlusCircleIcon } from "@phosphor-icons/react";
 import ComboProgressBanner from "@/components/ComboProgressBanner";
 import { useByocDiscount } from "@/hooks/useByocDiscount";
 import RecommendedBundleCard from "@/components/RecommendedBundleCard";
+import CompleteMealCard from "@/components/CompleteMealCard";
 
 function CartRecommendations({ cart, addItem, isOpen }) {
   const itemIds = cart.map((i) => i.id);
@@ -95,6 +96,73 @@ function CartRecommendations({ cart, addItem, isOpen }) {
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+/**
+ * CompleteMealSection — fetches the "Complete Your Meal" recommendation
+ * (Side + Drink + optional Dessert) and renders CompleteMealCard.
+ */
+function CompleteMealSection({ cart, addItem, isOpen }) {
+  const [mealAdded,  setMealAdded]  = useState(false);
+  const [mealAdding, setMealAdding] = useState(false);
+
+  const cartItemsKey = cart.map((i) => `${i.id}:${i.quantity}`).sort().join(",");
+  const cartTotal    = cart.reduce((s, i) => s + Number(i.price) * i.quantity, 0);
+
+  const { data: meal, isLoading, isError } = useQuery({
+    queryKey: ["complete-meal", cartItemsKey],
+    queryFn:  () =>
+      getMealRecommendation({
+        cartItemIds: cart.map((i) => i.id),
+        cartTotal,
+      }),
+    enabled:   isOpen && cart.length > 0,
+    staleTime: 1000 * 60 * 3,
+    retry:     false,
+  });
+
+  useEffect(() => {
+    const t = setTimeout(() => setMealAdded(false), 0);
+    return () => clearTimeout(t);
+  }, [cartItemsKey]);
+
+  const handleAddMeal = async () => {
+    if (!meal?.mealItems?.length) return;
+    setMealAdding(true);
+    try {
+      const cartIds = new Set(cart.map((i) => i.id));
+      meal.mealItems
+        .filter((item) => !cartIds.has(item.itemId))
+        .forEach((item) =>
+          addItem({
+            id:       item.itemId,
+            name:     item.itemName,
+            imageUrl: item.imageUrl ?? undefined,
+            price:    Number(item.price),
+          }),
+        );
+      setMealAdded(true);
+    } finally {
+      setMealAdding(false);
+    }
+  };
+
+  if (!isOpen || isError) return null;
+  if (isLoading || !meal)  { if (!isLoading) return null; return <div className="px-3 pt-2 pb-1 h-36 rounded-2xl bg-zinc-100/60 animate-pulse" />; }
+  if (!meal.mealItems?.length) return null;
+
+  return (
+    <div className="px-3 pt-2 pb-1">
+      <CompleteMealCard
+        mainItemName={meal.mainItemName ?? cart[0]?.name}
+        mealItems={meal.mealItems}
+        savings={Number(meal.savings)}
+        onAddMeal={handleAddMeal}
+        isLoading={mealAdding}
+        disabled={mealAdded}
+      />
     </div>
   );
 }
@@ -191,6 +259,7 @@ function RecommendedBundleSection({ cart, addItem, isOpen }) {
         originalPrice={Number(bundle.originalPrice)}
         savings={Number(bundle.savings)}
         finalPrice={Number(bundle.finalPrice)}
+        primaryItemName={cart[0]?.name}
         onAddBundle={handleAddBundle}
         isLoading={bundleAdding}
         disabled={bundleAdded}
@@ -228,6 +297,11 @@ function CartContent({ onClose, isOpen }) {
             />
           ))}
         </div>
+
+        {/* Complete Your Meal — Side + Drink + optional Dessert */}
+        {cart.length > 0 && (
+          <CompleteMealSection cart={cart} addItem={addItem} isOpen={isOpen} />
+        )}
 
         {/* V1 Recommended Bundle — below cart items, above "Complete your meal" */}
         {cart.length > 0 && (

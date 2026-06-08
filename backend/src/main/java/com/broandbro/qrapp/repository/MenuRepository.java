@@ -17,11 +17,13 @@ public interface MenuRepository extends JpaRepository<MenuItem, Long> {
      * Filtered menu query — all predicates are optional (null = no filter).
      *
      * Hidden items are ALWAYS excluded (isHidden = false is a hard filter).
+     * Soft-deleted items are ALWAYS excluded (isDeleted = false is a hard filter).
      * All non-hidden items are returned regardless of stock status —
      * out-of-stock items are displayed on the menu but marked unavailable on the frontend.
      */
     @Query("SELECT m FROM MenuItem m WHERE " +
            "m.isHidden = false AND " +
+           "m.isDeleted = false AND " +
            "(:isVeg       IS NULL OR m.isVeg        = :isVeg) AND " +
            "(:categoryId  IS NULL OR m.category.id  = :categoryId) AND " +
            "(:recommended IS NULL OR m.recommended  = :recommended) " +
@@ -38,34 +40,34 @@ public interface MenuRepository extends JpaRepository<MenuItem, Long> {
      * Uses the composite index idx_menu_item_avail_rec (available, recommended).
      */
     @Query("SELECT m FROM MenuItem m " +
-           "WHERE m.recommended = true AND m.isHidden = false " +
+           "WHERE m.recommended = true AND m.isHidden = false AND m.isDeleted = false " +
            "ORDER BY m.id DESC")
     List<MenuItem> findTopRecommended(Pageable pageable);
 
     /**
      * Get all menu items for a specific category by category ID.
-     * Returns menu items ordered by ID.
+     * Returns non-deleted menu items ordered by ID.
      */
     @Query("SELECT m FROM MenuItem m " +
-           "WHERE m.category.id = :categoryId " +
+           "WHERE m.category.id = :categoryId AND m.isDeleted = false " +
            "ORDER BY m.id ASC")
     List<MenuItem> findByCategoryId(@Param("categoryId") Long categoryId);
 
     /**
      * Get all menu items for a specific tag by tag ID.
-     * Returns menu items ordered by ID.
+     * Returns non-deleted menu items ordered by ID.
      */
     @Query("SELECT m FROM MenuItem m " +
-           "WHERE m.tag.id = :tagId " +
+           "WHERE m.tag.id = :tagId AND m.isDeleted = false " +
            "ORDER BY m.id ASC")
     List<MenuItem> findByTagId(@Param("tagId") Long tagId);
 
     /**
-     * Get all visible (non-hidden) menu items for a specific tag name.
+     * Get all visible (non-hidden, non-deleted) menu items for a specific tag name.
      * Used for PreOrderOnly item discovery.
      */
     @Query("SELECT m FROM MenuItem m " +
-           "WHERE m.tag.name = :tagName AND m.isHidden = false " +
+           "WHERE m.tag.name = :tagName AND m.isHidden = false AND m.isDeleted = false " +
            "ORDER BY m.id ASC")
     List<MenuItem> findVisibleByTagName(@Param("tagName") String tagName);
 

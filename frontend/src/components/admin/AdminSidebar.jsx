@@ -140,6 +140,21 @@ export function AdminSidebar() {
                 }
               />
             </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                className="text-zinc-700 font-medium"
+                isActive={pathname === "/admin/meal-roles"}
+                render={
+                  <Link to={"/admin/meal-roles"}>
+                    <ForkKnifeIcon
+                      className="text-primary"
+                      weight={pathname === "/admin/meal-roles" ? "bold" : "regular"}
+                    />
+                    <span>Meal Roles</span>
+                  </Link>
+                }
+              />
+            </SidebarMenuItem>
           </SidebarMenu>
         </SidebarGroup>
 

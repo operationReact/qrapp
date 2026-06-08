@@ -25,7 +25,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.http.ResponseEntity;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.MediaType;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -482,17 +481,15 @@ public class MenuController {
     @PreAuthorize("hasRole('ADMIN')")
     @CacheEvict(cacheNames = {"menu", "menuRecommended"}, allEntries = true)
     public ResponseEntity<?> deleteMenuItem(@PathVariable Long id) {
-        if (!repo.existsById(id)) {
+        Optional<MenuItem> optItem = repo.findById(id);
+        if (optItem.isEmpty()) {
             return ResponseEntity.notFound().build();
         }
-        try {
-            repo.deleteById(id);
-            return ResponseEntity.noContent().build();
-        } catch (DataIntegrityViolationException dive) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).body("Cannot delete menu item: it is referenced by existing orders");
-        } catch (Exception ex) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to delete menu item");
-        }
+        MenuItem item = optItem.get();
+        item.setIsDeleted(true);
+        repo.save(item);
+        log.info("Soft-deleted menu item id={} name='{}'", id, item.getName());
+        return ResponseEntity.noContent().build();
     }
 
     /**

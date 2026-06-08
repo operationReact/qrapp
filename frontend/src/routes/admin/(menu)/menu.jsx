@@ -179,7 +179,7 @@ export const Route = createFileRoute("/admin/(menu)/menu")({
     const handleDeleteConfirm = (item) => {
       if (
         !window.confirm(
-          `Permanently delete "${item.name}"? This cannot be undone.`,
+          `Delete "${item.name}"? It will be removed from the menu.`,
         )
       ) {
         return;

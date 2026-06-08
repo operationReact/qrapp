@@ -65,6 +65,9 @@ public class MenuItem {
     @Column(name = "is_hidden", nullable = false)
     private Boolean isHidden = false;
 
+    @Column(name = "is_deleted", nullable = false)
+    private Boolean isDeleted = false;
+
     /**
      * Optional SKU code for bulk upload identification and external system integration.
      * Must be unique when set.

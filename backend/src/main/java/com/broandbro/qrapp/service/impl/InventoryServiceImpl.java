@@ -75,6 +75,9 @@ public class InventoryServiceImpl implements InventoryService {
     public boolean isOrderable(Long menuItemId) {
         MenuItem menuItem = getMenuItemOrThrow(menuItemId);
 
+        // Soft-deleted items are never orderable
+        if (Boolean.TRUE.equals(menuItem.getIsDeleted())) return false;
+
         // Hidden items are never orderable
         if (Boolean.TRUE.equals(menuItem.getIsHidden())) return false;
 

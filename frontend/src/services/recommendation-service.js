@@ -24,7 +24,36 @@ export const getRecommendedBundle = (payload) =>
     .then((r) => (r.status === 204 ? null : r.data))
     .catch(() => null); // treat any error as "no bundle available"
 
+/**
+ * "Complete Your Meal" — Side + Drink + optional Dessert recommendation
+ * with pre-calculated 10% pricing applied server-side.
+ *
+ * Returns null when no meal is available (HTTP 204 or network error).
+ * @param {{ cartItemIds: number[], cartTotal?: number }} payload
+ */
+export const getMealRecommendation = (payload) =>
+  apiClient
+    .post("/api/cart/meal-recommendation", payload)
+    .then((r) => (r.status === 204 ? null : r.data))
+    .catch(() => null);
 
+// ── Admin: Meal Roles ──────────────────────────────────────────────────────────
+
+/** All active combo roles (Main, Side, Drink, Dessert, Addon) for the dropdown. */
+export const fetchMealRoles = () =>
+  apiClient.get("/api/admin/meal-roles/roles").then((r) => r.data);
+
+/** Every menu item with its currently assigned meal role (or null). */
+export const fetchItemsWithMealRoles = () =>
+  apiClient.get("/api/admin/meal-roles/items").then((r) => r.data);
+
+/** Assign (or replace) the role for an item. */
+export const assignMealRole = (itemId, roleId) =>
+  apiClient.put(`/api/admin/meal-roles/items/${itemId}/role/${roleId}`).then((r) => r.data);
+
+/** Remove the role assignment from an item. */
+export const clearMealRole = (itemId) =>
+  apiClient.delete(`/api/admin/meal-roles/items/${itemId}/role`).then((r) => r.data);
 
 export const fetchAllRecommendations = () =>
   apiClient.get("/api/admin/growth/recommendations").then((r) => r.data);

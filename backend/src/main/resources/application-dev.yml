@@ -72,3 +72,10 @@ app:
     discount-percent: 10       # 10 % of the recommended-items total
     max-discount-rupees: 50    # ₹50 absolute cap
     max-items: 3               # maximum items to include in one bundle
+
+  # ── Complete Your Meal Pricing ───────────────────────────────────────────
+  # savings = min( mealTotal × discount-percent%, max-discount-rupees )
+  meal:
+    discount-percent: 10       # 10 % of the meal items total
+    max-discount-rupees: 50    # ₹50 absolute cap
+
