@@ -2,6 +2,7 @@ package com.broandbro.qrapp.service;
 
 import com.broandbro.qrapp.entity.Category;
 import com.broandbro.qrapp.repository.CategoryRepository;
+import com.broandbro.qrapp.repository.MenuRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,6 +15,7 @@ import java.util.Optional;
 public class CategoryService {
 
     private final CategoryRepository categoryRepository;
+    private final MenuRepository     menuRepository;
 
     public List<Category> getAllCategories() {
         return categoryRepository.findByIsDeletedFalse();
@@ -43,9 +45,15 @@ public class CategoryService {
 
     @Transactional
     public void deleteCategory(Long id) {
-        categoryRepository.findByIdAndIsDeletedFalse(id).ifPresent(cat -> {
-            cat.setIsDeleted(true);
-            categoryRepository.save(cat);
-        });
+        Category category = categoryRepository.findByIdAndIsDeletedFalse(id)
+                .orElseThrow(() -> new RuntimeException("Category not found: " + id));
+
+        // Cascade soft-delete — load once, mark all, save in one batch
+        var items = menuRepository.findByCategoryId(id);
+        items.forEach(item -> item.setIsDeleted(true));
+        menuRepository.saveAll(items);
+
+        category.setIsDeleted(true);
+        categoryRepository.save(category);
     }
 }
