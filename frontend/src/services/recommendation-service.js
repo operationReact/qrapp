@@ -9,7 +9,22 @@ import { apiClient } from "./index";
 export const getCartRecommendations = (payload) =>
   apiClient.post("/api/recommendations/cart", payload).then((r) => r.data);
 
-// ── Admin: L1 Manual Recommendations ─────────────────────────────────────────
+/**
+ * V1 Recommended Bundle — builds a simple "Frequently Bought Together" bundle
+ * from the recommendation engine and returns pre-calculated pricing.
+ *
+ * Returns null (HTTP 204) when no bundle is available for the current cart.
+ *
+ * @param {{ cartItemIds: number[], cartTotal?: number }} payload
+ * @returns {Promise<{bundleItems,originalPrice,savings,finalPrice}|null>}
+ */
+export const getRecommendedBundle = (payload) =>
+  apiClient
+    .post("/api/cart/recommended-bundle", payload)
+    .then((r) => (r.status === 204 ? null : r.data))
+    .catch(() => null); // treat any error as "no bundle available"
+
+
 
 export const fetchAllRecommendations = () =>
   apiClient.get("/api/admin/growth/recommendations").then((r) => r.data);

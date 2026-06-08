@@ -63,3 +63,12 @@ aws:
     region: ${AWS_S3_REGION:ap-south-1}
     access-key: ${AWS_ACCESS_KEY_ID:AKIA5AJB42RXR6A5YRUL}
     secret-key: ${AWS_SECRET_ACCESS_KEY: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}
+
+# ── V1 Recommended Bundle Pricing ────────────────────────────────────────────
+# savings = min( originalPrice × discount-percent%, max-discount-rupees )
+# Change these values without touching code; restart the server to apply.
+app:
+  bundle:
+    discount-percent: 10       # 10 % of the recommended-items total
+    max-discount-rupees: 50    # ₹50 absolute cap
+    max-items: 3               # maximum items to include in one bundle

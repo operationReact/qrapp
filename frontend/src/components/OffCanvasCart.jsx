@@ -13,14 +13,15 @@ import {
 import { useIsMobile } from "@/hooks/use-mobile";
 import { X } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { Empty, EmptyDescription, EmptyHeader } from "./ui/empty";
 import { useQuery } from "@tanstack/react-query";
-import { getCartRecommendations } from "@/services/recommendation-service";
+import { getCartRecommendations, getRecommendedBundle } from "@/services/recommendation-service";
 import { PlusCircleIcon } from "@phosphor-icons/react";
 import ComboProgressBanner from "@/components/ComboProgressBanner";
 import { useByocDiscount } from "@/hooks/useByocDiscount";
+import RecommendedBundleCard from "@/components/RecommendedBundleCard";
 
 function CartRecommendations({ cart, addItem, isOpen }) {
   const itemIds = cart.map((i) => i.id);
@@ -98,6 +99,106 @@ function CartRecommendations({ cart, addItem, isOpen }) {
   );
 }
 
+/**
+ * RecommendedBundleSection — fetches V1 bundle from the simple recommendation
+ * endpoint and renders RecommendedBundleCard with proper loading / empty states.
+ *
+ * Guard order:
+ *  1. Drawer closed          → null (don't fetch)
+ *  2. Loading / no data yet  → skeleton shimmer
+ *  3. No bundle available    → null (API returned 204 or empty)
+ *  4. Has bundle             → render RecommendedBundleCard
+ */
+function RecommendedBundleSection({ cart, addItem, isOpen }) {
+  const [bundleAdded,  setBundleAdded]  = useState(false);
+  const [bundleAdding, setBundleAdding] = useState(false);
+
+  const cartItemsKey = cart.map((i) => `${i.id}:${i.quantity}`).sort().join(",");
+  const cartTotal    = cart.reduce((s, i) => s + Number(i.price) * i.quantity, 0);
+
+  const { data: bundle, isLoading, isError } = useQuery({
+    queryKey: ["v1-recommended-bundle", cartItemsKey],
+    queryFn: () =>
+      getRecommendedBundle({
+        cartItemIds: cart.map((i) => i.id),
+        cartTotal,
+      }),
+    enabled:   isOpen && cart.length > 0,
+    staleTime: 1000 * 60 * 3,
+    retry:     false,
+  });
+
+  // Reset "Added" badge whenever the cart changes
+  useEffect(() => {
+    const t = setTimeout(() => setBundleAdded(false), 0);
+    return () => clearTimeout(t);
+  }, [cartItemsKey]);
+
+  const handleAddBundle = async () => {
+    if (!bundle) return;
+    setBundleAdding(true);
+    try {
+      const cartItemIds = new Set(cart.map((i) => i.id));
+      bundle.bundleItems
+        .filter((item) => !cartItemIds.has(item.itemId))
+        .forEach((item) =>
+          addItem({
+            id:       item.itemId,
+            name:     item.itemName,
+            imageUrl: item.imageUrl ?? undefined,
+            price:    Number(item.price),
+          }),
+        );
+      setBundleAdded(true);
+    } finally {
+      setBundleAdding(false);
+    }
+  };
+
+  // Guard 1: closed or error
+  if (!isOpen || isError) return null;
+
+  // Guard 2: skeleton while loading or data not yet arrived
+  if (isLoading || !bundle) {
+    if (!isLoading) return null; // query resolved — nothing to show
+    return (
+      <div className="px-3 pt-2 pb-1 space-y-2 animate-pulse">
+        <div className="h-8 rounded-t-2xl bg-orange-300/40" />
+        <div className="rounded-b-2xl border border-orange-200 bg-orange-50/60 p-4 space-y-3">
+          <div className="flex gap-2">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="flex flex-col items-center gap-1.5 w-[68px]">
+                <div className="w-[60px] h-[60px] rounded-xl bg-orange-200/60" />
+                <div className="h-2 w-12 rounded-full bg-orange-200/60" />
+                <div className="h-2 w-8 rounded-full bg-orange-300/50" />
+              </div>
+            ))}
+          </div>
+          <div className="h-10 rounded-xl bg-orange-300/40" />
+        </div>
+      </div>
+    );
+  }
+
+  // Guard 3: no bundle available
+  if (!bundle.bundleItems?.length) return null;
+
+  // Guard 4: render
+  return (
+    <div className="px-3 pt-2 pb-1">
+      <RecommendedBundleCard
+        bundleItems={bundle.bundleItems}
+        originalPrice={Number(bundle.originalPrice)}
+        savings={Number(bundle.savings)}
+        finalPrice={Number(bundle.finalPrice)}
+        onAddBundle={handleAddBundle}
+        isLoading={bundleAdding}
+        disabled={bundleAdded}
+      />
+    </div>
+  );
+}
+
 function CartContent({ onClose, isOpen }) {
   const { cart, getTotal, addItem, decreaseItem, removeItem } = useCart();
   const navigate = useNavigate();
@@ -127,6 +228,12 @@ function CartContent({ onClose, isOpen }) {
             />
           ))}
         </div>
+
+        {/* V1 Recommended Bundle — below cart items, above "Complete your meal" */}
+        {cart.length > 0 && (
+          <RecommendedBundleSection cart={cart} addItem={addItem} isOpen={isOpen} />
+        )}
+
         {cart.length > 0 && (
           <CartRecommendations cart={cart} addItem={addItem} isOpen={isOpen} />
         )}
