@@ -281,7 +281,7 @@ function OverviewTab({ d, ownerName }) {
           <div className="space-y-2">
             {priorities.map(({ dotCls, tagCls, tagBg, text, tag, to }) => (
               <Link key={text} to={to}
-                className="flex items-center gap-2.5 bg-white rounded-sm border-card px-3 py-2.5 shadow-[0_1px_6px_rgba(0,0,0,.04)] border border-zinc-100 active:bg-zinc-50">
+                className="flex items-center gap-2.5 bg-white rounded-sm border-card px-3 py-2.5 shadow-[0_1px_6px_rgba(0,0,0,.04)] border active:bg-zinc-50">
                 <span className={cn("size-1.5 rounded-[2px] shrink-0", dotCls)} />
                 <span className="text-sm flex-1">{text}</span>
                 <Badge className={cn(tagCls, tagBg)}>{tag}</Badge>
@@ -357,17 +357,17 @@ function ActivityTab({ d }) {
   ].filter(Boolean);
 
   return (
-    <div className="px-4 py-4 space-y-5 max-w-lg mx-auto">
+    <div className="px-4 py-4 space-y-4 md:space-y-6">
       {/* Live Operations — real counts */}
       <div>
         <SectionLabel action="Kitchen Queue" to="/admin/kitchen-queue">Live Operations</SectionLabel>
         <div className="grid grid-cols-5 gap-1.5">
           {opsChips.map(({ label, value, dotCls, numCls, bgCls }) => (
             <Link key={label} to="/admin/kitchen-queue"
-              className={cn("flex flex-col items-center justify-center rounded-xl py-2.5 gap-0.5 border border-transparent", bgCls)}>
+              className={cn("flex flex-col items-center justify-center rounded-lg py-2.5 gap-0.5 border border-transparent", bgCls)}>
               <span className={cn("size-1.5 rounded-full", dotCls)} />
               <span className={cn("text-[20px] font-bold leading-tight", numCls)}>{value}</span>
-              <span className="text-[9px] font-semibold text-zinc-500">{label}</span>
+              <span className="text-xs font-medium text-zinc-500">{label}</span>
             </Link>
           ))}
         </div>
@@ -379,10 +379,10 @@ function ActivityTab({ d }) {
         <div className="space-y-2">
           {allPriorities.map(({ dotCls, tagCls, tagBg, text, tag, to }) => (
             <Link key={text} to={to}
-              className="flex items-center gap-2.5 bg-white rounded-xl px-3 py-2.5 shadow-[0_1px_6px_rgba(0,0,0,.04)] border border-zinc-100 active:bg-zinc-50">
-              <span className={cn("size-1.5 rounded-full shrink-0", dotCls)} />
-              <span className="text-[12px] text-zinc-700 font-medium leading-snug flex-1">{text}</span>
-              <span className={cn("text-[10px] font-bold px-1.5 py-0.5 rounded-md shrink-0 whitespace-nowrap", tagCls, tagBg)}>{tag}</span>
+              className="flex items-center gap-2.5 bg-white rounded-lg px-3 py-2.5 border border-card active:bg-zinc-50">
+              <span className={cn("size-1.5 rounded-[2px] shrink-0", dotCls)} />
+              <span className="flex-1 text-sm">{text}</span>
+              <Badge className={cn(tagCls, tagBg)}>{tag}</Badge>
             </Link>
           ))}
         </div>
@@ -391,17 +391,17 @@ function ActivityTab({ d }) {
       {/* Recent Activity — from live queue */}
       <div>
         <SectionLabel action="View all" to="/admin/ops-center">Recent Activity</SectionLabel>
-        <div className="bg-white rounded-2xl px-4 shadow-[0_1px_8px_rgba(0,0,0,.05)] border border-zinc-100 divide-y divide-zinc-50">
+        <div className="bg-white rounded-lg px-4 border border-card divide-y divide-zinc-50">
           {activityItems.length === 0 ? (
-            <div className="py-4 text-center text-[12px] text-zinc-400">No recent activity</div>
+            <div className="py-4 text-center text-xs text-zinc-500">No recent activity</div>
           ) : (
             activityItems.map(({ Icon, iconCls, bgCls, text, time }, i) => ( // eslint-disable-line no-unused-vars
-              <div key={i} className="flex items-center gap-2.5 py-2.5">
-                <span className={cn("size-7 rounded-lg flex items-center justify-center shrink-0", bgCls)}>
-                  <Icon size={13} className={iconCls} />
+              <div key={i} className="flex hover:shadow-lg transition-all shadow-muted/50 items-center gap-2.5 py-2.5">
+                <span className={cn("size-9 rounded-sm flex items-center justify-center shrink-0", bgCls)}>
+                  <Icon size={16} className={iconCls} weight="fill"/>
                 </span>
-                <p className="flex-1 text-[12px] font-medium text-zinc-700 leading-snug truncate">{text}</p>
-                <span className="text-[10px] text-zinc-400 font-medium shrink-0">{time}</span>
+                <p className="flex-1 text-sm truncate">{text}</p>
+                <span className="text-xs text-zinc-500 shrink-0">{time}</span>
               </div>
             ))
           )}
@@ -451,30 +451,30 @@ function InsightsTab({ d }) {
   const trendingList = (trendData.trending ?? []).slice(0, 3);
 
   return (
-    <div className="px-4 py-4 space-y-5 max-w-lg mx-auto">
+    <div className="px-4 py-4 space-y-4 md:space-y-6">
 
       {/* Profitability */}
       <div>
         <SectionLabel action="Full report" to="/admin/analytics/profitability">Profitability Today</SectionLabel>
-        <div className="bg-white rounded-2xl p-4 shadow-[0_1px_8px_rgba(0,0,0,.06)] border border-zinc-100 space-y-3">
+        <div className="bg-white rounded-lg p-4 border border-zinc-100 space-y-3">
           {profit.loading ? (
             Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-6 w-full" />)
           ) : (
             profitRows.map(({ label, value, pct, barCls }) => (
               <div key={label}>
-                <div className="flex justify-between mb-1">
-                  <span className="text-[11px] text-zinc-600 font-medium">{label}</span>
-                  <span className="text-[11px] font-bold text-zinc-800">{value}</span>
+                <div className="flex justify-between mb-2">
+                  <span className="text-sm">{label}</span>
+                  <span className="text-sm font-semibold">{value}</span>
                 </div>
-                <div className="h-1.5 bg-zinc-100 rounded-full overflow-hidden">
-                  <div className={cn("h-full rounded-full", barCls)} style={{ width: `${Math.max(pct, 2)}%` }} />
+                <div className="h-1.5 bg-zinc-100 rounded-xs overflow-hidden">
+                  <div className={cn("h-full rounded-xs", barCls)} style={{ width: `${Math.max(pct, 2)}%` }} />
                 </div>
               </div>
             ))
           )}
           {!profit.loading && (
-            <p className="text-[10px] text-zinc-400 pt-0.5">
-              Profit margin: <span className="font-bold text-emerald-600">{fmtPct(marginPct)}</span>
+            <p className="text-sm text-zinc-600 pt-0.5">
+              Profit margin: <span className="font-semibold text-emerald-600">{fmtPct(marginPct)}</span>
             </p>
           )}
         </div>
@@ -482,15 +482,15 @@ function InsightsTab({ d }) {
 
       {/* Top & Low revenue items */}
       <div className="grid grid-cols-2 gap-3">
-        <div className="bg-emerald-50 rounded-xl p-3 border border-emerald-100">
+        <div className="bg-emerald-50 rounded-sm p-3 border border-emerald-100">
           <div className="flex items-center gap-1 mb-2">
-            <TrendingUp size={11} className="text-emerald-600" />
-            <p className="text-[9px] font-bold text-emerald-700 uppercase tracking-wide">High Profit</p>
+            <TrendingUp size={14} className="text-emerald-600" />
+            <p className="text-sm font-semibold text-emerald-700">High Profit</p>
           </div>
           {topItems.loading
             ? Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-4 w-full mb-1" />)
             : topItemRows.length === 0
-              ? <p className="text-[10px] text-zinc-400">No data yet</p>
+              ? <p className="text-xs text-zinc-500">No data yet</p>
               : topItemRows.map((it) => (
                   <div key={it.menuItemName} className="flex items-center justify-between py-0.5">
                     <span className="text-[10.5px] text-zinc-700 truncate pr-1">{it.menuItemName}</span>
@@ -499,15 +499,15 @@ function InsightsTab({ d }) {
                 ))
           }
         </div>
-        <div className="bg-red-50 rounded-xl p-3 border border-red-100">
+        <div className="bg-red-50 rounded-sm p-3 border border-red-100">
           <div className="flex items-center gap-1 mb-2">
-            <TrendingDown size={11} className="text-red-500" />
-            <p className="text-[9px] font-bold text-red-600 uppercase tracking-wide">Low Sales</p>
+            <TrendingDown size={14} className="text-red-500" />
+            <p className="text-sm font-semibold text-red-600">Low Sales</p>
           </div>
           {lowItems.loading
             ? Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-4 w-full mb-1" />)
             : lowItemRows.length === 0
-              ? <p className="text-[10px] text-zinc-400">No data yet</p>
+              ? <p className="text-xs text-zinc-500">No data yet</p>
               : lowItemRows.map((it) => (
                   <div key={it.menuItemName} className="flex items-center justify-between py-0.5">
                     <span className="text-[10.5px] text-zinc-700 truncate pr-1">{it.menuItemName}</span>
@@ -521,11 +521,11 @@ function InsightsTab({ d }) {
       {/* Sales Trend — real hourly data */}
       <div>
         <SectionLabel action="Analytics" to="/admin/analytics/sales">Today's Sales Trend</SectionLabel>
-        <div className="bg-white rounded-2xl p-4 shadow-[0_1px_8px_rgba(0,0,0,.06)] border border-zinc-100">
+        <div className="bg-white rounded-lg p-4 border border-card">
           {hourly.loading ? (
             <Skeleton className="h-36 w-full" />
           ) : salesData.length === 0 ? (
-            <div className="h-36 flex items-center justify-center text-[12px] text-zinc-400">
+            <div className="h-36 flex items-center justify-center text-xs text-zinc-500">
               <div className="text-center">
                 <Clock size={20} className="mx-auto mb-1 text-zinc-300" />
                 No hourly data yet
@@ -559,14 +559,14 @@ function InsightsTab({ d }) {
       {/* Smart Recommendations — from trending items engine */}
       <div>
         <SectionLabel action="View all" to="/admin/recommendations">
-          <span className="flex items-center gap-1.5">Smart Recommendations <Zap size={10} className="text-amber-400" /></span>
+          <span className="flex items-center gap-1.5">Smart Recommendations <Zap className="text-amber-700 size-3.5" /></span>
         </SectionLabel>
         {trending.loading ? (
           <div className="space-y-2">
             {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-14 w-full" />)}
           </div>
         ) : trendingList.length === 0 ? (
-          <div className="bg-white rounded-xl px-3 py-3 text-[12px] text-zinc-400 text-center border border-zinc-100">
+          <div className="bg-white rounded-lg px-3 py-3 text-xs text-zinc-500 text-center border border-zinc-100">
             Trending data is computed nightly — check back tomorrow.
           </div>
         ) : (
@@ -575,11 +575,11 @@ function InsightsTab({ d }) {
               <div key={name} className="flex items-center gap-3 bg-white rounded-xl px-3 py-2.5 shadow-[0_1px_6px_rgba(0,0,0,.04)] border border-zinc-100">
                 <span className="text-[18px] shrink-0">🔥</span>
                 <div className="flex-1 min-w-0">
-                  <p className="text-[11.5px] font-medium text-zinc-700 leading-snug">{name} is trending</p>
-                  <p className="text-[10px] font-bold text-emerald-600 mt-0.5">{count} orders recently</p>
+                  <p className="text-xs font-medium text-zinc-700 leading-snug">{name} is trending</p>
+                  <p className="text-xs font-semibold text-emerald-600 mt-0.5">{count} orders recently</p>
                 </div>
                 <Link to="/admin/recommendations"
-                  className="shrink-0 text-[10px] font-bold text-violet-600 bg-violet-50 border border-violet-100 px-2 py-1 rounded-lg">
+                  className="shrink-0 text-[10px] font-bold text-primary bg-primary/5 border border-primary/10 px-2 py-1 rounded-lg">
                   Boost
                 </Link>
               </div>
@@ -589,19 +589,19 @@ function InsightsTab({ d }) {
       </div>
 
       {/* Avg Fulfillment */}
-      <div className="bg-white rounded-xl px-4 py-3 shadow-[0_1px_6px_rgba(0,0,0,.04)] border border-zinc-100 flex items-center justify-between">
+      <div className="bg-white rounded-lg px-4 py-3 border border-card flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-          <div className="size-8 bg-blue-50 rounded-lg flex items-center justify-center">
-            <Clock size={14} className="text-blue-500" />
+          <div className="size-9 bg-primary/10 rounded-lg flex items-center justify-center">
+            <Clock size={16} className="text-primary" />
           </div>
           <div>
-            <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wide">Avg Fulfillment</p>
-            <p className="text-[15px] font-bold text-zinc-900">{d.averageFulfillmentMinutes ?? 0} min</p>
+            <p className="text-xs text-primary font-medium">Avg Fulfillment</p>
+            <p className="text-sm font-semibold">{d.averageFulfillmentMinutes ?? 0} min</p>
           </div>
         </div>
         <Link to="/admin/analytics/orders"
-          className="text-[11px] font-semibold text-violet-500 flex items-center gap-0.5">
-          Details <ChevronRight size={11} />
+          className="text-sm font-medium text-primary flex items-center gap-0.5">
+          Details <ChevronRight size={14} />
         </Link>
       </div>
     </div>
