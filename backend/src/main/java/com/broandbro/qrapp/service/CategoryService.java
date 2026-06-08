@@ -4,6 +4,7 @@ import com.broandbro.qrapp.entity.Category;
 import com.broandbro.qrapp.repository.CategoryRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -15,15 +16,15 @@ public class CategoryService {
     private final CategoryRepository categoryRepository;
 
     public List<Category> getAllCategories() {
-        return categoryRepository.findAll();
+        return categoryRepository.findByIsDeletedFalse();
     }
 
     public Optional<Category> getCategoryById(Long id) {
-        return categoryRepository.findById(id);
+        return categoryRepository.findByIdAndIsDeletedFalse(id);
     }
 
     public Optional<Category> getCategoryByName(String name) {
-        return categoryRepository.findByName(name);
+        return categoryRepository.findByNameAndIsDeletedFalse(name);
     }
 
     public Category createCategory(Category category) {
@@ -31,7 +32,7 @@ public class CategoryService {
     }
 
     public Category updateCategory(Long id, Category category) {
-        return categoryRepository.findById(id)
+        return categoryRepository.findByIdAndIsDeletedFalse(id)
                 .map(existing -> {
                     if (category.getName() != null) existing.setName(category.getName());
                     if (category.getDescription() != null) existing.setDescription(category.getDescription());
@@ -40,8 +41,11 @@ public class CategoryService {
                 .orElseThrow(() -> new RuntimeException("Category not found with id: " + id));
     }
 
+    @Transactional
     public void deleteCategory(Long id) {
-        categoryRepository.deleteById(id);
+        categoryRepository.findByIdAndIsDeletedFalse(id).ifPresent(cat -> {
+            cat.setIsDeleted(true);
+            categoryRepository.save(cat);
+        });
     }
 }
-
