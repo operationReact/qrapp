@@ -81,6 +81,7 @@ public class MealRecommendationController {
                         .itemId(item.getId())
                         .itemName(item.getName())
                         .imageUrl(item.getImageUrl())
+                        .categoryName(item.getCategory() != null ? item.getCategory().getName() : null)
                         .roleId(null)
                         .roleName(null)
                         .build())

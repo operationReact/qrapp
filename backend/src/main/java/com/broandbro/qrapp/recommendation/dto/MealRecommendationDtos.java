@@ -81,6 +81,7 @@ public class MealRecommendationDtos {
         private Long   itemId;
         private String itemName;
         private String imageUrl;
+        private String categoryName;
         /** Null when the item has no role assignment. */
         private Long   roleId;
         private String roleName;

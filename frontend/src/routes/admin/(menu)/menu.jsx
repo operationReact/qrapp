@@ -5,8 +5,9 @@ import {
   useNavigate,
   useSearch,
 } from "@tanstack/react-router";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { updateMenuItem, deleteMenuItem, getDeletedMenuItems, restoreMenuItem } from "@/services/menu-service";
 import { menuOptions } from "@/query/options/menu";
 import { useAuth } from "@/context/AuthContext";
@@ -81,13 +82,14 @@ export const Route = createFileRoute("/admin/(menu)/menu")({
     const [filterSheetOpen, setFilterSheetOpen] = useState(false);
     const [categoriesModalOpen, setCategoriesModalOpen] = useState(false);
     const [trashOpen, setTrashOpen] = useState(false);
+    const trashRef = useRef(null);
 
     const { data: menu = [], isLoading: loadingMenu } = useQuery(menuOptions());
 
-    const { data: deletedItems = [], isLoading: loadingDeleted } = useQuery({
+    const { data: deletedItems = [], isLoading: loadingDeleted, isFetching: fetchingDeleted } = useQuery({
       queryKey: ["menu-deleted"],
       queryFn:  getDeletedMenuItems,
-      enabled:  trashOpen,
+      staleTime: 30_000,
     });
 
     const restoreMutation = useMutation({
@@ -95,9 +97,10 @@ export const Route = createFileRoute("/admin/(menu)/menu")({
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: ["menu"] });
         queryClient.invalidateQueries({ queryKey: ["menu-deleted"] });
+        toast.success("Item restored successfully");
       },
       onError: (err) => {
-        alert(err?.response?.data?.message || err?.message || "Failed to restore item");
+        toast.error(err?.response?.data?.message || err?.message || "Failed to restore item");
       },
     });
 
@@ -188,6 +191,7 @@ export const Route = createFileRoute("/admin/(menu)/menu")({
       },
       onSettled: () => {
         queryClient.invalidateQueries({ queryKey: ["menu"] });
+        queryClient.invalidateQueries({ queryKey: ["menu-deleted"] });
       },
     });
 
@@ -318,6 +322,11 @@ export const Route = createFileRoute("/admin/(menu)/menu")({
       },
     ];
 
+    const handleOpenTrash = () => {
+      setTrashOpen(true);
+      setTimeout(() => trashRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+    };
+
     return (
       <>
         {/* STICKY HEADER */}
@@ -380,6 +389,20 @@ export const Route = createFileRoute("/admin/(menu)/menu")({
             >
               <LegoIcon /> Manage Categories
             </Button>
+            {deletedItems.length > 0 && (
+              <Button
+                type="button"
+                variant="outline"
+                className="gap-1.5 text-zinc-500 border-zinc-200"
+                onClick={handleOpenTrash}
+              >
+                <TrashIcon className="size-4" />
+                Trash
+                <span className="bg-zinc-200 text-zinc-600 text-xs font-semibold rounded-full px-1.5 py-0.5 leading-none">
+                  {deletedItems.length}
+                </span>
+              </Button>
+            )}
             {missingCostCount > 0 && (
               <Button
                 variant="outline"
@@ -518,59 +541,95 @@ export const Route = createFileRoute("/admin/(menu)/menu")({
         </div>
 
           {/* ── Trash / Deleted Items ─────────────────────────────────── */}
-          <div className="mt-4 border border-dashed border-zinc-300 rounded-xl overflow-hidden">
-            <button
-              type="button"
-              onClick={() => setTrashOpen((v) => !v)}
-              className="w-full flex items-center gap-2 px-4 py-3 text-sm font-medium text-zinc-500 hover:bg-zinc-50 transition-colors"
-            >
-              <TrashIcon className="size-4" />
-              Deleted Items
-              {deletedItems.length > 0 && (
-                <span className="ml-1 bg-zinc-200 text-zinc-600 text-xs font-semibold rounded-full px-2 py-0.5">
-                  {deletedItems.length}
-                </span>
-              )}
-              <span className="ml-auto text-xs text-zinc-400">{trashOpen ? "▲ Hide" : "▼ Show"}</span>
-            </button>
+          <div className="px-4 pb-4 mt-2" ref={trashRef}>
 
-            {trashOpen && (
-              <div className="border-t border-zinc-200 px-4 py-3 space-y-2">
-                {loadingDeleted && (
-                  <div className="space-y-2">
-                    {Array.from({ length: 3 }).map((_, i) => (
-                      <div key={i} className="h-14 rounded-lg bg-zinc-100 animate-pulse" />
-                    ))}
-                  </div>
+            <div className="border border-dashed border-zinc-300 rounded-xl overflow-hidden">
+
+              {/* Toggle header */}
+              <button
+                type="button"
+                onClick={() => setTrashOpen((v) => !v)}
+                className="w-full flex items-center gap-2 px-4 py-3 text-sm font-medium text-zinc-500 hover:bg-zinc-50 transition-colors"
+              >
+                <TrashIcon className="size-4" />
+                <span>Deleted Items</span>
+                {deletedItems.length > 0 && (
+                  <span className="bg-zinc-200 text-zinc-600 text-xs font-semibold rounded-full px-2 py-0.5">
+                    {deletedItems.length}
+                  </span>
                 )}
-                {!loadingDeleted && deletedItems.length === 0 && (
-                  <p className="py-6 text-center text-sm text-zinc-400">No deleted items.</p>
-                )}
-                {!loadingDeleted && deletedItems.map((item) => (
-                  <div key={item.id} className="flex items-center gap-3 p-2.5 rounded-lg border border-zinc-100 bg-white opacity-70">
-                    {item.imageUrl && (
-                      <img src={item.imageUrl} alt={item.name} className="size-10 rounded-md object-cover shrink-0" />
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-zinc-600 line-through truncate">{item.name}</p>
-                      <p className="text-xs text-zinc-400">{item.category?.name ?? "No category"}</p>
+                <span className="ml-auto text-xs text-zinc-400">
+                  {trashOpen ? "▲ Hide" : "▼ Show"}
+                </span>
+              </button>
+
+              {/* Panel body */}
+              {trashOpen && (
+                <div className="border-t border-zinc-200 divide-y divide-zinc-100">
+                  {/* Loading skeleton */}
+                  {(loadingDeleted || fetchingDeleted) && deletedItems.length === 0 && (
+                    <div className="px-4 py-3 space-y-2">
+                      {Array.from({ length: 3 }).map((_, i) => (
+                        <div key={i} className="h-14 rounded-lg bg-zinc-100 animate-pulse" />
+                      ))}
                     </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="shrink-0 gap-1.5 text-xs"
-                      disabled={restoreMutation.isPending}
-                      onClick={() => restoreMutation.mutate(item.id)}
+                  )}
+
+                  {/* Empty state */}
+                  {!loadingDeleted && !fetchingDeleted && deletedItems.length === 0 && (
+                    <p className="py-8 text-center text-sm text-zinc-400">
+                      No deleted items in trash.
+                    </p>
+                  )}
+
+                  {/* Item rows */}
+                  {deletedItems.map((item) => (
+                    <div
+                      key={item.id}
+                      className="flex items-center gap-3 px-4 py-3 bg-white hover:bg-zinc-50/60 transition-colors"
                     >
-                      <ArrowCounterClockwiseIcon className="size-3.5" />
-                      Restore
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            )}
+                      {/* Thumbnail */}
+                      <div className="size-10 rounded-md bg-zinc-100 shrink-0 overflow-hidden">
+                        {item.imageUrl ? (
+                          <img
+                            src={item.imageUrl}
+                            alt={item.name}
+                            className="size-full object-cover opacity-60"
+                          />
+                        ) : (
+                          <div className="size-full flex items-center justify-center text-zinc-300 text-lg">
+                            🍽️
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Name + category */}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-zinc-400 line-through truncate">
+                          {item.name}
+                        </p>
+                        <p className="text-xs text-zinc-400 truncate">
+                          {item.categoryName ?? "No category"}
+                        </p>
+                      </div>
+
+                      {/* Restore button */}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="shrink-0 gap-1.5 text-xs border-zinc-200 hover:border-green-400 hover:text-green-700 hover:bg-green-50"
+                        disabled={restoreMutation.isPending}
+                        onClick={() => restoreMutation.mutate(item.id)}
+                      >
+                        <ArrowCounterClockwiseIcon className="size-3.5" />
+                        Restore
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
-        </div>
 
         <AdminMenuFilters
           open={filterSheetOpen}

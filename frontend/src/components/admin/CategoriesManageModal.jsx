@@ -5,6 +5,7 @@ import {
   PlusIcon,
   TrashIcon,
   TagIcon,
+  BowlFoodIcon,
   MagnifyingGlassIcon,
   ArrowCounterClockwiseIcon,
 } from "@phosphor-icons/react";
@@ -37,6 +38,7 @@ import {
   getDeletedCategories,
   restoreCategory,
 } from "@/services/category-service";
+import { getDeletedMenuItems, restoreMenuItem } from "@/services/menu-service";
 import { categoriesOptions, menuOptions } from "@/query/options/menu";
 
 export default function CategoriesManageModal({
@@ -56,6 +58,12 @@ export default function CategoriesManageModal({
   const { data: deletedCategories = [], isLoading: loadingDeleted } = useQuery({
     queryKey: ["categories-deleted"],
     queryFn:  getDeletedCategories,
+    enabled:  open && tab === "trash",
+  });
+
+  const { data: deletedMenuItems = [], isLoading: loadingDeletedItems } = useQuery({
+    queryKey: ["menu-deleted"],
+    queryFn:  getDeletedMenuItems,
     enabled:  open && tab === "trash",
   });
 
@@ -124,6 +132,18 @@ export default function CategoriesManageModal({
     },
   });
 
+  const restoreItemMutation = useMutation({
+    mutationFn: (id) => restoreMenuItem(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["menu"] });
+      queryClient.invalidateQueries({ queryKey: ["menu-deleted"] });
+      toast.success("Menu item restored");
+    },
+    onError: (err) => {
+      toast.error(err?.response?.data?.message || err?.message || "Failed to restore item");
+    },
+  });
+
   const handleCreate = (e) => {
     e.preventDefault();
     const name = newName.trim();
@@ -156,7 +176,11 @@ export default function CategoriesManageModal({
             { key: "active", label: "Active" },
             {
               key: "trash",
-              label: `Trash${deletedCategories.length ? ` (${deletedCategories.length})` : ""}`,
+              label: `Trash${
+                (deletedCategories.length + deletedMenuItems.length) > 0
+                  ? ` (${deletedCategories.length + deletedMenuItems.length})`
+                  : ""
+              }`,
             },
           ].map(({ key, label }) => (
             <button
@@ -295,42 +319,92 @@ export default function CategoriesManageModal({
         )}
 
         {tab === "trash" && (
-          <div className="flex-1 overflow-y-auto px-5 py-3">
-            {loadingDeleted ? (
-              <div className="space-y-2">
-                {Array.from({ length: 3 }).map((_, i) => (
-                  <div key={i} className="h-14 rounded-md border border-border bg-muted/50 animate-pulse" />
-                ))}
-              </div>
-            ) : deletedCategories.length === 0 ? (
-              <div className="py-12 text-center text-sm text-muted-foreground">
-                No deleted categories.
-              </div>
-            ) : (
-              <ul className="flex flex-col gap-1.5">
-                {deletedCategories.map((cat) => (
-                  <li key={cat.id} className="flex items-center gap-3 p-2.5 rounded-md border border-border bg-card opacity-70">
-                    <div className="size-8 rounded-md flex items-center justify-center bg-muted text-muted-foreground shrink-0">
-                      <TagIcon size={14} weight="bold" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate line-through text-muted-foreground">{cat.name}</p>
-                      <p className="text-[11px] text-muted-foreground">Deleted — restoring will also restore its menu items</p>
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="shrink-0 gap-1.5 text-xs"
-                      disabled={restoreMutation.isPending}
-                      onClick={() => restoreMutation.mutate(cat.id)}
-                    >
-                      <ArrowCounterClockwiseIcon size={13} />
-                      Restore
-                    </Button>
-                  </li>
-                ))}
-              </ul>
-            )}
+          <div className="flex-1 overflow-y-auto px-5 py-3 space-y-5">
+
+            {/* ── Deleted Categories ── */}
+            <div>
+              <p className="flex items-center gap-1.5 text-xs font-semibold text-zinc-500 uppercase tracking-wide mb-2">
+                <TagIcon size={12} /> Categories
+              </p>
+              {loadingDeleted ? (
+                <div className="space-y-2">
+                  {Array.from({ length: 2 }).map((_, i) => (
+                    <div key={i} className="h-14 rounded-md border border-border bg-muted/50 animate-pulse" />
+                  ))}
+                </div>
+              ) : deletedCategories.length === 0 ? (
+                <p className="text-xs text-zinc-400 italic">No deleted categories.</p>
+              ) : (
+                <ul className="flex flex-col gap-1.5">
+                  {deletedCategories.map((cat) => (
+                    <li key={cat.id} className="flex items-center gap-3 p-2.5 rounded-md border border-border bg-card opacity-70">
+                      <div className="size-8 rounded-md flex items-center justify-center bg-muted text-muted-foreground shrink-0">
+                        <TagIcon size={14} weight="bold" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate line-through text-muted-foreground">{cat.name}</p>
+                        <p className="text-[11px] text-muted-foreground">Restoring also restores its menu items</p>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="shrink-0 gap-1.5 text-xs"
+                        disabled={restoreMutation.isPending}
+                        onClick={() => restoreMutation.mutate(cat.id)}
+                      >
+                        <ArrowCounterClockwiseIcon size={13} />
+                        Restore
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            {/* ── Deleted Menu Items ── */}
+            <div>
+              <p className="flex items-center gap-1.5 text-xs font-semibold text-zinc-500 uppercase tracking-wide mb-2">
+                <BowlFoodIcon size={12} /> Menu Items
+              </p>
+              {loadingDeletedItems ? (
+                <div className="space-y-2">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <div key={i} className="h-14 rounded-md border border-border bg-muted/50 animate-pulse" />
+                  ))}
+                </div>
+              ) : deletedMenuItems.length === 0 ? (
+                <p className="text-xs text-zinc-400 italic">No deleted menu items.</p>
+              ) : (
+                <ul className="flex flex-col gap-1.5">
+                  {deletedMenuItems.map((item) => (
+                    <li key={item.id} className="flex items-center gap-3 p-2.5 rounded-md border border-border bg-card opacity-70">
+                      <div className="size-8 rounded-md overflow-hidden bg-muted shrink-0">
+                        {item.imageUrl ? (
+                          <img src={item.imageUrl} alt={item.name} className="size-full object-cover opacity-60" />
+                        ) : (
+                          <div className="size-full flex items-center justify-center text-zinc-300 text-base">🍽️</div>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate line-through text-muted-foreground">{item.name}</p>
+                        <p className="text-[11px] text-muted-foreground">{item.categoryName ?? "No category"}</p>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="shrink-0 gap-1.5 text-xs"
+                        disabled={restoreItemMutation.isPending}
+                        onClick={() => restoreItemMutation.mutate(item.id)}
+                      >
+                        <ArrowCounterClockwiseIcon size={13} />
+                        Restore
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
           </div>
         )}
       </DialogContent>
