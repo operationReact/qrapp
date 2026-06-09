@@ -49,7 +49,7 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty";
-import { ListStarIcon, ShoppingCartIcon, SparkleIcon } from "@phosphor-icons/react";
+import { ShoppingCartIcon, SparkleIcon } from "@phosphor-icons/react";
 import { PromotionDrawer } from "@/components/PromotionDrawer";
 import { useCheckoutPromotions } from "@/hooks/useCheckoutPromotions";
 import { useByocDiscount } from "@/hooks/useByocDiscount";
@@ -619,6 +619,7 @@ function CartPage() {
             </section>
           )}
 
+          {(recLoading || recommended.length > 0) && (
           <section className="rounded-xl bg-card border border-border shadow-xs p-4 mb-12">
             <div className="flex items-center gap-2 mb-3">
               <SparkleIcon weight="fill" className="size-4 text-orange-500" />
@@ -626,27 +627,14 @@ function CartPage() {
             </div>
 
             {recLoading && (
-              <div className="mt-4 text-sm text-gray-500">
-                Loading recommendations...
+              <div className="flex gap-3 overflow-hidden">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="w-32 shrink-0 rounded-xl bg-zinc-100 animate-pulse h-44" />
+                ))}
               </div>
             )}
 
-            {!recLoading && recommended && recommended.length === 0 && (
-              <Empty className="border">
-                <EmptyHeader className="px-2">
-                  <EmptyMedia variant="icon">
-                    <ListStarIcon weight="duotone" />
-                  </EmptyMedia>
-                  <EmptyTitle>Build your perfect meal</EmptyTitle>
-                  <EmptyDescription className="text-pretty">
-                    Add your dishes to the cart and we'll suggest the best
-                    sides, drinks, and extras to go with them.
-                  </EmptyDescription>
-                </EmptyHeader>
-              </Empty>
-            )}
-
-            {!recLoading && recommended && recommended.length > 0 && (
+            {!recLoading && recommended.length > 0 && (
               <Carousel opts={{ dragFree: true }} className="mt-2">
                 <CarouselContent>
                   {recommended.map((it) => (
@@ -661,6 +649,7 @@ function CartPage() {
               </Carousel>
             )}
           </section>
+          )}
 
           {cart.length > 0 ? (
             <div className="fixed z-5 min-h-35 border-t border-border bg-card/95 backdrop-blur-sm inset-x-0 bottom-0">
@@ -699,15 +688,8 @@ function CartPage() {
                     </svg>{" "}
                     Total
                   </div>
-                  <div className="flex items-baseline gap-2">
-                    {discount > 0 && (
-                      <span className="text-sm text-muted-foreground line-through">
-                        ₹{total.toFixed(0)}
-                      </span>
-                    )}
-                    <div className="font-bold text-xl">
-                      ₹{totalAfterDiscount.toFixed(0)}
-                    </div>
+                  <div className="font-bold text-xl">
+                    ₹{totalAfterDiscount.toFixed(0)}
                   </div>
                 </div>
 

@@ -372,14 +372,7 @@ function CartContent({ onClose, isOpen }) {
             </svg>
             Total
           </div>
-          <div className="flex items-baseline gap-2">
-            {discount > 0 && (
-              <span className="text-sm text-muted-foreground line-through">
-                ₹{total.toFixed(0)}
-              </span>
-            )}
-            <div className="font-bold text-xl">₹{totalAfterDiscount.toFixed(0)}</div>
-          </div>
+          <div className="font-bold text-xl">₹{totalAfterDiscount.toFixed(0)}</div>
         </div>
 
         <Button

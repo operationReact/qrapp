@@ -4,7 +4,6 @@ import {
   CheckFatIcon,
   CircleNotchIcon,
   ArrowRightIcon,
-  TagIcon,
   ShoppingBagIcon,
 } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
@@ -20,15 +19,6 @@ const resolveImg = (url) => {
 
 const fmt = (n) => Number(n ?? 0).toFixed(0);
 
-/** Role label shown below each item image. */
-const ROLE_LABELS = {
-  MAIN:    "Main",
-  SIDE:    "Side",
-  DRINK:   "Drink",
-  DESSERT: "Dessert",
-  ADDON:   "Add-on",
-};
-
 const ROLE_COLORS = {
   MAIN:    "bg-orange-100 text-orange-700",
   SIDE:    "bg-green-100  text-green-700",
@@ -37,14 +27,13 @@ const ROLE_COLORS = {
   ADDON:   "bg-zinc-100   text-zinc-600",
 };
 
-// ── Meal item tile ────────────────────────────────────────────────────────────
+// ── Compact meal item tile (56 × 56) ─────────────────────────────────────────
 
 function MealItemTile({ item }) {
   const src = resolveImg(item.imageUrl);
   return (
-    <div className="flex flex-col items-center gap-1.5 w-[72px] shrink-0">
-      {/* Image */}
-      <div className="relative w-[72px] h-[72px] rounded-2xl overflow-hidden border border-zinc-100 shadow-sm bg-zinc-50">
+    <div className="flex flex-col items-center gap-1 w-[60px] shrink-0">
+      <div className="relative w-[60px] h-[60px] rounded-xl overflow-hidden border border-zinc-100 shadow-sm bg-zinc-50">
         {src ? (
           <img
             src={src}
@@ -63,64 +52,33 @@ function MealItemTile({ item }) {
             src ? "hidden" : "",
           )}
         >
-          <ShoppingBagIcon weight="duotone" className="size-7 text-zinc-300" />
+          <ShoppingBagIcon weight="duotone" className="size-5 text-zinc-300" />
         </div>
 
-        {/* Role chip overlaid on image */}
+        {/* Role chip */}
         {item.role && (
           <span
             className={cn(
-              "absolute bottom-1 left-1/2 -translate-x-1/2 text-[8px] font-bold px-1.5 py-0.5 rounded-full whitespace-nowrap",
+              "absolute bottom-0.5 left-1/2 -translate-x-1/2 text-[7px] font-bold px-1 py-0.5 rounded-full whitespace-nowrap",
               ROLE_COLORS[item.role] ?? ROLE_COLORS.ADDON,
             )}
           >
-            {ROLE_LABELS[item.role] ?? item.role}
+            {item.role.charAt(0) + item.role.slice(1).toLowerCase()}
           </span>
         )}
       </div>
-
-      {/* Name */}
-      <span className="text-[10px] font-medium text-zinc-800 text-center leading-tight line-clamp-2 w-full">
+      <span className="text-[9px] font-medium text-zinc-700 text-center leading-tight line-clamp-2 w-full">
         {item.itemName}
       </span>
-
-      {/* Price */}
-      <span className="text-[11px] font-bold text-zinc-500">
+      <span className="text-[10px] font-bold text-zinc-500">
         ₹{fmt(item.price)}
       </span>
     </div>
   );
 }
 
-// ── Plus separator ────────────────────────────────────────────────────────────
-
-function PlusSep() {
-  return (
-    <span className="text-zinc-300 font-bold text-base self-start mt-7 shrink-0 select-none">
-      +
-    </span>
-  );
-}
-
 // ── Main component ────────────────────────────────────────────────────────────
 
-/**
- * CompleteMealCard — "Complete Your Meal" recommendation card.
- *
- * Displays:
- *   1. Title "Complete Your Meal" + personalised subtitle
- *   2. Meal items (Side, Drink, optional Dessert) with role badges
- *   3. Green "Save ₹N" badge
- *   4. "Add Meal" CTA
- *
- * Props:
- *  - mainItemName:  string   — cart item name for personalised copy
- *  - mealItems:     { itemId, itemName, imageUrl, price, role }[]
- *  - savings:       number
- *  - onAddMeal:     () => void
- *  - isLoading:     boolean
- *  - disabled:      boolean  — shows "Added" state
- */
 export default function CompleteMealCard({
   mainItemName,
   mealItems = [],
@@ -128,82 +86,73 @@ export default function CompleteMealCard({
   onAddMeal,
   isLoading = false,
   disabled  = false,
+  confidencePercent = 82,
 }) {
   if (!mealItems.length) return null;
 
   const savingsRupees = Number(savings ?? 0);
+  const regularTotal  = mealItems.reduce((s, i) => s + Number(i.price ?? 0), 0);
+  const comboPrice    = Math.max(0, regularTotal - savingsRupees);
 
-  const subtitle = mainItemName
-    ? `Pairs perfectly with ${mainItemName}`
-    : "These items go great with your order";
+  const socialProof = mainItemName
+    ? `${confidencePercent}% of ${mainItemName} orders include these`
+    : `${confidencePercent}% of customers added this`;
 
   return (
     <article className="w-full rounded-2xl border border-zinc-200 bg-white shadow-md overflow-hidden">
 
-      {/* ── 1. Header ──────────────────────────────────────────────────── */}
-      <div className="flex items-center gap-2 px-4 pt-4 pb-1">
-        <ForkKnifeIcon weight="fill" className="size-4 text-orange-500 shrink-0" />
-        <h3 className="text-sm font-bold text-zinc-900 tracking-tight">
-          Complete Your Meal
-        </h3>
+      {/* ── Header + social proof badge ──────────────────────────────── */}
+      <div className="flex items-center justify-between px-4 pt-3.5 pb-2.5">
+        <div className="flex items-center gap-1.5">
+          <ForkKnifeIcon weight="fill" className="size-3.5 text-orange-500 shrink-0" />
+          <h3 className="text-sm font-bold text-zinc-900 tracking-tight">
+            Complete Your Meal
+          </h3>
+        </div>
+        <span className="text-[10px] font-medium text-zinc-500 bg-zinc-50 border border-zinc-200 px-2 py-0.5 rounded-full shrink-0">
+          👥 {socialProof}
+        </span>
       </div>
 
-      {/* ── 2. Subtitle ────────────────────────────────────────────────── */}
-      <p className="px-4 pb-3 text-[11px] text-zinc-400 leading-snug">
-        {subtitle}
-      </p>
-
-      {/* ── 3. Separator ───────────────────────────────────────────────── */}
       <div className="h-px bg-zinc-100" />
 
-      {/* ── 4. Meal items row ──────────────────────────────────────────── */}
-      <div className="px-4 py-4 flex items-start gap-2.5 overflow-x-auto [scrollbar-width:none]">
+      {/* ── Compact items row ────────────────────────────────────────── */}
+      <div className="px-4 py-3 flex items-start gap-2 overflow-x-auto [scrollbar-width:none]">
         {mealItems.map((item, i) => (
-          <div key={item.itemId ?? i} className="flex items-center gap-2.5 shrink-0">
+          <div key={item.itemId ?? i} className="flex items-center gap-2 shrink-0">
             <MealItemTile item={item} />
-            {i < mealItems.length - 1 && <PlusSep />}
+            {i < mealItems.length - 1 && (
+              <span className="text-zinc-300 font-bold text-sm self-start mt-5 shrink-0">
+                +
+              </span>
+            )}
           </div>
         ))}
       </div>
 
-      {/* ── 5. Savings + CTA ───────────────────────────────────────────── */}
-      <div className="px-4 pb-4 space-y-3">
+      {/* ── Pricing row + CTA ────────────────────────────────────────── */}
+      <div className="px-4 pb-3.5 space-y-2">
 
-        {/* Savings banner — prominent green strip */}
+        {/* Clear pricing: Regular → Combo · Save */}
         {savingsRupees > 0 && (
-          <div className="flex items-center justify-between rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-2">
-            <div className="flex items-center gap-1.5">
-              <TagIcon weight="fill" className="size-3.5 text-emerald-600 shrink-0" />
-              <span className="text-xs text-emerald-700 font-medium">
-                Combo Price
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-zinc-400 line-through">
-                ₹{fmt(
-                  mealItems.reduce((s, i) => s + Number(i.price ?? 0), 0),
-                )}
-              </span>
-              <span className="text-sm font-bold text-emerald-700">
-                You Save ₹{fmt(savingsRupees)}
-              </span>
-            </div>
+          <div className="flex items-center gap-1.5 text-xs flex-wrap">
+            <span className="text-zinc-400 line-through">₹{fmt(regularTotal)}</span>
+            <span className="text-zinc-400">→</span>
+            <span className="font-bold text-zinc-800">Combo ₹{fmt(comboPrice)}</span>
+            <span className="ml-auto bg-emerald-50 border border-emerald-200 text-emerald-700 font-bold px-2 py-0.5 rounded-full text-[10px] shrink-0">
+              Save ₹{fmt(savingsRupees)}
+            </span>
           </div>
         )}
 
-        {/* CTA button */}
+        {/* CTA */}
         <button
           type="button"
           onClick={onAddMeal}
           disabled={isLoading || disabled}
           aria-busy={isLoading}
-          aria-label={
-            isLoading ? "Adding meal items to cart…" :
-            disabled  ? "Meal already added"         :
-                        `Add meal and save ₹${fmt(savingsRupees)}`
-          }
           className={cn(
-            "w-full min-h-[52px] flex items-center justify-center gap-2 rounded-xl px-5",
+            "w-full h-10 flex items-center justify-center gap-2 rounded-xl px-5",
             "text-sm font-bold text-white tracking-wide",
             "bg-orange-500",
             "shadow-md shadow-orange-200/60",
@@ -228,21 +177,21 @@ export default function CompleteMealCard({
             <>
               <span>
                 {savingsRupees > 0
-                  ? `Add Meal & Save ₹${fmt(savingsRupees)}`
-                  : "Add Meal"}
+                  ? `Add Combo · Save ₹${fmt(savingsRupees)}`
+                  : "Add to Cart"}
               </span>
-              <ArrowRightIcon weight="bold" className="size-4 shrink-0" />
+              <ArrowRightIcon weight="bold" className="size-3.5 shrink-0" />
             </>
           )}
         </button>
-
       </div>
     </article>
   );
 }
 
 CompleteMealCard.propTypes = {
-  mainItemName: PropTypes.string,
+  mainItemName:      PropTypes.string,
+  confidencePercent: PropTypes.number,
   mealItems: PropTypes.arrayOf(
     PropTypes.shape({
       itemId:   PropTypes.number.isRequired,
@@ -252,9 +201,8 @@ CompleteMealCard.propTypes = {
       role:     PropTypes.string,
     }),
   ).isRequired,
-  savings:    PropTypes.number.isRequired,
-  onAddMeal:  PropTypes.func.isRequired,
-  isLoading:  PropTypes.bool,
-  disabled:   PropTypes.bool,
+  savings:   PropTypes.number.isRequired,
+  onAddMeal: PropTypes.func.isRequired,
+  isLoading: PropTypes.bool,
+  disabled:  PropTypes.bool,
 };
-
