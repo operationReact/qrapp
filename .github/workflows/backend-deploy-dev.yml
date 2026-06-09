@@ -227,7 +227,48 @@ jobs:
             "${S3_PREFIX}/deploy.sh" --region ap-south-1
           echo "✅ Deploy script uploaded"
 
-      # ── 8. Execute deploy via SSM Run Command (no SSH / no port 22) ──────────
+      # ── 8. Ensure SSM agent is online before deploying ───────────────────────
+      # If the instance rebooted or the SSM agent crashed, all Run Commands will
+      # stay "Delayed" until the agent reconnects.  We check ping status and,
+      # if offline, reboot the instance and wait up to 4 minutes for recovery.
+      - name: Ensure SSM agent is online
+        env:
+          INSTANCE_ID: ${{ steps.ec2.outputs.id }}
+        run: |
+          check_ping() {
+            aws ssm describe-instance-information \
+              --filters "Key=InstanceIds,Values=$INSTANCE_ID" \
+              --query "InstanceInformationList[0].PingStatus" \
+              --output text --region ap-south-1 2>/dev/null || echo "None"
+          }
+
+          PING=$(check_ping)
+          echo "SSM agent ping: $PING"
+
+          if [ "$PING" = "Online" ]; then
+            echo "✅ SSM agent is online – no recovery needed"
+            exit 0
+          fi
+
+          echo "⚠️  SSM agent is '$PING'. Rebooting instance to recover SSM agent..."
+          aws ec2 reboot-instances --instance-ids "$INSTANCE_ID" --region ap-south-1
+          echo "   Reboot requested. Waiting 45s for shutdown..."
+          sleep 45
+
+          echo "⏳ Polling for SSM agent to come back online (up to 5 min)..."
+          for i in $(seq 1 30); do
+            sleep 10
+            PING=$(check_ping)
+            echo "  [$i/30] $PING"
+            if [ "$PING" = "Online" ]; then
+              echo "✅ SSM agent is back online"
+              exit 0
+            fi
+          done
+          echo "❌ SSM agent did not come online after reboot"
+          exit 1
+
+      # ── 9. Execute deploy via SSM Run Command (no SSH / no port 22) ──────────
       # The EC2 already has AmazonSSMManagedInstanceCore + S3 deploy/* access
       # attached via Terraform. SSM pulls and runs deploy.sh from S3 as root.
       - name: Deploy via SSM
@@ -246,7 +287,7 @@ jobs:
             --document-name "AWS-RunShellScript" \
             --comment "deploy-${RUN_ID}" \
             --parameters "commands=[\"${CMD}\"]" \
-            --timeout-seconds 600 \
+            --timeout-seconds 900 \
             --region ap-south-1 \
             --output text \
             --query 'Command.CommandId')
@@ -255,7 +296,7 @@ jobs:
 
           # Poll until terminal status (Success / Failed / TimedOut / Cancelled)
           echo "⏳ Polling SSM command..."
-          for i in $(seq 1 60); do
+          for i in $(seq 1 90); do
             sleep 10
             INVOCATION=$(aws ssm get-command-invocation \
               --command-id "$COMMAND_ID" \
@@ -288,7 +329,7 @@ jobs:
                 ;;
             esac
           done
-          echo "❌ Timed out waiting for SSM command after 10 minutes"
+          echo "❌ Timed out waiting for SSM command after 15 minutes"
           exit 1
 
       # ── 9. Cleanup S3 artifacts ───────────────────────────────────────────────
