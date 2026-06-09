@@ -136,22 +136,23 @@ public class MenuController {
         return saved;
     }
 
-    // New multipart/form-data POST handler so admin can upload an image when creating an item
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasRole('ADMIN')")
     @CacheEvict(cacheNames = {"menu", "menuRecommended"}, allEntries = true)
     public ResponseEntity<?> addMenuItemMultipart(
             @RequestPart("name") String name,
-            @RequestPart(value = "price", required = false) String priceStr,
-            @RequestPart(value = "categoryId", required = false) String categoryIdStr,
-            @RequestPart(value = "description", required = false) String description,
-            @RequestPart(value = "isHidden", required = false) String isHiddenStr,
-            @RequestPart(value = "recommended", required = false) String recommendedStr,
-            @RequestPart(value = "tagId", required = false) String tagIdStr,
-            @RequestPart(value = "isVeg", required = false) String isVegStr,
-            @RequestPart(value = "inventoryMode", required = false) String inventoryModeStr,
-            @RequestPart(value = "estimatedCost", required = false) String estimatedCostStr,
-            @RequestPart(value = "image", required = false) MultipartFile image
+            @RequestPart(value = "price",          required = false) String priceStr,
+            @RequestPart(value = "categoryId",     required = false) String categoryIdStr,
+            @RequestPart(value = "description",    required = false) String description,
+            @RequestPart(value = "available",      required = false) String availableStr,
+            @RequestPart(value = "isHidden",       required = false) String isHiddenStr,
+            @RequestPart(value = "recommended",    required = false) String recommendedStr,
+            @RequestPart(value = "tagId",          required = false) String tagIdStr,
+            @RequestPart(value = "isVeg",          required = false) String isVegStr,
+            @RequestPart(value = "inventoryMode",  required = false) String inventoryModeStr,
+            @RequestPart(value = "estimatedCost",  required = false) String estimatedCostStr,
+            @RequestPart(value = "imageUrl",       required = false) String imageUrlStr,
+            @RequestPart(value = "image",          required = false) MultipartFile image
     ) {
         try {
             MenuItem item = new MenuItem();
@@ -180,6 +181,13 @@ public class MenuController {
             }
 
             item.setDescription(description);
+
+            // available defaults to true; honour the explicit flag when sent
+            if (availableStr != null) {
+                item.setAvailable(Boolean.parseBoolean(availableStr));
+            } else {
+                item.setAvailable(true);
+            }
 
             // Set inventory fields with proper defaults
             item.setIsHidden(isHiddenStr != null && Boolean.parseBoolean(isHiddenStr));
@@ -229,6 +237,9 @@ public class MenuController {
                     log.error("Failed to store uploaded image", ioe);
                     return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to store image");
                 }
+            } else if (imageUrlStr != null && !imageUrlStr.isBlank()) {
+                // URL image provided instead of a file
+                item.setImageUrl(imageUrlStr.trim());
             }
             MenuItem saved = repo.save(item);
             // Persist initial selling price in history table

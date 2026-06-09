@@ -55,38 +55,40 @@ export function CartProvider({ children }) {
     }, []);
 
     const addItem = (item) => {
-        const existing = cart.find(i => i.id === item.id);
-
-        if (existing) {
-            setCart(cart.map(i =>
-                i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i
-            ));
-        } else {
-            setCart([...cart, { ...item, quantity: 1 }]);
-        }
+        setCart(prevCart => {
+            const existing = prevCart.find(i => i.id === item.id);
+            if (existing) {
+                return prevCart.map(i =>
+                    i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i
+                );
+            }
+            return [...prevCart, { ...item, quantity: 1 }];
+        });
 
         // trigger badge pulse
         setAddCount(c => c + 1);
 
-        // show toast text — clear any previous hide timer so each add gets its full duration
+        // show toast text
         if (lastAddedTimerRef.current) clearTimeout(lastAddedTimerRef.current);
         setLastAdded(item.name);
-        lastAddedTimerRef.current = setTimeout(() => setLastAdded(null), 2000); // 2 seconds auto-dismiss
+        lastAddedTimerRef.current = setTimeout(() => setLastAdded(null), 2000);
     };
 
     const decreaseItem = (item) => {
-        const existing = cart.find(i => i.id === item.id);
-        if (!existing) return;
-
-        if (existing.quantity === 1) {
-            setCart(cart.filter(i => i.id !== item.id));
-        } else {
-            setCart(cart.map(i => i.id === item.id ? { ...i, quantity: i.quantity - 1 } : i));
-        }
-    }
+        setCart(prevCart => {
+            const existing = prevCart.find(i => i.id === item.id);
+            if (!existing) return prevCart;
+            if (existing.quantity === 1) {
+                return prevCart.filter(i => i.id !== item.id);
+            }
+            return prevCart.map(i =>
+                i.id === item.id ? { ...i, quantity: i.quantity - 1 } : i
+            );
+        });
+    };
 
     const removeItem = (id) => {
-        setCart(cart.filter(i => i.id !== id));
+        setCart(prevCart => prevCart.filter(i => i.id !== id));
     };
 
     const clearCart = () => {

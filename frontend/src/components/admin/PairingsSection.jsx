@@ -246,6 +246,8 @@ AddPopover.propTypes = {
 
 // ── Role group ────────────────────────────────────────────────────────────────
 
+const MAX_PER_ROLE = 5;
+
 function RoleGroup({ role, pairings, itemId, menuItems, onAdd, onRemove, onReorder, addingRole, removingId }) {
   const [drag, setDrag] = useState({ id: null, overId: null });
   const existingIds = new Set(pairings.map((p) => p.targetItemId));
@@ -283,16 +285,32 @@ function RoleGroup({ role, pairings, itemId, menuItems, onAdd, onRemove, onReord
           <span className={cn("text-xs font-semibold", role.header)}>
             {role.label}
           </span>
-          <span className="text-[10px] text-zinc-400">({pairings.length})</span>
+          <span className={cn(
+            "text-[10px] font-semibold px-1.5 py-0.5 rounded-full",
+            pairings.length >= MAX_PER_ROLE
+              ? "bg-amber-100 text-amber-700"
+              : "text-zinc-400",
+          )}>
+            {pairings.length}/{MAX_PER_ROLE}
+          </span>
         </div>
-        <AddPopover
-          role={role}
-          itemId={itemId}
-          existingIds={existingIds}
-          menuItems={menuItems}
-          onAdd={onAdd}
-          adding={addingRole === role.key}
-        />
+        {pairings.length >= MAX_PER_ROLE ? (
+          <span
+            title={`Max ${MAX_PER_ROLE} pairings per group. Remove one to add another.`}
+            className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-1 rounded-lg border border-dashed border-amber-300 text-amber-600 cursor-not-allowed select-none"
+          >
+            Limit reached
+          </span>
+        ) : (
+          <AddPopover
+            role={role}
+            itemId={itemId}
+            existingIds={existingIds}
+            menuItems={menuItems}
+            onAdd={onAdd}
+            adding={addingRole === role.key}
+          />
+        )}
       </div>
 
       {/* Cards */}
@@ -384,15 +402,39 @@ export default function PairingsSection({ itemId }) {
     if (serverPairings) dispatch({ type: "LOAD", payload: serverPairings });
   }, [serverPairings]);
 
-  // ── Add mutation ──────────────────────────────────────────────────────────
+  // ── Add mutation (optimistic) ─────────────────────────────────────────────
   const addMut = useMutation({
     mutationFn: addItemPairing,
-    onSuccess: (created) => {
-      dispatch({ type: "ADD", payload: created });
+    // Optimistic: insert a temp entry immediately so the user sees it right away
+    onMutate: ({ targetItemId, pairingRole, priority }) => {
+      const tempId   = -(Date.now()); // negative temp ID so it won't clash with real IDs
+      const menuItem = menuItems.find((m) => m.id === targetItemId);
+      const tempPairing = {
+        id:                  tempId,
+        sourceItemId:        itemId,
+        targetItemId,
+        targetItemName:      menuItem?.name       ?? "Adding…",
+        targetItemImageUrl:  menuItem?.imageUrl   ?? null,
+        targetItemPrice:     menuItem?.price      ?? 0,
+        pairingRole,
+        priority,
+        isActive: true,
+      };
+      dispatch({ type: "ADD", payload: tempPairing });
+      return { tempId };
+    },
+    onSuccess: (created, _vars, context) => {
+      // Swap temp entry for the real one from the server
+      dispatch({ type: "REMOVE", payload: context.tempId });
+      dispatch({ type: "ADD",    payload: created });
       toast.success("Pairing added");
       qc.invalidateQueries({ queryKey: ["item-pairings", itemId] });
     },
-    onError: (err) => toast.error(err?.response?.data?.error ?? "Failed to add pairing"),
+    onError: (err, _vars, context) => {
+      // Rollback the optimistic entry
+      dispatch({ type: "REMOVE", payload: context.tempId });
+      toast.error(err?.response?.data?.error ?? "Failed to add pairing");
+    },
     onSettled: () => setAddingRole(null),
   });
 
@@ -450,7 +492,7 @@ export default function PairingsSection({ itemId }) {
         <div>
           <p className="text-sm font-semibold text-foreground">Recommended Pairings</p>
           <p className="text-[11px] text-muted-foreground">
-            Items shown alongside this one. Drag cards to reorder priority.
+            Max 5 per group · Drag to reorder priority · Top items shown to customers first.
           </p>
         </div>
       </div>

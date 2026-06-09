@@ -91,12 +91,16 @@ public class ItemPairingService {
 
     // ── Mutation ──────────────────────────────────────────────────────────────
 
+    /** Maximum number of active pairings allowed per source-item + role combination. */
+    private static final int MAX_PAIRINGS_PER_ROLE = 5;
+
     /**
      * Creates a new item pairing.
      *
      * @throws IllegalArgumentException if source or target item does not exist
      * @throws IllegalArgumentException if pairingRole is invalid
      * @throws IllegalStateException    if the (source, target) pair already exists
+     * @throws IllegalStateException    if the role group already has MAX_PAIRINGS_PER_ROLE active pairings
      */
     @Transactional
     public ItemPairingResponse addPairing(AddPairingRequest req, String createdBy) {
@@ -112,7 +116,17 @@ public class ItemPairingService {
         }
 
         PairingRole role = parsePairingRole(req.getPairingRole());
-        int priority     = req.getPriority() != null ? req.getPriority() : 0;
+
+        // ── Cap: max 5 active pairings per role group ─────────────────────────
+        int currentCount = pairingRepo.countActiveBySourceItemIdAndRole(source.getId(), role);
+        if (currentCount >= MAX_PAIRINGS_PER_ROLE) {
+            throw new IllegalStateException(
+                    "Maximum of " + MAX_PAIRINGS_PER_ROLE + " pairings allowed per group. " +
+                    "Remove an existing " + role.name().toLowerCase() + " pairing before adding a new one.");
+        }
+        // ─────────────────────────────────────────────────────────────────────
+
+        int priority = req.getPriority() != null ? req.getPriority() : 0;
 
         ItemPairing saved = pairingRepo.save(ItemPairing.builder()
                 .sourceItem(source)

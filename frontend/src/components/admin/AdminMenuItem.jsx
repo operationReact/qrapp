@@ -2,8 +2,6 @@ import { useState } from "react";
 import PropTypes from "prop-types";
 import { baseURL } from "../../services";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
-import { Field, FieldLabel } from "../ui/field";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,19 +18,25 @@ import {
   StarIcon,
   TrashIcon,
   WarningCircleIcon,
-  CurrencyInrIcon,
 } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
 import { Badge } from "../ui/badge";
+
+// margin tier helpers
+function getMarginTier(pct) {
+  if (pct == null) return null;
+  const n = Number(pct);
+  if (n >= 50) return { label: "High Margin", dot: "🟢", cls: "bg-emerald-50 text-emerald-700 border border-emerald-200" };
+  if (n >= 25) return { label: "Medium Margin", dot: "🟡", cls: "bg-yellow-50 text-yellow-700 border border-yellow-200" };
+  return { label: "Low Margin", dot: "🔴", cls: "bg-red-50 text-red-700 border border-red-200" };
+}
 
 export default function AdminMenuItem({
   item,
   onEdit,
   onDelete,
-  onToggleRecommended,
 }) {
   const [imgError, setImgError] = useState(false);
-  const [togglingRecommended, setTogglingRecommended] = useState(false);
 
   const computeImageSrc = (url) => {
     if (!url) return null;
@@ -47,12 +51,6 @@ export default function AdminMenuItem({
     item.isVeg === 1 ||
     item.isVeg === "1";
 
-  const handleRecommendedToggle = async () => {
-    setTogglingRecommended(true);
-    await onToggleRecommended(item.id, !item.recommended);
-    setTogglingRecommended(false);
-  };
-
   const hasCost = item.estimatedCost != null && Number(item.estimatedCost) >= 0;
   const isActive = item.available;
   const missingCostOnActive = isActive && !hasCost;
@@ -66,11 +64,12 @@ export default function AdminMenuItem({
         ).toFixed(1)
       : null;
 
+  const marginTier = getMarginTier(marginPct);
+
   return (
     <article
       className={cn(
         "group p-2.5 sm:p-3 bg-card border border-border rounded-lg transition-colors hover:border-primary/20 hover:shadow-sm",
-        missingCostOnActive && "border-amber-300 bg-amber-50/30",
       )}
     >
       <div className="flex gap-2.5 sm:gap-3">
@@ -111,34 +110,28 @@ export default function AdminMenuItem({
 
         {/* MIDDLE */}
         <div className="flex-1 min-w-0 flex flex-col gap-1 sm:gap-1.5">
-          <div className="flex flex-col min-w-0">
-            <h3 className="font-semibold text-sm sm:text-base truncate min-w-0">
-              {item.name}
-            </h3>
-            <div className="flex gap-1 items-center">
-              {item.category?.name && (
-                <span className="shrink-0 text-xs text-secondary-foreground capitalize">
-                  {item.category.name}
-                </span>
-              )}
-              {item.category?.name && item.tag?.name && (
-                <span className="shrink-0 text-xs text-muted-foreground">
-                  •
-                </span>
-              )}
-              {item.tag?.name && (
-                <span className="text-xs text-secondary-foreground">
-                  {item.tag.name}
-                </span>
-              )}
-            </div>
+          <h3 className="font-semibold text-sm sm:text-base truncate min-w-0">
+            {item.name}
+          </h3>
+          <div className="flex gap-1 items-center">
+            {item.category?.name && (
+              <span className="shrink-0 text-xs text-secondary-foreground capitalize">
+                {item.category.name}
+              </span>
+            )}
+            {item.category?.name && item.tag?.name && (
+              <span className="shrink-0 text-xs text-muted-foreground">•</span>
+            )}
+            {item.tag?.name && (
+              <span className="text-xs text-secondary-foreground">
+                {item.tag.name}
+              </span>
+            )}
           </div>
 
-          {item.description && (
-            <p className="hidden sm:block text-xs text-muted-foreground line-clamp-1">
-              {item.description}
-            </p>
-          )}
+          <p className="text-sm sm:text-base font-semibold leading-none">
+            ₹{item.price}
+          </p>
 
           <div className="flex flex-wrap gap-1">
             {item.recommended && (
@@ -147,95 +140,68 @@ export default function AdminMenuItem({
                 Recommended
               </Badge>
             )}
-            {/* Cost status badge */}
             {missingCostOnActive ? (
               <Badge className="bg-amber-100 text-amber-700 border border-amber-300">
                 <WarningCircleIcon weight="fill" className="size-3" />
-                No cost set
+                Cost Missing
               </Badge>
-            ) : hasCost ? (
-              <Badge className="bg-emerald-50 text-emerald-700 border border-emerald-200">
-                <CurrencyInrIcon weight="bold" className="size-3" />
-                Cost ₹{Number(item.estimatedCost).toFixed(0)}
-                {marginPct != null && ` · ${marginPct}%`}
+            ) : marginTier ? (
+              <Badge className={marginTier.cls}>
+                {marginTier.dot} {marginTier.label}
               </Badge>
             ) : null}
+            {!item.imageUrl && (
+              <Badge className="bg-zinc-100 text-zinc-500 border border-zinc-200">
+                No Image
+              </Badge>
+            )}
           </div>
-
-          <p className="text-sm sm:text-base font-semibold leading-none mt-auto">
-            ₹{item.price}
-          </p>
         </div>
       </div>
 
-      {/* Missing cost callout */}
-      {missingCostOnActive && (
-        <div className="mt-2 rounded-lg bg-amber-100 border border-amber-300 px-3 py-2 flex items-center gap-2 text-xs text-amber-800">
-          <WarningCircleIcon weight="fill" className="size-3.5 shrink-0 text-amber-600" />
-          <span>
-            Profitability data unavailable — click{" "}
-            <strong>Edit</strong> to set Estimated Cost.
-          </span>
-        </div>
-      )}
+      <div className="mt-2 pt-2 border-t flex items-center gap-2">
+        <Button
+          variant="outline"
+          onClick={() => onEdit(item)}
+          className="flex-1 h-8 px-3"
+        >
+          <PencilSimpleLineIcon data-icon="inline-start" />
+          Edit
+        </Button>
 
-      <div className="mt-2 pt-2 border-t flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <Field orientation="horizontal" className="py-2 w-full sm:w-fit">
-          <FieldLabel htmlFor="recommended" className="text-sm font-medium">
-            Recommended
-          </FieldLabel>
-          <Switch
-            id="recommended"
-            checked={item.recommended}
-            onCheckedChange={handleRecommendedToggle}
-            disabled={togglingRecommended}
+        <AlertDialog>
+          <AlertDialogTrigger
+            render={
+              <Button
+                variant="ghost"
+                className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                size="icon"
+              >
+                <TrashIcon className="size-4" />
+              </Button>
+            }
           />
-        </Field>
-
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            onClick={() => onEdit(item)}
-            className="flex-1 sm:flex-none h-8 px-3"
-          >
-            <PencilSimpleLineIcon data-icon="inline-start" />
-            Edit
-          </Button>
-
-          <AlertDialog>
-            <AlertDialogTrigger
-              render={
-                <Button
-                  variant="destructive"
-                  className="flex-1 sm:flex-none h-8 px-3"
-                >
-                  <TrashIcon data-icon="inline-start" />
-                  Delete
-                </Button>
-              }
-            />
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  This will permanently delete{" "}
-                  <span className="font-medium">{item.name}</span>
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel className="text-sm! font-medium! rounded-md!">
-                  Cancel
-                </AlertDialogCancel>
-                <AlertDialogAction
-                  className="text-sm! font-medium! rounded-md!"
-                  onClick={() => onDelete(item)}
-                >
-                  Yes, Delete
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        </div>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will permanently delete{" "}
+                <span className="font-medium">{item.name}</span>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel className="text-sm! font-medium! rounded-md!">
+                Cancel
+              </AlertDialogCancel>
+              <AlertDialogAction
+                className="text-sm! font-medium! rounded-md!"
+                onClick={() => onDelete(item)}
+              >
+                Yes, Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </article>
   );
@@ -245,5 +211,4 @@ AdminMenuItem.propTypes = {
   item: PropTypes.object.isRequired,
   onEdit: PropTypes.func.isRequired,
   onDelete: PropTypes.func.isRequired,
-  onToggleRecommended: PropTypes.func.isRequired,
 };

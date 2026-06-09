@@ -23,9 +23,14 @@ import AdminMenuFilters from "@/components/admin/AdminMenuFilters";
 import BulkMenuUploadModal from "@/components/admin/BulkMenuUploadModal";
 import BulkCostEditSheet from "@/components/admin/BulkCostEditSheet";
 import MissingImagesSheet from "@/components/admin/MissingImagesSheet";
-import SummaryMetrics from "@/components/admin/SummaryMetrics";
 import CategoriesScroll from "@/components/admin/CategoriesScroll";
 import CategoriesManageModal from "@/components/admin/CategoriesManageModal";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+} from "@/components/ui/drawer";
 import {
   InputGroup,
   InputGroupAddon,
@@ -40,17 +45,15 @@ import {
 } from "@/components/ui/empty";
 import {
   ArrowCounterClockwiseIcon,
-  BowlFoodIcon,
   FunnelIcon,
-  ImageIcon,
   LegoIcon,
   MagnifyingGlassIcon,
   PlusIcon,
+  SlidersIcon,
   SparkleIcon,
   TrashIcon,
   UploadIcon,
   WarningCircleIcon,
-  CurrencyInrIcon,
 } from "@phosphor-icons/react";
 import { ButtonGroup } from "@/components/ui/button-group";
 
@@ -89,6 +92,7 @@ export const Route = createFileRoute("/admin/(menu)/menu")({
     const [filterSheetOpen, setFilterSheetOpen] = useState(false);
     const [categoriesModalOpen, setCategoriesModalOpen] = useState(false);
     const [trashOpen, setTrashOpen] = useState(false);
+    const [toolsOpen, setToolsOpen] = useState(false);
     const trashRef = useRef(null);
 
     const { data: menu = [], isLoading: loadingMenu } = useQuery(menuOptions());
@@ -159,22 +163,11 @@ export const Route = createFileRoute("/admin/(menu)/menu")({
     );
 
     const totalItems = menu.length;
-    const availableCount = useMemo(
-      () => menu.filter((m) => m.available).length,
-      [menu],
-    );
 
-    // Profitability coverage
-    const activeItemCount = availableCount;
-    const activeWithCost = useMemo(
-      () => menu.filter((m) => m.available && m.estimatedCost != null).length,
+    const missingCostCount = useMemo(
+      () => menu.filter((m) => m.available && m.estimatedCost == null).length,
       [menu],
     );
-    const coveragePct =
-      activeItemCount > 0
-        ? Math.round((activeWithCost / activeItemCount) * 100)
-        : 100;
-    const missingCostCount = activeItemCount - activeWithCost;
 
     const missingImageCount = useMemo(
       () => menu.filter((m) => !m.imageUrl).length,
@@ -324,42 +317,6 @@ export const Route = createFileRoute("/admin/(menu)/menu")({
       );
     }
 
-    const summaryItems = [
-      {
-        label: "Total Items",
-        value: totalItems,
-        icon: BowlFoodIcon,
-        tone: "red",
-      },
-      {
-        label: "Total Categories",
-        value: allCategories?.length || 0,
-        icon: LegoIcon,
-        tone: "rose",
-      },
-      {
-        label: "Cost Coverage",
-        value: `${coveragePct}%`,
-        subtext:
-          missingCostCount > 0
-            ? `${missingCostCount} active item${missingCostCount !== 1 ? "s" : ""} need cost`
-            : "All active items costed",
-        icon: CurrencyInrIcon,
-        tone:
-          coveragePct === 100
-            ? "emerald"
-            : missingCostCount > 0
-              ? "amber"
-              : "emerald",
-      },
-      {
-        label: "Missing Images",
-        value: missingImageCount,
-        subtext: missingImageCount > 0 ? "Items without a photo" : "All items have images",
-        icon: ImageIcon,
-        tone: missingImageCount > 0 ? "amber" : "emerald",
-      },
-    ];
 
     const handleOpenTrash = () => {
       setTrashOpen(true);
@@ -375,34 +332,52 @@ export const Route = createFileRoute("/admin/(menu)/menu")({
 
     return (
       <>
-        {/* ── Page Header ─────────────────────────────────────────── */}
-        <div className="px-4 pt-6 pb-4 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-foreground md:text-[28px] leading-tight">
-              Menu
-            </h1>
-            <p className="mt-1.5 text-sm text-muted-foreground">
-              Manage items, availability &amp; pricing
-            </p>
-          </div>
+        {/* ── Header ─────────────────────────────────────────────── */}
+        <div className="px-4 pt-5 pb-3 flex items-center gap-2.5">
+          <h1 className="text-xl font-bold tracking-tight flex-1">Menu</h1>
           <Button
             onClick={() => navigate({ to: "/admin/manage-menu" })}
-            size="lg"
-            className="h-12 px-5 gap-2 shrink-0"
+            size="sm"
+            className="gap-1.5 shrink-0"
             variant="branded-secondary"
           >
-            <PlusIcon weight="bold" className="size-4" />
-            <span>Create New Item</span>
+            <PlusIcon weight="bold" className="size-3.5" />
+            Add Item
+          </Button>
+          <Button
+            variant="outline"
+            size="icon-sm"
+            onClick={() => setToolsOpen(true)}
+            aria-label="Menu Tools"
+          >
+            <SlidersIcon />
           </Button>
         </div>
 
-        <div className="px-4 pb-2">
-          <SummaryMetrics items={summaryItems} loading={loadingMenu} />
+        {/* ── Compact stats pills ─────────────────────────────────── */}
+        <div className="px-4 pb-3 flex items-center gap-2 flex-wrap">
+          <span className="inline-flex items-center rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
+            Items {totalItems}
+          </span>
+          <span className="inline-flex items-center rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
+            Categories {allCategories.length}
+          </span>
+          {deletedItems.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setToolsOpen(true)}
+              className="inline-flex items-center gap-1.5 rounded-full bg-zinc-100 px-3 py-1 text-xs font-medium text-zinc-600 hover:bg-zinc-200 transition-colors"
+            >
+              <TrashIcon className="size-3" />
+              Trash {deletedItems.length}
+            </button>
+          )}
         </div>
 
-        <div className="mt-4 flex flex-wrap items-center gap-2 px-4">
-          <ButtonGroup className="w-full order-2 sm:order-0 sm:max-w-sm">
-            <InputGroup className="h-10 flex-1 sm:max-w-lg">
+        {/* ── Search ──────────────────────────────────────────────── */}
+        <div className="px-4 pb-3">
+          <ButtonGroup className="w-full">
+            <InputGroup className="h-10 flex-1">
               <InputGroupInput
                 placeholder="Search menu..."
                 value={searchInput}
@@ -427,98 +402,46 @@ export const Route = createFileRoute("/admin/(menu)/menu")({
               )}
             </Button>
           </ButtonGroup>
-
-          <div className={"flex flex-wrap ml-auto gap-2 order-0 sm:order-1"}>
-            <Button
-              type="button"
-              variant="link"
-              onClick={() => setCategoriesModalOpen(true)}
-            >
-              <LegoIcon /> Manage Categories
-            </Button>
-            {deletedItems.length > 0 && (
-              <Button
-                type="button"
-                variant="outline"
-                className="gap-1.5 text-zinc-500 border-zinc-200"
-                onClick={handleOpenTrash}
-              >
-                <TrashIcon className="size-4" />
-                Trash
-                <span className="bg-zinc-200 text-zinc-600 text-xs font-semibold rounded-full px-1.5 py-0.5 leading-none">
-                  {deletedItems.length}
-                </span>
-              </Button>
-            )}
-            {missingCostCount > 0 && (
-              <Button
-                variant="outline"
-                className="border-amber-300 text-amber-700 hover:bg-amber-50 gap-1.5"
-                onClick={() => setBulkCostOpen(true)}
-              >
-                <WarningCircleIcon weight="fill" className="size-4" />
-                Set Costs ({missingCostCount})
-              </Button>
-            )}
-            {missingImageCount > 0 && (
-              <Button
-                variant="outline"
-                className="border-amber-300 text-amber-700 hover:bg-amber-50 gap-1.5"
-                onClick={() => setMissingImagesOpen(true)}
-              >
-                <ImageIcon weight="fill" className="size-4" />
-                Fix Images ({missingImageCount})
-              </Button>
-            )}
-            <Button onClick={() => setBulkUploadOpen(true)} variant="outline">
-              <UploadIcon data-icon="inline-start" />
-              <span className="sm:hidden">Bulk Upload</span>
-              <span className="hidden sm:inline">Bulk Upload</span>
-            </Button>
-          </div>
         </div>
 
+        {/* ── Attention Required card ──────────────────────────────── */}
+        {(missingCostCount > 0 || missingImageCount > 0) && (
+          <div className="mx-4 mb-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+            <div className="flex items-start gap-3">
+              <WarningCircleIcon weight="fill" className="size-5 text-amber-500 shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-amber-800">Attention Required</p>
+                <div className="mt-1 space-y-0.5">
+                  {missingCostCount > 0 && (
+                    <p className="text-xs text-amber-700">{missingCostCount} items missing cost</p>
+                  )}
+                  {missingImageCount > 0 && (
+                    <p className="text-xs text-amber-700">{missingImageCount} items without image</p>
+                  )}
+                </div>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                className="border-amber-300 text-amber-700 hover:bg-amber-100 shrink-0"
+                onClick={() =>
+                  missingCostCount > 0 ? setBulkCostOpen(true) : setMissingImagesOpen(true)
+                }
+              >
+                Fix Now
+              </Button>
+            </div>
+          </div>
+        )}
+
         {/* CONTENT */}
-        <div className="px-4 py-4 flex flex-col gap-2">
+        <div className="px-4 py-2 flex flex-col gap-2">
           <CategoriesScroll
             categories={allCategories}
             counts={categoryCounts}
             value={activeCategoryId}
             onChange={setActiveCategoryId}
-            onManageClick={() => setCategoriesModalOpen(true)}
           />
-
-          {/* Profitability / Missing-cost quick filter pills */}
-          {(missingCostCount > 0 || missingImageCount > 0) && (
-            <div className="flex gap-2 flex-wrap">
-              {missingCostCount > 0 && (
-                <button
-                  onClick={() => setQuickFilter(quickFilter === "MISSING_COST" ? "ALL" : "MISSING_COST")}
-                  className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold border transition-colors ${
-                    quickFilter === "MISSING_COST"
-                      ? "bg-amber-500 text-white border-amber-500"
-                      : "bg-amber-50 text-amber-700 border-amber-300 hover:bg-amber-100"
-                  }`}
-                >
-                  <WarningCircleIcon weight="fill" className="size-3.5" />
-                  Missing Cost · {missingCostCount}
-                </button>
-              )}
-              {missingImageCount > 0 && (
-                <button
-                  onClick={() => setQuickFilter(quickFilter === "MISSING_IMAGE" ? "ALL" : "MISSING_IMAGE")}
-                  className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold border transition-colors ${
-                    quickFilter === "MISSING_IMAGE"
-                      ? "bg-amber-500 text-white border-amber-500"
-                      : "bg-amber-50 text-amber-700 border-amber-300 hover:bg-amber-100"
-                  }`}
-                >
-                  <ImageIcon weight="fill" className="size-3.5" />
-                  Missing Image · {missingImageCount}
-                </button>
-              )}
-            </div>
-          )}
 
           <div className="grid md:grid-cols-2 gap-4">
             {loadingMenu &&
@@ -536,8 +459,6 @@ export const Route = createFileRoute("/admin/(menu)/menu")({
                   item={item}
                   onEdit={() => setEditingItem(item)}
                   onDelete={handleDeleteConfirm}
-                  onToggleAvailable={handleToggleAvailable}
-                  onToggleRecommended={handleToggleRecommended}
                 />
               ))}
 
@@ -582,22 +503,6 @@ export const Route = createFileRoute("/admin/(menu)/menu")({
                   Clear Filters
                 </Button>
               </Empty>
-            )}
-
-            {!loadingMenu && menu.length > 0 && filteredItems.length === 0 && (
-              <div className="py-20 text-center rounded-lg border border-dashed border-border bg-card">
-                <h3 className="text-lg font-semibold">No Matching Items!</h3>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Try adjusting your search or filters.
-                </p>
-                <Button
-                  onClick={handleClearAll}
-                  variant="outline"
-                  className="mt-4 border-primary text-primary hover:bg-primary/5"
-                >
-                  Clear Filters
-                </Button>
-              </div>
             )}
           </div>
         </div>
@@ -696,6 +601,46 @@ export const Route = createFileRoute("/admin/(menu)/menu")({
             )}
           </div>
         </div>
+
+        {/* ── Tools Drawer ─────────────────────────────────────── */}
+        <Drawer open={toolsOpen} onOpenChange={setToolsOpen}>
+          <DrawerContent>
+            <DrawerHeader>
+              <DrawerTitle>Menu Tools</DrawerTitle>
+            </DrawerHeader>
+            <div className="grid gap-1 px-4 pb-8">
+              <button
+                type="button"
+                onClick={() => { setToolsOpen(false); setCategoriesModalOpen(true); }}
+                className="flex items-center gap-3 px-3 py-3.5 rounded-lg hover:bg-muted transition-colors text-left"
+              >
+                <LegoIcon className="size-5 text-muted-foreground shrink-0" />
+                <span className="text-sm font-medium">Manage Categories</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => { setToolsOpen(false); setBulkUploadOpen(true); }}
+                className="flex items-center gap-3 px-3 py-3.5 rounded-lg hover:bg-muted transition-colors text-left"
+              >
+                <UploadIcon className="size-5 text-muted-foreground shrink-0" />
+                <span className="text-sm font-medium">Bulk Upload</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => { setToolsOpen(false); handleOpenTrash(); }}
+                className="flex items-center gap-3 px-3 py-3.5 rounded-lg hover:bg-muted transition-colors text-left"
+              >
+                <TrashIcon className="size-5 text-muted-foreground shrink-0" />
+                <span className="text-sm font-medium">Trash</span>
+                {deletedItems.length > 0 && (
+                  <span className="ml-auto bg-zinc-200 text-zinc-600 text-xs font-semibold rounded-full px-2 py-0.5 leading-none">
+                    {deletedItems.length}
+                  </span>
+                )}
+              </button>
+            </div>
+          </DrawerContent>
+        </Drawer>
 
         <AdminMenuFilters
           open={filterSheetOpen}

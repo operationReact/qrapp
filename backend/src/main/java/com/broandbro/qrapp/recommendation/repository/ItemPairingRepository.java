@@ -82,6 +82,19 @@ public interface ItemPairingRepository extends JpaRepository<ItemPairing, Long> 
     /** Soft-delete helper: does an active pairing for a specific pair exist? */
     boolean existsBySourceItemIdAndTargetItemIdAndIsActiveTrue(Long sourceItemId, Long targetItemId);
 
+    /**
+     * Count of active pairings for a source item within a specific role group.
+     * Used to enforce the maximum-pairings-per-group cap.
+     */
+    @Query("""
+           SELECT COUNT(ip) FROM ItemPairing ip
+           WHERE ip.sourceItem.id = :itemId
+             AND ip.pairingRole   = :role
+             AND ip.isActive      = TRUE
+           """)
+    int countActiveBySourceItemIdAndRole(@Param("itemId") Long itemId,
+                                         @Param("role")   PairingRole role);
+
     @Modifying
     @Query("DELETE FROM ItemPairing ip WHERE ip.sourceItem.id = :itemId")
     void deleteAllBySourceItemId(@Param("itemId") Long itemId);

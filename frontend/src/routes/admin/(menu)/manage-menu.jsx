@@ -1,4 +1,4 @@
-import { createFileRoute, Navigate, useLocation } from "@tanstack/react-router";
+import { createFileRoute, Navigate, useLocation, useNavigate } from "@tanstack/react-router";
 import { useState, useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/context/AuthContext";
@@ -51,6 +51,7 @@ const EMPTY_FORM = {
 
 function AdminCreateMenuPage() {
   const location = useLocation();
+  const navigate  = useNavigate();
   const { isAdmin, isSuperUser } = useAuth();
 
   const [form, setForm] = useState(EMPTY_FORM);
@@ -70,6 +71,8 @@ function AdminCreateMenuPage() {
   const [aiError, setAiError] = useState(null);
   const [additionalPrompt, setAdditionalPrompt] = useState("");
   const [classifyItemId, setClassifyItemId] = useState(null);
+  // false = prompt shown, true = user chose to set up classification now
+  const [showClassification, setShowClassification] = useState(false);
 
   // ── Tags ──────────────────────────────────────────────────────────────────
   const { data: allTags = [] } = useQuery({
@@ -133,51 +136,51 @@ function AdminCreateMenuPage() {
     setSelectedAiImage(null);
     setAiError(null);
     setAdditionalPrompt("");
-    setClassifyItemId(null);
+    // NOTE: classifyItemId is intentionally NOT reset here —
+    // it is managed independently to avoid clearing the classification step.
   };
 
   // ── Validation ────────────────────────────────────────────────────────────
   const validate = () => {
     if (!form.name.trim()) return "Name is required.";
     if (!form.price || Number.isNaN(Number(form.price))) return "Valid price is required.";
-    // Profitability gate
-    const costMissing = form.estimatedCost === "" || isNaN(Number(form.estimatedCost));
-    if (form.available && costMissing) return "MISSING_COST";
+    if (Number(form.price) <= 0) return "Price must be greater than 0.";
     return null;
   };
 
   // ── Build submission payload ───────────────────────────────────────────────
+  // Always use FormData so the multipart endpoint is used — it reliably maps
+  // categoryId / tagId via explicit @RequestPart params.
+  // The JSON endpoint deserialises into a bare MenuItem entity and silently
+  // drops flat categoryId / tagId numbers.
   const buildPayload = (includeImage = true) => {
-    const costNum = form.estimatedCost !== "" && !isNaN(Number(form.estimatedCost))
-      ? Number(form.estimatedCost)
-      : null;
+    const costNum =
+      form.estimatedCost !== "" && !isNaN(Number(form.estimatedCost))
+        ? Number(form.estimatedCost)
+        : null;
 
-    if (includeImage && imageFile) {
-      const fd = new FormData();
-      fd.append("name", form.name.trim());
-      fd.append("price", String(Number(form.price)));
-      if (form.categoryId != null) fd.append("categoryId", String(form.categoryId));
-      fd.append("description", form.description.trim());
-      fd.append("available", String(form.available));
-      fd.append("recommended", String(form.recommended));
-      if (form.tagId != null) fd.append("tagId", String(form.tagId));
-      fd.append("isVeg", String(Boolean(form.isVeg)));
-      if (costNum != null) fd.append("estimatedCost", String(costNum));
-      fd.append("image", imageFile);
-      return fd;
+    const fd = new FormData();
+    fd.append("name",        form.name.trim());
+    fd.append("price",       String(Number(form.price)));
+    fd.append("available",   String(form.available));
+    fd.append("recommended", String(form.recommended));
+    fd.append("isVeg",       String(Boolean(form.isVeg)));
+
+    if (form.categoryId != null) fd.append("categoryId", String(form.categoryId));
+    if (form.tagId      != null) fd.append("tagId",      String(form.tagId));
+    if (form.description.trim()) fd.append("description", form.description.trim());
+    if (costNum         != null) fd.append("estimatedCost", String(costNum));
+
+    if (includeImage) {
+      if (imageFile) {
+        fd.append("image", imageFile);
+      } else if (form.imageUrl.trim()) {
+        // URL image — send as a text part; backend stores it on imageUrl field
+        fd.append("imageUrl", form.imageUrl.trim());
+      }
     }
-    return {
-      name: form.name.trim(),
-      price: Number(form.price),
-      categoryId: form.categoryId,
-      description: form.description.trim(),
-      imageUrl: includeImage ? form.imageUrl.trim() : "",
-      available: form.available,
-      recommended: form.recommended,
-      tagId: form.tagId,
-      isVeg: Boolean(form.isVeg),
-      estimatedCost: costNum,
-    };
+
+    return fd;
   };
 
   // ── Create mutation (normal flow) ─────────────────────────────────────────
@@ -185,8 +188,9 @@ function AdminCreateMenuPage() {
     mutationFn: (payload) => createMenuItem(payload),
     onSuccess: (data) => {
       const newId = data?.id;
+      if (newId) setClassifyItemId(newId); // set BEFORE resetForm so the page never flashes empty
+      setShowClassification(false);        // always start with the prompt, not expanded
       resetForm();
-      if (newId) setClassifyItemId(newId);
       queryClient.invalidateQueries({ queryKey: ["menu"] });
     },
     onError: (err) => {
@@ -261,8 +265,9 @@ function AdminCreateMenuPage() {
         await applyGeneratedImage(createdItemId, selectedAiImage, aiImageOptions);
       }
       const finishedId = createdItemId;
+      if (finishedId) setClassifyItemId(finishedId); // set BEFORE resetForm
+      setShowClassification(false);
       resetForm();
-      setClassifyItemId(finishedId);
       queryClient.invalidateQueries({ queryKey: ["menu"] });
     } catch {
       setAiError("Failed to apply selected image (non-critical). Item was still saved.");
@@ -280,26 +285,114 @@ function AdminCreateMenuPage() {
     return <Navigate to="/login" replace state={{ from: location.pathname }} />;
   }
 
-  // ── Post-creation: Meal Classification step ───────────────────────────────
+  // ── Post-creation: Classification & Pairings (optional) ─────────────────
   if (classifyItemId) {
     return (
       <>
         <AdminHeader
-          title="Meal Classification"
-          description="Assign combo role, meal types, and cuisine types. Used by the recommendation engine."
+          title="Item Created!"
+          description="Your menu item is live. You can optionally set up classification and pairings below."
           className="mb-4"
         />
-        <div className="px-4 pb-6 max-w-lg space-y-4">
-          <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 flex items-center gap-2 text-sm text-green-700">
-            <Check className="size-4 shrink-0" />
-            Item created successfully! Classify it below, or skip.
+
+        <div className="px-4 pb-8 max-w-lg space-y-4">
+
+          {/* ── Success banner ─────────────────────────────────────────── */}
+          <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 flex items-center gap-3">
+            <div className="size-8 rounded-full bg-green-100 flex items-center justify-center shrink-0">
+              <Check className="size-4 text-green-600" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-green-800">Menu item created successfully!</p>
+              <p className="text-xs text-green-600 mt-0.5">It is now visible to customers on the menu.</p>
+            </div>
           </div>
-          <ClassificationSection itemId={classifyItemId} />
-          <div className="flex justify-end pt-1">
-            <Button type="button" onClick={() => setClassifyItemId(null)}>
-              Done →
-            </Button>
-          </div>
+
+          {/* ── Optional classification prompt ─────────────────────────── */}
+          {!showClassification ? (
+            <div className="rounded-xl border border-border bg-card p-5 space-y-4">
+              <div className="space-y-1">
+                <p className="text-sm font-semibold text-foreground">
+                  🧩 Want to set up Classification &amp; Pairings?
+                </p>
+                <p className="text-[13px] text-muted-foreground leading-relaxed">
+                  These are <span className="font-medium text-foreground">completely optional</span> and
+                  help the recommendation engine suggest better combos and meal completions for customers.
+                </p>
+              </div>
+
+              <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 flex items-start gap-2">
+                <span className="text-amber-500 mt-px shrink-0">💡</span>
+                <p className="text-xs text-amber-800">
+                  You can always add or edit Classification and Pairings later from the{" "}
+                  <strong>Menu Management</strong> page by clicking on any item.
+                </p>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-2.5 pt-1">
+                <Button
+                  type="button"
+                  onClick={() => setShowClassification(true)}
+                  className="flex-1"
+                >
+                  Set Up Now
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => navigate({ to: "/admin/menu" })}
+                  className="flex-1"
+                >
+                  Skip — Add Later
+                </Button>
+              </div>
+
+              <p className="text-center text-xs text-muted-foreground">
+                or{" "}
+                <button
+                  type="button"
+                  onClick={() => { setClassifyItemId(null); resetForm(); }}
+                  className="underline underline-offset-2 hover:text-foreground transition-colors"
+                >
+                  create another item
+                </button>
+              </p>
+            </div>
+          ) : (
+            // User chose to set up classification now
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-muted-foreground">
+                  💡 All fields are optional — save what you need and skip the rest.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => navigate({ to: "/admin/menu" })}
+                  className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2 transition-colors whitespace-nowrap ml-3"
+                >
+                  Skip &amp; finish →
+                </button>
+              </div>
+
+              <ClassificationSection itemId={classifyItemId} />
+
+              <div className="flex items-center justify-between pt-1 gap-3 border-t pt-4">
+                <button
+                  type="button"
+                  onClick={() => { setClassifyItemId(null); resetForm(); }}
+                  className="text-sm text-muted-foreground underline-offset-2 hover:underline"
+                >
+                  + Create Another Item
+                </button>
+                <Button
+                  type="button"
+                  onClick={() => navigate({ to: "/admin/menu" })}
+                >
+                  Done — View All Items →
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       </>
     );
@@ -624,17 +717,9 @@ function AdminCreateMenuPage() {
             </div>
           )}
 
-          {error === "MISSING_COST" ? (
-            <div className="rounded-lg my-3 border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800 flex items-start gap-2">
-              <span className="shrink-0 mt-0.5">⚠</span>
-              <span>
-                <strong>Estimated cost is required to create an Active item.</strong>{" "}
-                Enter an Estimated Cost above, or turn off the <em>Available</em> switch to save as a draft.
-              </span>
-            </div>
-          ) : error ? (
+          {error && (
             <div className="rounded-lg my-3 border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
-          ) : null}
+          )}
           {success && (
             <div className="rounded-xl my-3 border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">{success}</div>
           )}

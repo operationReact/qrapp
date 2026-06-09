@@ -1,8 +1,5 @@
-import { Link } from "@tanstack/react-router";
-import { cn } from "@/lib/utils";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
-import { ScrollArea, ScrollBar } from "../ui/scroll-area";
 import { Carousel, CarouselContent, CarouselItem } from "../ui/carousel";
 
 export default function CategoriesScroll({
@@ -33,13 +30,9 @@ export default function CategoriesScroll({
                 variant={isActive ? "branded-secondary" : "secondary"}
               >
                 <span>{item.label}</span>
-                {typeof item.count === "number" && (
+                {isActive && typeof item.count === "number" && (
                   <Badge
-                    className={cn(
-                      isActive
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-secondary-foreground/5 text-muted-foreground",
-                    )}
+                    className="bg-primary text-primary-foreground"
                   >
                     {item.count}
                   </Badge>

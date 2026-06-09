@@ -166,56 +166,97 @@ function SmartUpsellSection({ cart, addItem, isOpen }) {
     );
   }
 
+  // Priority 3: individual add-ons — stays visible, multiple items addable
   if (suggestions.length === 0) return null;
 
   return (
-    <div className="px-4 py-3 border-t">
-      <div className="flex items-center gap-1.5 mb-2.5">
+    <div className="border-t">
+      {/* Section header */}
+      <div className="px-4 pt-3 pb-1 flex items-center gap-1.5">
         <SparkleIcon weight="fill" className="size-3.5 text-orange-500" />
-        <p className="text-xs font-semibold text-zinc-700 uppercase tracking-wide">
-          Recommended For You
+        <p className="text-xs font-bold text-zinc-700 uppercase tracking-wide">
+          Add to Your Order
         </p>
       </div>
-      <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:thin]">
-        {suggestions.map((s) => (
-          <div
-            key={s.itemId}
-            className="flex-shrink-0 w-32 border rounded-xl overflow-hidden bg-background shadow-sm hover:shadow-md transition-shadow"
-          >
-            {s.imageUrl && (
-              <img
-                src={s.imageUrl}
-                alt={s.itemName}
-                className="w-full h-16 object-cover"
-              />
-            )}
-            <div className="p-2">
-              <p className="text-xs font-medium leading-tight line-clamp-2 mb-1.5">
-                {s.itemName}
-              </p>
-              <div className="flex items-center justify-between gap-1">
-                <span className="text-xs font-semibold">
-                  {s.discountLabel ? (
-                    <span className="text-emerald-600">{s.discountLabel}</span>
-                  ) : (
-                    `₹${s.price}`
+
+      {/* Add-on rows */}
+      <div className="divide-y divide-zinc-100">
+        {suggestions.map((s) => {
+          const inCart   = cart.find((i) => i.id === s.itemId);
+          const imgSrc   = s.imageUrl
+            ? (s.imageUrl.startsWith("http") ? s.imageUrl : `${baseURL}${s.imageUrl}`)
+            : null;
+
+          return (
+            <div
+              key={s.itemId}
+              className="flex items-center gap-3 px-4 py-2.5 hover:bg-zinc-50/60 transition-colors"
+            >
+              {/* Thumbnail */}
+              <div className="w-14 h-14 rounded-xl overflow-hidden bg-zinc-100 border border-zinc-100 shrink-0">
+                {imgSrc ? (
+                  <img
+                    src={imgSrc}
+                    alt={s.itemName}
+                    className="w-full h-full object-cover"
+                    onError={(e) => { e.currentTarget.style.display = "none"; e.currentTarget.nextElementSibling?.classList.remove("hidden"); }}
+                  />
+                ) : null}
+                <div className={cn(
+                  "w-full h-full flex items-center justify-center bg-orange-50",
+                  imgSrc ? "hidden" : "",
+                )}>
+                  <ShoppingBagIcon weight="duotone" className="size-6 text-orange-300" />
+                </div>
+              </div>
+
+              {/* Name + price */}
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-zinc-800 truncate">{s.itemName}</p>
+                <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                  <span className="text-sm font-bold text-zinc-900">₹{s.price}</span>
+                  {s.discountLabel && (
+                    <span className="text-[9px] bg-emerald-50 border border-emerald-200 text-emerald-700 font-bold px-1.5 py-0.5 rounded-full whitespace-nowrap">
+                      {s.discountLabel}
+                    </span>
                   )}
-                </span>
+                </div>
+              </div>
+
+              {/* Cart control */}
+              {inCart ? (
+                <div className="flex items-center shrink-0 border border-primary rounded-lg overflow-hidden">
+                  <button
+                    onClick={() => decreaseItem({ id: s.itemId })}
+                    className="px-2.5 py-1.5 text-primary hover:bg-primary/10 transition-colors font-bold text-base leading-none"
+                    aria-label="Decrease quantity"
+                  >
+                    −
+                  </button>
+                  <span className="px-2 text-sm font-bold text-zinc-800 min-w-[24px] text-center">
+                    {inCart.quantity}
+                  </span>
+                  <button
+                    onClick={() => addItem({ id: s.itemId, name: s.itemName, imageUrl: s.imageUrl, price: s.price })}
+                    className="px-2.5 py-1.5 text-primary hover:bg-primary/10 transition-colors font-bold text-base leading-none"
+                    aria-label="Increase quantity"
+                  >
+                    +
+                  </button>
+                </div>
+              ) : (
                 <button
-                  onClick={() => {
-                    addItem({ id: s.itemId, name: s.itemName, imageUrl: s.imageUrl, price: s.price });
-                    setUpsellDone(true); // one-tap add also ends the session
-                  }}
-                  className="flex items-center gap-0.5 bg-primary text-primary-foreground text-[10px] font-bold px-1.5 py-1 rounded-lg"
+                  onClick={() => addItem({ id: s.itemId, name: s.itemName, imageUrl: s.imageUrl, price: s.price })}
+                  className="shrink-0 flex items-center gap-1 bg-primary text-primary-foreground text-xs font-bold px-3 py-1.5 rounded-lg hover:bg-primary/90 active:scale-95 transition-all"
                   aria-label={`Add ${s.itemName}`}
                 >
-                  <PlusCircleIcon className="size-3.5" weight="fill" />
+                  <PlusCircleIcon weight="fill" className="size-3.5" />
                   Add
                 </button>
-              </div>
+              )}
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
@@ -267,7 +308,7 @@ function CartContent({ onClose, isOpen }) {
 
         {/* Smart upsell — ONE section, session-gated */}
         {cart.length > 0 && (
-          <SmartUpsellSection cart={cart} addItem={addItem} isOpen={isOpen} />
+          <SmartUpsellSection cart={cart} addItem={addItem} decreaseItem={decreaseItem} isOpen={isOpen} />
         )}
 
 

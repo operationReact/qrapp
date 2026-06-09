@@ -54,6 +54,7 @@ const CUISINE_COLOURS = {
   Bakery:      "bg-amber-50   text-amber-700   border-amber-200",
   Beverage:    "bg-blue-50    text-blue-700    border-blue-200",
   Desserts:    "bg-purple-50  text-purple-700  border-purple-200",
+  Healthy:     "bg-lime-50    text-lime-700    border-lime-200",
 };
 
 // ─── Chip component ───────────────────────────────────────────────────────────
