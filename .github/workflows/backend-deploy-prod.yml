@@ -101,6 +101,8 @@ jobs:
       # Replacing the old SCP approach (GitHub runner US → Mumbai EC2 = ~30 min).
       # The runner uploads to S3 in ap-south-1; the EC2 pulls it from S3 in the
       # same region over the AWS backbone – typically <30 seconds total.
+      # A pre-signed URL is generated so the EC2 can download without needing
+      # its own s3:GetObject IAM permission on the deploy/ prefix.
       - name: Upload JAR to S3
         run: |
           echo "📦 Uploading JAR to S3 (ap-south-1)..."
@@ -109,6 +111,13 @@ jobs:
             s3://broandbro-menu-images/deploy/prod/${{ github.run_id }}/app.jar \
             --region ap-south-1
           echo "✅ S3 upload complete"
+
+          # Pre-signed URL valid for 10 minutes – plenty of time for the SSH deploy step
+          PRESIGNED=$(aws s3 presign \
+            s3://broandbro-menu-images/deploy/prod/${{ github.run_id }}/app.jar \
+            --expires-in 600 \
+            --region ap-south-1)
+          echo "JAR_URL=$PRESIGNED" >> "$GITHUB_ENV"
 
       # ── 8. Write application.env + restart service ───────────────────────────
       # All secrets are injected here — nothing sensitive is ever stored in files
@@ -122,11 +131,9 @@ jobs:
 
             set -euo pipefail
 
-            # Pull the JAR from S3 (same region → AWS backbone, ~5–15 seconds)
+            # Pull the JAR via pre-signed URL – no IAM credentials needed on EC2
             echo "⬇️ Downloading JAR from S3..."
-            aws s3 cp \
-              s3://broandbro-menu-images/deploy/prod/${{ github.run_id }}/app.jar \
-              /tmp/app-new.jar
+            curl -fsSL -o /tmp/app-new.jar "${{ env.JAR_URL }}"
 
             # Backup existing JAR
             [ -f /opt/broandbro/app.jar ] && \
