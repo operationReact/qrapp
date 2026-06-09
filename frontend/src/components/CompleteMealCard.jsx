@@ -86,7 +86,6 @@ export default function CompleteMealCard({
   onAddMeal,
   isLoading = false,
   disabled  = false,
-  confidencePercent = 82,
 }) {
   if (!mealItems.length) return null;
 
@@ -94,14 +93,10 @@ export default function CompleteMealCard({
   const regularTotal  = mealItems.reduce((s, i) => s + Number(i.price ?? 0), 0);
   const comboPrice    = Math.max(0, regularTotal - savingsRupees);
 
-  const socialProof = mainItemName
-    ? `${confidencePercent}% of ${mainItemName} orders include these`
-    : `${confidencePercent}% of customers added this`;
-
   return (
     <article className="w-full rounded-2xl border border-zinc-200 bg-white shadow-md overflow-hidden">
 
-      {/* ── Header + social proof badge ──────────────────────────────── */}
+      {/* ── Header + static pairing badge ────────────────────────────── */}
       <div className="flex items-center justify-between px-4 pt-3.5 pb-2.5">
         <div className="flex items-center gap-1.5">
           <ForkKnifeIcon weight="fill" className="size-3.5 text-orange-500 shrink-0" />
@@ -110,7 +105,7 @@ export default function CompleteMealCard({
           </h3>
         </div>
         <span className="text-[10px] font-medium text-zinc-500 bg-zinc-50 border border-zinc-200 px-2 py-0.5 rounded-full shrink-0">
-          👥 {socialProof}
+          🍽️ Popular Pairing
         </span>
       </div>
 
@@ -190,8 +185,7 @@ export default function CompleteMealCard({
 }
 
 CompleteMealCard.propTypes = {
-  mainItemName:      PropTypes.string,
-  confidencePercent: PropTypes.number,
+  mainItemName: PropTypes.string,
   mealItems: PropTypes.arrayOf(
     PropTypes.shape({
       itemId:   PropTypes.number.isRequired,

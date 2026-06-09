@@ -117,14 +117,10 @@ export default function RecommendedBundleCard({
   const visible    = bundleItems.slice(0, 3);
   const extraCount = Math.max(0, bundleItems.length - 3);
 
-  const socialProof = primaryItemName
-    ? `${confidencePercent}% of ${primaryItemName} orders also got these`
-    : `${confidencePercent}% of customers ordered these together`;
-
   return (
     <article className="w-full rounded-2xl border border-zinc-200 bg-white shadow-md overflow-hidden">
 
-      {/* ── Header + social proof badge ──────────────────────────────── */}
+      {/* ── Header + static pairing badge ────────────────────────────── */}
       <div className="flex items-center justify-between px-4 pt-3.5 pb-2.5">
         <div className="flex items-center gap-1.5">
           <SparkleIcon weight="fill" className="size-3.5 text-orange-500 shrink-0" />
@@ -132,8 +128,8 @@ export default function RecommendedBundleCard({
             Frequently Bought Together
           </h3>
         </div>
-        <span className="text-[10px] font-medium text-zinc-500 bg-zinc-50 border border-zinc-200 px-2 py-0.5 rounded-full shrink-0 max-w-[120px] truncate">
-          👥 {socialProof}
+        <span className="text-[10px] font-medium text-zinc-500 bg-zinc-50 border border-zinc-200 px-2 py-0.5 rounded-full shrink-0">
+          🍽️ Popular Pairing
         </span>
       </div>
 

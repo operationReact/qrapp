@@ -11,7 +11,7 @@ import {
   DrawerTitle,
 } from "./ui/drawer";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { X, Truck } from "lucide-react";
+import { X } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useEffect, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
@@ -25,51 +25,8 @@ import RecommendedBundleCard from "@/components/RecommendedBundleCard";
 import CompleteMealCard from "@/components/CompleteMealCard";
 import { cn } from "@/lib/utils";
 
-// ── Free-delivery progress bar ────────────────────────────────────────────────
-const FREE_DELIVERY_THRESHOLD = 500;
 
-function DeliveryProgress({ cartTotal }) {
-  const remaining = Math.max(0, FREE_DELIVERY_THRESHOLD - cartTotal);
-  const progress  = Math.min(100, (cartTotal / FREE_DELIVERY_THRESHOLD) * 100);
-  const unlocked  = cartTotal >= FREE_DELIVERY_THRESHOLD;
-
-  return (
-    <div className="mx-3 mb-2 px-3.5 py-2.5 rounded-xl border border-primary/15 bg-primary/5">
-      <div className="flex items-center justify-between text-xs mb-1.5">
-        {unlocked ? (
-          <span className="font-semibold text-emerald-700 flex items-center gap-1">
-            🎉 Free Delivery Unlocked!
-          </span>
-        ) : (
-          <>
-            <span className="text-muted-foreground flex items-center gap-1.5">
-              <Truck className="size-3 shrink-0" />
-              Add{" "}
-              <span className="font-semibold text-foreground">
-                ₹{remaining.toFixed(0)}
-              </span>{" "}
-              more
-            </span>
-            <span className="font-semibold text-primary text-[10px] uppercase tracking-wide">
-              FREE DELIVERY
-            </span>
-          </>
-        )}
-      </div>
-      <div className="h-1.5 w-full bg-zinc-100 rounded-full overflow-hidden">
-        <div
-          className={cn(
-            "h-full rounded-full transition-all duration-500",
-            unlocked ? "bg-emerald-500" : "bg-primary",
-          )}
-          style={{ width: `${progress}%` }}
-        />
-      </div>
-    </div>
-  );
-}
-
-// ── Smart upsell: only ONE section rendered at a time (priority-based) ─────────
+// ── Smart upsell: ONE section, session-gated to prevent infinite loops ────────
 function SmartUpsellSection({ cart, addItem, isOpen }) {
   const cartItemsKey = cart.map((i) => `${i.id}:${i.quantity}`).sort().join(",");
   const cartTotal    = cart.reduce((s, i) => s + Number(i.price) * i.quantity, 0);
@@ -78,16 +35,20 @@ function SmartUpsellSection({ cart, addItem, isOpen }) {
     ...new Set(cart.filter((i) => i.category?.id).map((i) => i.category.id)),
   ];
 
-  const [mealAdded,    setMealAdded]    = useState(false);
-  const [mealAdding,   setMealAdding]   = useState(false);
-  const [bundleAdded,  setBundleAdded]  = useState(false);
-  const [bundleAdding, setBundleAdding] = useState(false);
+  // Session gate: once user accepts a recommendation, stop showing more
+  // Only resets when cart is cleared (cart.length → 0)
+  const [upsellDone,  setUpsellDone]  = useState(false);
+  const [activeAdding, setActiveAdding] = useState(false);
+
+  useEffect(() => {
+    if (cart.length === 0) setUpsellDone(false);
+  }, [cart.length]);
 
   // ── Priority 1: Complete Your Meal ────────────────────────────────────────
   const { data: meal, isLoading: mealLoading, isError: mealError } = useQuery({
     queryKey: ["complete-meal", cartItemsKey],
     queryFn:  () => getMealRecommendation({ cartItemIds: itemIds, cartTotal }),
-    enabled:  isOpen && cart.length > 0,
+    enabled:  isOpen && cart.length > 0 && !upsellDone,
     staleTime: 1000 * 60 * 3,
     retry:    false,
   });
@@ -97,7 +58,7 @@ function SmartUpsellSection({ cart, addItem, isOpen }) {
   const { data: bundle, isLoading: bundleLoading, isError: bundleError } = useQuery({
     queryKey: ["v1-recommended-bundle", cartItemsKey],
     queryFn:  () => getRecommendedBundle({ cartItemIds: itemIds, cartTotal }),
-    enabled:  isOpen && cart.length > 0 && !mealLoading && !hasMeal,
+    enabled:  isOpen && cart.length > 0 && !upsellDone && !mealLoading && !hasMeal,
     staleTime: 1000 * 60 * 3,
     retry:    false,
   });
@@ -109,26 +70,18 @@ function SmartUpsellSection({ cart, addItem, isOpen }) {
     queryFn:  () =>
       getCartRecommendations({ itemIds, categoryIds, cartTotal, maxResults: 5 }),
     enabled:
-      isOpen &&
-      cart.length > 0 &&
-      !mealLoading && !hasMeal &&
-      !bundleLoading && !hasBundle,
+      isOpen && cart.length > 0 && !upsellDone &&
+      !mealLoading && !hasMeal && !bundleLoading && !hasBundle,
     staleTime: 1000 * 60 * 2,
   });
   const suggestions = recsData?.suggestions ?? [];
 
-  // Reset "added" state when cart changes
-  useEffect(() => {
-    const t = setTimeout(() => {
-      setMealAdded(false);
-      setBundleAdded(false);
-    }, 0);
-    return () => clearTimeout(t);
-  }, [cartItemsKey]);
+  // Gate: hide entirely once the user has accepted one recommendation
+  if (upsellDone) return null;
 
   const handleAddMeal = async () => {
     if (!meal?.mealItems?.length) return;
-    setMealAdding(true);
+    setActiveAdding(true);
     try {
       const cartIds = new Set(cart.map((i) => i.id));
       meal.mealItems
@@ -141,15 +94,15 @@ function SmartUpsellSection({ cart, addItem, isOpen }) {
             price:    Number(item.price),
           }),
         );
-      setMealAdded(true);
+      setUpsellDone(true); // stop the recommendation loop
     } finally {
-      setMealAdding(false);
+      setActiveAdding(false);
     }
   };
 
   const handleAddBundle = async () => {
     if (!bundle) return;
-    setBundleAdding(true);
+    setActiveAdding(true);
     try {
       const cartIds = new Set(cart.map((i) => i.id));
       bundle.bundleItems
@@ -162,13 +115,12 @@ function SmartUpsellSection({ cart, addItem, isOpen }) {
             price:    Number(item.price),
           }),
         );
-      setBundleAdded(true);
+      setUpsellDone(true); // stop the recommendation loop
     } finally {
-      setBundleAdding(false);
+      setActiveAdding(false);
     }
   };
 
-  // Show skeleton while the top-priority query is still in flight
   const showSkeleton =
     mealLoading ||
     (!hasMeal && bundleLoading) ||
@@ -190,8 +142,8 @@ function SmartUpsellSection({ cart, addItem, isOpen }) {
           mealItems={meal.mealItems}
           savings={Number(meal.savings)}
           onAddMeal={handleAddMeal}
-          isLoading={mealAdding}
-          disabled={mealAdded}
+          isLoading={activeAdding}
+          disabled={false}
         />
       </div>
     );
@@ -207,8 +159,8 @@ function SmartUpsellSection({ cart, addItem, isOpen }) {
           finalPrice={Number(bundle.finalPrice)}
           primaryItemName={cart[0]?.name}
           onAddBundle={handleAddBundle}
-          isLoading={bundleAdding}
-          disabled={bundleAdded}
+          isLoading={activeAdding}
+          disabled={false}
         />
       </div>
     );
@@ -250,14 +202,10 @@ function SmartUpsellSection({ cart, addItem, isOpen }) {
                   )}
                 </span>
                 <button
-                  onClick={() =>
-                    addItem({
-                      id:       s.itemId,
-                      name:     s.itemName,
-                      imageUrl: s.imageUrl,
-                      price:    s.price,
-                    })
-                  }
+                  onClick={() => {
+                    addItem({ id: s.itemId, name: s.itemName, imageUrl: s.imageUrl, price: s.price });
+                    setUpsellDone(true); // one-tap add also ends the session
+                  }}
                   className="flex items-center gap-0.5 bg-primary text-primary-foreground text-[10px] font-bold px-1.5 py-1 rounded-lg"
                   aria-label={`Add ${s.itemName}`}
                 >
@@ -272,6 +220,7 @@ function SmartUpsellSection({ cart, addItem, isOpen }) {
     </div>
   );
 }
+
 
 function CartContent({ onClose, isOpen }) {
   const {
@@ -316,15 +265,11 @@ function CartContent({ onClose, isOpen }) {
           ))}
         </div>
 
-        {/* Smart upsell — ONE section at a time, priority-based */}
+        {/* Smart upsell — ONE section, session-gated */}
         {cart.length > 0 && (
           <SmartUpsellSection cart={cart} addItem={addItem} isOpen={isOpen} />
         )}
 
-        {/* Free-delivery progress bar */}
-        {cart.length > 0 && (
-          <DeliveryProgress cartTotal={total} />
-        )}
 
         {/* BYOC combo progress */}
         {cart.length > 0 && primaryCampaign && (

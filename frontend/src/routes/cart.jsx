@@ -18,7 +18,7 @@ import {
   DrawerTrigger,
 } from "@/components/ui/drawer";
 import { CaretDown, Plus } from "@boxicons/react";
-import { ChevronRight, Truck } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import Navbar from "@/components/shared/Navbar";
@@ -56,51 +56,7 @@ import { useByocDiscount } from "@/hooks/useByocDiscount";
 import ComboProgressBanner from "@/components/ComboProgressBanner";
 import CompleteMealCard from "@/components/CompleteMealCard";
 import RecommendedBundleCard from "@/components/RecommendedBundleCard";
-import { cn } from "@/lib/utils";
 
-// ── Delivery progress bar (free delivery threshold) ───────────────────────────
-const FREE_DELIVERY_THRESHOLD = 500;
-
-function DeliveryProgressBar({ cartTotal }) {
-  const remaining = Math.max(0, FREE_DELIVERY_THRESHOLD - cartTotal);
-  const progress  = Math.min(100, (cartTotal / FREE_DELIVERY_THRESHOLD) * 100);
-  const unlocked  = cartTotal >= FREE_DELIVERY_THRESHOLD;
-
-  return (
-    <section className="rounded-xl bg-card border border-border shadow-xs p-4">
-      <div className="flex items-center justify-between text-sm mb-2">
-        {unlocked ? (
-          <span className="font-semibold text-emerald-700 flex items-center gap-1.5">
-            🎉 Free Delivery Unlocked!
-          </span>
-        ) : (
-          <>
-            <span className="text-muted-foreground flex items-center gap-1.5">
-              <Truck className="size-4 shrink-0" />
-              Add{" "}
-              <span className="font-semibold text-foreground">
-                ₹{remaining.toFixed(0)}
-              </span>{" "}
-              more to unlock
-            </span>
-            <span className="font-semibold text-primary text-xs uppercase tracking-wide">
-              FREE DELIVERY
-            </span>
-          </>
-        )}
-      </div>
-      <div className="h-2 w-full bg-zinc-100 rounded-full overflow-hidden">
-        <div
-          className={cn(
-            "h-full rounded-full transition-all duration-500",
-            unlocked ? "bg-emerald-500" : "bg-primary",
-          )}
-          style={{ width: `${progress}%` }}
-        />
-      </div>
-    </section>
-  );
-}
 
 function loadRazorpayScript(
   src = "https://checkout.razorpay.com/v1/checkout.js",
@@ -150,6 +106,8 @@ function CartPage() {
   const [mealAdding,   setMealAdding]   = useState(false);
   const [bundleAdded,  setBundleAdded]  = useState(false);
   const [bundleAdding, setBundleAdding] = useState(false);
+  // Session gate: once user accepts one recommendation, hide upsell block
+  const [upsellSessionDone, setUpsellSessionDone] = useState(false);
 
   // Fetch payment config via React Query — auto-retries & caches
   const { data: paymentConfig } = useQuery(paymentConfigOptions);
@@ -233,14 +191,13 @@ function CartPage() {
   });
   const hasBundle = !bundleLoading && !bundleError && !!(bundle?.bundleItems?.length);
 
-  // Reset "added" badges when cart changes
+  // Reset upsell session when cart is cleared
   useEffect(() => {
-    const t = setTimeout(() => {
-      setMealAdded(false);
-      setBundleAdded(false);
-    }, 0);
-    return () => clearTimeout(t);
-  }, [cartItemsKey]);
+    if (cart.length === 0) {
+      const t = setTimeout(() => setUpsellSessionDone(false), 0);
+      return () => clearTimeout(t);
+    }
+  }, [cart.length]);
 
   const handleAddMeal = async () => {
     if (!meal?.mealItems?.length) return;
@@ -253,6 +210,7 @@ function CartPage() {
           addItem({ id: item.itemId, name: item.itemName, imageUrl: item.imageUrl ?? undefined, price: Number(item.price) }),
         );
       setMealAdded(true);
+      setUpsellSessionDone(true); // stop the loop
     } finally { setMealAdding(false); }
   };
 
@@ -267,6 +225,7 @@ function CartPage() {
           addItem({ id: item.itemId, name: item.itemName, imageUrl: item.imageUrl ?? undefined, price: Number(item.price) }),
         );
       setBundleAdded(true);
+      setUpsellSessionDone(true); // stop the loop
     } finally { setBundleAdding(false); }
   };
 
@@ -558,13 +517,8 @@ function CartPage() {
             </div>
           )}
 
-          {/* ── Delivery progress bar ────────────────────────────────── */}
-          {cart.length > 0 && (
-            <DeliveryProgressBar cartTotal={total} />
-          )}
-
-          {/* ── Smart Upsell (priority: meal > bundle) ───────────────── */}
-          {cart.length > 0 && (mealLoading || hasMeal || bundleLoading || hasBundle) && (
+          {/* ── Smart Upsell (priority: meal > bundle, session-gated) ── */}
+          {cart.length > 0 && !upsellSessionDone && (mealLoading || hasMeal || bundleLoading || hasBundle) && (
             <section className="rounded-xl bg-card border border-border shadow-xs p-3">
               {(mealLoading || (!hasMeal && bundleLoading)) ? (
                 <div className="h-36 rounded-2xl bg-zinc-100/70 animate-pulse" />
@@ -852,10 +806,7 @@ function CartPage() {
                     disabled={submitting}
                     className="sm:w-1/2 h-full max-w-2xs font-medium!"
                   >
-                    Place Order{" "}
-                    {discount > 0
-                      ? `₹${totalAfterDiscount.toFixed(2)}`
-                      : `₹${total.toFixed(2)}`}
+                    Place Order ₹{discount > 0 ? totalAfterDiscount.toFixed(0) : total.toFixed(0)}
                     <ChevronRight className="size-5" />
                   </Button>
                 </div>
