@@ -5,11 +5,10 @@ import {
   useNavigate,
   useSearch,
 } from "@tanstack/react-router";
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
-  updateMenuItem,
   deleteMenuItem,
   getDeletedMenuItems,
   restoreMenuItem,
@@ -27,7 +26,9 @@ import CategoriesScroll from "@/components/admin/CategoriesScroll";
 import CategoriesManageModal from "@/components/admin/CategoriesManageModal";
 import {
   Drawer,
+  DrawerClose,
   DrawerContent,
+  DrawerDescription,
   DrawerHeader,
   DrawerTitle,
 } from "@/components/ui/drawer";
@@ -45,6 +46,7 @@ import {
 } from "@/components/ui/empty";
 import {
   ArrowCounterClockwiseIcon,
+  ArrowLeftIcon,
   FunnelIcon,
   LegoIcon,
   MagnifyingGlassIcon,
@@ -91,9 +93,15 @@ export const Route = createFileRoute("/admin/(menu)/menu")({
     const [missingImagesOpen, setMissingImagesOpen] = useState(false);
     const [filterSheetOpen, setFilterSheetOpen] = useState(false);
     const [categoriesModalOpen, setCategoriesModalOpen] = useState(false);
-    const [trashOpen, setTrashOpen] = useState(false);
     const [toolsOpen, setToolsOpen] = useState(false);
-    const trashRef = useRef(null);
+    const [toolsView, setToolsView] = useState("menu"); // "menu" | "trash"
+
+    const openToolsMenu  = () => { setToolsView("menu");  setToolsOpen(true); };
+    const openTrashView  = () => { setToolsView("trash"); setToolsOpen(true); };
+    const handleToolsClose = (open) => {
+      setToolsOpen(open);
+      if (!open) setTimeout(() => setToolsView("menu"), 300);
+    };
 
     const { data: menu = [], isLoading: loadingMenu } = useQuery(menuOptions());
 
@@ -174,6 +182,17 @@ export const Route = createFileRoute("/admin/(menu)/menu")({
       [menu],
     );
 
+    const avgMargin = useMemo(() => {
+      const costed = menu.filter(
+        (m) => m.estimatedCost != null && Number(m.estimatedCost) > 0 && Number(m.price) > 0,
+      );
+      if (!costed.length) return null;
+      const sum = costed.reduce((acc, m) => {
+        return acc + ((Number(m.price) - Number(m.estimatedCost)) / Number(m.price)) * 100;
+      }, 0);
+      return Math.round(sum / costed.length);
+    }, [menu]);
+
     const categoryCounts = useMemo(() => {
       const counts = { ALL: totalItems };
       for (const item of menu) {
@@ -183,17 +202,6 @@ export const Route = createFileRoute("/admin/(menu)/menu")({
       }
       return counts;
     }, [menu, totalItems]);
-
-    const toggleMutation = useMutation({
-      mutationFn: ({ id, data }) => updateMenuItem(id, data),
-      onError: (err) => {
-        console.error(err);
-        alert(err?.response?.data || "Failed to update menu item");
-      },
-      onSettled: () => {
-        queryClient.invalidateQueries({ queryKey: ["menu"] });
-      },
-    });
 
     const deleteMutation = useMutation({
       mutationFn: (id) => deleteMenuItem(id),
@@ -223,14 +231,6 @@ export const Route = createFileRoute("/admin/(menu)/menu")({
         return;
       }
       deleteMutation.mutate(item.id);
-    };
-
-    const handleToggleAvailable = (id, nextAvailable) => {
-      toggleMutation.mutate({ id, data: { available: nextAvailable } });
-    };
-
-    const handleToggleRecommended = (id, nextRecommended) => {
-      toggleMutation.mutate({ id, data: { recommended: nextRecommended } });
     };
 
     const handleClearAll = () => {
@@ -318,54 +318,68 @@ export const Route = createFileRoute("/admin/(menu)/menu")({
     }
 
 
-    const handleOpenTrash = () => {
-      setTrashOpen(true);
-      setTimeout(
-        () =>
-          trashRef.current?.scrollIntoView({
-            behavior: "smooth",
-            block: "start",
-          }),
-        50,
-      );
-    };
 
     return (
       <>
         {/* ── Header ─────────────────────────────────────────────── */}
-        <div className="px-4 pt-5 pb-3 flex items-center gap-2.5">
-          <h1 className="text-xl font-bold tracking-tight flex-1">Menu</h1>
-          <Button
-            onClick={() => navigate({ to: "/admin/manage-menu" })}
-            size="sm"
-            className="gap-1.5 shrink-0"
-            variant="branded-secondary"
-          >
-            <PlusIcon weight="bold" className="size-3.5" />
-            Add Item
-          </Button>
-          <Button
-            variant="outline"
-            size="icon-sm"
-            onClick={() => setToolsOpen(true)}
-            aria-label="Menu Tools"
-          >
-            <SlidersIcon />
-          </Button>
+        <div className="px-4 pt-4 pb-2">
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <h1 className="text-lg font-bold tracking-tight leading-tight">
+                Menu Management
+              </h1>
+              <p className="text-[11px] text-muted-foreground mt-0.5">
+                Manage pricing, profitability and availability
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-2 mt-2.5">
+            <Button
+              onClick={() => navigate({ to: "/admin/manage-menu" })}
+              size="sm"
+              className="gap-1.5"
+              variant="branded-secondary"
+            >
+              <PlusIcon weight="bold" className="size-3.5" />
+              Add Item
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={openToolsMenu}
+              className="gap-1.5"
+            >
+              <SlidersIcon className="size-3.5" />
+              Tools
+            </Button>
+          </div>
         </div>
 
-        {/* ── Compact stats pills ─────────────────────────────────── */}
-        <div className="px-4 pb-3 flex items-center gap-2 flex-wrap">
+        {/* ── Business-value stats pills ───────────────────────────── */}
+        <div className="px-4 pb-2 flex items-center gap-2 flex-wrap">
           <span className="inline-flex items-center rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
             Items {totalItems}
           </span>
           <span className="inline-flex items-center rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
             Categories {allCategories.length}
           </span>
+          {avgMargin != null && (
+            <span
+              className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
+                avgMargin >= 50
+                  ? "bg-emerald-50 text-emerald-700"
+                  : avgMargin >= 25
+                    ? "bg-yellow-50 text-yellow-700"
+                    : "bg-red-50 text-red-600"
+              }`}
+            >
+              Avg Margin {avgMargin}%
+            </span>
+          )}
           {deletedItems.length > 0 && (
             <button
               type="button"
-              onClick={() => setToolsOpen(true)}
+              onClick={openTrashView}
               className="inline-flex items-center gap-1.5 rounded-full bg-zinc-100 px-3 py-1 text-xs font-medium text-zinc-600 hover:bg-zinc-200 transition-colors"
             >
               <TrashIcon className="size-3" />
@@ -375,9 +389,9 @@ export const Route = createFileRoute("/admin/(menu)/menu")({
         </div>
 
         {/* ── Search ──────────────────────────────────────────────── */}
-        <div className="px-4 pb-3">
+        <div className="px-4 pb-2">
           <ButtonGroup className="w-full">
-            <InputGroup className="h-10 flex-1">
+            <InputGroup className="h-9 flex-1">
               <InputGroupInput
                 placeholder="Search menu..."
                 value={searchInput}
@@ -389,14 +403,14 @@ export const Route = createFileRoute("/admin/(menu)/menu")({
             </InputGroup>
             <Button
               variant="outline"
-              size="icon-lg"
+              size="icon-md"
               onClick={() => setFilterSheetOpen(true)}
               className="relative shrink-0"
               aria-label="Filters"
             >
               <FunnelIcon weight={activeFilterCount > 0 ? "fill" : "regular"} />
               {activeFilterCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-[10px] size-5 rounded-full flex items-center justify-center font-bold">
+                <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-[10px] size-4 rounded-full flex items-center justify-center font-bold">
                   {activeFilterCount > 9 ? "9+" : activeFilterCount}
                 </span>
               )}
@@ -404,32 +418,71 @@ export const Route = createFileRoute("/admin/(menu)/menu")({
           </ButtonGroup>
         </div>
 
-        {/* ── Attention Required card ──────────────────────────────── */}
+        {/* ── Attention card ──────────────────────────────────────── */}
         {(missingCostCount > 0 || missingImageCount > 0) && (
-          <div className="mx-4 mb-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
-            <div className="flex items-start gap-3">
-              <WarningCircleIcon weight="fill" className="size-5 text-amber-500 shrink-0 mt-0.5" />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-amber-800">Attention Required</p>
-                <div className="mt-1 space-y-0.5">
-                  {missingCostCount > 0 && (
-                    <p className="text-xs text-amber-700">{missingCostCount} items missing cost</p>
-                  )}
-                  {missingImageCount > 0 && (
-                    <p className="text-xs text-amber-700">{missingImageCount} items without image</p>
-                  )}
-                </div>
-              </div>
-              <Button
-                size="sm"
-                variant="outline"
-                className="border-amber-300 text-amber-700 hover:bg-amber-100 shrink-0"
-                onClick={() =>
-                  missingCostCount > 0 ? setBulkCostOpen(true) : setMissingImagesOpen(true)
-                }
-              >
-                Fix Now
-              </Button>
+          <div className="mx-4 mb-2 rounded-xl border border-amber-200 bg-amber-50 p-3 space-y-2.5">
+            {/* Header */}
+            <div className="flex items-center gap-1.5">
+              <WarningCircleIcon weight="fill" className="size-3.5 text-amber-500 shrink-0" />
+              <p className="text-xs font-bold text-amber-900 leading-none">
+                {missingCostCount + missingImageCount} Issues Need Attention
+              </p>
+            </div>
+
+            {/* Tappable issue cards */}
+            <div
+              className={`grid gap-2 ${
+                missingCostCount > 0 && missingImageCount > 0
+                  ? "grid-cols-2"
+                  : "grid-cols-1"
+              }`}
+            >
+              {missingCostCount > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setBulkCostOpen(true)}
+                  className="flex flex-col gap-2 bg-white rounded-lg border border-amber-200 px-3 py-2.5 hover:border-amber-400 hover:shadow-sm active:scale-[0.97] transition-all text-left"
+                >
+                  <span className="text-lg leading-none">💰</span>
+                  <div>
+                    <p className="text-2xl font-black text-amber-800 leading-none tracking-tight">
+                      {missingCostCount}
+                    </p>
+                    <p className="text-[11px] font-semibold text-amber-700 mt-0.5">
+                      Missing Costs
+                    </p>
+                    <p className="text-[10px] text-amber-500 mt-0.5">
+                      Needed for margin data
+                    </p>
+                  </div>
+                  <span className="text-[11px] font-bold text-amber-600 mt-auto">
+                    Set Costs →
+                  </span>
+                </button>
+              )}
+              {missingImageCount > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setMissingImagesOpen(true)}
+                  className="flex flex-col gap-2 bg-white rounded-lg border border-amber-200 px-3 py-2.5 hover:border-amber-400 hover:shadow-sm active:scale-[0.97] transition-all text-left"
+                >
+                  <span className="text-lg leading-none">🖼️</span>
+                  <div>
+                    <p className="text-2xl font-black text-amber-800 leading-none tracking-tight">
+                      {missingImageCount}
+                    </p>
+                    <p className="text-[11px] font-semibold text-amber-700 mt-0.5">
+                      Missing Images
+                    </p>
+                    <p className="text-[10px] text-amber-500 mt-0.5">
+                      Increases customer orders
+                    </p>
+                  </div>
+                  <span className="text-[11px] font-bold text-amber-600 mt-auto">
+                    Fix Images →
+                  </span>
+                </button>
+              )}
             </div>
           </div>
         )}
@@ -507,138 +560,134 @@ export const Route = createFileRoute("/admin/(menu)/menu")({
           </div>
         </div>
 
-        {/* ── Trash / Deleted Items ─────────────────────────────────── */}
-        <div className="px-4 pb-4 mt-2" ref={trashRef}>
-          <div className="border border-dashed border-zinc-300 rounded-xl overflow-hidden">
-            {/* Toggle header */}
-            <button
-              type="button"
-              onClick={() => setTrashOpen((v) => !v)}
-              className="w-full flex items-center gap-2 px-4 py-3 text-sm font-medium text-zinc-500 hover:bg-zinc-50 transition-colors"
-            >
-              <TrashIcon className="size-4" />
-              <span>Deleted Items</span>
-              {deletedItems.length > 0 && (
-                <span className="bg-zinc-200 text-zinc-600 text-xs font-semibold rounded-full px-2 py-0.5">
-                  {deletedItems.length}
-                </span>
-              )}
-              <span className="ml-auto text-xs text-zinc-400">
-                {trashOpen ? "▲ Hide" : "▼ Show"}
-              </span>
-            </button>
+        {/* ── Unified Tools / Trash Drawer ─────────────────────── */}
+        <Drawer open={toolsOpen} onOpenChange={handleToolsClose}>
+          <DrawerContent className="max-h-[85vh] flex flex-col">
 
-            {/* Panel body */}
-            {trashOpen && (
-              <div className="border-t border-zinc-200 divide-y divide-zinc-100">
-                {/* Loading skeleton */}
-                {(loadingDeleted || fetchingDeleted) &&
-                  deletedItems.length === 0 && (
+            {toolsView === "menu" ? (
+              /* ── Tools menu view ── */
+              <>
+                <DrawerHeader className="border-b shrink-0">
+                  <DrawerTitle>Menu Tools</DrawerTitle>
+                </DrawerHeader>
+                <div className="flex-1 overflow-y-auto">
+                  <div className="grid gap-0 px-2 py-2">
+                    <button
+                      type="button"
+                      onClick={() => { setToolsOpen(false); setCategoriesModalOpen(true); }}
+                      className="flex items-center gap-3 px-3 py-3.5 rounded-lg hover:bg-muted active:bg-muted transition-colors text-left"
+                    >
+                      <LegoIcon className="size-5 text-muted-foreground shrink-0" />
+                      <span className="text-sm font-medium">Manage Categories</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setToolsOpen(false); setBulkUploadOpen(true); }}
+                      className="flex items-center gap-3 px-3 py-3.5 rounded-lg hover:bg-muted active:bg-muted transition-colors text-left"
+                    >
+                      <UploadIcon className="size-5 text-muted-foreground shrink-0" />
+                      <span className="text-sm font-medium">Bulk Upload</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setToolsView("trash")}
+                      className="flex items-center gap-3 px-3 py-3.5 rounded-lg hover:bg-muted active:bg-muted transition-colors text-left"
+                    >
+                      <TrashIcon className="size-5 text-muted-foreground shrink-0" />
+                      <span className="text-sm font-medium">Trash</span>
+                      {deletedItems.length > 0 && (
+                        <span className="ml-auto bg-zinc-200 text-zinc-600 text-xs font-semibold rounded-full px-2 py-0.5 leading-none">
+                          {deletedItems.length}
+                        </span>
+                      )}
+                    </button>
+                  </div>
+                </div>
+                <div className="shrink-0 px-4 py-3 border-t">
+                  <DrawerClose asChild>
+                    <Button variant="outline" className="w-full">Close</Button>
+                  </DrawerClose>
+                </div>
+              </>
+            ) : (
+              /* ── Trash view ── */
+              <>
+                <DrawerHeader className="border-b shrink-0">
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setToolsView("menu")}
+                      className="p-1 -ml-1 rounded-lg hover:bg-muted transition-colors"
+                      aria-label="Back to tools"
+                    >
+                      <ArrowLeftIcon className="size-4 text-muted-foreground" />
+                    </button>
+                    <div className="flex items-center gap-2">
+                      <DrawerTitle>Trash</DrawerTitle>
+                      {deletedItems.length > 0 && (
+                        <span className="bg-zinc-200 text-zinc-600 text-xs font-semibold rounded-full px-2 py-0.5">
+                          {deletedItems.length}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <DrawerDescription>
+                    Restore items to make them available again.
+                  </DrawerDescription>
+                </DrawerHeader>
+
+                <div className="flex-1 overflow-y-auto divide-y divide-zinc-100">
+                  {(loadingDeleted || fetchingDeleted) && deletedItems.length === 0 && (
                     <div className="px-4 py-3 space-y-2">
-                      {Array.from({ length: 3 }).map((_, i) => (
-                        <div
-                          key={i}
-                          className="h-14 rounded-lg bg-zinc-100 animate-pulse"
-                        />
+                      {Array.from({ length: 4 }).map((_, i) => (
+                        <div key={i} className="h-14 rounded-lg bg-zinc-100 animate-pulse" />
                       ))}
                     </div>
                   )}
-
-                {/* Empty state */}
-                {!loadingDeleted &&
-                  !fetchingDeleted &&
-                  deletedItems.length === 0 && (
-                    <p className="py-8 text-center text-sm text-zinc-400">
-                      No deleted items in trash.
-                    </p>
+                  {!loadingDeleted && !fetchingDeleted && deletedItems.length === 0 && (
+                    <div className="flex flex-col items-center justify-center py-16 gap-2 text-zinc-400">
+                      <TrashIcon className="size-8 opacity-30" />
+                      <p className="text-sm">Trash is empty</p>
+                    </div>
                   )}
-
-                {/* Item rows */}
-                {deletedItems.map((item) => (
-                  <div
-                    key={item.id}
-                    className="flex items-center gap-3 px-4 py-3 bg-white hover:bg-zinc-50/60 transition-colors"
-                  >
-                    {/* Thumbnail */}
-                    <div className="size-10 rounded-md bg-zinc-100 shrink-0 overflow-hidden">
-                      {item.imageUrl ? (
-                        <img
-                          src={item.imageUrl}
-                          alt={item.name}
-                          className="size-full object-cover opacity-60"
-                        />
-                      ) : (
-                        <div className="size-full flex items-center justify-center text-zinc-300 text-lg">
-                          🍽️
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Name + category */}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-zinc-400 line-through truncate">
-                        {item.name}
-                      </p>
-                      <p className="text-xs text-zinc-400 truncate">
-                        {item.categoryName ?? "No category"}
-                      </p>
-                    </div>
-
-                    {/* Restore button */}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="shrink-0 gap-1.5 text-xs border-zinc-200 hover:border-green-400 hover:text-green-700 hover:bg-green-50"
-                      disabled={restoreMutation.isPending}
-                      onClick={() => restoreMutation.mutate(item.id)}
+                  {deletedItems.map((item) => (
+                    <div
+                      key={item.id}
+                      className="flex items-center gap-3 px-4 py-3 hover:bg-zinc-50 active:bg-zinc-100 transition-colors"
                     >
-                      <ArrowCounterClockwiseIcon className="size-3.5" />
-                      Restore
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
+                      <div className="size-11 rounded-lg bg-zinc-100 shrink-0 overflow-hidden">
+                        {item.imageUrl ? (
+                          <img src={item.imageUrl} alt={item.name} className="size-full object-cover opacity-50" />
+                        ) : (
+                          <div className="size-full flex items-center justify-center text-xl">🍽️</div>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-zinc-400 line-through truncate">{item.name}</p>
+                        <p className="text-xs text-zinc-400 truncate mt-0.5">{item.categoryName ?? "No category"}</p>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="shrink-0 gap-1.5 text-xs border-zinc-200 hover:border-green-400 hover:text-green-700 hover:bg-green-50"
+                        disabled={restoreMutation.isPending}
+                        onClick={() => restoreMutation.mutate(item.id)}
+                      >
+                        <ArrowCounterClockwiseIcon className="size-3.5" />
+                        Restore
+                      </Button>
+                    </div>
+                  ))}
+                </div>
 
-        {/* ── Tools Drawer ─────────────────────────────────────── */}
-        <Drawer open={toolsOpen} onOpenChange={setToolsOpen}>
-          <DrawerContent>
-            <DrawerHeader>
-              <DrawerTitle>Menu Tools</DrawerTitle>
-            </DrawerHeader>
-            <div className="grid gap-1 px-4 pb-8">
-              <button
-                type="button"
-                onClick={() => { setToolsOpen(false); setCategoriesModalOpen(true); }}
-                className="flex items-center gap-3 px-3 py-3.5 rounded-lg hover:bg-muted transition-colors text-left"
-              >
-                <LegoIcon className="size-5 text-muted-foreground shrink-0" />
-                <span className="text-sm font-medium">Manage Categories</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => { setToolsOpen(false); setBulkUploadOpen(true); }}
-                className="flex items-center gap-3 px-3 py-3.5 rounded-lg hover:bg-muted transition-colors text-left"
-              >
-                <UploadIcon className="size-5 text-muted-foreground shrink-0" />
-                <span className="text-sm font-medium">Bulk Upload</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => { setToolsOpen(false); handleOpenTrash(); }}
-                className="flex items-center gap-3 px-3 py-3.5 rounded-lg hover:bg-muted transition-colors text-left"
-              >
-                <TrashIcon className="size-5 text-muted-foreground shrink-0" />
-                <span className="text-sm font-medium">Trash</span>
-                {deletedItems.length > 0 && (
-                  <span className="ml-auto bg-zinc-200 text-zinc-600 text-xs font-semibold rounded-full px-2 py-0.5 leading-none">
-                    {deletedItems.length}
-                  </span>
-                )}
-              </button>
-            </div>
+                <div className="shrink-0 px-4 py-3 border-t">
+                  <DrawerClose asChild>
+                    <Button variant="outline" className="w-full">Done</Button>
+                  </DrawerClose>
+                </div>
+              </>
+            )}
+
           </DrawerContent>
         </Drawer>
 
