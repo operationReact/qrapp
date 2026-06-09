@@ -74,3 +74,22 @@ export const applyGeneratedImage = (menuItemId, imageUrl, allGeneratedUrls = [])
  */
 export const bulkUpdateEstimatedCosts = (updates) =>
   apiClient.post("/admin/menu/bulk-estimated-cost", updates).then((r) => r.data);
+
+/**
+ * Quick partial update for a menu item (available / recommended / isVeg).
+ * Sends only the changed fields as a JSON PUT body.
+ * @param {number|string} id
+ * @param {Partial<{available: boolean, recommended: boolean, isVeg: boolean}>} patch
+ */
+export const patchMenuItemQuick = (id, patch) =>
+  apiClient.put(`/menu/${id}`, patch, { headers: { "Content-Type": "application/json" } }).then((r) => r.data);
+
+/**
+ * Set or clear the estimated cost for a menu item.
+ * Uses the dedicated PATCH endpoint that also backfills profitability analytics.
+ * @param {number|string} id
+ * @param {number|null} estimatedCost  – pass null to clear
+ */
+export const setItemCost = (id, estimatedCost) =>
+  apiClient.patch(`/menu/${id}/estimated-cost`, { estimatedCost }).then((r) => r.data);
+

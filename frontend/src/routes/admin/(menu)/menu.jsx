@@ -11,7 +11,9 @@ import { toast } from "sonner";
 import {
   deleteMenuItem,
   getDeletedMenuItems,
+  patchMenuItemQuick,
   restoreMenuItem,
+  setItemCost,
 } from "@/services/menu-service";
 import { menuOptions } from "@/query/options/menu";
 import { useAuth } from "@/context/AuthContext";
@@ -205,10 +207,15 @@ export const Route = createFileRoute("/admin/(menu)/menu")({
 
     const deleteMutation = useMutation({
       mutationFn: (id) => deleteMenuItem(id),
+      onSuccess: () => {
+        toast.success("Item moved to Trash");
+      },
       onError: (err) => {
-        console.error(err);
-        alert(
-          err?.response?.data || err?.message || "Failed to delete menu item",
+        toast.error(
+          err?.response?.data?.message ||
+            err?.response?.data ||
+            err?.message ||
+            "Failed to delete menu item",
         );
       },
       onSettled: () => {
@@ -217,20 +224,65 @@ export const Route = createFileRoute("/admin/(menu)/menu")({
       },
     });
 
+    const quickUpdateMutation = useMutation({
+      mutationFn: ({ id, patch }) => patchMenuItemQuick(id, patch),
+      onSuccess: (_, { patch }) => {
+        if (Object.prototype.hasOwnProperty.call(patch, "available")) {
+          toast.success(patch.available ? "Item available on menu" : "Item hidden from menu");
+        } else if (Object.prototype.hasOwnProperty.call(patch, "recommended")) {
+          toast.success(patch.recommended ? "Marked as Recommended" : "Removed from Recommended");
+        } else if (Object.prototype.hasOwnProperty.call(patch, "isVeg")) {
+          toast.success(patch.isVeg ? "Marked as Veg" : "Marked as Non-Veg");
+        }
+        queryClient.invalidateQueries({ queryKey: ["menu"] });
+      },
+      onError: (err, { patch }) => {
+        const data = err?.response?.data;
+        if (data?.error === "MISSING_ESTIMATED_COST") {
+          toast.error("Set an estimated cost before making this item live.");
+        } else {
+          toast.error(
+            data?.message || data || err?.message || "Update failed",
+          );
+        }
+      },
+    });
+
+    const costMutation = useMutation({
+      mutationFn: ({ id, estimatedCost }) => setItemCost(id, estimatedCost),
+      onSuccess: (_, { estimatedCost }) => {
+        toast.success(
+          estimatedCost != null
+            ? `Cost price saved as ₹${Number(estimatedCost).toFixed(0)}`
+            : "Cost price cleared",
+        );
+        queryClient.invalidateQueries({ queryKey: ["menu"] });
+      },
+      onError: (err) => {
+        toast.error(
+          err?.response?.data?.message ||
+            err?.response?.data ||
+            err?.message ||
+            "Failed to save cost",
+        );
+      },
+    });
+
+    const handleSetCost = (item, estimatedCost) => {
+      costMutation.mutate({ id: item.id, estimatedCost });
+    };
+
     const handleEditSuccess = () => {
       setEditingItem(null);
       queryClient.invalidateQueries({ queryKey: ["menu"] });
     };
 
     const handleDeleteConfirm = (item) => {
-      if (
-        !window.confirm(
-          `Delete "${item.name}"? It will be removed from the menu.`,
-        )
-      ) {
-        return;
-      }
       deleteMutation.mutate(item.id);
+    };
+
+    const handleQuickUpdate = (patch, item) => {
+      quickUpdateMutation.mutate({ id: item.id, patch });
     };
 
     const handleClearAll = () => {
@@ -512,6 +564,10 @@ export const Route = createFileRoute("/admin/(menu)/menu")({
                   item={item}
                   onEdit={() => setEditingItem(item)}
                   onDelete={handleDeleteConfirm}
+                  onQuickUpdate={handleQuickUpdate}
+                  onSetCost={handleSetCost}
+                  isUpdating={quickUpdateMutation.isPending}
+                  isSavingCost={costMutation.isPending}
                 />
               ))}
 
