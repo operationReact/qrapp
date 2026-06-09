@@ -6,20 +6,47 @@ const CartContext = createContext();
 
 export const useCart = () => useContext(CartContext);
 
+// ── localStorage helpers ──────────────────────────────────────────────────────
+const LS_CART       = "bro_cart";
+const LS_PROMOTION  = "bro_applied_promotion";
+const LS_BYOC       = "bro_byoc_discount";
+
+function readLS(key, fallback = null) {
+    try {
+        const raw = localStorage.getItem(key);
+        return raw ? JSON.parse(raw) : fallback;
+    } catch {
+        return fallback;
+    }
+}
+
+function writeLS(key, value) {
+    try {
+        if (value === null || value === undefined) {
+            localStorage.removeItem(key);
+        } else {
+            localStorage.setItem(key, JSON.stringify(value));
+        }
+    } catch { /* quota exceeded or private mode */ }
+}
+
 export function CartProvider({ children }) {
-    const [cart, setCart] = useState([]);
+    const [cart, setCart] = useState(() => readLS(LS_CART, []));
     const [drawerOpen, setDrawerOpen] = useState(false);
-    const [addCount, setAddCount] = useState(0); // used to trigger badge pulse
+    const [addCount, setAddCount] = useState(0);
     const [lastAdded, setLastAdded] = useState(null);
     const lastAddedTimerRef = useRef(null);
 
     // ── Promotion state ──────────────────────────────────────────────────────
-    const [appliedPromotion, setAppliedPromotion] = useState(null);
-    // Shape: { id, code, title, rewardDisplay, actualDiscount, isAutoApplied }
+    const [appliedPromotion, setAppliedPromotion] = useState(() => readLS(LS_PROMOTION, null));
 
-    // ── BYOC (Build Your Own Combo) discount state ────────────────────────────
-    // Shape: { campaignId, campaignName, discountAmount }
-    const [byocDiscount, setByocDiscount] = useState(null);
+    // ── BYOC discount state ───────────────────────────────────────────────────
+    const [byocDiscount, setByocDiscount] = useState(() => readLS(LS_BYOC, null));
+
+    // ── Sync to localStorage on every change ─────────────────────────────────
+    useEffect(() => { writeLS(LS_CART, cart); }, [cart]);
+    useEffect(() => { writeLS(LS_PROMOTION, appliedPromotion); }, [appliedPromotion]);
+    useEffect(() => { writeLS(LS_BYOC, byocDiscount); }, [byocDiscount]);
 
     useEffect(() => {
         return () => {
@@ -64,8 +91,11 @@ export function CartProvider({ children }) {
 
     const clearCart = () => {
         setCart([]);
-        setAppliedPromotion(null); // clear promotion when cart is cleared
+        setAppliedPromotion(null);
         setByocDiscount(null);
+        writeLS(LS_CART, null);
+        writeLS(LS_PROMOTION, null);
+        writeLS(LS_BYOC, null);
     };
 
     const applyPromotion = (promotion) => {
