@@ -1,7 +1,6 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import AdminHeader from "@/components/admin/AdminHeader";
 import PairingsSection from "@/components/admin/PairingsSection";
 import { fetchItemClassification } from "@/services/classification-service";
 import { Input } from "@/components/ui/input";
@@ -138,12 +137,16 @@ function ItemPairingsPage() {
   const hasAnyContext   = hasMealContext || hasCuisineCtx;
 
   return (
-    <div className="p-4 sm:p-6 space-y-5">
-      {/* Header */}
-      <AdminHeader
-        title="Item Pairings"
-        description='Curate Drinks, Sides, Desserts, and Addons for each item. When a customer adds an item to their cart these pairings appear as "Goes Well With" suggestions.'
-      />
+    <div className="px-4 pt-6 pb-8 space-y-5">
+      {/* ── Page Header ─────────────────────────────────────────── */}
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight text-foreground md:text-[28px] leading-tight">
+          Item Pairings
+        </h1>
+        <p className="mt-1.5 text-sm text-muted-foreground max-w-xl leading-relaxed">
+          Curate Drinks, Sides, Desserts, and Addons for each item. When a customer adds an item to their cart these pairings appear as &ldquo;Goes Well With&rdquo; suggestions.
+        </p>
+      </div>
 
       {/* Info strip */}
       <div className="flex flex-wrap gap-2 text-xs">

@@ -8,7 +8,6 @@ import {
   triggerOpsJob,
   triggerSync,
 } from "@/services/opsService";
-import AdminHeader from "@/components/admin/AdminHeader";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -488,24 +487,29 @@ function OpsCenterPage() {
 
   return (
     <div className="flex flex-col min-h-full">
-      <AdminHeader
-        title="Operations Center"
-        description="Manage background jobs, trigger data syncs, and monitor system health."
-        actions={
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-2 text-sm font-medium"
-            onClick={() => {
-              refetchJobs();
-              queryClient.invalidateQueries({ queryKey: ["ops"] });
-            }}
-          >
-            <ArrowClockwiseIcon weight="bold" className="size-3.5" />
-            Refresh
-          </Button>
-        }
-      />
+      {/* ── Page Header ────────────────────────────────────────────────── */}
+      <div className="px-4 pt-6 pb-4 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground md:text-[28px] leading-tight">
+            Operations Center
+          </h1>
+          <p className="mt-1.5 text-sm text-muted-foreground max-w-md">
+            Manage background jobs, trigger data syncs, and monitor system health.
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-9 gap-2 text-sm font-medium shrink-0"
+          onClick={() => {
+            refetchJobs();
+            queryClient.invalidateQueries({ queryKey: ["ops"] });
+          }}
+        >
+          <ArrowClockwiseIcon weight="bold" className="size-3.5" />
+          Refresh
+        </Button>
+      </div>
 
       {/* Status banner */}
       {(anyRunning || anyFailed) && (

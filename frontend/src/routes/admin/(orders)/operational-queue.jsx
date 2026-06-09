@@ -184,7 +184,7 @@ function OperationalQueuePage() {
         {/* Title + Refresh */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <h1 className="text-lg font-semibold tracking-tight text-foreground">
+            <h1 className="text-xl font-bold tracking-tight text-foreground">
               Kitchen Queue
             </h1>
             {isActive && (

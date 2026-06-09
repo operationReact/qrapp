@@ -39,7 +39,6 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty";
 import {
-  ArrowLeftIcon,
   ArrowCounterClockwiseIcon,
   BowlFoodIcon,
   FunnelIcon,
@@ -376,27 +375,28 @@ export const Route = createFileRoute("/admin/(menu)/menu")({
 
     return (
       <>
-        {/* STICKY HEADER */}
-        <div className="flex sr-only items-start gap-3 border-b px-4 pt-3 pb-4 border-border">
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            onClick={() => navigate({ to: "/admin" })}
-            aria-label="Back to dashboard"
-          >
-            <ArrowLeftIcon />
-          </Button>
-          <div className="min-w-0 flex-1">
-            <h1 className="text-lg font-semibold tracking-tight text-foreground">
+        {/* ── Page Header ─────────────────────────────────────────── */}
+        <div className="px-4 pt-6 pb-4 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-foreground md:text-[28px] leading-tight">
               Menu
             </h1>
-            <p className="text-sm text-muted-foreground mt-1">
+            <p className="mt-1.5 text-sm text-muted-foreground">
               Manage items, availability &amp; pricing
             </p>
           </div>
+          <Button
+            onClick={() => navigate({ to: "/admin/manage-menu" })}
+            size="lg"
+            className="h-12 px-5 gap-2 shrink-0"
+            variant="branded-secondary"
+          >
+            <PlusIcon weight="bold" className="size-4" />
+            <span>Create New Item</span>
+          </Button>
         </div>
 
-        <div className="mt-5 px-4">
+        <div className="px-4 pb-2">
           <SummaryMetrics items={summaryItems} loading={loadingMenu} />
         </div>
 
@@ -472,16 +472,8 @@ export const Route = createFileRoute("/admin/(menu)/menu")({
             )}
             <Button onClick={() => setBulkUploadOpen(true)} variant="outline">
               <UploadIcon data-icon="inline-start" />
-              <span className="sm:hidden">Bulk Actions</span>
+              <span className="sm:hidden">Bulk Upload</span>
               <span className="hidden sm:inline">Bulk Upload</span>
-            </Button>
-            <Button
-              onClick={() => navigate({ to: "/admin/manage-menu" })}
-              variant="branded-secondary"
-            >
-              <PlusIcon data-icon="inline-start" />
-              <span className="sm:hidden">Add Item</span>
-              <span className="hidden sm:inline">Create New Item</span>
             </Button>
           </div>
         </div>

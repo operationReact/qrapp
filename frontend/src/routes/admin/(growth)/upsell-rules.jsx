@@ -10,7 +10,6 @@ import {
   deleteUpsellRule,
   toggleUpsellRule,
 } from "@/services/recommendation-service";
-import AdminHeader from "@/components/admin/AdminHeader";
 import {
   Table,
   TableBody,
@@ -39,7 +38,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { PlusIcon, PencilSimpleIcon, TrashIcon } from "@phosphor-icons/react";
+import { PlusIcon, PencilSimpleIcon, TrashIcon, LightningIcon } from "@phosphor-icons/react";
 import ConfirmDialog from "@/components/ConfirmDialog";
 
 export const Route = createFileRoute("/admin/(growth)/upsell-rules")({
@@ -383,120 +382,179 @@ function AdminUpsellRulesPage() {
       ? `${r.rewardValue}% off`
       : `₹${r.rewardValue} off`;
 
+  const skeletonRows = Array.from({ length: 3 });
+
   return (
     <>
-      <div className="flex px-4 pt-2 flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-        <AdminHeader
-          title="Upsell Rules"
-          description="Trigger-based offers: 'If customer adds Burger, offer Fries + Coke with ₹30 off'."
-          className="px-0 pt-0"
-        />
+      {/* ── Page Header ─────────────────────────────────────────────────────── */}
+      <div className="px-4 pt-6 pb-4 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground md:text-[28px] leading-tight">
+            Upsell Rules
+          </h1>
+          <p className="mt-1.5 text-sm text-muted-foreground max-w-md">
+            Trigger-based offers: &quot;If customer adds Burger, offer Fries + Coke with ₹30 off&quot;.
+          </p>
+        </div>
         <Button
-          onClick={() => {
-            setEditing(null);
-            setFormOpen(true);
-          }}
+          onClick={() => { setEditing(null); setFormOpen(true); }}
           size="lg"
+          className="h-12 px-5 gap-2 shrink-0"
         >
-          <PlusIcon className="size-5" /> New Rule
+          <PlusIcon weight="bold" className="size-4" /> New Rule
         </Button>
       </div>
 
-      <div className="px-4">
-        <div className="rounded-md bg-white">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Rule Name</TableHead>
-                <TableHead>Trigger</TableHead>
-                <TableHead>Offer Items</TableHead>
-                <TableHead className="w-28 text-center">Discount</TableHead>
-                <TableHead className="w-20 text-center">Active</TableHead>
-                <TableHead className="w-24" />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading && (
-                <TableRow>
-                  <TableCell
-                    colSpan={6}
-                    className="py-8 text-center text-muted-foreground"
-                  >
-                    Loading…
-                  </TableCell>
-                </TableRow>
-              )}
-              {!isLoading && rules.length === 0 && (
-                <TableRow>
-                  <TableCell
-                    colSpan={6}
-                    className="py-10 text-center text-muted-foreground"
-                  >
-                    No rules yet. Create your first upsell rule.
-                  </TableCell>
-                </TableRow>
-              )}
-              {rules.map((rule) => (
-                <TableRow key={rule.id}>
-                  <TableCell className="font-medium">{rule.name}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className="text-xs">
-                      {triggerLabel(rule)}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex flex-wrap gap-1">
-                      {(rule.targets ?? []).map((t) => (
-                        <Badge
-                          key={t.itemId}
-                          variant="secondary"
-                          className="text-xs"
-                        >
-                          {t.itemName}
-                        </Badge>
-                      ))}
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-center">
-                    {rule.rewardValue > 0 ? (
-                      <Badge className="bg-amber-100 text-amber-800 border-amber-200">
-                        {rewardLabel(rule)}
-                      </Badge>
-                    ) : (
-                      "—"
-                    )}
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <Switch
-                      checked={rule.isActive}
-                      onCheckedChange={() => toggleMutation.mutate(rule.id)}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => openEdit(rule)}
-                      >
-                        <PencilSimpleIcon className="size-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-destructive hover:text-destructive"
-                        onClick={() => setDeleteTarget(rule)}
-                      >
-                        <TrashIcon className="size-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+      {/* ── Loading skeletons ────────────────────────────────────────────────── */}
+      {isLoading && (
+        <div className="px-4 space-y-3">
+          {skeletonRows.map((_, i) => (
+            <div key={i} className="h-36 bg-zinc-100 rounded-2xl animate-pulse" />
+          ))}
         </div>
-      </div>
+      )}
+
+      {/* ── Empty state ──────────────────────────────────────────────────────── */}
+      {!isLoading && rules.length === 0 && (
+        <div className="flex flex-col items-center justify-center py-20 px-6 text-center">
+          <div className="size-16 bg-primary/8 rounded-2xl flex items-center justify-center mb-4">
+            <LightningIcon weight="duotone" className="size-8 text-primary" />
+          </div>
+          <h3 className="text-lg font-semibold text-foreground mb-1.5">No Upsell Rules Yet</h3>
+          <p className="text-sm text-muted-foreground max-w-xs mb-6">
+            Create trigger-based offers to boost average order value by suggesting add-ons at the right moment.
+          </p>
+          <Button onClick={() => { setEditing(null); setFormOpen(true); }} size="lg" className="h-12 px-6 gap-2">
+            <PlusIcon weight="bold" className="size-4" />
+            Create First Rule
+          </Button>
+        </div>
+      )}
+
+      {/* ── Mobile cards (< md) ──────────────────────────────────────────────── */}
+      {!isLoading && rules.length > 0 && (
+        <div className="px-4 pb-8 space-y-3 md:hidden">
+          {rules.map((rule) => (
+            <div key={rule.id} className="bg-white rounded-2xl border border-border p-4 space-y-3 shadow-sm">
+              {/* Header */}
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <p className="font-semibold text-foreground text-sm leading-tight">{rule.name}</p>
+                  <Badge variant="outline" className="text-[10px] font-medium mt-1.5">
+                    {triggerLabel(rule)}
+                  </Badge>
+                </div>
+                <Switch
+                  checked={rule.isActive}
+                  onCheckedChange={() => toggleMutation.mutate(rule.id)}
+                />
+              </div>
+
+              {/* Offer items */}
+              {(rule.targets ?? []).length > 0 && (
+                <div className="flex flex-wrap gap-1">
+                  {rule.targets.map((t) => (
+                    <Badge key={t.itemId} variant="secondary" className="text-xs">
+                      {t.itemName}
+                    </Badge>
+                  ))}
+                </div>
+              )}
+
+              {/* Discount + actions */}
+              <div className="flex items-center justify-between pt-1 border-t border-zinc-100">
+                {rule.rewardValue > 0 ? (
+                  <span className="inline-flex items-center text-xs font-semibold px-2 py-0.5 rounded-full border bg-amber-50 text-amber-700 border-amber-200">
+                    {rewardLabel(rule)}
+                  </span>
+                ) : (
+                  <span className="text-xs text-muted-foreground">No discount</span>
+                )}
+                <div className="flex gap-1">
+                  <Button variant="ghost" size="icon" className="size-9" onClick={() => openEdit(rule)}>
+                    <PencilSimpleIcon className="size-4" />
+                  </Button>
+                  <Button
+                    variant="ghost" size="icon"
+                    className="size-9 text-destructive hover:text-destructive hover:bg-destructive/5"
+                    onClick={() => setDeleteTarget(rule)}
+                  >
+                    <TrashIcon className="size-4" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ── Desktop table (≥ md) ─────────────────────────────────────────────── */}
+      {!isLoading && rules.length > 0 && (
+        <div className="px-4 pb-8 hidden md:block">
+          <div className="rounded-2xl border border-border overflow-hidden bg-white shadow-sm">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-zinc-50/80 hover:bg-zinc-50/80 border-b border-zinc-200">
+                  <TableHead className="font-semibold text-zinc-700 text-xs uppercase tracking-wide">Rule Name</TableHead>
+                  <TableHead className="font-semibold text-zinc-700 text-xs uppercase tracking-wide">Trigger</TableHead>
+                  <TableHead className="font-semibold text-zinc-700 text-xs uppercase tracking-wide">Offer Items</TableHead>
+                  <TableHead className="w-28 text-center font-semibold text-zinc-700 text-xs uppercase tracking-wide">Discount</TableHead>
+                  <TableHead className="w-20 text-center font-semibold text-zinc-700 text-xs uppercase tracking-wide">Active</TableHead>
+                  <TableHead className="w-24" />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {rules.map((rule) => (
+                  <TableRow key={rule.id} className="hover:bg-zinc-50/60 transition-colors">
+                    <TableCell className="font-medium text-sm">{rule.name}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="text-xs font-medium">
+                        {triggerLabel(rule)}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-wrap gap-1">
+                        {(rule.targets ?? []).map((t) => (
+                          <Badge key={t.itemId} variant="secondary" className="text-xs">
+                            {t.itemName}
+                          </Badge>
+                        ))}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {rule.rewardValue > 0 ? (
+                        <span className="inline-flex items-center text-[11px] font-semibold px-2 py-0.5 rounded-full border bg-amber-50 text-amber-700 border-amber-200">
+                          {rewardLabel(rule)}
+                        </span>
+                      ) : "—"}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Switch
+                        checked={rule.isActive}
+                        onCheckedChange={() => toggleMutation.mutate(rule.id)}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex gap-1 justify-end">
+                        <Button variant="ghost" size="icon" className="size-8" onClick={() => openEdit(rule)}>
+                          <PencilSimpleIcon className="size-4" />
+                        </Button>
+                        <Button
+                          variant="ghost" size="icon"
+                          className="size-8 text-destructive hover:text-destructive hover:bg-destructive/5"
+                          onClick={() => setDeleteTarget(rule)}
+                        >
+                          <TrashIcon className="size-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
+      )}
 
       <UpsellRuleFormDialog
         open={formOpen}

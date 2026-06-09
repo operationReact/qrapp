@@ -11,9 +11,7 @@ import {
 } from "@/components/ui/sidebar";
 import { useAdminDashboard } from "@/context/AdminDashboardContext";
 import { Link, useNavigate, useLocation } from "@tanstack/react-router";
-import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
-import { ButtonGroup } from "../ui/button-group";
 import {
   BowlFoodIcon,
   QueueIcon,
@@ -38,368 +36,206 @@ import {
   SparkleIcon,
   CurrencyInrIcon,
   TerminalWindowIcon,
+  ArrowsClockwiseIcon,
 } from "@phosphor-icons/react";
 import { useAuth } from "@/context/AuthContext";
+import { cn } from "@/lib/utils";
+
+// Helper: generates consistent SidebarMenuButton props
+function NavItem({ to, label, icon, pathname }) {
+  const Icon = icon;
+  const active = pathname === to || (to !== "/admin" && pathname.startsWith(to));
+  return (
+    <SidebarMenuItem>
+      <SidebarMenuButton
+        className={cn(
+          "text-sm! font-medium! transition-colors",
+          active ? "text-primary! bg-primary/8!" : "text-zinc-600! hover:text-zinc-900!",
+        )}
+        isActive={active}
+        render={
+          <Link to={to}>
+            <Icon weight={active ? "bold" : "regular"} className={active ? "text-primary" : "text-zinc-500"} />
+            <span>{label}</span>
+          </Link>
+        }
+      />
+    </SidebarMenuItem>
+  );
+}
 
 export function AdminSidebar() {
   const { setUser: setAdmin } = useAuth();
   const navigate = useNavigate();
   const { pathname } = useLocation();
+  const { refreshing, loadData, dashboard } = useAdminDashboard();
 
-  const { refreshing, loadData } = useAdminDashboard();
+  const alertCount = (dashboard?.delayedOrders ?? 0) + (dashboard?.placedOrders ?? 0);
 
   return (
     <Sidebar>
-      <SidebarHeader>
+      <SidebarHeader className="px-3 py-3 border-b border-sidebar-border/60">
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton
-              className="data-[slot=sidebar-menu-button]:p-1.5! h-auto hover:bg-unset"
+              className="data-[slot=sidebar-menu-button]:p-1.5! h-auto hover:bg-transparent!"
               render={
-                <Link
-                  to="/admin"
-                  className="flex gap-2 items-center font-semibold"
-                >
-                  <img
-                    src="/bro-logo.png"
-                    alt="Bro and Bro Admin"
-                    className="size-10!"
-                  />
+                <Link to="/admin" className="flex gap-2.5 items-center">
+                  <img src="/bro-logo.png" alt="Bro and Bro Admin" className="size-9!" />
+                  <span className="font-bold text-sm text-foreground tracking-tight leading-none">
+                    Bro & Bro<br />
+                    <span className="text-[10px] font-medium text-muted-foreground tracking-normal">Admin Console</span>
+                  </span>
                 </Link>
               }
             />
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
-      <SidebarContent className="p-2">
-        <SidebarGroup>
+
+      <SidebarContent className="px-2 py-3 gap-1">
+
+        {/* Dashboard */}
+        <SidebarGroup className="p-0">
           <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                tooltip="Dashboard"
-                className="text-sm! font-medium! text-zinc-700"
-                isActive={pathname === "/admin"}
-                render={
-                  <Link to="/admin">
-                    <SquaresFourIcon
-                      className="text-primary"
-                      weight={pathname === "/admin" ? "bold" : "regular"}
-                    />
-                    <span>Dashboard</span>
-                  </Link>
-                }
-              />
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </SidebarGroup>
-        <SidebarGroup className="group-data-[collapsible=icon]:hidden">
-          <SidebarGroupLabel>Menu</SidebarGroupLabel>
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                className="text-zinc-700 font-medium"
-                isActive={pathname === "/admin/menu"}
-                render={
-                  <Link to={"/admin/menu"}>
-                    <BowlFoodIcon
-                      className="text-primary"
-                      weight={pathname === "/admin/menu" ? "bold" : "regular"}
-                    />
-                    <span>Menu</span>
-                  </Link>
-                }
-              />
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                className="text-zinc-700 font-medium"
-                isActive={pathname === "/admin/combos"}
-                render={
-                  <Link to={"/admin/combos"}>
-                    <CubeIcon
-                      className="text-primary"
-                      weight={pathname === "/admin/combos" ? "bold" : "regular"}
-                    />
-                    <span>Combos</span>
-                  </Link>
-                }
-              />
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                className="text-zinc-700 font-medium"
-                isActive={pathname === "/admin/combo-campaigns"}
-                render={
-                  <Link to={"/admin/combo-campaigns"}>
-                    <SparkleIcon
-                      className="text-primary"
-                      weight={pathname === "/admin/combo-campaigns" ? "bold" : "regular"}
-                    />
-                    <span>BYOC Campaigns</span>
-                  </Link>
-                }
-              />
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                className="text-zinc-700 font-medium"
-                isActive={pathname === "/admin/classification"}
-                render={
-                  <Link to={"/admin/classification"}>
-                    <ForkKnifeIcon
-                      className="text-primary"
-                      weight={pathname === "/admin/classification" ? "bold" : "regular"}
-                    />
-                    <span>Recommendation Setup</span>
-                  </Link>
-                }
-              />
-            </SidebarMenuItem>
+            <NavItem to="/admin" label="Dashboard" icon={SquaresFourIcon} pathname={pathname === "/admin" || pathname === "/admin/" ? "/admin" : ""} />
           </SidebarMenu>
         </SidebarGroup>
 
-        <SidebarGroup className="group-data-[collapsible=icon]:hidden">
-          <SidebarGroupLabel>Orders</SidebarGroupLabel>
+        {/* Menu */}
+        <SidebarGroup className="p-0 group-data-[collapsible=icon]:hidden">
+          <SidebarGroupLabel className="text-[10px] uppercase tracking-widest font-semibold text-zinc-400 px-2 py-1.5 mb-0.5">
+            Menu
+          </SidebarGroupLabel>
           <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                className="text-zinc-700 font-medium"
-                isActive={pathname.startsWith("/admin/operational-queue")}
-                render={
-                  <Link to={"/admin/operational-queue"}>
-                    <QueueIcon
-                      className="text-primary"
-                      weight={
-                        pathname.startsWith("/admin/operational-queue")
-                          ? "bold"
-                          : "regular"
-                      }
-                    />
-                    <span>Kitchen Queue</span>
-                  </Link>
-                }
-              />
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                className="text-zinc-700 font-medium"
-                isActive={pathname === "/admin/party-orders"}
-                render={
-                  <Link to={"/admin/party-orders"}>
-                    <UsersThreeIcon
-                      className="text-primary"
-                      weight={
-                        pathname === "/admin/party-orders" ? "bold" : "regular"
-                      }
-                    />
-                    <span>Party Orders</span>
-                  </Link>
-                }
-              />
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                className="text-zinc-700 font-medium"
-                isActive={pathname === "/admin/pre-orders"}
-                render={
-                  <Link to={"/admin/pre-orders"}>
-                    <CalendarCheckIcon
-                      className="text-primary"
-                      weight={pathname === "/admin/pre-orders" ? "bold" : "regular"}
-                    />
-                    <span>Pre-Orders</span>
-                  </Link>
-                }
-              />
-            </SidebarMenuItem>
+            <NavItem to="/admin/menu" label="Menu Items" icon={BowlFoodIcon} pathname={pathname} />
+            <NavItem to="/admin/combos" label="Combos" icon={CubeIcon} pathname={pathname} />
+            <NavItem to="/admin/combo-campaigns" label="BYOC Campaigns" icon={SparkleIcon} pathname={pathname} />
+            <NavItem to="/admin/classification" label="Recommendation Setup" icon={ForkKnifeIcon} pathname={pathname} />
           </SidebarMenu>
         </SidebarGroup>
 
-        <SidebarGroup className="group-data-[collapsible=icon]:hidden">
-
-          <SidebarGroupLabel>Offers</SidebarGroupLabel>
+        {/* Orders */}
+        <SidebarGroup className="p-0 group-data-[collapsible=icon]:hidden">
+          <SidebarGroupLabel className="text-[10px] uppercase tracking-widest font-semibold text-zinc-400 px-2 py-1.5 mb-0.5">
+            Orders
+            {alertCount > 0 && (
+              <span className="ml-auto inline-flex items-center justify-center size-4 rounded-full bg-red-500 text-white text-[9px] font-bold">
+                {alertCount > 9 ? "9+" : alertCount}
+              </span>
+            )}
+          </SidebarGroupLabel>
           <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                className="text-zinc-700 font-medium"
-                isActive={pathname === "/admin/promotions"}
-                render={
-                  <Link to={"/admin/promotions"}>
-                    <TicketIcon
-                      className="text-primary"
-                      weight={pathname === "/admin/promotions" ? "bold" : "regular"}
-                    />
-                    <span>Promotions</span>
-                  </Link>
-                }
-              />
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                className="text-zinc-700 font-medium"
-                isActive={pathname === "/admin/milestones"}
-                render={
-                  <Link to={"/admin/milestones"}>
-                    <TrophyIcon
-                      className="text-primary"
-                      weight={pathname === "/admin/milestones" ? "bold" : "regular"}
-                    />
-                    <span>Milestones</span>
-                  </Link>
-                }
-              />
-            </SidebarMenuItem>
+            <NavItem to="/admin/operational-queue" label="Kitchen Queue" icon={QueueIcon} pathname={pathname} />
+            <NavItem to="/admin/party-orders" label="Party Orders" icon={UsersThreeIcon} pathname={pathname} />
+            <NavItem to="/admin/pre-orders" label="Pre-Orders" icon={CalendarCheckIcon} pathname={pathname} />
           </SidebarMenu>
         </SidebarGroup>
 
-        <SidebarGroup className="group-data-[collapsible=icon]:hidden">
-          <SidebarGroupLabel>Growth Tools</SidebarGroupLabel>
+        {/* Offers */}
+        <SidebarGroup className="p-0 group-data-[collapsible=icon]:hidden">
+          <SidebarGroupLabel className="text-[10px] uppercase tracking-widest font-semibold text-zinc-400 px-2 py-1.5 mb-0.5">
+            Offers
+          </SidebarGroupLabel>
+          <SidebarMenu>
+            <NavItem to="/admin/promotions" label="Promotions" icon={TicketIcon} pathname={pathname} />
+            <NavItem to="/admin/milestones" label="Milestones" icon={TrophyIcon} pathname={pathname} />
+          </SidebarMenu>
+        </SidebarGroup>
+
+        {/* Growth */}
+        <SidebarGroup className="p-0 group-data-[collapsible=icon]:hidden">
+          <SidebarGroupLabel className="text-[10px] uppercase tracking-widest font-semibold text-zinc-400 px-2 py-1.5 mb-0.5">
+            Growth Tools
+          </SidebarGroupLabel>
           <SidebarMenu>
             {[
-              { to: "/admin/item-recommendations", label: "Item Pairings",    icon: ListPlusIcon },
-              { to: "/admin/auto-suggestions",  label: "Auto Suggestions", icon: MagicWandIcon },
-              { to: "/admin/upsell-rules",      label: "Upsell Rules",     icon: LightningIcon },
-              { to: "/admin/category-pairings", label: "Category Pairings",icon: ArrowsOutSimpleIcon },
-              { to: "/admin/analytics/profitability", label: "Profitability", icon: CurrencyInrIcon },
-            ].map(({ to, label, icon }) => {
-              const ItemIcon = icon;
-              return (
-                <SidebarMenuItem key={to}>
-                  <SidebarMenuButton
-                    className="text-zinc-700 font-medium"
-                    isActive={pathname === to}
-                    render={
-                      <Link to={to}>
-                        <ItemIcon
-                          className="text-primary"
-                          weight={pathname === to ? "bold" : "regular"}
-                        />
-                        <span>{label}</span>
-                      </Link>
-                    }
-                  />
-                </SidebarMenuItem>
-              );
-            })}
+              { to: "/admin/item-recommendations", label: "Item Pairings",     icon: ListPlusIcon },
+              { to: "/admin/auto-suggestions",     label: "Auto Suggestions",  icon: MagicWandIcon },
+              { to: "/admin/upsell-rules",         label: "Upsell Rules",      icon: LightningIcon },
+              { to: "/admin/category-pairings",    label: "Category Pairings", icon: ArrowsOutSimpleIcon },
+              { to: "/admin/analytics/profitability", label: "Profitability",  icon: CurrencyInrIcon },
+            ].map(({ to, label, icon }) => (
+              <NavItem key={to} to={to} label={label} icon={icon} pathname={pathname} />
+            ))}
           </SidebarMenu>
         </SidebarGroup>
 
-        <SidebarGroup className="group-data-[collapsible=icon]:hidden">
-          <SidebarGroupLabel>Global Controls</SidebarGroupLabel>
+        {/* Settings */}
+        <SidebarGroup className="p-0 group-data-[collapsible=icon]:hidden">
+          <SidebarGroupLabel className="text-[10px] uppercase tracking-widest font-semibold text-zinc-400 px-2 py-1.5 mb-0.5">
+            System
+          </SidebarGroupLabel>
           <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                className="text-zinc-700 font-medium"
-                isActive={pathname === "/admin/global-controls"}
-                render={
-                  <Link to={"/admin/global-controls"}>
-                    <SlidersIcon
-                      className="text-primary"
-                      weight={pathname === "/admin/global-controls" ? "bold" : "regular"}
-                    />
-                    <span>Settings</span>
-                  </Link>
-                }
-              />
-            </SidebarMenuItem>
+            <NavItem to="/admin/global-controls" label="Settings" icon={SlidersIcon} pathname={pathname} />
+            <NavItem to="/admin/ops-center" label="Operations Center" icon={TerminalWindowIcon} pathname={pathname} />
           </SidebarMenu>
         </SidebarGroup>
 
-        <SidebarGroup className="group-data-[collapsible=icon]:hidden">
-          <SidebarGroupLabel>Operations</SidebarGroupLabel>
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                className="text-zinc-700 font-medium"
-                isActive={pathname === "/admin/ops-center"}
-                render={
-                  <Link to={"/admin/ops-center"}>
-                    <TerminalWindowIcon
-                      className="text-primary"
-                      weight={pathname === "/admin/ops-center" ? "bold" : "regular"}
-                    />
-                    <span>Operations Center</span>
-                  </Link>
-                }
-              />
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </SidebarGroup>
-
-        <SidebarGroup className="group-data-[collapsible=icon]:hidden">
-          <SidebarGroupLabel>Analytics</SidebarGroupLabel>
+        {/* Analytics */}
+        <SidebarGroup className="p-0 group-data-[collapsible=icon]:hidden">
+          <SidebarGroupLabel className="text-[10px] uppercase tracking-widest font-semibold text-zinc-400 px-2 py-1.5 mb-0.5">
+            Analytics
+          </SidebarGroupLabel>
           <SidebarMenu>
             {[
-              { to: "/admin/analytics", label: "Overview", icon: ChartLineUpIcon },
-              { to: "/admin/analytics/sales", label: "Sales", icon: ChartBarIcon },
-              { to: "/admin/analytics/orders", label: "Orders", icon: ShoppingCartSimpleIcon },
-              { to: "/admin/analytics/menu", label: "Menu", icon: ForkKnifeIcon },
-              { to: "/admin/analytics/users", label: "Users", icon: UserCircleIcon },
-              { to: "/admin/analytics/coupons", label: "Promotions", icon: TicketIcon },
+              { to: "/admin/analytics",              label: "Overview",         icon: ChartLineUpIcon },
+              { to: "/admin/analytics/sales",        label: "Sales",            icon: ChartBarIcon },
+              { to: "/admin/analytics/orders",       label: "Orders",           icon: ShoppingCartSimpleIcon },
+              { to: "/admin/analytics/menu",         label: "Menu",             icon: ForkKnifeIcon },
+              { to: "/admin/analytics/users",        label: "Users",            icon: UserCircleIcon },
+              { to: "/admin/analytics/coupons",      label: "Promotions",       icon: TicketIcon },
               { to: "/admin/analytics/recommendations", label: "Recommendations", icon: StarIcon },
-            ].map(({ to, label, icon }) => {
-              const ItemIcon = icon;
-              return (
-              <SidebarMenuItem key={to}>
-                <SidebarMenuButton
-                  className="text-zinc-700 font-medium"
-                  isActive={pathname === to}
-                  render={
-                    <Link to={to}>
-                      <ItemIcon
-                        className="text-primary"
-                        weight={pathname === to ? "bold" : "regular"}
-                      />
-                      <span>{label}</span>
-                    </Link>
-                  }
-                />
-              </SidebarMenuItem>
-              );
-            })}
+            ].map(({ to, label, icon }) => (
+              <NavItem key={to} to={to} label={label} icon={icon} pathname={pathname} />
+            ))}
           </SidebarMenu>
         </SidebarGroup>
+
       </SidebarContent>
-      <SidebarFooter>
+
+      <SidebarFooter className="px-3 py-3 border-t border-sidebar-border/60">
         <SidebarMenu>
-          <SidebarGroup>
-            <SidebarMenuItem className="mb-2">
-              <ButtonGroup>
-                <Badge className=" bg-zinc-100 h-7 justify-start w-full">
-                  <div
-                    className={`size-2 rounded-full animate-pulse ${refreshing ? "bg-amber-500" : "bg-emerald-500"}`}
-                  />
-                  <span className="text-xs font-medium text-slate-600">
-                    {refreshing ? "Updating..." : "Live Sync"}
-                  </span>
-                </Badge>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => loadData({ quiet: true })}
-                  disabled={refreshing}
-                  className="font-medium! text-sm!"
+          {/* Live sync status */}
+          <SidebarMenuItem>
+            <div className="flex items-center gap-2 px-2 py-2 rounded-lg bg-zinc-50 border border-zinc-200/80 mb-1">
+              <span className={cn(
+                "size-2 rounded-full shrink-0",
+                refreshing ? "bg-amber-400 animate-pulse" : "bg-emerald-500 animate-pulse",
+              )} />
+              <span className="flex-1 text-xs font-medium text-zinc-600 truncate">
+                {refreshing ? "Updating…" : "Live Sync"}
+              </span>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-6 shrink-0"
+                onClick={() => loadData({ quiet: true })}
+                disabled={refreshing}
+                aria-label="Refresh data"
+              >
+                <ArrowsClockwiseIcon className={cn("size-3.5 text-zinc-500", refreshing && "animate-spin")} />
+              </Button>
+            </div>
+          </SidebarMenuItem>
+
+          {/* Logout */}
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              className="text-sm! font-medium! text-zinc-600! hover:text-red-600! hover:bg-red-50!"
+              render={
+                <button
+                  onClick={() => {
+                    setAdmin(null);
+                    navigate({ to: "/login" });
+                  }}
                 >
-                  Refresh
-                </Button>
-              </ButtonGroup>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                className="text-sm! font-medium! text-zinc-700"
-                render={
-                  <button
-                    onClick={() => {
-                      setAdmin(null);
-                      navigate({ to: "/login" });
-                    }}
-                  >
-                    <SignOutIcon /> Logout
-                  </button>
-                }
-              />
-            </SidebarMenuItem>
-          </SidebarGroup>
+                  <SignOutIcon className="text-zinc-500" />
+                  <span>Sign Out</span>
+                </button>
+              }
+            />
+          </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
     </Sidebar>

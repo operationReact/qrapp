@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, useMemo } from "react";
-import AdminHeader from "@/components/admin/AdminHeader";
 import PartyOrderCard from "@/components/admin/PartyOrderCard";
 import { partyOrdersOptions } from "@/query/options/party-orders";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -66,12 +65,17 @@ function PartyOrdersPage() {
 
   return (
     <>
-      <AdminHeader
-        title="Party Orders"
-        description="Manage party order requests and provide estimates."
-      />
+      {/* ── Page Header ───────────────────────────────────────────────── */}
+      <div className="px-4 pt-6 pb-5">
+        <h1 className="text-2xl font-bold tracking-tight text-foreground md:text-[28px] leading-tight">
+          Party Orders
+        </h1>
+        <p className="mt-1.5 text-sm text-muted-foreground">
+          Manage party order requests and provide estimates.
+        </p>
+      </div>
 
-      <div className="px-4 py-4 space-y-4">
+      <div className="px-4 pb-6 space-y-4">
         {/* ── Search ──────────────────────────────────────────────────── */}
         <InputGroup className="w-full max-w-sm">
           <InputGroupAddon>

@@ -5,9 +5,8 @@ import {
   SidebarProvider,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { AdminDashboardProvider } from "@/context/AdminDashboardContext";
-import { Bell, Menu as MenuIcon } from "lucide-react";
-import { useState } from "react";
+import { AdminDashboardProvider, useAdminDashboard } from "@/context/AdminDashboardContext";
+import { Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SidebarIcon } from "@phosphor-icons/react";
 
@@ -18,31 +17,36 @@ export const Route = createFileRoute("/admin")({
 // ── Compact sub-page header (hamburger left, bell right) ──────────────────────
 function SubPageHeader() {
   const { toggleSidebar } = useSidebar();
-  const [notifCount] = useState(3);
+  const { dashboard } = useAdminDashboard();
+  const notifCount = Math.min(
+    (dashboard?.delayedOrders ?? 0) + (dashboard?.placedOrders ?? 0),
+    9,
+  );
 
   return (
-    <header className="sticky top-0 z-40 bg-white border-b border-zinc-100 shadow-[0_1px_3px_rgba(0,0,0,.04)]">
-      <div className="flex items-center justify-between px-4 h-12">
+    <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-sm border-b border-zinc-100/80">
+      <div className="flex items-center justify-between px-3 h-12">
         {/* hamburger */}
         <Button
           size="icon"
           variant="ghost"
           onClick={toggleSidebar}
           aria-label="Open menu"
+          className="shrink-0"
         >
           <SidebarIcon />
         </Button>
 
-        {/* bell */}
+        {/* bell — only shows badge when there are real alerts */}
         <Button
           aria-label="Notifications"
           size="icon"
           variant="ghost"
-          className="relative"
+          className="relative shrink-0"
         >
-          <Bell />
+          <Bell className="size-[18px]" />
           {notifCount > 0 && (
-            <span className="absolute top-0.5 right-0.5 size-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center leading-none">
+            <span className="absolute top-1 right-1 size-[14px] bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center leading-none tabular-nums">
               {notifCount}
             </span>
           )}
