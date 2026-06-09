@@ -18,7 +18,7 @@ import {
   DrawerTrigger,
 } from "@/components/ui/drawer";
 import { CaretDown, Plus } from "@boxicons/react";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Truck } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import Navbar from "@/components/shared/Navbar";
@@ -30,6 +30,7 @@ import { paymentConfigOptions } from "@/query/options/orders";
 import { getCurrentUser } from "@/services/auth-service";
 import { walletGetBalance } from "@/services/wallet-service";
 import { getRecommendedMenu } from "@/services/menu-service";
+import { getRecommendedBundle, getMealRecommendation } from "@/services/recommendation-service";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Field,
@@ -48,11 +49,58 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty";
-import { ListStarIcon, ShoppingCartIcon } from "@phosphor-icons/react";
+import { ListStarIcon, ShoppingCartIcon, SparkleIcon } from "@phosphor-icons/react";
 import { PromotionDrawer } from "@/components/PromotionDrawer";
 import { useCheckoutPromotions } from "@/hooks/useCheckoutPromotions";
 import { useByocDiscount } from "@/hooks/useByocDiscount";
 import ComboProgressBanner from "@/components/ComboProgressBanner";
+import CompleteMealCard from "@/components/CompleteMealCard";
+import RecommendedBundleCard from "@/components/RecommendedBundleCard";
+import { cn } from "@/lib/utils";
+
+// ── Delivery progress bar (free delivery threshold) ───────────────────────────
+const FREE_DELIVERY_THRESHOLD = 500;
+
+function DeliveryProgressBar({ cartTotal }) {
+  const remaining = Math.max(0, FREE_DELIVERY_THRESHOLD - cartTotal);
+  const progress  = Math.min(100, (cartTotal / FREE_DELIVERY_THRESHOLD) * 100);
+  const unlocked  = cartTotal >= FREE_DELIVERY_THRESHOLD;
+
+  return (
+    <section className="rounded-xl bg-card border border-border shadow-xs p-4">
+      <div className="flex items-center justify-between text-sm mb-2">
+        {unlocked ? (
+          <span className="font-semibold text-emerald-700 flex items-center gap-1.5">
+            🎉 Free Delivery Unlocked!
+          </span>
+        ) : (
+          <>
+            <span className="text-muted-foreground flex items-center gap-1.5">
+              <Truck className="size-4 shrink-0" />
+              Add{" "}
+              <span className="font-semibold text-foreground">
+                ₹{remaining.toFixed(0)}
+              </span>{" "}
+              more to unlock
+            </span>
+            <span className="font-semibold text-primary text-xs uppercase tracking-wide">
+              FREE DELIVERY
+            </span>
+          </>
+        )}
+      </div>
+      <div className="h-2 w-full bg-zinc-100 rounded-full overflow-hidden">
+        <div
+          className={cn(
+            "h-full rounded-full transition-all duration-500",
+            unlocked ? "bg-emerald-500" : "bg-primary",
+          )}
+          style={{ width: `${progress}%` }}
+        />
+      </div>
+    </section>
+  );
+}
 
 function loadRazorpayScript(
   src = "https://checkout.razorpay.com/v1/checkout.js",
@@ -98,6 +146,10 @@ function CartPage() {
   const [walletLoading, setWalletLoading] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState("RAZORPAY");
   const [submitting, setSubmitting] = useState(false);
+  const [mealAdded,    setMealAdded]    = useState(false);
+  const [mealAdding,   setMealAdding]   = useState(false);
+  const [bundleAdded,  setBundleAdded]  = useState(false);
+  const [bundleAdding, setBundleAdding] = useState(false);
 
   // Fetch payment config via React Query — auto-retries & caches
   const { data: paymentConfig } = useQuery(paymentConfigOptions);
@@ -158,6 +210,65 @@ function CartPage() {
 
   const hasWalletBalance = typeof walletBalance === "number";
   const walletCanCoverOrder = hasWalletBalance && walletBalance >= totalAfterDiscount;
+
+  // ── Smart upsell queries (priority-based) ──────────────────────────────
+  const cartItemsKey = cart.map((i) => `${i.id}:${i.quantity}`).sort().join(",");
+  const cartItemIds  = cart.map((i) => i.id);
+
+  const { data: meal, isLoading: mealLoading, isError: mealError } = useQuery({
+    queryKey: ["complete-meal", cartItemsKey],
+    queryFn:  () => getMealRecommendation({ cartItemIds, cartTotal: total }),
+    enabled:  cart.length > 0,
+    staleTime: 1000 * 60 * 3,
+    retry:    false,
+  });
+  const hasMeal = !mealLoading && !mealError && !!(meal?.mealItems?.length);
+
+  const { data: bundle, isLoading: bundleLoading, isError: bundleError } = useQuery({
+    queryKey: ["v1-recommended-bundle", cartItemsKey],
+    queryFn:  () => getRecommendedBundle({ cartItemIds, cartTotal: total }),
+    enabled:  cart.length > 0 && !mealLoading && !hasMeal,
+    staleTime: 1000 * 60 * 3,
+    retry:    false,
+  });
+  const hasBundle = !bundleLoading && !bundleError && !!(bundle?.bundleItems?.length);
+
+  // Reset "added" badges when cart changes
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setMealAdded(false);
+      setBundleAdded(false);
+    }, 0);
+    return () => clearTimeout(t);
+  }, [cartItemsKey]);
+
+  const handleAddMeal = async () => {
+    if (!meal?.mealItems?.length) return;
+    setMealAdding(true);
+    try {
+      const cartIds = new Set(cart.map((i) => i.id));
+      meal.mealItems
+        .filter((item) => !cartIds.has(item.itemId))
+        .forEach((item) =>
+          addItem({ id: item.itemId, name: item.itemName, imageUrl: item.imageUrl ?? undefined, price: Number(item.price) }),
+        );
+      setMealAdded(true);
+    } finally { setMealAdding(false); }
+  };
+
+  const handleAddBundle = async () => {
+    if (!bundle) return;
+    setBundleAdding(true);
+    try {
+      const cartIds = new Set(cart.map((i) => i.id));
+      bundle.bundleItems
+        .filter((item) => !cartIds.has(item.itemId))
+        .forEach((item) =>
+          addItem({ id: item.itemId, name: item.itemName, imageUrl: item.imageUrl ?? undefined, price: Number(item.price) }),
+        );
+      setBundleAdded(true);
+    } finally { setBundleAdding(false); }
+  };
 
   // Auto-apply the recommended promotion on first load
   useEffect(() => {
@@ -447,6 +558,40 @@ function CartPage() {
             </div>
           )}
 
+          {/* ── Delivery progress bar ────────────────────────────────── */}
+          {cart.length > 0 && (
+            <DeliveryProgressBar cartTotal={total} />
+          )}
+
+          {/* ── Smart Upsell (priority: meal > bundle) ───────────────── */}
+          {cart.length > 0 && (mealLoading || hasMeal || bundleLoading || hasBundle) && (
+            <section className="rounded-xl bg-card border border-border shadow-xs p-3">
+              {(mealLoading || (!hasMeal && bundleLoading)) ? (
+                <div className="h-36 rounded-2xl bg-zinc-100/70 animate-pulse" />
+              ) : hasMeal ? (
+                <CompleteMealCard
+                  mainItemName={meal.mainItemName ?? cart[0]?.name}
+                  mealItems={meal.mealItems}
+                  savings={Number(meal.savings)}
+                  onAddMeal={handleAddMeal}
+                  isLoading={mealAdding}
+                  disabled={mealAdded}
+                />
+              ) : hasBundle ? (
+                <RecommendedBundleCard
+                  bundleItems={bundle.bundleItems}
+                  originalPrice={Number(bundle.originalPrice)}
+                  savings={Number(bundle.savings)}
+                  finalPrice={Number(bundle.finalPrice)}
+                  primaryItemName={cart[0]?.name}
+                  onAddBundle={handleAddBundle}
+                  isLoading={bundleAdding}
+                  disabled={bundleAdded}
+                />
+              ) : null}
+            </section>
+          )}
+
           {/* ── BYOC Combo Progress ───────────────────────────────────── */}
           {cart.length > 0 && primaryByocCampaign && (
             <section className="rounded-xl bg-card border border-border shadow-xs p-4">
@@ -475,10 +620,9 @@ function CartPage() {
           )}
 
           <section className="rounded-xl bg-card border border-border shadow-xs p-4 mb-12">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <h4 className="text-base font-semibold mb-2">Add Ons</h4>
-              </div>
+            <div className="flex items-center gap-2 mb-3">
+              <SparkleIcon weight="fill" className="size-4 text-orange-500" />
+              <h4 className="text-base font-semibold">Customers Also Love</h4>
             </div>
 
             {recLoading && (
@@ -521,7 +665,28 @@ function CartPage() {
           {cart.length > 0 ? (
             <div className="fixed z-5 min-h-35 border-t border-border bg-card/95 backdrop-blur-sm inset-x-0 bottom-0">
               <div className="container-premium">
-                <div className="flex items-center justify-between rounded-xl pt-4 pb-2">
+                {/* Savings banner — prominent when a discount is applied */}
+                {discount > 0 && (
+                  <div className="flex items-center justify-between pt-2 pb-0.5">
+                    <span className="text-xs font-medium text-emerald-700 flex items-center gap-1">
+                      🎉 You Save
+                    </span>
+                    <span className="text-sm font-bold text-emerald-700">
+                      ₹{discount.toFixed(0)}
+                      {liveAppliedPromotion && (
+                        <span className="ml-1 text-[10px] font-normal text-emerald-600">
+                          · {liveAppliedPromotion.code ?? "offer"}
+                        </span>
+                      )}
+                      {!liveAppliedPromotion && byocDiscount && (
+                        <span className="ml-1 text-[10px] font-normal text-emerald-600">
+                          · combo deal
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                )}
+                <div className="flex items-center justify-between rounded-xl pt-3 pb-2">
                   <div className="text-muted-foreground flex gap-2 items-center font-medium">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -534,25 +699,15 @@ function CartPage() {
                     </svg>{" "}
                     Total
                   </div>
-                  <div className="flex flex-col items-end">
+                  <div className="flex items-baseline gap-2">
                     {discount > 0 && (
-                      <span className="text-xs text-muted-foreground line-through">
-                        ₹{total.toFixed(2)}
+                      <span className="text-sm text-muted-foreground line-through">
+                        ₹{total.toFixed(0)}
                       </span>
                     )}
-                    <div className="font-bold text-lg">
-                      ₹{totalAfterDiscount.toFixed(2)}
+                    <div className="font-bold text-xl">
+                      ₹{totalAfterDiscount.toFixed(0)}
                     </div>
-                    {discount > 0 && liveAppliedPromotion && (
-                      <span className="text-xs text-green-700 font-medium">
-                        -₹{discount.toFixed(2)} with {liveAppliedPromotion.code ?? "offer"}
-                      </span>
-                    )}
-                    {discount > 0 && !liveAppliedPromotion && byocDiscount && (
-                      <span className="text-xs text-emerald-700 font-medium">
-                        🔥 -₹{discount.toFixed(2)} combo savings
-                      </span>
-                    )}
                   </div>
                 </div>
 

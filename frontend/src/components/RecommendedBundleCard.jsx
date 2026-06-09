@@ -173,13 +173,25 @@ export default function RecommendedBundleCard({
       {/* ── 5. Savings badge + CTA ───────────────────────────────────── */}
       <div className="px-4 pb-4 space-y-3">
 
-        {/* Savings pill badge */}
+        {/* Savings banner — prominent green strip */}
         {savingsRupees > 0 && (
-          <div className="flex items-center justify-center">
-            <span className="inline-flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 text-emerald-700 text-[11px] font-bold px-3 py-1 rounded-full">
-              <TagIcon weight="fill" className="size-3 shrink-0" />
-              Save ₹{fmt(savingsRupees)}
-            </span>
+          <div className="flex items-center justify-between rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-2">
+            <div className="flex items-center gap-1.5">
+              <TagIcon weight="fill" className="size-3.5 text-emerald-600 shrink-0" />
+              <span className="text-xs text-emerald-700 font-medium">
+                Bundle Price
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-zinc-400 line-through">
+                ₹{fmt(
+                  bundleItems.reduce((s, i) => s + Number(i.price ?? 0), 0),
+                )}
+              </span>
+              <span className="text-sm font-bold text-emerald-700">
+                You Save ₹{fmt(savingsRupees)}
+              </span>
+            </div>
           </div>
         )}
 
