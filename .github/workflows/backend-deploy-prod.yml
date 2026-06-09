@@ -38,6 +38,16 @@ jobs:
           java-version: "21"
           distribution: corretto
 
+      # ── 2b. Cache Gradle distribution + downloaded dependencies ──────────────
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            /opt/gradle/gradle-8.7
+            ~/.gradle/caches
+          key: ${{ runner.os }}-gradle-8.7-${{ hashFiles('**/*.gradle', '**/*.gradle.kts', '**/gradle.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-8.7-
 
       # ── 3. Build JAR ─────────────────────────────────────────────────────────
       # Install Gradle 8.7 directly from the official distribution so we never
@@ -45,9 +55,14 @@ jobs:
       # .gitignore and therefore always empty in this repo).
       - name: Install Gradle 8.7
         run: |
-          curl -fsSL https://services.gradle.org/distributions/gradle-8.7-bin.zip \
-            -o /tmp/gradle.zip
-          unzip -q /tmp/gradle.zip -d /opt/gradle
+          if [ ! -f /opt/gradle/gradle-8.7/bin/gradle ]; then
+            echo "⬇️ Cache miss – downloading Gradle 8.7..."
+            curl -fsSL https://services.gradle.org/distributions/gradle-8.7-bin.zip \
+              -o /tmp/gradle.zip
+            unzip -q /tmp/gradle.zip -d /opt/gradle
+          else
+            echo "✅ Gradle 8.7 restored from cache – skipping download"
+          fi
           echo "/opt/gradle/gradle-8.7/bin" >> "$GITHUB_PATH"
 
       - name: Build Spring Boot JAR
@@ -82,13 +97,18 @@ jobs:
           echo "$KEY" > /tmp/deploy_key
           chmod 600 /tmp/deploy_key
 
-      # ── 7. Copy JAR to EC2 ───────────────────────────────────────────────────
-      - name: Copy JAR to EC2
+      # ── 7. Upload JAR to S3 ──────────────────────────────────────────────────
+      # Replacing the old SCP approach (GitHub runner US → Mumbai EC2 = ~30 min).
+      # The runner uploads to S3 in ap-south-1; the EC2 pulls it from S3 in the
+      # same region over the AWS backbone – typically <30 seconds total.
+      - name: Upload JAR to S3
         run: |
-          scp -i /tmp/deploy_key \
-            -o StrictHostKeyChecking=no \
+          echo "📦 Uploading JAR to S3 (ap-south-1)..."
+          time aws s3 cp \
             backend/build/libs/qrapp-*.jar \
-            ec2-user@${{ steps.ec2.outputs.host }}:/tmp/app-new.jar
+            s3://broandbro-menu-images/deploy/prod/${{ github.run_id }}/app.jar \
+            --region ap-south-1
+          echo "✅ S3 upload complete"
 
       # ── 8. Write application.env + restart service ───────────────────────────
       # All secrets are injected here — nothing sensitive is ever stored in files
@@ -101,6 +121,12 @@ jobs:
             ec2-user@${{ steps.ec2.outputs.host }} << 'ENDSSH'
 
             set -euo pipefail
+
+            # Pull the JAR from S3 (same region → AWS backbone, ~5–15 seconds)
+            echo "⬇️ Downloading JAR from S3..."
+            aws s3 cp \
+              s3://broandbro-menu-images/deploy/prod/${{ github.run_id }}/app.jar \
+              /tmp/app-new.jar
 
             # Backup existing JAR
             [ -f /opt/broandbro/app.jar ] && \
@@ -170,4 +196,11 @@ jobs:
       - name: Cleanup SSH key
         if: always()
         run: rm -f /tmp/deploy_key
+
+      - name: Cleanup S3 deploy artifact
+        if: always()
+        run: |
+          aws s3 rm \
+            s3://broandbro-menu-images/deploy/prod/${{ github.run_id }}/app.jar \
+            || true
 

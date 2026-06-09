@@ -121,7 +121,7 @@ resource "aws_iam_role_policy" "ssm_read" {
   })
 }
 
-# ── S3 media bucket access (AI-generated images) ──────────────────────────────
+# ── S3 media bucket access (AI-generated images + deploy artifacts) ───────────
 # Only attached when media_bucket_arn is provided (non-empty).
 resource "aws_iam_role_policy" "media_s3" {
   count = var.create_media_s3_policy ? 1 : 0
@@ -142,12 +142,22 @@ resource "aws_iam_role_policy" "media_s3" {
         Resource = "${var.media_bucket_arn}/menu-items/*"
       },
       {
+        # EC2 pulls its own deploy JAR from S3 instead of receiving it via SCP.
+        # Scoped to this environment's prefix so dev cannot read prod artifacts.
+        Sid    = "AllowDeployArtifactDownload"
+        Effect = "Allow"
+        Action = ["s3:GetObject"]
+        Resource = "${var.media_bucket_arn}/deploy/${var.environment}/*"
+      },
+      {
         Sid    = "AllowBucketList"
         Effect = "Allow"
         Action = ["s3:ListBucket"]
         Resource = var.media_bucket_arn
         Condition = {
-          StringLike = { "s3:prefix" = ["menu-items/*"] }
+          StringLike = {
+            "s3:prefix" = ["menu-items/*", "deploy/${var.environment}/*"]
+          }
         }
       }
     ]
