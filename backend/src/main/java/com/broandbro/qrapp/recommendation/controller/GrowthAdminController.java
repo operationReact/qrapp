@@ -1,5 +1,6 @@
 package com.broandbro.qrapp.recommendation.controller;
 
+import com.broandbro.qrapp.recommendation.dto.ComboOpportunityDtos.*;
 import com.broandbro.qrapp.recommendation.dto.RecommendationAnalyticsDtos.*;
 import com.broandbro.qrapp.recommendation.dto.RecommendationDtos.*;
 import com.broandbro.qrapp.recommendation.scheduler.CoOccurrenceScheduler;
@@ -59,6 +60,7 @@ public class GrowthAdminController {
     private final CategoryPairingService catPairingSvc;
     private final CoOccurrenceScheduler scheduler;
     private final RecommendationInteractionService interactionService;
+    private final ComboOpportunityService comboOpportunitySvc;
 
     // ── L1: Manual Recommendations ───────────────────────────────────────────
 
@@ -268,6 +270,87 @@ public class GrowthAdminController {
 
     private String actor(Authentication auth) {
         return auth != null ? auth.getName() : "system";
+    }
+
+    // ── AI Combo Opportunities ────────────────────────────────────────────────
+
+    /**
+     * GET /api/admin/growth/combo-opportunities
+     * List all opportunities (optionally filtered by ?status=PENDING_REVIEW|APPROVED|LIVE|REJECTED).
+     */
+    @GetMapping("/combo-opportunities")
+    public ResponseEntity<List<ComboOpportunityResponse>> listOpportunities(
+            @RequestParam(required = false) String status) {
+        if (status != null && !status.isBlank()) {
+            try {
+                return ResponseEntity.ok(comboOpportunitySvc.listByStatus(status));
+            } catch (IllegalArgumentException e) {
+                return ResponseEntity.badRequest().build();
+            }
+        }
+        return ResponseEntity.ok(comboOpportunitySvc.listAll());
+    }
+
+    /**
+     * GET /api/admin/growth/combo-opportunities/missed
+     * Pairs frequently bought together that have no combo.
+     */
+    @GetMapping("/combo-opportunities/missed")
+    public ResponseEntity<List<MissedOpportunityResponse>> listMissedOpportunities() {
+        return ResponseEntity.ok(comboOpportunitySvc.listMissed());
+    }
+
+    /**
+     * POST /api/admin/growth/combo-opportunities/analyze
+     * 1. Refreshes co-occurrence statistics (same job the nightly scheduler runs).
+     * 2. Generates new PENDING_REVIEW opportunities from those statistics.
+     * This makes the feature fully self-contained — no nightly job dependency.
+     */
+    @PostMapping("/combo-opportunities/analyze")
+    public ResponseEntity<Map<String, Object>> triggerAnalysis() {
+        // Step 1: refresh co-occurrence stats so we always work with up-to-date order data
+        try {
+            scheduler.run();
+        } catch (Exception ex) {
+            log.warn("[triggerAnalysis] Co-occurrence refresh failed, proceeding with existing stats: {}", ex.getMessage());
+        }
+        // Step 2: generate combo opportunities from the stats
+        int created = comboOpportunitySvc.analyseAndGenerate();
+        return ResponseEntity.ok(Map.of(
+                "message", "Analysis complete",
+                "opportunitiesCreated", created));
+    }
+
+    /**
+     * POST /api/admin/growth/combo-opportunities/{id}/review
+     * Approve or reject an opportunity.
+     */
+    @PostMapping("/combo-opportunities/{id}/review")
+    public ResponseEntity<?> reviewOpportunity(
+            @PathVariable Long id,
+            @RequestBody ReviewOpportunityRequest req,
+            Authentication auth) {
+        try {
+            return ResponseEntity.ok(comboOpportunitySvc.review(id, req.getAction(), actor(auth)));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * PUT /api/admin/growth/combo-opportunities/{id}
+     * Edit combo name, price, or items before approving.
+     */
+    @PutMapping("/combo-opportunities/{id}")
+    public ResponseEntity<?> updateOpportunity(
+            @PathVariable Long id,
+            @RequestBody UpdateOpportunityRequest req,
+            Authentication auth) {
+        try {
+            return ResponseEntity.ok(comboOpportunitySvc.update(id, req, actor(auth)));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
     }
 }
 

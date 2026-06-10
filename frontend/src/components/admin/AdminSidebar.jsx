@@ -150,11 +150,12 @@ export function AdminSidebar() {
           </SidebarGroupLabel>
           <SidebarMenu>
             {[
-              { to: "/admin/item-recommendations", label: "Item Pairings",     icon: ListPlusIcon },
-              { to: "/admin/auto-suggestions",     label: "Auto Suggestions",  icon: MagicWandIcon },
-              { to: "/admin/upsell-rules",         label: "Upsell Rules",      icon: LightningIcon },
-              { to: "/admin/category-pairings",    label: "Category Pairings", icon: ArrowsOutSimpleIcon },
-              { to: "/admin/analytics/profitability", label: "Profitability",  icon: CurrencyInrIcon },
+              { to: "/admin/item-recommendations",  label: "Item Pairings",       icon: ListPlusIcon },
+              { to: "/admin/auto-suggestions",      label: "Auto Suggestions",    icon: MagicWandIcon },
+              { to: "/admin/upsell-rules",          label: "Upsell Rules",        icon: LightningIcon },
+              { to: "/admin/category-pairings",     label: "Category Pairings",   icon: ArrowsOutSimpleIcon },
+              { to: "/admin/combo-opportunities",   label: "Combo Opportunities", icon: SparkleIcon },
+              { to: "/admin/analytics/profitability", label: "Profitability",     icon: CurrencyInrIcon },
             ].map(({ to, label, icon }) => (
               <NavItem key={to} to={to} label={label} icon={icon} pathname={pathname} />
             ))}

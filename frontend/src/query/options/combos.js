@@ -5,6 +5,8 @@ import {
   listCombos,
   getCombo,
   listSignatureProducts,
+  listComboOpportunities,
+  listMissedOpportunities,
 } from "../../services/comboService";
 
 export const publicCombosOptions = queryOptions({
@@ -40,3 +42,16 @@ export const signatureProductListOptions = (params = {}) =>
     queryFn: () => listSignatureProducts(params),
     staleTime: 1000 * 60 * 2,
   });
+
+export const comboOpportunitiesOptions = (params = {}) =>
+  queryOptions({
+    queryKey: ["combo-opportunities", params],
+    queryFn: () => listComboOpportunities(params),
+    staleTime: 1000 * 60 * 2,
+  });
+
+export const missedOpportunitiesOptions = queryOptions({
+  queryKey: ["combo-opportunities", "missed"],
+  queryFn: listMissedOpportunities,
+  staleTime: 1000 * 60 * 5,
+});
