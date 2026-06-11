@@ -18,12 +18,14 @@ import { useNavigate } from "@tanstack/react-router";
 import { Empty, EmptyDescription, EmptyHeader } from "./ui/empty";
 import { useQuery } from "@tanstack/react-query";
 import { getCartRecommendations, getRecommendedBundle, getMealRecommendation } from "@/services/recommendation-service";
-import { PlusCircleIcon, SparkleIcon } from "@phosphor-icons/react";
+import { PlusCircleIcon, PlusIcon, PlusMinusIcon, SparkleIcon } from "@phosphor-icons/react";
 import ComboProgressBanner from "@/components/ComboProgressBanner";
 import { useByocDiscount } from "@/hooks/useByocDiscount";
 import RecommendedBundleCard from "@/components/RecommendedBundleCard";
 import CompleteMealCard from "@/components/CompleteMealCard";
 import { cn } from "@/lib/utils";
+import { ShoppingBagIcon } from "@phosphor-icons/react";
+import { Badge } from "./ui/badge";
 
 
 // ── Smart upsell: ONE section, session-gated to prevent infinite loops ────────
@@ -174,7 +176,7 @@ function SmartUpsellSection({ cart, addItem, isOpen }) {
       {/* Section header */}
       <div className="px-4 pt-3 pb-1 flex items-center gap-1.5">
         <SparkleIcon weight="fill" className="size-3.5 text-orange-500" />
-        <p className="text-xs font-bold text-zinc-700 uppercase tracking-wide">
+        <p className="text-sm font-medium">
           Add to Your Order
         </p>
       </div>
@@ -202,23 +204,20 @@ function SmartUpsellSection({ cart, addItem, isOpen }) {
                     onError={(e) => { e.currentTarget.style.display = "none"; e.currentTarget.nextElementSibling?.classList.remove("hidden"); }}
                   />
                 ) : null}
-                <div className={cn(
-                  "w-full h-full flex items-center justify-center bg-orange-50",
-                  imgSrc ? "hidden" : "",
-                )}>
-                  <ShoppingBagIcon weight="duotone" className="size-6 text-orange-300" />
+                <div className={`size-full flex items-center justify-center bg-orange-50 ${imgSrc ? "hidden" : ""}`}>
+                  <ShoppingBagIcon weight="duotone" className="size-4 text-orange-300" />
                 </div>
               </div>
 
               {/* Name + price */}
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-zinc-800 truncate">{s.itemName}</p>
+                <p className="text-sm font-semibold truncate">{s.itemName}</p>
                 <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                  <span className="text-sm font-bold text-zinc-900">₹{s.price}</span>
+                  <span className="text-sm text-muted-foreground">₹{s.price}</span>
                   {s.discountLabel && (
-                    <span className="text-[9px] bg-emerald-50 border border-emerald-200 text-emerald-700 font-bold px-1.5 py-0.5 rounded-full whitespace-nowrap">
+                    <Badge className="bg-emerald-50 border border-emerald-200 text-emerald-700">
                       {s.discountLabel}
-                    </span>
+                    </Badge>
                   )}
                 </div>
               </div>
@@ -245,14 +244,16 @@ function SmartUpsellSection({ cart, addItem, isOpen }) {
                   </button>
                 </div>
               ) : (
-                <button
+                  <Button
+                  size="sm"
+                  variant="branded-secondary"
                   onClick={() => addItem({ id: s.itemId, name: s.itemName, imageUrl: s.imageUrl, price: s.price })}
-                  className="shrink-0 flex items-center gap-1 bg-primary text-primary-foreground text-xs font-bold px-3 py-1.5 rounded-lg hover:bg-primary/90 active:scale-95 transition-all"
+                  className=""
                   aria-label={`Add ${s.itemName}`}
                 >
-                  <PlusCircleIcon weight="fill" className="size-3.5" />
+                  <PlusIcon weight="bold" />
                   Add
-                </button>
+                </Button>
               )}
             </div>
           );

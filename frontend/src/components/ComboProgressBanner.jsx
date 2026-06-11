@@ -57,7 +57,7 @@ export default function ComboProgressBanner({ campaign, compact = false }) {
   })();
 
   return (
-    <div className="rounded-2xl border border-emerald-200 bg-gradient-to-r from-emerald-50 to-teal-50 p-3.5">
+    <div className="rounded-lg border border-emerald-200 bg-gradient-to-r from-emerald-50 to-teal-50 p-3.5">
       {/* Header */}
       <div className="flex items-center justify-between mb-2.5">
         <div className="flex items-center gap-1.5">

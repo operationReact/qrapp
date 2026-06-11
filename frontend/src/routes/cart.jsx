@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import CartItem from "@/components/shared/CartItem";
 import MenuItemCard from "@/components/MenuItemCard";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Carousel,
   CarouselContent,
@@ -30,7 +30,10 @@ import { paymentConfigOptions } from "@/query/options/orders";
 import { getCurrentUser } from "@/services/auth-service";
 import { walletGetBalance } from "@/services/wallet-service";
 import { getRecommendedMenu } from "@/services/menu-service";
-import { getRecommendedBundle, getMealRecommendation } from "@/services/recommendation-service";
+import {
+  getRecommendedBundle,
+  getMealRecommendation,
+} from "@/services/recommendation-service";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Field,
@@ -56,7 +59,6 @@ import { useByocDiscount } from "@/hooks/useByocDiscount";
 import ComboProgressBanner from "@/components/ComboProgressBanner";
 import CompleteMealCard from "@/components/CompleteMealCard";
 import RecommendedBundleCard from "@/components/RecommendedBundleCard";
-
 
 function loadRazorpayScript(
   src = "https://checkout.razorpay.com/v1/checkout.js",
@@ -102,9 +104,9 @@ function CartPage() {
   const [walletLoading, setWalletLoading] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState("RAZORPAY");
   const [submitting, setSubmitting] = useState(false);
-  const [mealAdded,    setMealAdded]    = useState(false);
-  const [mealAdding,   setMealAdding]   = useState(false);
-  const [bundleAdded,  setBundleAdded]  = useState(false);
+  const [mealAdded, setMealAdded] = useState(false);
+  const [mealAdding, setMealAdding] = useState(false);
+  const [bundleAdded, setBundleAdded] = useState(false);
   const [bundleAdding, setBundleAdding] = useState(false);
   // Session gate: once user accepts one recommendation, hide upsell block
   const [upsellSessionDone, setUpsellSessionDone] = useState(false);
@@ -155,7 +157,7 @@ function CartPage() {
     if (!appliedPromotion) return null;
     return (
       eligiblePromotions.find(
-        (p) => p.id === appliedPromotion.id || p.code === appliedPromotion.code
+        (p) => p.id === appliedPromotion.id || p.code === appliedPromotion.code,
       ) ?? appliedPromotion // fall back to stored value while re-fetching
     );
   })();
@@ -167,29 +169,42 @@ function CartPage() {
   const totalAfterDiscount = Math.max(0, total - discount);
 
   const hasWalletBalance = typeof walletBalance === "number";
-  const walletCanCoverOrder = hasWalletBalance && walletBalance >= totalAfterDiscount;
+  const walletCanCoverOrder =
+    hasWalletBalance && walletBalance >= totalAfterDiscount;
 
   // ── Smart upsell queries (priority-based) ──────────────────────────────
-  const cartItemsKey = cart.map((i) => `${i.id}:${i.quantity}`).sort().join(",");
-  const cartItemIds  = cart.map((i) => i.id);
+  const cartItemsKey = cart
+    .map((i) => `${i.id}:${i.quantity}`)
+    .sort()
+    .join(",");
+  const cartItemIds = cart.map((i) => i.id);
 
-  const { data: meal, isLoading: mealLoading, isError: mealError } = useQuery({
+  const {
+    data: meal,
+    isLoading: mealLoading,
+    isError: mealError,
+  } = useQuery({
     queryKey: ["complete-meal", cartItemsKey],
-    queryFn:  () => getMealRecommendation({ cartItemIds, cartTotal: total }),
-    enabled:  cart.length > 0,
+    queryFn: () => getMealRecommendation({ cartItemIds, cartTotal: total }),
+    enabled: cart.length > 0,
     staleTime: 1000 * 60 * 3,
-    retry:    false,
+    retry: false,
   });
-  const hasMeal = !mealLoading && !mealError && !!(meal?.mealItems?.length);
+  const hasMeal = !mealLoading && !mealError && !!meal?.mealItems?.length;
 
-  const { data: bundle, isLoading: bundleLoading, isError: bundleError } = useQuery({
+  const {
+    data: bundle,
+    isLoading: bundleLoading,
+    isError: bundleError,
+  } = useQuery({
     queryKey: ["v1-recommended-bundle", cartItemsKey],
-    queryFn:  () => getRecommendedBundle({ cartItemIds, cartTotal: total }),
-    enabled:  cart.length > 0 && !mealLoading && !hasMeal,
+    queryFn: () => getRecommendedBundle({ cartItemIds, cartTotal: total }),
+    enabled: cart.length > 0 && !mealLoading && !hasMeal,
     staleTime: 1000 * 60 * 3,
-    retry:    false,
+    retry: false,
   });
-  const hasBundle = !bundleLoading && !bundleError && !!(bundle?.bundleItems?.length);
+  const hasBundle =
+    !bundleLoading && !bundleError && !!bundle?.bundleItems?.length;
 
   // Reset upsell session when cart is cleared
   useEffect(() => {
@@ -207,11 +222,18 @@ function CartPage() {
       meal.mealItems
         .filter((item) => !cartIds.has(item.itemId))
         .forEach((item) =>
-          addItem({ id: item.itemId, name: item.itemName, imageUrl: item.imageUrl ?? undefined, price: Number(item.price) }),
+          addItem({
+            id: item.itemId,
+            name: item.itemName,
+            imageUrl: item.imageUrl ?? undefined,
+            price: Number(item.price),
+          }),
         );
       setMealAdded(true);
       setUpsellSessionDone(true); // stop the loop
-    } finally { setMealAdding(false); }
+    } finally {
+      setMealAdding(false);
+    }
   };
 
   const handleAddBundle = async () => {
@@ -222,11 +244,18 @@ function CartPage() {
       bundle.bundleItems
         .filter((item) => !cartIds.has(item.itemId))
         .forEach((item) =>
-          addItem({ id: item.itemId, name: item.itemName, imageUrl: item.imageUrl ?? undefined, price: Number(item.price) }),
+          addItem({
+            id: item.itemId,
+            name: item.itemName,
+            imageUrl: item.imageUrl ?? undefined,
+            price: Number(item.price),
+          }),
         );
       setBundleAdded(true);
       setUpsellSessionDone(true); // stop the loop
-    } finally { setBundleAdding(false); }
+    } finally {
+      setBundleAdding(false);
+    }
   };
 
   // Auto-apply the recommended promotion on first load
@@ -242,10 +271,10 @@ function CartPage() {
   useEffect(() => {
     if (!appliedPromotion || promotionsLoading) return;
     const stillEligible = eligiblePromotions.some(
-      (p) => p.id === appliedPromotion.id || p.code === appliedPromotion.code
+      (p) => p.id === appliedPromotion.id || p.code === appliedPromotion.code,
     );
     const nowIneligible = ineligiblePromotions.some(
-      (p) => p.id === appliedPromotion.id || p.code === appliedPromotion.code
+      (p) => p.id === appliedPromotion.id || p.code === appliedPromotion.code,
     );
     if (!stillEligible && nowIneligible) {
       removePromotion();
@@ -256,7 +285,6 @@ function CartPage() {
   useEffect(() => {
     if (closeDrawer) closeDrawer();
   }, [closeDrawer]);
-
 
   useEffect(() => {
     let mounted = true;
@@ -365,7 +393,10 @@ function CartPage() {
         phone,
         paymentMethod,
         promotionCode: appliedPromotion?.code ?? undefined,
-        byocCampaignId: !appliedPromotion && byocDiscount?.campaignId ? byocDiscount.campaignId : undefined,
+        byocCampaignId:
+          !appliedPromotion && byocDiscount?.campaignId
+            ? byocDiscount.campaignId
+            : undefined,
       });
       console.log("Order response:", res);
       const responsePaymentMethod = res?.paymentMethod || paymentMethod;
@@ -466,8 +497,8 @@ function CartPage() {
     <div className="page-shell bg-page">
       <Navbar />
 
-      <main className="container-premium py-4 sm:py-6">
-        <div className="mx-auto max-w-6xl space-y-4 sm:space-y-6">
+      <main className="container-premium pb-16! py-4 sm:py-6">
+        <div className="space-y-4 sm:space-y-6">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <h1 className="text-lg font-semibold sm:text-2xl">Checkout</h1>
@@ -476,7 +507,7 @@ function CartPage() {
 
           {cart.length === 0 && (
             // update with the Empty component
-            <Empty className="border">
+            <Empty className="border bg-white">
               <EmptyHeader>
                 <EmptyMedia variant="icon">
                   <ShoppingCartIcon weight="duotone" />
@@ -518,33 +549,35 @@ function CartPage() {
           )}
 
           {/* ── Smart Upsell (priority: meal > bundle, session-gated) ── */}
-          {cart.length > 0 && !upsellSessionDone && (mealLoading || hasMeal || bundleLoading || hasBundle) && (
-            <section className="rounded-xl bg-card border border-border shadow-xs p-3">
-              {(mealLoading || (!hasMeal && bundleLoading)) ? (
-                <div className="h-36 rounded-2xl bg-zinc-100/70 animate-pulse" />
-              ) : hasMeal ? (
-                <CompleteMealCard
-                  mainItemName={meal.mainItemName ?? cart[0]?.name}
-                  mealItems={meal.mealItems}
-                  savings={Number(meal.savings)}
-                  onAddMeal={handleAddMeal}
-                  isLoading={mealAdding}
-                  disabled={mealAdded}
-                />
-              ) : hasBundle ? (
-                <RecommendedBundleCard
-                  bundleItems={bundle.bundleItems}
-                  originalPrice={Number(bundle.originalPrice)}
-                  savings={Number(bundle.savings)}
-                  finalPrice={Number(bundle.finalPrice)}
-                  primaryItemName={cart[0]?.name}
-                  onAddBundle={handleAddBundle}
-                  isLoading={bundleAdding}
-                  disabled={bundleAdded}
-                />
-              ) : null}
-            </section>
-          )}
+          {cart.length > 0 &&
+            !upsellSessionDone &&
+            (mealLoading || hasMeal || bundleLoading || hasBundle) && (
+              <section className="rounded-xl bg-card border border-border shadow-xs p-3">
+                {mealLoading || (!hasMeal && bundleLoading) ? (
+                  <div className="h-36 rounded-2xl bg-zinc-100/70 animate-pulse" />
+                ) : hasMeal ? (
+                  <CompleteMealCard
+                    mainItemName={meal.mainItemName ?? cart[0]?.name}
+                    mealItems={meal.mealItems}
+                    savings={Number(meal.savings)}
+                    onAddMeal={handleAddMeal}
+                    isLoading={mealAdding}
+                    disabled={mealAdded}
+                  />
+                ) : hasBundle ? (
+                  <RecommendedBundleCard
+                    bundleItems={bundle.bundleItems}
+                    originalPrice={Number(bundle.originalPrice)}
+                    savings={Number(bundle.savings)}
+                    finalPrice={Number(bundle.finalPrice)}
+                    primaryItemName={cart[0]?.name}
+                    onAddBundle={handleAddBundle}
+                    isLoading={bundleAdding}
+                    disabled={bundleAdded}
+                  />
+                ) : null}
+              </section>
+            )}
 
           {/* ── BYOC Combo Progress ───────────────────────────────────── */}
           {cart.length > 0 && primaryByocCampaign && (
@@ -574,35 +607,38 @@ function CartPage() {
           )}
 
           {(recLoading || recommended.length > 0) && (
-          <section className="rounded-xl bg-card border border-border shadow-xs p-4 mb-12">
-            <div className="flex items-center gap-2 mb-3">
-              <SparkleIcon weight="fill" className="size-4 text-orange-500" />
-              <h4 className="text-base font-semibold">Customers Also Love</h4>
-            </div>
-
-            {recLoading && (
-              <div className="flex gap-3 overflow-hidden">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="w-32 shrink-0 rounded-xl bg-zinc-100 animate-pulse h-44" />
-                ))}
+            <section className="rounded-xl bg-card border border-border shadow-xs p-4 mb-12">
+              <div className="flex items-center gap-2 mb-3">
+                <SparkleIcon weight="fill" className="size-4 text-orange-500" />
+                <h4 className="text-base font-semibold">Customers Also Love</h4>
               </div>
-            )}
 
-            {!recLoading && recommended.length > 0 && (
-              <Carousel opts={{ dragFree: true }} className="mt-2">
-                <CarouselContent>
-                  {recommended.map((it) => (
-                    <CarouselItem
-                      key={it.id}
-                      className="basis-1/2 sm:basis-1/3 md:basis-1/4 lg:basis-1/5"
-                    >
-                      <MenuItemCard item={it} />
-                    </CarouselItem>
+              {recLoading && (
+                <div className="flex gap-3 overflow-hidden">
+                  {[1, 2, 3].map((i) => (
+                    <div
+                      key={i}
+                      className="w-32 shrink-0 rounded-xl bg-zinc-100 animate-pulse h-44"
+                    />
                   ))}
-                </CarouselContent>
-              </Carousel>
-            )}
-          </section>
+                </div>
+              )}
+
+              {!recLoading && recommended.length > 0 && (
+                <Carousel opts={{ dragFree: true }} className="mt-2">
+                  <CarouselContent>
+                    {recommended.map((it) => (
+                      <CarouselItem
+                        key={it.id}
+                        className="basis-1/2 sm:basis-1/3 md:basis-1/4 lg:basis-1/5"
+                      >
+                        <MenuItemCard item={it} />
+                      </CarouselItem>
+                    ))}
+                  </CarouselContent>
+                </Carousel>
+              )}
+            </section>
           )}
 
           {cart.length > 0 ? (
@@ -647,24 +683,25 @@ function CartPage() {
                   </div>
                 </div>
 
-                <div className="flex gap-6 box-content h-[72px]! justify-between items-center py-2">
+                <div className="flex gap-4 box-content h-[72px]! justify-between items-center py-2">
                   <Drawer>
-                    <DrawerTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className="sm:w-1/2 pr-8 h-full w-1/2 max-w-2xs flex flex-col gap-0 justify-center items-start"
-                      >
-                        <div className="text-muted-foreground flex items-center font-medium">
-                          Pay using <CaretDown className="size-4" />
-                        </div>
-                        <div className="font-semibold">
-                          {paymentMethod === "WALLET"
-                            ? "Bro Wallet"
-                            : paymentMethod === "PAY_AT_STALL"
+                    <DrawerTrigger
+                      className={buttonVariants({
+                        variant: "outline",
+                        className:
+                          "sm:w-1/2 border-border! pr-8 h-full flex-1 max-w-2xs flex flex-col gap-0 justify-center items-start",
+                      })}
+                    >
+                      <div className="text-muted-foreground flex items-center font-medium">
+                        Pay using <CaretDown className="size-4" />
+                      </div>
+                      <div className="font-semibold">
+                        {paymentMethod === "WALLET"
+                          ? "Bro Wallet"
+                          : paymentMethod === "PAY_AT_STALL"
                             ? "Pay at Stall"
                             : "Razorpay"}
-                        </div>
-                      </Button>
+                      </div>
                     </DrawerTrigger>
                     <DrawerContent className="max-w-md mx-auto">
                       <DrawerHeader>
@@ -672,7 +709,8 @@ function CartPage() {
                           Pay Using
                         </DrawerTitle>
                         <DrawerDescription className="sr-only">
-                          Select your preferred payment method to place the order.
+                          Select your preferred payment method to place the
+                          order.
                         </DrawerDescription>
                       </DrawerHeader>
                       <div className="p-4">
@@ -763,18 +801,27 @@ function CartPage() {
                               <Field orientation="horizontal">
                                 <FieldContent className="flex flex-row gap-2 items-start">
                                   <div className="size-11 flex items-center justify-center rounded-lg bg-amber-50 border border-amber-200 shrink-0">
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="size-6 text-amber-600" fill="currentColor" viewBox="0 0 256 256">
-                                      <path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm48-88a48,48,0,0,1-40,47.29V184a8,8,0,0,1-16,0v-8.71A48,48,0,0,1,80,128a8,8,0,0,1,16,0,32,32,0,1,0,32-32,48,48,0,0,1,0-96V92.71A32,32,0,0,0,96,124a8,8,0,0,1-16,0A48,48,0,0,1,120,76.71V72a8,8,0,0,1,16,0v4.71A48,48,0,0,1,176,128Z"/>
+                                    <svg
+                                      xmlns="http://www.w3.org/2000/svg"
+                                      className="size-6 text-amber-600"
+                                      fill="currentColor"
+                                      viewBox="0 0 256 256"
+                                    >
+                                      <path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm48-88a48,48,0,0,1-40,47.29V184a8,8,0,0,1-16,0v-8.71A48,48,0,0,1,80,128a8,8,0,0,1,16,0,32,32,0,1,0,32-32,48,48,0,0,1,0-96V92.71A32,32,0,0,0,96,124a8,8,0,0,1-16,0A48,48,0,0,1,120,76.71V72a8,8,0,0,1,16,0v4.71A48,48,0,0,1,176,128Z" />
                                     </svg>
                                   </div>
                                   <div>
                                     <FieldTitle>Pay at Stall</FieldTitle>
                                     <FieldDescription>
-                                      Pay in cash or card when you collect your order at the counter.
+                                      Pay in cash or card when you collect your
+                                      order at the counter.
                                     </FieldDescription>
                                   </div>
                                 </FieldContent>
-                                <RadioGroupItem value="PAY_AT_STALL" id="pay-at-stall" />
+                                <RadioGroupItem
+                                  value="PAY_AT_STALL"
+                                  id="pay-at-stall"
+                                />
                               </Field>
                             </FieldLabel>
                           )}
@@ -792,8 +839,8 @@ function CartPage() {
                               {paymentMethod === "WALLET"
                                 ? "Wallet"
                                 : paymentMethod === "PAY_AT_STALL"
-                                ? "Pay at Stall"
-                                : "Razorpay"}
+                                  ? "Pay at Stall"
+                                  : "Razorpay"}
                             </span>
                           </Button>
                         </DrawerClose>
@@ -806,7 +853,10 @@ function CartPage() {
                     disabled={submitting}
                     className="sm:w-1/2 h-full max-w-2xs font-medium!"
                   >
-                    Place Order ₹{discount > 0 ? totalAfterDiscount.toFixed(0) : total.toFixed(0)}
+                    Place Order ₹
+                    {discount > 0
+                      ? totalAfterDiscount.toFixed(0)
+                      : total.toFixed(0)}
                     <ChevronRight className="size-5" />
                   </Button>
                 </div>

@@ -5,9 +5,13 @@ import {
   CircleNotchIcon,
   ArrowRightIcon,
   ShoppingBagIcon,
+  CaretRightIcon,
 } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
 import { baseURL } from "@/services";
+import { Badge } from "./ui/badge";
+import { Separator } from "./ui/separator";
+import { Button } from "./ui/button";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -32,8 +36,8 @@ const ROLE_COLORS = {
 function MealItemTile({ item }) {
   const src = resolveImg(item.imageUrl);
   return (
-    <div className="flex flex-col items-center gap-1 w-[60px] shrink-0">
-      <div className="relative w-[60px] h-[60px] rounded-xl overflow-hidden border border-zinc-100 shadow-sm bg-zinc-50">
+    <div className="flex flex-col items-center gap-2 w-20 shrink-0">
+      <div className="relative size-20 rounded-lg overflow-hidden border border-zinc-100 shadow-sm bg-zinc-50">
         {src ? (
           <img
             src={src}
@@ -49,7 +53,7 @@ function MealItemTile({ item }) {
         <div
           className={cn(
             "absolute inset-0 flex items-center justify-center bg-zinc-100",
-            src ? "hidden" : "",
+            src ? "hidden" : "flex!",
           )}
         >
           <ShoppingBagIcon weight="duotone" className="size-5 text-zinc-300" />
@@ -57,20 +61,20 @@ function MealItemTile({ item }) {
 
         {/* Role chip */}
         {item.role && (
-          <span
+          <Badge
             className={cn(
-              "absolute bottom-0.5 left-1/2 -translate-x-1/2 text-[7px] font-bold px-1 py-0.5 rounded-full whitespace-nowrap",
+              "absolute bottom-1 left-1/2 -translate-x-1/2",
               ROLE_COLORS[item.role] ?? ROLE_COLORS.ADDON,
             )}
           >
             {item.role.charAt(0) + item.role.slice(1).toLowerCase()}
-          </span>
+          </Badge>
         )}
       </div>
-      <span className="text-[9px] font-medium text-zinc-700 text-center leading-tight line-clamp-2 w-full">
+      <span className="text-xs font-medium text-center leading-tight line-clamp-2 w-full">
         {item.itemName}
       </span>
-      <span className="text-[10px] font-bold text-zinc-500">
+      <span className="text-xs text-muted-foreground">
         ₹{fmt(item.price)}
       </span>
     </div>
@@ -94,22 +98,22 @@ export default function CompleteMealCard({
   const comboPrice    = Math.max(0, regularTotal - savingsRupees);
 
   return (
-    <article className="w-full rounded-2xl border border-zinc-200 bg-white shadow-md overflow-hidden">
+    <article className="w-full rounded-lg border border-muted bg-white overflow-hidden">
 
       {/* ── Header + static pairing badge ────────────────────────────── */}
       <div className="flex items-center justify-between px-4 pt-3.5 pb-2.5">
         <div className="flex items-center gap-1.5">
-          <ForkKnifeIcon weight="fill" className="size-3.5 text-orange-500 shrink-0" />
-          <h3 className="text-sm font-bold text-zinc-900 tracking-tight">
+          <ForkKnifeIcon weight="fill" className="size-3.5 text-primary shrink-0" />
+          <h3 className="text-sm font-semibold">
             Complete Your Meal
           </h3>
         </div>
-        <span className="text-[10px] font-medium text-zinc-500 bg-zinc-50 border border-zinc-200 px-2 py-0.5 rounded-full shrink-0">
-          🍽️ Popular Pairing
-        </span>
+        <Badge className="text-primary bg-zinc-50 border border-zinc-200">
+          Popular Pairing
+        </Badge>
       </div>
 
-      <div className="h-px bg-zinc-100" />
+      <Separator className="bg-zinc-100" />
 
       {/* ── Compact items row ────────────────────────────────────────── */}
       <div className="px-4 py-3 flex items-start gap-2 overflow-x-auto [scrollbar-width:none]">
@@ -130,33 +134,25 @@ export default function CompleteMealCard({
 
         {/* Clear pricing: Regular → Combo · Save */}
         {savingsRupees > 0 && (
-          <div className="flex items-center gap-1.5 text-xs flex-wrap">
-            <span className="text-zinc-400 line-through">₹{fmt(regularTotal)}</span>
-            <span className="text-zinc-400">→</span>
-            <span className="font-bold text-zinc-800">Combo ₹{fmt(comboPrice)}</span>
-            <span className="ml-auto bg-emerald-50 border border-emerald-200 text-emerald-700 font-bold px-2 py-0.5 rounded-full text-[10px] shrink-0">
+          <div className="flex items-center gap-1.5 text-sm flex-wrap">
+            <span className="font-semibold">Save</span>
+            <span className="text-muted-foreground line-through">₹{fmt(regularTotal)}</span>
+            <span className="text-muted-foreground"><CaretRightIcon/></span>
+            <span className="font-bold text-zinc-800">₹{fmt(comboPrice)}</span>
+            <Badge className="ml-auto bg-emerald-50 border border-emerald-200 text-emerald-700">
               Save ₹{fmt(savingsRupees)}
-            </span>
+            </Badge>
           </div>
         )}
 
         {/* CTA */}
-        <button
+        <Button
+          size="lg"
           type="button"
           onClick={onAddMeal}
           disabled={isLoading || disabled}
           aria-busy={isLoading}
-          className={cn(
-            "w-full h-10 flex items-center justify-center gap-2 rounded-xl px-5",
-            "text-sm font-bold text-white tracking-wide",
-            "bg-orange-500",
-            "shadow-md shadow-orange-200/60",
-            "transition-all duration-150",
-            "hover:bg-orange-600 hover:shadow-lg hover:shadow-orange-300/50",
-            "active:scale-[0.98]",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2",
-            (isLoading || disabled) && "opacity-60 cursor-not-allowed hover:bg-orange-500 hover:shadow-md",
-          )}
+          className="w-full"
         >
           {isLoading ? (
             <>
@@ -175,10 +171,10 @@ export default function CompleteMealCard({
                   ? `Add Combo · Save ₹${fmt(savingsRupees)}`
                   : "Add to Cart"}
               </span>
-              <ArrowRightIcon weight="bold" className="size-3.5 shrink-0" />
+              <CaretRightIcon />
             </>
           )}
-        </button>
+        </Button>
       </div>
     </article>
   );
