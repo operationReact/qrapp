@@ -5,19 +5,19 @@ spring:
     caffeine:
       spec: maximumSize=500,expireAfterWrite=10m,recordStats
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://broandbro-dev.chi2yu0m6hp0.ap-south-1.rds.amazonaws.com:5432/broandbro_dev}
-    username: ${SPRING_DATASOURCE_USERNAME:broandbro}
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://broandbro-dev.csjkasgs2ig6.us-east-1.rds.amazonaws.com:5432/postgres}
+    username: ${SPRING_DATASOURCE_USERNAME:BROANDBRODEV}
     password: ${SPRING_DATASOURCE_PASSWORD:BroApp#2025}
     driver-class-name: org.postgresql.Driver
     hikari:
       pool-name: ${SPRING_DATASOURCE_HIKARI_POOL_NAME:QrAppHikariPool}
-      maximum-pool-size: ${SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE:4}
-      minimum-idle: ${SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE:0}
+      maximum-pool-size: ${SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE:10}
+      minimum-idle: ${SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE:2}
       idle-timeout: ${SPRING_DATASOURCE_HIKARI_IDLE_TIMEOUT:60000}
       max-lifetime: ${SPRING_DATASOURCE_HIKARI_MAX_LIFETIME:540000}
-      connection-timeout: ${SPRING_DATASOURCE_HIKARI_CONNECTION_TIMEOUT:5000}
-      validation-timeout: ${SPRING_DATASOURCE_HIKARI_VALIDATION_TIMEOUT:3000}
-      keepalive-time: ${SPRING_DATASOURCE_HIKARI_KEEPALIVE_TIME:0}
+      connection-timeout: ${SPRING_DATASOURCE_HIKARI_CONNECTION_TIMEOUT:10000}
+      validation-timeout: ${SPRING_DATASOURCE_HIKARI_VALIDATION_TIMEOUT:5000}
+      keepalive-time: ${SPRING_DATASOURCE_HIKARI_KEEPALIVE_TIME:30000}
       connection-init-sql: "SET statement_timeout = '8s'"
   flyway:
     enabled: ${SPRING_FLYWAY_ENABLED:true}
@@ -59,10 +59,10 @@ twilio:
 aws:
   s3:
     enabled: ${AWS_S3_ENABLED:true}
-    bucket-name: ${AWS_S3_BUCKET_NAME:broandbro-menu-images}
+    bucket-name: ${AWS_S3_BUCKET_NAME:broandbro-menu-images-dev}
     region: ${AWS_S3_REGION:ap-south-1}
-    access-key: ${AWS_ACCESS_KEY_ID:AKIA5AJB42RXR6A5YRUL}
-    secret-key: ${AWS_SECRET_ACCESS_KEY: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}
+    access-key: ${AWS_ACCESS_KEY_ID:AKIA34EPRSL6ICFWRYHI}
+    secret-key: ${AWS_SECRET_ACCESS_KEY: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}
 
 # ── V1 Recommended Bundle Pricing ────────────────────────────────────────────
 # savings = min( originalPrice × discount-percent%, max-discount-rupees )

@@ -72,11 +72,11 @@ jobs:
 
       - name: Import existing S3 bucket (if orphaned)
         run: |
-          if aws s3api head-bucket --bucket broandbro-dev-ui 2>/dev/null; then
+          if aws s3api head-bucket --bucket broandbro-develop-ui 2>/dev/null; then
             echo "Bucket exists – checking state..."
             if ! terraform state show module.s3.aws_s3_bucket.this 2>/dev/null; then
               echo "Importing orphaned S3 bucket into state..."
-              terraform import module.s3.aws_s3_bucket.this broandbro-dev-ui
+              terraform import module.s3.aws_s3_bucket.this broandbro-develop-ui
             else
               echo "Bucket already in state – skipping."
             fi
@@ -100,7 +100,7 @@ jobs:
       # and re-import so the taint is cleared and prevent_destroy does not block plan.
       - name: Import shared media bucket (if already exists)
         run: |
-          BUCKET="${{ vars.MEDIA_BUCKET_NAME || 'broandbro-menu-images' }}"
+          BUCKET="${{ vars.MEDIA_BUCKET_NAME || 'broandbro-menu-images-dev' }}"
           if aws s3api head-bucket --bucket "$BUCKET" 2>/dev/null; then
             echo "Media bucket $BUCKET exists – checking state..."
             STATE_OUTPUT=$(terraform state show aws_s3_bucket.media 2>/dev/null || true)

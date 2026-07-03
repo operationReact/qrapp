@@ -52,17 +52,17 @@ broandbro/
 
 ## Environment Strategy
 
-| Config | Dev | Prod |
-|---|---|---|
-| Branch | `dev` | `main` |
-| EC2 type | t4g.micro | t4g.small |
-| RDS type | db.t4g.micro | db.t4g.small |
-| Frontend domain | dev.broandbro.in | broandbro.in |
-| API domain | dev-api.broandbro.in | api.broandbro.in |
-| S3 bucket | broandbro-dev-ui | broandbro-prod-ui |
-| CloudFront pricing | PriceClass_100 | PriceClass_200 |
+| Config | Dev                       | Prod |
+|---|---------------------------|---|
+| Branch | `dev`                     | `main` |
+| EC2 type | t4g.micro                 | t4g.small |
+| RDS type | db.t4g.micro              | db.t4g.small |
+| Frontend domain | dev.broandbro.in          | broandbro.in |
+| API domain | dev-api.broandbro.in      | api.broandbro.in |
+| S3 bucket | broandbro-develop-ui      | broandbro-prod-ui |
+| CloudFront pricing | PriceClass_100            | PriceClass_200 |
 | Terraform state | env/dev/terraform.tfstate | env/prod/terraform.tfstate |
-| Approval required | ❌ | ✅ |
+| Approval required | ❌                         | ✅ |
 
 ---
 

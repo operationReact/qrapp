@@ -50,5 +50,5 @@ variable "alarm_email" {
 variable "media_bucket_name" {
   description = "Name of the shared S3 bucket for AI-generated menu item images. Created once by bootstrap/bootstrap.tf and referenced here."
   type        = string
-  default     = "broandbro-menu-images"
+  default     = "broandbro-menu-images-prod"
 }

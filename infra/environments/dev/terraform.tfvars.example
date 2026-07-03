@@ -33,7 +33,7 @@ cloudfront_price_class = "PriceClass_100"
 alarm_email = ""
 
 # ── Shared media bucket ───────────────────────────────────────────────────────
-# Created once by bootstrap/bootstrap.tf.  Same bucket is used by dev + prod.
+# Created once by bootstrap/bootstrap.tf.  Dev uses its own media bucket.
 # Run `terraform output media_bucket_name` in bootstrap to confirm the name.
-media_bucket_name = "broandbro-menu-images"
+media_bucket_name = "broandbro-menu-images-dev"
 

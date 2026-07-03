@@ -140,7 +140,7 @@ jobs:
           DEV_TWILIO_ORDER_PLACED_CONTENT_SID: ${{ secrets.DEV_TWILIO_ORDER_PLACED_CONTENT_SID }}
           DEV_TWILIO_OTP_CONTENT_SID:          ${{ secrets.DEV_TWILIO_OTP_CONTENT_SID }}
         run: |
-          S3_PREFIX="s3://broandbro-menu-images/deploy/dev/${RUN_ID}"
+          S3_PREFIX="s3://broandbro-menu-images-dev/deploy/dev/${RUN_ID}"
 
           # ── a) JAR ──────────────────────────────────────────────────────────
           echo "📦 Uploading JAR..."
@@ -161,7 +161,7 @@ jobs:
           OPENAI_IMAGE_MODEL=gpt-image-1
           OPENAI_IMAGE_SIZE=1024x1024
 
-          AWS_S3_BUCKET_NAME=broandbro-menu-images
+          AWS_S3_BUCKET_NAME=broandbro-menu-images-dev
           AWS_S3_REGION=ap-south-1
           AWS_S3_ENABLED=true
           AWS_ACCESS_KEY_ID=${APP_AWS_ACCESS_KEY_ID}
@@ -188,7 +188,7 @@ jobs:
           #!/bin/bash
           set -euo pipefail
           RID="${RUN_ID}"
-          S3="s3://broandbro-menu-images/deploy/dev/\${RID}"
+          S3="s3://broandbro-menu-images-dev/deploy/dev/\${RID}"
 
           echo "⬇️  Downloading JAR..."
           aws s3 cp "\${S3}/app.jar" /tmp/app-new.jar --region ap-south-1
@@ -276,7 +276,7 @@ jobs:
           INSTANCE_ID: ${{ steps.ec2.outputs.id }}
           RUN_ID:      ${{ github.run_id }}
         run: |
-          S3_SCRIPT="s3://broandbro-menu-images/deploy/dev/${RUN_ID}/deploy.sh"
+          S3_SCRIPT="s3://broandbro-menu-images-dev/deploy/dev/${RUN_ID}/deploy.sh"
           CMD="aws s3 cp ${S3_SCRIPT} /tmp/deploy_${RUN_ID}.sh --region ap-south-1 \
             && bash /tmp/deploy_${RUN_ID}.sh \
             ; rm -f /tmp/deploy_${RUN_ID}.sh"
@@ -337,5 +337,5 @@ jobs:
         if: always()
         run: |
           aws s3 rm \
-            s3://broandbro-menu-images/deploy/dev/${{ github.run_id }}/ \
+            s3://broandbro-menu-images-dev/deploy/dev/${{ github.run_id }}/ \
             --recursive || true

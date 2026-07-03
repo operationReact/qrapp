@@ -203,7 +203,7 @@ module "cloudfront" {
 module "s3" {
   source = "../../modules/s3"
 
-  bucket_name                 = var.frontend_bucket_name # broandbro-dev-ui
+  bucket_name                 = var.frontend_bucket_name # broandbro-develop-ui
   environment                 = "dev"
   cloudfront_distribution_arn = module.cloudfront.distribution_arn
 }
