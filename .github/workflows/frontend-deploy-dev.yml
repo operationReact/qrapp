@@ -48,7 +48,13 @@ jobs:
 
       - name: Install dependencies
         working-directory: frontend
-        run: npm ci
+        run: |
+          # Prefer a clean, reproducible install but fall back to `npm install`
+          # if the lockfile is out of sync on the runner.
+          if ! npm ci; then
+            echo "npm ci failed - falling back to npm install"
+            npm install
+          fi
 
       - name: Build Vite app
         working-directory: frontend
