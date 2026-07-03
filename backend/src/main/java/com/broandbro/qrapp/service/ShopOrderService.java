@@ -26,6 +26,7 @@ public class ShopOrderService {
     private final ShopOrderRepository shopOrderRepository;
     private final ShopRepository shopRepository;
     private final MenuRepository menuRepository;
+    private final PricingService pricingService;
     private static final Map<OrderStatus, List<OrderStatus>> ALLOWED_TRANSITIONS = new HashMap<>();
     static {
         ALLOWED_TRANSITIONS.put(OrderStatus.ORDER_PLACED, List.of(OrderStatus.ACKNOWLEDGED, OrderStatus.CANCELLED));
@@ -34,10 +35,11 @@ public class ShopOrderService {
         ALLOWED_TRANSITIONS.put(OrderStatus.COMPLETED, List.of());
         ALLOWED_TRANSITIONS.put(OrderStatus.CANCELLED, List.of());
     }
-    public ShopOrderService(ShopOrderRepository shopOrderRepository, ShopRepository shopRepository, MenuRepository menuRepository) {
+    public ShopOrderService(ShopOrderRepository shopOrderRepository, ShopRepository shopRepository, MenuRepository menuRepository, PricingService pricingService) {
         this.shopOrderRepository = shopOrderRepository;
         this.shopRepository = shopRepository;
         this.menuRepository = menuRepository;
+        this.pricingService = pricingService;
     }
     public ShopOrderResponse createOrder(ShopOrderCreateRequest request) {
         // Validate shop exists
@@ -72,20 +74,23 @@ public class ShopOrderService {
         for (int i = 0; i < request.getItems().size(); i++) {
             var itemReq = request.getItems().get(i);
             MenuItem menuItem = menuItems.get(i);
+            // Resolve procurement (cost) price from history – NOT selling price
+            BigDecimal costPrice = pricingService
+                    .getCurrentVendorCost(shop.getId(), menuItem.getId())
+                    .orElseGet(() -> {
+                        log.warn("No active vendor cost for shopId={} menuItemId={} – defaulting to ZERO",
+                                shop.getId(), menuItem.getId());
+                        return BigDecimal.ZERO;
+                    });
             ShopOrderItem orderItem = new ShopOrderItem();
-            orderItem.setMenuItemId(menuItem.getId());
+            orderItem.setMenuItem(menuItem);
             orderItem.setQuantity(itemReq.getQuantity());
-            // Snapshot prices
-            BigDecimal basePrice = menuItem.getBasePrice() != null ? menuItem.getBasePrice() : BigDecimal.ZERO;
-            BigDecimal margin = menuItem.getMargin() != null ? menuItem.getMargin() : BigDecimal.ZERO;
-            BigDecimal sellingPrice = basePrice.add(margin);
-            orderItem.setBasePriceSnapshot(basePrice);
-            orderItem.setMarginSnapshot(margin);
-            orderItem.setSellingPriceSnapshot(sellingPrice);
+            orderItem.setCostPriceSnapshot(costPrice);
+            orderItem.setLineTotal(costPrice.multiply(BigDecimal.valueOf(itemReq.getQuantity())));
             orderItem.setShopOrder(order);
             orderItems.add(orderItem);
             // Compute total
-            totalAmount = totalAmount.add(sellingPrice.multiply(new BigDecimal(itemReq.getQuantity())));
+            totalAmount = totalAmount.add(orderItem.getLineTotal());
         }
         order.setTotalAmount(totalAmount);
         ShopOrder savedOrder = shopOrderRepository.save(order);

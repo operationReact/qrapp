@@ -1,0 +1,74 @@
+# =============================================================================
+# Workflow: terraform-validate.yml
+# Runs on every push to dev or main that touches infra/**
+# Also runs when workflow files themselves are changed.
+# Validates that all Terraform configurations are syntactically correct.
+# =============================================================================
+name: Terraform Validate
+
+on:
+  push:
+    branches: [dev, main]
+    paths:
+      - "infra/**"
+      - ".github/workflows/terraform-validate.yml"
+  pull_request:
+    branches: [dev, main]
+    paths:
+      - "infra/**"
+      - ".github/workflows/terraform-validate.yml"
+  # Allow manual trigger from the GitHub Actions UI
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  TF_VERSION: "1.9.5"
+  AWS_REGION: "ap-south-1"
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+jobs:
+  validate:
+    name: Validate – ${{ matrix.env }}
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        env: [dev, prod]
+
+    defaults:
+      run:
+        working-directory: infra/environments/${{ matrix.env }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.2.2
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      # fmt -check is intentionally skipped in CI to avoid failing on cosmetic
+      # whitespace differences introduced by different editors. Run locally:
+      #   terraform fmt -recursive infra/
+      - name: Terraform Init
+        run: |
+          terraform init \
+            -backend-config="bucket=broandbro-tfstate-ap-south-1" \
+            -backend-config="key=env/${{ matrix.env }}/terraform.tfstate" \
+            -backend-config="region=ap-south-1" \
+            -backend-config="dynamodb_table=broandbro-tf-lock"
+
+      - name: Terraform Validate
+        run: terraform validate
+

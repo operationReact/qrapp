@@ -3,7 +3,9 @@ package com.broandbro.qrapp.service;
 import com.broandbro.qrapp.dto.AdminOrderDashboardResponse;
 import com.broandbro.qrapp.dto.AdminOrderResponse;
 import com.broandbro.qrapp.dto.AdminOrderUpdateRequest;
+import com.broandbro.qrapp.dto.AdminPreOrderDashboardResponse;
 import com.broandbro.qrapp.dto.CreateOrderRequest;
+import com.broandbro.qrapp.dto.CreatePreOrderRequest;
 import com.broandbro.qrapp.dto.UserOrderSummaryResponse;
 import com.broandbro.qrapp.entity.MenuItem;
 import com.broandbro.qrapp.entity.Order;
@@ -13,6 +15,17 @@ import com.broandbro.qrapp.entity.User;
 import com.broandbro.qrapp.enums.OrderPriority;
 import com.broandbro.qrapp.enums.OrderStatus;
 import com.broandbro.qrapp.enums.PaymentMethod;
+import com.broandbro.qrapp.promotion.engine.CartContext;
+import com.broandbro.qrapp.promotion.engine.CartItemContext;
+import com.broandbro.qrapp.promotion.engine.EligibilityContext;
+import com.broandbro.qrapp.promotion.engine.EligibilityResult;
+import com.broandbro.qrapp.promotion.engine.UserContext;
+import com.broandbro.qrapp.combo.service.ComboCampaignService;
+import com.broandbro.qrapp.promotion.engine.rule.PromotionRuleEngine;
+import com.broandbro.qrapp.promotion.entity.Promotion;
+import com.broandbro.qrapp.promotion.entity.PromotionUsage;
+import com.broandbro.qrapp.promotion.repository.PromotionRepository;
+import com.broandbro.qrapp.promotion.repository.PromotionUsageRepository;
 import com.broandbro.qrapp.repository.MenuRepository;
 import com.broandbro.qrapp.repository.OrderItemRepository;
 import com.broandbro.qrapp.repository.OrderRepository;
@@ -51,6 +64,7 @@ import java.util.stream.Collectors;
 public class OrderService {
 
     private static final Set<OrderStatus> LIVE_STATUSES = EnumSet.of(OrderStatus.ORDER_PLACED, OrderStatus.PREPARING, OrderStatus.READY);
+    private static final String PRE_ORDER_ONLY_TAG = "PreOrderOnly";
 
     private final OrderRepository orderRepo;
     private final OrderItemRepository orderItemRepo;
@@ -58,6 +72,13 @@ public class OrderService {
     private final OrderStatusHistoryRepository orderStatusHistoryRepository;
     private final WhatsAppService whatsappService;
     private final OrderNumberGenerator orderNumberGenerator;
+    private final PricingService pricingService;
+    private final PromotionRepository promotionRepository;
+    private final PromotionUsageRepository promotionUsageRepository;
+    private final PromotionRuleEngine promotionRuleEngine;
+    private final MilestoneCouponService milestoneCouponService;
+    private final com.broandbro.qrapp.repository.UserRepository userRepository;
+    private final ComboCampaignService comboCampaignService;
 
     /**
      * Creates a new order with a human-readable order number.
@@ -74,7 +95,18 @@ public class OrderService {
      * @throws RuntimeException if order number generation fails
      */
     @Transactional
-    public Order createOrder(CreateOrderRequest req, User user) {
+    public CreateOrderResult createOrder(CreateOrderRequest req, User user) {
+        // ── Guard: reject PreOrderOnly items in regular orders ──────────────
+        List<Long> requestedIds = req.getItems().stream()
+                .map(CreateOrderRequest.Item::getItemId)
+                .toList();
+        java.util.Set<Long> preOrderOnlyIds = resolvePreOrderOnlyItemIds(requestedIds);
+        if (!preOrderOnlyIds.isEmpty()) {
+            throw new IllegalArgumentException(
+                "Item(s) " + preOrderOnlyIds + " are only available as pre-orders. " +
+                "Please use the pre-order flow to schedule them.");
+        }
+
         LocalDateTime now = LocalDateTime.now();
         Order order = new Order();
         order.setPhone(user != null ? user.getPhone() : req.getPhone());
@@ -90,19 +122,106 @@ public class OrderService {
         String orderNumber = orderNumberGenerator.generateOrderNumber(now.toLocalDate());
         order.setOrderNumber(orderNumber);
 
+        // ── Step 1: pre-compute all item snapshots BEFORE any DB save ──────────
+        // Build (item, snapshot) pairs so we can sum up totals first
+        List<Object[]> itemSnaps = new java.util.ArrayList<>(); // [CreateOrderRequest.Item, OrderItemSnapshot]
+        java.math.BigDecimal subtotal = java.math.BigDecimal.ZERO;
+
+        for (CreateOrderRequest.Item i : req.getItems()) {
+            MenuItem menuItem = menuRepository.findById(i.getItemId())
+                    .orElseThrow(() -> new RuntimeException("MenuItem not found: " + i.getItemId()));
+            Long shopId = menuItem.getShop() != null ? menuItem.getShop().getId() : null;
+            PricingService.OrderItemSnapshot snap = pricingService.createSnapshot(i.getItemId(), shopId, i.getQuantity());
+            itemSnaps.add(new Object[]{i, snap});
+            subtotal = subtotal.add(snap.lineTotal() != null ? snap.lineTotal() : java.math.BigDecimal.ZERO);
+        }
+
+        // ── Step 2: set order-level totals before the first (only) save ─────────
+        java.math.BigDecimal couponDiscount = java.math.BigDecimal.ZERO;
+
+        // Apply promotion if code provided
+        if (req.getPromotionCode() != null && !req.getPromotionCode().isBlank() && user != null) {
+            couponDiscount = resolvePromotionDiscount(req, user, subtotal, couponDiscount);
+            if (couponDiscount.compareTo(java.math.BigDecimal.ZERO) > 0) {
+                order.setCouponCode(req.getPromotionCode().toUpperCase());
+                order.setCouponDiscount(couponDiscount);
+            }
+        }
+
+        // Apply BYOC combo discount if no promotion code was used
+        if (couponDiscount.compareTo(java.math.BigDecimal.ZERO) == 0
+                && req.getByocCampaignId() != null) {
+            java.util.List<com.broandbro.qrapp.promotion.engine.CartItemContext> cartItems =
+                    new java.util.ArrayList<>();
+            for (CreateOrderRequest.Item i : req.getItems()) {
+                MenuItem mi = menuRepository.findById(i.getItemId()).orElse(null);
+                Long catId = (mi != null && mi.getCategory() != null) ? mi.getCategory().getId() : null;
+                java.math.BigDecimal unitPrice = pricingService.getCurrentSellingPrice(i.getItemId());
+                cartItems.add(new com.broandbro.qrapp.promotion.engine.CartItemContext(
+                        i.getItemId(), catId, i.getQuantity(), unitPrice));
+            }
+            com.broandbro.qrapp.promotion.engine.CartContext byocCart =
+                    new com.broandbro.qrapp.promotion.engine.CartContext(null, subtotal, java.math.BigDecimal.ZERO, cartItems);
+            try {
+                com.broandbro.qrapp.combo.dto.campaign.ComboCartEvaluationResponse evalResp =
+                        comboCampaignService.evaluateCart(byocCart);
+                if (evalResp.bestDiscountAmount() != null
+                        && evalResp.bestDiscountAmount().compareTo(java.math.BigDecimal.ZERO) > 0) {
+                    couponDiscount = evalResp.bestDiscountAmount();
+                    order.setCouponCode("BYOC_" + req.getByocCampaignId());
+                    order.setCouponDiscount(couponDiscount);
+                    log.info("BYOC discount ₹{} applied from campaign {} on order {}",
+                            couponDiscount, req.getByocCampaignId(), orderNumber);
+                }
+            } catch (Exception ex) {
+                log.warn("BYOC evaluation failed (non-fatal): {}", ex.getMessage());
+            }
+        }
+        java.math.BigDecimal tax = java.math.BigDecimal.ZERO;
+        order.setSubtotal(subtotal);
+        order.setTax(tax);
+        order.setGrandTotal(subtotal.subtract(couponDiscount).add(tax));
+
+        // ── Step 3: single save — order persisted with correct totals + gets ID ─
         order = orderRepo.save(order);
         recordStatusHistory(order.getId(), null, OrderStatus.ORDER_PLACED, "Order created", "SYSTEM", now);
 
-        for (CreateOrderRequest.Item i : req.getItems()) {
+        // Record promotion usage (after order gets its ID)
+        if (req.getPromotionCode() != null && !req.getPromotionCode().isBlank()
+                && user != null && couponDiscount.compareTo(java.math.BigDecimal.ZERO) > 0) {
+            recordPromotionUsage(req.getPromotionCode(), user, order, couponDiscount, subtotal);
+        }
+
+        // ── Milestone coupon check ─────────────────────────────────────────────
+        // Runs in a separate transaction — a failure here never rolls back the order
+        java.util.List<String> awardedCoupons = java.util.List.of();
+        if (user != null) {
+            awardedCoupons = milestoneCouponService.checkAndAwardMilestones(user, order.getGrandTotal());
+            if (!awardedCoupons.isEmpty()) {
+                log.info("Milestone coupons awarded for order {}: {}", order.getId(), awardedCoupons);
+            }
+        }
+
+        // ── Step 4: persist order items ──────────────────────────────────────────
+        for (Object[] pair : itemSnaps) {
+            CreateOrderRequest.Item i   = (CreateOrderRequest.Item) pair[0];
+            PricingService.OrderItemSnapshot snap = (PricingService.OrderItemSnapshot) pair[1];
             OrderItem oi = new OrderItem();
             oi.setOrderId(order.getId());
             oi.setItemId(i.getItemId());
             oi.setQuantity(i.getQuantity());
+            oi.setSellingPriceSnapshot(snap.sellingPriceSnapshot());
+            oi.setCostPriceSnapshot(snap.costPriceSnapshot());
+            oi.setProfitSnapshot(snap.profitSnapshot());
+            oi.setLineTotal(snap.lineTotal());
             orderItemRepo.save(oi);
         }
 
-        return order;
+        return new CreateOrderResult(order, awardedCoupons);
     }
+
+    /** Wraps the created order together with any milestone coupons awarded during this order. */
+    public record CreateOrderResult(Order order, java.util.List<String> awardedCoupons) {}
 
     @Transactional(readOnly = true)
     public List<UserOrderSummaryResponse> getOrdersForUser(User user) {
@@ -151,6 +270,8 @@ public class OrderService {
             summary.setStatus(order.getStatus());
             summary.setPaymentStatus(order.getPaymentStatus());
             summary.setCreatedAt(order.getCreatedAt());
+            summary.setScheduledAt(order.getScheduledAt());
+            summary.setPreOrder(order.isPreOrder());
 
             double total = 0;
             List<UserOrderSummaryResponse.ItemSummary> itemSummaries = new ArrayList<>();
@@ -161,10 +282,14 @@ public class OrderService {
                 itemSummary.setQuantity(orderItem.getQuantity());
                 if (menuItem != null) {
                     itemSummary.setName(menuItem.getName());
-                    itemSummary.setPrice(menuItem.getSellingPrice().doubleValue());
+                    // Use immutable snapshot price; fall back to current price for legacy rows
+                    double unitPrice = orderItem.getSellingPriceSnapshot() != null
+                            ? orderItem.getSellingPriceSnapshot().doubleValue()
+                            : pricingService.getCurrentSellingPrice(menuItem.getId()).doubleValue();
+                    itemSummary.setPrice(unitPrice);
                     itemSummary.setImageUrl(menuItem.getImageUrl());
                     itemSummary.setIsVeg(menuItem.getIsVeg());
-                    total += menuItem.getSellingPrice().doubleValue() * orderItem.getQuantity();
+                    total += unitPrice * orderItem.getQuantity();
                 }
                 itemSummaries.add(itemSummary);
             }
@@ -192,13 +317,15 @@ public class OrderService {
         }
 
         double total = menuRepository.findAllById(quantityByItemId.keySet()).stream()
-                .mapToDouble(item -> item.getSellingPrice().doubleValue() * quantityByItemId.getOrDefault(item.getId(), 0))
+                .mapToDouble(item -> pricingService.getCurrentSellingPrice(item.getId()).doubleValue() * quantityByItemId.getOrDefault(item.getId(), 0))
                 .sum();
-        return Math.round(total * 100);
+        // Return rupees (whole number). Paise conversion only happens for Razorpay (see calculateAmountForOrder).
+        return Math.round(total);
     }
 
     /**
-     * Calculate total amount (in smallest currency unit, e.g., paise) for the order by summing menu item prices.
+     * Calculate total amount in paise (smallest currency unit) for Razorpay.
+     * Razorpay requires paise – do NOT use this for wallet debits.
      */
     public int calculateAmountForOrder(Long orderId) {
         double total = orderItemRepo.calculateOrderTotal(orderId);
@@ -210,11 +337,11 @@ public class OrderService {
     @Transactional(readOnly = true)
     public Page<AdminOrderResponse> getAdminOrders(Optional<String> status,
                                                    Optional<String> paymentStatus,
-                                                   Optional<String> priority,
                                                    Optional<String> query,
                                                    boolean liveOnly,
                                                    Pageable pageable) {
-        Specification<Order> specification = Specification.where(null);
+        // Pre-orders are managed exclusively via /admin/pre-orders — exclude them here
+        Specification<Order> specification = (root, cq, cb) -> cb.isFalse(root.get("preOrder"));
 
         if (status.isPresent() && !status.get().isBlank()) {
             OrderStatus parsedStatus = parseStatus(status.get());
@@ -224,11 +351,6 @@ public class OrderService {
         if (paymentStatus.isPresent() && !paymentStatus.get().isBlank()) {
             String normalizedPaymentStatus = paymentStatus.get().trim().toUpperCase(Locale.ROOT);
             specification = specification.and((root, cq, cb) -> cb.equal(cb.upper(root.get("paymentStatus")), normalizedPaymentStatus));
-        }
-
-        if (priority.isPresent() && !priority.get().isBlank()) {
-            OrderPriority parsedPriority = parsePriority(priority.get());
-            specification = specification.and((root, cq, cb) -> cb.equal(root.get("priority"), parsedPriority));
         }
 
         if (liveOnly) {
@@ -248,14 +370,18 @@ public class OrderService {
     @Transactional(readOnly = true)
     public List<AdminOrderResponse> getLiveOrders(int limit) {
         int safeLimit = Math.max(1, Math.min(30, limit));
+        // Explicitly exclude pre-orders — they are managed via the pre-orders admin page only
         return buildAdminOrderResponses(
-                orderRepo.findAllByStatusInOrderByCreatedAtAscIdAsc(LIVE_STATUSES, PageRequest.of(0, safeLimit))
+                orderRepo.findAllByStatusInAndPreOrderFalseOrderByCreatedAtAscIdAsc(
+                        LIVE_STATUSES, PageRequest.of(0, safeLimit))
         );
     }
 
     @Transactional(readOnly = true)
     public AdminOrderDashboardResponse getAdminDashboard(int liveLimit) {
-        List<Order> allOrders = orderRepo.findAll(Sort.by(Sort.Order.desc("createdAt"), Sort.Order.desc("id")));
+        // Exclude pre-orders — they have their own dashboard
+        List<Order> allOrders = orderRepo.findAll(Sort.by(Sort.Order.desc("createdAt"), Sort.Order.desc("id")))
+                .stream().filter(o -> !o.isPreOrder()).toList();
         AdminOrderDashboardResponse response = new AdminOrderDashboardResponse();
         response.setTotalOrders(allOrders.size());
         response.setPlacedOrders(countByStatus(allOrders, OrderStatus.ORDER_PLACED));
@@ -282,7 +408,7 @@ public class OrderService {
         response.setLiveOrdersQueue(liveOrders);
         response.setDelayedOrders(liveOrders.stream().filter(AdminOrderResponse::isDelayed).count());
         response.setAttentionOrders(liveOrders.stream()
-                .filter(order -> order.isDelayed() || order.getStatus() == OrderStatus.READY || order.getPriority() == OrderPriority.URGENT)
+                .filter(order -> order.isDelayed() || order.getStatus() == OrderStatus.READY)
                 .limit(6)
                 .toList());
         return response;
@@ -309,9 +435,9 @@ public class OrderService {
                 .orElseThrow(() -> new IllegalArgumentException("Order not found: " + orderId));
 
         boolean hasStatusChange = request != null && request.getStatus() != null && !request.getStatus().isBlank();
-        boolean hasPriorityChange = request != null && request.getPriority() != null && !request.getPriority().isBlank();
         boolean hasNoteChange = request != null && request.getAdminNote() != null;
-        if (!hasStatusChange && !hasPriorityChange && !hasNoteChange) {
+        boolean hasPaymentStatusChange = request != null && request.getPaymentStatus() != null && !request.getPaymentStatus().isBlank();
+        if (!hasStatusChange && !hasNoteChange && !hasPaymentStatusChange) {
             throw new IllegalArgumentException("Nothing to update for the order");
         }
 
@@ -338,8 +464,12 @@ public class OrderService {
             }
         }
 
-        if (hasPriorityChange) {
-            order.setPriority(parsePriority(request.getPriority()));
+        if (hasPaymentStatusChange) {
+            String normalized = request.getPaymentStatus().trim().toUpperCase();
+            if (!normalized.equals("PAID") && !normalized.equals("PENDING") && !normalized.equals("FAILED")) {
+                throw new IllegalArgumentException("Invalid paymentStatus: " + request.getPaymentStatus());
+            }
+            order.setPaymentStatus(normalized);
         }
 
         if (hasNoteChange) {
@@ -427,10 +557,19 @@ public class OrderService {
                 : orderStatusHistoryRepository.findAllByOrderIdInOrderByChangedAtDesc(orderIds).stream()
                 .collect(Collectors.groupingBy(OrderStatusHistory::getOrderId));
 
+        // Batch-load users for customer name display
+        Set<Long> userIds = orders.stream()
+                .map(Order::getUserId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        Map<Long, User> userById = userIds.isEmpty() ? Map.of()
+                : userRepository.findAllById(userIds).stream()
+                        .collect(Collectors.toMap(User::getId, u -> u));
+
         LocalDateTime now = LocalDateTime.now();
         List<AdminOrderResponse> responses = new ArrayList<>();
         for (Order order : orders) {
-            responses.add(toAdminOrderResponse(order, itemsByOrderId.getOrDefault(order.getId(), List.of()), menuById, historyByOrderId.getOrDefault(order.getId(), List.of()), now));
+            responses.add(toAdminOrderResponse(order, itemsByOrderId.getOrDefault(order.getId(), List.of()), menuById, historyByOrderId.getOrDefault(order.getId(), List.of()), now, userById));
         }
         return responses;
     }
@@ -439,11 +578,16 @@ public class OrderService {
                                                     List<OrderItem> orderItems,
                                                     Map<Long, MenuItem> menuById,
                                                     List<OrderStatusHistory> historyEntries,
-                                                    LocalDateTime now) {
+                                                    LocalDateTime now,
+                                                    Map<Long, User> userById) {
         AdminOrderResponse response = new AdminOrderResponse();
         response.setId(order.getId());
+        response.setOrderNumber(order.getOrderNumber());
         response.setPhone(order.getPhone());
         response.setUserId(order.getUserId());
+        // Resolve customer display name from users table; fall back to phone
+        User user = order.getUserId() != null ? userById.get(order.getUserId()) : null;
+        response.setUserName(user != null && user.getName() != null ? user.getName() : null);
         response.setStatus(order.getStatus());
         response.setPaymentStatus(order.getPaymentStatus());
         response.setPaymentMethod(order.getPaymentMethod());
@@ -452,7 +596,8 @@ public class OrderService {
         response.setStartedAt(order.getStartedAt());
         response.setReadyAt(order.getReadyAt());
         response.setCompletedAt(order.getCompletedAt());
-        response.setPriority(order.getPriority() != null ? order.getPriority() : OrderPriority.NORMAL);
+        response.setScheduledAt(order.getScheduledAt());
+        response.setPreOrder(order.isPreOrder());
         response.setAdminNote(order.getAdminNote());
         response.setAssignedAdmin(order.getAssignedAdmin());
         response.setLive(isLive(order));
@@ -468,10 +613,13 @@ public class OrderService {
             itemSummary.setQuantity(orderItem.getQuantity());
             if (menuItem != null) {
                 itemSummary.setName(menuItem.getName());
-                itemSummary.setPrice(menuItem.getSellingPrice().doubleValue());
+                double unitPrice = orderItem.getSellingPriceSnapshot() != null
+                        ? orderItem.getSellingPriceSnapshot().doubleValue()
+                        : pricingService.getCurrentSellingPrice(menuItem.getId()).doubleValue();
+                itemSummary.setPrice(unitPrice);
                 itemSummary.setImageUrl(menuItem.getImageUrl());
                 itemSummary.setIsVeg(menuItem.getIsVeg());
-                double subtotal = menuItem.getSellingPrice().doubleValue() * orderItem.getQuantity();
+                double subtotal = unitPrice * orderItem.getQuantity();
                 itemSummary.setSubtotal(subtotal);
                 total += subtotal;
             }
@@ -504,6 +652,278 @@ public class OrderService {
         return response;
     }
 
+    // ── Pre-order methods ────────────────────────────────────────────────────
+
+    /**
+     * Returns all menu items tagged as PreOrderOnly — these are the only items
+     * eligible for pre-orders and must NOT appear in regular orders.
+     */
+    @Transactional(readOnly = true)
+    public List<com.broandbro.qrapp.dto.MenuItemResponse> getPreOrderItems() {
+        List<com.broandbro.qrapp.entity.MenuItem> items =
+                menuRepository.findVisibleByTagName(PRE_ORDER_ONLY_TAG);
+        return items.stream().map(item -> {
+            com.broandbro.qrapp.dto.MenuItemResponse r = new com.broandbro.qrapp.dto.MenuItemResponse();
+            r.setId(item.getId());
+            r.setName(item.getName());
+            r.setDescription(item.getDescription());
+            r.setImageUrl(item.getImageUrl());
+            r.setIsVeg(item.getIsVeg());
+            r.setCategory(item.getCategory());
+            r.setTag(item.getTag());
+            r.setAvailable(item.getAvailable());
+            r.setIsHidden(item.getIsHidden());
+            try {
+                r.setPrice(pricingService.getCurrentSellingPrice(item.getId()));
+            } catch (Exception e) {
+                r.setPrice(java.math.BigDecimal.ZERO);
+            }
+            return r;
+        }).toList();
+    }
+
+    /** Returns the set of item IDs that are tagged PreOrderOnly. */
+    private java.util.Set<Long> resolvePreOrderOnlyItemIds(List<Long> itemIds) {
+        if (itemIds == null || itemIds.isEmpty()) return java.util.Set.of();
+        return menuRepository.findAllById(itemIds).stream()
+                .filter(m -> m.getTag() != null && PRE_ORDER_ONLY_TAG.equals(m.getTag().getName()))
+                .map(com.broandbro.qrapp.entity.MenuItem::getId)
+                .collect(java.util.stream.Collectors.toSet());
+    }
+
+    /**
+     * Creates a pre-order scheduled for a future date/time.
+     * Same flow as createOrder, but with PRE_ORDERED status and scheduledAt set.
+     */
+    @Transactional
+    public CreateOrderResult createPreOrder(CreatePreOrderRequest req, User user) {
+        log.info("[createPreOrder] Starting — phone={} scheduledAt={} itemCount={}",
+                req.getPhone(), req.getScheduledAt(), req.getItems().size());
+
+        // ── Guard: ALL items must be tagged PreOrderOnly ─────────────────────
+        List<Long> requestedIds = req.getItems().stream()
+                .map(CreatePreOrderRequest.Item::getItemId)
+                .toList();
+        java.util.Set<Long> preOrderOnlyIds = resolvePreOrderOnlyItemIds(requestedIds);
+        log.info("[createPreOrder] PreOrderOnly tag check — requested={} eligible={}", requestedIds, preOrderOnlyIds);
+
+        List<Long> nonPreOrderItems = requestedIds.stream()
+                .filter(id -> !preOrderOnlyIds.contains(id))
+                .distinct().toList();
+        if (!nonPreOrderItems.isEmpty()) {
+            log.warn("[createPreOrder] Rejected — items not tagged PreOrderOnly: {}", nonPreOrderItems);
+            throw new IllegalArgumentException(
+                "Item(s) " + nonPreOrderItems + " are not eligible for pre-orders. " +
+                "Only items tagged 'PreOrderOnly' can be pre-ordered.");
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        Order order = new Order();
+        order.setPhone(user != null ? user.getPhone() : req.getPhone());
+        order.setUserId(user != null ? user.getId() : null);
+        order.setStatus(OrderStatus.PRE_ORDERED);
+        order.setPaymentStatus("PENDING");
+        order.setPaymentMethod(req.getPaymentMethod() != null ? req.getPaymentMethod() : PaymentMethod.RAZORPAY);
+        order.setCreatedAt(now);
+        order.setLastStatusChangedAt(now);
+        order.setPriority(OrderPriority.NORMAL);
+        order.setPreOrder(true);
+        order.setScheduledAt(req.getScheduledAt());
+        if (req.getCustomerNote() != null && !req.getCustomerNote().isBlank()) {
+            order.setAdminNote(req.getCustomerNote());
+        }
+
+        String orderNumber = orderNumberGenerator.generateOrderNumber(now.toLocalDate());
+        order.setOrderNumber(orderNumber);
+        log.info("[createPreOrder] Order number generated: {}", orderNumber);
+
+        List<Object[]> itemSnaps = new java.util.ArrayList<>();
+        java.math.BigDecimal subtotal = java.math.BigDecimal.ZERO;
+
+        // Build item list converting from CreatePreOrderRequest items
+        List<CreateOrderRequest.Item> orderItems = req.getItems().stream().map(i -> {
+            CreateOrderRequest.Item item = new CreateOrderRequest.Item();
+            item.setItemId(i.getItemId());
+            item.setQuantity(i.getQuantity());
+            return item;
+        }).toList();
+
+        for (CreateOrderRequest.Item i : orderItems) {
+            log.info("[createPreOrder] Looking up menuItem id={}", i.getItemId());
+            MenuItem menuItem = menuRepository.findById(i.getItemId())
+                    .orElseThrow(() -> new RuntimeException("MenuItem not found: " + i.getItemId()));
+            Long shopId = menuItem.getShop() != null ? menuItem.getShop().getId() : null;
+            log.info("[createPreOrder] MenuItem found — id={} name='{}' shopId={}", menuItem.getId(), menuItem.getName(), shopId);
+
+            PricingService.OrderItemSnapshot snap = pricingService.createSnapshot(i.getItemId(), shopId, i.getQuantity());
+            log.info("[createPreOrder] Snapshot — itemId={} qty={} sellingPrice={} lineTotal={}",
+                    i.getItemId(), i.getQuantity(), snap.sellingPriceSnapshot(), snap.lineTotal());
+
+            if (snap.sellingPriceSnapshot() == null || snap.sellingPriceSnapshot().compareTo(java.math.BigDecimal.ZERO) == 0) {
+                log.warn("[createPreOrder] WARNING — itemId={} has ZERO selling price. Razorpay will reject amount=0.", i.getItemId());
+            }
+
+            itemSnaps.add(new Object[]{i, snap});
+            subtotal = subtotal.add(snap.lineTotal() != null ? snap.lineTotal() : java.math.BigDecimal.ZERO);
+        }
+
+        log.info("[createPreOrder] Subtotal after items: {}", subtotal);
+
+        java.math.BigDecimal couponDiscount = java.math.BigDecimal.ZERO;
+
+        // Build temp CreateOrderRequest for promotion resolution
+        if (req.getPromotionCode() != null && !req.getPromotionCode().isBlank() && user != null) {
+            CreateOrderRequest tempReq = new CreateOrderRequest();
+            tempReq.setPhone(req.getPhone());
+            tempReq.setPaymentMethod(req.getPaymentMethod());
+            tempReq.setItems(orderItems);
+            tempReq.setPromotionCode(req.getPromotionCode());
+            couponDiscount = resolvePromotionDiscount(tempReq, user, subtotal, couponDiscount);
+            if (couponDiscount.compareTo(java.math.BigDecimal.ZERO) > 0) {
+                order.setCouponCode(req.getPromotionCode().toUpperCase());
+                order.setCouponDiscount(couponDiscount);
+                log.info("[createPreOrder] Coupon applied — code={} discount={}", req.getPromotionCode(), couponDiscount);
+            }
+        }
+
+        order.setSubtotal(subtotal);
+        order.setTax(java.math.BigDecimal.ZERO);
+        order.setGrandTotal(subtotal.subtract(couponDiscount));
+        log.info("[createPreOrder] Totals — subtotal={} couponDiscount={} grandTotal={}",
+                subtotal, couponDiscount, order.getGrandTotal());
+
+        log.info("[createPreOrder] Saving order ...");
+        order = orderRepo.save(order);
+        log.info("[createPreOrder] Order saved — id={}", order.getId());
+
+        recordStatusHistory(order.getId(), null, OrderStatus.PRE_ORDERED, "Pre-order created for " + req.getScheduledAt(), "SYSTEM", now);
+
+        for (Object[] pair : itemSnaps) {
+            CreateOrderRequest.Item i = (CreateOrderRequest.Item) pair[0];
+            PricingService.OrderItemSnapshot snap = (PricingService.OrderItemSnapshot) pair[1];
+            OrderItem oi = new OrderItem();
+            oi.setOrderId(order.getId());
+            oi.setItemId(i.getItemId());
+            oi.setQuantity(i.getQuantity());
+            oi.setSellingPriceSnapshot(snap.sellingPriceSnapshot());
+            oi.setCostPriceSnapshot(snap.costPriceSnapshot());
+            oi.setProfitSnapshot(snap.profitSnapshot());
+            oi.setLineTotal(snap.lineTotal());
+            orderItemRepo.save(oi);
+            log.info("[createPreOrder] OrderItem saved — orderId={} itemId={} qty={} lineTotal={}",
+                    order.getId(), i.getItemId(), i.getQuantity(), snap.lineTotal());
+        }
+
+        log.info("[createPreOrder] Completed — orderId={} orderNumber={}", order.getId(), order.getOrderNumber());
+        return new CreateOrderResult(order, java.util.List.of());
+    }
+
+    /**
+     * Returns all pre-orders with optional date-range filtering.
+     */
+    @Transactional(readOnly = true)
+    public Page<AdminOrderResponse> getAdminPreOrders(
+            Optional<String> status,
+            Optional<String> query,
+            Optional<LocalDateTime> scheduledFrom,
+            Optional<LocalDateTime> scheduledTo,
+            Pageable pageable) {
+
+        Specification<Order> spec = (root, cq, cb) -> cb.isTrue(root.get("preOrder"));
+
+        if (status.isPresent() && !status.get().isBlank()) {
+            OrderStatus parsedStatus = parseStatus(status.get());
+            spec = spec.and((root, cq, cb) -> cb.equal(root.get("status"), parsedStatus));
+        }
+
+        if (scheduledFrom.isPresent()) {
+            LocalDateTime from = scheduledFrom.get();
+            spec = spec.and((root, cq, cb) -> cb.greaterThanOrEqualTo(root.get("scheduledAt"), from));
+        }
+
+        if (scheduledTo.isPresent()) {
+            LocalDateTime to = scheduledTo.get();
+            spec = spec.and((root, cq, cb) -> cb.lessThanOrEqualTo(root.get("scheduledAt"), to));
+        }
+
+        if (query.isPresent() && !query.get().isBlank()) {
+            spec = spec.and(matchesQuery(query.get()));
+        }
+
+        Pageable effectivePageable = PageRequest.of(
+                pageable.getPageNumber(),
+                pageable.getPageSize(),
+                Sort.by(Sort.Order.asc("scheduledAt"), Sort.Order.desc("createdAt")));
+        Page<Order> page = orderRepo.findAll(spec, effectivePageable);
+        List<AdminOrderResponse> content = buildAdminOrderResponses(page.getContent());
+        return new PageImpl<>(content, effectivePageable, page.getTotalElements());
+    }
+
+    /**
+     * Returns dashboard stats for the pre-order management panel.
+     */
+    @Transactional(readOnly = true)
+    public AdminPreOrderDashboardResponse getAdminPreOrderDashboard(int upcomingLimit) {
+        Specification<Order> preOrderSpec = (root, cq, cb) -> cb.isTrue(root.get("preOrder"));
+        List<Order> allPreOrders = orderRepo.findAll(preOrderSpec, Sort.by(Sort.Order.asc("scheduledAt")));
+
+        LocalDateTime now = LocalDateTime.now();
+        LocalDate today = LocalDate.now();
+        LocalDate tomorrow = today.plusDays(1);
+
+        AdminPreOrderDashboardResponse response = new AdminPreOrderDashboardResponse();
+        response.setTotalPreOrders(allPreOrders.stream()
+                .filter(o -> o.getStatus() != OrderStatus.CANCELLED).count());
+        response.setTodayPreOrders(allPreOrders.stream()
+                .filter(o -> o.getScheduledAt() != null && today.equals(o.getScheduledAt().toLocalDate()))
+                .filter(o -> o.getStatus() != OrderStatus.CANCELLED).count());
+        response.setTomorrowPreOrders(allPreOrders.stream()
+                .filter(o -> o.getScheduledAt() != null && tomorrow.equals(o.getScheduledAt().toLocalDate()))
+                .filter(o -> o.getStatus() != OrderStatus.CANCELLED).count());
+        response.setPendingPreOrders(allPreOrders.stream()
+                .filter(o -> o.getStatus() == OrderStatus.PRE_ORDERED).count());
+        response.setAcceptedPreOrders(allPreOrders.stream()
+                .filter(o -> o.getStatus() != OrderStatus.PRE_ORDERED && o.getStatus() != OrderStatus.CANCELLED).count());
+        response.setCancelledPreOrders(allPreOrders.stream()
+                .filter(o -> o.getStatus() == OrderStatus.CANCELLED).count());
+        response.setOverduePreOrders(allPreOrders.stream()
+                .filter(o -> o.getStatus() == OrderStatus.PRE_ORDERED)
+                .filter(o -> o.getScheduledAt() != null && o.getScheduledAt().isBefore(now))
+                .count());
+
+        List<Order> upcoming = allPreOrders.stream()
+                .filter(o -> o.getStatus() == OrderStatus.PRE_ORDERED)
+                .filter(o -> o.getScheduledAt() != null)
+                .sorted(Comparator.comparing(Order::getScheduledAt))
+                .limit(upcomingLimit)
+                .toList();
+        response.setUpcomingQueue(buildAdminOrderResponses(upcoming));
+        return response;
+    }
+
+    /**
+     * Accepts a pre-order — transitions PRE_ORDERED → ORDER_PLACED.
+     */
+    @Transactional
+    public AdminOrderResponse acceptPreOrder(Long orderId, String adminNote, String actor) {
+        Order order = orderRepo.findById(orderId)
+                .orElseThrow(() -> new IllegalArgumentException("Pre-order not found: " + orderId));
+        if (order.getStatus() != OrderStatus.PRE_ORDERED) {
+            throw new IllegalStateException("Order " + orderId + " is not in PRE_ORDERED status");
+        }
+        LocalDateTime now = LocalDateTime.now();
+        order.setStatus(OrderStatus.ORDER_PLACED);
+        order.setLastStatusChangedAt(now);
+        if (adminNote != null && !adminNote.isBlank()) {
+            order.setAdminNote(adminNote);
+        }
+        if (actor != null) order.setAssignedAdmin(actor);
+        orderRepo.save(order);
+        recordStatusHistory(order.getId(), OrderStatus.PRE_ORDERED, OrderStatus.ORDER_PLACED,
+                adminNote, actor, now);
+        return getAdminOrder(orderId);
+    }
+
     private void validateTransition(OrderStatus currentStatus, OrderStatus nextStatus) {
         List<OrderStatus> allowed = allowedTransitionsFor(currentStatus);
         if (!allowed.contains(nextStatus)) {
@@ -516,11 +936,12 @@ public class OrderService {
             return List.of();
         }
         return switch (status) {
+            case PRE_ORDERED -> List.of(OrderStatus.ORDER_PLACED, OrderStatus.CANCELLED);
             case ORDER_PLACED -> List.of(OrderStatus.PREPARING, OrderStatus.READY, OrderStatus.COMPLETED, OrderStatus.CANCELLED);
-            case ACKNOWLEDGED -> null;
+            case ACKNOWLEDGED -> List.of();
             case PREPARING -> List.of(OrderStatus.ORDER_PLACED, OrderStatus.READY, OrderStatus.COMPLETED, OrderStatus.CANCELLED);
             case READY -> List.of(OrderStatus.PREPARING, OrderStatus.COMPLETED, OrderStatus.CANCELLED);
-            case DELIVERED -> null;
+            case DELIVERED -> List.of();
             case COMPLETED, CANCELLED -> List.of();
         };
     }
@@ -561,13 +982,6 @@ public class OrderService {
         }
     }
 
-    private OrderPriority parsePriority(String rawPriority) {
-        try {
-            return OrderPriority.valueOf(rawPriority.trim().toUpperCase(Locale.ROOT));
-        } catch (Exception ex) {
-            throw new IllegalArgumentException("Unsupported order priority: " + rawPriority);
-        }
-    }
 
     private void recordStatusHistory(Long orderId,
                                      OrderStatus previousStatus,
@@ -592,4 +1006,84 @@ public class OrderService {
         String trimmed = value.trim();
         return trimmed.isEmpty() ? null : trimmed;
     }
+
+    /**
+     * Validates and computes the discount for a promotion code.
+     * Returns ZERO if the promotion is not found or fails eligibility.
+     * Logs a warning rather than throwing — order creation must not fail due to a bad promo code.
+     */
+    private java.math.BigDecimal resolvePromotionDiscount(
+            CreateOrderRequest req, User user, java.math.BigDecimal subtotal,
+            java.math.BigDecimal fallback) {
+        try {
+            Promotion promotion = promotionRepository
+                    .findByCode(req.getPromotionCode().toUpperCase())
+                    .orElse(null);
+            if (promotion == null) {
+                log.warn("Promotion not found at order creation: {}", req.getPromotionCode());
+                return fallback;
+            }
+
+            int orderCount = (int) orderRepo.countByUserId(user.getId());
+            java.time.LocalDateTime lastOrderAt = orderRepo.findLastOrderAtByUserId(user.getId()).orElse(null);
+            UserContext userCtx = new UserContext(user.getId(), orderCount, lastOrderAt);
+
+            List<CartItemContext> items = req.getItems().stream()
+                    .map(i -> {
+                        try {
+                            com.broandbro.qrapp.entity.MenuItem mi = menuRepository.findById(i.getItemId()).orElse(null);
+                            Long catId = (mi != null && mi.getCategory() != null) ? mi.getCategory().getId() : null;
+                            java.math.BigDecimal price = (mi != null)
+                                    ? pricingService.getCurrentSellingPrice(mi.getId())
+                                    : java.math.BigDecimal.ZERO;
+                            return new CartItemContext(i.getItemId(), catId, i.getQuantity(), price);
+                        } catch (Exception e) {
+                            return new CartItemContext(i.getItemId(), null, i.getQuantity(), java.math.BigDecimal.ZERO);
+                        }
+                    }).toList();
+
+            Long restaurantId = items.stream()
+                    .findFirst()
+                    .map(CartItemContext::menuItemId)
+                    .map(id -> {
+                        try {
+                            var mi = menuRepository.findById(id).orElse(null);
+                            return (mi != null && mi.getShop() != null) ? mi.getShop().getId() : null;
+                        } catch (Exception e) { return null; }
+                    }).orElse(null);
+
+            CartContext cartCtx = new CartContext(restaurantId, subtotal, java.math.BigDecimal.ZERO, items);
+            EligibilityContext ctx = new EligibilityContext(userCtx, cartCtx, java.time.LocalDateTime.now());
+
+            EligibilityResult result = promotionRuleEngine.evaluate(ctx, promotion);
+            if (!result.eligible()) {
+                log.warn("Promotion {} ineligible at order creation: {}", req.getPromotionCode(), result.failureReason());
+                return fallback;
+            }
+            return result.discount() != null ? result.discount() : fallback;
+        } catch (Exception e) {
+            log.error("Error resolving promotion discount for code: {}", req.getPromotionCode(), e);
+            return fallback;
+        }
+    }
+
+    private void recordPromotionUsage(String code, User user, Order order,
+                                      java.math.BigDecimal discount, java.math.BigDecimal subtotal) {
+        try {
+            promotionRepository.findByCode(code.toUpperCase()).ifPresent(promotion -> {
+                PromotionUsage usage = PromotionUsage.builder()
+                        .promotionId(promotion.getId())
+                        .userId(user.getId())
+                        .orderId(order.getId())
+                        .promotionCode(code.toUpperCase())
+                        .discountAmount(discount)
+                        .orderSubtotal(subtotal)
+                        .build();
+                promotionUsageRepository.save(usage);
+            });
+        } catch (Exception e) {
+            log.error("Failed to record promotion usage for code: {} order: {}", code, order.getId(), e);
+        }
+    }
 }
+

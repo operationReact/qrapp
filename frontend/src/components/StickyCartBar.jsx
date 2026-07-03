@@ -1,8 +1,10 @@
 import { useCart } from "../context/CartContext";
-import { useNavigate, useLocation } from "react-router-dom";
-import { useAdminAuth } from "../context/AdminAuthContext";
+import { useNavigate, useLocation } from "@tanstack/react-router";
 import { Button } from "./ui/button";
 import { Cart } from "@boxicons/react";
+import { useAuth } from "@/context/AuthContext";
+import { useByocDiscount } from "@/hooks/useByocDiscount";
+import ComboProgressBanner from "@/components/ComboProgressBanner";
 
 const pluralRules = new Intl.PluralRules("en-US");
 
@@ -23,23 +25,27 @@ export default function StickyCartBar() {
   const { cart, getTotal, openDrawer, closeDrawer } = useCart();
   const navigate = useNavigate();
   const location = useLocation();
-  const { admin } = useAdminAuth();
+  const { isAdmin } = useAuth();
+
+  const totalItems = cart.reduce((s, i) => s + (i.quantity || 0), 0);
+  const totalPrice = getTotal();
+
+  // BYOC nudge — only evaluated when cart has items
+  const { campaigns: byocCampaigns } = useByocDiscount(cart, totalItems > 0);
+  const primaryByoc = byocCampaigns[0] ?? null;
 
   // Only show the sticky cart bar on the landing page (home)
   if (location && !stickyCartBarVisibleRoutes.includes(location.pathname))
     return null;
 
-  if (admin) return null;
-
-  const totalItems = cart.reduce((s, i) => s + (i.quantity || 0), 0);
-  const totalPrice = getTotal();
+  if (isAdmin) return null;
 
   const handleViewCart = () => {
     if (location.pathname === "/") {
       openDrawer();
     } else {
       closeDrawer();
-      navigate("/cart");
+      navigate({ to: "/cart" });
     }
   };
 
@@ -47,14 +53,20 @@ export default function StickyCartBar() {
 
   return (
     <div className="fixed inset-x-0 bottom-0 pb-mobile-nav md:px-2.5 md:pb-2.5 z-39 pointer-events-auto">
-      <div className="rounded-t-xl max-w-md md:rounded-xl md:max-w-1/2 mx-auto border border-b-0 md:border-b border-gray-200 bg-white pb-[env(safe-area-inset-bottom)]">
+      {/* BYOC compact nudge strip — shown above the bar when progress exists */}
+      {primaryByoc && primaryByoc.nextTier && (
+        <div className="max-w-md md:max-w-1/2 mx-auto px-4 py-1.5 bg-emerald-50 border border-b-0 border-emerald-200 rounded-t-xl flex items-center justify-center">
+          <ComboProgressBanner campaign={primaryByoc} compact />
+        </div>
+      )}
+      <div className="rounded-t-xl max-w-md md:rounded-xl md:max-w-1/2 mx-auto border border-b-0 md:border-b border-border bg-card/95 backdrop-blur-sm pb-[env(safe-area-inset-bottom)]">
         <div className="w-full px-8 sm:px-4 md:mx-auto md:max-w-4xl lg:max-w-5xl xl:max-w-6xl">
           <div className="flex md:min-h-[72px] items-center md:py-3">
             <div className="flex w-full items-center justify-between gap-3 py-2 md:py-0">
               <div className="flex min-w-0 items-center gap-3">
                 <div className="hidden md:flex size-6 md:size-10 relative bg-primary-foreground/50 flex-none items-center justify-center rounded-full text-base font-semibold text-primary">
                   <Cart pack="filled" className="size-6" />
-                  <span className="absolute hidden md:grid bg-white rounded-full w-8 grid place-items-center -bottom-2 border border-muted text-xs text-black">
+                  <span className="absolute hidden md:grid bg-white rounded-full w-8 place-items-center -bottom-2 border border-muted text-xs text-black">
                     {totalItems}
                   </span>
                 </div>
@@ -72,7 +84,7 @@ export default function StickyCartBar() {
               </div>
 
               <Button
-                className="font-medium! rounded-full h-9 text-sm! font-medium!"
+                className="font-medium! rounded-full h-9 text-sm!"
                 onClick={handleViewCart}
                 aria-label="View cart"
               >

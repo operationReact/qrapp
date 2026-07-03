@@ -10,8 +10,6 @@ package com.broandbro.qrapp.enums;
  */
 public enum DiscountType {
     PERCENTAGE,
-    FLAT,
-    FREE_ITEM,
-    FREE_DELIVERY
+    FIXED
 }
 

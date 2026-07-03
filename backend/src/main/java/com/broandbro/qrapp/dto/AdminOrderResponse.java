@@ -12,7 +12,11 @@ import java.util.List;
 @Data
 public class AdminOrderResponse {
     private Long id;
+    /** Human-readable order number e.g. BB-20260515-001 */
+    private String orderNumber;
     private String phone;
+    /** Display name of the customer (from users table) */
+    private String userName;
     private Long userId;
     private OrderStatus status;
     private String paymentStatus;
@@ -22,9 +26,10 @@ public class AdminOrderResponse {
     private LocalDateTime startedAt;
     private LocalDateTime readyAt;
     private LocalDateTime completedAt;
+    private LocalDateTime scheduledAt;
+    private boolean preOrder;
     private double total;
     private int totalItems;
-    private OrderPriority priority;
     private String adminNote;
     private String assignedAdmin;
     private boolean live;

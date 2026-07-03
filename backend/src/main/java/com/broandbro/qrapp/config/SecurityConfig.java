@@ -103,14 +103,38 @@ public class SecurityConfig {
 
                         .requestMatchers("/uploads/**").permitAll()
 
+                        // Swagger / OpenAPI
+                        .requestMatchers(
+                                "/swagger-ui.html",
+                                "/swagger-ui/**",
+                                "/v3/api-docs",
+                                "/v3/api-docs/**"
+                        ).permitAll()
+
                         .requestMatchers("/webhook/**").permitAll()
+
+                        .requestMatchers("/admin/menu/bulk-upload/**").permitAll()
 
                         .requestMatchers(
                                 HttpMethod.GET,
                                 "/menu",
                                 "/menu/**",
-                                "/categories/**"
+                                "/categories/**",
+                                "/api/combos",
+                                "/api/combo-campaigns",
+                                "/orders/pre-order/items"
                         ).permitAll()
+
+                        // BYOC cart evaluation — publicly accessible (no auth needed)
+                        .requestMatchers(HttpMethod.POST, "/api/combo-campaigns/evaluate").permitAll()
+
+                        // Recommendation: cart suggestions, complete-meal, and interaction tracking
+                        // are all public (no customer login required). The analytics endpoint is
+                        // protected at the controller level via @PreAuthorize.
+                        .requestMatchers(HttpMethod.GET,  "/api/recommendations/cart").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/recommendations/cart").permitAll()
+                        .requestMatchers(HttpMethod.GET,  "/api/recommendations/complete-meal").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/recommendations/interactions").permitAll()
 
                         .requestMatchers(
                                 HttpMethod.POST,
@@ -120,8 +144,27 @@ public class SecurityConfig {
                         .requestMatchers("/admin/**")
                         .hasRole("ADMIN")
 
+                        .requestMatchers("/api/admin/**")
+                        .hasRole("ADMIN")
+
+                        // All analytics endpoints — admin only
+                        .requestMatchers("/api/v1/analytics/**")
+                        .hasRole("ADMIN")
+
                         // Allow wallet endpoints to pass through (controller will handle auth)
                         .requestMatchers("/api/wallet/**").permitAll()
+
+                        // Party orders — user-facing (authentication enforced in controller)
+                        .requestMatchers("/party-order/**").authenticated()
+
+                        // Cache admin – no auth required
+                        .requestMatchers("/api/cache/**").permitAll()
+                        .requestMatchers("/admin/menu/bulk-upload/**").permitAll()
+
+                        // Payment config — publicly readable (controls which methods are shown)
+                        .requestMatchers(HttpMethod.GET, "/api/payment/**").permitAll()
+
+
 
                         .anyRequest()
                         .authenticated()

@@ -1,0 +1,213 @@
+name: Backend Deploy-Prod
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "backend/**"
+      - "build.gradle"
+      - "settings.gradle"
+      - "gradle/**"
+      - ".github/workflows/backend-deploy-prod.yml"
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: "Reason for manual deployment"
+        required: false
+        default: "Manual trigger"
+
+permissions:
+  id-token: write   # required for OIDC → AWS
+  contents: read
+
+jobs:
+  deploy:
+    name: Build & Deploy to Prod EC2
+    runs-on: ubuntu-latest
+    environment: prod   # ← triggers the required-reviewers approval gate
+
+    steps:
+      # ── 1. Checkout ──────────────────────────────────────────────────────────
+      - name: Checkout
+        uses: actions/checkout@v4.2.2
+
+      # ── 2. Set up Java 21 ────────────────────────────────────────────────────
+      - name: Set up Java 21
+        uses: actions/setup-java@v4.7.1
+        with:
+          java-version: "21"
+          distribution: corretto
+
+      # ── 2b. Cache Gradle distribution + downloaded dependencies ──────────────
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            /opt/gradle/gradle-8.7
+            ~/.gradle/caches
+          key: ${{ runner.os }}-gradle-8.7-${{ hashFiles('**/*.gradle', '**/*.gradle.kts', '**/gradle.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-8.7-
+
+      # ── 3. Build JAR ─────────────────────────────────────────────────────────
+      # Install Gradle 8.7 directly from the official distribution so we never
+      # depend on a committed gradle-wrapper.jar (which is blocked by *.jar in
+      # .gitignore and therefore always empty in this repo).
+      - name: Install Gradle 8.7
+        run: |
+          if [ ! -f /opt/gradle/gradle-8.7/bin/gradle ]; then
+            echo "⬇️ Cache miss – downloading Gradle 8.7..."
+            curl -fsSL https://services.gradle.org/distributions/gradle-8.7-bin.zip \
+              -o /tmp/gradle.zip
+            unzip -q /tmp/gradle.zip -d /opt/gradle
+          else
+            echo "✅ Gradle 8.7 restored from cache – skipping download"
+          fi
+          echo "/opt/gradle/gradle-8.7/bin" >> "$GITHUB_PATH"
+
+      - name: Build Spring Boot JAR
+        run: gradle :backend:bootJar -x test --no-daemon
+
+      # ── 4. Authenticate to AWS via OIDC ──────────────────────────────────────
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ap-south-1
+
+      # ── 5. Fetch EC2 host from SSM (populated by Terraform) ──────────────────
+      - name: Get EC2 host from SSM
+        id: ec2
+        run: |
+          IP=$(aws ssm get-parameter \
+            --name "/broandbro/prod/ec2-public-ip" \
+            --query "Parameter.Value" \
+            --output text)
+          echo "host=$IP" >> "$GITHUB_OUTPUT"
+
+      # ── 6. Fetch SSH private key from SSM (SecureString) ─────────────────────
+      - name: Get SSH private key from SSM
+        id: ssh
+        run: |
+          KEY=$(aws ssm get-parameter \
+            --name "/broandbro/prod/ec2-ssh-private-key" \
+            --with-decryption \
+            --query "Parameter.Value" \
+            --output text)
+          echo "$KEY" > /tmp/deploy_key
+          chmod 600 /tmp/deploy_key
+
+      # ── 7. Upload JAR to S3 ──────────────────────────────────────────────────
+      # Replacing the old SCP approach (GitHub runner US → Mumbai EC2 = ~30 min).
+      # The runner uploads to S3 in ap-south-1; the EC2 pulls it from S3 in the
+      # same region over the AWS backbone – typically <30 seconds total.
+      # A pre-signed URL is generated so the EC2 can download without needing
+      # its own s3:GetObject IAM permission on the deploy/ prefix.
+      - name: Upload JAR to S3
+        run: |
+          echo "📦 Uploading JAR to S3 (ap-south-1)..."
+          time aws s3 cp \
+            backend/build/libs/qrapp-*.jar \
+            s3://broandbro-menu-images-prod/deploy/prod/${{ github.run_id }}/app.jar \
+            --region ap-south-1
+          echo "✅ S3 upload complete"
+
+          # Pre-signed URL valid for 10 minutes – plenty of time for the SSH deploy step
+          PRESIGNED=$(aws s3 presign \
+            s3://broandbro-menu-images-prod/deploy/prod/${{ github.run_id }}/app.jar \
+            --expires-in 600 \
+            --region ap-south-1)
+          echo "JAR_URL=$PRESIGNED" >> "$GITHUB_ENV"
+
+      # ── 8. Write application.env + restart service ───────────────────────────
+      # All secrets are injected here — nothing sensitive is ever stored in files
+      # in the repo.  The env file is written with 640 permissions (broandbro user
+      # only) and is never echoed in logs.
+      - name: Deploy & restart
+        run: |
+          ssh -i /tmp/deploy_key \
+            -o StrictHostKeyChecking=no \
+            ec2-user@${{ steps.ec2.outputs.host }} << 'ENDSSH'
+
+            set -euo pipefail
+
+            # Pull the JAR via pre-signed URL – no IAM credentials needed on EC2
+            echo "⬇️ Downloading JAR from S3..."
+            curl -fsSL -o /tmp/app-new.jar "${{ env.JAR_URL }}"
+
+            # Backup existing JAR
+            [ -f /opt/broandbro/app.jar ] && \
+              sudo cp /opt/broandbro/app.jar /opt/broandbro/app.jar.bak || true
+
+            # Move new JAR into place
+            sudo mv /tmp/app-new.jar /opt/broandbro/app.jar
+            sudo chown broandbro:broandbro /opt/broandbro/app.jar
+
+            # Write environment file (secrets injected at deploy time)
+            sudo tee /opt/broandbro/config/application.env > /dev/null << EOF
+          # ─── Spring ────────────────────────────────────────────────────────
+          SPRING_PROFILES_ACTIVE=prod
+          SERVER_PORT=8080
+
+          # ─── Database ──────────────────────────────────────────────────────
+          SPRING_DATASOURCE_URL=jdbc:postgresql://${{ secrets.PROD_DB_HOST }}:5432/${{ secrets.PROD_DB_NAME }}
+          SPRING_DATASOURCE_USERNAME=${{ secrets.PROD_DB_USERNAME }}
+          SPRING_DATASOURCE_PASSWORD=${{ secrets.PROD_DB_PASSWORD }}
+
+          # ─── OpenAI (AI image generation) ──────────────────────────────────
+          OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
+          OPENAI_IMAGE_MODEL=gpt-image-1
+          OPENAI_IMAGE_SIZE=1024x1024
+
+          # ─── AWS S3 (shared media bucket) ──────────────────────────────────
+          AWS_S3_BUCKET_NAME=broandbro-menu-images-prod
+          AWS_S3_REGION=ap-south-1
+          AWS_S3_ENABLED=true
+          AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+          # ─── Razorpay ──────────────────────────────────────────────────────
+          RAZORPAY_KEY=${{ secrets.PROD_RAZORPAY_KEY }}
+          RAZORPAY_SECRET=${{ secrets.PROD_RAZORPAY_SECRET }}
+          RAZORPAY_WEBHOOK_SECRET=${{ secrets.PROD_RAZORPAY_WEBHOOK_SECRET }}
+
+          # ─── Twilio / WhatsApp ──────────────────────────────────────────────
+          TWILIO_ACCOUNT_SID=${{ secrets.PROD_TWILIO_ACCOUNT_SID }}
+          TWILIO_AUTH_TOKEN=${{ secrets.PROD_TWILIO_AUTH_TOKEN }}
+          TWILIO_FROM_NUMBER=${{ secrets.PROD_TWILIO_FROM_NUMBER }}
+          TWILIO_ORDER_PLACED_CONTENT_SID=${{ secrets.PROD_TWILIO_ORDER_PLACED_CONTENT_SID }}
+          TWILIO_OTP_CONTENT_SID=${{ secrets.PROD_TWILIO_OTP_CONTENT_SID }}
+          EOF
+
+            sudo chmod 640 /opt/broandbro/config/application.env
+            sudo chown broandbro:broandbro /opt/broandbro/config/application.env
+
+            # Restart service
+            sudo systemctl daemon-reload
+            sudo systemctl restart broandbro
+
+            # Wait up to 90s for healthy startup (prod needs a bit more time)
+            for i in $(seq 1 18); do
+              sleep 5
+              STATUS=$(sudo systemctl is-active broandbro 2>/dev/null || echo "inactive")
+              echo "[$i/18] Service status: $STATUS"
+              if [ "$STATUS" = "active" ]; then
+                echo "✅ broandbro started successfully"
+                exit 0
+              fi
+            done
+            echo "❌ Service failed to start" && sudo journalctl -u broandbro -n 50 --no-pager && exit 1
+          ENDSSH
+
+      # ── 9. Cleanup ───────────────────────────────────────────────────────────
+      - name: Cleanup SSH key
+        if: always()
+        run: rm -f /tmp/deploy_key
+
+      - name: Cleanup S3 deploy artifact
+        if: always()
+        run: |
+          aws s3 rm \
+            s3://broandbro-menu-images-prod/deploy/prod/${{ github.run_id }}/app.jar \
+            || true
+

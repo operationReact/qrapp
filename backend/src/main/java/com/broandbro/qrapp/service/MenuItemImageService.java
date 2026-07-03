@@ -80,7 +80,13 @@ public class MenuItemImageService {
         }
 
         MenuItemImage saved = imageRepository.save(image);
-        log.info("Image saved successfully id={} menuItemId={}", saved.getId(), menuItemId);
+
+        // Keep MenuItem.imageUrl in sync so all menu responses can render the image
+        String imageUrl = buildImageUrl(saved.getId());
+        menuItem.setImageUrl(imageUrl);
+        menuRepository.save(menuItem);
+
+        log.info("Image saved successfully id={} menuItemId={} url={}", saved.getId(), menuItemId, imageUrl);
 
         return ImageUploadResponse.builder()
                 .id(saved.getId())

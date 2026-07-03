@@ -59,6 +59,19 @@ public class Order {
     @Column(name = "completed_at")
     private LocalDateTime completedAt;
 
+    /**
+     * Scheduled date and time for pre-orders.
+     * When set, this order is a pre-order and should be processed at/before this time.
+     */
+    @Column(name = "scheduled_at")
+    private LocalDateTime scheduledAt;
+
+    /**
+     * True if this order was placed as a pre-order (scheduled for a future date/time).
+     */
+    @Column(name = "pre_order", nullable = false)
+    private boolean preOrder = false;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "priority")
     private OrderPriority priority;

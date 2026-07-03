@@ -1,7 +1,7 @@
 // Gradle build converted from existing pom.xml
 plugins {
     id 'java'
-    id 'org.springframework.boot' version '3.2.4'
+    id 'org.springframework.boot' version '3.4.4'
     // Removed the standalone io.spring.dependency-management plugin because
     // the Spring Boot Gradle plugin provides dependency management and the
     // older standalone plugin is incompatible with Gradle 9 (causes
@@ -24,16 +24,13 @@ ext {
 }
 
 repositories {
-    maven { url 'https://s3.amazonaws.com/razorpay-maven/' }
-    // Official Razorpay repository (may be unreachable from some networks)
-    maven { url 'https://repo.razorpay.com/maven2/' }
     mavenCentral()
     maven { url 'https://jitpack.io' }
 }
 
 dependencies {
     // Provide Spring Boot BOM as a platform so versions for Spring artifacts are available
-    implementation platform('org.springframework.boot:spring-boot-dependencies:3.2.4')
+    implementation platform('org.springframework.boot:spring-boot-dependencies:3.4.4')
 
     // NOTE: The project previously used the Razorpay Java SDK (com.razorpay:razorpay-java:1.6.0)
     // resolved from Razorpay's repository. This codebase does not use the SDK classes (it
@@ -49,19 +46,39 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
     implementation 'org.flywaydb:flyway-core'
+    implementation 'org.flywaydb:flyway-database-postgresql'
     implementation 'com.github.ben-manes.caffeine:caffeine'
 
     // Only PostgreSQL is required at runtime for this project
     runtimeOnly 'org.postgresql:postgresql'
 
     // JSON library used by Razorpay SDK wrapper
-    implementation 'org.json:json:20230618'
+    implementation 'org.json:json:20240303'
 
     // Thumbnailator for image resizing and compression before storing in PostgreSQL BYTEA
     implementation 'net.coobird:thumbnailator:0.4.20'
 
     // Twilio SDK for WhatsApp
     implementation 'com.twilio.sdk:twilio:9.2.1'
+
+    // Swagger / OpenAPI documentation
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.8'
+
+    // Bulk Upload: Excel (Apache POI) + CSV (OpenCSV)
+    implementation 'org.apache.poi:poi-ooxml:5.3.0'
+    implementation 'com.opencsv:opencsv:5.9'
+
+    // WebFlux (WebClient) for non-blocking HTTP calls to OpenAI
+    implementation 'org.springframework.boot:spring-boot-starter-webflux'
+
+    // AWS SDK v2 for S3 image storage
+    implementation platform('software.amazon.awssdk:bom:2.25.60')
+    implementation 'software.amazon.awssdk:s3'
+    implementation 'software.amazon.awssdk:sts'
+
+    // Spring Retry for OpenAI resilience
+    implementation 'org.springframework.retry:spring-retry'
+    implementation 'org.springframework:spring-aspects'
 
     // Lombok: compileOnly + annotationProcessor to match original pom
     compileOnly "org.projectlombok:lombok:${lombokVersion}"

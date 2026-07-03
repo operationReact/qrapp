@@ -1,22 +1,62 @@
 import { useState } from "react";
 import { useCart } from "../context/CartContext";
-import { useAdminAuth } from "../context/AdminAuthContext";
 import PropTypes from "prop-types";
-import API from "../services/api";
-import MenuItemActionButton from "./MenuItemActionButton";
+import { baseURL } from "../services";
 
-export default function MenuItemCard({ item, onEdit, onDelete }) {
+import {
+  ProhibitIcon,
+  ClockIcon,
+  CalendarCheckIcon,
+} from "@phosphor-icons/react";
+import { cn } from "@/lib/utils";
+import QuantitySelector from "./QuantitySelector";
+import CustomerPreOrderDialog from "./CustomerPreOrderDialog";
+
+const PRE_ORDER_ONLY_TAG = "PreOrderOnly";
+
+function isPreOrderOnly(item) {
+  return item?.tag?.name === PRE_ORDER_ONLY_TAG;
+}
+
+export default function MenuItemCard({
+  item,
+  overrideUnavailable = false,
+  unavailableLabel,
+}) {
   const { cart, addItem, decreaseItem } = useCart();
-  const { admin } = useAdminAuth();
   const [imgError, setImgError] = useState(false);
+  const [preOrderOpen, setPreOrderOpen] = useState(false);
+
+  const preOrderOnly = isPreOrderOnly(item);
 
   const existing = cart.find((i) => i.id === item.id);
   const qty = existing ? existing.quantity : 0;
 
+  const availableRaw = item.available;
+  const isAvailable =
+    availableRaw === undefined ||
+    availableRaw === null ||
+    availableRaw === true ||
+    availableRaw === "true" ||
+    availableRaw === 1 ||
+    availableRaw === "1";
+
+  // overrideUnavailable lets callers (e.g. time-gated segments) disable
+  // ordering without touching the item data itself.
+  const isUnavailable =
+    overrideUnavailable || !isAvailable || item.stockStatus === "OUT_OF_STOCK";
+
+  // Decide what the overlay badge and bottom action label should say.
+  // Time-window callers supply unavailableLabel ("Opens 8 AM").
+  // Stock callers fall back to the standard "Out of Stock" / "Unavailable".
+  const isTimegated = overrideUnavailable && !!unavailableLabel;
+  const overlayText = isTimegated ? unavailableLabel : "Out of Stock";
+  const bottomLabel = isTimegated ? unavailableLabel : "Unavailable";
+
   const computeImageSrc = (url) => {
     if (!url) return null;
     if (url.startsWith("http")) return url;
-    return `${API.defaults.baseURL}${url}`;
+    return `${baseURL}${url}`;
   };
 
   const imageSrc = computeImageSrc(item.imageUrl);
@@ -28,95 +68,147 @@ export default function MenuItemCard({ item, onEdit, onDelete }) {
     item.isVeg === "1";
 
   return (
-    <article className="group overflow-hidden">
-      <div className="relative aspect-square w-full">
-        {imageSrc && !imgError ? (
-          <img
-            src={imageSrc}
-            alt={item.name}
-            onError={() => setImgError(true)}
-            className="w-full h-full object-cover rounded-xl"
-          />
-        ) : (
-          <div className="w-full rounded-xl overflow-hidden h-full flex items-center justify-center text-5xl bg-linear-to-br from-primary/25 to-primary">
+    <>
+      <article
+        className={cn(
+          "group bg-background h-full border border-border rounded-lg overflow-hidden transition-opacity",
+          isUnavailable && "opacity-70",
+          // Pre-order items: entire card is the tap target
+          preOrderOnly &&
+            !isUnavailable &&
+            "cursor-pointer ring-0 border-primary/20 hover:border-primary/30 transition-all",
+        )}
+        onClick={
+          preOrderOnly && !isUnavailable
+            ? () => setPreOrderOpen(true)
+            : undefined
+        }
+      >
+        {/* Image */}
+        <div className="relative aspect-video w-full">
+          {imageSrc && !imgError ? (
             <img
-              src="/brand/white.png"
-              alt="Bro Logo"
-              className="opacity-20 size-1/2 animate-pulse"
+              src={imageSrc}
+              alt={item.name}
+              onError={() => setImgError(true)}
+              className={cn(
+                "w-full h-full object-cover transition-all duration-300",
+                isUnavailable && "grayscale",
+              )}
+            />
+          ) : (
+            <div className="w-full overflow-hidden h-full flex items-center justify-center bg-zinc-100">
+              <img
+                src="/brand/white.png"
+                alt="Bro Logo"
+                className="opacity-20 size-1/2 object-contain animate-pulse"
+              />
+            </div>
+          )}
+
+          {/* Unavailable overlay badge — stock or time-gated */}
+          {isUnavailable && (
+            <div className="absolute inset-x-0 bottom-1 flex items-center justify-start pl-1">
+              <span className="flex items-center gap-1 rounded-full bg-black/70 px-2.5 py-1 text-[10px] font-semibold text-white backdrop-blur-sm">
+                {isTimegated ? (
+                  <ClockIcon weight="bold" className="size-3 shrink-0" />
+                ) : (
+                  <ProhibitIcon weight="bold" className="size-3 shrink-0" />
+                )}
+                {overlayText}
+              </span>
+            </div>
+          )}
+
+          {/* Pre-Order Only badge — top right, passive label only */}
+          {preOrderOnly && !isUnavailable && (
+            <div className="absolute top-2 right-1">
+              <span className="flex items-center gap-1 rounded-full bg-indigo-950/75 backdrop-blur-sm px-2 py-0.5 text-[10px] font-semibold text-indigo-100">
+                <CalendarCheckIcon className="size-2.5" weight="fill" />
+                Pre-Order
+              </span>
+            </div>
+          )}
+
+          {/* veg/non-veg indicator */}
+          <div
+            title={veg ? "Veg" : "Non Veg"}
+            className={cn(
+              "absolute origin-top-left scale-75 sm:scale-100 top-2 left-2 p-1.5 border-2 bg-white rounded-sm size-6 flex items-center gap-2",
+              veg ? "border-accent-400" : "border-red-600",
+            )}
+          >
+            <span
+              className={cn(
+                "size-full rounded-full",
+                veg ? "bg-accent-400" : "bg-red-600",
+              )}
             />
           </div>
-        )}
-
-        {/* subtle gradient overlay */}
-        {/* <div className="absolute left-0 right-0 bottom-0 bg-linear-[rgba(27,30,36,0)_0%,_rgb(27,30,36)_84.21%)] h-22" /> */}
-
-        <div className="absolute left-0 bottom-0 right-0 px-2 py-2 flex justify-end items-baseline">
-          <span
-            className="bg-white font-bold rounded-tr-sm absolute bottom-0 left-0 px-2 py-0.5 sm:py-1 sm:text-xl text-black
-            before:absolute before:left-0 before:top-0 before:size-4 before:-translate-y-full before:rounded-bl-sm before:shadow-[0px_7px_white] before:bg-transparent
-            after:absolute after:right-0 after:bottom-0 after:size-4 after:translate-x-full after:rounded-bl-sm after:shadow-[0px_7px_white] after:bg-transparent"
-          >
-            ₹{item.price.toFixed(0)}
-          </span>
-
-          {/* CTA */}
-          <MenuItemActionButton
-            qty={qty}
-            onAdd={() => addItem(item)}
-            onDecrease={() => decreaseItem(item)}
-          />
         </div>
 
-        {/* veg/non-veg badge */}
-        <div
-          title={veg ? "Veg" : "Non Veg"}
-          className={`absolute top-2 left-2 p-1.5 border-2 bg-white rounded-sm size-6 flex items-center gap-2 ${veg ? "border-accent-400" : "border-red-600"}`}
-        >
-          <span
-            className={`size-full rounded-full ${veg ? "bg-accent-400" : "bg-red-600"}`}
-          ></span>
-        </div>
-      </div>
-
-      <div className="py-2">
-        {/* name in image */}
-        {item.tag && (
-          <span className="text-xs font-medium text-primary">{item.tag.name}</span>
-        )}
-        <h3 className="text-balance text-md font-semibold leading-5 sm:text-lg text-zinc-800">
-          {item.name}
-        </h3>
-        <p className="line-clamp-2 mt-1 capitalize text-xs text-muted-foreground">
-          {item.description || "Delicious choice"}
-        </p>
-
-        {admin && (
-          <div className="flex gap-2 mt-2">
-            {onEdit && (
-              <button
-                onClick={() => onEdit(item)}
-                className="text-xs px-2 py-1 bg-yellow-400 rounded"
-              >
-                Edit
-              </button>
+        {/* Details */}
+        <div className="px-2 py-1.5 sm:py-2">
+          <h3
+            className={cn(
+              "text-pretty text-xs leading-4 font-semibold sm:text-lg",
+              isUnavailable && "text-muted-foreground",
             )}
-            {onDelete && (
-              <button
-                onClick={() => onDelete(item)}
-                className="text-xs px-2 py-1 bg-red-400 rounded"
-              >
-                Delete
-              </button>
+          >
+            {item.name}
+          </h3>
+
+          <div className="flex flex-wrap mt-1 sm:mt-2 items-center gap-2 justify-between">
+            <span
+              className={cn(
+                "font-medium text-sm md:text-base",
+                isUnavailable &&
+                  "text-muted-foreground line-through decoration-muted-foreground/60",
+              )}
+            >
+              ₹{item.price?.toFixed(0) ?? "—"}
+            </span>
+
+            {isUnavailable ? (
+              <span className="inline-flex items-center gap-1 rounded-md border border-dashed border-muted-foreground/40 px-2 py-1 text-[10px] font-medium text-muted-foreground">
+                {isTimegated ? (
+                  <ClockIcon weight="duotone" className="size-3" />
+                ) : (
+                  <ProhibitIcon weight="duotone" className="size-3" />
+                )}
+                {bottomLabel}
+              </span>
+            ) : preOrderOnly ? (
+              /* No per-card button — the whole card is tappable */
+              <span className="text-[10px] font-medium text-primary select-none">
+                Tap to pre-order
+              </span>
+            ) : (
+              <QuantitySelector
+                qty={qty}
+                onAdd={() => addItem(item)}
+                onRemove={() => decreaseItem(item)}
+              />
             )}
           </div>
-        )}
-      </div>
-    </article>
+        </div>
+      </article>
+
+      {preOrderOnly && (
+        <CustomerPreOrderDialog
+          initialItem={item}
+          open={preOrderOpen}
+          onOpenChange={setPreOrderOpen}
+        />
+      )}
+    </>
   );
 }
 
 MenuItemCard.propTypes = {
   item: PropTypes.object.isRequired,
+  overrideUnavailable: PropTypes.bool,
+  unavailableLabel: PropTypes.string,
   onEdit: PropTypes.func,
   onDelete: PropTypes.func,
 };

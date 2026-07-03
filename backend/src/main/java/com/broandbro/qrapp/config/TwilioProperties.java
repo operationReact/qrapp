@@ -11,6 +11,7 @@ import org.springframework.stereotype.Component;
 @Setter
 public class TwilioProperties {
 
+
     private String accountSid;
     private String authToken;
     private String fromNumber;

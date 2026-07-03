@@ -3,11 +3,6 @@ server:
 
 # Default datasource: PostgreSQL. Use environment variables to override in CI or other environments.
 spring:
-  cache:
-    type: caffeine
-    cache-names: walletBalance,menu,menuRecommended
-    caffeine:
-      spec: maximumSize=500,expireAfterWrite=60s
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://aws-1-ap-northeast-1.pooler.supabase.com:5432/postgres}
     username: ${SPRING_DATASOURCE_USERNAME:postgres.yoxxgeiwbekdvczedotg}
@@ -15,25 +10,29 @@ spring:
     driver-class-name: org.postgresql.Driver
     hikari:
       pool-name: ${SPRING_DATASOURCE_HIKARI_POOL_NAME:QrAppHikariPool}
-      maximum-pool-size: ${SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE:4}
-      minimum-idle: ${SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE:0}
+      maximum-pool-size: ${SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE:10}
+      minimum-idle: ${SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE:2}
       idle-timeout: ${SPRING_DATASOURCE_HIKARI_IDLE_TIMEOUT:60000}
       max-lifetime: ${SPRING_DATASOURCE_HIKARI_MAX_LIFETIME:540000}
-      connection-timeout: ${SPRING_DATASOURCE_HIKARI_CONNECTION_TIMEOUT:5000}
-      validation-timeout: ${SPRING_DATASOURCE_HIKARI_VALIDATION_TIMEOUT:3000}
-      keepalive-time: ${SPRING_DATASOURCE_HIKARI_KEEPALIVE_TIME:0}
+      connection-timeout: ${SPRING_DATASOURCE_HIKARI_CONNECTION_TIMEOUT:10000}
+      validation-timeout: ${SPRING_DATASOURCE_HIKARI_VALIDATION_TIMEOUT:5000}
+      keepalive-time: ${SPRING_DATASOURCE_HIKARI_KEEPALIVE_TIME:30000}
       connection-init-sql: "SET statement_timeout = '8s'"
   flyway:
     enabled: ${SPRING_FLYWAY_ENABLED:true}
     baseline-on-migrate: ${SPRING_FLYWAY_BASELINE_ON_MIGRATE:true}
     baseline-version: ${SPRING_FLYWAY_BASELINE_VERSION:1}
     lock-retry-count: ${SPRING_FLYWAY_LOCK_RETRY_COUNT:180}
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 12MB
   jpa:
     hibernate:
       ddl-auto: validate
     show-sql: false
     open-in-view: false
-    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    ##database-platform: org.hibernate.dialect.PostgreSQLDialect
     properties:
       hibernate:
         default_batch_fetch_size: 50
@@ -48,11 +47,40 @@ spring:
 app:
   cors:
     allowed-origins: "${APP_CORS_ALLOWED_ORIGINS:http://localhost:5173}"
+
+# Analytics Engine configuration
+analytics:
+  cron:
+    daily-sales:            "${ANALYTICS_CRON_DAILY_SALES:0 5 0 * * *}"
+    daily-sales-intraday:   "${ANALYTICS_CRON_DAILY_SALES_INTRADAY:0 0 12 * * *}"
+    hourly-orders:          "${ANALYTICS_CRON_HOURLY_ORDERS:0 2 * * * *}"
+    menu-items:             "${ANALYTICS_CRON_MENU_ITEMS:0 10 0 * * *}"
+    menu-items-intraday:    "${ANALYTICS_CRON_MENU_ITEMS_INTRADAY:0 30 12 * * *}"
+    user-preferences:       "${ANALYTICS_CRON_USER_PREFERENCES:0 0 1 * * *}"
+    coupon-analytics:       "${ANALYTICS_CRON_COUPON_ANALYTICS:0 15 0 * * *}"
+    coupon-analytics-intraday: "${ANALYTICS_CRON_COUPON_ANALYTICS_INTRADAY:0 0 */6 * * *}"
+  cache:
+    dashboard-ttl-seconds:        ${ANALYTICS_CACHE_DASHBOARD_TTL:300}
+    daily-sales-ttl-seconds:      ${ANALYTICS_CACHE_DAILY_SALES_TTL:900}
+    hourly-orders-ttl-seconds:    ${ANALYTICS_CACHE_HOURLY_ORDERS_TTL:600}
+    menu-items-ttl-seconds:       ${ANALYTICS_CACHE_MENU_ITEMS_TTL:900}
+    coupon-analytics-ttl-seconds: ${ANALYTICS_CACHE_COUPON_ANALYTICS_TTL:900}
+    recommendations-ttl-seconds:  ${ANALYTICS_CACHE_RECOMMENDATIONS_TTL:1800}
+  limits:
+    max-top-items:            ${ANALYTICS_LIMITS_MAX_TOP_ITEMS:50}
+    max-date-range-days:      ${ANALYTICS_LIMITS_MAX_DATE_RANGE_DAYS:365}
+    abuse-detection-threshold: ${ANALYTICS_LIMITS_ABUSE_THRESHOLD:1}
+    churn-threshold-days:     ${ANALYTICS_LIMITS_CHURN_DAYS:30}
   order:
     # Shop code used in human-readable order number generation
     # Format: SHOPCODE-YYYYMMDD-XXXX
     # Example: BB-20260515-0001
     shop-code: "${APP_ORDER_SHOP_CODE:BB}"
+
+# Recommendation Engine configuration
+recommendation:
+  cron:
+    co-occurrence: "${RECOMMENDATION_CRON_CO_OCCURRENCE:0 30 1 * * *}"
 
 # Razorpay settings - read from env if available, otherwise fall back to the YAML value below.
 razorpay:
@@ -60,6 +88,24 @@ razorpay:
   secret: ${RAZORPAY_SECRET:YOUR_SECRET}
   webhookSecret: ${RAZORPAY_WEBHOOK_SECRET:YOUR_WEBHOOK_SECRET}
 
+
+openai:
+  api-key: ${OPENAI_API_KEY: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}
+  image-model: ${OPENAI_IMAGE_MODEL:gpt-image-1}
+  image-quality: ${OPENAI_IMAGE_QUALITY:low}
+  base-url: https://api.openai.com/v1
+  image-size: ${OPENAI_IMAGE_SIZE:1024x1024}
+  connect-timeout-ms: ${OPENAI_CONNECT_TIMEOUT_MS:5000}
+  read-timeout-seconds: ${OPENAI_READ_TIMEOUT_SECONDS:60}
+  max-retries: ${OPENAI_MAX_RETRIES:3}
+
+aws:
+  s3:
+    bucket-name: ${AWS_S3_BUCKET_NAME:broandbro-menu-images}
+    region: ${AWS_S3_REGION:ap-east-1}
+    access-key: ${AWS_ACCESS_KEY_ID:}
+    secret-key: ${AWS_SECRET_ACCESS_KEY:}
+    enabled: ${AWS_S3_ENABLED:false}   # override per environment
 
 twilio:
   accountSid: ${TWILIO_ACCOUNT_SID:ACc9ccb1101977a6bc3adc0806c56f026f}

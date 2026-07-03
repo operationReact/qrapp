@@ -2,8 +2,9 @@ package com.broandbro.qrapp.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import com.broandbro.qrapp.enums.FulfillmentType;
 import com.broandbro.qrapp.enums.InventoryMode;
-import java.math.BigDecimal;
+import com.broandbro.qrapp.enums.ImageGenerationStatus;
 import java.time.Instant;
 
 @Entity
@@ -15,23 +16,17 @@ public class MenuItem {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private String name;
-    @Column(name = "base_price", precision = 19, scale = 2, nullable = false)
-    private BigDecimal basePrice = BigDecimal.ZERO;
-
-    /**
-     * Margin applied by Bro & Bro. For in-house items margin = 0.
-     */
-    @Column(name = "margin", precision = 19, scale = 2, nullable = false)
-    private BigDecimal margin = BigDecimal.ZERO;
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "category_id")
     private Category category;
 
     // Make recommended nullable to avoid forcing a NOT NULL schema change that may time out
-    // Use Boolean so adding the column is a fast nullable add; provide a convenience
-    // isRecommended() to preserve existing code that calls the boolean-style getter.
     private Boolean recommended;
+
+    @Column(name = "available")
+    private Boolean available = true;
+
     private String description;
     @Column(name = "image_url")
     private String imageUrl;
@@ -42,9 +37,6 @@ public class MenuItem {
     @Column(name = "is_veg")
     private Boolean isVeg;
 
-    @Transient
-    private BigDecimal price;
-
     /**
      * Optional relation to Shop. Null means in-house item.
      */
@@ -52,51 +44,90 @@ public class MenuItem {
     @JoinColumn(name = "shop_id")
     private Shop shop;
 
+    /**
+     * How this item is fulfilled – drives procurement and pricing logic.
+     * SELF_PREPARED : prepared entirely in-house (no vendor cost).
+     * OUTSOURCED    : sourced from external vendor.
+     * HYBRID        : mix of both.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "fulfillment_type", nullable = false)
+    private FulfillmentType fulfillmentType = FulfillmentType.SELF_PREPARED;
+
     // ============================================================================
     // INVENTORY MANAGEMENT FIELDS
     // ============================================================================
 
-    /**
-     * Determines how inventory is managed for this item.
-     * UNLIMITED: no inventory tracking required
-     * LIMITED: inventory quantity must be tracked and enforced
-     */
     @Enumerated(EnumType.STRING)
     @Column(name = "inventory_mode", nullable = false)
     private InventoryMode inventoryMode = InventoryMode.UNLIMITED;
 
-    /**
-     * Whether this item is hidden from the menu.
-     * true = item is hidden and not visible to customers
-     * false = item is visible in menu
-     *
-     * Also used for manual admin pauses (kitchen issue, ingredient shortage).
-     * Stock availability is derived, not stored:
-     *   UNLIMITED → always orderable (when not hidden)
-     *   LIMITED   → orderable when inventory.availableQuantity > 0 (and not hidden)
-     */
     @Column(name = "is_hidden", nullable = false)
     private Boolean isHidden = false;
 
+    @Column(name = "is_deleted", nullable = false)
+    private Boolean isDeleted = false;
 
     /**
-     * Timestamp when item was created.
+     * Optional SKU code for bulk upload identification and external system integration.
+     * Must be unique when set.
      */
+    @Column(name = "sku_code", unique = true)
+    private String skuCode;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
-    /**
-     * Timestamp when item was last updated.
-     */
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
-    // ============================================================================
-    // LIFECYCLE METHODS
-    // ============================================================================
-
     @OneToOne(mappedBy = "menuItem", fetch = FetchType.LAZY)
     private MenuItemImage image;
+
+    // ============================================================================
+    // AI IMAGE GENERATION FIELDS
+    // ============================================================================
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "image_generation_status")
+    private ImageGenerationStatus imageGenerationStatus;
+
+    @Column(name = "image_generation_error", columnDefinition = "TEXT")
+    private String imageGenerationError;
+
+    @Column(name = "ai_generated_image")
+    private Boolean aiGeneratedImage = false;
+
+    @Column(name = "image_prompt", columnDefinition = "TEXT")
+    private String imagePrompt;
+
+    // ============================================================================
+    // PROFITABILITY TRACKING
+    // ============================================================================
+
+    /**
+     * Optional estimated per-unit production cost (₹).
+     * Used to calculate profit margin for SELF_PREPARED items where no vendor
+     * cost record exists in {@code vendor_menu_item_cost_history}.
+     *
+     * <p>Cost resolution order at analytics snapshot time:
+     * <ol>
+     *   <li>{@code order_item.cost_price_snapshot}  — vendor cost captured at order time</li>
+     *   <li>{@code menu_item.estimated_cost}         — this field</li>
+     *   <li>0                                        — no cost known → profit = revenue</li>
+     * </ol>
+     */
+    @Column(name = "estimated_cost", precision = 10, scale = 2)
+    private java.math.BigDecimal estimatedCost;
+
+    @Column(name = "image_prompt_hash")
+    private String imagePromptHash;
+
+    @Column(name = "image_generation_requested_at")
+    private Instant imageGenerationRequestedAt;
+
+    @Column(name = "image_generation_completed_at")
+    private Instant imageGenerationCompletedAt;
 
     @PrePersist
     public void prePersist() {
@@ -116,15 +147,4 @@ public class MenuItem {
     public boolean isRecommended() {
         return Boolean.TRUE.equals(this.recommended);
     }
-
-    /**
-     * Compute selling price dynamically (do not store in DB)
-     */
-    public BigDecimal getSellingPrice() {
-        BigDecimal bp = basePrice == null ? BigDecimal.ZERO : basePrice;
-        BigDecimal m = margin == null ? BigDecimal.ZERO : margin;
-        price = bp.add(m);
-        return price;
-    }
-
 }

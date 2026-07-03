@@ -17,6 +17,8 @@ import java.util.List;
 @Component
 public class FilterConfig extends OncePerRequestFilter {
 
+
+
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
 
@@ -37,10 +39,14 @@ public class FilterConfig extends OncePerRequestFilter {
                         path.startsWith("/uploads/") ||
 
                         path.startsWith("/webhook/") ||
+                        path.startsWith("/api/cache") ||
+                        path.startsWith("/admin/menu/bulk-upload/") ||
 
                         path.equals("/menu") ||
+                        path.startsWith("/menu/") ||
 
-                        path.startsWith("/menu/");
+                        // Public combo listing — no token required
+                        path.equals("/api/combos");
     }
 
     @Override

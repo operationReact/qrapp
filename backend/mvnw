@@ -1,7 +1,0 @@
-#!/bin/sh
-# REMOVED: Maven wrapper replaced by Gradle during migration.
-# Delete this file from the repository:
-#   git rm backend/mvnw && git commit -m "Remove mvnw after Gradle migration"
-# Build with Gradle using the wrapper: ./gradlew :backend:bootJar
-exit 1
-

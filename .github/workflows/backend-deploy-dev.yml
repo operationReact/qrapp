@@ -1,0 +1,341 @@
+name: Backend Deploy-Dev
+
+on:
+  push:
+    branches: [dev]
+    paths:
+      - "backend/**"
+      - "build.gradle"
+      - "settings.gradle"
+      - "gradle/**"
+      - ".github/workflows/backend-deploy-dev.yml"
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: "Reason for manual deployment"
+        required: false
+        default: "Manual trigger"
+
+permissions:
+  id-token: write   # required for OIDC → AWS
+  contents: read
+
+jobs:
+  deploy:
+    name: Build & Deploy to Dev EC2
+    runs-on: ubuntu-latest
+    environment: dev
+
+    steps:
+      # ── 1. Checkout ──────────────────────────────────────────────────────────
+      - name: Checkout
+        uses: actions/checkout@v4.2.2
+
+      # ── 2. Set up Java 21 ────────────────────────────────────────────────────
+      - name: Set up Java 21
+        uses: actions/setup-java@v4.7.1
+        with:
+          java-version: "21"
+          distribution: corretto
+
+      # ── 2b. Cache Gradle ─────────────────────────────────────────────────────
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            /opt/gradle/gradle-8.7
+            ~/.gradle/caches
+          key: ${{ runner.os }}-gradle-8.7-${{ hashFiles('**/*.gradle', '**/*.gradle.kts', '**/gradle.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-8.7-
+
+      # ── 3. Validate required secrets ─────────────────────────────────────────
+      - name: Validate required secrets
+        env:
+          DEV_DB_USERNAME:       ${{ secrets.DEV_DB_USERNAME }}
+          DEV_DB_PASSWORD:       ${{ secrets.DEV_DB_PASSWORD }}
+          AWS_ROLE_ARN:          ${{ secrets.AWS_ROLE_ARN }}
+          DEV_RAZORPAY_KEY:      ${{ secrets.DEV_RAZORPAY_KEY }}
+          DEV_RAZORPAY_SECRET:   ${{ secrets.DEV_RAZORPAY_SECRET }}
+          AWS_ACCESS_KEY_ID:     ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        run: |
+          MISSING=()
+          [ -z "$DEV_DB_USERNAME" ]       && MISSING+=("DEV_DB_USERNAME")
+          [ -z "$DEV_DB_PASSWORD" ]       && MISSING+=("DEV_DB_PASSWORD")
+          [ -z "$AWS_ROLE_ARN" ]          && MISSING+=("AWS_ROLE_ARN")
+          [ -z "$DEV_RAZORPAY_KEY" ]      && MISSING+=("DEV_RAZORPAY_KEY")
+          [ -z "$DEV_RAZORPAY_SECRET" ]   && MISSING+=("DEV_RAZORPAY_SECRET")
+          [ -z "$AWS_ACCESS_KEY_ID" ]     && MISSING+=("AWS_ACCESS_KEY_ID")
+          [ -z "$AWS_SECRET_ACCESS_KEY" ] && MISSING+=("AWS_SECRET_ACCESS_KEY")
+          if [ ${#MISSING[@]} -gt 0 ]; then
+            echo "❌ Missing required GitHub Secrets: ${MISSING[*]}"
+            exit 1
+          fi
+          echo "✅ All required secrets are present"
+
+      # ── 4. Build JAR ─────────────────────────────────────────────────────────
+      - name: Install Gradle 8.7
+        run: |
+          if [ ! -f /opt/gradle/gradle-8.7/bin/gradle ]; then
+            echo "⬇️ Cache miss – downloading Gradle 8.7..."
+            curl -fsSL https://services.gradle.org/distributions/gradle-8.7-bin.zip \
+              -o /tmp/gradle.zip
+            unzip -q /tmp/gradle.zip -d /opt/gradle
+          else
+            echo "✅ Gradle 8.7 restored from cache"
+          fi
+          echo "/opt/gradle/gradle-8.7/bin" >> "$GITHUB_PATH"
+
+      - name: Build Spring Boot JAR
+        run: gradle :backend:bootJar -x test --no-daemon
+
+      # ── 5. Authenticate to AWS via OIDC ──────────────────────────────────────
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ap-south-1
+
+      # ── 6. Resolve EC2 instance ID ───────────────────────────────────────────
+      # SSM Run Command needs the instance ID, not the IP address.
+      # We look it up from the tag set by Terraform.
+      - name: Get EC2 instance ID
+        id: ec2
+        run: |
+          INSTANCE_ID=$(aws ec2 describe-instances \
+            --filters \
+              "Name=tag:Name,Values=broandbro-dev-backend" \
+              "Name=instance-state-name,Values=running" \
+            --query "Reservations[0].Instances[0].InstanceId" \
+            --output text \
+            --region ap-south-1)
+          if [ -z "$INSTANCE_ID" ] || [ "$INSTANCE_ID" = "None" ]; then
+            echo "❌ No running EC2 instance found with tag Name=broandbro-dev-backend"
+            exit 1
+          fi
+          echo "✅ Instance: $INSTANCE_ID"
+          echo "id=$INSTANCE_ID" >> "$GITHUB_OUTPUT"
+
+      # ── 7. Upload JAR + env file + deploy script to S3 ───────────────────────
+      # All three files land in deploy/dev/<run_id>/ so cleanup is a single rm.
+      # The env file is server-side encrypted (AES256); the EC2 IAM role already
+      # has s3:GetObject on deploy/dev/* so no pre-signed URL is required.
+      - name: Upload deploy artifacts to S3
+        env:
+          RUN_ID: ${{ github.run_id }}
+
+
+          DEV_DB_USERNAME:                     ${{ secrets.DEV_DB_USERNAME }}
+          DEV_DB_PASSWORD:                     ${{ secrets.DEV_DB_PASSWORD }}
+          OPENAI_API_KEY:                      ${{ secrets.OPENAI_API_KEY }}
+          APP_AWS_ACCESS_KEY_ID:               ${{ secrets.AWS_ACCESS_KEY_ID }}
+          APP_AWS_SECRET_ACCESS_KEY:           ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          DEV_RAZORPAY_KEY:                    ${{ secrets.DEV_RAZORPAY_KEY }}
+          DEV_RAZORPAY_SECRET:                 ${{ secrets.DEV_RAZORPAY_SECRET }}
+          DEV_RAZORPAY_WEBHOOK_SECRET:         ${{ secrets.DEV_RAZORPAY_WEBHOOK_SECRET }}
+          DEV_TWILIO_ACCOUNT_SID:              ${{ secrets.DEV_TWILIO_ACCOUNT_SID }}
+          DEV_TWILIO_AUTH_TOKEN:               ${{ secrets.DEV_TWILIO_AUTH_TOKEN }}
+          DEV_TWILIO_FROM_NUMBER:              ${{ secrets.DEV_TWILIO_FROM_NUMBER }}
+          DEV_TWILIO_ORDER_PLACED_CONTENT_SID: ${{ secrets.DEV_TWILIO_ORDER_PLACED_CONTENT_SID }}
+          DEV_TWILIO_OTP_CONTENT_SID:          ${{ secrets.DEV_TWILIO_OTP_CONTENT_SID }}
+        run: |
+          S3_PREFIX="s3://broandbro-menu-images-dev/deploy/dev/${RUN_ID}"
+
+          # ── a) JAR ──────────────────────────────────────────────────────────
+          echo "📦 Uploading JAR..."
+          aws s3 cp backend/build/libs/qrapp-*.jar \
+            "${S3_PREFIX}/app.jar" --region ap-south-1
+          echo "✅ JAR uploaded"
+
+          # ── b) application.env (written on the runner, uploaded encrypted) ──
+          cat > /tmp/application.env << EOF
+          SPRING_PROFILES_ACTIVE=dev
+          SERVER_PORT=8080
+
+          SPRING_DATASOURCE_URL=jdbc:postgresql://broandbro-dev.chi2yu0m6hp0.ap-south-1.rds.amazonaws.com:5432/broandbro_dev
+          SPRING_DATASOURCE_USERNAME=${DEV_DB_USERNAME}
+          SPRING_DATASOURCE_PASSWORD=${DEV_DB_PASSWORD}
+
+          OPENAI_API_KEY=${OPENAI_API_KEY}
+          OPENAI_IMAGE_MODEL=gpt-image-1
+          OPENAI_IMAGE_SIZE=1024x1024
+
+          AWS_S3_BUCKET_NAME=broandbro-menu-images-dev
+          AWS_S3_REGION=ap-south-1
+          AWS_S3_ENABLED=true
+          AWS_ACCESS_KEY_ID=${APP_AWS_ACCESS_KEY_ID}
+          AWS_SECRET_ACCESS_KEY=${APP_AWS_SECRET_ACCESS_KEY}
+
+          RAZORPAY_KEY=${DEV_RAZORPAY_KEY}
+          RAZORPAY_SECRET=${DEV_RAZORPAY_SECRET}
+          RAZORPAY_WEBHOOK_SECRET=${DEV_RAZORPAY_WEBHOOK_SECRET}
+
+          TWILIO_ACCOUNT_SID=${DEV_TWILIO_ACCOUNT_SID}
+          TWILIO_AUTH_TOKEN=${DEV_TWILIO_AUTH_TOKEN}
+          TWILIO_FROM_NUMBER=${DEV_TWILIO_FROM_NUMBER}
+          TWILIO_ORDER_PLACED_CONTENT_SID=${DEV_TWILIO_ORDER_PLACED_CONTENT_SID}
+          TWILIO_OTP_CONTENT_SID=${DEV_TWILIO_OTP_CONTENT_SID}
+          EOF
+          aws s3 cp /tmp/application.env \
+            "${S3_PREFIX}/application.env" \
+            --region ap-south-1 --sse AES256
+          echo "✅ Env file uploaded"
+
+          # ── c) deploy.sh – runs ON the EC2, contains no secrets ─────────────
+          # RUN_ID is substituted here on the runner before upload.
+          cat > /tmp/deploy.sh << SCRIPT
+          #!/bin/bash
+          set -euo pipefail
+          RID="${RUN_ID}"
+          S3="s3://broandbro-menu-images-dev/deploy/dev/\${RID}"
+
+          echo "⬇️  Downloading JAR..."
+          aws s3 cp "\${S3}/app.jar" /tmp/app-new.jar --region ap-south-1
+
+          [ -f /opt/broandbro/app.jar ] && \
+            cp /opt/broandbro/app.jar /opt/broandbro/app.jar.bak || true
+          mv /tmp/app-new.jar /opt/broandbro/app.jar
+          chown broandbro:broandbro /opt/broandbro/app.jar
+
+          echo "⬇️  Downloading env config..."
+          aws s3 cp "\${S3}/application.env" \
+            /opt/broandbro/config/application.env --region ap-south-1
+          chmod 640 /opt/broandbro/config/application.env
+          chown broandbro:broandbro /opt/broandbro/config/application.env
+
+          echo "🔄  Restarting service..."
+          systemctl daemon-reload
+          systemctl restart broandbro
+
+          echo "⏳  Waiting for healthy startup..."
+          for i in \$(seq 1 12); do
+            sleep 5
+            STATUS=\$(systemctl is-active broandbro 2>/dev/null || echo inactive)
+            echo "  [\${i}/12] \${STATUS}"
+            if [ "\${STATUS}" = "active" ]; then
+              echo "✅  broandbro is running"
+              exit 0
+            fi
+          done
+          echo "❌  Service failed to start"
+          journalctl -u broandbro -n 50 --no-pager
+          exit 1
+          SCRIPT
+
+          aws s3 cp /tmp/deploy.sh \
+            "${S3_PREFIX}/deploy.sh" --region ap-south-1
+          echo "✅ Deploy script uploaded"
+
+      # ── 8. Ensure SSM agent is online before deploying ───────────────────────
+      # If the instance rebooted or the SSM agent crashed, all Run Commands will
+      # stay "Delayed" until the agent reconnects.  We check ping status and,
+      # if offline, reboot the instance and wait up to 4 minutes for recovery.
+      - name: Ensure SSM agent is online
+        env:
+          INSTANCE_ID: ${{ steps.ec2.outputs.id }}
+        run: |
+          check_ping() {
+            aws ssm describe-instance-information \
+              --filters "Key=InstanceIds,Values=$INSTANCE_ID" \
+              --query "InstanceInformationList[0].PingStatus" \
+              --output text --region ap-south-1 2>/dev/null || echo "None"
+          }
+
+          PING=$(check_ping)
+          echo "SSM agent ping: $PING"
+
+          if [ "$PING" = "Online" ]; then
+            echo "✅ SSM agent is online – no recovery needed"
+            exit 0
+          fi
+
+          echo "⚠️  SSM agent is '$PING'. Rebooting instance to recover SSM agent..."
+          aws ec2 reboot-instances --instance-ids "$INSTANCE_ID" --region ap-south-1
+          echo "   Reboot requested. Waiting 45s for shutdown..."
+          sleep 45
+
+          echo "⏳ Polling for SSM agent to come back online (up to 5 min)..."
+          for i in $(seq 1 30); do
+            sleep 10
+            PING=$(check_ping)
+            echo "  [$i/30] $PING"
+            if [ "$PING" = "Online" ]; then
+              echo "✅ SSM agent is back online"
+              exit 0
+            fi
+          done
+          echo "❌ SSM agent did not come online after reboot"
+          exit 1
+
+      # ── 9. Execute deploy via SSM Run Command (no SSH / no port 22) ──────────
+      # The EC2 already has AmazonSSMManagedInstanceCore + S3 deploy/* access
+      # attached via Terraform. SSM pulls and runs deploy.sh from S3 as root.
+      - name: Deploy via SSM
+        env:
+          INSTANCE_ID: ${{ steps.ec2.outputs.id }}
+          RUN_ID:      ${{ github.run_id }}
+        run: |
+          S3_SCRIPT="s3://broandbro-menu-images-dev/deploy/dev/${RUN_ID}/deploy.sh"
+          CMD="aws s3 cp ${S3_SCRIPT} /tmp/deploy_${RUN_ID}.sh --region ap-south-1 \
+            && bash /tmp/deploy_${RUN_ID}.sh \
+            ; rm -f /tmp/deploy_${RUN_ID}.sh"
+
+          echo "🚀 Sending SSM command to ${INSTANCE_ID}..."
+          COMMAND_ID=$(aws ssm send-command \
+            --instance-ids "$INSTANCE_ID" \
+            --document-name "AWS-RunShellScript" \
+            --comment "deploy-${RUN_ID}" \
+            --parameters "commands=[\"${CMD}\"]" \
+            --timeout-seconds 900 \
+            --region ap-south-1 \
+            --output text \
+            --query 'Command.CommandId')
+
+          echo "SSM Command ID: ${COMMAND_ID}"
+
+          # Poll until terminal status (Success / Failed / TimedOut / Cancelled)
+          echo "⏳ Polling SSM command..."
+          for i in $(seq 1 90); do
+            sleep 10
+            INVOCATION=$(aws ssm get-command-invocation \
+              --command-id "$COMMAND_ID" \
+              --instance-id "$INSTANCE_ID" \
+              --region ap-south-1 2>/dev/null || echo '{"StatusDetails":"Pending"}')
+
+            STATUS=$(echo "$INVOCATION" | python3 -c \
+              "import sys,json; print(json.load(sys.stdin).get('StatusDetails','Pending'))")
+
+            echo "  [${i}/60] ${STATUS}"
+
+            case "$STATUS" in
+              Success)
+                OUTPUT=$(echo "$INVOCATION" | python3 -c \
+                  "import sys,json; print(json.load(sys.stdin).get('StandardOutputContent',''))")
+                echo "=== Remote output ==="
+                echo "$OUTPUT"
+                echo "✅ Deployment successful"
+                exit 0
+                ;;
+              Failed|Cancelled|TimedOut|DeliveryTimedOut)
+                OUTPUT=$(echo "$INVOCATION" | python3 -c \
+                  "import sys,json; d=json.load(sys.stdin); \
+                   print(d.get('StandardOutputContent','')); \
+                   print(d.get('StandardErrorContent',''))")
+                echo "=== Remote output / errors ==="
+                echo "$OUTPUT"
+                echo "❌ Deploy failed with SSM status: ${STATUS}"
+                exit 1
+                ;;
+            esac
+          done
+          echo "❌ Timed out waiting for SSM command after 15 minutes"
+          exit 1
+
+      # ── 9. Cleanup S3 artifacts ───────────────────────────────────────────────
+      - name: Cleanup S3 deploy artifacts
+        if: always()
+        run: |
+          aws s3 rm \
+            s3://broandbro-menu-images-dev/deploy/dev/${{ github.run_id }}/ \
+            --recursive || true

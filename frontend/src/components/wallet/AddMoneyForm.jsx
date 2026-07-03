@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
-import { walletCreateOrder, walletVerifyPayment } from "@/services/api";
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { walletCreateOrder, walletVerifyPayment } from "@/services/wallet-service";
 import { cn } from "@/lib/utils";
 
 const QUICK_AMOUNTS = [100, 250, 500, 1000, 2000];
@@ -38,6 +39,21 @@ export default function AddMoneyForm({ className, onSuccess, onError }) {
   const [error, setError] = useState(null);
   const [adding, setAdding] = useState(false);
   const toast = useToast();
+  const queryClient = useQueryClient();
+
+  const createOrder = useMutation({
+    mutationFn: walletCreateOrder,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['wallet'] });
+    },
+  });
+
+  const verifyPayment = useMutation({
+    mutationFn: walletVerifyPayment,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['wallet'] });
+    },
+  });
 
   async function handleAddMoney() {
     const amountRupees = Number(amount);
@@ -49,9 +65,7 @@ export default function AddMoneyForm({ className, onSuccess, onError }) {
     setAdding(true);
     setError("");
     try {
-      const amountPaise = Math.round(amountRupees * 100);
-      const response = await walletCreateOrder({ amount: amountPaise });
-      const order = response?.data || {};
+      const order = await createOrder.mutateAsync({ amount: amountRupees });
       const orderId = order.razorpayOrderId;
 
       if (!orderId) {
@@ -73,7 +87,7 @@ export default function AddMoneyForm({ className, onSuccess, onError }) {
         description: "Add money to wallet",
         handler: async (paymentResponse) => {
           try {
-            await walletVerifyPayment({
+            await verifyPayment.mutateAsync({
               razorpayOrderId: paymentResponse.razorpay_order_id,
               razorpayPaymentId: paymentResponse.razorpay_payment_id,
               razorpaySignature: paymentResponse.razorpay_signature,

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useCart } from "../context/CartContext";
 import PropTypes from 'prop-types';
-import API from '../services/api';
+import { baseURL } from '../services';
 
 export default function ProductModal({ item, onClose }) {
     const { addItem } = useCart();
@@ -12,8 +12,7 @@ export default function ProductModal({ item, onClose }) {
     const computeImageSrc = (url) => {
         if (!url) return null;
         if (url.startsWith('http://') || url.startsWith('https://')) return url;
-        const base = (API && API.defaults && API.defaults.baseURL) ? API.defaults.baseURL : '';
-        return `${base}${url}`;
+        return `${baseURL}${url}`;
     };
     const imageSrc = computeImageSrc(item.imageUrl);
 

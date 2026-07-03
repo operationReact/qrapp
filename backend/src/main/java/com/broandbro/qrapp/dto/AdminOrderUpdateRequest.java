@@ -10,6 +10,7 @@ public class AdminOrderUpdateRequest {
     @Size(max = 1000)
     private String adminNote;
 
-    private String priority;
+    /** Optional: "PAID", "PENDING", "FAILED" — lets admin manually record cash payment */
+    private String paymentStatus;
 }
 

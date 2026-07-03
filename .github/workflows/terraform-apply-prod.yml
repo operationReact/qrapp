@@ -1,0 +1,103 @@
+# =============================================================================
+# Workflow: terraform-apply-prod.yml
+# Triggered by push to `main` branch when infra/** changes.
+# Applies Terraform to the PROD environment.
+# Requires manual approval via the "prod" GitHub Environment.
+# =============================================================================
+name: Terraform Apply-Prod
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "infra/**"
+      - ".github/workflows/terraform-apply-prod.yml"
+  # Allow manual trigger from the GitHub Actions UI
+  workflow_dispatch:
+    inputs:
+      force_apply:
+        description: "Force apply even without infra changes"
+        required: false
+        default: "false"
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  TF_VERSION: "1.9.5"
+  AWS_REGION: "ap-south-1"
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+jobs:
+  apply-prod:
+    name: Terraform Apply – Prod
+    runs-on: ubuntu-latest
+    environment: prod  # ← GitHub Environment with required reviewers (approval gate)
+
+    defaults:
+      run:
+        working-directory: infra/environments/prod
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.2.2
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Terraform Init
+        run: |
+          terraform init \
+            -backend-config="bucket=broandbro-tfstate-ap-south-1" \
+            -backend-config="key=env/prod/terraform.tfstate" \
+            -backend-config="region=ap-south-1" \
+            -backend-config="dynamodb_table=broandbro-tf-lock"
+
+      - name: Terraform Validate
+        run: terraform validate
+
+      # ── Import orphaned resources from previous partial applies ────────────
+      - name: Import existing S3 bucket (if orphaned)
+        run: |
+          if aws s3api head-bucket --bucket broandbro-prod-ui 2>/dev/null; then
+            if ! terraform state show module.s3.aws_s3_bucket.this 2>/dev/null; then
+              terraform import module.s3.aws_s3_bucket.this broandbro-prod-ui
+            fi
+          fi
+
+      - name: Import existing EC2 Key Pair (if orphaned)
+        run: |
+          if aws ec2 describe-key-pairs --key-names broandbro-prod-key --region ap-south-1 2>/dev/null; then
+            if ! terraform state show module.ec2.aws_key_pair.this 2>/dev/null; then
+              terraform import module.ec2.aws_key_pair.this broandbro-prod-key
+            fi
+          fi
+
+      - name: Terraform Plan
+        run: terraform plan -out=tfplan
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve tfplan
+
+      - name: Export outputs to GitHub summary
+        run: |
+          echo "## ✅ Prod Infrastructure Deployed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Output | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Frontend URL | https://broandbro.in |" >> $GITHUB_STEP_SUMMARY
+          echo "| API URL | https://api.broandbro.in |" >> $GITHUB_STEP_SUMMARY
+          CF_ID=$(terraform output -raw cloudfront_distribution_id 2>/dev/null || echo "N/A")
+          EC2_IP=$(terraform output -raw ec2_elastic_ip 2>/dev/null || echo "N/A")
+          echo "| CloudFront ID | $CF_ID |" >> $GITHUB_STEP_SUMMARY
+          echo "| EC2 IP | $EC2_IP |" >> $GITHUB_STEP_SUMMARY
+

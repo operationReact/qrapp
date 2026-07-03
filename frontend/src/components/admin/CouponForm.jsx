@@ -6,13 +6,20 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../ui/select";
 
 const DISCOUNT_TYPES = [
   { value: "FIXED", label: "Fixed Amount" },
   { value: "PERCENTAGE", label: "Percentage" },
 ];
 
-export default function CouponForm({ initialData, onSubmit, isLoading }) {
+export default function CouponForm({ initialData, onSubmit, isLoading, id }) {
   const [formData, setFormData] = useState({
     code: "",
     title: "",
@@ -39,12 +46,17 @@ export default function CouponForm({ initialData, onSubmit, isLoading }) {
         discountValue: initialData.discountValue?.toString() || "",
         minOrderAmount: initialData.minOrderAmount?.toString() || "",
         maxDiscountAmount: initialData.maxDiscountAmount?.toString() || "",
-        startsAt: initialData.startsAt ? formatDateForInput(initialData.startsAt) : "",
-        expiresAt: initialData.expiresAt ? formatDateForInput(initialData.expiresAt) : "",
+        startsAt: initialData.startsAt
+          ? formatDateForInput(initialData.startsAt)
+          : "",
+        expiresAt: initialData.expiresAt
+          ? formatDateForInput(initialData.expiresAt)
+          : "",
         totalUsageLimit: initialData.totalUsageLimit?.toString() || "",
         perUserLimit: initialData.perUserLimit?.toString() || "",
         isFirstOrderOnly: initialData.isFirstOrderOnly || false,
-        isActive: initialData.isActive !== undefined ? initialData.isActive : true,
+        isActive:
+          initialData.isActive !== undefined ? initialData.isActive : true,
       });
     }
   }, [initialData]);
@@ -66,13 +78,27 @@ export default function CouponForm({ initialData, onSubmit, isLoading }) {
       title: formData.title || null,
       description: formData.description || null,
       discountType: formData.discountType,
-      discountValue: formData.discountValue ? parseFloat(formData.discountValue) : null,
-      minOrderAmount: formData.minOrderAmount ? parseFloat(formData.minOrderAmount) : null,
-      maxDiscountAmount: formData.maxDiscountAmount ? parseFloat(formData.maxDiscountAmount) : null,
-      startsAt: formData.startsAt ? new Date(formData.startsAt).toISOString() : null,
-      expiresAt: formData.expiresAt ? new Date(formData.expiresAt).toISOString() : null,
-      totalUsageLimit: formData.totalUsageLimit ? parseInt(formData.totalUsageLimit, 10) : null,
-      perUserLimit: formData.perUserLimit ? parseInt(formData.perUserLimit, 10) : null,
+      discountValue: formData.discountValue
+        ? parseFloat(formData.discountValue)
+        : null,
+      minOrderAmount: formData.minOrderAmount
+        ? parseFloat(formData.minOrderAmount)
+        : null,
+      maxDiscountAmount: formData.maxDiscountAmount
+        ? parseFloat(formData.maxDiscountAmount)
+        : null,
+      startsAt: formData.startsAt
+        ? new Date(formData.startsAt).toISOString()
+        : null,
+      expiresAt: formData.expiresAt
+        ? new Date(formData.expiresAt).toISOString()
+        : null,
+      totalUsageLimit: formData.totalUsageLimit
+        ? parseInt(formData.totalUsageLimit, 10)
+        : null,
+      perUserLimit: formData.perUserLimit
+        ? parseInt(formData.perUserLimit, 10)
+        : null,
       isFirstOrderOnly: formData.isFirstOrderOnly,
       isActive: formData.isActive,
     };
@@ -80,7 +106,7 @@ export default function CouponForm({ initialData, onSubmit, isLoading }) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form id={id} onSubmit={handleSubmit} className="space-y-4">
       <Field>
         <FieldLabel>Code *</FieldLabel>
         <FieldContent>
@@ -122,18 +148,22 @@ export default function CouponForm({ initialData, onSubmit, isLoading }) {
         <Field>
           <FieldLabel>Discount Type *</FieldLabel>
           <FieldContent>
-            <select
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            <Select
               value={formData.discountType}
-              onChange={(e) => handleChange("discountType", e.target.value)}
+              onValueChange={(value) => handleChange("discountType", value)}
               disabled={isLoading}
             >
-              {DISCOUNT_TYPES.map((type) => (
-                <option key={type.value} value={type.value}>
-                  {type.label}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select discount type" />
+              </SelectTrigger>
+              <SelectContent>
+                {DISCOUNT_TYPES.map((type) => (
+                  <SelectItem key={type.value} value={type.value}>
+                    {type.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </FieldContent>
         </Field>
 
@@ -178,7 +208,9 @@ export default function CouponForm({ initialData, onSubmit, isLoading }) {
               step="0.01"
               min="0"
               value={formData.maxDiscountAmount}
-              onChange={(e) => handleChange("maxDiscountAmount", e.target.value)}
+              onChange={(e) =>
+                handleChange("maxDiscountAmount", e.target.value)
+              }
               placeholder="e.g. 100"
               disabled={isLoading}
             />
@@ -246,7 +278,9 @@ export default function CouponForm({ initialData, onSubmit, isLoading }) {
         <Checkbox
           id="isFirstOrderOnly"
           checked={formData.isFirstOrderOnly}
-          onCheckedChange={(checked) => handleChange("isFirstOrderOnly", !!checked)}
+          onCheckedChange={(checked) =>
+            handleChange("isFirstOrderOnly", !!checked)
+          }
           disabled={isLoading}
         />
         <Label htmlFor="isFirstOrderOnly" className="text-sm font-normal">
@@ -265,10 +299,6 @@ export default function CouponForm({ initialData, onSubmit, isLoading }) {
           Active
         </Label>
       </div>
-
-      <Button type="submit" className="w-full" disabled={isLoading}>
-        {isLoading ? "Saving..." : initialData ? "Update Coupon" : "Create Coupon"}
-      </Button>
     </form>
   );
 }

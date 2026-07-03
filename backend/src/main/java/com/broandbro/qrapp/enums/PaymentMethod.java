@@ -2,6 +2,6 @@ package com.broandbro.qrapp.enums;
 
 public enum PaymentMethod {
     RAZORPAY,
-    WALLET
+    WALLET,
+    PAY_AT_STALL
 }
-

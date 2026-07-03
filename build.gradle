@@ -5,9 +5,6 @@ plugins {
 
 allprojects {
     repositories {
-        // Additional repositories required by some dependencies (e.g. Razorpay)
-        maven { url 'https://s3.amazonaws.com/razorpay-maven/' }
-        maven { url 'https://repo.razorpay.com/maven2/' }
         mavenCentral()
         maven { url 'https://jitpack.io' }
     }
@@ -19,17 +16,17 @@ subprojects {
     group = 'com.broandbro'
     version = '0.0.1-SNAPSHOT'
 
-    // Configure Java toolchain to set Java 17 for compilation in a Gradle-compatible way
+    // Configure Java toolchain to set Java 21 for compilation in a Gradle-compatible way
     java {
         toolchain {
-            languageVersion = JavaLanguageVersion.of(17)
+            languageVersion = JavaLanguageVersion.of(21)
         }
     }
 
     tasks.withType(JavaCompile) {
         options.encoding = 'UTF-8'
-        // Use release flag to target Java 17 bytecode compatibility
-        options.release = 17
+        // Use release flag to target Java 21 bytecode compatibility
+        options.release = 21
     }
 
     dependencies {

@@ -4,6 +4,7 @@ import com.broandbro.qrapp.dto.RegisterRequest;
 import com.broandbro.qrapp.dto.UpdateProfileRequest;
 import com.broandbro.qrapp.dto.UserResponse;
 import com.broandbro.qrapp.entity.User;
+import com.broandbro.qrapp.service.MilestoneCouponService;
 import com.broandbro.qrapp.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -13,6 +14,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
+import java.util.List;
 
 @RestController
 @RequestMapping("/auth")
@@ -20,6 +22,7 @@ import jakarta.validation.Valid;
 @Validated
 public class UserAuthController {
     private final UserService userService;
+    private final MilestoneCouponService milestoneCouponService;
 
     @PostMapping("/register")
     public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest req) {
@@ -62,6 +65,13 @@ public class UserAuthController {
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.badRequest().body(ex.getMessage());
         }
+    }
+
+    @GetMapping("/me/milestones")
+    public ResponseEntity<List<MilestoneCouponService.MilestoneCouponInfo>> getMilestoneCoupons(Authentication authentication) {
+        User currentUser = resolveCurrentUser(authentication);
+        if (currentUser == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        return ResponseEntity.ok(milestoneCouponService.getUserMilestoneCoupons(currentUser.getId()));
     }
 
     private User resolveCurrentUser(Authentication authentication) {

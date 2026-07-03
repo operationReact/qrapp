@@ -1,5 +1,7 @@
 package com.broandbro.qrapp.controller;
 
+import com.broandbro.qrapp.analytics.config.AnalyticsCacheConfig;
+import com.broandbro.qrapp.analytics.repository.MenuItemAnalyticsRepository;
 import com.broandbro.qrapp.entity.MenuItem;
 import com.broandbro.qrapp.entity.Category;
 import com.broandbro.qrapp.entity.Tag;
@@ -8,29 +10,24 @@ import com.broandbro.qrapp.repository.CategoryRepository;
 import com.broandbro.qrapp.repository.TagRepository;
 import com.broandbro.qrapp.dto.MenuItemResponse;
 import com.broandbro.qrapp.service.InventoryService;
+import com.broandbro.qrapp.service.PricingService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.http.ResponseEntity;
-import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.http.MediaType;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.bind.annotation.RequestParam;
 
 import org.springframework.util.StringUtils;
 import java.io.IOException;
@@ -42,11 +39,15 @@ import java.nio.file.StandardCopyOption;
 import java.util.UUID;
 
 import jakarta.validation.Valid;
+import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
-import org.springframework.web.bind.annotation.RequestHeader;
 
 import jakarta.servlet.http.HttpServletRequest;
+
+import com.broandbro.qrapp.event.MenuItemCreatedEvent;
+import org.springframework.context.ApplicationEventPublisher;
 
 
 @RestController
@@ -65,15 +66,25 @@ public class MenuController {
     private final CategoryRepository categoryRepository;
     private final TagRepository tagRepository;
     private final InventoryService inventoryService;
+    private final PricingService pricingService;
+    private final ApplicationEventPublisher eventPublisher;
+    private final MenuItemAnalyticsRepository analyticsMenuItemRepo;
 
-    // helper to store uploaded file under resources/static/uploads and return public URL
+    @Autowired
+    @Qualifier("analyticsCacheManager")
+    private CacheManager analyticsCacheManager;
+
+    @Value("${app.upload.dir:uploads}")
+    private String uploadDir;
+
+    // helper to store uploaded file under the uploads directory and return public URL
     private String storeUploadedFile(MultipartFile file) throws IOException {
         if (file == null || file.isEmpty()) return null;
-        Path uploadDir = Paths.get("src/main/resources/static/uploads");
-        Files.createDirectories(uploadDir);
+        Path uploadPath = Paths.get(uploadDir).toAbsolutePath();
+        Files.createDirectories(uploadPath);
         String original = StringUtils.cleanPath(file.getOriginalFilename() == null ? "file" : file.getOriginalFilename());
         String filename = UUID.randomUUID() + "_" + original;
-        Path target = uploadDir.resolve(filename);
+        Path target = uploadPath.resolve(filename);
         try (InputStream in = file.getInputStream()) {
             Files.copy(in, target, StandardCopyOption.REPLACE_EXISTING);
         }
@@ -81,22 +92,21 @@ public class MenuController {
     }
 
     @GetMapping
-    @Cacheable(cacheNames = "menu", key = "T(java.lang.String).format('%s|%s|%s|%s|%s|%s', #isVeg, #categoryId, #recommended, #available, #page, #size)")
     public List<MenuItemResponse> getMenu(
             @RequestParam(value = "isVeg", required = false) Boolean isVeg,
             @RequestParam(value = "categoryId", required = false) Long categoryId,
             @RequestParam(value = "recommended", required = false) Boolean recommended,
-            @RequestParam(value = "available", required = false) Boolean available,
             @RequestParam(value = "page", defaultValue = "0") Integer page,
             @RequestParam(value = "size", defaultValue = "200") Integer size
     ) {
         int safePage = page == null ? DEFAULT_MENU_PAGE : Math.max(0, page);
         int safeSize = size == null ? DEFAULT_MENU_SIZE : Math.max(1, Math.min(size, MAX_MENU_SIZE));
-        // available=true → show only orderable items; null/false → show all
-        boolean availableOnly = Boolean.TRUE.equals(available);
-        List<MenuItem> items = repo.findByFilters(isVeg, categoryId, recommended, availableOnly, PageRequest.of(safePage, safeSize));
+        List<MenuItem> items = repo.findByFilters(isVeg, categoryId, recommended, PageRequest.of(safePage, safeSize));
+        // Batch-load all active prices in ONE query instead of N individual queries
+        List<Long> ids = items.stream().map(MenuItem::getId).toList();
+        Map<Long, BigDecimal> priceMap = pricingService.getCurrentSellingPrices(ids);
         return items.stream()
-            .map(this::buildMenuItemResponse)
+            .map(item -> buildMenuItemResponse(item, priceMap.get(item.getId())))
             .toList();
     }
 
@@ -106,8 +116,10 @@ public class MenuController {
     public List<MenuItemResponse> getRecommendedMenu(@RequestParam(value = "limit", required = false) Integer limit) {
         int safeLimit = limit == null ? DEFAULT_RECOMMENDED_LIMIT : Math.max(1, Math.min(limit, MAX_RECOMMENDED_LIMIT));
         List<MenuItem> items = repo.findTopRecommended(PageRequest.of(0, safeLimit));
+        List<Long> ids = items.stream().map(MenuItem::getId).toList();
+        Map<Long, BigDecimal> priceMap = pricingService.getCurrentSellingPrices(ids);
         return items.stream()
-            .map(this::buildMenuItemResponse)
+            .map(item -> buildMenuItemResponse(item, priceMap.get(item.getId())))
             .toList();
     }
 
@@ -118,24 +130,29 @@ public class MenuController {
     public MenuItem addMenuItem(@Valid @RequestBody MenuItem item) {
         // Ensure id is null so a new entity is created rather than updated
         item.setId(null);
-        return repo.save(item);
+        MenuItem saved = repo.save(item);
+        String categoryName = saved.getCategory() != null ? saved.getCategory().getName() : null;
+        eventPublisher.publishEvent(new MenuItemCreatedEvent(this, saved.getId(), saved.getName(), categoryName, saved.getIsVeg()));
+        return saved;
     }
 
-    // New multipart/form-data POST handler so admin can upload an image when creating an item
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasRole('ADMIN')")
     @CacheEvict(cacheNames = {"menu", "menuRecommended"}, allEntries = true)
     public ResponseEntity<?> addMenuItemMultipart(
             @RequestPart("name") String name,
-            @RequestPart(value = "price", required = false) String priceStr,
-            @RequestPart(value = "categoryId", required = false) String categoryIdStr,
-            @RequestPart(value = "description", required = false) String description,
-            @RequestPart(value = "isHidden", required = false) String isHiddenStr,
-            @RequestPart(value = "recommended", required = false) String recommendedStr,
-            @RequestPart(value = "tagId", required = false) String tagIdStr,
-            @RequestPart(value = "isVeg", required = false) String isVegStr,
-            @RequestPart(value = "inventoryMode", required = false) String inventoryModeStr,
-            @RequestPart(value = "image", required = false) MultipartFile image
+            @RequestPart(value = "price",          required = false) String priceStr,
+            @RequestPart(value = "categoryId",     required = false) String categoryIdStr,
+            @RequestPart(value = "description",    required = false) String description,
+            @RequestPart(value = "available",      required = false) String availableStr,
+            @RequestPart(value = "isHidden",       required = false) String isHiddenStr,
+            @RequestPart(value = "recommended",    required = false) String recommendedStr,
+            @RequestPart(value = "tagId",          required = false) String tagIdStr,
+            @RequestPart(value = "isVeg",          required = false) String isVegStr,
+            @RequestPart(value = "inventoryMode",  required = false) String inventoryModeStr,
+            @RequestPart(value = "estimatedCost",  required = false) String estimatedCostStr,
+            @RequestPart(value = "imageUrl",       required = false) String imageUrlStr,
+            @RequestPart(value = "image",          required = false) MultipartFile image
     ) {
         try {
             MenuItem item = new MenuItem();
@@ -149,7 +166,7 @@ public class MenuController {
                     return ResponseEntity.badRequest().body("Invalid price format");
                 }
             }
-            item.setBasePrice(new java.math.BigDecimal(price));
+            final double resolvedPrice = price;
 
             // Set category if categoryId is provided
             if (categoryIdStr != null && !categoryIdStr.isBlank()) {
@@ -164,6 +181,13 @@ public class MenuController {
             }
 
             item.setDescription(description);
+
+            // available defaults to true; honour the explicit flag when sent
+            if (availableStr != null) {
+                item.setAvailable(Boolean.parseBoolean(availableStr));
+            } else {
+                item.setAvailable(true);
+            }
 
             // Set inventory fields with proper defaults
             item.setIsHidden(isHiddenStr != null && Boolean.parseBoolean(isHiddenStr));
@@ -194,6 +218,17 @@ public class MenuController {
             if (isVegStr != null) {
                 item.setIsVeg(Boolean.parseBoolean(isVegStr));
             }
+            // Set estimated cost for profitability tracking
+            if (estimatedCostStr != null && !estimatedCostStr.isBlank()) {
+                try {
+                    BigDecimal estimatedCost = new BigDecimal(estimatedCostStr);
+                    if (estimatedCost.compareTo(BigDecimal.ZERO) >= 0) {
+                        item.setEstimatedCost(estimatedCost);
+                    }
+                } catch (NumberFormatException nfe) {
+                    return ResponseEntity.badRequest().body("Invalid estimatedCost format");
+                }
+            }
             if (image != null && !image.isEmpty()) {
                 try {
                     String url = storeUploadedFile(image);
@@ -202,8 +237,25 @@ public class MenuController {
                     log.error("Failed to store uploaded image", ioe);
                     return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to store image");
                 }
+            } else if (imageUrlStr != null && !imageUrlStr.isBlank()) {
+                // URL image provided instead of a file
+                item.setImageUrl(imageUrlStr.trim());
             }
             MenuItem saved = repo.save(item);
+            // Persist initial selling price in history table
+            if (resolvedPrice > 0) {
+                pricingService.setSellingPrice(new com.broandbro.qrapp.dto.pricing.PriceSetRequest(
+                        saved.getId(),
+                        java.math.BigDecimal.valueOf(resolvedPrice),
+                        null,
+                        "Initial price set on creation"
+                ));
+            }
+            // Publish event to trigger async AI image generation (only when no image was uploaded)
+            if (image == null || image.isEmpty()) {
+                String catName = saved.getCategory() != null ? saved.getCategory().getName() : null;
+                eventPublisher.publishEvent(new MenuItemCreatedEvent(this, saved.getId(), saved.getName(), catName, saved.getIsVeg()));
+            }
             return ResponseEntity.status(HttpStatus.CREATED).body(saved);
         } catch (RuntimeException ex) {
             log.error("Failed to create menu item (multipart)", ex);
@@ -218,6 +270,7 @@ public class MenuController {
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     @CacheEvict(cacheNames = {"menu", "menuRecommended"}, allEntries = true)
+    @org.springframework.transaction.annotation.Transactional
     public ResponseEntity<?> updateMenuItemFlexible(
             @PathVariable Long id,
             HttpServletRequest request,
@@ -245,7 +298,12 @@ public class MenuController {
 
                     if (name != null) existing.setName(name);
                     if (priceStr != null && !priceStr.isBlank()) {
-                        try { existing.setBasePrice(new java.math.BigDecimal(priceStr)); } catch (Exception ex) { /* ignore */ }
+                        try {
+                            java.math.BigDecimal newPrice = new java.math.BigDecimal(priceStr);
+                            repo.save(existing); // ensure item is persisted before price update
+                            pricingService.setSellingPrice(new com.broandbro.qrapp.dto.pricing.PriceSetRequest(
+                                    existing.getId(), newPrice, null, "Price updated via admin"));
+                        } catch (Exception ex) { /* ignore */ }
                     }
                     if (categoryIdStr != null && !categoryIdStr.isBlank()) {
                         try {
@@ -296,13 +354,22 @@ public class MenuController {
                 // JSON body
                 com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
                 java.util.Map<String, Object> payload = mapper.readValue(request.getInputStream(), new com.fasterxml.jackson.core.type.TypeReference<>(){});
+
+                // ── Payload audit log ──────────────────────────────────────────────────────
+                log.info("[MenuUpdate] PUT /menu/{} — received payload keys: {}", id, payload.keySet());
+                log.info("[MenuUpdate] Payload imageUrl value: '{}' (present={}, null={})",
+                        payload.get("imageUrl"),
+                        payload.containsKey("imageUrl"),
+                        payload.get("imageUrl") == null);
+                // ──────────────────────────────────────────────────────────────────────────
                 // reuse defensive update logic
                 if (payload.containsKey("name")) existing.setName((String) payload.getOrDefault("name", existing.getName()));
                 if (payload.containsKey("price")) {
                     Object p = payload.get("price");
                     try {
                         double pd = p instanceof Number ? ((Number)p).doubleValue() : Double.parseDouble(String.valueOf(p));
-                        existing.setBasePrice(new java.math.BigDecimal(pd));
+                        pricingService.setSellingPrice(new com.broandbro.qrapp.dto.pricing.PriceSetRequest(
+                                existing.getId(), java.math.BigDecimal.valueOf(pd), null, "Price updated via admin JSON"));
                     } catch (Exception ex) { /* ignore invalid price */ }
                 }
                 if (payload.containsKey("categoryId")) {
@@ -351,7 +418,52 @@ public class MenuController {
                     boolean iv = v instanceof Boolean ? (Boolean)v : Boolean.parseBoolean(String.valueOf(v));
                     existing.setIsVeg(iv);
                 }
-                if (payload.containsKey("imageUrl") && payload.get("imageUrl") != null) existing.setImageUrl((String) payload.get("imageUrl"));
+                if (payload.containsKey("available")) {
+                    Object a = payload.get("available");
+                    boolean av = a instanceof Boolean ? (Boolean)a : Boolean.parseBoolean(String.valueOf(a));
+                    existing.setAvailable(av);
+                }
+                if (payload.containsKey("estimatedCost")) {
+                    Object ec = payload.get("estimatedCost");
+                    if (ec == null) {
+                        existing.setEstimatedCost(null);
+                    } else {
+                        try {
+                            existing.setEstimatedCost(new java.math.BigDecimal(String.valueOf(ec)));
+                        } catch (Exception ex) { /* ignore invalid format */ }
+                    }
+                }
+                if (payload.containsKey("imageUrl") && payload.get("imageUrl") != null) {
+                    String newUrl = ((String) payload.get("imageUrl")).trim();
+                    String oldUrl = existing.getImageUrl();
+                    log.info("[MenuUpdate] imageUrl change detected for menuItemId={} | OLD='{}' | NEW='{}'", id, oldUrl, newUrl);
+                    existing.setImageUrl(newUrl);
+                    // Direct SQL update to guarantee imageUrl is persisted regardless of Hibernate session state
+                    int rows = repo.updateImageUrl(id, newUrl.isBlank() ? null : newUrl, java.time.Instant.now());
+                    log.info("[MenuUpdate] Direct SQL updateImageUrl for menuItemId={} | rows updated={} | url='{}'", id, rows, newUrl);
+                    if (rows == 0) {
+                        log.warn("[MenuUpdate] ⚠ updateImageUrl affected 0 rows for menuItemId={} — imageUrl may NOT have been persisted!", id);
+                    } else {
+                        log.info("[MenuUpdate] ✔ imageUrl successfully persisted for menuItemId={}", id);
+                    }
+                } else {
+                    log.debug("[MenuUpdate] imageUrl not in payload or null for menuItemId={} — keeping existing '{}'", id, existing.getImageUrl());
+                }
+
+                // ── Profitability gate: cannot activate without an estimated cost ─────────
+                if (payload.containsKey("available")) {
+                    Object av = payload.get("available");
+                    boolean activating = av instanceof Boolean ? (Boolean) av : Boolean.parseBoolean(String.valueOf(av));
+                    if (activating && existing.getEstimatedCost() == null) {
+                        return ResponseEntity.unprocessableEntity().body(Map.of(
+                                "error", "MISSING_ESTIMATED_COST",
+                                "message", "Estimated cost is required to activate this menu item. " +
+                                           "Set an estimated cost (₹) and try again.",
+                                "field", "estimatedCost"
+                        ));
+                    }
+                }
+                // ─────────────────────────────────────────────────────────────────────────
 
                 MenuItem saved = repo.save(existing);
                 return ResponseEntity.ok(saved);
@@ -361,9 +473,9 @@ public class MenuController {
             try (InputStream in = request.getInputStream()) {
                 String original = xFilename != null && !xFilename.isBlank() ? StringUtils.cleanPath(xFilename) : "upload";
                 String filename = UUID.randomUUID() + "_" + original;
-                Path uploadDir = Paths.get("src/main/resources/static/uploads");
-                Files.createDirectories(uploadDir);
-                Path target = uploadDir.resolve(filename);
+                Path uploadPath = Paths.get(uploadDir).toAbsolutePath();
+                Files.createDirectories(uploadPath);
+                Path target = uploadPath.resolve(filename);
                 Files.copy(in, target, StandardCopyOption.REPLACE_EXISTING);
                 String url = "/uploads/" + filename;
                 existing.setImageUrl(url);
@@ -384,44 +496,163 @@ public class MenuController {
     @PreAuthorize("hasRole('ADMIN')")
     @CacheEvict(cacheNames = {"menu", "menuRecommended"}, allEntries = true)
     public ResponseEntity<?> deleteMenuItem(@PathVariable Long id) {
-        if (!repo.existsById(id)) {
+        Optional<MenuItem> optItem = repo.findById(id);
+        if (optItem.isEmpty()) {
             return ResponseEntity.notFound().build();
         }
-        try {
-            repo.deleteById(id);
-            return ResponseEntity.noContent().build();
-        } catch (DataIntegrityViolationException dive) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).body("Cannot delete menu item: it is referenced by existing orders");
-        } catch (Exception ex) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to delete menu item");
-        }
+        MenuItem item = optItem.get();
+        item.setIsDeleted(true);
+        repo.save(item);
+        log.info("Soft-deleted menu item id={} name='{}'", id, item.getName());
+        return ResponseEntity.noContent().build();
     }
+
 
     /**
      * Helper method to convert MenuItem entity to MenuItemResponse DTO
-     * Includes inventory information from InventoryService
+    /**
+     * Builds a MenuItemResponse from a MenuItem entity and a pre-loaded selling price.
+     * The price is sourced from MenuItemSellingPriceHistory (batch-loaded by the caller)
+     * to avoid N+1 queries. Null price means no active price record exists.
      */
-    private MenuItemResponse buildMenuItemResponse(MenuItem item) {
+    private MenuItemResponse buildMenuItemResponse(MenuItem item, BigDecimal price) {
         Long shopId = item.getShop() != null ? item.getShop().getId() : null;
 
         return MenuItemResponse.builder()
             .id(item.getId())
             .name(item.getName())
             .description(item.getDescription())
-            .price(item.getSellingPrice())
+            .price(price)                          // from MenuItemSellingPriceHistory
             .imageUrl(item.getImageUrl())
             .isVeg(item.getIsVeg())
             .recommended(item.isRecommended())
-            .basePrice(item.getBasePrice())
-            .margin(item.getMargin())
             .category(item.getCategory())
             .tag(item.getTag())
             .shopId(shopId)
+            .fulfillmentType(item.getFulfillmentType())
             .inventoryMode(item.getInventoryMode())
             .isHidden(item.getIsHidden())
+            .available(inventoryService.isOrderable(item.getId()))
             .createdAt(item.getCreatedAt())
             .updatedAt(item.getUpdatedAt())
             .stockStatus(inventoryService.getStockStatus(item.getId()))
+            .estimatedCost(item.getEstimatedCost())
             .build();
+    }
+
+    // ── Profitability: Update Estimated Cost ──────────────────────────────────
+
+    /**
+     * PATCH /admin/menu/{id}/estimated-cost
+     * Sets (or clears) the estimated per-unit cost for a menu item.
+     * Used by the admin profitability dashboard to configure costs for SELF_PREPARED items.
+     */
+@PatchMapping("/{id}/estimated-cost")
+@PreAuthorize("hasRole('ADMIN')")
+@Caching(evict = {
+    @CacheEvict(cacheNames = {"menu", "menuRecommended"}, allEntries = true),
+    @CacheEvict(cacheManager = "analyticsCacheManager",
+                cacheNames  = {AnalyticsCacheConfig.CACHE_TOP_ITEMS, AnalyticsCacheConfig.CACHE_DASHBOARD},
+                allEntries  = true)
+})
+public ResponseEntity<?> updateEstimatedCost(
+            @PathVariable Long id,
+            @RequestBody java.util.Map<String, BigDecimal> body) {
+
+        Optional<MenuItem> optItem = repo.findById(id);
+        if (optItem.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        MenuItem item = optItem.get();
+        BigDecimal cost = body.get("estimatedCost");
+        if (cost != null && cost.compareTo(BigDecimal.ZERO) < 0) {
+            return ResponseEntity.badRequest().body("estimatedCost must be >= 0");
+        }
+        BigDecimal previousCost = item.getEstimatedCost();
+        item.setEstimatedCost(cost);
+        repo.save(item);
+
+        // Immediately backfill analytics_menu_item so the profitability dashboard
+        // shows the new cost without waiting for the next nightly scheduler run.
+        BigDecimal effectiveCost = cost != null ? cost : BigDecimal.ZERO;
+        int rowsUpdated = analyticsMenuItemRepo.updateEstimatedCostForItem(id, effectiveCost);
+        log.info("[CostAudit] estimatedCost updated | item={} name='{}' | was={} | now={} | analyticsRowsUpdated={}",
+                id, item.getName(), previousCost, cost, rowsUpdated);
+
+        return ResponseEntity.ok(java.util.Map.of(
+                "id", id,
+                "estimatedCost", effectiveCost,
+                "previousCost", previousCost != null ? previousCost : BigDecimal.ZERO));
+    }
+
+    /**
+     * POST /admin/menu/bulk-estimated-cost
+     * Bulk-updates the estimated cost for multiple menu items in a single request.
+     * Each entry may set or clear the cost (null = clear).
+     * Items that would result in an active item with no cost are skipped with an error entry.
+     */
+@PostMapping("/bulk-estimated-cost")
+@PreAuthorize("hasRole('ADMIN')")
+@Caching(evict = {
+    @CacheEvict(cacheNames = {"menu", "menuRecommended"}, allEntries = true),
+    @CacheEvict(cacheManager = "analyticsCacheManager",
+                cacheNames  = {AnalyticsCacheConfig.CACHE_TOP_ITEMS, AnalyticsCacheConfig.CACHE_DASHBOARD},
+                allEntries  = true)
+})
+    @org.springframework.transaction.annotation.Transactional
+    public ResponseEntity<?> bulkUpdateEstimatedCost(
+            @RequestBody List<java.util.Map<String, Object>> updates) {
+
+        int updated = 0;
+        List<java.util.Map<String, Object>> errors = new java.util.ArrayList<>();
+
+        for (java.util.Map<String, Object> entry : updates) {
+            Object rawId   = entry.get("id");
+            Object rawCost = entry.get("estimatedCost");
+
+            if (rawId == null) { continue; }
+
+            long itemId;
+            try { itemId = rawId instanceof Number ? ((Number) rawId).longValue() : Long.parseLong(String.valueOf(rawId)); }
+            catch (NumberFormatException e) { continue; }
+
+            Optional<MenuItem> optItem = repo.findById(itemId);
+            if (optItem.isEmpty()) {
+                errors.add(Map.of("id", itemId, "error", "Item not found"));
+                continue;
+            }
+            MenuItem item = optItem.get();
+
+            BigDecimal newCost = null;
+            if (rawCost != null) {
+                try {
+                    newCost = new BigDecimal(String.valueOf(rawCost));
+                    if (newCost.compareTo(BigDecimal.ZERO) < 0) {
+                        errors.add(Map.of("id", itemId, "error", "Cost must be >= 0"));
+                        continue;
+                    }
+                } catch (NumberFormatException e) {
+                    errors.add(Map.of("id", itemId, "error", "Invalid cost format"));
+                    continue;
+                }
+            }
+
+            BigDecimal previousCost = item.getEstimatedCost();
+            item.setEstimatedCost(newCost);
+            repo.save(item);
+
+            // Backfill analytics immediately so the dashboard reflects the new cost.
+            BigDecimal effectiveCost = newCost != null ? newCost : BigDecimal.ZERO;
+            analyticsMenuItemRepo.updateEstimatedCostForItem(itemId, effectiveCost);
+            log.info("[CostAudit] estimatedCost BULK updated | item={} name='{}' | was={} | now={}",
+                    itemId, item.getName(), previousCost, newCost);
+            updated++;
+        }
+
+        return ResponseEntity.ok(Map.of(
+                "updated", updated,
+                "errors",  errors,
+                "timestamp", java.time.Instant.now().toString()
+        ));
     }
 }

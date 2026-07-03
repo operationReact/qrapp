@@ -34,11 +34,10 @@ public class AdminController {
     @GetMapping("/orders")
     public ResponseEntity<Page<AdminOrderResponse>> listOrders(@RequestParam Optional<String> status,
                                                                @RequestParam Optional<String> paymentStatus,
-                                                               @RequestParam Optional<String> priority,
                                                                @RequestParam Optional<String> query,
                                                                @RequestParam(defaultValue = "false") boolean liveOnly,
                                                                Pageable pageable) {
-        return ResponseEntity.ok(orderService.getAdminOrders(status, paymentStatus, priority, query, liveOnly, pageable));
+        return ResponseEntity.ok(orderService.getAdminOrders(status, paymentStatus, query, liveOnly, pageable));
     }
 
     @GetMapping("/orders/live")

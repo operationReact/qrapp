@@ -106,6 +106,27 @@ public class GlobalInventoryExceptionHandler {
     }
 
     /**
+     * Handle IllegalStateException (503 Service Unavailable).
+     * Covers: Razorpay not configured, payment gateway unavailable, etc.
+     */
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<?> handleIllegalState(
+            IllegalStateException ex,
+            WebRequest request) {
+
+        log.error("Service unavailable: {}", ex.getMessage(), ex);
+
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("timestamp", Instant.now().toString());
+        body.put("status", HttpStatus.SERVICE_UNAVAILABLE.value());
+        body.put("error", "Service Unavailable");
+        body.put("message", ex.getMessage());
+        body.put("path", request.getDescription(false).replace("uri=", ""));
+
+        return new ResponseEntity<>(body, HttpStatus.SERVICE_UNAVAILABLE);
+    }
+
+    /**
      * Handle general exceptions (500 Internal Server Error).
      */
     @ExceptionHandler(Exception.class)
@@ -113,13 +134,14 @@ public class GlobalInventoryExceptionHandler {
             Exception ex,
             WebRequest request) {
 
-        log.error("Unexpected error: {}", ex.getMessage(), ex);
+        log.error("Unexpected error [{}]: {}", ex.getClass().getSimpleName(), ex.getMessage(), ex);
 
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("timestamp", Instant.now().toString());
         body.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
         body.put("error", "Internal Server Error");
-        body.put("message", "An unexpected error occurred");
+        // Expose the real cause so the caller can diagnose without server log access
+        body.put("message", ex.getClass().getSimpleName() + ": " + ex.getMessage());
         body.put("path", request.getDescription(false).replace("uri=", ""));
 
         return new ResponseEntity<>(body, HttpStatus.INTERNAL_SERVER_ERROR);

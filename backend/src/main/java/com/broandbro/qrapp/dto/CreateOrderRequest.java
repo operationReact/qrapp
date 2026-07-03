@@ -21,6 +21,15 @@ public class CreateOrderRequest {
     @Valid
     private List<Item> items;
 
+    /** Optional promotion code to apply at order creation time */
+    private String promotionCode;
+
+    /**
+     * Optional BYOC campaign ID — when present the server re-evaluates the cart
+     * against this campaign and applies the unlocked tier discount.
+     */
+    private Long byocCampaignId;
+
     @Data
     public static class Item {
         @NotNull
