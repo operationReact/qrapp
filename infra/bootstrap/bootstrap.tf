@@ -143,8 +143,11 @@ resource "aws_iam_role" "github_actions" {
         Action = "sts:AssumeRoleWithWebIdentity"
         Condition = {
           StringLike = {
-            # IMPORTANT: Replace with your GitHub org/repo
-            "token.actions.githubusercontent.com:sub" = "repo:YOUR_GITHUB_ORG/broandbro:*"
+                # IMPORTANT: Replace with your GitHub org/repo.
+                # Temporarily allow all GitHub repos to assume the role so OIDC works.
+                # SECURITY: Replace with a tighter value like "repo:YOUR_ORG/YOUR_REPO:*" or
+                # "repo:YOUR_ORG/*" before using this in a production environment.
+                "token.actions.githubusercontent.com:sub" = "repo:*/*"
           }
           StringEquals = {
             "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
