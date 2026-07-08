@@ -22,7 +22,7 @@ terraform {
 }
 
 provider "aws" {
-  region = "ap-south-1"
+  region = "us-east-1"
 }
 
 # ── S3 bucket for remote state storage ───────────────────────────────────────

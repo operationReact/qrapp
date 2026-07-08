@@ -73,7 +73,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-          aws-region: ap-south-1
+          aws-region: us-east-1
 
       # ── 5. Fetch EC2 host from SSM (populated by Terraform) ──────────────────
       - name: Get EC2 host from SSM
@@ -99,24 +99,24 @@ jobs:
 
       # ── 7. Upload JAR to S3 ──────────────────────────────────────────────────
       # Replacing the old SCP approach (GitHub runner US → Mumbai EC2 = ~30 min).
-      # The runner uploads to S3 in ap-south-1; the EC2 pulls it from S3 in the
+      # The runner uploads to S3 in us-east-1; the EC2 pulls it from S3 in the
       # same region over the AWS backbone – typically <30 seconds total.
       # A pre-signed URL is generated so the EC2 can download without needing
       # its own s3:GetObject IAM permission on the deploy/ prefix.
       - name: Upload JAR to S3
         run: |
-          echo "📦 Uploading JAR to S3 (ap-south-1)..."
+          echo "📦 Uploading JAR to S3 (us-east-1)..."
           time aws s3 cp \
             backend/build/libs/qrapp-*.jar \
             s3://broandbro-menu-images-prod/deploy/prod/${{ github.run_id }}/app.jar \
-            --region ap-south-1
+            --region us-east-1
           echo "✅ S3 upload complete"
 
           # Pre-signed URL valid for 10 minutes – plenty of time for the SSH deploy step
           PRESIGNED=$(aws s3 presign \
             s3://broandbro-menu-images-prod/deploy/prod/${{ github.run_id }}/app.jar \
             --expires-in 600 \
-            --region ap-south-1)
+            --region us-east-1)
           echo "JAR_URL=$PRESIGNED" >> "$GITHUB_ENV"
 
       # ── 8. Write application.env + restart service ───────────────────────────
@@ -161,7 +161,7 @@ jobs:
 
           # ─── AWS S3 (shared media bucket) ──────────────────────────────────
           AWS_S3_BUCKET_NAME=broandbro-menu-images-prod
-          AWS_S3_REGION=ap-south-1
+          AWS_S3_REGION=us-east-1
           AWS_S3_ENABLED=true
           AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}

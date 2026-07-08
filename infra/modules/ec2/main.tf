@@ -56,7 +56,7 @@ resource "aws_ssm_parameter" "ssh_private_key" {
   }
 }
 
-# Latest Amazon Linux 2023 AMI for ARM64 (Graviton) in ap-south-1
+# Latest Amazon Linux 2023 AMI for ARM64 (Graviton) in us-east-1
 data "aws_ami" "al2023_arm" {
   most_recent = true
   owners      = ["amazon"]

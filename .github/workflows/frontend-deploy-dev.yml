@@ -24,7 +24,7 @@ permissions:
 
 env:
   NODE_VERSION: "22"
-  AWS_REGION: "ap-south-1"
+  AWS_REGION: "us-east-1"
   S3_BUCKET: "broandbro-develop-ui"
   # NOTE: CF_DISTRIBUTION_ID cannot be set here from secrets – referenced directly in the step below
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"

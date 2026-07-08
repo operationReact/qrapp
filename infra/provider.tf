@@ -9,7 +9,7 @@
 # Each environment directory has its own provider config.
 # =============================================================================
 
-# Primary AWS provider – ap-south-1 (Mumbai)
+# Primary AWS provider – us-east-1 (Mumbai)
 provider "aws" {
   region = var.aws_region
 

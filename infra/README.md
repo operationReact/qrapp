@@ -1,6 +1,6 @@
 # =============================================================================
 # broandbro Infrastructure – Complete DevOps Guide
-# Terraform + GitHub Actions on AWS (ap-south-1)
+# Terraform + GitHub Actions on AWS (us-east-1)
 # =============================================================================
 
 ## Architecture Overview
@@ -83,7 +83,7 @@ broandbro/
 aws configure
 # AWS Access Key ID: AKIA...
 # AWS Secret Access Key: ...
-# Default region: ap-south-1
+# Default region: us-east-1
 # Default output format: json
 
 # Verify
@@ -321,7 +321,7 @@ ssh -i ~/.ssh/broandbro_dev ec2-user@DEV_EC2_IP
 ssh -i ~/.ssh/broandbro_prod ec2-user@PROD_EC2_IP
 
 # Alternative: AWS SSM Session Manager (no SSH key needed)
-aws ssm start-session --target INSTANCE_ID --region ap-south-1
+aws ssm start-session --target INSTANCE_ID --region us-east-1
 ```
 
 ### Check application logs
@@ -417,7 +417,7 @@ terraform destroy -var="db_password=..." -var="ec2_public_key=..."
 
 ---
 
-## Monthly Cost Estimate (ap-south-1)
+## Monthly Cost Estimate (us-east-1)
 
 | Service | Dev | Prod |
 |---------|-----|------|

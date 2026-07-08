@@ -26,7 +26,7 @@ permissions:
 
 env:
   TF_VERSION: "1.9.5"
-  AWS_REGION: "ap-south-1"
+  AWS_REGION: "us-east-1"
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
 jobs:
@@ -59,7 +59,7 @@ jobs:
           terraform init \
             -backend-config="bucket=broandbro-tfstate-us-east-1" \
             -backend-config="key=env/prod/terraform.tfstate" \
-            -backend-config="region=ap-south-1" \
+            -backend-config="region=us-east-1" \
             -backend-config="dynamodb_table=broandbro-tf-lock"
 
       - name: Terraform Validate
@@ -76,7 +76,7 @@ jobs:
 
       - name: Import existing EC2 Key Pair (if orphaned)
         run: |
-          if aws ec2 describe-key-pairs --key-names broandbro-prod-key --region ap-south-1 2>/dev/null; then
+          if aws ec2 describe-key-pairs --key-names broandbro-prod-key --region us-east-1 2>/dev/null; then
             if ! terraform state show module.ec2.aws_key_pair.this 2>/dev/null; then
               terraform import module.ec2.aws_key_pair.this broandbro-prod-key
             fi
