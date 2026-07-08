@@ -67,7 +67,7 @@ jobs:
       - name: Terraform Init
         run: |
           terraform init \
-            -backend-config="bucket=broandbro-tfstate-ap-south-1" \
+            -backend-config="bucket=broandbro-tfstate-us-east-1" \
             -backend-config="key=env/dev/terraform.tfstate" \
             -backend-config="region=ap-south-1" \
             -backend-config="dynamodb_table=broandbro-tf-lock"
@@ -153,7 +153,7 @@ jobs:
       - name: Terraform Init
         run: |
           terraform init \
-            -backend-config="bucket=broandbro-tfstate-ap-south-1" \
+            -backend-config="bucket=broandbro-tfstate-us-east-1" \
             -backend-config="key=env/prod/terraform.tfstate" \
             -backend-config="region=ap-south-1" \
             -backend-config="dynamodb_table=broandbro-tf-lock"

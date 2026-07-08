@@ -4,7 +4,7 @@
 # =============================================================================
 terraform {
   backend "s3" {
-    bucket         = "broandbro-tfstate-ap-south-1"
+    bucket         = "broandbro-tfstate-us-east-1"
     key            = "env/prod/terraform.tfstate"
     region         = "ap-south-1"
     encrypt        = true

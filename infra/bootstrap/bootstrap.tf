@@ -27,7 +27,7 @@ provider "aws" {
 
 # ── S3 bucket for remote state storage ───────────────────────────────────────
 resource "aws_s3_bucket" "tfstate" {
-  bucket = "broandbro-tfstate-ap-south-1"
+  bucket = "broandbro-tfstate-us-east-1"
 
   lifecycle {
     prevent_destroy = true
