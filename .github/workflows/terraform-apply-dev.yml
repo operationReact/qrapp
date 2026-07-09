@@ -118,6 +118,11 @@ jobs:
             echo "Media bucket $BUCKET does not exist yet – will be created by apply."
           fi
 
+      - name: Ensure ACM certificate exists (targeted)
+        run: |
+          echo "Running targeted apply to create ACM certificate resource so DNS validation options become known"
+          terraform apply -target=module.acm.aws_acm_certificate.this -auto-approve || true
+
       - name: Terraform Plan
         run: terraform plan -out=tfplan
 
