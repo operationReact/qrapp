@@ -166,7 +166,7 @@ resource "aws_cloudwatch_metric_alarm" "status_check_failed" {
 
 # ── RDS Alarms ────────────────────────────────────────────────────────────────
 
-*** End Patch
+
 
 # ── CloudWatch Dashboard ──────────────────────────────────────────────────────
 
