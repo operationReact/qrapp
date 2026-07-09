@@ -46,13 +46,6 @@ resource "aws_route53_record" "validation" {
   records = [each.value.resource_record_value]
 }
 
-  allow_overwrite = true
-  name            = each.value.name
-  records         = [each.value.record]
-  ttl             = 60
-  type            = each.value.type
-  zone_id         = data.aws_route53_zone.this.zone_id
-}
 
 # ── Wait for certificate to become ISSUED ────────────────────────────────────
 resource "aws_acm_certificate_validation" "this" {
