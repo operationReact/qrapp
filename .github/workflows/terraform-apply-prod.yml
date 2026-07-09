@@ -83,12 +83,18 @@ jobs:
           fi
 
       - name: Ensure ACM certificate exists (targeted)
+        if: ${{ secrets.EXISTING_ACM_CERT_ARN == '' }}
         run: |
           echo "Running targeted apply to create ACM certificate resource so DNS validation options become known"
           terraform apply -target=module.acm.aws_acm_certificate.this -auto-approve || true
 
       - name: Terraform Plan
-        run: terraform plan -out=tfplan
+        run: |
+          PLAN_CMD="terraform plan -out=tfplan"
+          if [ -n "${{ secrets.EXISTING_ACM_CERT_ARN }}" ]; then
+            PLAN_CMD="$PLAN_CMD -var='existing_certificate_arn=${{ secrets.EXISTING_ACM_CERT_ARN }}'"
+          fi
+          eval $PLAN_CMD
 
       - name: Terraform Apply
         run: terraform apply -auto-approve tfplan
