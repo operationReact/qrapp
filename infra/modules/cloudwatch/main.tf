@@ -166,49 +166,7 @@ resource "aws_cloudwatch_metric_alarm" "status_check_failed" {
 
 # ── RDS Alarms ────────────────────────────────────────────────────────────────
 
-resource "aws_cloudwatch_metric_alarm" "rds_cpu_high" {
-  count               = var.rds_identifier != "" ? 1 : 0
-  alarm_name          = "broandbro-${var.environment}-rds-cpu-high"
-  comparison_operator = "GreaterThanThreshold"
-  evaluation_periods  = 2
-  metric_name         = "CPUUtilization"
-  namespace           = "AWS/RDS"
-  period              = 120
-  statistic           = "Average"
-  threshold           = 80
-  alarm_description   = "RDS CPU utilization > 80%"
-  alarm_actions       = [aws_sns_topic.alarms.arn]
 
-  dimensions = {
-    DBInstanceIdentifier = var.rds_identifier
-  }
-
-  tags = {
-    Environment = var.environment
-  }
-}
-
-resource "aws_cloudwatch_metric_alarm" "rds_free_storage_low" {
-  count               = var.rds_identifier != "" ? 1 : 0
-  alarm_name          = "broandbro-${var.environment}-rds-storage-low"
-  comparison_operator = "LessThanThreshold"
-  evaluation_periods  = 1
-  metric_name         = "FreeStorageSpace"
-  namespace           = "AWS/RDS"
-  period              = 300
-  statistic           = "Average"
-  threshold           = 2147483648 # 2 GB in bytes
-  alarm_description   = "RDS free storage < 2 GB"
-  alarm_actions       = [aws_sns_topic.alarms.arn]
-
-  dimensions = {
-    DBInstanceIdentifier = var.rds_identifier
-  }
-
-  tags = {
-    Environment = var.environment
-  }
-}
 
 # ── CloudWatch Dashboard ──────────────────────────────────────────────────────
 

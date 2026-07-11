@@ -83,7 +83,7 @@ resource "aws_db_subnet_group" "this" {
 }
 
 # ── Auto-discover the latest available PostgreSQL 16 minor version ────────────
-# This avoids hard-coding a version that may not be available in ap-south-1.
+# This avoids hard-coding a version that may not be available in us-east-1.
 data "aws_rds_engine_version" "postgres" {
   engine             = "postgres"
   version            = "16"
@@ -141,3 +141,58 @@ resource "aws_db_instance" "this" {
     ignore_changes = [final_snapshot_identifier, password]
   }
 }
+
+# ── RDS-specific CloudWatch alarms and SNS topic ─────────────────────────────
+# Create a dedicated SNS topic for RDS alarms so alarms can be created
+# inside this module (avoids cross-module plan-time unknowns).
+resource "aws_sns_topic" "rds_alarms" {
+  name = "broandbro-${var.environment}-rds-alarms"
+
+  tags = {
+    Name        = "broandbro-${var.environment}-rds-alarms"
+    Environment = var.environment
+  }
+}
+
+resource "aws_cloudwatch_metric_alarm" "rds_cpu_high" {
+  alarm_name          = "broandbro-${var.environment}-rds-cpu-high"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 2
+  metric_name         = "CPUUtilization"
+  namespace           = "AWS/RDS"
+  period              = 120
+  statistic           = "Average"
+  threshold           = 80
+  alarm_description   = "RDS CPU utilization > 80%"
+  alarm_actions       = [aws_sns_topic.rds_alarms.arn]
+
+  dimensions = {
+    DBInstanceIdentifier = aws_db_instance.this.identifier
+  }
+
+  tags = {
+    Environment = var.environment
+  }
+}
+
+resource "aws_cloudwatch_metric_alarm" "rds_free_storage_low" {
+  alarm_name          = "broandbro-${var.environment}-rds-storage-low"
+  comparison_operator = "LessThanThreshold"
+  evaluation_periods  = 1
+  metric_name         = "FreeStorageSpace"
+  namespace           = "AWS/RDS"
+  period              = 300
+  statistic           = "Average"
+  threshold           = 2147483648 # 2 GB in bytes
+  alarm_description   = "RDS free storage < 2 GB"
+  alarm_actions       = [aws_sns_topic.rds_alarms.arn]
+
+  dimensions = {
+    DBInstanceIdentifier = aws_db_instance.this.identifier
+  }
+
+  tags = {
+    Environment = var.environment
+  }
+}
+

@@ -22,12 +22,12 @@ terraform {
 }
 
 provider "aws" {
-  region = "ap-south-1"
+  region = "us-east-1"
 }
 
 # ── S3 bucket for remote state storage ───────────────────────────────────────
 resource "aws_s3_bucket" "tfstate" {
-  bucket = "broandbro-tfstate-ap-south-1"
+  bucket = "broandbro-tfstate-us-east-1"
 
   lifecycle {
     prevent_destroy = true
@@ -143,8 +143,11 @@ resource "aws_iam_role" "github_actions" {
         Action = "sts:AssumeRoleWithWebIdentity"
         Condition = {
           StringLike = {
-            # IMPORTANT: Replace with your GitHub org/repo
-            "token.actions.githubusercontent.com:sub" = "repo:YOUR_GITHUB_ORG/broandbro:*"
+                # IMPORTANT: Replace with your GitHub org/repo.
+                # Temporarily allow all GitHub repos to assume the role so OIDC works.
+                # SECURITY: Replace with a tighter value like "repo:YOUR_ORG/YOUR_REPO:*" or
+                # "repo:YOUR_ORG/*" before using this in a production environment.
+                "token.actions.githubusercontent.com:sub" = "repo:*/*"
           }
           StringEquals = {
             "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"

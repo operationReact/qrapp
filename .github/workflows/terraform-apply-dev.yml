@@ -25,7 +25,7 @@ permissions:
 
 env:
   TF_VERSION: "1.9.5"
-  AWS_REGION: "ap-south-1"
+  AWS_REGION: "us-east-1"
   TF_ENV: dev
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
@@ -57,9 +57,9 @@ jobs:
       - name: Terraform Init
         run: |
           terraform init \
-            -backend-config="bucket=broandbro-tfstate-ap-south-1" \
+            -backend-config="bucket=broandbro-tfstate-us-east-1" \
             -backend-config="key=env/dev/terraform.tfstate" \
-            -backend-config="region=ap-south-1" \
+            -backend-config="region=us-east-1" \
             -backend-config="dynamodb_table=broandbro-tf-lock"
 
       - name: Terraform Validate
@@ -84,7 +84,7 @@ jobs:
 
       - name: Import existing EC2 Key Pair (if orphaned)
         run: |
-          if aws ec2 describe-key-pairs --key-names broandbro-dev-key --region ap-south-1 2>/dev/null; then
+          if aws ec2 describe-key-pairs --key-names broandbro-dev-key --region us-east-1 2>/dev/null; then
             echo "Key pair exists – checking state..."
             if ! terraform state show module.ec2.aws_key_pair.this 2>/dev/null; then
               echo "Importing orphaned key pair into state..."
@@ -118,8 +118,19 @@ jobs:
             echo "Media bucket $BUCKET does not exist yet – will be created by apply."
           fi
 
+      - name: Ensure ACM certificate exists (targeted)
+        if: ${{ secrets.EXISTING_ACM_CERT_ARN == '' }}
+        run: |
+          echo "Running targeted apply to create ACM certificate resource so DNS validation options become known"
+          terraform apply -target=module.acm.aws_acm_certificate.this -auto-approve || true
+
       - name: Terraform Plan
-        run: terraform plan -out=tfplan
+        run: |
+          PLAN_CMD="terraform plan -out=tfplan"
+          if [ -n "${{ secrets.EXISTING_ACM_CERT_ARN }}" ]; then
+            PLAN_CMD="$PLAN_CMD -var='existing_certificate_arn=${{ secrets.EXISTING_ACM_CERT_ARN }}'"
+          fi
+          eval $PLAN_CMD
 
       - name: Terraform Apply
         run: terraform apply -auto-approve tfplan

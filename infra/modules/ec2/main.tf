@@ -56,7 +56,7 @@ resource "aws_ssm_parameter" "ssh_private_key" {
   }
 }
 
-# Latest Amazon Linux 2023 AMI for ARM64 (Graviton) in ap-south-1
+# Latest Amazon Linux 2023 AMI for ARM64 (Graviton) in us-east-1
 data "aws_ami" "al2023_arm" {
   most_recent = true
   owners      = ["amazon"]
@@ -224,15 +224,6 @@ resource "aws_ssm_parameter" "ec2_ip" {
   }
 }
 
-# ── Fetch the stored SSH private key ─────────────────────────────────────────
-# Used by the provisioner below to SSH into the instance and fix SSM agent.
-data "aws_ssm_parameter" "ssh_private_key" {
-  name            = "/broandbro/${var.environment}/ec2-ssh-private-key"
-  with_decryption = true
-
-  depends_on = [aws_ssm_parameter.ssh_private_key]
-}
-
 # ── Ensure SSM Agent is installed and running ─────────────────────────────────
 # This fixes existing instances where the agent may have stopped or not been
 # installed. Runs via SSH on every `terraform apply` (trigger = instance ID).
@@ -244,7 +235,7 @@ resource "null_resource" "ensure_ssm_agent" {
   connection {
     type        = "ssh"
     user        = "ec2-user"
-    private_key = data.aws_ssm_parameter.ssh_private_key.value
+    private_key = aws_ssm_parameter.ssh_private_key.value
     host        = aws_eip.this.public_ip
     timeout     = "5m"
   }
@@ -265,4 +256,3 @@ resource "null_resource" "ensure_ssm_agent" {
 
   depends_on = [aws_eip.this]
 }
-

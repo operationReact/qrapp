@@ -4,9 +4,9 @@
 # =============================================================================
 terraform {
   backend "s3" {
-    bucket         = "broandbro-tfstate-ap-south-1"
+    bucket         = "broandbro-tfstate-us-east-1"
     key            = "env/dev/terraform.tfstate"
-    region         = "ap-south-1"
+    region         = "us-east-1"
     encrypt        = true
     dynamodb_table = "broandbro-tf-lock"
   }
