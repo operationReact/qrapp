@@ -59,7 +59,8 @@ broandbro/
 | RDS type | db.t4g.micro              | db.t4g.small |
 | Frontend domain | dev.broandbro.in          | broandbro.in |
 | API domain | dev-api.broandbro.in      | api.broandbro.in |
-| S3 bucket | broandbro-develop-ui      | broandbro-prod-ui |
+| S3 frontend bucket | broandbro-develop-ui      | broandbro-prod-ui |
+| S3 media bucket | broandbro-menu-images-shared (shared) | broandbro-menu-images-shared (shared) |
 | CloudFront pricing | PriceClass_100            | PriceClass_200 |
 | Terraform state | env/dev/terraform.tfstate | env/prod/terraform.tfstate |
 | Approval required | ❌                         | ✅ |
@@ -403,7 +404,7 @@ terraform apply -var="db_password=..." -var="ec2_public_key=..."
 
 # Dev – safe to destroy any time
 cd infra/environments/dev
-terraform destroy -var="db_password=..." -var="ec2_public_key=..."
+terraform destroy
 
 # Prod – take a manual RDS snapshot first!
 aws rds create-db-snapshot \
@@ -412,7 +413,7 @@ aws rds create-db-snapshot \
 
 # Then disable deletion_protection in modules/rds/main.tf, then:
 cd infra/environments/prod
-terraform destroy -var="db_password=..." -var="ec2_public_key=..."
+terraform destroy
 ```
 
 ---

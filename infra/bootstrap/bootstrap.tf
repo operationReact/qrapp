@@ -173,11 +173,12 @@ resource "aws_iam_role_policy_attachment" "github_actions_admin" {
 # =============================================================================
 # Shared Media Bucket – AI-generated menu item images
 # NOTE: This bucket is now CREATED AND MANAGED by environments/dev/main.tf
-# (aws_s3_bucket.media resource) so it is provisioned automatically by the
-# dev Terraform apply workflow without needing a separate bootstrap run.
+# (aws_s3_bucket.media resource) and shared across all environments (dev, prod).
+# It is provisioned automatically by the dev Terraform apply workflow without
+# needing a separate bootstrap run.
 #
-# If this bootstrap was previously applied and created the bucket, the dev
-# apply workflow imports it into the dev state automatically.
+# If this bootstrap previously created the bucket, the dev apply workflow will
+# import it into the dev state automatically.
 # =============================================================================
 
 

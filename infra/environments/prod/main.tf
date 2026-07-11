@@ -50,8 +50,8 @@ provider "aws" {
 }
 
 # ── Shared media bucket (AI-generated menu item images) ──────────────────────
-# This bucket is created ONCE by bootstrap/bootstrap.tf and shared by
-# all environments.  Here we just look it up so we can reference its ARN.
+# This bucket is created by dev/main.tf and shared across ALL environments.
+# Prod looks it up via data source so we can reference its ARN without re-creating.
 data "aws_s3_bucket" "media" {
   bucket = var.media_bucket_name
 }
@@ -77,8 +77,9 @@ module "acm" {
     "www.${var.domain_name}",
     "api.${var.domain_name}",
   ]
-  hosted_zone_name = var.domain_name
-  environment      = "prod"
+  hosted_zone_name            = var.domain_name
+  environment                 = "prod"
+  existing_certificate_arn    = var.existing_certificate_arn
 }
 
 # ── CloudFront distribution ───────────────────────────────────────────────────
@@ -151,7 +152,6 @@ module "route53" {
   cloudfront_hosted_zone_id = module.cloudfront.hosted_zone_id
   ec2_elastic_ip            = module.ec2.elastic_ip
   create_www_record         = true
-  domain_name               = var.domain_name
 
 }
 

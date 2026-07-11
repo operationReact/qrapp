@@ -52,8 +52,9 @@ provider "aws" {
 
 # ── Shared media bucket (AI-generated menu item images) ──────────────────────
 # Created here in the dev environment so it exists before any data sources
-# reference it.  lifecycle.prevent_destroy ensures it is never deleted.
+# reference it. lifecycle.prevent_destroy ensures it is never deleted.
 # Prod references it via a data source (see environments/prod/main.tf).
+# This is a SHARED bucket used by ALL environments (dev, prod).
 resource "aws_s3_bucket" "media" {
   bucket = var.media_bucket_name
 
@@ -182,8 +183,9 @@ module "acm" {
     "dev.${var.domain_name}",
     "dev-api.${var.domain_name}",
   ]
-  hosted_zone_name = var.domain_name
-  environment      = "dev"
+  hosted_zone_name            = var.domain_name
+  environment                 = "dev"
+  existing_certificate_arn    = var.existing_certificate_arn
 }
 
 # ── CloudFront distribution (created before S3 to get its ARN) ───────────────
@@ -256,6 +258,5 @@ module "route53" {
   cloudfront_hosted_zone_id = module.cloudfront.hosted_zone_id
   ec2_elastic_ip            = module.ec2.elastic_ip
   create_www_record         = false # dev doesn't need www
-  domain_name               = var.domain_name
 }
 
