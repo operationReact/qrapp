@@ -101,6 +101,46 @@ jobs:
             fi
           fi
 
+      - name: Import shared media bucket (if already exists)
+        run: |
+          BUCKET="${{ vars.MEDIA_BUCKET_NAME || 'broandbro-menu-images-shared' }}"
+          if aws s3api head-bucket --bucket "$BUCKET" 2>/dev/null; then
+            echo "Media bucket $BUCKET exists – checking state..."
+            if ! terraform state show data.aws_s3_bucket.media 2>/dev/null; then
+              echo "Media bucket exists and is referenced via data source – no import needed."
+            fi
+          fi
+
+      - name: Import existing CloudFront distribution (if orphaned)
+        run: |
+          # Find CloudFront distribution by CNAME aliases (broandbro.in or www.broandbro.in)
+          DISTRIBUTION_ID=$(aws cloudfront list-distributions --query "DistributionList.Items[?Aliases.Items && (contains(Aliases.Items, 'broandbro.in') || contains(Aliases.Items, 'www.broandbro.in'))].Id" --output text 2>/dev/null | head -n1 || true)
+          if [ -n "$DISTRIBUTION_ID" ]; then
+            echo "CloudFront distribution $DISTRIBUTION_ID exists – checking state..."
+            if ! terraform state show module.cloudfront.aws_cloudfront_distribution.this 2>/dev/null; then
+              echo "Importing orphaned CloudFront distribution into state..."
+              terraform import module.cloudfront.aws_cloudfront_distribution.this "$DISTRIBUTION_ID"
+            else
+              echo "CloudFront distribution already in state – skipping."
+            fi
+          else
+            echo "CloudFront distribution not found – will be created by apply."
+          fi
+
+      - name: Import existing RDS instance (if orphaned)
+        run: |
+          if aws rds describe-db-instances --db-instance-identifier broandbro-prod --region us-east-1 2>/dev/null; then
+            echo "RDS instance broandbro-prod exists – checking state..."
+            if ! terraform state show module.rds.aws_db_instance.this 2>/dev/null; then
+              echo "Importing orphaned RDS instance into state..."
+              terraform import module.rds.aws_db_instance.this broandbro-prod
+            else
+              echo "RDS instance already in state – skipping."
+            fi
+          else
+            echo "RDS instance not found – will be created by apply."
+          fi
+
       - name: Terraform Plan
         run: terraform plan -out=tfplan
 

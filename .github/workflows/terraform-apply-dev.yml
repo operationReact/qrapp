@@ -138,6 +138,36 @@ jobs:
             echo "Media bucket $BUCKET does not exist yet – will be created by apply."
           fi
 
+      - name: Import existing CloudFront distribution (if orphaned)
+        run: |
+          # Find CloudFront distribution by CNAME alias
+          DISTRIBUTION_ID=$(aws cloudfront list-distributions --query "DistributionList.Items[?Aliases.Items && contains(Aliases.Items, 'dev.broandbro.in')].Id" --output text 2>/dev/null || true)
+          if [ -n "$DISTRIBUTION_ID" ]; then
+            echo "CloudFront distribution $DISTRIBUTION_ID exists – checking state..."
+            if ! terraform state show module.cloudfront.aws_cloudfront_distribution.this 2>/dev/null; then
+              echo "Importing orphaned CloudFront distribution into state..."
+              terraform import module.cloudfront.aws_cloudfront_distribution.this "$DISTRIBUTION_ID"
+            else
+              echo "CloudFront distribution already in state – skipping."
+            fi
+          else
+            echo "CloudFront distribution not found – will be created by apply."
+          fi
+
+      - name: Import existing RDS instance (if orphaned)
+        run: |
+          if aws rds describe-db-instances --db-instance-identifier broandbro-dev --region us-east-1 2>/dev/null; then
+            echo "RDS instance broandbro-dev exists – checking state..."
+            if ! terraform state show module.rds.aws_db_instance.this 2>/dev/null; then
+              echo "Importing orphaned RDS instance into state..."
+              terraform import module.rds.aws_db_instance.this broandbro-dev
+            else
+              echo "RDS instance already in state – skipping."
+            fi
+          else
+            echo "RDS instance not found – will be created by apply."
+          fi
+
 
       - name: Terraform Plan
         run: terraform plan -out=tfplan
