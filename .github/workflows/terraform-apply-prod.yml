@@ -65,23 +65,9 @@ jobs:
       - name: Terraform Validate
         run: terraform validate
 
-      # ── Import orphaned resources from previous partial applies ────────────
-      - name: Import existing S3 bucket (if orphaned)
-        run: |
-          if aws s3api head-bucket --bucket broandbro-prod-ui 2>/dev/null; then
-            if ! terraform state show module.s3.aws_s3_bucket.this 2>/dev/null; then
-              terraform import module.s3.aws_s3_bucket.this broandbro-prod-ui
-            fi
-          fi
-
-      - name: Import existing EC2 Key Pair (if orphaned)
-        run: |
-          if aws ec2 describe-key-pairs --key-names broandbro-prod-key --region us-east-1 2>/dev/null; then
-            if ! terraform state show module.ec2.aws_key_pair.this 2>/dev/null; then
-              terraform import module.ec2.aws_key_pair.this broandbro-prod-key
-            fi
-          fi
-
+      # ── IMPORTANT: ACM certificate must be created FIRST ──────────────────────
+      # This happens before imports because import commands trigger internal plans
+      # that would fail on the ACM for_each unknown values issue.
       - name: Two-phase apply for ACM certificate
         run: |
           echo "=== Phase 1: Create ACM certificate to get validation options ==="
@@ -96,6 +82,23 @@ jobs:
           # Now create the validation records (domain_validation_options are now known)
           if terraform state show module.acm.aws_acm_certificate.this 2>/dev/null; then
             terraform apply -target=module.acm.aws_route53_record.validation -target=module.acm.aws_acm_certificate_validation.this -auto-approve || echo "Validation resources will be handled in main apply"
+          fi
+
+      # ── Now safe to run imports (certificate exists, plans won't fail) ────────
+      - name: Import existing S3 bucket (if orphaned)
+        run: |
+          if aws s3api head-bucket --bucket broandbro-prod-ui 2>/dev/null; then
+            if ! terraform state show module.s3.aws_s3_bucket.this 2>/dev/null; then
+              terraform import module.s3.aws_s3_bucket.this broandbro-prod-ui
+            fi
+          fi
+
+      - name: Import existing EC2 Key Pair (if orphaned)
+        run: |
+          if aws ec2 describe-key-pairs --key-names broandbro-prod-key --region us-east-1 2>/dev/null; then
+            if ! terraform state show module.ec2.aws_key_pair.this 2>/dev/null; then
+              terraform import module.ec2.aws_key_pair.this broandbro-prod-key
+            fi
           fi
 
       - name: Terraform Plan

@@ -21,14 +21,22 @@ This happens because:
 1. `domain_validation_options` is not known until AFTER the certificate is created
 2. Terraform needs to know `for_each` keys at PLAN time
 3. This creates a chicken-and-egg problem
+4. **CRITICAL**: Even `terraform import` commands trigger internal plans that fail on this issue
 
 ---
 
 ## Solution
 
-Implemented a **two-phase apply** strategy in the GitHub Actions workflows:
+Implemented a **two-phase apply** strategy with **critical step ordering** in the GitHub Actions workflows:
 
-### Phase 1: Create Certificate
+### **CRITICAL: ACM Certificate Must Be Created FIRST**
+
+The ACM certificate creation happens **BEFORE** all import steps because:
+- `terraform import` internally runs a plan to validate the import
+- That plan fails if the ACM module has unknown `for_each` values
+- Creating the certificate first ensures all subsequent plans can succeed
+
+### Phase 1: Create Certificate (FIRST!)
 ```bash
 terraform apply -target=module.acm.aws_acm_certificate.this -auto-approve
 ```
@@ -42,12 +50,42 @@ terraform apply -target=module.acm.aws_route53_record.validation \
 ```
 Now that the certificate exists, `domain_validation_options` are known and the validation records can be created.
 
-### Phase 3: Full Apply
+### Phase 3: Import Orphaned Resources
+```bash
+terraform import module.s3.aws_s3_bucket.this broandbro-develop-ui
+terraform import module.ec2.aws_key_pair.this broandbro-dev-key
+terraform import aws_s3_bucket.media broandbro-menu-images-shared
+```
+NOW it's safe to import resources because the certificate exists.
+
+### Phase 4: Full Plan & Apply
 ```bash
 terraform plan -out=tfplan
 terraform apply -auto-approve tfplan
 ```
 Finally, apply all remaining resources with a complete plan.
+
+---
+
+## Workflow Step Order (CRITICAL!)
+
+```yaml
+1. Terraform Init
+2. Terraform Validate
+3. Two-phase ACM certificate creation ← MUST BE FIRST!
+4. Import S3 bucket (if orphaned)       ← SAFE: cert exists
+5. Import EC2 key pair (if orphaned)    ← SAFE: cert exists
+6. Import media bucket (if orphaned)    ← SAFE: cert exists
+7. Terraform Plan                       ← SAFE: all values known
+8. Terraform Apply
+```
+
+**❌ WRONG ORDER (causes failure):**
+```yaml
+1. Import S3 bucket          ← FAILS: import triggers plan with unknown values
+2. Import EC2 key pair       ← FAILS: import triggers plan with unknown values
+3. Create ACM certificate    ← TOO LATE: imports already failed
+```
 
 ---
 
