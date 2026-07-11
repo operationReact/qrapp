@@ -118,18 +118,24 @@ jobs:
             echo "Media bucket $BUCKET does not exist yet – will be created by apply."
           fi
 
-      - name: Ensure ACM certificate exists (targeted)
+      - name: Two-phase apply for ACM certificate
         run: |
-          echo "Running targeted apply to create ACM certificate resource so DNS validation options become known"
-          terraform apply -target=module.acm.aws_acm_certificate.this -auto-approve || true
+          echo "=== Phase 1: Create ACM certificate to get validation options ==="
+          # First, create just the certificate resource if it doesn't exist
+          if ! terraform state show module.acm.aws_acm_certificate.this 2>/dev/null; then
+            terraform apply -target=module.acm.aws_acm_certificate.this -auto-approve
+          else
+            echo "Certificate already exists in state"
+          fi
+          
+          echo "=== Phase 2: Create validation records now that cert exists ==="
+          # Now create the validation records (domain_validation_options are now known)
+          if terraform state show module.acm.aws_acm_certificate.this 2>/dev/null; then
+            terraform apply -target=module.acm.aws_route53_record.validation -target=module.acm.aws_acm_certificate_validation.this -auto-approve || echo "Validation resources will be handled in main apply"
+          fi
 
       - name: Terraform Plan
-        run: |
-          PLAN_CMD="terraform plan -out=tfplan"
-          if [ -n "${{ secrets.EXISTING_ACM_CERT_ARN }}" ]; then
-            PLAN_CMD="$PLAN_CMD -var='existing_certificate_arn=${{ secrets.EXISTING_ACM_CERT_ARN }}'"
-          fi
-          eval $PLAN_CMD
+        run: terraform plan -out=tfplan
 
       - name: Terraform Apply
         run: terraform apply -auto-approve tfplan

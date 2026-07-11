@@ -28,28 +28,33 @@ resource "aws_acm_certificate" "this" {
 }
 
 # ── Fetch the Route53 hosted zone so we can write CNAME records ───────────────
-# ── Fetch the Route53 hosted zone so we can write CNAME records ───────────────
 data "aws_route53_zone" "this" {
+  count        = var.existing_certificate_arn == "" ? 1 : 0
   name         = var.hosted_zone_name
   private_zone = false
 }
 
 # ── Write DNS validation CNAME records to Route53 ────────────────────────────
-# ── Write DNS validation CNAME records to Route53 (only when we create the cert)
+# NOTE: This uses for_each with domain_validation_options which are only known after
+# the certificate is created. The GitHub Actions workflow uses a two-phase apply:
+# 1. terraform apply -target=module.acm.aws_acm_certificate.this
+# 2. terraform apply -target=module.acm.aws_route53_record.validation
+# This ensures domain_validation_options are available before creating these records.
 resource "aws_route53_record" "validation" {
-
   for_each = var.existing_certificate_arn == "" ? {
-    for dvo in aws_acm_certificate.this[0].domain_validation_options :
-    dvo.domain_name => dvo
+    for dvo in aws_acm_certificate.this[0].domain_validation_options : dvo.domain_name => {
+      name   = dvo.resource_record_name
+      record = dvo.resource_record_value
+      type   = dvo.resource_record_type
+    }
   } : {}
 
   allow_overwrite = true
-  zone_id         = data.aws_route53_zone.this.zone_id
-
-  name    = each.value.resource_record_name
-  type    = each.value.resource_record_type
-  ttl     = 60
-  records = [each.value.resource_record_value]
+  name            = each.value.name
+  records         = [each.value.record]
+  ttl             = 60
+  type            = each.value.type
+  zone_id         = data.aws_route53_zone.this[0].zone_id
 }
 
 
