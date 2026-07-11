@@ -37,7 +37,6 @@ data "aws_route53_zone" "this" {
 # ── Write DNS validation CNAME records to Route53 ────────────────────────────
 # ── Write DNS validation CNAME records to Route53 (only when we create the cert)
 resource "aws_route53_record" "validation" {
-  count = var.existing_certificate_arn == "" ? 1 : 0
 
   for_each = var.existing_certificate_arn == "" ? {
     for dvo in aws_acm_certificate.this[0].domain_validation_options :
