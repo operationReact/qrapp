@@ -138,21 +138,30 @@ jobs:
             echo "Media bucket $BUCKET does not exist yet – will be created by apply."
           fi
 
-      - name: Import existing CloudFront distribution (if orphaned)
-        run: |
-          # Find CloudFront distribution by CNAME alias
-          DISTRIBUTION_ID=$(aws cloudfront list-distributions --query "DistributionList.Items[?Aliases.Items && contains(Aliases.Items, 'dev.broandbro.in')].Id" --output text 2>/dev/null || true)
-          if [ -n "$DISTRIBUTION_ID" ]; then
-            echo "CloudFront distribution $DISTRIBUTION_ID exists – checking state..."
-            if ! terraform state show module.cloudfront.aws_cloudfront_distribution.this 2>/dev/null; then
-              echo "Importing orphaned CloudFront distribution into state..."
-              terraform import module.cloudfront.aws_cloudfront_distribution.this "$DISTRIBUTION_ID"
-            else
-              echo "CloudFront distribution already in state – skipping."
-            fi
-          else
-            echo "CloudFront distribution not found – will be created by apply."
-          fi
+       - name: Import existing CloudFront distribution (if orphaned)
+         run: |
+           # Find CloudFront distribution by CNAME alias
+           # Use a more robust approach: list all distributions and filter with jq
+           DISTRIBUTION_ID=$(aws cloudfront list-distributions --output json 2>/dev/null | jq -r '.DistributionList.Items[] | select(.Aliases.Items[]? == "dev.broandbro.in") | .Id' | head -1 || true)
+           
+           if [ -z "$DISTRIBUTION_ID" ]; then
+             # Fallback: check if ANY CloudFront distribution exists for this environment
+             # by looking at tags or listing all and checking aliases
+             echo "Primary query found no distribution, trying alternative search..."
+             DISTRIBUTION_ID=$(aws cloudfront list-distributions --output json 2>/dev/null | jq -r '.DistributionList.Items[] | select(.Comment == "broandbro-dev-frontend") | .Id' | head -1 || true)
+           fi
+           
+           if [ -n "$DISTRIBUTION_ID" ]; then
+             echo "CloudFront distribution $DISTRIBUTION_ID exists – checking state..."
+             if ! terraform state show module.cloudfront.aws_cloudfront_distribution.this 2>/dev/null; then
+               echo "Importing orphaned CloudFront distribution into state..."
+               terraform import module.cloudfront.aws_cloudfront_distribution.this "$DISTRIBUTION_ID"
+             else
+               echo "CloudFront distribution already in state – skipping."
+             fi
+           else
+             echo "CloudFront distribution not found – will be created by apply."
+           fi
 
       - name: Import existing RDS instance (if orphaned)
         run: |
@@ -169,10 +178,31 @@ jobs:
           fi
 
 
-      - name: Terraform Plan
-        run: terraform plan -out=tfplan
+       - name: Terraform Plan
+         run: terraform plan -out=tfplan
 
-      - name: Terraform Apply
+       - name: Check for CNAME conflicts before apply
+         run: |
+           # Double-check that no CNAME conflicts exist before trying to apply
+           echo "Checking for existing CloudFront distributions with dev.broandbro.in CNAME..."
+           CF_STATE=$(terraform state show module.cloudfront.aws_cloudfront_distribution.this 2>/dev/null || true)
+           
+           if [ -z "$CF_STATE" ]; then
+             # CloudFront not in state, check AWS for any distribution with this CNAME
+             CONFLICT_ID=$(aws cloudfront list-distributions --output json 2>/dev/null | jq -r '.DistributionList.Items[] | select(.Aliases.Items[]? == "dev.broandbro.in") | .Id' | head -1 || true)
+             if [ -n "$CONFLICT_ID" ]; then
+               echo "⚠️  Warning: Found existing CloudFront distribution $CONFLICT_ID with dev.broandbro.in CNAME"
+               echo "Attempting to import it into state..."
+               terraform import module.cloudfront.aws_cloudfront_distribution.this "$CONFLICT_ID" || {
+                 echo "❌ Import failed. This likely means the distribution is managed outside Terraform."
+                 echo "Please manually resolve this before retrying."
+                 exit 1
+               }
+               echo "✅ Successfully imported distribution. Plan may need to be re-run."
+             fi
+           fi
+
+       - name: Terraform Apply
         run: terraform apply -auto-approve tfplan
 
       - name: Export outputs to GitHub summary
