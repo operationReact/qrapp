@@ -78,7 +78,7 @@ jobs:
            echo "=== Phase 1: Create ACM certificate to get validation options ==="
            # First, create just the certificate resource if it doesn't exist
            if ! terraform state show module.acm.aws_acm_certificate.this 2>/dev/null; then
-             terraform apply -target=module.acm.aws_acm_certificate.this -auto-approve
+             terraform apply -target=module.acm.aws_acm_certificate.this -auto-approve || true
            else
              echo "Certificate already exists in state"
            fi
@@ -86,7 +86,7 @@ jobs:
            echo "=== Phase 2: Create validation records now that cert exists ==="
            # Now create the validation records (domain_validation_options are now known)
            if terraform state show module.acm.aws_acm_certificate.this 2>/dev/null; then
-             terraform apply -target=module.acm.aws_route53_record.validation -target=module.acm.aws_acm_certificate_validation.this -auto-approve || echo "Validation resources will be handled in main apply"
+             terraform apply -target=module.acm.aws_route53_record.validation -target=module.acm.aws_acm_certificate_validation.this -auto-approve || true
            fi
 
       ## ── Now safe to run imports (certificate exists, plans won't fail) ────────
