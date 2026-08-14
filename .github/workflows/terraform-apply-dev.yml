@@ -118,28 +118,28 @@ jobs:
       # or a previous apply. Import it so Terraform manages it without re-creating.
       # If the state entry is tainted (left over from a failed apply), remove it
       # and re-import so the taint is cleared and prevent_destroy does not block plan.
-      - name: Import shared media bucket (if already exists)
-        run: |
-          BUCKET="${{ vars.MEDIA_BUCKET_NAME || 'broandbro-menu-images-shared' }}"
-          if aws s3api head-bucket --bucket "$BUCKET" 2>/dev/null; then
-            echo "Media bucket $BUCKET exists – checking state..."
-            STATE_OUTPUT=$(terraform state show aws_s3_bucket.media 2>/dev/null || true)
-            if [ -z "$STATE_OUTPUT" ]; then
-              echo "Not in state – importing..."
-              terraform import aws_s3_bucket.media "$BUCKET"
-            elif echo "$STATE_OUTPUT" | grep -q "(tainted)"; then
-              echo "Bucket is tainted in state – removing taint and re-importing..."
-              terraform state rm aws_s3_bucket.media
-              terraform import aws_s3_bucket.media "$BUCKET"
-            else
-              echo "Bucket already in state and not tainted – skipping."
-            fi
-          else
-            echo "Media bucket $BUCKET does not exist yet – will be created by apply."
-          fi
-
-       - name: Import existing CloudFront distribution (if orphaned)
+       - name: Import shared media bucket (if already exists)
          run: |
+           BUCKET="${{ vars.MEDIA_BUCKET_NAME || 'broandbro-menu-images-shared' }}"
+           if aws s3api head-bucket --bucket "$BUCKET" 2>/dev/null; then
+             echo "Media bucket $BUCKET exists – checking state..."
+             STATE_OUTPUT=$(terraform state show aws_s3_bucket.media 2>/dev/null || true)
+             if [ -z "$STATE_OUTPUT" ]; then
+               echo "Not in state – importing..."
+               terraform import aws_s3_bucket.media "$BUCKET"
+             elif echo "$STATE_OUTPUT" | grep -q "(tainted)"; then
+               echo "Bucket is tainted in state – removing taint and re-importing..."
+               terraform state rm aws_s3_bucket.media
+               terraform import aws_s3_bucket.media "$BUCKET"
+             else
+               echo "Bucket already in state and not tainted – skipping."
+             fi
+           else
+             echo "Media bucket $BUCKET does not exist yet – will be created by apply."
+           fi
+
+      - name: Import existing CloudFront distribution (if orphaned)
+        run: |
            # Find CloudFront distribution by CNAME alias
            # Use a more robust approach: list all distributions and filter with jq
            DISTRIBUTION_ID=$(aws cloudfront list-distributions --output json 2>/dev/null | jq -r '.DistributionList.Items[] | select(.Aliases.Items[]? == "dev.broandbro.in") | .Id' | head -1 || true)
@@ -178,11 +178,11 @@ jobs:
           fi
 
 
-       - name: Terraform Plan
-         run: terraform plan -out=tfplan
+      - name: Terraform Plan
+        run: terraform plan -out=tfplan
 
-       - name: Check for CNAME conflicts before apply
-         run: |
+      - name: Check for CNAME conflicts before apply
+        run: |
            # Double-check that no CNAME conflicts exist before trying to apply
            echo "Checking for existing CloudFront distributions with dev.broandbro.in CNAME..."
            CF_STATE=$(terraform state show module.cloudfront.aws_cloudfront_distribution.this 2>/dev/null || true)
@@ -202,7 +202,7 @@ jobs:
              fi
            fi
 
-       - name: Terraform Apply
+      - name: Terraform Apply
         run: terraform apply -auto-approve tfplan
 
       - name: Export outputs to GitHub summary
