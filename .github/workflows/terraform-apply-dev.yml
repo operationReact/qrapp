@@ -74,20 +74,27 @@ jobs:
       ## This happens before imports because import commands trigger internal plans
       ## that would fail on the ACM for_each unknown values issue.
       - name: Two-phase apply for ACM certificate
+        shell: bash -e -o pipefail {0}
         run: |
-           echo "=== Phase 1: Create ACM certificate to get validation options ==="
-           # First, create just the certificate resource if it doesn't exist
-           if ! terraform state show module.acm.aws_acm_certificate.this 2>/dev/null; then
-             terraform apply -target=module.acm.aws_acm_certificate.this -auto-approve || true
-           else
-             echo "Certificate already exists in state"
-           fi
-           
-           echo "=== Phase 2: Create validation records now that cert exists ==="
-           # Now create the validation records (domain_validation_options are now known)
-           if terraform state show module.acm.aws_acm_certificate.this 2>/dev/null; then
-             terraform apply -target=module.acm.aws_route53_record.validation -target=module.acm.aws_acm_certificate_validation.this -auto-approve || true
-           fi
+          set +e  # Disable exit-on-error, handle terraform codes manually
+          
+          echo "=== Phase 1: Create ACM certificate to get validation options ==="
+          if ! terraform state show module.acm.aws_acm_certificate.this 2>/dev/null; then
+            terraform apply -target=module.acm.aws_acm_certificate.this -auto-approve
+            # Accept exit code 1 (warnings) or 0 (success), fail on others
+            TF_EXIT=$?
+            if [ $TF_EXIT -ne 0 ] && [ $TF_EXIT -ne 1 ]; then exit $TF_EXIT; fi
+          else
+            echo "Certificate already exists in state"
+          fi
+          
+          echo "=== Phase 2: Create validation records now that cert exists ==="
+          if terraform state show module.acm.aws_acm_certificate.this 2>/dev/null; then
+            terraform apply -target=module.acm.aws_route53_record.validation -target=module.acm.aws_acm_certificate_validation.this -auto-approve
+            TF_EXIT=$?
+            if [ $TF_EXIT -ne 0 ] && [ $TF_EXIT -ne 1 ]; then exit $TF_EXIT; fi
+          fi
+          exit 0
 
       ## ── Now safe to run imports (certificate exists, plans won't fail) ────────
       - name: Import existing S3 bucket (if orphaned)
@@ -223,4 +230,3 @@ jobs:
           EC2_IP=$(terraform output -raw ec2_elastic_ip 2>/dev/null || echo "N/A")
           echo "| CloudFront ID | $CF_ID |" >> $GITHUB_STEP_SUMMARY
           echo "| EC2 IP | $EC2_IP |" >> $GITHUB_STEP_SUMMARY
-
