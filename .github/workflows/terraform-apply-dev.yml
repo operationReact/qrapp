@@ -134,40 +134,50 @@ jobs:
             echo "Media bucket will be created by apply"
           fi
 
-      - name: Import existing CloudFront distribution
+      - name: Import existing CloudFront distribution (if orphaned)
         shell: bash
         run: |
-          set -e
-          echo "Checking AWS for existing CloudFront distributions..."
-          
-          # Get ALL distributions and look for our CNAME
-          ALL_DISTRIBUTIONS=$(aws cloudfront list-distributions --output text --query 'DistributionList.Items[*].[Id,Aliases.Items[0]]' 2>/dev/null || echo "")
-          
-          if [ -n "$ALL_DISTRIBUTIONS" ]; then
-            echo "Found distributions. Checking for dev.broandbro.in..."
-            CONFLICT_ID=""
-            while read -r line; do
-              DIST_ID=$(echo "$line" | awk '{print $1}')
-              DIST_CNAME=$(echo "$line" | awk '{print $2}')
-              if [ "$DIST_CNAME" = "dev.broandbro.in" ]; then
-                CONFLICT_ID="$DIST_ID"
-                break
-              fi
-            done <<< "$ALL_DISTRIBUTIONS"
-            
-            if [ -n "$CONFLICT_ID" ]; then
-              echo "Found conflicting distribution: $CONFLICT_ID"
-              if terraform import module.cloudfront.aws_cloudfront_distribution.this "$CONFLICT_ID"; then
-                echo "Successfully imported"
-              else
-                echo "ERROR: Import failed"
-                exit 1
-              fi
-            else
-              echo "No distribution with dev.broandbro.in found"
-            fi
+          set -euo pipefail
+
+          echo "=== Checking for existing CloudFront distribution with dev.broandbro.in ==="
+
+          # First check if already in Terraform state
+          if terraform state show module.cloudfront.aws_cloudfront_distribution.this 2>/dev/null; then
+            echo "✓ CloudFront already in Terraform state - skipping import"
+            exit 0
+          fi
+
+          echo "  CloudFront NOT in state. Querying AWS..."
+
+          # Query ALL CloudFront distributions and search ALL aliases (not just first)
+          # This uses jq to properly iterate through every alias of every distribution
+          DIST_ID=$(aws cloudfront list-distributions --output json 2>/dev/null | \
+            jq -r '.DistributionList.Items[] |
+                    select(.Aliases.Items[]? == "dev.broandbro.in") |
+                    .Id' | \
+            head -1)
+
+          if [ -z "$DIST_ID" ]; then
+            echo "✓ No existing CloudFront with dev.broandbro.in found - will create new"
+            exit 0
+          fi
+
+          echo "  Found existing distribution: $DIST_ID"
+
+          # Check if distribution is tainted in state (shouldn't be, but handle it)
+          STATE_OUTPUT=$(terraform state show module.cloudfront.aws_cloudfront_distribution.this 2>/dev/null || true)
+          if echo "$STATE_OUTPUT" | grep -q "(tainted)" 2>/dev/null; then
+            echo "  Distribution is tainted in state - removing before re-import"
+            terraform state rm module.cloudfront.aws_cloudfront_distribution.this || true
+          fi
+
+          # Import the distribution into Terraform state
+          echo "  Importing distribution $DIST_ID into Terraform state..."
+          if terraform import module.cloudfront.aws_cloudfront_distribution.this "$DIST_ID"; then
+            echo "✓ Successfully imported CloudFront distribution"
           else
-            echo "No CloudFront distributions found in AWS"
+            echo "✗ ERROR: Failed to import CloudFront distribution $DIST_ID"
+            exit 1
           fi
 
       - name: Import existing RDS instance
@@ -186,50 +196,6 @@ jobs:
 
       - name: Terraform Plan
         run: terraform plan -out=tfplan
-
-      - name: Final CNAME conflict check
-        shell: bash
-        run: |
-          set -e
-          echo "=== Final check for CNAME conflicts before apply ==="
-          
-          # Check if CloudFront is in state
-          if terraform state show module.cloudfront.aws_cloudfront_distribution.this 2>/dev/null; then
-            echo "CloudFront already in Terraform state - safe to proceed"
-            exit 0
-          fi
-          
-          echo "CloudFront NOT in state. Checking AWS for conflicts..."
-          
-          # Use AWS CLI to list ALL distributions and their aliases
-          ALL_DISTS=$(aws cloudfront list-distributions --output json 2>/dev/null)
-          
-          # Find distribution with our target CNAME
-          FOUND=$(echo "$ALL_DISTS" | jq -r '.DistributionList.Items[] | select(.Aliases.Items[0] == "dev.broandbro.in") | .Id' 2>/dev/null || echo "")
-          
-          if [ -z "$FOUND" ]; then
-            # Try alternate query - some might have aliases at different positions
-            FOUND=$(echo "$ALL_DISTS" | jq -r '.DistributionList.Items[] | .Aliases.Items[] | select(. == "dev.broandbro.in")' 2>/dev/null || echo "")
-            # Get the distribution ID for this alias
-            if [ -n "$FOUND" ]; then
-              FOUND=$(echo "$ALL_DISTS" | jq -r '.DistributionList.Items[] | select(.Aliases.Items[] == "dev.broandbro.in") | .Id' | head -1)
-            fi
-          fi
-          
-          if [ -n "$FOUND" ] && [ "$FOUND" != "null" ]; then
-            echo "ERROR: Found existing distribution $FOUND with dev.broandbro.in CNAME"
-            echo "Attempting emergency import..."
-            if terraform import module.cloudfront.aws_cloudfront_distribution.this "$FOUND"; then
-              echo "Imported successfully. MUST re-run plan."
-              terraform plan -out=tfplan
-              echo "Plan regenerated. Ready for apply."
-            else
-              echo "FATAL: Import failed. Distribution is conflicting."
-              exit 1
-            fi
-          else
-            echo "No conflict found. Safe to apply."
-          fi
 
       - name: Terraform Apply
         run: terraform apply -auto-approve tfplan

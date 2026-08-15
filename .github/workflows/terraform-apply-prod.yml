@@ -12,7 +12,6 @@ on:
     paths:
       - "infra/**"
       - ".github/workflows/terraform-apply-prod.yml"
-  # Allow manual trigger from the GitHub Actions UI
   workflow_dispatch:
     inputs:
       force_apply:
@@ -31,9 +30,9 @@ env:
 
 jobs:
   apply-prod:
-    name: Terraform Apply – Prod
+    name: Terraform Apply - Prod
     runs-on: ubuntu-latest
-    environment: prod  # ← GitHub Environment with required reviewers (approval gate)
+    environment: prod
 
     defaults:
       run:
@@ -65,26 +64,20 @@ jobs:
       - name: Terraform Validate
         run: terraform validate
 
-      # ── IMPORTANT: ACM certificate must be created FIRST ──────────────────────
-      # This happens before imports because import commands trigger internal plans
-      # that would fail on the ACM for_each unknown values issue.
       - name: Two-phase apply for ACM certificate
         run: |
           echo "=== Phase 1: Create ACM certificate to get validation options ==="
-          # First, create just the certificate resource if it doesn't exist
           if ! terraform state show module.acm.aws_acm_certificate.this 2>/dev/null; then
             terraform apply -target=module.acm.aws_acm_certificate.this -auto-approve
           else
             echo "Certificate already exists in state"
           fi
-          
+
           echo "=== Phase 2: Create validation records now that cert exists ==="
-          # Now create the validation records (domain_validation_options are now known)
           if terraform state show module.acm.aws_acm_certificate.this 2>/dev/null; then
             terraform apply -target=module.acm.aws_route53_record.validation -target=module.acm.aws_acm_certificate_validation.this -auto-approve || echo "Validation resources will be handled in main apply"
           fi
 
-      # ── Now safe to run imports (certificate exists, plans won't fail) ────────
       - name: Import existing S3 bucket (if orphaned)
         run: |
           if aws s3api head-bucket --bucket broandbro-prod-ui 2>/dev/null; then
@@ -105,40 +98,72 @@ jobs:
         run: |
           BUCKET="${{ vars.MEDIA_BUCKET_NAME || 'broandbro-menu-images-shared' }}"
           if aws s3api head-bucket --bucket "$BUCKET" 2>/dev/null; then
-            echo "Media bucket $BUCKET exists – checking state..."
+            echo "Media bucket $BUCKET exists - checking state..."
             if ! terraform state show data.aws_s3_bucket.media 2>/dev/null; then
-              echo "Media bucket exists and is referenced via data source – no import needed."
+              echo "Media bucket exists and is referenced via data source - no import needed."
             fi
           fi
 
       - name: Import existing CloudFront distribution (if orphaned)
+        shell: bash
         run: |
-          # Find CloudFront distribution by CNAME aliases (broandbro.in or www.broandbro.in)
-          DISTRIBUTION_ID=$(aws cloudfront list-distributions --query "DistributionList.Items[?Aliases.Items && (contains(Aliases.Items, 'broandbro.in') || contains(Aliases.Items, 'www.broandbro.in'))].Id" --output text 2>/dev/null | head -n1 || true)
-          if [ -n "$DISTRIBUTION_ID" ]; then
-            echo "CloudFront distribution $DISTRIBUTION_ID exists – checking state..."
-            if ! terraform state show module.cloudfront.aws_cloudfront_distribution.this 2>/dev/null; then
-              echo "Importing orphaned CloudFront distribution into state..."
-              terraform import module.cloudfront.aws_cloudfront_distribution.this "$DISTRIBUTION_ID"
-            else
-              echo "CloudFront distribution already in state – skipping."
-            fi
+          set -euo pipefail
+
+          echo "=== Checking for existing CloudFront distribution with broandbro.in or www.broandbro.in ==="
+
+          # First check if already in Terraform state
+          if terraform state show module.cloudfront.aws_cloudfront_distribution.this 2>/dev/null; then
+            echo "✓ CloudFront already in Terraform state - skipping import"
+            exit 0
+          fi
+
+          echo "  CloudFront NOT in state. Querying AWS for distributions with prod aliases..."
+
+          # Query ALL CloudFront distributions and search ALL aliases for any of our target aliases
+          # This uses jq to iterate through every alias of every distribution
+          # The jq filter finds distributions with ANY of our target aliases
+          DIST_ID=$(aws cloudfront list-distributions --output json 2>/dev/null | \
+            jq -r '.DistributionList.Items[] |
+                    select((.Aliases.Items[]? == "broandbro.in") or
+                           (.Aliases.Items[]? == "www.broandbro.in")) |
+                    .Id' | \
+            head -1)
+
+          if [ -z "$DIST_ID" ]; then
+            echo "✓ No existing CloudFront with prod aliases found - will create new"
+            exit 0
+          fi
+
+          echo "  Found existing distribution: $DIST_ID"
+
+          # Check if distribution is tainted in state (shouldn't be, but handle it)
+          STATE_OUTPUT=$(terraform state show module.cloudfront.aws_cloudfront_distribution.this 2>/dev/null || true)
+          if echo "$STATE_OUTPUT" | grep -q "(tainted)" 2>/dev/null; then
+            echo "  Distribution is tainted in state - removing before re-import"
+            terraform state rm module.cloudfront.aws_cloudfront_distribution.this || true
+          fi
+
+          # Import the distribution into Terraform state
+          echo "  Importing distribution $DIST_ID into Terraform state..."
+          if terraform import module.cloudfront.aws_cloudfront_distribution.this "$DIST_ID"; then
+            echo "✓ Successfully imported CloudFront distribution"
           else
-            echo "CloudFront distribution not found – will be created by apply."
+            echo "✗ ERROR: Failed to import CloudFront distribution $DIST_ID"
+            exit 1
           fi
 
       - name: Import existing RDS instance (if orphaned)
         run: |
           if aws rds describe-db-instances --db-instance-identifier broandbro-prod --region us-east-1 2>/dev/null; then
-            echo "RDS instance broandbro-prod exists – checking state..."
+            echo "RDS instance broandbro-prod exists - checking state..."
             if ! terraform state show module.rds.aws_db_instance.this 2>/dev/null; then
               echo "Importing orphaned RDS instance into state..."
               terraform import module.rds.aws_db_instance.this broandbro-prod
             else
-              echo "RDS instance already in state – skipping."
+              echo "RDS instance already in state - skipping."
             fi
           else
-            echo "RDS instance not found – will be created by apply."
+            echo "RDS instance not found - will be created by apply."
           fi
 
       - name: Terraform Plan
