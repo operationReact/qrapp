@@ -64,10 +64,16 @@ aws:
     access-key: ${AWS_ACCESS_KEY_ID:AKIA34EPRSL6ICFWRYHI}
     secret-key: ${AWS_SECRET_ACCESS_KEY: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}
 
-# ── V1 Recommended Bundle Pricing ────────────────────────────────────────────
-# savings = min( originalPrice × discount-percent%, max-discount-rupees )
-# Change these values without touching code; restart the server to apply.
+# ── Allowed CORS Origins ────────────────────────────────────────────
+# Comma-separated list of frontend domains that can access the API
+# Override via environment variable: APP_CORS_ALLOWED_ORIGINS
 app:
+  cors:
+    allowed-origins: "${APP_CORS_ALLOWED_ORIGINS:https://develop.broandbro.in,http://localhost:5173}"
+
+  # ── V1 Recommended Bundle Pricing ────────────────────────────────────────────
+  # savings = min( originalPrice × discount-percent%, max-discount-rupees )
+  # Change these values without touching code; restart the server to apply.
   bundle:
     discount-percent: 10       # 10 % of the recommended-items total
     max-discount-rupees: 50    # ₹50 absolute cap
