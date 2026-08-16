@@ -1,0 +1,82 @@
+# AWS Parameter Store - Environment Specific Parameters
+# File: application-ssm-dev.yml
+#
+# This file contains all environment-specific SSM parameter values
+# It is imported by application-dev.yml
+#
+# Usage: application-dev.yml imports this file and adds parameters to app.parameters section
+# Format: All values are defined here, no secrets in application.yml
+
+app:
+  parameter-store:
+    auto-create: true  # Enable automatic parameter creation on startup
+    environment: dev   # Environment name (dev, staging, prod)
+
+  # ════════════════════════════════════════════════════════════════════════════
+  # All SSM Parameter Values - Organized by Service
+  # ════════════════════════════════════════════════════════════════════════════
+
+  parameters:
+
+    # ──────────────────────────────────────────────────────────────────────────
+    # DATABASE CONFIGURATION
+    # ──────────────────────────────────────────────────────────────────────────
+    database:
+      url: jdbc:postgresql://broandbro-dev.csjkasgs2ig6.us-east-1.rds.amazonaws.com:5432/postgres
+      username: BROANDBRODEV
+      password: BroApp#2025
+
+    # ──────────────────────────────────────────────────────────────────────────
+    # RAZORPAY CONFIGURATION (Payment Gateway)
+    # ──────────────────────────────────────────────────────────────────────────
+    razorpay:
+      key: rzp_test_SXoONgvkn7mSte
+      secret: cT115GamOarfQX8BhxVmIwj9
+      webhookSecret: rzp_test_mock_webhook_secret
+
+    # ──────────────────────────────────────────────────────────────────────────
+    # AWS S3 CONFIGURATION (File Storage)
+    # ──────────────────────────────────────────────────────────────────────────
+    aws:
+      s3:
+        enabled: true
+        bucketName: broandbro-menu-images-dev
+        region: us-east-1
+        accessKey: AKIA34EPRSL6ICFWRYHI
+        secretKey: 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
+
+    # ──────────────────────────────────────────────────────────────────────────
+    # TWILIO CONFIGURATION (SMS/WhatsApp)
+    # ──────────────────────────────────────────────────────────────────────────
+    twilio:
+      accountSid: ACc9ccb1101977a6bc3adc0806c56f026f
+      authToken: 8c98ee56d052a01711546c12441b230b
+
+    # ──────────────────────────────────────────────────────────────────────────
+    # OPENAI CONFIGURATION (Image Generation)
+    # ──────────────────────────────────────────────────────────────────────────
+    openai:
+      apiKey: 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
+
+    # ──────────────────────────────────────────────────────────────────────────
+    # APPLICATION CONFIGURATION
+    # ──────────────────────────────────────────────────────────────────────────
+    app:
+      corsAllowedOrigins: https://develop.broandbro.in,http://localhost:5173
+
+# ════════════════════════════════════════════════════════════════════════════
+# ENVIRONMENT-SPECIFIC NOTES
+# ════════════════════════════════════════════════════════════════════════════
+#
+# This is the DEV environment configuration.
+#
+# For different environments, create corresponding files:
+#   application-ssm.yml          - Default/shared configuration
+#   application-ssm-dev.yml      - Development environment (this file)
+#   application-ssm-staging.yml  - Staging environment
+#   application-ssm-prod.yml     - Production environment
+#
+# To use this file, application-dev.yml imports it and merges parameters
+#
+# ════════════════════════════════════════════════════════════════════════════
+

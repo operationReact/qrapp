@@ -4,10 +4,32 @@ spring:
     cache-names: walletBalance,menu,menuRecommended,otp
     caffeine:
       spec: maximumSize=500,expireAfterWrite=10m,recordStats
+
+  # ── AWS Configuration ─────────────────────────────────────────────────────
+  # Provide default region so AWS SDK doesn't fail when initializing
+  # On EC2: EC2 instance metadata service will override this
+  # Locally: Uses this default
+  cloud:
+    aws:
+      region:
+        static: us-east-1
+
+  # ── AWS Parameter Store Configuration ──────────────────────────────────────
+  # Reads secrets from AWS Parameter Store (recommended for production)
+  # Fallback: Uses environment variables if Parameter Store is not available
+  config:
+    import: "optional:aws-parameterstore:"
+
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://broandbro-dev.csjkasgs2ig6.us-east-1.rds.amazonaws.com:5432/postgres}
-    username: ${SPRING_DATASOURCE_USERNAME:BROANDBRODEV}
-    password: ${SPRING_DATASOURCE_PASSWORD:BroApp#2025}
+    # Priority: Parameter Store → Environment Variables → Hardcoded defaults
+    url: ${SPRING_DATASOURCE_URL:${app.parameter-store.database.url:jdbc:postgresql://broandbro-dev.chi2yu0m6hp0.us-east-1.rds.amazonaws.com:5432/broandbro_dev}}
+    username: ${SPRING_DATASOURCE_USERNAME:${app.parameter-store.database.username:broandbro}}
+    password: ${SPRING_DATASOURCE_PASSWORD:${app.parameter-store.database.password:BroApp#2025}}
+
+# ── AWS Parameter Store Configuration ────────────────────────────────────────
+# SSM parameter values are defined in: application-ssm-dev.yml
+# This file merges with application-ssm-dev.yml through Spring's profile mechanism
+# Do NOT add parameters here - they are imported from application-ssm-dev.yml
     driver-class-name: org.postgresql.Driver
     hikari:
       pool-name: ${SPRING_DATASOURCE_HIKARI_POOL_NAME:QrAppHikariPool}
@@ -30,6 +52,15 @@ spring:
     show-sql: false
     open-in-view: false
    ## database-platform: org.hibernate.dialect.PostgreSQLDialect
+  cors:
+    allowed-origins: "${APP_CORS_ALLOWED_ORIGINS:https://develop.broandbro.in,http://localhost:5173}"
+  bundle:
+    discount-percent: 10       # 10 % of the recommended-items total
+    max-discount-rupees: 50    # ₹50 absolute cap
+    max-items: 3               # maximum items to include in one bundle
+  meal:
+    discount-percent: 10       # 10 % of the meal items total
+    max-discount-rupees: 50    # ₹50 absolute cap
 
 
 # Default profile: require explicit Razorpay credentials instead of silently using a bundled test account.
@@ -67,21 +98,10 @@ aws:
 # ── Allowed CORS Origins ────────────────────────────────────────────
 # Comma-separated list of frontend domains that can access the API
 # Override via environment variable: APP_CORS_ALLOWED_ORIGINS
+
+# ── AWS Parameter Store Settings ────────────────────────────────────────────
+# Enable auto-create only in dev environment
 app:
-  cors:
-    allowed-origins: "${APP_CORS_ALLOWED_ORIGINS:https://develop.broandbro.in,http://localhost:5173}"
-
-  # ── V1 Recommended Bundle Pricing ────────────────────────────────────────────
-  # savings = min( originalPrice × discount-percent%, max-discount-rupees )
-  # Change these values without touching code; restart the server to apply.
-  bundle:
-    discount-percent: 10       # 10 % of the recommended-items total
-    max-discount-rupees: 50    # ₹50 absolute cap
-    max-items: 3               # maximum items to include in one bundle
-
-  # ── Complete Your Meal Pricing ───────────────────────────────────────────
-  # savings = min( mealTotal × discount-percent%, max-discount-rupees )
-  meal:
-    discount-percent: 10       # 10 % of the meal items total
-    max-discount-rupees: 50    # ₹50 absolute cap
-
+  parameter-store:
+    auto-create: true  # Enable auto-create in DEV environment
+    environment: dev

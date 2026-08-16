@@ -1,0 +1,48 @@
+# AWS Parameter Store - Base/Default Parameters
+# File: application-ssm.yml
+#
+# This file contains default parameter values that apply to all environments.
+# Environment-specific values override these defaults.
+#
+# Loading order:
+# 1. application.yml (this file)
+# 2. application-{profile}.yml (e.g., application-dev.yml)
+# 3. application-ssm.yml (this file - overrides base defaults)
+# 4. application-ssm-{profile}.yml (e.g., application-ssm-dev.yml - overrides everything)
+
+app:
+  parameter-store:
+    auto-create: false  # Override in profile-specific files
+    environment: default
+
+  # Default parameter values - will be overridden by environment-specific files
+  parameters:
+
+    database:
+      url: jdbc:postgresql://localhost:5432/postgres
+      username: postgres
+      password: password
+
+    razorpay:
+      key: ""
+      secret: ""
+      webhookSecret: ""
+
+    aws:
+      s3:
+        enabled: false
+        bucketName: ""
+        region: us-east-1
+        accessKey: ""
+        secretKey: ""
+
+    twilio:
+      accountSid: ""
+      authToken: ""
+
+    openai:
+      apiKey: ""
+
+    app:
+      corsAllowedOrigins: "http://localhost:5173"
+
