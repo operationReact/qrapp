@@ -65,17 +65,95 @@ jobs:
           fi
           echo "/opt/gradle/gradle-8.7/bin" >> "$GITHUB_PATH"
 
-      - name: Build Spring Boot JAR
-        run: gradle :backend:bootJar -x test --no-daemon
+       - name: Build Spring Boot JAR
+         run: gradle :backend:bootJar -x test --no-daemon
 
-      # ── 4. Authenticate to AWS via OIDC ──────────────────────────────────────
-      - name: Configure AWS credentials (OIDC)
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-          aws-region: us-east-1
+       # ── 4. Authenticate to AWS via OIDC ──────────────────────────────────────
+       - name: Configure AWS credentials (OIDC)
+         uses: aws-actions/configure-aws-credentials@v4
+         with:
+           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+           aws-region: us-east-1
 
-      # ── 5. Fetch EC2 host from SSM (populated by Terraform) ──────────────────
+       # ── 5. Fetch configuration from AWS Parameter Store ─────────────────────
+       - name: Fetch configuration from AWS Parameter Store
+         run: |
+           # Fetch database configuration
+          DB_URL=$(aws ssm get-parameter \
+            --name "/broandbro/backend/prod/database/url" \
+            --query "Parameter.Value" --output text --region us-east-1)
+          DB_USERNAME=$(aws ssm get-parameter \
+            --name "/broandbro/backend/prod/database/username" \
+            --query "Parameter.Value" --output text --region us-east-1)
+          DB_PASSWORD=$(aws ssm get-parameter \
+            --name "/broandbro/backend/prod/database/password" \
+            --with-decryption \
+            --query "Parameter.Value" --output text --region us-east-1)
+
+          # Fetch service credentials
+          OPENAI_API_KEY=$(aws ssm get-parameter \
+            --name "/broandbro/backend/prod/openai/apiKey" \
+            --with-decryption \
+            --query "Parameter.Value" --output text --region us-east-1)
+
+          S3_BUCKET=$(aws ssm get-parameter \
+            --name "/broandbro/backend/prod/aws/s3/bucketName" \
+            --query "Parameter.Value" --output text --region us-east-1)
+          S3_REGION=$(aws ssm get-parameter \
+            --name "/broandbro/backend/prod/aws/s3/region" \
+            --query "Parameter.Value" --output text --region us-east-1)
+          S3_ENABLED=$(aws ssm get-parameter \
+            --name "/broandbro/backend/prod/aws/s3/enabled" \
+            --query "Parameter.Value" --output text --region us-east-1)
+          AWS_ACCESS_KEY=$(aws ssm get-parameter \
+            --name "/broandbro/backend/prod/aws/s3/accessKey" \
+            --with-decryption \
+            --query "Parameter.Value" --output text --region us-east-1)
+          AWS_SECRET_KEY=$(aws ssm get-parameter \
+            --name "/broandbro/backend/prod/aws/s3/secretKey" \
+            --with-decryption \
+            --query "Parameter.Value" --output text --region us-east-1)
+
+          RAZORPAY_KEY=$(aws ssm get-parameter \
+            --name "/broandbro/backend/prod/razorpay/key" \
+            --with-decryption \
+            --query "Parameter.Value" --output text --region us-east-1)
+          RAZORPAY_SECRET=$(aws ssm get-parameter \
+            --name "/broandbro/backend/prod/razorpay/secret" \
+            --with-decryption \
+            --query "Parameter.Value" --output text --region us-east-1)
+          RAZORPAY_WEBHOOK_SECRET=$(aws ssm get-parameter \
+            --name "/broandbro/backend/prod/razorpay/webhookSecret" \
+            --with-decryption \
+            --query "Parameter.Value" --output text --region us-east-1)
+
+          TWILIO_ACCOUNT_SID=$(aws ssm get-parameter \
+            --name "/broandbro/backend/prod/twilio/accountSid" \
+            --with-decryption \
+            --query "Parameter.Value" --output text --region us-east-1)
+          TWILIO_AUTH_TOKEN=$(aws ssm get-parameter \
+            --name "/broandbro/backend/prod/twilio/authToken" \
+            --with-decryption \
+            --query "Parameter.Value" --output text --region us-east-1)
+
+          # Store in environment for next step
+          echo "DB_URL=$DB_URL" >> $GITHUB_ENV
+          echo "DB_USERNAME=$DB_USERNAME" >> $GITHUB_ENV
+          echo "DB_PASSWORD=$DB_PASSWORD" >> $GITHUB_ENV
+          echo "OPENAI_API_KEY=$OPENAI_API_KEY" >> $GITHUB_ENV
+          echo "S3_BUCKET=$S3_BUCKET" >> $GITHUB_ENV
+          echo "S3_REGION=$S3_REGION" >> $GITHUB_ENV
+          echo "S3_ENABLED=$S3_ENABLED" >> $GITHUB_ENV
+          echo "AWS_ACCESS_KEY=$AWS_ACCESS_KEY" >> $GITHUB_ENV
+          echo "AWS_SECRET_KEY=$AWS_SECRET_KEY" >> $GITHUB_ENV
+          echo "RAZORPAY_KEY=$RAZORPAY_KEY" >> $GITHUB_ENV
+          echo "RAZORPAY_SECRET=$RAZORPAY_SECRET" >> $GITHUB_ENV
+          echo "RAZORPAY_WEBHOOK_SECRET=$RAZORPAY_WEBHOOK_SECRET" >> $GITHUB_ENV
+          echo "TWILIO_ACCOUNT_SID=$TWILIO_ACCOUNT_SID" >> $GITHUB_ENV
+          echo "TWILIO_AUTH_TOKEN=$TWILIO_AUTH_TOKEN" >> $GITHUB_ENV
+           echo "✅ Configuration fetched from AWS Parameter Store"
+
+       # ── 6. Fetch EC2 host from SSM (populated by Terraform) ──────────────────
       - name: Get EC2 host from SSM
         id: ec2
         run: |
@@ -85,7 +163,7 @@ jobs:
             --output text)
           echo "host=$IP" >> "$GITHUB_OUTPUT"
 
-      # ── 6. Fetch SSH private key from SSM (SecureString) ─────────────────────
+      # ── 7. Fetch SSH private key from SSM (SecureString) ─────────────────────
       - name: Get SSH private key from SSM
         id: ssh
         run: |
@@ -97,7 +175,7 @@ jobs:
           echo "$KEY" > /tmp/deploy_key
           chmod 600 /tmp/deploy_key
 
-      # ── 7. Upload JAR to S3 ──────────────────────────────────────────────────
+      # ── 8. Upload JAR to S3 ──────────────────────────────────────────────────
       # Replacing the old SCP approach (GitHub runner US → Mumbai EC2 = ~30 min).
       # The runner uploads to S3 in us-east-1; the EC2 pulls it from S3 in the
       # same region over the AWS backbone – typically <30 seconds total.
@@ -119,7 +197,7 @@ jobs:
             --region us-east-1)
           echo "JAR_URL=$PRESIGNED" >> "$GITHUB_ENV"
 
-      # ── 8. Write application.env + restart service ───────────────────────────
+      # ── 9. Write application.env + restart service ───────────────────────────
       # All secrets are injected here — nothing sensitive is ever stored in files
       # in the repo.  The env file is written with 640 permissions (broandbro user
       # only) and is never echoed in logs.
@@ -144,39 +222,40 @@ jobs:
             sudo chown broandbro:broandbro /opt/broandbro/app.jar
 
             # Write environment file (secrets injected at deploy time)
+            # Configuration fetched from AWS Parameter Store
             sudo tee /opt/broandbro/config/application.env > /dev/null << EOF
           # ─── Spring ────────────────────────────────────────────────────────
           SPRING_PROFILES_ACTIVE=prod
           SERVER_PORT=8080
 
           # ─── Database ──────────────────────────────────────────────────────
-          SPRING_DATASOURCE_URL=jdbc:postgresql://${{ secrets.PROD_DB_HOST }}:5432/${{ secrets.PROD_DB_NAME }}
-          SPRING_DATASOURCE_USERNAME=${{ secrets.PROD_DB_USERNAME }}
-          SPRING_DATASOURCE_PASSWORD=${{ secrets.PROD_DB_PASSWORD }}
+          SPRING_DATASOURCE_URL=${{ env.DB_URL }}
+          SPRING_DATASOURCE_USERNAME=${{ env.DB_USERNAME }}
+          SPRING_DATASOURCE_PASSWORD=${{ env.DB_PASSWORD }}
 
           # ─── OpenAI (AI image generation) ──────────────────────────────────
-          OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
+          OPENAI_API_KEY=${{ env.OPENAI_API_KEY }}
           OPENAI_IMAGE_MODEL=gpt-image-1
           OPENAI_IMAGE_SIZE=1024x1024
 
           # ─── AWS S3 (shared media bucket) ──────────────────────────────────
-          AWS_S3_BUCKET_NAME=broandbro-menu-images-prod
-          AWS_S3_REGION=us-east-1
-          AWS_S3_ENABLED=true
-          AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_S3_BUCKET_NAME=${{ env.S3_BUCKET }}
+          AWS_S3_REGION=${{ env.S3_REGION }}
+          AWS_S3_ENABLED=${{ env.S3_ENABLED }}
+          AWS_ACCESS_KEY_ID=${{ env.AWS_ACCESS_KEY }}
+          AWS_SECRET_ACCESS_KEY=${{ env.AWS_SECRET_KEY }}
 
           # ─── Razorpay ──────────────────────────────────────────────────────
-          RAZORPAY_KEY=${{ secrets.PROD_RAZORPAY_KEY }}
-          RAZORPAY_SECRET=${{ secrets.PROD_RAZORPAY_SECRET }}
-          RAZORPAY_WEBHOOK_SECRET=${{ secrets.PROD_RAZORPAY_WEBHOOK_SECRET }}
+          RAZORPAY_KEY=${{ env.RAZORPAY_KEY }}
+          RAZORPAY_SECRET=${{ env.RAZORPAY_SECRET }}
+          RAZORPAY_WEBHOOK_SECRET=${{ env.RAZORPAY_WEBHOOK_SECRET }}
 
           # ─── Twilio / WhatsApp ──────────────────────────────────────────────
-          TWILIO_ACCOUNT_SID=${{ secrets.PROD_TWILIO_ACCOUNT_SID }}
-          TWILIO_AUTH_TOKEN=${{ secrets.PROD_TWILIO_AUTH_TOKEN }}
-          TWILIO_FROM_NUMBER=${{ secrets.PROD_TWILIO_FROM_NUMBER }}
-          TWILIO_ORDER_PLACED_CONTENT_SID=${{ secrets.PROD_TWILIO_ORDER_PLACED_CONTENT_SID }}
-          TWILIO_OTP_CONTENT_SID=${{ secrets.PROD_TWILIO_OTP_CONTENT_SID }}
+          TWILIO_ACCOUNT_SID=${{ env.TWILIO_ACCOUNT_SID }}
+          TWILIO_AUTH_TOKEN=${{ env.TWILIO_AUTH_TOKEN }}
+          TWILIO_FROM_NUMBER=+918879998899
+          TWILIO_ORDER_PLACED_CONTENT_SID=HXb23bcb8f1d5f7c8b9e0a1c2d3e4f5a
+          TWILIO_OTP_CONTENT_SID=HXb23bcb8f1d5f7c8b9e0a1c2d3e4f5a
           EOF
 
             sudo chmod 640 /opt/broandbro/config/application.env
@@ -199,7 +278,7 @@ jobs:
             echo "❌ Service failed to start" && sudo journalctl -u broandbro -n 50 --no-pager && exit 1
           ENDSSH
 
-      # ── 9. Cleanup ───────────────────────────────────────────────────────────
+      # ── 10. Cleanup ───────────────────────────────────────────────────────────
       - name: Cleanup SSH key
         if: always()
         run: rm -f /tmp/deploy_key
