@@ -21,29 +21,30 @@ spring:
     import: "optional:aws-parameterstore:"
 
   datasource:
-    # Priority: Parameter Store → Environment Variables → Hardcoded defaults
-    url: ${SPRING_DATASOURCE_URL:${app.parameter-store.database.url:jdbc:postgresql://broandbro-dev.chi2yu0m6hp0.us-east-1.rds.amazonaws.com:5432/broandbro_dev}}
-    username: ${SPRING_DATASOURCE_USERNAME:${app.parameter-store.database.username:broandbro}}
-    password: ${SPRING_DATASOURCE_PASSWORD:${app.parameter-store.database.password:BroApp#2025}}
+    # ONLY read from SSM Parameter Store (application-ssm-dev.yml)
+    # NO environment variable fallbacks - ensures SSM values are always used
+    url: ${app.parameter-store.database.url}
+    username: ${app.parameter-store.database.username}
+    password: ${app.parameter-store.database.password}
 
 # ── AWS Parameter Store Configuration ────────────────────────────────────────
 # SSM parameter values are defined in: application-ssm-dev.yml
 # This file merges with application-ssm-dev.yml through Spring's profile mechanism
-# Do NOT add parameters here - they are imported from application-ssm-dev.yml
+
     driver-class-name: org.postgresql.Driver
     hikari:
-      pool-name: ${SPRING_DATASOURCE_HIKARI_POOL_NAME:QrAppHikariPool}
-      maximum-pool-size: ${SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE:10}
-      minimum-idle: ${SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE:2}
-      idle-timeout: ${SPRING_DATASOURCE_HIKARI_IDLE_TIMEOUT:60000}
-      max-lifetime: ${SPRING_DATASOURCE_HIKARI_MAX_LIFETIME:540000}
-      connection-timeout: ${SPRING_DATASOURCE_HIKARI_CONNECTION_TIMEOUT:10000}
-      validation-timeout: ${SPRING_DATASOURCE_HIKARI_VALIDATION_TIMEOUT:5000}
-      keepalive-time: ${SPRING_DATASOURCE_HIKARI_KEEPALIVE_TIME:30000}
+      pool-name: QrAppHikariPool
+      maximum-pool-size: 10
+      minimum-idle: 2
+      idle-timeout: 60000
+      max-lifetime: 540000
+      connection-timeout: 10000
+      validation-timeout: 5000
+      keepalive-time: 30000
       connection-init-sql: "SET statement_timeout = '8s'"
   flyway:
-    enabled: ${SPRING_FLYWAY_ENABLED:true}
-    baseline-on-migrate: ${SPRING_FLYWAY_BASELINE_ON_MIGRATE:true}
+    enabled: true
+    baseline-on-migrate: true
     #repair-on-migrate: true   # auto-repairs failed migration checksum on restart
 
   jpa:
@@ -53,7 +54,7 @@ spring:
     open-in-view: false
    ## database-platform: org.hibernate.dialect.PostgreSQLDialect
   cors:
-    allowed-origins: "${APP_CORS_ALLOWED_ORIGINS:https://develop.broandbro.in,http://localhost:5173}"
+    allowed-origins: "${app.parameter-store.app.corsAllowedOrigins:https://develop.broandbro.in,http://localhost:5173}"
   bundle:
     discount-percent: 10       # 10 % of the recommended-items total
     max-discount-rupees: 50    # ₹50 absolute cap
@@ -63,15 +64,15 @@ spring:
     max-discount-rupees: 50    # ₹50 absolute cap
 
 
-# Default profile: require explicit Razorpay credentials instead of silently using a bundled test account.
+# Default profile: require explicit Razorpay credentials from SSM Parameter Store
 razorpay:
-  key:           ${RAZORPAY_KEY:}
-  secret:        ${RAZORPAY_SECRET:}
-  webhookSecret: ${RAZORPAY_WEBHOOK_SECRET:}
+  key:           ${app.parameter-store.razorpay.key:}
+  secret:        ${app.parameter-store.razorpay.secret:}
+  webhookSecret: ${app.parameter-store.razorpay.webhookSecret:}
 
 twilio:
-  accountSid: ${TWILIO_ACCOUNT_SID:ACc9ccb1101977a6bc3adc0806c56f026f}
-  authToken: ${TWILIO_AUTH_TOKEN:8c98ee56d052a01711546c12441b230b}
+  accountSid: ${app.parameter-store.twilio.accountSid:}
+  authToken: ${app.parameter-store.twilio.authToken:}
   fromNumber: ${TWILIO_FROM_NUMBER:whatsapp:+14155238886}
   orderPlacedContentSid: ${TWILIO_ORDER_PLACED_CONTENT_SID:HX7926f06db10abf2c81bd27dc98c27423}
   orderReadyContentSid: ${TWILIO_ORDER_READY_CONTENT_SID:}
@@ -89,11 +90,15 @@ twilio:
 #
 aws:
   s3:
-    enabled: ${AWS_S3_ENABLED:true}
-    bucket-name: ${AWS_S3_BUCKET_NAME:broandbro-menu-images-dev}
-    region: ${AWS_S3_REGION:us-east-1}
-    access-key: ${AWS_ACCESS_KEY_ID:AKIA34EPRSL6ICFWRYHI}
-    secret-key: ${AWS_SECRET_ACCESS_KEY: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}
+    enabled: ${app.parameter-store.aws.s3.enabled:true}
+    bucket-name: ${app.parameter-store.aws.s3.bucketName:broandbro-menu-images-dev}
+    region: ${app.parameter-store.aws.s3.region:us-east-1}
+    access-key: ${app.parameter-store.aws.s3.accessKey:}
+    secret-key: ${app.parameter-store.aws.s3.secretKey:}
+
+# ── OpenAI Configuration ──────────────────────────────────────────────────
+openai:
+  api-key: ${app.parameter-store.openai.apiKey:}
 
 # ── Allowed CORS Origins ────────────────────────────────────────────
 # Comma-separated list of frontend domains that can access the API
