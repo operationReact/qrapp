@@ -137,15 +137,12 @@ jobs:
           # Fetch service credentials
           OPENAI_API_KEY=$(get_optional_parameter "/broandbro/backend/dev/openai/apiKey")
 
-          S3_BUCKET=$(aws ssm get-parameter \
-            --name "/broandbro/backend/dev/aws/s3/bucketName" \
-            --query "Parameter.Value" --output text --region us-east-1)
-          S3_REGION=$(aws ssm get-parameter \
-            --name "/broandbro/backend/dev/aws/s3/region" \
-            --query "Parameter.Value" --output text --region us-east-1)
-          S3_ENABLED=$(aws ssm get-parameter \
-            --name "/broandbro/backend/dev/aws/s3/enabled" \
-            --query "Parameter.Value" --output text --region us-east-1)
+          S3_BUCKET=$(get_optional_parameter "/broandbro/backend/dev/aws/s3/bucketName")
+          S3_BUCKET=${S3_BUCKET:-broandbro-menu-images-dev}
+          S3_REGION=$(get_optional_parameter "/broandbro/backend/dev/aws/s3/region")
+          S3_REGION=${S3_REGION:-us-east-1}
+          S3_ENABLED=$(get_optional_parameter "/broandbro/backend/dev/aws/s3/enabled")
+          S3_ENABLED=${S3_ENABLED:-true}
 
           RAZORPAY_KEY=$(get_optional_parameter "/broandbro/backend/dev/razorpay/key")
           RAZORPAY_SECRET=$(get_optional_parameter "/broandbro/backend/dev/razorpay/secret")
