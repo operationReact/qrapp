@@ -108,6 +108,20 @@ jobs:
       # Parameter Store for security and consistency.
       - name: Fetch configuration from AWS Parameter Store
         run: |
+          get_optional_parameter() {
+            local parameter_name="$1"
+            local parameter_value
+            if parameter_value=$(aws ssm get-parameter \
+              --name "$parameter_name" \
+              --with-decryption \
+              --query "Parameter.Value" --output text --region us-east-1 2>/dev/null); then
+              printf '%s' "$parameter_value"
+            else
+              echo "::warning::Optional SSM parameter not found: $parameter_name" >&2
+              printf ''
+            fi
+          }
+
           # Fetch database configuration
           DB_URL=$(aws ssm get-parameter \
             --name "/broandbro/backend/dev/database/url" \
@@ -121,10 +135,7 @@ jobs:
             --query "Parameter.Value" --output text --region us-east-1)
 
           # Fetch service credentials
-          OPENAI_API_KEY=$(aws ssm get-parameter \
-            --name "/broandbro/backend/dev/openai/apiKey" \
-            --with-decryption \
-            --query "Parameter.Value" --output text --region us-east-1)
+          OPENAI_API_KEY=$(get_optional_parameter "/broandbro/backend/dev/openai/apiKey")
 
           S3_BUCKET=$(aws ssm get-parameter \
             --name "/broandbro/backend/dev/aws/s3/bucketName" \
@@ -136,27 +147,12 @@ jobs:
             --name "/broandbro/backend/dev/aws/s3/enabled" \
             --query "Parameter.Value" --output text --region us-east-1)
 
-          RAZORPAY_KEY=$(aws ssm get-parameter \
-            --name "/broandbro/backend/dev/razorpay/key" \
-            --with-decryption \
-            --query "Parameter.Value" --output text --region us-east-1)
-          RAZORPAY_SECRET=$(aws ssm get-parameter \
-            --name "/broandbro/backend/dev/razorpay/secret" \
-            --with-decryption \
-            --query "Parameter.Value" --output text --region us-east-1)
-          RAZORPAY_WEBHOOK_SECRET=$(aws ssm get-parameter \
-            --name "/broandbro/backend/dev/razorpay/webhookSecret" \
-            --with-decryption \
-            --query "Parameter.Value" --output text --region us-east-1)
+          RAZORPAY_KEY=$(get_optional_parameter "/broandbro/backend/dev/razorpay/key")
+          RAZORPAY_SECRET=$(get_optional_parameter "/broandbro/backend/dev/razorpay/secret")
+          RAZORPAY_WEBHOOK_SECRET=$(get_optional_parameter "/broandbro/backend/dev/razorpay/webhookSecret")
 
-          TWILIO_ACCOUNT_SID=$(aws ssm get-parameter \
-            --name "/broandbro/backend/dev/twilio/accountSid" \
-            --with-decryption \
-            --query "Parameter.Value" --output text --region us-east-1)
-          TWILIO_AUTH_TOKEN=$(aws ssm get-parameter \
-            --name "/broandbro/backend/dev/twilio/authToken" \
-            --with-decryption \
-            --query "Parameter.Value" --output text --region us-east-1)
+          TWILIO_ACCOUNT_SID=$(get_optional_parameter "/broandbro/backend/dev/twilio/accountSid")
+          TWILIO_AUTH_TOKEN=$(get_optional_parameter "/broandbro/backend/dev/twilio/authToken")
 
           # Store in environment for next step
           echo "DB_URL=$DB_URL" >> $GITHUB_ENV
