@@ -20,6 +20,9 @@ server:
 
 # Default datasource: PostgreSQL. Use environment variables to override in CI or other environments.
 spring:
+  profiles:
+    default: dev
+
   config:
     import: "optional:aws-parameterstore:"  # Optional - won't fail if AWS unavailable
 

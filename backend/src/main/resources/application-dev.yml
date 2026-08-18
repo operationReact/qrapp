@@ -18,7 +18,7 @@ spring:
   # Reads secrets from AWS Parameter Store (recommended for production)
   # Fallback: Uses environment variables if Parameter Store is not available
   config:
-    import: "optional:aws-parameterstore:"
+    import: "optional:aws-parameterstore:/broandbro/backend/dev?prefix=app.parameter-store."
 
   datasource:
     # ONLY read from SSM Parameter Store (application-ssm-dev.yml)
