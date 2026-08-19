@@ -9,6 +9,7 @@ on:
       - "settings.gradle"
       - "gradle/**"
       - ".github/workflows/backend-deploy-dev.yml"
+      - "infra/modules/ec2/userdata.sh"
   workflow_dispatch:
     inputs:
       reason:
@@ -240,6 +241,23 @@ jobs:
           echo "🔄  Restarting service..."
           systemctl daemon-reload
           systemctl restart broandbro
+
+          echo "🔒  Ensuring HTTPS is configured..."
+          if [ ! -d /etc/letsencrypt/live/dev-api.broandbro.in ]; then
+            certbot --nginx \
+              -d dev-api.broandbro.in \
+              --email admin@broandbro.in \
+              --agree-tos \
+              --no-eff-email \
+              --non-interactive \
+              --redirect
+          else
+            certbot renew --quiet
+          fi
+          nginx -t
+          systemctl reload nginx
+          ss -ltn '( sport = :443 )' | grep -q LISTEN
+          echo "✅  HTTPS is listening on port 443"
 
           echo "⏳  Waiting for healthy startup..."
           for i in \$(seq 1 12); do

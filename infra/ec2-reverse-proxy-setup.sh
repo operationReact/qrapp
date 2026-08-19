@@ -24,13 +24,16 @@ echo "════════════════════════�
 echo ""
 echo "📦 [1/5] Installing Nginx and Certbot..."
 
-sudo apt-get update -qq
-sudo apt-get install -y -qq \
-  nginx \
-  certbot \
-  python3-certbot-nginx \
-  curl \
-  wget
+if command -v dnf >/dev/null 2>&1; then
+  sudo dnf install -y nginx certbot python3-pip curl wget
+  sudo pip3 install certbot-nginx --quiet
+elif command -v apt-get >/dev/null 2>&1; then
+  sudo apt-get update -qq
+  sudo apt-get install -y -qq nginx certbot python3-certbot-nginx curl wget
+else
+  echo "Unsupported operating system: package manager not found" >&2
+  exit 1
+fi
 
 echo "✅ Dependencies installed"
 
@@ -72,69 +75,6 @@ server {
     }
 }
 
-# HTTPS server
-server {
-    listen 443 ssl http2;
-    server_name DOMAIN;
-
-    # SSL certificates (will be created by Certbot)
-    ssl_certificate /etc/letsencrypt/live/DOMAIN/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/DOMAIN/privkey.pem;
-
-    # SSL security settings
-    ssl_protocols TLSv1.2 TLSv1.3;
-    ssl_ciphers HIGH:!aNULL:!MD5;
-    ssl_prefer_server_ciphers on;
-    ssl_session_cache shared:SSL:10m;
-    ssl_session_timeout 10m;
-
-    # Security headers
-    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
-    add_header X-Content-Type-Options "nosniff" always;
-    add_header X-Frame-Options "SAMEORIGIN" always;
-    add_header X-XSS-Protection "1; mode=block" always;
-
-    # Logging
-    access_log /var/log/nginx/backend_access.log combined;
-    error_log /var/log/nginx/backend_error.log warn;
-
-    # Root location
-    location / {
-        proxy_pass http://backend;
-
-        # Headers
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_set_header X-Forwarded-Host $host;
-        proxy_set_header X-Forwarded-Port $server_port;
-
-        # Connection management
-        proxy_http_version 1.1;
-        proxy_set_header Connection "";
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
-
-        # Timeouts
-        proxy_connect_timeout 300s;
-        proxy_send_timeout 300s;
-        proxy_read_timeout 300s;
-
-        # Buffering
-        proxy_buffering on;
-        proxy_buffer_size 4k;
-        proxy_buffers 8 4k;
-        proxy_busy_buffers_size 8k;
-    }
-
-    # Health check endpoint (optional)
-    location /health {
-        access_log off;
-        proxy_pass http://backend;
-        proxy_set_header Host $host;
-    }
-}
 EOF
 
 # Replace variables
@@ -155,7 +95,7 @@ sudo rm -f /etc/nginx/sites-enabled/default
 # Enable our site
 sudo ln -sf /etc/nginx/sites-available/backend-proxy /etc/nginx/sites-enabled/
 
-# Test configuration
+# Test HTTP-only configuration before obtaining the certificate.
 if sudo nginx -t; then
   echo "✅ Nginx configuration is valid"
 else
@@ -183,19 +123,21 @@ if [ -d "/etc/letsencrypt/live/$DOMAIN" ]; then
 else
   echo "   Creating new SSL certificate..."
 
-  if sudo certbot certonly --webroot \
-    -w /var/www/certbot \
+  if sudo certbot --nginx \
     -d "$DOMAIN" \
     --email "$EMAIL" \
     --agree-tos \
     --non-interactive \
-    --no-eff-email 2>/dev/null; then
+    --no-eff-email \
+    --redirect; then
     echo "✅ SSL certificate created"
   else
-    echo "⚠️  SSL certificate creation requires manual intervention:"
-    echo "   sudo certbot certonly --nginx -d $DOMAIN"
-    echo "   After setup, restart Nginx: sudo systemctl restart nginx"
+    echo "❌ SSL certificate creation failed" >&2
+    exit 1
   fi
+
+  sudo nginx -t
+  sudo systemctl reload nginx
 fi
 
 # Setup auto-renewal
@@ -233,4 +175,3 @@ echo "   • View logs:        sudo tail -f /var/log/nginx/backend_access.log"
 echo "   • Renew SSL:        sudo certbot renew"
 echo "   • Check renewal:    sudo certbot renew --dry-run"
 echo ""
-
