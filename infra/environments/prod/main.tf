@@ -93,6 +93,7 @@ module "cloudfront" {
   acm_certificate_arn            = module.acm.certificate_arn
   domain_aliases                 = [var.domain_name, "www.${var.domain_name}"]
   price_class                    = "PriceClass_200"
+  web_acl_id                     = var.cloudfront_web_acl_id
 }
 
 # ── S3 frontend bucket ────────────────────────────────────────────────────────
@@ -113,6 +114,7 @@ module "ec2" {
   security_group_id      = module.security_group.ec2_sg_id
   media_bucket_arn       = data.aws_s3_bucket.media.arn
   create_media_s3_policy = true
+  root_volume_size       = 30
 }
 
 # ── RDS PostgreSQL ────────────────────────────────────────────────────────────
@@ -154,4 +156,3 @@ module "route53" {
   create_www_record         = true
 
 }
-

@@ -27,3 +27,9 @@ variable "price_class" {
   type    = string
   default = "PriceClass_200" # US + Europe + Asia – good for India
 }
+
+variable "web_acl_id" {
+  description = "Existing AWS WAF web ACL ARN to keep attached to the distribution"
+  type        = string
+  default     = ""
+}

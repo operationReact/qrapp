@@ -14,6 +14,7 @@ resource "aws_cloudfront_distribution" "this" {
   default_root_object = "index.html"
   price_class         = var.price_class
   aliases             = var.domain_aliases
+  web_acl_id          = var.web_acl_id != "" ? var.web_acl_id : null
 
   # ── S3 origin via OAC ──────────────────────────────────────────────────────
   origin {
@@ -100,4 +101,3 @@ resource "aws_ssm_parameter" "cf_distribution_id" {
     Environment = var.environment
   }
 }
-
