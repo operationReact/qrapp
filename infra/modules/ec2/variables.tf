@@ -25,3 +25,8 @@ variable "create_media_s3_policy" {
   default     = false
 }
 
+variable "root_volume_size" {
+  description = "Root EBS volume size in GB"
+  type        = number
+  default     = 20
+}

@@ -58,3 +58,9 @@ variable "existing_certificate_arn" {
   type        = string
   default     = ""
 }
+
+variable "cloudfront_web_acl_id" {
+  description = "Existing WAF web ACL ARN attached to the production CloudFront distribution"
+  type        = string
+  default     = "arn:aws:wafv2:us-east-1:816344830716:global/webacl/CreatedByCloudFront-86c2086a/ee229c0f-bb44-401b-a40a-7ce132c5a96b"
+}
