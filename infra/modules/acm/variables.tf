@@ -28,3 +28,10 @@ variable "environment" {
   description = "Deployment environment (dev | prod)"
   type        = string
 }
+
+variable "existing_certificate_arn" {
+  description = "Optional: use an existing ACM certificate ARN (pre-provisioned in us-east-1). If set, the module will not create a new certificate or DNS validation records."
+  type        = string
+  default     = ""
+}
+

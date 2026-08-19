@@ -1,8 +1,31 @@
 server:
   port: 8080
 
+# ──────────────────────────────────────────────────────────────────────────────
+# AWS Parameter Store Configuration
+# ──────────────────────────────────────────────────────────────────────────────
+#
+# Auto-Create Feature:
+#   app.parameter-store.auto-create=true
+#   - Automatically creates/syncs parameters on startup
+#   - Requires EC2 IAM role with ssm:PutParameter permission
+#   - Safe to run multiple times (overwrites existing parameters)
+#   - Define parameters in 'app.parameters' section
+#
+# Read Feature:
+#   - Backend automatically reads from Parameter Store
+#   - Falls back to environment variables
+#   - Falls back to hardcoded defaults
+#
+
 # Default datasource: PostgreSQL. Use environment variables to override in CI or other environments.
 spring:
+  profiles:
+    default: dev
+
+  config:
+    import: "optional:aws-parameterstore:"  # Optional - won't fail if AWS unavailable
+
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://aws-1-ap-northeast-1.pooler.supabase.com:5432/postgres}
     username: ${SPRING_DATASOURCE_USERNAME:postgres.yoxxgeiwbekdvczedotg}
@@ -45,6 +68,43 @@ spring:
 
 # Allowed CORS origins (comma-separated). Defaults to frontend dev server.
 app:
+  # ── AWS Parameter Store Configuration ────────────────────────────────────
+  parameter-store:
+    auto-create: false  # Default: disabled. Enable in dev/prod profiles only
+    environment: default
+
+  # ── Parameter Definitions (for auto-sync) ────────────────────────────────
+  # These are synced to AWS Parameter Store when app.parameter-store.auto-create=true
+  parameters:
+    database:
+      url: ${DB_URL:jdbc:postgresql://aws-1-ap-northeast-1.pooler.supabase.com:5432/postgres}
+      username: ${DB_USER:postgres.yoxxgeiwbekdvczedotg}
+      password: ${DB_PASS:BroApp#2025}
+
+    razorpay:
+      key: ${RAZORPAY_KEY:}
+      secret: ${RAZORPAY_SECRET:}
+      webhookSecret: ${RAZORPAY_WEBHOOK_SECRET:}
+
+    aws:
+      s3:
+        enabled: true
+        bucketName: broandbro-menu-images
+        region: us-east-1
+        accessKey: ${AWS_S3_ACCESS_KEY:}
+        secretKey: ${AWS_S3_SECRET_KEY:}
+
+    twilio:
+      accountSid: ${TWILIO_ACCOUNT_SID:ACc9ccb1101977a6bc3adc0806c56f026f}
+      authToken: ${TWILIO_AUTH_TOKEN:}
+
+    openai:
+      apiKey: ${OPENAI_API_KEY:}
+
+    app:
+      corsAllowedOrigins: http://localhost:5173
+
+  # ── CORS Configuration ─────────────────────────────────────────────────────
   cors:
     allowed-origins: "${APP_CORS_ALLOWED_ORIGINS:http://localhost:5173}"
 
@@ -102,10 +162,10 @@ openai:
 aws:
   s3:
     bucket-name: ${AWS_S3_BUCKET_NAME:broandbro-menu-images}
-    region: ${AWS_S3_REGION:ap-east-1}
+    region: ${AWS_S3_REGION:us-east-1}
     access-key: ${AWS_ACCESS_KEY_ID:}
     secret-key: ${AWS_SECRET_ACCESS_KEY:}
-    enabled: ${AWS_S3_ENABLED:false}   # override per environment
+    enabled: ${AWS_S3_ENABLED:true}   # override per environment
 
 twilio:
   accountSid: ${TWILIO_ACCOUNT_SID:ACc9ccb1101977a6bc3adc0806c56f026f}

@@ -15,7 +15,7 @@ public class AwsS3Properties {
     /** S3 bucket name for menu item images. */
     private String bucketName;
 
-    /** AWS region (e.g. ap-south-1). */
+    /** AWS region (e.g. us-east-1). */
     private String region;
 
     /** AWS access key – sourced from environment variable AWS_ACCESS_KEY_ID. */

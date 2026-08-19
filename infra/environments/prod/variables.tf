@@ -1,6 +1,6 @@
 variable "aws_region" {
   type    = string
-  default = "ap-south-1"
+  default = "us-east-1"
 }
 
 variable "domain_name" {
@@ -48,7 +48,13 @@ variable "alarm_email" {
 }
 
 variable "media_bucket_name" {
-  description = "Name of the shared S3 bucket for AI-generated menu item images. Created once by bootstrap/bootstrap.tf and referenced here."
+  description = "Name of the shared S3 bucket for AI-generated menu item images. Created once in dev and shared across all environments."
   type        = string
-  default     = "broandbro-menu-images-prod"
+  default     = "broandbro-menu-images-shared"
+}
+
+variable "existing_certificate_arn" {
+  description = "Optional: ARN of an existing ACM certificate in us-east-1. If provided, skips certificate creation."
+  type        = string
+  default     = ""
 }

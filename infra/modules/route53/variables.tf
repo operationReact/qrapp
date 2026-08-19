@@ -1,8 +1,3 @@
-variable "domain_name" {
-  description = "Root domain name"
-  type        = string
-}
-
 variable "cloudfront_domain_name" {
   description = "CloudFront distribution domain name"
   type        = string
@@ -24,11 +19,6 @@ variable "api_subdomain" {
   default     = "api"
 }
 
-variable "create_dev_records" {
-  description = "Whether to create dev.* and dev-api.* DNS records"
-  type        = bool
-  default     = false
-}
 
 variable "hosted_zone_name" {
   description = "The name of the hosted zone"

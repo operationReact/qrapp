@@ -1,6 +1,6 @@
 # =============================================================================
 # broandbro Infrastructure – Complete DevOps Guide
-# Terraform + GitHub Actions on AWS (ap-south-1)
+# Terraform + GitHub Actions on AWS (us-east-1)
 # =============================================================================
 
 ## Architecture Overview
@@ -59,7 +59,8 @@ broandbro/
 | RDS type | db.t4g.micro              | db.t4g.small |
 | Frontend domain | dev.broandbro.in          | broandbro.in |
 | API domain | dev-api.broandbro.in      | api.broandbro.in |
-| S3 bucket | broandbro-develop-ui      | broandbro-prod-ui |
+| S3 frontend bucket | broandbro-develop-ui      | broandbro-prod-ui |
+| S3 media bucket | broandbro-menu-images-shared (shared) | broandbro-menu-images-shared (shared) |
 | CloudFront pricing | PriceClass_100            | PriceClass_200 |
 | Terraform state | env/dev/terraform.tfstate | env/prod/terraform.tfstate |
 | Approval required | ❌                         | ✅ |
@@ -83,7 +84,7 @@ broandbro/
 aws configure
 # AWS Access Key ID: AKIA...
 # AWS Secret Access Key: ...
-# Default region: ap-south-1
+# Default region: us-east-1
 # Default output format: json
 
 # Verify
@@ -321,7 +322,7 @@ ssh -i ~/.ssh/broandbro_dev ec2-user@DEV_EC2_IP
 ssh -i ~/.ssh/broandbro_prod ec2-user@PROD_EC2_IP
 
 # Alternative: AWS SSM Session Manager (no SSH key needed)
-aws ssm start-session --target INSTANCE_ID --region ap-south-1
+aws ssm start-session --target INSTANCE_ID --region us-east-1
 ```
 
 ### Check application logs
@@ -403,7 +404,7 @@ terraform apply -var="db_password=..." -var="ec2_public_key=..."
 
 # Dev – safe to destroy any time
 cd infra/environments/dev
-terraform destroy -var="db_password=..." -var="ec2_public_key=..."
+terraform destroy
 
 # Prod – take a manual RDS snapshot first!
 aws rds create-db-snapshot \
@@ -412,12 +413,12 @@ aws rds create-db-snapshot \
 
 # Then disable deletion_protection in modules/rds/main.tf, then:
 cd infra/environments/prod
-terraform destroy -var="db_password=..." -var="ec2_public_key=..."
+terraform destroy
 ```
 
 ---
 
-## Monthly Cost Estimate (ap-south-1)
+## Monthly Cost Estimate (us-east-1)
 
 | Service | Dev | Prod |
 |---------|-----|------|

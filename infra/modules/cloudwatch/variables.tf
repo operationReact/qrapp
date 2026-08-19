@@ -6,7 +6,7 @@ variable "environment" {
 variable "aws_region" {
   description = "AWS region"
   type        = string
-  default     = "ap-south-1"
+  default     = "us-east-1"
 }
 
 variable "ec2_instance_id" {
@@ -14,11 +14,6 @@ variable "ec2_instance_id" {
   type        = string
 }
 
-variable "rds_identifier" {
-  description = "RDS DB instance identifier (leave empty to skip RDS alarms)"
-  type        = string
-  default     = ""
-}
 
 variable "log_retention_days" {
   description = "CloudWatch log retention in days"

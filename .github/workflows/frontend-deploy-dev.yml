@@ -24,7 +24,7 @@ permissions:
 
 env:
   NODE_VERSION: "22"
-  AWS_REGION: "ap-south-1"
+  AWS_REGION: "us-east-1"
   S3_BUCKET: "broandbro-develop-ui"
   # NOTE: CF_DISTRIBUTION_ID cannot be set here from secrets – referenced directly in the step below
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
@@ -49,11 +49,13 @@ jobs:
       - name: Install dependencies
         working-directory: frontend
         run: |
-          # Prefer a clean, reproducible install but fall back to `npm install`
-          # if the lockfile is out of sync on the runner.
-          if ! npm ci; then
-            echo "npm ci failed - falling back to npm install"
-            npm install
+          # Try the strict, reproducible install first. If the lockfile is out of sync
+          # `npm ci` will fail; fall back to `npm install` as a temporary CI workaround.
+          if npm ci; then
+            echo "npm ci succeeded"
+          else
+            echo "npm ci failed — falling back to npm install"
+            npm install --no-audit --no-fund
           fi
 
       - name: Build Vite app

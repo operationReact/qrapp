@@ -52,8 +52,9 @@ provider "aws" {
 
 # ── Shared media bucket (AI-generated menu item images) ──────────────────────
 # Created here in the dev environment so it exists before any data sources
-# reference it.  lifecycle.prevent_destroy ensures it is never deleted.
+# reference it. lifecycle.prevent_destroy ensures it is never deleted.
 # Prod references it via a data source (see environments/prod/main.tf).
+# This is a SHARED bucket used by ALL environments (dev, prod).
 resource "aws_s3_bucket" "media" {
   bucket = var.media_bucket_name
 
@@ -179,11 +180,12 @@ module "acm" {
 
   domain_name = var.domain_name
   subject_alternative_names = [
-    "dev.${var.domain_name}",
+    "develop.${var.domain_name}",
     "dev-api.${var.domain_name}",
   ]
-  hosted_zone_name = var.domain_name
-  environment      = "dev"
+  hosted_zone_name            = var.domain_name
+  environment                 = "dev"
+  existing_certificate_arn    = var.existing_certificate_arn
 }
 
 # ── CloudFront distribution (created before S3 to get its ARN) ───────────────
@@ -195,7 +197,7 @@ module "cloudfront" {
   s3_bucket_regional_domain_name = module.s3.bucket_regional_domain_name
   s3_oac_id                      = module.s3.oac_id
   acm_certificate_arn            = module.acm.certificate_arn
-  domain_aliases                 = ["dev.${var.domain_name}"]
+  domain_aliases                 = ["develop.${var.domain_name}"]
   price_class                    = "PriceClass_100" # cheapest – fine for dev
 }
 
@@ -241,7 +243,6 @@ module "cloudwatch" {
   environment        = "dev"
   aws_region         = var.aws_region
   ec2_instance_id    = module.ec2.instance_id
-  rds_identifier     = module.rds.db_instance_id
   log_retention_days = 30
   alarm_email        = var.alarm_email
 }
@@ -251,12 +252,11 @@ module "route53" {
   source = "../../modules/route53"
 
   hosted_zone_name          = var.domain_name
-  apex_domain               = "dev.${var.domain_name}"
+  apex_domain               = "develop.${var.domain_name}"
   api_subdomain             = "dev-api.${var.domain_name}"
   cloudfront_domain_name    = module.cloudfront.domain_name
   cloudfront_hosted_zone_id = module.cloudfront.hosted_zone_id
   ec2_elastic_ip            = module.ec2.elastic_ip
   create_www_record         = false # dev doesn't need www
-  domain_name               = var.domain_name
 }
 
