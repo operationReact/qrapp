@@ -9,6 +9,7 @@ on:
       - "settings.gradle"
       - "gradle/**"
       - ".github/workflows/backend-deploy-prod.yml"
+      - "infra/modules/ec2/userdata.sh"
   workflow_dispatch:
     inputs:
       reason:
@@ -65,20 +66,20 @@ jobs:
           fi
           echo "/opt/gradle/gradle-8.7/bin" >> "$GITHUB_PATH"
 
-       - name: Build Spring Boot JAR
-         run: gradle :backend:bootJar -x test --no-daemon
+      - name: Build Spring Boot JAR
+        run: gradle :backend:bootJar -x test --no-daemon
 
-       # ── 4. Authenticate to AWS via OIDC ──────────────────────────────────────
-       - name: Configure AWS credentials (OIDC)
-         uses: aws-actions/configure-aws-credentials@v4
-         with:
-           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-           aws-region: us-east-1
+      # ── 4. Authenticate to AWS via OIDC ──────────────────────────────────────
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: us-east-1
 
-       # ── 5. Fetch configuration from AWS Parameter Store ─────────────────────
-       - name: Fetch configuration from AWS Parameter Store
-         run: |
-           # Fetch database configuration
+      # ── 5. Fetch configuration from AWS Parameter Store ─────────────────────
+      - name: Fetch configuration from AWS Parameter Store
+        run: |
+          # Fetch database configuration
           DB_URL=$(aws ssm get-parameter \
             --name "/broandbro/backend/prod/database/url" \
             --query "Parameter.Value" --output text --region us-east-1)
@@ -151,9 +152,10 @@ jobs:
           echo "RAZORPAY_WEBHOOK_SECRET=$RAZORPAY_WEBHOOK_SECRET" >> $GITHUB_ENV
           echo "TWILIO_ACCOUNT_SID=$TWILIO_ACCOUNT_SID" >> $GITHUB_ENV
           echo "TWILIO_AUTH_TOKEN=$TWILIO_AUTH_TOKEN" >> $GITHUB_ENV
-           echo "✅ Configuration fetched from AWS Parameter Store"
+          echo "APP_CORS_ALLOWED_ORIGINS=https://broandbro.in,https://www.broandbro.in" >> $GITHUB_ENV
+          echo "✅ Configuration fetched from AWS Parameter Store"
 
-       # ── 6. Fetch EC2 host from SSM (populated by Terraform) ──────────────────
+      # ── 6. Fetch EC2 host from SSM (populated by Terraform) ──────────────────
       - name: Get EC2 host from SSM
         id: ec2
         run: |
@@ -244,6 +246,7 @@ jobs:
           AWS_S3_ENABLED=${{ env.S3_ENABLED }}
           AWS_ACCESS_KEY_ID=${{ env.AWS_ACCESS_KEY }}
           AWS_SECRET_ACCESS_KEY=${{ env.AWS_SECRET_KEY }}
+          APP_CORS_ALLOWED_ORIGINS=${{ env.APP_CORS_ALLOWED_ORIGINS }}
 
           # ─── Razorpay ──────────────────────────────────────────────────────
           RAZORPAY_KEY=${{ env.RAZORPAY_KEY }}
@@ -289,4 +292,3 @@ jobs:
           aws s3 rm \
             s3://broandbro-menu-images-prod/deploy/prod/${{ github.run_id }}/app.jar \
             || true
-
