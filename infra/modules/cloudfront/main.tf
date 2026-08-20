@@ -87,6 +87,12 @@ resource "aws_cloudfront_distribution" "this" {
     Name        = "broandbro-${var.environment}-cf"
     Environment = var.environment
   }
+
+  # AWS Free-plan distributions reject any update that includes price_class.
+  # Pricing is managed by the CloudFront account plan, not this distribution.
+  lifecycle {
+    ignore_changes = [price_class]
+  }
 }
 
 # ── Store distribution ID in SSM so the deploy workflow can read it ──────────
