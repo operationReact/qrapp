@@ -79,15 +79,14 @@ jobs:
       # ── 5. Fetch configuration from AWS Parameter Store ─────────────────────
       - name: Fetch configuration from AWS Parameter Store
         run: |
-          # Fetch database configuration
-          DB_URL=$(aws ssm get-parameter \
-            --name "/broandbro/backend/prod/database/url" \
+          # Terraform owns the production RDS endpoint and generated password.
+          DB_HOST=$(aws ssm get-parameter \
+            --name "/broandbro/prod/db-endpoint" \
             --query "Parameter.Value" --output text --region us-east-1)
-          DB_USERNAME=$(aws ssm get-parameter \
-            --name "/broandbro/backend/prod/database/username" \
-            --query "Parameter.Value" --output text --region us-east-1)
+          DB_URL="jdbc:postgresql://${DB_HOST}:5432/broandbro"
+          DB_USERNAME="broandbro"
           DB_PASSWORD=$(aws ssm get-parameter \
-            --name "/broandbro/backend/prod/database/password" \
+            --name "/broandbro/prod/db-password" \
             --with-decryption \
             --query "Parameter.Value" --output text --region us-east-1)
 
