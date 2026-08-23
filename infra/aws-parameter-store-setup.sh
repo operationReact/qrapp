@@ -129,8 +129,8 @@ echo "🪣 Setting AWS S3 Parameters..."
 read -p "S3 Enabled (true/false, default: true): " S3_ENABLED
 S3_ENABLED=${S3_ENABLED:-true}
 
-read -p "S3 Bucket Name (default: broandbro-menu-images-dev): " S3_BUCKET
-S3_BUCKET=${S3_BUCKET:-broandbro-menu-images-dev}
+read -p "S3 Bucket Name (default: broandbro-dev-root-bucket): " S3_BUCKET
+S3_BUCKET=${S3_BUCKET:-broandbro-dev-root-bucket}
 
 read -p "S3 Region (default: us-east-1): " S3_REGION
 S3_REGION=${S3_REGION:-us-east-1}

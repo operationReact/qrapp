@@ -139,7 +139,7 @@ jobs:
           OPENAI_API_KEY=$(get_optional_parameter "/broandbro/backend/dev/openai/apiKey")
 
           S3_BUCKET=$(get_optional_parameter "/broandbro/backend/dev/aws/s3/bucketName")
-          S3_BUCKET=${S3_BUCKET:-broandbro-menu-images-dev}
+          S3_BUCKET=${S3_BUCKET:-broandbro-dev-root-bucket}
           S3_REGION=$(get_optional_parameter "/broandbro/backend/dev/aws/s3/region")
           S3_REGION=${S3_REGION:-us-east-1}
           S3_ENABLED=$(get_optional_parameter "/broandbro/backend/dev/aws/s3/enabled")
@@ -175,7 +175,7 @@ jobs:
         env:
           RUN_ID: ${{ github.run_id }}
         run: |
-          S3_PREFIX="s3://broandbro-menu-images-dev/deploy/dev/${RUN_ID}"
+          S3_PREFIX="s3://broandbro-dev-root-bucket/deploy/dev/${RUN_ID}"
 
           # ── a) JAR ──────────────────────────────────────────────────────────
           echo "📦 Uploading JAR..."
@@ -222,7 +222,7 @@ jobs:
           #!/bin/bash
           set -euo pipefail
           RID="${RUN_ID}"
-          S3="s3://broandbro-menu-images-dev/deploy/dev/\${RID}"
+          S3="s3://broandbro-dev-root-bucket/deploy/dev/\${RID}"
 
           echo "⬇️  Downloading JAR..."
           aws s3 cp "\${S3}/app.jar" /tmp/app-new.jar --region us-east-1
@@ -327,7 +327,7 @@ jobs:
           INSTANCE_ID: ${{ steps.ec2.outputs.id }}
           RUN_ID:      ${{ github.run_id }}
         run: |
-          S3_SCRIPT="s3://broandbro-menu-images-dev/deploy/dev/${RUN_ID}/deploy.sh"
+          S3_SCRIPT="s3://broandbro-dev-root-bucket/deploy/dev/${RUN_ID}/deploy.sh"
           CMD="aws s3 cp ${S3_SCRIPT} /tmp/deploy_${RUN_ID}.sh --region us-east-1 \
             && bash /tmp/deploy_${RUN_ID}.sh \
             ; rm -f /tmp/deploy_${RUN_ID}.sh"
@@ -388,5 +388,5 @@ jobs:
         if: always()
         run: |
           aws s3 rm \
-            s3://broandbro-menu-images-dev/deploy/dev/${{ github.run_id }}/ \
+            s3://broandbro-dev-root-bucket/deploy/dev/${{ github.run_id }}/ \
             --recursive || true

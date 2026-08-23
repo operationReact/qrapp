@@ -24,7 +24,7 @@ Performed comprehensive analysis and fixes for the Terraform infrastructure. All
 ---
 
 ### 2. ✅ Fixed Media Bucket Naming & Sharing Strategy
-**Problem:** Dev and prod used different bucket names (`broandbro-menu-images-dev` vs `-prod`), contradicting the design of a single shared bucket.
+**Problem:** Dev and prod used different bucket names (`broandbro-dev-root-bucket` vs `-prod`), contradicting the design of a single shared bucket.
 
 **Fixed:**
 - Updated both dev and prod to use: `broandbro-menu-images-shared`
