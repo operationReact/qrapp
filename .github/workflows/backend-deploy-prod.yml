@@ -79,6 +79,20 @@ jobs:
       # ── 5. Fetch configuration from AWS Parameter Store ─────────────────────
       - name: Fetch configuration from AWS Parameter Store
         run: |
+          get_optional_parameter() {
+            local parameter_name="$1"
+            local parameter_value
+            if parameter_value=$(aws ssm get-parameter \
+              --name "$parameter_name" \
+              --with-decryption \
+              --query "Parameter.Value" --output text --region us-east-1 2>/dev/null); then
+              printf '%s' "$parameter_value"
+            else
+              echo "::warning::Optional SSM parameter not found: $parameter_name" >&2
+              printf ''
+            fi
+          }
+
           # Terraform owns the production RDS endpoint and generated password.
           DB_HOST=$(aws ssm get-parameter \
             --name "/broandbro/prod/db-endpoint" \
@@ -91,50 +105,23 @@ jobs:
             --query "Parameter.Value" --output text --region us-east-1)
 
           # Fetch service credentials
-          OPENAI_API_KEY=$(aws ssm get-parameter \
-            --name "/broandbro/backend/prod/openai/apiKey" \
-            --with-decryption \
-            --query "Parameter.Value" --output text --region us-east-1)
+          OPENAI_API_KEY=$(get_optional_parameter "/broandbro/backend/prod/openai/apiKey")
 
-          S3_BUCKET=$(aws ssm get-parameter \
-            --name "/broandbro/backend/prod/aws/s3/bucketName" \
-            --query "Parameter.Value" --output text --region us-east-1)
-          S3_REGION=$(aws ssm get-parameter \
-            --name "/broandbro/backend/prod/aws/s3/region" \
-            --query "Parameter.Value" --output text --region us-east-1)
-          S3_ENABLED=$(aws ssm get-parameter \
-            --name "/broandbro/backend/prod/aws/s3/enabled" \
-            --query "Parameter.Value" --output text --region us-east-1)
-          AWS_ACCESS_KEY=$(aws ssm get-parameter \
-            --name "/broandbro/backend/prod/aws/s3/accessKey" \
-            --with-decryption \
-            --query "Parameter.Value" --output text --region us-east-1)
-          AWS_SECRET_KEY=$(aws ssm get-parameter \
-            --name "/broandbro/backend/prod/aws/s3/secretKey" \
-            --with-decryption \
-            --query "Parameter.Value" --output text --region us-east-1)
+          S3_BUCKET=$(get_optional_parameter "/broandbro/backend/prod/aws/s3/bucketName")
+          S3_BUCKET=${S3_BUCKET:-broandbro-prod-root-bucket}
+          S3_REGION=$(get_optional_parameter "/broandbro/backend/prod/aws/s3/region")
+          S3_REGION=${S3_REGION:-us-east-1}
+          S3_ENABLED=$(get_optional_parameter "/broandbro/backend/prod/aws/s3/enabled")
+          S3_ENABLED=${S3_ENABLED:-true}
+          AWS_ACCESS_KEY=$(get_optional_parameter "/broandbro/backend/prod/aws/s3/accessKey")
+          AWS_SECRET_KEY=$(get_optional_parameter "/broandbro/backend/prod/aws/s3/secretKey")
 
-          RAZORPAY_KEY=$(aws ssm get-parameter \
-            --name "/broandbro/backend/prod/razorpay/key" \
-            --with-decryption \
-            --query "Parameter.Value" --output text --region us-east-1)
-          RAZORPAY_SECRET=$(aws ssm get-parameter \
-            --name "/broandbro/backend/prod/razorpay/secret" \
-            --with-decryption \
-            --query "Parameter.Value" --output text --region us-east-1)
-          RAZORPAY_WEBHOOK_SECRET=$(aws ssm get-parameter \
-            --name "/broandbro/backend/prod/razorpay/webhookSecret" \
-            --with-decryption \
-            --query "Parameter.Value" --output text --region us-east-1)
+          RAZORPAY_KEY=$(get_optional_parameter "/broandbro/backend/prod/razorpay/key")
+          RAZORPAY_SECRET=$(get_optional_parameter "/broandbro/backend/prod/razorpay/secret")
+          RAZORPAY_WEBHOOK_SECRET=$(get_optional_parameter "/broandbro/backend/prod/razorpay/webhookSecret")
 
-          TWILIO_ACCOUNT_SID=$(aws ssm get-parameter \
-            --name "/broandbro/backend/prod/twilio/accountSid" \
-            --with-decryption \
-            --query "Parameter.Value" --output text --region us-east-1)
-          TWILIO_AUTH_TOKEN=$(aws ssm get-parameter \
-            --name "/broandbro/backend/prod/twilio/authToken" \
-            --with-decryption \
-            --query "Parameter.Value" --output text --region us-east-1)
+          TWILIO_ACCOUNT_SID=$(get_optional_parameter "/broandbro/backend/prod/twilio/accountSid")
+          TWILIO_AUTH_TOKEN=$(get_optional_parameter "/broandbro/backend/prod/twilio/authToken")
 
           # Store in environment for next step
           echo "DB_URL=$DB_URL" >> $GITHUB_ENV
