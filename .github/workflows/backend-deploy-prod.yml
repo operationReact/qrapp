@@ -254,6 +254,26 @@ jobs:
             sudo systemctl daemon-reload
             sudo systemctl restart broandbro
 
+            # Configure HTTPS after DNS points api.broandbro.in to this host.
+            if [ ! -d /etc/letsencrypt/live/api.broandbro.in ]; then
+              sudo certbot --nginx \
+                -d api.broandbro.in \
+                --email admin@broandbro.in \
+                --agree-tos \
+                --no-eff-email \
+                --non-interactive \
+                --redirect
+            else
+              sudo certbot renew --quiet
+            fi
+            sudo nginx -t
+            sudo systemctl reload nginx
+            sudo ss -ltn '( sport = :443 )' | grep -q LISTEN
+            echo "HTTPS is listening on port 443"
+            curl --fail --silent --show-error --retry 10 --retry-delay 5 \
+              "https://api.broandbro.in/menu?available=true" > /dev/null
+            echo "Production API HTTPS smoke test passed"
+
             # Wait up to 90s for healthy startup (prod needs a bit more time)
             for i in $(seq 1 18); do
               sleep 5
