@@ -91,7 +91,7 @@ twilio:
 aws:
   s3:
     enabled: ${app.parameter-store.aws.s3.enabled:true}
-    bucket-name: ${app.parameter-store.aws.s3.bucketName:broandbro-menu-images-dev}
+    bucket-name: ${app.parameter-store.aws.s3.bucketName:broandbro-dev-root-bucket}
     region: ${app.parameter-store.aws.s3.region:us-east-1}
     access-key: ${app.parameter-store.aws.s3.accessKey:}
     secret-key: ${app.parameter-store.aws.s3.secretKey:}

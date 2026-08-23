@@ -98,7 +98,7 @@ set_param "$PREFIX/aws/s3/enabled" \
   "String"
 
 set_param "$PREFIX/aws/s3/bucketName" \
-  "broandbro-menu-images-dev" \
+  "broandbro-dev-root-bucket" \
   "String"
 
 set_param "$PREFIX/aws/s3/region" \

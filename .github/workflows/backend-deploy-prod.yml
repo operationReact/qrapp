@@ -187,13 +187,13 @@ jobs:
           echo "📦 Uploading JAR to S3 (us-east-1)..."
           time aws s3 cp \
             backend/build/libs/qrapp-*.jar \
-            s3://broandbro-menu-images-prod/deploy/prod/${{ github.run_id }}/app.jar \
+            s3://broandbro-prod-root-bucket/deploy/prod/${{ github.run_id }}/app.jar \
             --region us-east-1
           echo "✅ S3 upload complete"
 
           # Pre-signed URL valid for 10 minutes – plenty of time for the SSH deploy step
           PRESIGNED=$(aws s3 presign \
-            s3://broandbro-menu-images-prod/deploy/prod/${{ github.run_id }}/app.jar \
+            s3://broandbro-prod-root-bucket/deploy/prod/${{ github.run_id }}/app.jar \
             --expires-in 600 \
             --region us-east-1)
           echo "JAR_URL=$PRESIGNED" >> "$GITHUB_ENV"
@@ -289,5 +289,5 @@ jobs:
         if: always()
         run: |
           aws s3 rm \
-            s3://broandbro-menu-images-prod/deploy/prod/${{ github.run_id }}/app.jar \
+            s3://broandbro-prod-root-bucket/deploy/prod/${{ github.run_id }}/app.jar \
             || true

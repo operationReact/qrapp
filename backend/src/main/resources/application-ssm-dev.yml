@@ -40,7 +40,7 @@ app:
     aws:
       s3:
         enabled: true
-        bucketName: broandbro-menu-images-dev
+        bucketName: broandbro-dev-root-bucket
         region: us-east-1
         accessKey: AKIA34EPRSL6ICFWRYHI
         secretKey: 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

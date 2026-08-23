@@ -19,7 +19,7 @@
 - ✅ Database: `broandbro_dev` (updated from `postgres`)
 - ✅ Razorpay Key: `rzp_test_SXoONgvkn7mSte`
 - ✅ Razorpay Secret: `rzp_test_SXoONgvkn7mSte`
-- ✅ AWS S3: Bucket `broandbro-menu-images-dev`, Keys updated
+- ✅ AWS S3: Bucket `broandbro-dev-root-bucket`, Keys updated
 - ✅ OpenAI: Full API key configured
 - ✅ Twilio: Empty (no values in source file - will be added when available)
 
@@ -70,7 +70,7 @@ webhookSecret: ""
 ### Storage (AWS S3)
 ```yaml
 enabled: true
-bucketName: broandbro-menu-images-dev
+bucketName: broandbro-dev-root-bucket
 region: us-east-1
 accessKey: AKIA34EPRSL6ICFWRYHI
 secretKey: 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
