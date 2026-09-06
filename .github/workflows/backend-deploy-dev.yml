@@ -404,11 +404,13 @@ jobs:
             --command-id "$COMMAND_ID" \
             --instance-id "$INSTANCE_ID" \
             --region us-east-1 2>/dev/null | python3 -c \
-            "import sys,json; d=json.load(sys.stdin); \
+            "import sys,json; \
+             raw=sys.stdin.read(); \
+             d=json.loads(raw) if raw.strip() else {}; \
              print('=== Remote output / errors (partial) ==='); \
              print(d.get('StandardOutputContent','')); \
              print(d.get('StandardErrorContent',''))" \
-            || echo "(no remote output available)"
+            2>/dev/null || echo "(no remote output available)"
           exit 1
 
       # Step 11: Cleanup S3 artifacts
