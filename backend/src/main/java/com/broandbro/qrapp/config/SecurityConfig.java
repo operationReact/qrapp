@@ -88,6 +88,8 @@ public class SecurityConfig {
                                 HttpMethod.POST,
                                 "/auth/register",
                                 "/auth/login",
+                                "/auth/send-otp",
+                                "/auth/verify-otp",
                                 "/whatsapp/send",
                                 "/whatsapp/verify-otp",
                                 "/admin/login"
