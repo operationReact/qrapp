@@ -208,7 +208,7 @@ jobs:
           OPENAI_IMAGE_MODEL=gpt-image-1
           OPENAI_IMAGE_SIZE=1024x1024
 
-          TWO_FACTOR_API_KEY=${TWO_FACTOR_API_KEY}
+          TWO_FACTOR_API_KEY=${{ env.TWO_FACTOR_API_KEY }}
 
           AWS_S3_BUCKET_NAME=${S3_BUCKET}
           AWS_S3_REGION=${S3_REGION}
