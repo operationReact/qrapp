@@ -28,18 +28,18 @@ jobs:
     environment: prod   # ← triggers the required-reviewers approval gate
 
     steps:
-      # ── 1. Checkout ──────────────────────────────────────────────────────────
+      # Step 1: Checkout
       - name: Checkout
         uses: actions/checkout@v4.2.2
 
-      # ── 2. Set up Java 21 ────────────────────────────────────────────────────
+      # Step 2: Set up Java 21
       - name: Set up Java 21
         uses: actions/setup-java@v4.7.1
         with:
           java-version: "21"
           distribution: corretto
 
-      # ── 2b. Cache Gradle distribution + downloaded dependencies ──────────────
+      # Step 2b: Cache Gradle distribution + downloaded dependencies
       - name: Cache Gradle
         uses: actions/cache@v4
         with:
@@ -50,7 +50,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-8.7-
 
-      # ── 3. Build JAR ─────────────────────────────────────────────────────────
+      # Step 3: Build JAR
       # Install Gradle 8.7 directly from the official distribution so we never
       # depend on a committed gradle-wrapper.jar (which is blocked by *.jar in
       # .gitignore and therefore always empty in this repo).
@@ -69,14 +69,14 @@ jobs:
       - name: Build Spring Boot JAR
         run: gradle :backend:bootJar -x test --no-daemon
 
-      # ── 4. Authenticate to AWS via OIDC ──────────────────────────────────────
+      # Step 4: Authenticate to AWS via OIDC
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: us-east-1
 
-      # ── 5. Fetch configuration from AWS Parameter Store ─────────────────────
+      # Step 5: Fetch configuration from AWS Parameter Store
       - name: Fetch configuration from AWS Parameter Store
         run: |
           get_optional_parameter() {
@@ -152,7 +152,7 @@ jobs:
            fi
            echo "✅ TWO_FACTOR_API_KEY present"
 
-      # ── 6. Fetch EC2 host from SSM (populated by Terraform) ──────────────────
+      # Step 6: Fetch EC2 host from SSM (populated by Terraform)
       - name: Get EC2 host from SSM
         id: ec2
         run: |
@@ -162,7 +162,7 @@ jobs:
             --output text)
           echo "host=$IP" >> "$GITHUB_OUTPUT"
 
-      # ── 7. Fetch SSH private key from SSM (SecureString) ─────────────────────
+      # Step 7: Fetch SSH private key from SSM (SecureString)
       - name: Get SSH private key from SSM
         id: ssh
         run: |
@@ -174,7 +174,7 @@ jobs:
           echo "$KEY" > /tmp/deploy_key
           chmod 600 /tmp/deploy_key
 
-      # ── 8. Upload JAR to S3 ──────────────────────────────────────────────────
+      # Step 8: Upload JAR to S3
       # Replacing the old SCP approach (GitHub runner US → Mumbai EC2 = ~30 min).
       # The runner uploads to S3 in us-east-1; the EC2 pulls it from S3 in the
       # same region over the AWS backbone – typically <30 seconds total.
@@ -196,7 +196,7 @@ jobs:
             --region us-east-1)
           echo "JAR_URL=$PRESIGNED" >> "$GITHUB_ENV"
 
-      # ── 9. Write application.env + restart service ───────────────────────────
+      # Step 9: Write application.env + restart service
       # All secrets are injected here — nothing sensitive is ever stored in files
       # in the repo.  The env file is written with 640 permissions (broandbro user
       # only) and is never echoed in logs.
@@ -223,23 +223,23 @@ jobs:
             # Write environment file (secrets injected at deploy time)
             # Configuration fetched from AWS Parameter Store
             sudo tee /opt/broandbro/config/application.env > /dev/null << EOF
-          # ─── Spring ────────────────────────────────────────────────────────
+          # Spring
           SPRING_PROFILES_ACTIVE=prod
           SERVER_PORT=8080
 
-          # ─── Database ──────────────────────────────────────────────────────
+          # Database
           SPRING_DATASOURCE_URL=${{ env.DB_URL }}
           SPRING_DATASOURCE_USERNAME=${{ env.DB_USERNAME }}
           SPRING_DATASOURCE_PASSWORD=${{ env.DB_PASSWORD }}
 
-          # ─── OpenAI (AI image generation) ──────────────────────────────────
+          # OpenAI (AI image generation)
           OPENAI_API_KEY=${{ env.OPENAI_API_KEY }}
           OPENAI_IMAGE_MODEL=gpt-image-1
           OPENAI_IMAGE_SIZE=1024x1024
 
           TWO_FACTOR_API_KEY=${TWO_FACTOR_API_KEY}
 
-          # ─── AWS S3 (shared media bucket) ──────────────────────────────────
+          # AWS S3 (shared media bucket)
           AWS_S3_BUCKET_NAME=${{ env.S3_BUCKET }}
           AWS_S3_REGION=${{ env.S3_REGION }}
           AWS_S3_ENABLED=${{ env.S3_ENABLED }}
@@ -247,12 +247,12 @@ jobs:
           AWS_SECRET_ACCESS_KEY=${{ env.AWS_SECRET_KEY }}
           APP_CORS_ALLOWED_ORIGINS=${{ env.APP_CORS_ALLOWED_ORIGINS }}
 
-          # ─── Razorpay ──────────────────────────────────────────────────────
+          # Razorpay
           RAZORPAY_KEY=${{ env.RAZORPAY_KEY }}
           RAZORPAY_SECRET=${{ env.RAZORPAY_SECRET }}
           RAZORPAY_WEBHOOK_SECRET=${{ env.RAZORPAY_WEBHOOK_SECRET }}
 
-          # ─── Twilio / WhatsApp ──────────────────────────────────────────────
+          # Twilio / WhatsApp
           TWILIO_ACCOUNT_SID=${{ env.TWILIO_ACCOUNT_SID }}
           TWILIO_AUTH_TOKEN=${{ env.TWILIO_AUTH_TOKEN }}
           TWILIO_FROM_NUMBER=+918879998899
