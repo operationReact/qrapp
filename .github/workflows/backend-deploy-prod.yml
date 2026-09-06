@@ -144,13 +144,13 @@ jobs:
           echo "APP_CORS_ALLOWED_ORIGINS=https://broandbro.in,https://www.broandbro.in" >> $GITHUB_ENV
           echo "✅ Configuration fetched from AWS Parameter Store"
 
-       - name: Validate TWO_FACTOR_API_KEY present
-         run: |
-           if [ -z "$TWO_FACTOR_API_KEY" ]; then
-             echo "❌ TWO_FACTOR_API_KEY not found in SSM for prod. Aborting deploy." >&2
-             exit 1
-           fi
-           echo "✅ TWO_FACTOR_API_KEY present"
+      - name: Validate TWO_FACTOR_API_KEY present
+        run: |
+          if [ -z "$TWO_FACTOR_API_KEY" ]; then
+            echo "❌ TWO_FACTOR_API_KEY not found in SSM for prod. Aborting deploy." >&2
+            exit 1
+          fi
+          echo "✅ TWO_FACTOR_API_KEY present"
 
       # Step 6: Fetch EC2 host from SSM (populated by Terraform)
       - name: Get EC2 host from SSM
@@ -237,7 +237,7 @@ jobs:
           OPENAI_IMAGE_MODEL=gpt-image-1
           OPENAI_IMAGE_SIZE=1024x1024
 
-          TWO_FACTOR_API_KEY=${TWO_FACTOR_API_KEY}
+          TWO_FACTOR_API_KEY=${{ env.TWO_FACTOR_API_KEY }}
 
           # AWS S3 (shared media bucket)
           AWS_S3_BUCKET_NAME=${{ env.S3_BUCKET }}
