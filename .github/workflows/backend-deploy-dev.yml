@@ -28,18 +28,18 @@ jobs:
     environment: dev
 
     steps:
-      # ── 1. Checkout ──────────────────────────────────────────────────────────
+      # Step 1: Checkout
       - name: Checkout
         uses: actions/checkout@v4.2.2
 
-      # ── 2. Set up Java 21 ────────────────────────────────────────────────────
+      # Step 2: Set up Java 21
       - name: Set up Java 21
         uses: actions/setup-java@v4.7.1
         with:
           java-version: "21"
           distribution: corretto
 
-      # ── 2b. Cache Gradle ─────────────────────────────────────────────────────
+      # Step 2b: Cache Gradle
       - name: Cache Gradle
         uses: actions/cache@v4
         with:
@@ -50,7 +50,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-8.7-
 
-      # ── 3. Validate AWS credentials (no app secrets needed - from SSM) ────────
+      # Step 3: Validate AWS credentials (no app secrets needed - from SSM)
       - name: Validate AWS role ARN is set
         env:
           AWS_ROLE_ARN: ${{ secrets.AWS_ROLE_ARN }}
@@ -61,7 +61,7 @@ jobs:
           fi
           echo "✅ AWS_ROLE_ARN is configured"
 
-      # ── 4. Build JAR ─────────────────────────────────────────────────────────
+      # Step 4: Build JAR
       - name: Install Gradle 8.7
         run: |
           if [ ! -f /opt/gradle/gradle-8.7/bin/gradle ]; then
@@ -77,14 +77,14 @@ jobs:
       - name: Build Spring Boot JAR
         run: gradle :backend:bootJar -x test --no-daemon
 
-      # ── 5. Authenticate to AWS via OIDC ──────────────────────────────────────
+      # Step 5: Authenticate to AWS via OIDC
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: us-east-1
 
-      # ── 6. Resolve EC2 instance ID ───────────────────────────────────────────
+      # Step 6: Resolve EC2 instance ID
       # SSM Run Command needs the instance ID, not the IP address.
       # We look it up from the tag set by Terraform.
       - name: Get EC2 instance ID
@@ -104,7 +104,7 @@ jobs:
           echo "✅ Instance: $INSTANCE_ID"
           echo "id=$INSTANCE_ID" >> "$GITHUB_OUTPUT"
 
-      # ── 7. Fetch configuration from AWS Parameter Store ─────────────────────
+      # Step 7: Fetch configuration from AWS Parameter Store
       # All application configuration is stored in AWS Systems Manager
       # Parameter Store for security and consistency.
       - name: Fetch configuration from AWS Parameter Store
@@ -178,7 +178,7 @@ jobs:
           fi
           echo "✅ TWO_FACTOR_API_KEY present"
 
-      # ── 8. Upload JAR + env file + deploy script to S3 ───────────────────────
+      # Step 8: Upload JAR + env file + deploy script to S3
       # All three files land in deploy/dev/<run_id>/ so cleanup is a single rm.
       # The env file is server-side encrypted (AES256); the EC2 IAM role already
       # has s3:GetObject on deploy/dev/* so no pre-signed URL is required.
@@ -188,13 +188,13 @@ jobs:
         run: |
           S3_PREFIX="s3://broandbro-dev-root-bucket/deploy/dev/${RUN_ID}"
 
-          # ── a) JAR ──────────────────────────────────────────────────────────
+          # a) JAR
           echo "📦 Uploading JAR..."
           aws s3 cp backend/build/libs/qrapp-*.jar \
             "${S3_PREFIX}/app.jar" --region us-east-1
           echo "✅ JAR uploaded"
 
-          # ── b) application.env (written on the runner, uploaded encrypted) ──
+          # b) application.env (written on the runner, uploaded encrypted)
           # Configuration fetched from AWS Parameter Store
           cat > /tmp/application.env << EOF
           SPRING_PROFILES_ACTIVE=dev
@@ -229,7 +229,7 @@ jobs:
             --region us-east-1 --sse AES256
           echo "✅ Env file uploaded"
 
-          # ── c) deploy.sh – runs ON the EC2, contains no secrets ─────────────
+          # c) deploy.sh – runs ON the EC2, contains no secrets
           # RUN_ID is substituted here on the runner before upload.
           cat > /tmp/deploy.sh << SCRIPT
           #!/bin/bash
@@ -291,7 +291,7 @@ jobs:
             "${S3_PREFIX}/deploy.sh" --region us-east-1
           echo "✅ Deploy script uploaded"
 
-      # ── 9. Ensure SSM agent is online before deploying ───────────────────────
+      # Step 9: Ensure SSM agent is online before deploying
       # If the instance rebooted or the SSM agent crashed, all Run Commands will
       # stay "Delayed" until the agent reconnects.  We check ping status and,
       # if offline, reboot the instance and wait up to 4 minutes for recovery.
@@ -332,7 +332,7 @@ jobs:
           echo "❌ SSM agent did not come online after reboot"
           exit 1
 
-      # ── 10. Execute deploy via SSM Run Command (no SSH / no port 22) ──────────
+      # Step 10: Execute deploy via SSM Run Command (no SSH / no port 22)
       # The EC2 already has AmazonSSMManagedInstanceCore + S3 deploy/* access
       # attached via Terraform. SSM pulls and runs deploy.sh from S3 as root.
       - name: Deploy via SSM
@@ -396,7 +396,7 @@ jobs:
           echo "❌ Timed out waiting for SSM command after 15 minutes"
           exit 1
 
-      # ── 11. Cleanup S3 artifacts ───────────────────────────────────────────────
+      # Step 11: Cleanup S3 artifacts
       - name: Cleanup S3 deploy artifacts
         if: always()
         run: |
