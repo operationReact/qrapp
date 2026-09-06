@@ -152,6 +152,8 @@ jobs:
           TWILIO_ACCOUNT_SID=$(get_optional_parameter "/broandbro/backend/dev/twilio/accountSid")
           TWILIO_AUTH_TOKEN=$(get_optional_parameter "/broandbro/backend/dev/twilio/authToken")
 
+          TWO_FACTOR_API_KEY=$(get_optional_parameter "/broandbro/backend/dev/twofactor/apiKey")
+
           # Store in environment for next step
           echo "DB_URL=$DB_URL" >> $GITHUB_ENV
           echo "DB_USERNAME=$DB_USERNAME" >> $GITHUB_ENV
@@ -165,7 +167,16 @@ jobs:
           echo "RAZORPAY_WEBHOOK_SECRET=$RAZORPAY_WEBHOOK_SECRET" >> $GITHUB_ENV
           echo "TWILIO_ACCOUNT_SID=$TWILIO_ACCOUNT_SID" >> $GITHUB_ENV
           echo "TWILIO_AUTH_TOKEN=$TWILIO_AUTH_TOKEN" >> $GITHUB_ENV
+          echo "TWO_FACTOR_API_KEY=$TWO_FACTOR_API_KEY" >> $GITHUB_ENV
           echo "✅ Configuration fetched from AWS Parameter Store"
+
+      - name: Validate TWO_FACTOR_API_KEY present
+        run: |
+          if [ -z "$TWO_FACTOR_API_KEY" ]; then
+            echo "❌ TWO_FACTOR_API_KEY not found in SSM for dev. Aborting deploy." >&2
+            exit 1
+          fi
+          echo "✅ TWO_FACTOR_API_KEY present"
 
       # ── 8. Upload JAR + env file + deploy script to S3 ───────────────────────
       # All three files land in deploy/dev/<run_id>/ so cleanup is a single rm.
@@ -196,6 +207,8 @@ jobs:
           OPENAI_API_KEY=${OPENAI_API_KEY}
           OPENAI_IMAGE_MODEL=gpt-image-1
           OPENAI_IMAGE_SIZE=1024x1024
+
+          TWO_FACTOR_API_KEY=${TWO_FACTOR_API_KEY}
 
           AWS_S3_BUCKET_NAME=${S3_BUCKET}
           AWS_S3_REGION=${S3_REGION}
