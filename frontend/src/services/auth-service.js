@@ -16,10 +16,10 @@ export const registerUser = (data) =>
   apiClient.post("/auth/register", data).then((r) => r.data);
 
 export const generateOTP = ({ userName, phone }) =>
-  apiClient.post("/whatsapp/send", { userName, phone }).then((r) => r.data);
+  apiClient.post("/auth/send-otp", { mobileNumber: phone }).then((r) => r.data);
 
 export const verifyOTP = ({ phone, otp }) =>
-  apiClient.post("/whatsapp/verify-otp", { phone, otp }).then((r) => r.data);
+  apiClient.post("/auth/verify-otp", { mobileNumber: phone, otp }).then((r) => r.data);
 
 export const forgotPassword = async ({ phone, otp }) => {
   // Mocked for now. Will be replaced with a real backend call.
