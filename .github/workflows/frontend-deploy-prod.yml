@@ -27,7 +27,7 @@ env:
   NODE_VERSION: "22"
   AWS_REGION: "us-east-1"
   S3_BUCKET: "broandbro-prod-ui"
-  # NOTE: CF_DISTRIBUTION_ID cannot be set here from secrets – referenced directly in the step below
+  # NOTE: CloudFront distribution ID is read from SSM during deploy steps.
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
 jobs:
@@ -101,8 +101,13 @@ jobs:
 
       - name: Invalidate CloudFront cache
         run: |
+          CF_DIST_ID=$(aws ssm get-parameter \
+            --name "/broandbro/prod/cf-distribution-id" \
+            --query "Parameter.Value" \
+            --output text)
+
           INVALIDATION_ID=$(aws cloudfront create-invalidation \
-            --distribution-id ${{ secrets.PROD_CF_DISTRIBUTION_ID }} \
+            --distribution-id "$CF_DIST_ID" \
             --paths "/*" \
             --query "Invalidation.Id" \
             --output text)
@@ -110,9 +115,13 @@ jobs:
 
       - name: Deployment summary
         run: |
+          CF_DIST_ID=$(aws ssm get-parameter \
+            --name "/broandbro/prod/cf-distribution-id" \
+            --query "Parameter.Value" \
+            --output text)
           echo "## ✅ Frontend Deployed to Production" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "- **URL:** https://broandbro.in" >> $GITHUB_STEP_SUMMARY
           echo "- **Bucket:** ${{ env.S3_BUCKET }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **CloudFront:** ${{ secrets.PROD_CF_DISTRIBUTION_ID }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **CloudFront:** $CF_DIST_ID" >> $GITHUB_STEP_SUMMARY
           echo "- **Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
