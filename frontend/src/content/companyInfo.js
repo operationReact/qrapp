@@ -9,6 +9,13 @@ export const companyProfile = {
   country: "India",
   registeredAddress:
     "G-1 Satish Residency, Vasanth Nagar Colony, Pragatinagar, Hyderabad - 500090, Telangana, India",
+  registeredAddressLines: [
+    "G-1 Satish Residency,",
+    "Vasanth Nagar Colony,",
+    "Pragatinagar,",
+    "Hyderabad - 500090,",
+    "Telangana, India",
+  ],
   fssaiNumber: "23625029005070",
   businessDescription:
     "Technology-enabled food destinations for corporate communities.",
@@ -131,13 +138,13 @@ export const buildPageHead = ({ title, description, path, breadcrumbs, schemas =
     breadcrumbs || [{ name: "Home", path: "/" }, { name: title, path }];
 
   return {
-    meta,
-    links,
-    scripts: [
-      ldJson(buildOrganizationSchema()),
-      ldJson(buildBreadcrumbSchema(breadcrumbItems)),
-      ...schemas.map(ldJson),
+    meta: [
+      ...meta,
+      { "script:ld+json": buildOrganizationSchema() },
+      { "script:ld+json": buildBreadcrumbSchema(breadcrumbItems) },
+      ...schemas.map((schema) => ({ "script:ld+json": schema })),
     ],
+    links,
   };
 };
 
@@ -184,15 +191,15 @@ export const companyInfoPages = {
         details: [
           { label: "Brand", value: companyProfile.brandName },
           { label: "Legal business name", value: companyProfile.legalName },
-          { label: "Email", value: companyProfile.email },
-          { label: "Phone", value: companyProfile.phone },
+          { label: "Email", value: companyProfile.email, href: `mailto:${companyProfile.email}` },
+          { label: "Phone", value: companyProfile.phone, href: `tel:+91${companyProfile.phone}` },
         ],
       },
       {
         title: "Location",
         details: [
           { label: "Business location", value: `${companyProfile.city}, ${companyProfile.state}, ${companyProfile.country}` },
-          { label: "Registered / mailing address", value: companyProfile.registeredAddress },
+          { label: "Registered / mailing address", value: companyProfile.registeredAddressLines },
         ],
       },
     ],
@@ -215,9 +222,9 @@ export const companyInfoPages = {
       },
       {
         title: "Support contact",
-        paragraphs: [
-          `Email: ${companyProfile.supportEmail}`,
-          `Phone: ${companyProfile.supportPhone}`,
+        details: [
+          { label: "Email", value: companyProfile.supportEmail, href: `mailto:${companyProfile.supportEmail}` },
+          { label: "Phone", value: companyProfile.supportPhone, href: `tel:+91${companyProfile.supportPhone}` },
         ],
       },
     ],
@@ -356,8 +363,9 @@ export const companyInfoPages = {
       },
       {
         title: "Contact",
-        paragraphs: [
-          `Privacy requests can be sent to ${companyProfile.email} or ${companyProfile.phone}.`,
+        details: [
+          { label: "Email", value: companyProfile.email, href: `mailto:${companyProfile.email}` },
+          { label: "Phone", value: companyProfile.phone, href: `tel:+91${companyProfile.phone}` },
         ],
       },
     ],
@@ -387,8 +395,11 @@ export const companyInfoPages = {
       },
       {
         title: "Support",
+        details: [
+          { label: "Email", value: companyProfile.email, href: `mailto:${companyProfile.email}` },
+          { label: "Phone", value: companyProfile.phone, href: `tel:+91${companyProfile.phone}` },
+        ],
         paragraphs: [
-          `Refund queries should be sent to ${companyProfile.email} or ${companyProfile.phone}.`,
           "Refund processing depends on the payment method and the status of the order in the system.",
         ],
       },
@@ -468,13 +479,13 @@ export const companyInfoPages = {
       },
       {
         title: "Registered / mailing address",
-        paragraphs: [companyProfile.registeredAddress],
+        paragraphs: companyProfile.registeredAddressLines,
       },
       {
         title: "Business contact",
         details: [
-          { label: "Email", value: companyProfile.email },
-          { label: "Phone", value: companyProfile.phone },
+          { label: "Email", value: companyProfile.email, href: `mailto:${companyProfile.email}` },
+          { label: "Phone", value: companyProfile.phone, href: `tel:+91${companyProfile.phone}` },
           { label: "FSSAI License / Registration No.", value: companyProfile.fssaiNumber },
         ],
       },
@@ -504,9 +515,12 @@ export const companyInfoPages = {
       },
       {
         title: "How to submit a grievance",
+        details: [
+          { label: "Email", value: companyProfile.grievanceEmail, href: `mailto:${companyProfile.grievanceEmail}` },
+          { label: "Phone", value: companyProfile.grievancePhone, href: `tel:+91${companyProfile.grievancePhone}` },
+        ],
         bullets: [
-          `Email ${companyProfile.grievanceEmail} with your order details, contact number, and a clear description of the issue.`,
-          `You can also call ${companyProfile.grievancePhone} for escalation.`,
+          "Include your order details, contact number, and a clear description of the issue.",
         ],
       },
       {

@@ -9,7 +9,7 @@ function FooterLinkList({ items }) {
         <li key={item.label}>
           <Link
             to={item.to}
-            className="text-sm leading-6 text-muted-foreground transition-colors hover:text-foreground"
+            className="text-sm leading-6 text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-2"
           >
             {item.label}
           </Link>
@@ -30,6 +30,17 @@ function FooterSection({ title, items }) {
   );
 }
 
+function MetaBlock({ label, children }) {
+  return (
+    <div className="space-y-0.5 text-sm leading-6">
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+        {label}
+      </p>
+      <div className="text-foreground">{children}</div>
+    </div>
+  );
+}
+
 export default function SiteFooter() {
   return (
     <footer
@@ -37,7 +48,7 @@ export default function SiteFooter() {
       className="mt-auto border-t border-border/70 bg-card/95 pb-[calc(var(--app-mobile-menu-height)+var(--app-safe-bottom)+1rem)] backdrop-blur supports-[backdrop-filter]:bg-card/85 md:pb-8"
     >
       <div className="container-premium py-7 sm:py-8">
-        <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.45fr)]">
+        <div className="grid gap-8 xl:grid-cols-[minmax(18rem,1fr)_minmax(0,1.6fr)]">
           <section className="space-y-4">
             <div className="flex items-start gap-3">
               <img
@@ -50,7 +61,7 @@ export default function SiteFooter() {
                   BRO &amp; BRO Food Court
                 </p>
                 <p className="text-sm leading-6 text-muted-foreground">
-                  A brand operated by{" "}
+                  A brand of{" "}
                   <span className="font-semibold text-foreground">
                     BRO&amp;BRO HOSPITALITY LLP
                   </span>
@@ -62,47 +73,35 @@ export default function SiteFooter() {
               </div>
             </div>
 
-            <div className="flex flex-wrap gap-x-5 gap-y-3 text-sm leading-6">
-              <div className="min-w-[11rem]">
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                  Legal entity
-                </p>
-                <p className="text-foreground">{companyProfile.legalName}</p>
-                <p className="text-muted-foreground">LLPIN: {companyProfile.llpin}</p>
-              </div>
-              <div className="min-w-[11rem]">
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                  Business location
-                </p>
-                <p className="text-foreground">
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+              <MetaBlock label="Business identity">
+                <div>BRO&amp;BRO HOSPITALITY LLP</div>
+                <div>LLPIN: {companyProfile.llpin}</div>
+              </MetaBlock>
+              <MetaBlock label="Location">
+                <div>
                   {companyProfile.city}, {companyProfile.state}, {companyProfile.country}
-                </p>
-                <p className="text-muted-foreground">
-                  FSSAI License / Registration No.
-                </p>
-                <p className="text-foreground">{companyProfile.fssaiNumber}</p>
-              </div>
-              <div className="min-w-[11rem]">
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                  Contact
-                </p>
+                </div>
+                <div>FSSAI License / Registration No. {companyProfile.fssaiNumber}</div>
+              </MetaBlock>
+              <MetaBlock label="Contact">
                 <a
                   href={`mailto:${companyProfile.email}`}
-                  className="block text-foreground transition-colors hover:text-primary"
+                  className="block transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-2"
                 >
                   {companyProfile.email}
                 </a>
                 <a
-                  href={`tel:${companyProfile.phone}`}
-                  className="block text-foreground transition-colors hover:text-primary"
+                  href={`tel:+91${companyProfile.phone}`}
+                  className="block transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-2"
                 >
                   {companyProfile.phone}
                 </a>
-              </div>
+              </MetaBlock>
             </div>
           </section>
 
-          <nav className="grid grid-cols-2 gap-x-6 gap-y-6 sm:grid-cols-3 lg:grid-cols-5">
+          <nav className="grid grid-cols-2 gap-x-6 gap-y-6 sm:grid-cols-3 xl:grid-cols-5">
             {footerSections.map((section) => (
               <FooterSection key={section.title} {...section} />
             ))}

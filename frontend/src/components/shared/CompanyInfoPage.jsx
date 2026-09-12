@@ -53,7 +53,22 @@ function SectionDetails({ details = [] }) {
             {item.label}
           </dt>
           <dd className="mt-1 text-sm leading-6 text-foreground">
-            {item.value}
+            {Array.isArray(item.value) ? (
+              <address className="not-italic space-y-0.5">
+                {item.value.map((line) => (
+                  <div key={line}>{line}</div>
+                ))}
+              </address>
+            ) : item.href ? (
+              <a
+                href={item.href}
+                className="text-foreground underline-offset-4 transition-colors hover:text-primary hover:underline"
+              >
+                {item.value}
+              </a>
+            ) : (
+              item.value
+            )}
           </dd>
         </div>
       ))}
