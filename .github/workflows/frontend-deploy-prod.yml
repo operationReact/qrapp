@@ -80,6 +80,19 @@ jobs:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
+      - name: Resolve CloudFront distribution ID
+        run: |
+          CF_DIST_ID=$(aws ssm get-parameter \
+            --name "/broandbro/prod/cf-distribution-id" \
+            --with-decryption \
+            --query "Parameter.Value" \
+            --output text)
+          if [ -z "$CF_DIST_ID" ] || [ "$CF_DIST_ID" = "None" ]; then
+            echo "❌ Missing or empty SSM parameter: /broandbro/prod/cf-distribution-id"
+            exit 1
+          fi
+          echo "CF_DIST_ID=$CF_DIST_ID" >> "$GITHUB_ENV"
+
       - name: Upload hashed assets (long cache)
         run: |
           aws s3 sync frontend/dist/assets/ s3://${{ env.S3_BUCKET }}/assets/ \
@@ -101,12 +114,6 @@ jobs:
 
       - name: Invalidate CloudFront cache
         run: |
-          CF_DIST_ID=$(aws ssm get-parameter \
-            --name "/broandbro/prod/cf-distribution-id" \
-            --with-decryption \
-            --query "Parameter.Value" \
-            --output text)
-
           INVALIDATION_ID=$(aws cloudfront create-invalidation \
             --distribution-id "$CF_DIST_ID" \
             --paths "/*" \
@@ -116,11 +123,6 @@ jobs:
 
       - name: Deployment summary
         run: |
-          CF_DIST_ID=$(aws ssm get-parameter \
-            --name "/broandbro/prod/cf-distribution-id" \
-            --with-decryption \
-            --query "Parameter.Value" \
-            --output text)
           echo "## ✅ Frontend Deployed to Production" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "- **URL:** https://broandbro.in" >> $GITHUB_STEP_SUMMARY
