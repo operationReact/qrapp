@@ -103,6 +103,7 @@ jobs:
         run: |
           CF_DIST_ID=$(aws ssm get-parameter \
             --name "/broandbro/prod/cf-distribution-id" \
+            --with-decryption \
             --query "Parameter.Value" \
             --output text)
 
@@ -117,6 +118,7 @@ jobs:
         run: |
           CF_DIST_ID=$(aws ssm get-parameter \
             --name "/broandbro/prod/cf-distribution-id" \
+            --with-decryption \
             --query "Parameter.Value" \
             --output text)
           echo "## ✅ Frontend Deployed to Production" >> $GITHUB_STEP_SUMMARY
