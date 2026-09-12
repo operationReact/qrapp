@@ -26,10 +26,10 @@ if (!rootEl) {
     ReactDOM.createRoot(rootEl).render(
         <React.StrictMode>
             <ErrorBoundary>
-                <QueryClientProvider client={queryClient}>
-                    <RouterProvider router={router} />
-                    <ReactQueryDevtools initialIsOpen={false} />
-                </QueryClientProvider>
+        <QueryClientProvider client={queryClient}>
+            <RouterProvider router={router} />
+            <ReactQueryDevtools initialIsOpen={false} />
+        </QueryClientProvider>
             </ErrorBoundary>
         </React.StrictMode>
     );

@@ -10,15 +10,26 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as WalletRouteImport } from './routes/wallet'
+import { Route as TermsAndConditionsRouteImport } from './routes/terms-and-conditions'
 import { Route as SuccessRouteImport } from './routes/success'
 import { Route as SearchRouteImport } from './routes/search'
+import { Route as RefundCancellationPolicyRouteImport } from './routes/refund-cancellation-policy'
 import { Route as ProfileRouteImport } from './routes/profile'
+import { Route as PrivacyPolicyRouteImport } from './routes/privacy-policy'
 import { Route as PartyOrdersRouteImport } from './routes/party-orders'
 import { Route as OrdersRouteImport } from './routes/orders'
 import { Route as NewPartyOrderRouteImport } from './routes/new-party-order'
 import { Route as MilestonesRouteImport } from './routes/milestones'
+import { Route as HelpSupportRouteImport } from './routes/help-support'
+import { Route as GrievanceRedressalRouteImport } from './routes/grievance-redressal'
+import { Route as FssaiInformationRouteImport } from './routes/fssai-information'
+import { Route as FoodSafetyRouteImport } from './routes/food-safety'
+import { Route as FaqsRouteImport } from './routes/faqs'
+import { Route as ContactUsRouteImport } from './routes/contact-us'
 import { Route as CartRouteImport } from './routes/cart'
+import { Route as BusinessInformationRouteImport } from './routes/business-information'
 import { Route as AdminRouteImport } from './routes/admin'
+import { Route as AboutUsRouteImport } from './routes/about-us'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as CategoriesCategoryIdRouteImport } from './routes/categories.$categoryId'
@@ -67,6 +78,11 @@ const WalletRoute = WalletRouteImport.update({
   path: '/wallet',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TermsAndConditionsRoute = TermsAndConditionsRouteImport.update({
+  id: '/terms-and-conditions',
+  path: '/terms-and-conditions',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SuccessRoute = SuccessRouteImport.update({
   id: '/success',
   path: '/success',
@@ -77,9 +93,20 @@ const SearchRoute = SearchRouteImport.update({
   path: '/search',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RefundCancellationPolicyRoute =
+  RefundCancellationPolicyRouteImport.update({
+    id: '/refund-cancellation-policy',
+    path: '/refund-cancellation-policy',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ProfileRoute = ProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyPolicyRoute = PrivacyPolicyRouteImport.update({
+  id: '/privacy-policy',
+  path: '/privacy-policy',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PartyOrdersRoute = PartyOrdersRouteImport.update({
@@ -102,14 +129,54 @@ const MilestonesRoute = MilestonesRouteImport.update({
   path: '/milestones',
   getParentRoute: () => rootRouteImport,
 } as any)
+const HelpSupportRoute = HelpSupportRouteImport.update({
+  id: '/help-support',
+  path: '/help-support',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GrievanceRedressalRoute = GrievanceRedressalRouteImport.update({
+  id: '/grievance-redressal',
+  path: '/grievance-redressal',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FssaiInformationRoute = FssaiInformationRouteImport.update({
+  id: '/fssai-information',
+  path: '/fssai-information',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FoodSafetyRoute = FoodSafetyRouteImport.update({
+  id: '/food-safety',
+  path: '/food-safety',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FaqsRoute = FaqsRouteImport.update({
+  id: '/faqs',
+  path: '/faqs',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ContactUsRoute = ContactUsRouteImport.update({
+  id: '/contact-us',
+  path: '/contact-us',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CartRoute = CartRouteImport.update({
   id: '/cart',
   path: '/cart',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BusinessInformationRoute = BusinessInformationRouteImport.update({
+  id: '/business-information',
+  path: '/business-information',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminRoute = AdminRouteImport.update({
   id: '/admin',
   path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AboutUsRoute = AboutUsRouteImport.update({
+  id: '/about-us',
+  path: '/about-us',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -339,15 +406,26 @@ const AdminmenuCombosCreateRoute = AdminmenuCombosCreateRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/about-us': typeof AboutUsRoute
   '/admin': typeof AdminRouteWithChildren
+  '/business-information': typeof BusinessInformationRoute
   '/cart': typeof CartRoute
+  '/contact-us': typeof ContactUsRoute
+  '/faqs': typeof FaqsRoute
+  '/food-safety': typeof FoodSafetyRoute
+  '/fssai-information': typeof FssaiInformationRoute
+  '/grievance-redressal': typeof GrievanceRedressalRoute
+  '/help-support': typeof HelpSupportRoute
   '/milestones': typeof MilestonesRoute
   '/new-party-order': typeof NewPartyOrderRoute
   '/orders': typeof OrdersRoute
   '/party-orders': typeof PartyOrdersRoute
+  '/privacy-policy': typeof PrivacyPolicyRoute
   '/profile': typeof ProfileRoute
+  '/refund-cancellation-policy': typeof RefundCancellationPolicyRoute
   '/search': typeof SearchRoute
   '/success': typeof SuccessRoute
+  '/terms-and-conditions': typeof TermsAndConditionsRoute
   '/wallet': typeof WalletRoute
   '/forget-password': typeof authForgetPasswordRoute
   '/login': typeof authLoginRoute
@@ -393,14 +471,25 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/about-us': typeof AboutUsRoute
+  '/business-information': typeof BusinessInformationRoute
   '/cart': typeof CartRoute
+  '/contact-us': typeof ContactUsRoute
+  '/faqs': typeof FaqsRoute
+  '/food-safety': typeof FoodSafetyRoute
+  '/fssai-information': typeof FssaiInformationRoute
+  '/grievance-redressal': typeof GrievanceRedressalRoute
+  '/help-support': typeof HelpSupportRoute
   '/milestones': typeof MilestonesRoute
   '/new-party-order': typeof NewPartyOrderRoute
   '/orders': typeof OrdersRoute
   '/party-orders': typeof PartyOrdersRoute
+  '/privacy-policy': typeof PrivacyPolicyRoute
   '/profile': typeof ProfileRoute
+  '/refund-cancellation-policy': typeof RefundCancellationPolicyRoute
   '/search': typeof SearchRoute
   '/success': typeof SuccessRoute
+  '/terms-and-conditions': typeof TermsAndConditionsRoute
   '/wallet': typeof WalletRoute
   '/forget-password': typeof authForgetPasswordRoute
   '/login': typeof authLoginRoute
@@ -446,15 +535,26 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/about-us': typeof AboutUsRoute
   '/admin': typeof AdminRouteWithChildren
+  '/business-information': typeof BusinessInformationRoute
   '/cart': typeof CartRoute
+  '/contact-us': typeof ContactUsRoute
+  '/faqs': typeof FaqsRoute
+  '/food-safety': typeof FoodSafetyRoute
+  '/fssai-information': typeof FssaiInformationRoute
+  '/grievance-redressal': typeof GrievanceRedressalRoute
+  '/help-support': typeof HelpSupportRoute
   '/milestones': typeof MilestonesRoute
   '/new-party-order': typeof NewPartyOrderRoute
   '/orders': typeof OrdersRoute
   '/party-orders': typeof PartyOrdersRoute
+  '/privacy-policy': typeof PrivacyPolicyRoute
   '/profile': typeof ProfileRoute
+  '/refund-cancellation-policy': typeof RefundCancellationPolicyRoute
   '/search': typeof SearchRoute
   '/success': typeof SuccessRoute
+  '/terms-and-conditions': typeof TermsAndConditionsRoute
   '/wallet': typeof WalletRoute
   '/(auth)/forget-password': typeof authForgetPasswordRoute
   '/(auth)/login': typeof authLoginRoute
@@ -502,15 +602,26 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/about-us'
     | '/admin'
+    | '/business-information'
     | '/cart'
+    | '/contact-us'
+    | '/faqs'
+    | '/food-safety'
+    | '/fssai-information'
+    | '/grievance-redressal'
+    | '/help-support'
     | '/milestones'
     | '/new-party-order'
     | '/orders'
     | '/party-orders'
+    | '/privacy-policy'
     | '/profile'
+    | '/refund-cancellation-policy'
     | '/search'
     | '/success'
+    | '/terms-and-conditions'
     | '/wallet'
     | '/forget-password'
     | '/login'
@@ -556,14 +667,25 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/about-us'
+    | '/business-information'
     | '/cart'
+    | '/contact-us'
+    | '/faqs'
+    | '/food-safety'
+    | '/fssai-information'
+    | '/grievance-redressal'
+    | '/help-support'
     | '/milestones'
     | '/new-party-order'
     | '/orders'
     | '/party-orders'
+    | '/privacy-policy'
     | '/profile'
+    | '/refund-cancellation-policy'
     | '/search'
     | '/success'
+    | '/terms-and-conditions'
     | '/wallet'
     | '/forget-password'
     | '/login'
@@ -608,15 +730,26 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/about-us'
     | '/admin'
+    | '/business-information'
     | '/cart'
+    | '/contact-us'
+    | '/faqs'
+    | '/food-safety'
+    | '/fssai-information'
+    | '/grievance-redressal'
+    | '/help-support'
     | '/milestones'
     | '/new-party-order'
     | '/orders'
     | '/party-orders'
+    | '/privacy-policy'
     | '/profile'
+    | '/refund-cancellation-policy'
     | '/search'
     | '/success'
+    | '/terms-and-conditions'
     | '/wallet'
     | '/(auth)/forget-password'
     | '/(auth)/login'
@@ -663,15 +796,26 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AboutUsRoute: typeof AboutUsRoute
   AdminRoute: typeof AdminRouteWithChildren
+  BusinessInformationRoute: typeof BusinessInformationRoute
   CartRoute: typeof CartRoute
+  ContactUsRoute: typeof ContactUsRoute
+  FaqsRoute: typeof FaqsRoute
+  FoodSafetyRoute: typeof FoodSafetyRoute
+  FssaiInformationRoute: typeof FssaiInformationRoute
+  GrievanceRedressalRoute: typeof GrievanceRedressalRoute
+  HelpSupportRoute: typeof HelpSupportRoute
   MilestonesRoute: typeof MilestonesRoute
   NewPartyOrderRoute: typeof NewPartyOrderRoute
   OrdersRoute: typeof OrdersRoute
   PartyOrdersRoute: typeof PartyOrdersRoute
+  PrivacyPolicyRoute: typeof PrivacyPolicyRoute
   ProfileRoute: typeof ProfileRoute
+  RefundCancellationPolicyRoute: typeof RefundCancellationPolicyRoute
   SearchRoute: typeof SearchRoute
   SuccessRoute: typeof SuccessRoute
+  TermsAndConditionsRoute: typeof TermsAndConditionsRoute
   WalletRoute: typeof WalletRoute
   authForgetPasswordRoute: typeof authForgetPasswordRoute
   authLoginRoute: typeof authLoginRoute
@@ -688,6 +832,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WalletRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/terms-and-conditions': {
+      id: '/terms-and-conditions'
+      path: '/terms-and-conditions'
+      fullPath: '/terms-and-conditions'
+      preLoaderRoute: typeof TermsAndConditionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/success': {
       id: '/success'
       path: '/success'
@@ -702,11 +853,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SearchRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/refund-cancellation-policy': {
+      id: '/refund-cancellation-policy'
+      path: '/refund-cancellation-policy'
+      fullPath: '/refund-cancellation-policy'
+      preLoaderRoute: typeof RefundCancellationPolicyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/profile': {
       id: '/profile'
       path: '/profile'
       fullPath: '/profile'
       preLoaderRoute: typeof ProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy-policy': {
+      id: '/privacy-policy'
+      path: '/privacy-policy'
+      fullPath: '/privacy-policy'
+      preLoaderRoute: typeof PrivacyPolicyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/party-orders': {
@@ -737,6 +902,48 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MilestonesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/help-support': {
+      id: '/help-support'
+      path: '/help-support'
+      fullPath: '/help-support'
+      preLoaderRoute: typeof HelpSupportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/grievance-redressal': {
+      id: '/grievance-redressal'
+      path: '/grievance-redressal'
+      fullPath: '/grievance-redressal'
+      preLoaderRoute: typeof GrievanceRedressalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/fssai-information': {
+      id: '/fssai-information'
+      path: '/fssai-information'
+      fullPath: '/fssai-information'
+      preLoaderRoute: typeof FssaiInformationRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/food-safety': {
+      id: '/food-safety'
+      path: '/food-safety'
+      fullPath: '/food-safety'
+      preLoaderRoute: typeof FoodSafetyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/faqs': {
+      id: '/faqs'
+      path: '/faqs'
+      fullPath: '/faqs'
+      preLoaderRoute: typeof FaqsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/contact-us': {
+      id: '/contact-us'
+      path: '/contact-us'
+      fullPath: '/contact-us'
+      preLoaderRoute: typeof ContactUsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/cart': {
       id: '/cart'
       path: '/cart'
@@ -744,11 +951,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CartRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/business-information': {
+      id: '/business-information'
+      path: '/business-information'
+      fullPath: '/business-information'
+      preLoaderRoute: typeof BusinessInformationRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin': {
       id: '/admin'
       path: '/admin'
       fullPath: '/admin'
       preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/about-us': {
+      id: '/about-us'
+      path: '/about-us'
+      fullPath: '/about-us'
+      preLoaderRoute: typeof AboutUsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -1147,15 +1368,26 @@ const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AboutUsRoute: AboutUsRoute,
   AdminRoute: AdminRouteWithChildren,
+  BusinessInformationRoute: BusinessInformationRoute,
   CartRoute: CartRoute,
+  ContactUsRoute: ContactUsRoute,
+  FaqsRoute: FaqsRoute,
+  FoodSafetyRoute: FoodSafetyRoute,
+  FssaiInformationRoute: FssaiInformationRoute,
+  GrievanceRedressalRoute: GrievanceRedressalRoute,
+  HelpSupportRoute: HelpSupportRoute,
   MilestonesRoute: MilestonesRoute,
   NewPartyOrderRoute: NewPartyOrderRoute,
   OrdersRoute: OrdersRoute,
   PartyOrdersRoute: PartyOrdersRoute,
+  PrivacyPolicyRoute: PrivacyPolicyRoute,
   ProfileRoute: ProfileRoute,
+  RefundCancellationPolicyRoute: RefundCancellationPolicyRoute,
   SearchRoute: SearchRoute,
   SuccessRoute: SuccessRoute,
+  TermsAndConditionsRoute: TermsAndConditionsRoute,
   WalletRoute: WalletRoute,
   authForgetPasswordRoute: authForgetPasswordRoute,
   authLoginRoute: authLoginRoute,

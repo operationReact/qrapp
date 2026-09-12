@@ -21,7 +21,6 @@ import {
   ShoppingBagIcon,
   LeafIcon,
   CurrencyInrIcon,
-  TruckIcon,
 } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -35,7 +34,7 @@ function getNextWorkingDay() {
   return d;
 }
 
-function formatDeliveryDate(d) {
+function formatScheduledDate(d) {
   return d.toLocaleDateString("en-IN", {
     weekday: "long", day: "numeric", month: "long",
   });
@@ -53,8 +52,8 @@ export default function CreatePreOrderDialog({ open, onOpenChange }) {
   const qc = useQueryClient();
   const { data: items = [], isLoading } = useQuery(adminPreOrderItemsOptions);
 
-  const deliveryDate = useMemo(() => getNextWorkingDay(), []);
-  const scheduledAt = deliveryDate.toISOString().slice(0, 19);
+  const scheduledDate = useMemo(() => getNextWorkingDay(), []);
+  const scheduledAt = scheduledDate.toISOString().slice(0, 19);
 
   const [phone, setPhone] = useState("");
   const [note, setNote] = useState("");
@@ -93,7 +92,7 @@ export default function CreatePreOrderDialog({ open, onOpenChange }) {
   const mutation = useMutation({
     mutationFn: (payload) => createAdminPreOrder(payload),
     onSuccess: () => {
-      toast.success(`Pre-order created — delivery ${formatDeliveryDate(deliveryDate)}`);
+      toast.success(`Pre-order created — scheduled for ${formatScheduledDate(scheduledDate)}`);
       qc.invalidateQueries({ queryKey: ["pre-orders", "admin"] });
       onOpenChange(false);
       setPhone("");
@@ -127,12 +126,12 @@ export default function CreatePreOrderDialog({ open, onOpenChange }) {
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
-          {/* ── Delivery date banner ─────────────────────────────────── */}
+          {/* ── Schedule banner ──────────────────────────────────────── */}
           <div className="rounded-lg bg-primary/5 border border-primary/20 px-4 py-3 flex items-start gap-3">
-            <TruckIcon className="size-5 text-primary shrink-0 mt-0.5" weight="fill" />
+            <CalendarCheckIcon className="size-5 text-primary shrink-0 mt-0.5" weight="fill" />
             <div>
               <p className="text-sm font-semibold text-primary">
-                Delivery on {formatDeliveryDate(deliveryDate)}
+                Scheduled for {formatScheduledDate(scheduledDate)}
               </p>
               <p className="text-xs text-primary mt-0.5">
                 Pre-orders are fulfilled on the next working day.
@@ -150,7 +149,6 @@ export default function CreatePreOrderDialog({ open, onOpenChange }) {
               type="tel"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-              placeholder="91XXXXXXXXXX"
               className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/30"
             />
           </div>

@@ -19,8 +19,6 @@ import {
   PhoneIcon,
   MinusIcon,
   PlusIcon,
-  TruckIcon,
-  InfoIcon,
   LeafIcon,
   WalletIcon,
   CreditCardIcon,
@@ -51,7 +49,7 @@ function getNextWorkingDay() {
   return d;
 }
 
-function formatDeliveryDate(d) {
+function formatScheduledDate(d) {
   return d.toLocaleDateString("en-IN", {
     weekday: "long",
     day: "numeric",
@@ -77,9 +75,9 @@ export default function CustomerPreOrderDialog({
   const navigate = useNavigate();
   const { data: allItems = [], isLoading } = useQuery(preOrderItemsOptions);
 
-  const deliveryDate = useMemo(() => getNextWorkingDay(), []);
-  const deliveryLabel = formatDeliveryDate(deliveryDate);
-  const scheduledAt = deliveryDate.toISOString().slice(0, 19);
+  const scheduledDate = useMemo(() => getNextWorkingDay(), []);
+  const scheduledLabel = formatScheduledDate(scheduledDate);
+  const scheduledAt = scheduledDate.toISOString().slice(0, 19);
 
   const [quantities, setQuantities] = useState(() =>
     initialItem ? { [initialItem.id]: 1 } : {},
@@ -225,18 +223,15 @@ export default function CustomerPreOrderDialog({
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
-          {/* Delivery banner */}
+          {/* Schedule banner */}
           <div className="rounded-lg bg-primary/3 border border-primary/5 px-4 py-3 flex items-start gap-3">
-            <TruckIcon
-              className="size-5 text-primary shrink-0 mt-0.5"
-              weight="fill"
-            />
+            <CalendarCheckIcon className="size-5 text-primary shrink-0 mt-0.5" weight="fill" />
             <div>
               <p className="text-sm font-semibold text-primary">
-                Delivery on {deliveryLabel}
+                Scheduled for {scheduledLabel}
               </p>
               <p className="text-xs text-primary mt-0.5">
-                Pre-orders are prepared and delivered on the next working day.
+                Pre-orders are prepared on the next working day.
               </p>
             </div>
           </div>
@@ -341,7 +336,6 @@ export default function CustomerPreOrderDialog({
               type="tel"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-              placeholder="91XXXXXXXXXX"
               className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/30"
             />
           </div>
@@ -427,7 +421,7 @@ export default function CustomerPreOrderDialog({
           <div className="flex items-start gap-2 text-xs text-zinc-400">
             <InfoIcon className="size-3.5 shrink-0 mt-0.5" weight="fill" />
             <span>
-              Our team will confirm your order via phone before delivery.
+              Our team will confirm your order via phone before preparation.
             </span>
           </div>
         </div>

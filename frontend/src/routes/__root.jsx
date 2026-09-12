@@ -10,6 +10,7 @@ import { AuthProvider } from "../context/AuthContext";
 import { Toaster } from "../components/ui/sonner";
 import PropTypes from "prop-types";
 import SiteFooter from "../components/shared/SiteFooter";
+import { HeadContent } from "@tanstack/react-router";
 
 function SafeAreaWrapper({ children }) {
   const { cart } = useCart();
@@ -32,6 +33,7 @@ function RootComponent() {
           <PreferencesProvider>
             <OffCanvasCart />
             <SafeAreaWrapper>
+              <HeadContent />
               <Outlet />
               <SiteFooter />
             </SafeAreaWrapper>

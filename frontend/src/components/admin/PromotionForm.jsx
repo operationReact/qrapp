@@ -37,14 +37,14 @@ const PROMO_TYPES = [
 
 const STACK_MODES = [
   { value: "NONE", label: "None", description: "Cannot combine with any other offer" },
-  { value: "DELIVERY_ONLY", label: "Delivery Only", description: "Can stack with a free-delivery offer" },
+  { value: "DELIVERY_ONLY", label: "Exclusive Offer", description: "Can stack with a complimentary offer" },
   { value: "MULTIPLE_ALLOWED", label: "Multiple Allowed", description: "Stacks freely with other promotions" },
 ];
 
 const REWARD_TYPES = [
   { value: "FLAT_DISCOUNT", label: "Flat Discount (₹ off)" },
   { value: "PERCENTAGE_DISCOUNT", label: "Percentage Discount (% off)" },
-  { value: "FREE_DELIVERY", label: "Free Delivery" },
+  { value: "FREE_DELIVERY", label: "Complimentary Offer" },
 ];
 
 const RULE_TYPES = [
