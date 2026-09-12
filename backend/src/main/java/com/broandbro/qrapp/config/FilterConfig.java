@@ -28,7 +28,9 @@ public class FilterConfig extends OncePerRequestFilter {
 
                 path.equals("/auth/login") ||
                         path.equals("/auth/register") ||
-                        path.equals("/admin/login") ||
+                path.equals("/auth/send-otp") ||
+                path.equals("/auth/verify-otp") ||
+                path.equals("/admin/login") ||
 
                         path.equals("/terms-and-conditions") ||
                         path.equals("/privacy-policy") ||

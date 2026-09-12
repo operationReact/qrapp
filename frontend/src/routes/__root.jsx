@@ -9,6 +9,8 @@ import { TooltipProvider } from "../components/ui/tooltip";
 import { AuthProvider } from "../context/AuthContext";
 import { Toaster } from "../components/ui/sonner";
 import PropTypes from "prop-types";
+import SiteFooter from "../components/shared/SiteFooter";
+import { HeadContent } from "@tanstack/react-router";
 
 function SafeAreaWrapper({ children }) {
   const { cart } = useCart();
@@ -16,7 +18,7 @@ function SafeAreaWrapper({ children }) {
     cart && cart.length > 0
       ? { paddingBottom: "calc(72px + env(safe-area-inset-bottom))" }
       : undefined;
-  return <div style={style}>{children}</div>;
+  return <div className="flex min-h-screen flex-col" style={style}>{children}</div>;
 }
 
 SafeAreaWrapper.propTypes = {
@@ -31,7 +33,9 @@ function RootComponent() {
           <PreferencesProvider>
             <OffCanvasCart />
             <SafeAreaWrapper>
+              <HeadContent />
               <Outlet />
+              <SiteFooter />
             </SafeAreaWrapper>
             <Toast />
             <Toaster />

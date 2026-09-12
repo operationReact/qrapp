@@ -69,7 +69,7 @@ export const Route = createFileRoute("/(auth)/register")({
     };
 
     return (
-      <div className="page-shell flex min-h-screen items-center justify-center py-6 sm:px-4">
+      <div className="flex w-full flex-1 items-center justify-center py-6 sm:px-4">
         <div className="w-full max-w-md">
           <div className="px-4">
             <Link

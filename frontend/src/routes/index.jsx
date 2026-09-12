@@ -24,9 +24,19 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty";
+import { buildPageHead, buildWebSiteSchema } from "@/content/companyInfo";
 
 
 export const Route = createFileRoute("/")({
+  head: () =>
+    buildPageHead({
+      title: "BRO & BRO Food Court",
+      description:
+        "BRO & BRO Food Court is a technology-enabled food destination for corporate communities.",
+      path: "/",
+      breadcrumbs: [{ name: "Home", path: "/" }],
+      schemas: [buildWebSiteSchema()],
+    }),
   component: MenuPage,
 });
 
