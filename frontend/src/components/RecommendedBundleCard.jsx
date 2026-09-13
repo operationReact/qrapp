@@ -93,9 +93,6 @@ function MoreBubble({ count }) {
  *  - onAddBundle:        () => void
  *  - isLoading:          boolean
  *  - disabled:           boolean
- *  - primaryItemName:    string   — cart item for personalised social proof
- *  - confidencePercent:  number   — social proof %, default 87
- *
  * Removed (no longer displayed):
  *  - originalPrice, finalPrice — kept as optional accepted props for
  *    backward compatibility but not rendered
@@ -106,8 +103,6 @@ export default function RecommendedBundleCard({
   onAddBundle,
   isLoading = false,
   disabled = false,
-  primaryItemName,
-  confidencePercent = 87,
   // kept for backward compatibility
   // eslint-disable-next-line no-unused-vars
   originalPrice,

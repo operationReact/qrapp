@@ -18,21 +18,24 @@ export default function Toast() {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
     if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
 
-    if (lastAdded) {
-      setText(lastAdded);
-      rafRef.current = requestAnimationFrame(() => setVisible(true));
-      return () => {
-        if (rafRef.current) cancelAnimationFrame(rafRef.current);
-      };
-    }
+    const timer = window.setTimeout(() => {
+      if (lastAdded) {
+        setText(lastAdded);
+        rafRef.current = requestAnimationFrame(() => setVisible(true));
+        return;
+      }
 
-    if (text) {
-      setVisible(false);
-      hideTimerRef.current = setTimeout(() => setText(null), 300);
-      return () => clearTimeout(hideTimerRef.current);
-    }
+      if (text) {
+        setVisible(false);
+        hideTimerRef.current = setTimeout(() => setText(null), 300);
+      }
+    }, 0);
 
-    return undefined;
+    return () => {
+      window.clearTimeout(timer);
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+    };
   }, [lastAdded, text]);
 
   if (!text) return null;

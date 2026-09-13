@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/refs */
 import { useMemo, useState, useEffect } from "react";
 import Autoplay from "embla-carousel-autoplay";
 import { Button, buttonVariants } from "./ui/button";

@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { createPreOrder } from "@/services/order-service";
@@ -97,13 +97,16 @@ export default function CustomerPreOrderDialog({
 
   // Load wallet balance when logged in
   useEffect(() => {
-    if (!user?.token) {
-      setWalletBalance(null);
-      return;
-    }
-    walletGetBalance()
-      .then((r) => setWalletBalance(Number(r?.balance ?? 0)))
-      .catch(() => setWalletBalance(null));
+    const timer = window.setTimeout(() => {
+      if (!user?.token) {
+        setWalletBalance(null);
+        return;
+      }
+      walletGetBalance()
+        .then((r) => setWalletBalance(Number(r?.balance ?? 0)))
+        .catch(() => setWalletBalance(null));
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [user?.token, open]);
 
   const setQty = (itemId, delta) => {

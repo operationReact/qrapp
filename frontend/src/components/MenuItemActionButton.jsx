@@ -4,12 +4,14 @@ import { motion } from "motion/react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { PlusIcon } from "@phosphor-icons/react";
 
+const MotionDiv = motion.div;
+
 export default function ItemActionButton({ qty, onAdd, onDecrease }) {
   const isMobile = useIsMobile();
   const initialWidth = isMobile ? "32px" : "69.5px";
 
   return (
-    <motion.div
+    <MotionDiv
       initial={{
         width: initialWidth,
         backgroundColor: "var(--primary-foreground)",
@@ -45,6 +47,6 @@ export default function ItemActionButton({ qty, onAdd, onDecrease }) {
           onDecrease={onDecrease}
         />
       )}
-    </motion.div>
+    </MotionDiv>
   );
 }

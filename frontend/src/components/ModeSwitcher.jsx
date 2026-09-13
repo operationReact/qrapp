@@ -1,4 +1,4 @@
-import { motion, AnimatePresence } from "motion/react";
+import { AnimatePresence } from "motion/react";
 import { usePreferences } from "@/context/PreferencesContext";
 import { LeafIcon } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";

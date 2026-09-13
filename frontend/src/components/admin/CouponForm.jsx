@@ -37,7 +37,10 @@ export default function CouponForm({ initialData, onSubmit, isLoading, id }) {
   });
 
   useEffect(() => {
-    if (initialData) {
+    const timer = window.setTimeout(() => {
+      if (!initialData) {
+        return;
+      }
       setFormData({
         code: initialData.code || "",
         title: initialData.title || "",
@@ -58,7 +61,8 @@ export default function CouponForm({ initialData, onSubmit, isLoading, id }) {
         isActive:
           initialData.isActive !== undefined ? initialData.isActive : true,
       });
-    }
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [initialData]);
 
   function formatDateForInput(dateStr) {

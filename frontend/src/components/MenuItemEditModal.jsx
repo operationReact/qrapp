@@ -57,17 +57,25 @@ export default function MenuItemEditModal({
     estimatedCost: "",
   });
   const [error, setError] = useState(null);
-  formRef.current = form; // keep ref in sync with latest state on every render
   const queryClient = useQueryClient();
 
   // AI image generation state — v2
   const [aiImageOptions, setAiImageOptions] = useState([]);
   const [selectedAiImage, setSelectedAiImage] = useState(null);
-  const [aiGenerateCount, setAiGenerateCount] = useState(0);
   const [aiError, setAiError] = useState(null);
   const [additionalPrompt, setAdditionalPrompt] = useState("");
-  selectedAiImageRef.current = selectedAiImage; // keep ref in sync with latest state on every render
-  aiImageOptionsRef.current = aiImageOptions;   // keep ref in sync with latest state on every render
+
+  useEffect(() => {
+    formRef.current = form;
+  }, [form]);
+
+  useEffect(() => {
+    selectedAiImageRef.current = selectedAiImage;
+  }, [selectedAiImage]);
+
+  useEffect(() => {
+    aiImageOptionsRef.current = aiImageOptions;
+  }, [aiImageOptions]);
 
   const { data: allTags = [] } = useQuery({
     queryKey: ["tags"],
@@ -99,10 +107,9 @@ export default function MenuItemEditModal({
         additionalPrompt || null,
         isRetry ? aiImageOptions : []
       ),
-    onSuccess: (data, variables) => {
+    onSuccess: (data) => {
       setAiImageOptions(data.imageUrls || []);
       setSelectedAiImage(null);
-      if (!variables?.isRetry) setAiGenerateCount((c) => c + 1);
       setAiError(null);
     },
     onError: () => setAiError("Failed to generate AI images. Please try again."),
@@ -115,7 +122,10 @@ export default function MenuItemEditModal({
   });
 
   useEffect(() => {
-    if (item) {
+    const timer = window.setTimeout(() => {
+      if (!item) {
+        return;
+      }
       const initialPreview = item.imageUrl || "";
       setForm({
         name: item.name || "",
@@ -133,17 +143,15 @@ export default function MenuItemEditModal({
         previewUrl: initialPreview,
         estimatedCost: item.estimatedCost != null ? String(item.estimatedCost) : "",
       });
-      // ensure previewRef is synced to existing url when initialized
       previewRef.current = initialPreview || null;
       setError(null);
-      // Reset AI state when a new item is opened
       setAiImageOptions([]);
       setSelectedAiImage(null);
-      setAiGenerateCount(0);
       setAiError(null);
       setAdditionalPrompt("");
       if (onPreviewChange) onPreviewChange(initialPreview);
-    }
+    }, 0);
+    return () => window.clearTimeout(timer);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [item?.id]);
 

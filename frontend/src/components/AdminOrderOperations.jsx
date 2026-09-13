@@ -1,8 +1,8 @@
 import PropTypes from "prop-types";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { getAdminOrderDashboard, getOrdersAdmin, updateAdminOrder } from "@/services/order-service";
+import { getAdminOrderDashboard, updateAdminOrder } from "@/services/order-service";
 import { useAuth } from "@/context/AuthContext";
 import { formatAge } from "@/lib/utils";
 
@@ -80,29 +80,20 @@ export default function AdminOrderOperations({ embedded = false }) {
   const queryClient = useQueryClient();
 
   const [dashboard, setDashboard] = useState(null);
-  const [ordersPage, setOrdersPage] = useState({
-    content: [],
-    totalPages: 0,
-    totalElements: 0,
-    number: 0,
-  });
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
   const [autoRefresh, setAutoRefresh] = useState(true);
 
-  const [page, setPage] = useState(0);
-  const [size, setSize] = useState(10);
-  const [filters, setFilters] = useState({
+  const [page] = useState(0);
+  const [size] = useState(10);
+  const [filters] = useState({
     query: "",
     status: "",
     paymentStatus: "",
     priority: "",
     liveOnly: false,
   });
-
-  const [selectedOrderId, setSelectedOrderId] = useState(null);
-  const [noteDraft, setNoteDraft] = useState("");
 
   const orderUpdateMutation = useMutation({
     mutationFn: ({ orderId, payload }) => updateAdminOrder(orderId, payload),
@@ -117,27 +108,6 @@ export default function AdminOrderOperations({ embedded = false }) {
     },
   });
 
-  const allKnownOrders = useMemo(() => {
-    const combined = [
-      ...(dashboard?.liveOrdersQueue || []),
-      ...(ordersPage?.content || []),
-    ];
-    const unique = new Map();
-    combined.forEach((order) => {
-      if (order?.id != null) unique.set(order.id, order);
-    });
-    return [...unique.values()];
-  }, [dashboard, ordersPage]);
-
-  const selectedOrder = useMemo(
-    () => allKnownOrders.find((order) => order.id === selectedOrderId) || null,
-    [allKnownOrders, selectedOrderId],
-  );
-
-  useEffect(() => {
-    setNoteDraft(selectedOrder?.adminNote || "");
-  }, [selectedOrder]);
-
   async function loadData({ quiet = false } = {}) {
     if (quiet) {
       setRefreshing(true);
@@ -146,37 +116,8 @@ export default function AdminOrderOperations({ embedded = false }) {
     }
     setError(null);
     try {
-      const [nextDashboard, nextOrdersPage] = await Promise.all([
-        getAdminOrderDashboard({ liveLimit: 12 }),
-        getOrdersAdmin({
-          page,
-          size,
-          status: filters.status || undefined,
-          paymentStatus: filters.paymentStatus || undefined,
-          priority: filters.priority || undefined,
-          query: filters.query || undefined,
-          liveOnly: filters.liveOnly || undefined,
-        }),
-      ]);
+      const nextDashboard = await getAdminOrderDashboard({ liveLimit: 12 });
       setDashboard(nextDashboard || {});
-      setOrdersPage(nextOrdersPage || {
-        content: [],
-        totalPages: 0,
-        totalElements: 0,
-        number: 0,
-      });
-
-      const availableIds = new Set([
-        ...((nextDashboard || {}).liveOrdersQueue || []).map((order) => order.id),
-        ...((nextOrdersPage || {}).content || []).map((order) => order.id),
-      ]);
-      if (!selectedOrderId || !availableIds.has(selectedOrderId)) {
-        const fallback =
-          (nextDashboard || {}).liveOrdersQueue?.[0]?.id ??
-          (nextOrdersPage || {}).content?.[0]?.id ??
-          null;
-        setSelectedOrderId(fallback);
-      }
     } catch (err) {
       if (err?.response?.status === 401 || err?.response?.status === 403) {
         setAdmin(null);
@@ -195,7 +136,10 @@ export default function AdminOrderOperations({ embedded = false }) {
   }
 
   useEffect(() => {
-    loadData();
+    const timer = window.setTimeout(() => {
+      loadData();
+    }, 0);
+    return () => window.clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     page,
@@ -377,7 +321,7 @@ export default function AdminOrderOperations({ embedded = false }) {
             {dashboard.attentionOrders.map((order) => (
               <button
                 key={`attention-${order.id}`}
-                onClick={() => setSelectedOrderId(order.id)}
+                type="button"
                 className="rounded-2xl border border-orange-200 bg-white p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow"
               >
                 <div className="flex items-center justify-between gap-3">
@@ -462,7 +406,6 @@ export default function AdminOrderOperations({ embedded = false }) {
                   >
                     <div className="flex items-start justify-between gap-3">
                       <button
-                        onClick={() => setSelectedOrderId(order.id)}
                         className="text-left"
                       >
                         <div className="text-base font-semibold text-slate-900">
@@ -526,426 +469,6 @@ export default function AdminOrderOperations({ embedded = false }) {
         </div>
       )}
 
-      {/*<div className="grid gap-6 xl:grid-cols-[1.4fr_1fr]">
-        <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-          <div className="flex flex-col gap-4 border-b border-slate-100 pb-5">
-            <div className="flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
-              <div>
-                <h2 className="text-xl font-semibold text-slate-900">
-                  Operational queue
-                </h2>
-                <p className="text-sm text-slate-500">
-                  Search any order, filter by workflow state, and open the full
-                  detail panel.
-                </p>
-              </div>
-              <button
-                onClick={() => loadData({ quiet: true })}
-                className="touch-button rounded-xl bg-brand-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-brand-700"
-              >
-                Refresh queue
-              </button>
-            </div>
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-              <input
-                value={filters.query}
-                onChange={(e) => {
-                  setPage(0);
-                  setFilters((prev) => ({ ...prev, query: e.target.value }));
-                }}
-                placeholder="Search by order id or phone"
-                className="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none ring-0 transition focus:border-brand-400"
-              />
-              <select
-                value={filters.status}
-                onChange={(e) => {
-                  setPage(0);
-                  setFilters((prev) => ({ ...prev, status: e.target.value }));
-                }}
-                className="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-brand-400"
-              >
-                <option value="">All statuses</option>
-                <option value="PLACED">Placed</option>
-                <option value="PREPARING">Preparing</option>
-                <option value="READY">Ready</option>
-                <option value="COMPLETED">Completed</option>
-                <option value="CANCELLED">Cancelled</option>
-              </select>
-              <select
-                value={filters.paymentStatus}
-                onChange={(e) => {
-                  setPage(0);
-                  setFilters((prev) => ({
-                    ...prev,
-                    paymentStatus: e.target.value,
-                  }));
-                }}
-                className="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-brand-400"
-              >
-                <option value="">All payments</option>
-                <option value="PAID">Paid</option>
-                <option value="PENDING">Pending</option>
-              </select>
-              <select
-                value={filters.priority}
-                onChange={(e) => {
-                  setPage(0);
-                  setFilters((prev) => ({ ...prev, priority: e.target.value }));
-                }}
-                className="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-brand-400"
-              >
-                <option value="">All priorities</option>
-                <option value="NORMAL">Normal</option>
-                <option value="HIGH">High</option>
-                <option value="URGENT">Urgent</option>
-              </select>
-              <label className="flex items-center justify-between rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-600">
-                Live only
-                <input
-                  type="checkbox"
-                  checked={filters.liveOnly}
-                  onChange={(e) => {
-                    setPage(0);
-                    setFilters((prev) => ({
-                      ...prev,
-                      liveOnly: e.target.checked,
-                    }));
-                  }}
-                  className="h-4 w-4 rounded border-slate-300"
-                />
-              </label>
-            </div>
-          </div>
-
-          <div className="mt-5 space-y-3">
-            {(ordersPage.content || []).length === 0 && (
-              <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-500">
-                No orders found for the selected filters.
-              </div>
-            )}
-            {(ordersPage.content || []).map((order) => {
-              const isSelected = order.id === selectedOrderId;
-              return (
-                <button
-                  key={order.id}
-                  onClick={() => setSelectedOrderId(order.id)}
-                  className={`w-full rounded-2xl border p-4 text-left shadow-sm transition ${isSelected ? "border-brand-400 bg-brand-50/50" : "border-slate-200 bg-white hover:border-slate-300"}`}
-                >
-                  <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                    <div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-lg font-semibold text-slate-900">
-                          Order #{order.id}
-                        </span>
-                        <span
-                          className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${toneForStatus(order.status).tone}`}
-                        >
-                          {toneForStatus(order.status).label}
-                        </span>
-                        <span
-                          className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${toneForPriority(order.priority).tone}`}
-                        >
-                          {toneForPriority(order.priority).label}
-                        </span>
-                        {order.delayed && (
-                          <span className="rounded-full bg-rose-100 px-2.5 py-1 text-xs font-semibold text-rose-700">
-                            Delayed
-                          </span>
-                        )}
-                      </div>
-                      <div className="mt-2 text-sm text-slate-500">
-                        {order.phone} • {formatDateTime(order.createdAt)}
-                      </div>
-                      <div className="mt-3 text-sm text-slate-600">
-                        {summarizeItems(order)}
-                      </div>
-                    </div>
-                    <div className="flex flex-wrap gap-2 lg:justify-end">
-                      <span className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-700">
-                        Payment: {order.paymentStatus || "PENDING"}
-                      </span>
-                      <span className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-700">
-                        {formatCurrency(order.total)}
-                      </span>
-                      <span className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-700">
-                        {formatAge(order.stageAgeMinutes)} in stage
-                      </span>
-                    </div>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="mt-5 flex flex-col gap-3 border-t border-slate-100 pt-5 text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between">
-            <div>{ordersPage.totalElements || 0} total orders</div>
-            <div className="flex flex-wrap items-center gap-2">
-              <select
-                value={size}
-                onChange={(e) => {
-                  setPage(0);
-                  setSize(Number(e.target.value));
-                }}
-                className="rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-700"
-              >
-                <option value={10}>10 / page</option>
-                <option value={20}>20 / page</option>
-                <option value={30}>30 / page</option>
-              </select>
-              <button
-                onClick={() => setPage((prev) => Math.max(0, prev - 1))}
-                disabled={page === 0}
-                className="rounded-xl border border-slate-200 px-3 py-2 font-medium text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                Prev
-              </button>
-              <span>
-                Page {page + 1} of {ordersPage.totalPages || 1}
-              </span>
-              <button
-                onClick={() =>
-                  setPage((prev) =>
-                    Math.min((ordersPage.totalPages || 1) - 1, prev + 1),
-                  )
-                }
-                disabled={page >= (ordersPage.totalPages || 1) - 1}
-                className="rounded-xl border border-slate-200 px-3 py-2 font-medium text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                Next
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-          {!selectedOrder && (
-            <div className="flex min-h-[320px] items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50 text-sm text-slate-500">
-              Choose an order to open the operations panel.
-            </div>
-          )}
-          {selectedOrder && (
-            <div className="space-y-5">
-              <div className="border-b border-slate-100 pb-5">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                  <div>
-                    <div className="text-sm font-semibold uppercase tracking-[0.2em] text-brand-600">
-                      Selected order
-                    </div>
-                    <h2 className="mt-2 text-2xl font-bold text-slate-900">
-                      Order #{selectedOrder.id}
-                    </h2>
-                    <p className="mt-1 text-sm text-slate-500">
-                      {selectedOrder.phone} • Created{" "}
-                      {formatDateTime(selectedOrder.createdAt)}
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap gap-2 sm:flex-col sm:text-right">
-                    <span
-                      className={`rounded-full border px-3 py-1.5 text-xs font-semibold ${toneForStatus(selectedOrder.status).tone}`}
-                    >
-                      {toneForStatus(selectedOrder.status).label}
-                    </span>
-                    <span
-                      className={`rounded-full border px-3 py-1.5 text-xs font-semibold ${toneForPriority(selectedOrder.priority).tone}`}
-                    >
-                      {toneForPriority(selectedOrder.priority).label}
-                    </span>
-                  </div>
-                </div>
-                <div className="mt-4 grid grid-cols-1 gap-3 text-sm text-slate-600 sm:grid-cols-2">
-                  <div className="rounded-2xl bg-slate-50 p-3">
-                    <div className="text-xs uppercase tracking-wide text-slate-500">
-                      Total
-                    </div>
-                    <div className="mt-1 text-lg font-bold text-slate-900">
-                      {formatCurrency(selectedOrder.total)}
-                    </div>
-                  </div>
-                  <div className="rounded-2xl bg-slate-50 p-3">
-                    <div className="text-xs uppercase tracking-wide text-slate-500">
-                      Payment
-                    </div>
-                    <div className="mt-1 text-lg font-bold text-slate-900">
-                      {selectedOrder.paymentStatus || "PENDING"}
-                    </div>
-                  </div>
-                  <div className="rounded-2xl bg-slate-50 p-3">
-                    <div className="text-xs uppercase tracking-wide text-slate-500">
-                      Age
-                    </div>
-                    <div className="mt-1 text-lg font-bold text-slate-900">
-                      {formatAge(selectedOrder.ageMinutes)}
-                    </div>
-                  </div>
-                  <div className="rounded-2xl bg-slate-50 p-3">
-                    <div className="text-xs uppercase tracking-wide text-slate-500">
-                      Assigned
-                    </div>
-                    <div className="mt-1 text-lg font-bold text-slate-900">
-                      {selectedOrder.assignedAdmin || "Unassigned"}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <h3 className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">
-                  Workflow actions
-                </h3>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {(selectedOrder.availableTransitions || []).map(
-                    (nextStatus) => (
-                      <button
-                        key={`detail-${selectedOrder.id}-${nextStatus}`}
-                        onClick={() =>
-                          handleOrderUpdate(selectedOrder.id, {
-                            status: nextStatus,
-                          })
-                        }
-                        disabled={orderUpdateMutation.isPending}
-                        className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        Move to {toneForStatus(nextStatus).label}
-                      </button>
-                    ),
-                  )}
-                </div>
-              </div>
-
-              <div>
-                <h3 className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">
-                  Priority
-                </h3>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {["NORMAL", "HIGH", "URGENT"].map((priority) => (
-                    <button
-                      key={priority}
-                      onClick={() =>
-                        handleOrderUpdate(selectedOrder.id, { priority })
-                      }
-                      disabled={orderUpdateMutation.isPending}
-                      className={`rounded-xl border px-3 py-2 text-sm font-semibold transition ${selectedOrder.priority === priority ? toneForPriority(priority).tone : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"}`}
-                    >
-                      {toneForPriority(priority).label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between gap-3">
-                  <h3 className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">
-                    Kitchen note
-                  </h3>
-                  <button
-                    onClick={() => setNoteDraft(selectedOrder.adminNote || "")}
-                    className="text-xs font-medium text-slate-500"
-                  >
-                    Reset
-                  </button>
-                </div>
-                <textarea
-                  value={noteDraft}
-                  onChange={(e) => setNoteDraft(e.target.value)}
-                  rows={4}
-                  placeholder="Capture service instructions, escalation details, or pickup notes for the team."
-                  className="mt-3 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-brand-400"
-                />
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <button
-                    onClick={() =>
-                      handleOrderUpdate(selectedOrder.id, {
-                        adminNote: noteDraft,
-                      })
-                    }
-                    disabled={orderUpdateMutation.isPending}
-                    className="rounded-xl bg-brand-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    Save note
-                  </button>
-                  <button
-                    onClick={() =>
-                      handleOrderUpdate(selectedOrder.id, { adminNote: "" })
-                    }
-                    disabled={orderUpdateMutation.isPending}
-                    className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    Clear note
-                  </button>
-                </div>
-              </div>
-
-              <div>
-                <h3 className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">
-                  Items
-                </h3>
-                <div className="mt-3 space-y-3">
-                  {(selectedOrder.items || []).map((item, index) => (
-                    <div
-                      key={`${selectedOrder.id}-${item.itemId || index}`}
-                      className="rounded-2xl border border-slate-200 bg-slate-50 p-3"
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <div className="font-semibold text-slate-900">
-                            {item.name || "Menu item"}
-                          </div>
-                          <div className="mt-1 text-sm text-slate-500">
-                            Qty {item.quantity} •{" "}
-                            {item.isVeg ? "Veg" : "Non-veg / N/A"}
-                          </div>
-                        </div>
-                        <div className="text-right text-sm font-semibold text-slate-700">
-                          {formatCurrency(
-                            item.subtotal ||
-                            (item.price || 0) * (item.quantity || 0),
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <h3 className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">
-                  Status history
-                </h3>
-                <div className="mt-3 space-y-3">
-                  {(selectedOrder.history || []).length === 0 && (
-                    <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">
-                      No workflow events recorded yet.
-                    </div>
-                  )}
-                  {(selectedOrder.history || []).map((entry, index) => (
-                    <div
-                      key={`${selectedOrder.id}-history-${index}`}
-                      className="rounded-2xl border border-slate-200 bg-white p-3"
-                    >
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="text-sm font-semibold text-slate-900">
-                          {entry.previousStatus || "NEW"} → {entry.newStatus}
-                        </div>
-                        <div className="text-xs text-slate-500">
-                          {formatDateTime(entry.changedAt)}
-                        </div>
-                      </div>
-                      <div className="mt-1 text-sm text-slate-500">
-                        Updated by {entry.changedBy || "system"}
-                      </div>
-                      {entry.note && (
-                        <div className="mt-2 text-sm text-slate-700">
-                          {entry.note}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>*/}
     </section>
   );
 }
