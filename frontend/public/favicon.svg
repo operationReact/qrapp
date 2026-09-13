@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="BRO & BRO">
+  <rect width="64" height="64" rx="16" fill="#fffaf0"/>
+  <circle cx="19" cy="32" r="16" fill="#ef4444"/>
+  <circle cx="45" cy="32" r="16" fill="#ef4444"/>
+  <circle cx="32" cy="32" r="9" fill="#18181b"/>
+  <text x="32" y="37" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700" fill="#fffaf0">B&amp;B</text>
+</svg>

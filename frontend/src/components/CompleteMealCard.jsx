@@ -84,7 +84,6 @@ function MealItemTile({ item }) {
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function CompleteMealCard({
-  mainItemName,
   mealItems = [],
   savings,
   onAddMeal,

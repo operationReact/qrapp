@@ -23,13 +23,13 @@ import ComboProgressBanner from "@/components/ComboProgressBanner";
 import { useByocDiscount } from "@/hooks/useByocDiscount";
 import RecommendedBundleCard from "@/components/RecommendedBundleCard";
 import CompleteMealCard from "@/components/CompleteMealCard";
-import { cn } from "@/lib/utils";
+import { baseURL } from "@/services";
 import { ShoppingBagIcon } from "@phosphor-icons/react";
 import { Badge } from "./ui/badge";
 
 
 // ── Smart upsell: ONE section, session-gated to prevent infinite loops ────────
-function SmartUpsellSection({ cart, addItem, isOpen }) {
+function SmartUpsellSection({ cart, addItem, decreaseItem, isOpen }) {
   const cartItemsKey = cart.map((i) => `${i.id}:${i.quantity}`).sort().join(",");
   const cartTotal    = cart.reduce((s, i) => s + Number(i.price) * i.quantity, 0);
   const itemIds      = cart.map((i) => i.id);
@@ -43,7 +43,10 @@ function SmartUpsellSection({ cart, addItem, isOpen }) {
   const [activeAdding, setActiveAdding] = useState(false);
 
   useEffect(() => {
-    if (cart.length === 0) setUpsellDone(false);
+    const timer = window.setTimeout(() => {
+      if (cart.length === 0) setUpsellDone(false);
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [cart.length]);
 
   // ── Priority 1: Complete Your Meal ────────────────────────────────────────
@@ -444,7 +447,7 @@ export default function OffCanvasCart() {
     } else {
       closeDrawer();
     }
-  }, [location.hash]);
+  }, [location.hash, closeDrawer, openDrawer]);
 
   if (isAdmin) return null;
 

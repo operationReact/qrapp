@@ -109,7 +109,7 @@ export default function BulkMenuUploadModal({ open, onClose, onSuccess }) {
       a.download = "menu_bulk_upload_template.xlsx";
       a.click();
       URL.revokeObjectURL(url);
-    } catch (_err) {
+    } catch {
       setError("Failed to download template.");
     }
   };
