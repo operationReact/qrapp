@@ -109,7 +109,7 @@ function MenuPage() {
   }, {});
 
   return (
-    <div className="page-shell bg-background pb-mobile-nav! md:pb-[initial]!">
+    <div className="page-shell bg-background pb-mobile-nav! lg:pb-[initial]!">
       <Navbar />
       <MobileMenu />
       {/* Backend offline banner (non-technical user friendly) */}
@@ -138,7 +138,7 @@ function MenuPage() {
           <SearchBar onSearch={setSearchQuery} />
         </div>
 
-        <div className="md:hidden">
+        <div className="lg:hidden">
           <SegmentedFilter
             value={vegFilter}
             onChange={(value) => setPreferences({ segmentedFilter: value })}
@@ -210,21 +210,21 @@ function MenuPage() {
               {/* Products */}
               {items.length === 1 ? (
                 <>
-                  <div className="grid grid-cols-2 gap-3 md:hidden">
+                  <div className="grid grid-cols-2 gap-3 lg:hidden">
                     <MenuItemCard item={items[0]} />
                   </div>
-                  <div className="hidden md:block max-w-xs">
+                  <div className="hidden lg:block max-w-xs">
                     <MenuItemCard item={items[0]} />
                   </div>
                 </>
               ) : (
                 <>
-                  <div className="grid grid-cols-2 gap-3 md:hidden">
+                  <div className="grid grid-cols-2 gap-3 lg:hidden">
                     {items.map((item) => (
                       <MenuItemCard key={item.id} item={item} />
                     ))}
                   </div>
-                  <Carousel opts={{ dragFree: true }} className="hidden md:block">
+                  <Carousel opts={{ dragFree: true }} className="hidden lg:block">
                     <CarouselContent className="-ml-2 pr-3">
                       {items.map((item) => (
                         <CarouselItem
