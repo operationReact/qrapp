@@ -27,7 +27,7 @@ env:
   NODE_VERSION: "22"
   AWS_REGION: "us-east-1"
   S3_BUCKET: "broandbro-prod-ui"
-  # NOTE: CF_DISTRIBUTION_ID cannot be set here from secrets – referenced directly in the step below
+  # NOTE: CloudFront distribution ID is read from SSM during deploy steps.
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
 jobs:
@@ -79,6 +79,19 @@ jobs:
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
+
+      - name: Resolve CloudFront distribution ID
+        run: |
+          CF_DIST_ID=$(aws ssm get-parameter \
+            --name "/broandbro/prod/cf-distribution-id" \
+            --with-decryption \
+            --query "Parameter.Value" \
+            --output text)
+          if [ -z "$CF_DIST_ID" ] || [ "$CF_DIST_ID" = "None" ]; then
+            echo "❌ Missing or empty SSM parameter: /broandbro/prod/cf-distribution-id"
+            exit 1
+          fi
+          echo "CF_DIST_ID=$CF_DIST_ID" >> "$GITHUB_ENV"
 
       - name: Upload hashed assets (long cache)
         run: |
@@ -132,7 +145,7 @@ jobs:
       - name: Invalidate CloudFront cache
         run: |
           INVALIDATION_ID=$(aws cloudfront create-invalidation \
-            --distribution-id ${{ secrets.PROD_CF_DISTRIBUTION_ID }} \
+            --distribution-id "$CF_DIST_ID" \
             --paths "/*" \
             --query "Invalidation.Id" \
             --output text)
@@ -144,5 +157,5 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "- **URL:** https://broandbro.in" >> $GITHUB_STEP_SUMMARY
           echo "- **Bucket:** ${{ env.S3_BUCKET }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **CloudFront:** ${{ secrets.PROD_CF_DISTRIBUTION_ID }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **CloudFront:** $CF_DIST_ID" >> $GITHUB_STEP_SUMMARY
           echo "- **Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
