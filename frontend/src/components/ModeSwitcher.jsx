@@ -49,7 +49,7 @@ export default function ModeSwitcher() {
   const activeMode = preferences.segmentedFilter;
 
   return (
-    <div className="relative hidden text-xs font-semibold md:grid md:grid-cols-[auto_auto_auto] rounded-xl border bg-zinc-100 p-0.5">
+    <div className="relative hidden text-xs font-semibold lg:grid lg:grid-cols-[auto_auto_auto] rounded-xl border bg-zinc-100 p-0.5">
       {MODES.map((mode) => (
         <button
           onClick={() => setPreferences({ segmentedFilter: mode.id })}

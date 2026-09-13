@@ -52,21 +52,21 @@ export default function StickyCartBar() {
   if (totalItems === 0) return null;
 
   return (
-    <div className="fixed inset-x-0 bottom-[calc(var(--app-mobile-menu-height)+env(safe-area-inset-bottom)+0.5rem)] z-39 pointer-events-auto px-3 md:bottom-2.5 md:px-2.5">
+    <div className="fixed inset-x-0 bottom-[calc(var(--app-mobile-menu-height)+env(safe-area-inset-bottom)+0.5rem)] z-39 pointer-events-auto px-3 lg:bottom-2.5 lg:px-2.5">
       {/* BYOC compact nudge strip — shown above the bar when progress exists */}
       {primaryByoc && primaryByoc.nextTier && (
-        <div className="mx-auto flex max-w-md items-center justify-center rounded-t-2xl border border-b-0 border-emerald-200 bg-emerald-50 px-4 py-1.5 md:max-w-1/2">
+        <div className="mx-auto flex max-w-md items-center justify-center rounded-t-2xl border border-b-0 border-emerald-200 bg-emerald-50 px-4 py-1.5 lg:max-w-1/2">
           <ComboProgressBanner campaign={primaryByoc} compact />
         </div>
       )}
-      <div className="mx-auto max-w-md rounded-2xl border border-border bg-card/95 backdrop-blur-sm shadow-lg md:max-w-1/2 md:rounded-xl md:border-b pb-[env(safe-area-inset-bottom)]">
+      <div className="mx-auto max-w-md rounded-2xl border border-border bg-card/95 backdrop-blur-sm shadow-lg lg:max-w-1/2 lg:rounded-xl lg:border-b pb-[env(safe-area-inset-bottom)]">
         <div className="w-full px-4">
-          <div className="flex min-h-16 items-center py-2 md:min-h-[72px] md:py-3">
+          <div className="flex min-h-16 items-center py-2 lg:min-h-[72px] lg:py-3">
             <div className="flex w-full items-center justify-between gap-3">
               <div className="flex min-w-0 items-center gap-3">
-                <div className="hidden md:flex size-10 relative bg-primary-foreground/50 flex-none items-center justify-center rounded-full text-base font-semibold text-primary">
+                <div className="hidden lg:flex size-10 relative bg-primary-foreground/50 flex-none items-center justify-center rounded-full text-base font-semibold text-primary">
                   <Cart pack="filled" className="size-6" />
-                  <span className="absolute hidden md:grid bg-white rounded-full w-8 place-items-center -bottom-2 border border-muted text-xs text-black">
+                  <span className="absolute hidden lg:grid bg-white rounded-full w-8 place-items-center -bottom-2 border border-muted text-xs text-black">
                     {totalItems}
                   </span>
                 </div>
@@ -74,7 +74,7 @@ export default function StickyCartBar() {
                   <div className="text-xs font-medium tracking-wide text-muted-foreground">
                     <span>{pluralOf(totalItems)}</span> in cart
                   </div>
-                  <div className="truncate text-base font-semibold md:text-lg">
+                  <div className="truncate text-base font-semibold lg:text-lg">
                     ₹{totalPrice.toFixed(2)}{" "}
                   </div>
                 </div>

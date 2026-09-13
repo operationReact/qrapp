@@ -33,7 +33,7 @@ export default function ItemActionButton({ qty, onAdd, onDecrease }) {
         >
           <PlusIcon weight="bold" className="size-4" />
 
-          <span className="hidden md:inline animate-in transition-opacity duration-200">
+          <span className="hidden lg:inline animate-in transition-opacity duration-200">
             Add
           </span>
         </Button>

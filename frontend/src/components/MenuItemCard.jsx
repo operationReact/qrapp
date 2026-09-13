@@ -153,7 +153,7 @@ export default function MenuItemCard({
         <div className="space-y-2 p-3">
           <h3
             className={cn(
-              "line-clamp-2 text-pretty text-[15px] font-semibold leading-5 sm:text-[17px]",
+              "line-clamp-2 text-pretty text-[15px] font-semibold leading-5 lg:text-[17px]",
               isUnavailable && "text-muted-foreground",
             )}
           >
@@ -163,7 +163,7 @@ export default function MenuItemCard({
           <div className="flex flex-wrap items-center justify-between gap-2">
             <span
               className={cn(
-                "font-semibold text-[15px] md:text-base",
+                "font-semibold text-[15px] lg:text-base",
                 isUnavailable &&
                   "text-muted-foreground line-through decoration-muted-foreground/60",
               )}

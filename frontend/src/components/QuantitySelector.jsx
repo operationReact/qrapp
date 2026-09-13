@@ -32,7 +32,7 @@ export default function QuantitySelector({ qty, onAdd, onRemove, className }) {
         className={cn(
           // shape & layout
           "flex h-10 min-w-[5.75rem] items-center justify-center gap-1 rounded-full px-4 text-sm font-semibold",
-          "sm:h-8 sm:min-w-[4.75rem] sm:px-3 sm:text-xs",
+          "lg:h-8 lg:min-w-[4.75rem] lg:px-3 lg:text-xs",
 
           // elevation — soft shadow lifts it off the card
           "shadow-xs",
@@ -54,7 +54,7 @@ export default function QuantitySelector({ qty, onAdd, onRemove, className }) {
       className={cn(
         // pill container
         "grid grid-cols-3 items-center overflow-hidden rounded-full",
-        "h-10 min-w-[6.75rem] select-none sm:h-8 sm:min-w-[5.5rem]",
+        "h-10 min-w-[6.75rem] select-none lg:h-8 lg:min-w-[5.5rem]",
         // soft elevated background
         "bg-background",
         "shadow-xs",
@@ -83,7 +83,7 @@ export default function QuantitySelector({ qty, onAdd, onRemove, className }) {
         key={qty}
         className={cn(
           "text-center",
-          "text-sm font-bold tabular-nums leading-none sm:text-xs",
+          "text-sm font-bold tabular-nums leading-none lg:text-xs",
           // tw-animate-css utilities — remount animation on qty change
           "animate-in zoom-in-75 fade-in duration-150 ease-out",
         )}

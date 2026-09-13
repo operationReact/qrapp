@@ -93,7 +93,7 @@ export default function Navbar() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur">
-      <div className="container-premium flex items-center justify-between gap-3 py-3 md:hidden">
+      <div className="container-premium flex items-center justify-between gap-3 py-3 lg:hidden">
         <Link to="/" className="flex min-w-0 items-center gap-2.5">
           <img src="/bro-logo.png" alt="BRO & BRO" className="size-11 rounded-2xl object-cover shadow-sm" />
           <div className="min-w-0">
@@ -151,7 +151,7 @@ export default function Navbar() {
         </div>
       </div>
 
-      <div className="hidden md:block">
+      <div className="hidden lg:block">
         <div className="container-premium flex min-h-[72px] items-center justify-between gap-3 py-4">
           <Link to="/" className="flex min-w-0 items-center gap-3">
             <svg
