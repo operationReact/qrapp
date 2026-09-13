@@ -1,6 +1,5 @@
 import PropTypes from "prop-types";
 import { buttonVariants } from "./ui/button";
-import { Carousel, CarouselContent, CarouselItem } from "./ui/carousel";
 import { cn } from "@/lib/utils";
 import {
   BowlFoodIcon,
@@ -28,27 +27,31 @@ export default function CategoryTabs({ categories, active }) {
   const allCategories = ["All", ...categories.filter((c) => c !== "All")];
 
   return (
-    <Carousel opts={{ dragFree: true }}>
-      <CarouselContent className={"-ml-1.5"}>
+    <div className="no-scrollbar overflow-x-auto">
+      <div className="flex min-w-max items-center gap-2 pb-1">
         {allCategories.map((cat) => (
-          <CarouselItem className="basis-auto pl-1.5" key={cat}>
-            <a
-              href={`/#${cat}`}
-              className={buttonVariants({
-                size: "sm",
-                variant: active === cat ? "default" : "secondary",
-                className: cn(`min-w-12`, {
+          <a
+            href={`/#${cat}`}
+            key={cat}
+            className={buttonVariants({
+              size: "sm",
+              variant: active === cat ? "default" : "secondary",
+              className: cn(
+                "h-10 min-w-fit rounded-full px-4 text-sm font-semibold shadow-sm md:h-9 md:px-3.5 md:text-xs",
+                {
                   "bg-primary": active === cat,
-                }),
-              })}
-            >
-              {cat !== "All" && getCategoryIcon(cat)}
-              <span>{cat}</span>
-            </a>
-          </CarouselItem>
+                },
+              ),
+            })}
+          >
+            {cat !== "All" && (
+              <span className="hidden md:inline-flex">{getCategoryIcon(cat)}</span>
+            )}
+            <span>{cat}</span>
+          </a>
         ))}
-      </CarouselContent>
-    </Carousel>
+      </div>
+    </div>
   );
 }
 

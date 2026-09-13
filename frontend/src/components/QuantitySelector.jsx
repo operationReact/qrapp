@@ -26,13 +26,13 @@ export default function QuantitySelector({ qty, onAdd, onRemove, className }) {
     return (
       <Button
         onClick={onAdd}
-        size="xs"
+        size="sm"
         variant="branded-secondary"
         aria-label="Add to cart"
         className={cn(
           // shape & layout
-          "flex items-center gap-1 rounded-full px-3",
-          "h-8 font-semibold",
+          "flex h-10 min-w-[5.75rem] items-center justify-center gap-1 rounded-full px-4 text-sm font-semibold",
+          "sm:h-8 sm:min-w-[4.75rem] sm:px-3 sm:text-xs",
 
           // elevation — soft shadow lifts it off the card
           "shadow-xs",
@@ -53,8 +53,8 @@ export default function QuantitySelector({ qty, onAdd, onRemove, className }) {
     <div
       className={cn(
         // pill container
-        "grid grid-cols-3 items-center rounded-sm overflow-hidden",
-        "h-8 select-none",
+        "grid grid-cols-3 items-center overflow-hidden rounded-full",
+        "h-10 min-w-[6.75rem] select-none sm:h-8 sm:min-w-[5.5rem]",
         // soft elevated background
         "bg-background",
         "shadow-xs",
@@ -68,7 +68,7 @@ export default function QuantitySelector({ qty, onAdd, onRemove, className }) {
         onClick={onRemove}
         aria-label="Remove one"
         className={cn(
-          "flex rounded-sm h-full bg-primary/5 w-8 shrink-0 items-center justify-center",
+          "flex h-full w-10 shrink-0 items-center justify-center bg-primary/5",
           "text-primary/60",
           "transition-all duration-100",
           "hover:bg-primary/10 hover:text-primary",
@@ -83,7 +83,7 @@ export default function QuantitySelector({ qty, onAdd, onRemove, className }) {
         key={qty}
         className={cn(
           "text-center",
-          "text-xs font-bold tabular-nums leading-none",
+          "text-sm font-bold tabular-nums leading-none sm:text-xs",
           // tw-animate-css utilities — remount animation on qty change
           "animate-in zoom-in-75 fade-in duration-150 ease-out",
         )}
@@ -96,14 +96,14 @@ export default function QuantitySelector({ qty, onAdd, onRemove, className }) {
         onClick={onAdd}
         aria-label="Add one more"
         className={cn(
-          "flex rounded-sm h-full w-8 shrink-0 items-center justify-center",
+          "flex h-full w-10 shrink-0 items-center justify-center",
           "bg-primary text-primary-foreground",
           "transition-all duration-100",
           "hover:brightness-110",
           "active:scale-90",
         )}
       >
-        <PlusIcon weight="bold" className="size-3.5" />
+        <PlusIcon weight="bold" className="size-4" />
       </button>
     </div>
   );

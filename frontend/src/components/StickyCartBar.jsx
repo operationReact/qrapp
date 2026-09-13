@@ -52,39 +52,36 @@ export default function StickyCartBar() {
   if (totalItems === 0) return null;
 
   return (
-    <div className="fixed inset-x-0 bottom-0 pb-mobile-nav md:px-2.5 md:pb-2.5 z-39 pointer-events-auto">
+    <div className="fixed inset-x-0 bottom-[calc(var(--app-mobile-menu-height)+env(safe-area-inset-bottom)+0.5rem)] z-39 pointer-events-auto px-3 md:bottom-2.5 md:px-2.5">
       {/* BYOC compact nudge strip — shown above the bar when progress exists */}
       {primaryByoc && primaryByoc.nextTier && (
-        <div className="max-w-md md:max-w-1/2 mx-auto px-4 py-1.5 bg-emerald-50 border border-b-0 border-emerald-200 rounded-t-xl flex items-center justify-center">
+        <div className="mx-auto flex max-w-md items-center justify-center rounded-t-2xl border border-b-0 border-emerald-200 bg-emerald-50 px-4 py-1.5 md:max-w-1/2">
           <ComboProgressBanner campaign={primaryByoc} compact />
         </div>
       )}
-      <div className="rounded-t-xl max-w-md md:rounded-xl md:max-w-1/2 mx-auto border border-b-0 md:border-b border-border bg-card/95 backdrop-blur-sm pb-[env(safe-area-inset-bottom)]">
-        <div className="w-full px-8 sm:px-4 md:mx-auto md:max-w-4xl lg:max-w-5xl xl:max-w-6xl">
-          <div className="flex md:min-h-[72px] items-center md:py-3">
-            <div className="flex w-full items-center justify-between gap-3 py-2 md:py-0">
+      <div className="mx-auto max-w-md rounded-2xl border border-border bg-card/95 backdrop-blur-sm shadow-lg md:max-w-1/2 md:rounded-xl md:border-b pb-[env(safe-area-inset-bottom)]">
+        <div className="w-full px-4">
+          <div className="flex min-h-16 items-center py-2 md:min-h-[72px] md:py-3">
+            <div className="flex w-full items-center justify-between gap-3">
               <div className="flex min-w-0 items-center gap-3">
-                <div className="hidden md:flex size-6 md:size-10 relative bg-primary-foreground/50 flex-none items-center justify-center rounded-full text-base font-semibold text-primary">
+                <div className="hidden md:flex size-10 relative bg-primary-foreground/50 flex-none items-center justify-center rounded-full text-base font-semibold text-primary">
                   <Cart pack="filled" className="size-6" />
                   <span className="absolute hidden md:grid bg-white rounded-full w-8 place-items-center -bottom-2 border border-muted text-xs text-black">
                     {totalItems}
                   </span>
                 </div>
-                <div className="min-w-0 flex gap-1 md:flex-col items-baseline">
-                  <div className="text-xs font-medium order-1 md:order-0 md:tracking-wide text-muted-foreground">
+                <div className="min-w-0 flex flex-col gap-0.5">
+                  <div className="text-xs font-medium tracking-wide text-muted-foreground">
                     <span>{pluralOf(totalItems)}</span> in cart
                   </div>
-                  <div className="truncate text-sm md:text-base font-semibold">
+                  <div className="truncate text-base font-semibold md:text-lg">
                     ₹{totalPrice.toFixed(2)}{" "}
-                    <span className="text-muted-foreground md:hidden text-sm">
-                      /
-                    </span>
                   </div>
                 </div>
               </div>
 
               <Button
-                className="font-medium! rounded-full h-9 text-sm!"
+                className="h-11 rounded-full px-4 text-sm font-semibold"
                 onClick={handleViewCart}
                 aria-label="View cart"
               >

@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import MenuItemCard from "@/components/MenuItemCard";
 import MobileMenu from "@/components/shared/MobileMenu";
 import SearchBar from "@/components/shared/SearchBar";
+import SegmentedFilter from "@/components/SegmentedFilter";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -26,6 +27,7 @@ function SearchPage() {
 
   const {
     preferences: { segmentedFilter: vegFilter },
+    setPreferences,
   } = usePreferences();
 
   const opts = {};
@@ -69,6 +71,12 @@ function SearchPage() {
         <main className="flex flex-col">
           <div className="flex items-center gap-2">
             <SearchBar autoFocus onSearch={setQuery} />
+          </div>
+          <div className="mt-3 md:hidden">
+            <SegmentedFilter
+              value={vegFilter}
+              onChange={(value) => setPreferences({ segmentedFilter: value })}
+            />
           </div>
           <Separator className="mt-2 bg-primary-foreground" />
 

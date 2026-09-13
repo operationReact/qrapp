@@ -71,7 +71,7 @@ export default function MenuItemCard({
     <>
       <article
         className={cn(
-          "group bg-background h-full border border-border rounded-lg overflow-hidden transition-opacity",
+          "group h-full overflow-hidden rounded-2xl border border-border bg-card transition-opacity",
           isUnavailable && "opacity-70",
           // Pre-order items: entire card is the tap target
           preOrderOnly &&
@@ -85,7 +85,7 @@ export default function MenuItemCard({
         }
       >
         {/* Image */}
-        <div className="relative aspect-video w-full">
+        <div className="relative aspect-[4/3] w-full">
           {imageSrc && !imgError ? (
             <img
               src={imageSrc}
@@ -95,6 +95,8 @@ export default function MenuItemCard({
                 "w-full h-full object-cover transition-all duration-300",
                 isUnavailable && "grayscale",
               )}
+              loading="lazy"
+              decoding="async"
             />
           ) : (
             <div className="w-full overflow-hidden h-full flex items-center justify-center bg-zinc-100">
@@ -109,7 +111,7 @@ export default function MenuItemCard({
           {/* Unavailable overlay badge — stock or time-gated */}
           {isUnavailable && (
             <div className="absolute inset-x-0 bottom-1 flex items-center justify-start pl-1">
-              <span className="flex items-center gap-1 rounded-full bg-black/70 px-2.5 py-1 text-[10px] font-semibold text-white backdrop-blur-sm">
+              <span className="flex items-center gap-1 rounded-full bg-black/70 px-2.5 py-1 text-[11px] font-semibold text-white backdrop-blur-sm">
                 {isTimegated ? (
                   <ClockIcon weight="bold" className="size-3 shrink-0" />
                 ) : (
@@ -123,8 +125,8 @@ export default function MenuItemCard({
           {/* Pre-Order Only badge — top right, passive label only */}
           {preOrderOnly && !isUnavailable && (
             <div className="absolute top-2 right-1">
-              <span className="flex items-center gap-1 rounded-full bg-indigo-950/75 backdrop-blur-sm px-2 py-0.5 text-[10px] font-semibold text-indigo-100">
-                <CalendarCheckIcon className="size-2.5" weight="fill" />
+              <span className="flex items-center gap-1 rounded-full bg-indigo-950/75 backdrop-blur-sm px-2.5 py-1 text-[11px] font-semibold text-indigo-100">
+                <CalendarCheckIcon className="size-3" weight="fill" />
                 Pre-Order
               </span>
             </div>
@@ -134,7 +136,7 @@ export default function MenuItemCard({
           <div
             title={veg ? "Veg" : "Non Veg"}
             className={cn(
-              "absolute origin-top-left scale-75 sm:scale-100 top-2 left-2 p-1.5 border-2 bg-white rounded-sm size-6 flex items-center gap-2",
+              "absolute top-2 left-2 flex size-6 origin-top-left scale-90 items-center gap-2 rounded-sm border-2 bg-white p-1.5 sm:scale-100",
               veg ? "border-accent-400" : "border-red-600",
             )}
           >
@@ -148,20 +150,20 @@ export default function MenuItemCard({
         </div>
 
         {/* Details */}
-        <div className="px-2 py-1.5 sm:py-2">
+        <div className="space-y-2 p-3">
           <h3
             className={cn(
-              "text-pretty text-xs leading-4 font-semibold sm:text-lg",
+              "line-clamp-2 text-pretty text-[15px] font-semibold leading-5 sm:text-[17px]",
               isUnavailable && "text-muted-foreground",
             )}
           >
             {item.name}
           </h3>
 
-          <div className="flex flex-wrap mt-1 sm:mt-2 items-center gap-2 justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <span
               className={cn(
-                "font-medium text-sm md:text-base",
+                "font-semibold text-[15px] md:text-base",
                 isUnavailable &&
                   "text-muted-foreground line-through decoration-muted-foreground/60",
               )}
@@ -170,7 +172,7 @@ export default function MenuItemCard({
             </span>
 
             {isUnavailable ? (
-              <span className="inline-flex items-center gap-1 rounded-md border border-dashed border-muted-foreground/40 px-2 py-1 text-[10px] font-medium text-muted-foreground">
+              <span className="inline-flex items-center gap-1 rounded-full border border-dashed border-muted-foreground/40 px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
                 {isTimegated ? (
                   <ClockIcon weight="duotone" className="size-3" />
                 ) : (
@@ -180,7 +182,7 @@ export default function MenuItemCard({
               </span>
             ) : preOrderOnly ? (
               /* No per-card button — the whole card is tappable */
-              <span className="text-[10px] font-medium text-primary select-none">
+              <span className="text-[11px] font-medium text-primary select-none">
                 Tap to pre-order
               </span>
             ) : (
