@@ -6,6 +6,7 @@ import Navbar from "../components/shared/Navbar";
 import SearchBar from "../components/shared/SearchBar";
 import CategoryTabs from "../components/CategoryTabs";
 import MenuItemCard from "../components/MenuItemCard";
+import SegmentedFilter from "@/components/SegmentedFilter";
 import {
   Carousel,
   CarouselContent,
@@ -46,7 +47,7 @@ function MenuPage() {
 
   const category = decodeURIComponent(hash) || "All";
 
-  const { preferences } = usePreferences();
+  const { preferences, setPreferences } = usePreferences();
   const vegFilter = preferences.segmentedFilter;
 
   const opts = {};
@@ -137,6 +138,13 @@ function MenuPage() {
           <SearchBar onSearch={setSearchQuery} />
         </div>
 
+        <div className="md:hidden">
+          <SegmentedFilter
+            value={vegFilter}
+            onChange={(value) => setPreferences({ segmentedFilter: value })}
+          />
+        </div>
+
         <DealsSection />
       </div>
 
@@ -201,23 +209,34 @@ function MenuPage() {
 
               {/* Products */}
               {items.length === 1 ? (
-                // Single item — expand to a wider featured card, no empty space
-                <div className="w-full max-w-xs sm:max-w-sm md:max-w-[220px] lg:max-w-[200px]">
-                  <MenuItemCard item={items[0]} />
-                </div>
+                <>
+                  <div className="grid grid-cols-2 gap-3 md:hidden">
+                    <MenuItemCard item={items[0]} />
+                  </div>
+                  <div className="hidden md:block max-w-xs">
+                    <MenuItemCard item={items[0]} />
+                  </div>
+                </>
               ) : (
-                <Carousel opts={{ dragFree: true }}>
-                  <CarouselContent className="-ml-2 pr-3">
+                <>
+                  <div className="grid grid-cols-2 gap-3 md:hidden">
                     {items.map((item) => (
-                      <CarouselItem
-                        key={item.id}
-                        className="pl-2 basis-1/3 sm:basis-1/4 md:basis-1/5 lg:basis-1/6"
-                      >
-                        <MenuItemCard item={item} />
-                      </CarouselItem>
+                      <MenuItemCard key={item.id} item={item} />
                     ))}
-                  </CarouselContent>
-                </Carousel>
+                  </div>
+                  <Carousel opts={{ dragFree: true }} className="hidden md:block">
+                    <CarouselContent className="-ml-2 pr-3">
+                      {items.map((item) => (
+                        <CarouselItem
+                          key={item.id}
+                          className="pl-2 basis-1/3 sm:basis-1/4 md:basis-1/5 lg:basis-1/6"
+                        >
+                          <MenuItemCard item={item} />
+                        </CarouselItem>
+                      ))}
+                    </CarouselContent>
+                  </Carousel>
+                </>
               )}
             </section>
           ))}

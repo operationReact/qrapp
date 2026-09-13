@@ -49,13 +49,13 @@ export default function ModeSwitcher() {
   const activeMode = preferences.segmentedFilter;
 
   return (
-    <div className="relative text-xs grid grid-cols-[auto_auto_auto] font-semibold rounded-sm border bg-zinc-100 p-0.5">
+    <div className="relative hidden text-xs font-semibold md:grid md:grid-cols-[auto_auto_auto] rounded-xl border bg-zinc-100 p-0.5">
       {MODES.map((mode) => (
         <button
           onClick={() => setPreferences({ segmentedFilter: mode.id })}
           key={mode.id}
           className={cn(
-            "rounded-sm text-center transition-colors uppercase h-8 flex items-center gap-1 px-2",
+            "flex h-8 items-center gap-1 rounded-lg px-3 text-center uppercase transition-colors",
             mode.className,
             mode.id === activeMode && mode.activeClassName,
           )}

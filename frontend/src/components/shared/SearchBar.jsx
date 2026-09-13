@@ -12,10 +12,10 @@ export default function SearchBar({ onSearch = () => { }, autoFocus = false }) {
 
   useEffect(() => {
     onSearch(searchQuery);
-  }, [searchQuery]);
+  }, [searchQuery, onSearch]);
 
   return (
-    <InputGroup className="h-10 bg-card border-border focus-within:border-primary! focus-within:ring-1! focus-within:ring-primary!">
+    <InputGroup className="h-12 rounded-2xl border-border bg-card focus-within:border-primary! focus-within:ring-1! focus-within:ring-primary! md:h-10 md:rounded-xl">
       <InputGroupAddon className="pl-3 pr-2">
         <Search className="size-5 text-gray-400" />
       </InputGroupAddon>
@@ -24,18 +24,21 @@ export default function SearchBar({ onSearch = () => { }, autoFocus = false }) {
         ref={inputRef}
         value={value}
         onChange={(e) => setValue(e.target.value)}
-        placeholder="Search for items, cuisines..."
+        placeholder="Search dishes, meals, snacks..."
         autoFocus={autoFocus}
-        className="border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 px-0"
+        enterKeyHint="search"
+        autoCapitalize="none"
+        autoCorrect="off"
+        className="border-0 bg-transparent px-0 text-[15px] focus-visible:ring-0 focus-visible:ring-offset-0 md:text-sm"
       />
 
       {value && (
         <Button
           type="button"
-          size="icon"
+          size="icon-sm"
           variant="ghost"
           onClick={() => setValue("")}
-          className="h-8 w-8 hover:bg-gray-100"
+          className="mr-1 rounded-full hover:bg-gray-100"
         >
           <X className="size-4 text-gray-500" />
         </Button>

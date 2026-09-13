@@ -38,6 +38,12 @@
         android:theme="@style/Theme.BroBro.Launcher"
         android:usesCleartextTraffic="false" >
         <activity
+            android:name="com.google.androidbrowserhelper.trusted.ManageDataLauncherActivity"
+            android:enabled="false"
+            android:exported="false"
+            android:noHistory="true"
+            android:theme="@style/Theme.BroBro.Launcher" />
+        <activity
             android:name="com.google.androidbrowserhelper.trusted.LauncherActivity"
             android:exported="true"
             android:launchMode="singleTask" >
