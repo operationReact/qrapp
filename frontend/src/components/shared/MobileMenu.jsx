@@ -35,16 +35,16 @@ const items = [
     key: "home",
     label: "Home",
     icon: ({ className }) => (
-      <picture className={className}>
+      <picture className={`${className} overflow-hidden`}>
         <img
           src="/bro-logo.png"
           alt="Bro Logo"
-          className="[body[data-segmented-filter='veg']_&]:hidden animate-in"
+          className="size-full object-contain [body[data-segmented-filter='veg']_&]:hidden animate-in"
         />
         <img
           src="/brand/veg.png"
           alt="Bro Logo Veg"
-          className="[body:where([data-segmented-filter='all'],[data-segmented-filter='nonveg'])_&]:hidden animate-in"
+          className="size-full object-contain [body:where([data-segmented-filter='all'],[data-segmented-filter='nonveg'])_&]:hidden animate-in"
         />
       </picture>
     ),
@@ -204,7 +204,7 @@ export default function MobileMenu() {
           >
             <item.icon
               weight={isActive ? "fill" : undefined}
-              className={`w-6 h-6 mb-0.5 transition-all ${isActive ? "text-primary scale-110" : "text-zinc-400"}`}
+              className={`size-5 mb-0.5 transition-all ${isActive ? "text-primary scale-105" : "text-zinc-400"}`}
             />
             <span
               className={`text-[10px] font-semibold overflow-y-clip h-full ${isActive ? "text-primary" : "text-zinc-400"}`}
@@ -232,7 +232,7 @@ export default function MobileMenu() {
         <span className="relative">
           <ShoppingCartSimpleIcon
             weight={location.pathname === "/cart" ? "fill" : undefined}
-            className={`w-6 h-6 mb-0.5 transition-all ${location.pathname === "/cart" ? "text-primary scale-110" : "text-zinc-400"}`}
+            className={`size-5 mb-0.5 transition-all ${location.pathname === "/cart" ? "text-primary scale-105" : "text-zinc-400"}`}
           />
           {cart.length > 0 && (
             <span className="absolute will-change-transform origin-center -right-1 -top-1 align-middle h-4 min-w-[1rem] animate-in-scaled rounded-full grid place-items-center text-center text-[12px] font-semibold bg-primary text-secondary">
@@ -259,7 +259,7 @@ export default function MobileMenu() {
           >
             <UserCircleIcon
               weight="fill"
-              className={`w-6 h-6 mb-0.5 text-zinc-400 group-hover:text-primary transition-all`}
+              className="size-5 mb-0.5 text-zinc-400 group-hover:text-primary transition-all"
             />
             <span
               className={`text-[10px] font-medium text-zinc-400 group-hover:text-primary}`}
