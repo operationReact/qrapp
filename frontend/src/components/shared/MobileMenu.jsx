@@ -189,7 +189,7 @@ export default function MobileMenu() {
   if (!isMobile) return null;
 
   return (
-    <nav className="fixed border-x left-0 right-0 bottom-0 z-40 w-full max-w-md isolate mx-auto flex justify-between items-end px-2 py-3 bg-card shadow-[0_8px_38px_rgba(0,0,0,0.06)] border-t border-border">
+    <nav className="fixed inset-x-0 bottom-0 z-40 mx-auto flex min-h-[64px] w-full max-w-md isolate items-end justify-between border-x border-t border-border bg-card px-2 pb-[calc(0.375rem+var(--app-safe-bottom))] pt-1.5 shadow-[0_8px_38px_rgba(0,0,0,0.06)] md:min-h-0 md:py-3">
       {items.slice(0, -2).map((item) => {
         const isActive = location.pathname === item.path;
         return (
@@ -204,10 +204,10 @@ export default function MobileMenu() {
           >
             <item.icon
               weight={isActive ? "fill" : undefined}
-              className={`size-5 mb-0.5 transition-all ${isActive ? "text-primary scale-105" : "text-zinc-400"}`}
+              className={`size-5 mb-0.5 transition-all md:size-6 ${isActive ? "text-primary scale-105 md:scale-110" : "text-zinc-400"}`}
             />
             <span
-              className={`text-[10px] font-semibold overflow-y-clip h-full ${isActive ? "text-primary" : "text-zinc-400"}`}
+              className={`h-full overflow-y-clip text-[10px] font-semibold ${isActive ? "text-primary" : "text-zinc-400"}`}
             >
               {item.label}
             </span>
@@ -232,7 +232,7 @@ export default function MobileMenu() {
         <span className="relative">
           <ShoppingCartSimpleIcon
             weight={location.pathname === "/cart" ? "fill" : undefined}
-            className={`size-5 mb-0.5 transition-all ${location.pathname === "/cart" ? "text-primary scale-105" : "text-zinc-400"}`}
+            className={`size-5 mb-0.5 transition-all md:size-6 ${location.pathname === "/cart" ? "text-primary scale-105 md:scale-110" : "text-zinc-400"}`}
           />
           {cart.length > 0 && (
             <span className="absolute will-change-transform origin-center -right-1 -top-1 align-middle h-4 min-w-[1rem] animate-in-scaled rounded-full grid place-items-center text-center text-[12px] font-semibold bg-primary text-secondary">
@@ -241,7 +241,7 @@ export default function MobileMenu() {
           )}
         </span>
         <span
-          className={`text-[10px] font-semibold overflow-y-clip h-full ${location.pathname === "cart" ? "text-primary" : "text-zinc-400"}`}
+          className={`h-full overflow-y-clip text-[10px] font-semibold ${location.pathname === "/cart" ? "text-primary" : "text-zinc-400"}`}
         >
           Cart
         </span>
@@ -252,17 +252,17 @@ export default function MobileMenu() {
           <button
             className={cn(
               `grid place-items-center transition-transform flex-1 focus:outline-none after:absolute after:scale-y-0 after:top-0 after:w-12 after:h-0.5 after:rounded-b-xl after:bg-primary`,
-              location.pathname === "/account" && "after:scale-y-100",
+              location.pathname === "/profile" && "after:scale-y-100",
             )}
             aria-label="Account"
             tabIndex={0}
           >
             <UserCircleIcon
               weight="fill"
-              className="size-5 mb-0.5 text-zinc-400 group-hover:text-primary transition-all"
+              className={`size-5 mb-0.5 transition-all md:size-6 ${location.pathname === "/profile" ? "text-primary scale-105 md:scale-110" : "text-zinc-400"}`}
             />
             <span
-              className={`text-[10px] font-medium text-zinc-400 group-hover:text-primary}`}
+              className={`text-[10px] font-medium ${location.pathname === "/profile" ? "text-primary" : "text-zinc-400"}`}
             >
               Account
             </span>
