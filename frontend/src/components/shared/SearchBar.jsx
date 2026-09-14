@@ -15,9 +15,9 @@ export default function SearchBar({ onSearch = () => { }, autoFocus = false }) {
   }, [searchQuery, onSearch]);
 
   return (
-    <InputGroup className="h-12 rounded-2xl border-border bg-card focus-within:border-primary! focus-within:ring-1! focus-within:ring-primary! md:h-10 md:rounded-xl">
-      <InputGroupAddon className="pl-3 pr-2">
-        <Search className="size-5 text-gray-400" />
+    <InputGroup className="h-10 rounded-xl border-border bg-card focus-within:border-primary! focus-within:ring-1! focus-within:ring-primary! md:h-10 md:rounded-xl">
+      <InputGroupAddon className="pl-2.5 pr-1.5">
+        <Search className="size-4 text-gray-400" />
       </InputGroupAddon>
 
       <InputGroupInput
@@ -29,7 +29,7 @@ export default function SearchBar({ onSearch = () => { }, autoFocus = false }) {
         enterKeyHint="search"
         autoCapitalize="none"
         autoCorrect="off"
-        className="border-0 bg-transparent px-0 text-[15px] focus-visible:ring-0 focus-visible:ring-offset-0 md:text-sm"
+        className="border-0 bg-transparent px-0 text-sm focus-visible:ring-0 focus-visible:ring-offset-0 md:text-sm"
       />
 
       {value && (

@@ -22,6 +22,7 @@ export default function MenuItemCard({
   item,
   overrideUnavailable = false,
   unavailableLabel,
+  compact = false,
 }) {
   const { cart, addItem, decreaseItem } = useCart();
   const [imgError, setImgError] = useState(false);
@@ -71,7 +72,7 @@ export default function MenuItemCard({
     <>
       <article
         className={cn(
-          "group h-full overflow-hidden rounded-2xl border border-border bg-card transition-opacity",
+          "group h-full overflow-hidden rounded-xl border border-border bg-card transition-opacity md:rounded-2xl",
           isUnavailable && "opacity-70",
           // Pre-order items: entire card is the tap target
           preOrderOnly &&
@@ -85,7 +86,7 @@ export default function MenuItemCard({
         }
       >
         {/* Image */}
-        <div className="relative aspect-[4/3] w-full">
+        <div className="relative aspect-[1.45] w-full md:aspect-[4/3]">
           {imageSrc && !imgError ? (
             <img
               src={imageSrc}
@@ -136,7 +137,7 @@ export default function MenuItemCard({
           <div
             title={veg ? "Veg" : "Non Veg"}
             className={cn(
-              "absolute top-2 left-2 flex size-6 origin-top-left scale-90 items-center gap-2 rounded-sm border-2 bg-white p-1.5 sm:scale-100",
+              "absolute top-1 left-1 flex size-5 items-center gap-2 rounded-sm border-2 bg-white p-1 md:top-2 md:left-2 md:size-6 md:origin-top-left md:scale-90 md:p-1.5",
               veg ? "border-accent-400" : "border-red-600",
             )}
           >
@@ -150,20 +151,25 @@ export default function MenuItemCard({
         </div>
 
         {/* Details */}
-        <div className="space-y-2 p-3">
+        <div className="space-y-1.5 p-2 md:space-y-2 md:p-3">
           <h3
             className={cn(
-              "line-clamp-2 text-pretty text-[15px] font-semibold leading-5 lg:text-[17px]",
+              "line-clamp-2 min-h-9 text-pretty text-[14px] font-semibold leading-[18px] md:min-h-0 md:text-[15px] md:leading-5 lg:min-h-10 lg:text-[17px]",
               isUnavailable && "text-muted-foreground",
             )}
           >
             {item.name}
           </h3>
 
-          <div className="flex flex-wrap items-center justify-between gap-2">
+          <div
+            className={cn(
+              "flex flex-wrap items-center justify-between gap-1.5 md:gap-2",
+              compact && "flex-col items-stretch gap-1 md:flex-row md:items-center",
+            )}
+          >
             <span
               className={cn(
-                "font-semibold text-[15px] lg:text-base",
+                "font-semibold text-[15px] leading-5 lg:text-base",
                 isUnavailable &&
                   "text-muted-foreground line-through decoration-muted-foreground/60",
               )}
@@ -190,6 +196,8 @@ export default function MenuItemCard({
                 qty={qty}
                 onAdd={() => addItem(item)}
                 onRemove={() => decreaseItem(item)}
+                compact={compact}
+                className={compact ? "w-full" : undefined}
               />
             )}
           </div>
@@ -211,6 +219,7 @@ MenuItemCard.propTypes = {
   item: PropTypes.object.isRequired,
   overrideUnavailable: PropTypes.bool,
   unavailableLabel: PropTypes.string,
+  compact: PropTypes.bool,
   onEdit: PropTypes.func,
   onDelete: PropTypes.func,
 };

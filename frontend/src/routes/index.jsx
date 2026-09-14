@@ -17,7 +17,7 @@ import MobileMenu from "../components/shared/MobileMenu";
 import { useLocation } from "@tanstack/react-router";
 import DealsSection from "@/components/DealsSection";
 import React from "react";
-import { BowlFoodIcon } from "@phosphor-icons/react";
+import { BowlFoodIcon, CaretRightIcon } from "@phosphor-icons/react";
 import {
   Empty,
   EmptyDescription,
@@ -133,7 +133,7 @@ function MenuPage() {
         </div>
       )}
 
-      <div className="container-premium flex flex-col gap-2.5 py-2">
+      <div className="container-premium flex flex-col gap-2 py-1.5 md:gap-2.5 md:py-2">
         <div className="flex gap-3 w-full">
           <SearchBar onSearch={setSearchQuery} />
         </div>
@@ -148,7 +148,7 @@ function MenuPage() {
         <DealsSection />
       </div>
 
-      <div className="container-premium mt-2">
+      <div className="container-premium mt-1 md:mt-2">
         <CategoryTabs categories={categories} active={category} />
       </div>
 
@@ -193,24 +193,33 @@ function MenuPage() {
             <section
               key={catName}
               id={encodeURIComponent(catName)}
-              className="flex flex-col gap-2 scroll-mt-4 rounded-lg py-2"
+              className="flex flex-col gap-1 scroll-mt-4 rounded-lg py-1.5 md:gap-2 md:py-2"
             >
               {/* Compact single-line category header */}
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-baseline gap-2 min-w-0">
-                  <h2 className="truncate text-md font-bold leading-snug">
+                  <h2 className="truncate text-xl font-bold leading-snug md:text-md">
                     {catName}
                   </h2>
-                  <span className="shrink-0 text-xs text-zinc-600">
+                  <span className="shrink-0 text-[13px] text-zinc-600 md:text-xs">
                     {items.length} {items.length === 1 ? "item" : "items"}
                   </span>
                 </div>
+                {items.length >= 5 && items[0]?.category?.id && (
+                  <Link
+                    to={`/categories/${items[0].category.id}`}
+                    className="inline-flex shrink-0 items-center gap-0.5 text-[13px] font-semibold text-primary md:hidden"
+                  >
+                    See all
+                    <CaretRightIcon weight="bold" className="size-3.5" />
+                  </Link>
+                )}
               </div>
 
               {/* Products */}
               {items.length === 1 ? (
                 <>
-                  <div className="grid grid-cols-2 gap-3 lg:hidden">
+                  <div className="grid grid-cols-2 gap-2 md:gap-3 lg:hidden">
                     <MenuItemCard item={items[0]} />
                   </div>
                   <div className="hidden lg:block max-w-xs">
@@ -219,11 +228,29 @@ function MenuPage() {
                 </>
               ) : (
                 <>
-                  <div className="grid grid-cols-2 gap-3 lg:hidden">
-                    {items.map((item) => (
-                      <MenuItemCard key={item.id} item={item} />
-                    ))}
-                  </div>
+                  {items.length >= 5 ? (
+                    <Carousel
+                      opts={{ dragFree: true, align: "start" }}
+                      className="w-full md:hidden"
+                    >
+                      <CarouselContent className="-ml-2 pr-2">
+                        {items.map((item) => (
+                          <CarouselItem
+                            key={item.id}
+                            className="basis-[34%] pl-2 min-[380px]:basis-[31%]"
+                          >
+                            <MenuItemCard item={item} compact />
+                          </CarouselItem>
+                        ))}
+                      </CarouselContent>
+                    </Carousel>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-2 md:gap-3 lg:hidden">
+                      {items.map((item) => (
+                        <MenuItemCard key={item.id} item={item} />
+                      ))}
+                    </div>
+                  )}
                   <Carousel opts={{ dragFree: true }} className="hidden lg:block">
                     <CarouselContent className="-ml-2 pr-3">
                       {items.map((item) => (

@@ -20,7 +20,13 @@ import { Button } from "./ui/button";
  *   • Minus is text-only to visually de-emphasize the destructive direction.
  *   • active:scale-95 gives instant tap feedback without a JS handler.
  */
-export default function QuantitySelector({ qty, onAdd, onRemove, className }) {
+export default function QuantitySelector({
+  qty,
+  onAdd,
+  onRemove,
+  className,
+  compact = false,
+}) {
   /* ── "Add" pill ─────────────────────────────────── */
   if (qty === 0) {
     return (
@@ -31,7 +37,10 @@ export default function QuantitySelector({ qty, onAdd, onRemove, className }) {
         aria-label="Add to cart"
         className={cn(
           // shape & layout
-          "flex h-10 min-w-[5.75rem] items-center justify-center gap-1 rounded-full px-4 text-sm font-semibold",
+          compact
+            ? "flex h-8 min-w-[3.5rem] items-center justify-center gap-0.5 rounded-[10px] px-2 text-[12px] font-semibold"
+            : "flex h-8 min-w-[4.5rem] items-center justify-center gap-1 rounded-[10px] px-3 text-[13px] font-semibold",
+          "md:h-10 md:min-w-[5.75rem] md:rounded-full md:px-4 md:text-sm",
           "lg:h-8 lg:min-w-[4.75rem] lg:px-3 lg:text-xs",
 
           // elevation — soft shadow lifts it off the card
@@ -54,7 +63,11 @@ export default function QuantitySelector({ qty, onAdd, onRemove, className }) {
       className={cn(
         // pill container
         "grid grid-cols-3 items-center overflow-hidden rounded-full",
-        "h-10 min-w-[6.75rem] select-none lg:h-8 lg:min-w-[5.5rem]",
+        compact
+          ? "h-8 min-w-[4.25rem] select-none"
+          : "h-8 min-w-[5.25rem] select-none",
+        "md:h-10 md:min-w-[6.75rem]",
+        "lg:h-8 lg:min-w-[5.5rem]",
         // soft elevated background
         "bg-background",
         "shadow-xs",
@@ -68,7 +81,11 @@ export default function QuantitySelector({ qty, onAdd, onRemove, className }) {
         onClick={onRemove}
         aria-label="Remove one"
         className={cn(
-          "flex h-full w-10 shrink-0 items-center justify-center bg-primary/5",
+          compact
+            ? "flex h-full w-5 shrink-0 items-center justify-center bg-primary/5"
+            : "flex h-full w-7 shrink-0 items-center justify-center bg-primary/5",
+          "md:w-10",
+          "lg:w-10",
           "text-primary/60",
           "transition-all duration-100",
           "hover:bg-primary/10 hover:text-primary",
@@ -96,14 +113,18 @@ export default function QuantitySelector({ qty, onAdd, onRemove, className }) {
         onClick={onAdd}
         aria-label="Add one more"
         className={cn(
-          "flex h-full w-10 shrink-0 items-center justify-center",
+          compact
+            ? "flex h-full w-5 shrink-0 items-center justify-center"
+            : "flex h-full w-7 shrink-0 items-center justify-center",
+          "md:w-10",
+          "lg:w-10",
           "bg-primary text-primary-foreground",
           "transition-all duration-100",
           "hover:brightness-110",
           "active:scale-90",
         )}
       >
-        <PlusIcon weight="bold" className="size-4" />
+        <PlusIcon weight="bold" className={compact ? "size-3" : "size-3.5 lg:size-4"} />
       </button>
     </div>
   );

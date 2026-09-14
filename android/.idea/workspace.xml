@@ -5,15 +5,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="a61b7173-180a-4861-9ce5-39983060dec7" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/app/build/intermediates/incremental/packageDebug/tmp/debug/dex-renamer-state.txt" beforeDir="false" afterPath="$PROJECT_DIR$/app/build/intermediates/incremental/packageDebug/tmp/debug/dex-renamer-state.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/build/outputs/apk/debug/app-debug.apk" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/build/outputs/apk/debug/output-metadata.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/components/MenuItemActionButton.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/components/MenuItemActionButton.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/components/ModeSwitcher.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/components/ModeSwitcher.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/components/StickyCartBar.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/components/StickyCartBar.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/components/shared/Navbar.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/components/shared/Navbar.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/hooks/use-mobile.js" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/hooks/use-mobile.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../frontend/src/routes/index.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/routes/index.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />

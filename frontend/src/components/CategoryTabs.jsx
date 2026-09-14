@@ -37,7 +37,7 @@ export default function CategoryTabs({ categories, active }) {
               size: "sm",
               variant: active === cat ? "default" : "secondary",
               className: cn(
-                "h-10 min-w-fit rounded-full px-4 text-sm font-semibold shadow-sm md:h-9 md:px-3.5 md:text-xs",
+                "h-9 min-w-fit rounded-lg px-3 text-[13px] font-semibold shadow-sm md:h-9 md:rounded-full md:px-3.5 md:text-xs",
                 {
                   "bg-primary": active === cat,
                 },

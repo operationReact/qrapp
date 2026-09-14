@@ -93,9 +93,9 @@ export default function Navbar() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur">
-      <div className="container-premium flex items-center justify-between gap-3 py-3 lg:hidden">
+      <div className="container-premium flex items-center justify-between gap-2 py-2 md:gap-3 md:py-3 lg:hidden">
         <Link to="/" className="flex min-w-0 items-center gap-2.5">
-          <img src="/bro-logo.png" alt="BRO & BRO" className="size-11 rounded-2xl object-cover shadow-sm" />
+          <img src="/bro-logo.png" alt="BRO & BRO" className="size-10 rounded-xl object-cover shadow-sm md:size-11 md:rounded-2xl" />
           <div className="min-w-0">
             <p className="truncate text-[15px] font-bold leading-5 text-foreground">
               BRO &amp; BRO
@@ -106,7 +106,7 @@ export default function Navbar() {
           </div>
         </Link>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 md:gap-2">
           <button
             onClick={() => {
               if (shouldOpenCartDrawer) {
@@ -117,7 +117,7 @@ export default function Navbar() {
               }
             }}
             aria-label="Open cart"
-            className="relative inline-flex size-10 items-center justify-center rounded-full border border-border bg-card shadow-sm"
+            className="relative inline-flex size-9 items-center justify-center rounded-full border border-border bg-card shadow-sm md:size-10"
           >
             <ShoppingCartSimpleIcon weight="duotone" className="size-5" />
             {cart.length > 0 && (
@@ -131,9 +131,9 @@ export default function Navbar() {
             <Link
               to="/profile"
               aria-label="Open account"
-              className="inline-flex size-10 items-center justify-center overflow-hidden rounded-full border border-border bg-card shadow-sm"
+              className="inline-flex size-9 items-center justify-center overflow-hidden rounded-full border border-border bg-card shadow-sm md:size-10"
             >
-              <Avatar className="size-10">
+              <Avatar className="size-9 md:size-10">
                 <AvatarFallback className="text-[13px] text-primary">
                   {initials}
                 </AvatarFallback>
@@ -143,9 +143,9 @@ export default function Navbar() {
             <Link
               to="/login"
               aria-label="Login"
-              className="inline-flex size-10 items-center justify-center rounded-full border border-border bg-card shadow-sm"
+              className="inline-flex size-9 items-center justify-center rounded-full border border-border bg-card shadow-sm md:size-10"
             >
-              <UserCircleIcon weight="duotone" className="size-6 text-muted-foreground" />
+              <UserCircleIcon weight="duotone" className="size-5 text-muted-foreground md:size-6" />
             </Link>
           )}
         </div>
