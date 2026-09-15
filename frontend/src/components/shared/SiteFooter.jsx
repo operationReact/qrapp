@@ -49,6 +49,35 @@ function MetaBlock({ label, children }) {
   );
 }
 
+const mobileFooterSections = [
+  {
+    title: "Company",
+    items: [
+      { label: "About Us", to: "/about-us" },
+      { label: "Contact Us", to: "/contact-us" },
+      { label: "Business Information", to: "/business-information" },
+    ],
+  },
+  {
+    title: "Customer Support",
+    items: [
+      { label: "Help & Support", to: "/help-support" },
+      { label: "FAQs", to: "/faqs" },
+    ],
+  },
+  {
+    title: "Legal & Safety",
+    items: [
+      { label: "Terms & Conditions", to: "/terms-and-conditions" },
+      { label: "Privacy Policy", to: "/privacy-policy" },
+      { label: "Refund & Cancellation Policy", to: "/refund-cancellation-policy" },
+      { label: "Grievance Redressal", to: "/grievance-redressal" },
+      { label: "Food Safety", to: "/food-safety" },
+      { label: "FSSAI Information", to: "/fssai-information" },
+    ],
+  },
+];
+
 function MobileFooterAccordion({ section, isOpen, onToggle, index }) {
   const contentId = `mobile-footer-section-${index}`;
 
@@ -96,18 +125,14 @@ function MobileFooterAccordion({ section, isOpen, onToggle, index }) {
 
 function MobileSiteFooter() {
   const [openSection, setOpenSection] = useState(null);
-  const sectionTitles = {
-    Customer: "Customer Support",
-    Legal: "Legal & Policies",
-  };
 
   return (
     <footer
       aria-label="Mobile business information"
       className="border-t border-border/70 bg-card/95 pb-[calc(var(--app-mobile-menu-height)+var(--app-safe-bottom)+1rem)] backdrop-blur supports-[backdrop-filter]:bg-card/85"
     >
-      <div className="w-full px-5 py-6">
-        <section aria-labelledby="mobile-footer-brand" className="space-y-3">
+      <div className="w-full px-5 py-5">
+        <section aria-labelledby="mobile-footer-brand" className="space-y-2.5">
           <div className="flex items-center gap-3">
             <img
               src="/bro-logo.png"
@@ -124,50 +149,52 @@ function MobileSiteFooter() {
               <p className="text-xs text-muted-foreground">Food Court</p>
             </div>
           </div>
-          <p className="max-w-[320px] text-[13px] leading-5 text-muted-foreground">
+          <p className="max-w-[320px] text-[12px] leading-[18px] text-muted-foreground">
             {companyProfile.businessDescription}
           </p>
         </section>
 
         <section
           aria-label="Contact information"
-          className="mt-5 space-y-2 border-y border-border/70 py-4"
+          className="mt-4 border-y border-border/70 py-3.5"
         >
-          <a
-            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-              companyProfile.registeredAddress,
-            )}`}
-            target="_blank"
-            rel="noreferrer"
-            className="flex items-center gap-2 text-[13px] text-muted-foreground hover:text-primary"
-          >
-            <MapPinIcon className="size-4 shrink-0 text-primary" />
-            <span>{companyProfile.city}, {companyProfile.state}</span>
-          </a>
-          <a
-            href={`mailto:${companyProfile.email}`}
-            className="flex items-center gap-2 text-[13px] text-muted-foreground hover:text-primary"
-          >
-            <EnvelopeSimpleIcon className="size-4 shrink-0 text-primary" />
-            <span className="truncate">{companyProfile.email}</span>
-          </a>
-          <a
-            href={`tel:+91${companyProfile.phone}`}
-            className="flex items-center gap-2 text-[13px] text-muted-foreground hover:text-primary"
-          >
-            <PhoneIcon className="size-4 shrink-0 text-primary" />
-            <span>{companyProfile.phone}</span>
-          </a>
+          <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+            Contact
+          </p>
+          <div className="space-y-1.5">
+            <a
+              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                companyProfile.registeredAddress,
+              )}`}
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center gap-2 text-[12px] leading-5 text-muted-foreground hover:text-primary"
+            >
+              <MapPinIcon className="size-3.5 shrink-0 text-primary/70" />
+              <span>{companyProfile.city}, {companyProfile.state}</span>
+            </a>
+            <a
+              href={`mailto:${companyProfile.email}`}
+              className="flex items-center gap-2 text-[12px] leading-5 text-muted-foreground hover:text-primary"
+            >
+              <EnvelopeSimpleIcon className="size-3.5 shrink-0 text-primary/70" />
+              <span className="truncate">{companyProfile.email}</span>
+            </a>
+            <a
+              href={`tel:+91${companyProfile.phone}`}
+              className="flex items-center gap-2 text-[12px] leading-5 text-muted-foreground hover:text-primary"
+            >
+              <PhoneIcon className="size-3.5 shrink-0 text-primary/70" />
+              <span>{companyProfile.phone}</span>
+            </a>
+          </div>
         </section>
 
-        <nav aria-label="Footer links" className="mt-3">
-          {footerSections.map((section, index) => (
+        <nav aria-label="Footer links" className="mt-4">
+          {mobileFooterSections.map((section, index) => (
             <MobileFooterAccordion
               key={section.title}
-              section={{
-                ...section,
-                title: sectionTitles[section.title] || section.title,
-              }}
+              section={section}
               index={index}
               isOpen={openSection === index}
               onToggle={() =>
@@ -179,7 +206,7 @@ function MobileSiteFooter() {
 
         <section
           aria-label="Food safety trust information"
-          className="mt-4 flex items-start gap-2 rounded-lg bg-muted/60 px-3 py-2.5"
+          className="mt-4 flex items-start gap-2 rounded-lg border border-border/60 bg-muted/30 px-3 py-2.5"
         >
           <ShieldCheckIcon className="mt-0.5 size-4 shrink-0 text-primary" />
           <div className="min-w-0">
@@ -198,7 +225,7 @@ function MobileSiteFooter() {
           </Link>
         </section>
 
-        <div className="mt-5 border-t border-border/70 pt-3 text-center">
+        <div className="mt-4 border-t border-border/70 pt-3 text-center">
           <p className="text-[11px] text-muted-foreground">
             © 2026 BRO&amp;BRO HOSPITALITY LLP
           </p>
