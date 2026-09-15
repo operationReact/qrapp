@@ -502,6 +502,16 @@ body {
   display: none; /* Chrome / Safari / Opera */
 }
 
+/* Keep the food dietary marker unobtrusive on phone-sized product cards. */
+@media (max-width: 767px) {
+  .menu-item-dietary-icon {
+    width: 12px;
+    height: 12px;
+    padding: 2px;
+    border-width: 1px;
+  }
+}
+
 /* Prevent the Recharts tooltip from clipping at viewport edge on mobile */
 .recharts-tooltip-wrapper {
   z-index: 50;

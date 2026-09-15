@@ -137,7 +137,7 @@ export default function MenuItemCard({
           <div
             title={veg ? "Veg" : "Non Veg"}
             className={cn(
-              "absolute top-1 left-1 flex size-5 items-center gap-2 rounded-sm border-2 bg-white p-1 md:top-2 md:left-2 md:size-6 md:origin-top-left md:scale-90 md:p-1.5",
+              "menu-item-dietary-icon absolute top-1 left-1 flex items-center gap-2 rounded-[3px] border bg-white md:top-2 md:left-2 md:size-6 md:origin-top-left md:scale-90 md:rounded-sm md:border-2 md:p-1.5",
               veg ? "border-accent-400" : "border-red-600",
             )}
           >
