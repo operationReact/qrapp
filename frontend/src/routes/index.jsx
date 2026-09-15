@@ -217,54 +217,40 @@ function MenuPage() {
               </div>
 
               {/* Products */}
-              {items.length === 1 ? (
-                <>
-                  <div className="grid grid-cols-2 gap-2 md:gap-3 lg:hidden">
-                    <MenuItemCard item={items[0]} />
-                  </div>
-                  <div className="hidden lg:block max-w-xs">
-                    <MenuItemCard item={items[0]} />
-                  </div>
-                </>
-              ) : (
-                <>
-                  {items.length >= 5 ? (
-                    <Carousel
-                      opts={{ dragFree: true, align: "start" }}
-                      className="w-full md:hidden"
+              <Carousel
+                opts={{ dragFree: true, align: "start" }}
+                className="w-full md:hidden"
+              >
+                <CarouselContent className="-ml-2 pr-2">
+                  {items.map((item) => (
+                    <CarouselItem
+                      key={item.id}
+                      className="basis-[34%] pl-2 min-[380px]:basis-[31%]"
                     >
-                      <CarouselContent className="-ml-2 pr-2">
-                        {items.map((item) => (
-                          <CarouselItem
-                            key={item.id}
-                            className="basis-[34%] pl-2 min-[380px]:basis-[31%]"
-                          >
-                            <MenuItemCard item={item} compact />
-                          </CarouselItem>
-                        ))}
-                      </CarouselContent>
-                    </Carousel>
-                  ) : (
-                    <div className="grid grid-cols-2 gap-2 md:gap-3 lg:hidden">
-                      {items.map((item) => (
-                        <MenuItemCard key={item.id} item={item} />
-                      ))}
-                    </div>
-                  )}
-                  <Carousel opts={{ dragFree: true }} className="hidden lg:block">
-                    <CarouselContent className="-ml-2 pr-3">
-                      {items.map((item) => (
-                        <CarouselItem
-                          key={item.id}
-                          className="pl-2 basis-1/3 sm:basis-1/4 md:basis-1/5 lg:basis-1/6"
-                        >
-                          <MenuItemCard item={item} />
-                        </CarouselItem>
-                      ))}
-                    </CarouselContent>
-                  </Carousel>
-                </>
-              )}
+                      <MenuItemCard item={item} compact />
+                    </CarouselItem>
+                  ))}
+                </CarouselContent>
+              </Carousel>
+
+              <div className="hidden grid-cols-2 gap-3 md:grid lg:hidden">
+                {items.map((item) => (
+                  <MenuItemCard key={item.id} item={item} />
+                ))}
+              </div>
+
+              <Carousel opts={{ dragFree: true }} className="hidden lg:block">
+                <CarouselContent className="-ml-2 pr-3">
+                  {items.map((item) => (
+                    <CarouselItem
+                      key={item.id}
+                      className="pl-2 basis-1/3 sm:basis-1/4 md:basis-1/5 lg:basis-1/6"
+                    >
+                      <MenuItemCard item={item} />
+                    </CarouselItem>
+                  ))}
+                </CarouselContent>
+              </Carousel>
             </section>
           ))}
         </div>
