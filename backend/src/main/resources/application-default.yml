@@ -33,8 +33,8 @@ spring:
 
 # Default profile: require explicit Razorpay credentials instead of silently using a bundled test account.
 razorpay:
-  key: ${RAZORPAY_KEY:rzp_test_SXoONgvkn7mSte}
-  secret: ${RAZORPAY_SECRET:cT115GamOarfQX8BhxVmIwj9}
+  key: ${RAZORPAY_KEY:rzp_test_TcNQ9RGFhrKf1f}
+  secret: ${RAZORPAY_SECRET:E9bRX7AlL6on2QeyxKEA5aWF}
   webhookSecret: ${RAZORPAY_WEBHOOK_SECRET:rzp_test_mock_webhook_secret}
 
 twilio:

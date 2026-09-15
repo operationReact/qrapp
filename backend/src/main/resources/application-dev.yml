@@ -66,9 +66,9 @@ spring:
 
 # Default profile: require explicit Razorpay credentials from SSM Parameter Store
 razorpay:
-  key:           ${app.parameter-store.razorpay.key:}
-  secret:        ${app.parameter-store.razorpay.secret:}
-  webhookSecret: ${app.parameter-store.razorpay.webhookSecret:}
+  key:           ${RAZORPAY_KEY:${app.parameter-store.razorpay.key:}}
+  secret:        ${RAZORPAY_SECRET:${app.parameter-store.razorpay.secret:}}
+  webhookSecret: ${RAZORPAY_WEBHOOK_SECRET:${app.parameter-store.razorpay.webhookSecret:}}
 
 twilio:
   accountSid: ${app.parameter-store.twilio.accountSid:}
