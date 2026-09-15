@@ -505,10 +505,16 @@ body {
 /* Keep the food dietary marker unobtrusive on phone-sized product cards. */
 @media (max-width: 767px) {
   .menu-item-dietary-icon {
-    width: 12px;
-    height: 12px;
+    box-sizing: border-box;
+    width: 10px !important;
+    min-width: 10px !important;
+    max-width: 10px !important;
+    height: 10px !important;
+    min-height: 10px !important;
+    max-height: 10px !important;
     padding: 2px;
     border-width: 1px;
+    flex: 0 0 10px;
   }
 }
 
