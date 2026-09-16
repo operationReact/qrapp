@@ -174,3 +174,8 @@ twilio:
   orderPlacedContentSid: ${TWILIO_ORDER_PLACED_CONTENT_SID:HX7926f06db10abf2c81bd27dc98c27423}
   orderReadyContentSid: ${TWILIO_ORDER_READY_CONTENT_SID:}
   otpContentSid: ${TWILIO_OTP_CONTENT_SID:HX229f5a04fd0510ce1b071852155d3e75}
+
+whatsapp:
+  webhook:
+    verify-token: ${WHATSAPP_WEBHOOK_VERIFY_TOKEN:}
+    app-secret: ${WHATSAPP_APP_SECRET:}

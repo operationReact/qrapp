@@ -18,6 +18,7 @@ sudo tee /etc/nginx/sites-available/backend-proxy > /dev/null << EOF
 server {
     listen 80;
     server_name $DOMAIN;
+    client_max_body_size 10m;
 
     location / {
         proxy_pass http://localhost:$BACKEND_PORT;
@@ -25,6 +26,8 @@ server {
         proxy_set_header X-Real-IP \$remote_addr;
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_set_header X-Hub-Signature-256 \$http_x_hub_signature_256;
+        proxy_pass_request_body on;
         proxy_read_timeout 300s;
     }
 }
@@ -51,4 +54,3 @@ echo "VITE_API_URL=https://$DOMAIN"
 echo ""
 echo "Restart backend to apply:"
 echo "  systemctl restart <your-service-name>"
-

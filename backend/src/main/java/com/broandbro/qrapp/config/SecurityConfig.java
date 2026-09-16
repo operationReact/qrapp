@@ -115,6 +115,9 @@ public class SecurityConfig {
 
                         .requestMatchers("/webhook/**").permitAll()
 
+                        .requestMatchers(HttpMethod.GET, "/webhooks/whatsapp").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/webhooks/whatsapp").permitAll()
+
                         .requestMatchers("/admin/menu/bulk-upload/**").permitAll()
 
                         .requestMatchers(
