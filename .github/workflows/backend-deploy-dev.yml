@@ -153,6 +153,8 @@ jobs:
           TWILIO_AUTH_TOKEN=$(get_optional_parameter "/broandbro/backend/dev/twilio/authToken")
 
           TWO_FACTOR_API_KEY=$(get_optional_parameter "/broandbro/backend/dev/twofactor/apiKey")
+          WHATSAPP_WEBHOOK_VERIFY_TOKEN=$(get_optional_parameter "/broandbro/backend/dev/whatsapp/webhookVerifyToken")
+          WHATSAPP_APP_SECRET=$(get_optional_parameter "/broandbro/backend/dev/whatsapp/appSecret")
 
           # Store in environment for next step
           echo "DB_URL=$DB_URL" >> $GITHUB_ENV
@@ -168,6 +170,8 @@ jobs:
           echo "TWILIO_ACCOUNT_SID=$TWILIO_ACCOUNT_SID" >> $GITHUB_ENV
           echo "TWILIO_AUTH_TOKEN=$TWILIO_AUTH_TOKEN" >> $GITHUB_ENV
           echo "TWO_FACTOR_API_KEY=$TWO_FACTOR_API_KEY" >> $GITHUB_ENV
+          echo "WHATSAPP_WEBHOOK_VERIFY_TOKEN=$WHATSAPP_WEBHOOK_VERIFY_TOKEN" >> $GITHUB_ENV
+          echo "WHATSAPP_APP_SECRET=$WHATSAPP_APP_SECRET" >> $GITHUB_ENV
           echo "✅ Configuration fetched from AWS Parameter Store"
 
       - name: Validate TWO_FACTOR_API_KEY present
@@ -177,6 +181,16 @@ jobs:
             exit 1
           fi
           echo "✅ TWO_FACTOR_API_KEY present"
+
+      - name: Validate WhatsApp webhook configuration
+        run: |
+          for REQUIRED in WHATSAPP_WEBHOOK_VERIFY_TOKEN WHATSAPP_APP_SECRET; do
+            if [ -z "${!REQUIRED}" ]; then
+              echo "❌ $REQUIRED not found in SSM for dev. Aborting deploy." >&2
+              exit 1
+            fi
+          done
+          echo "✅ WhatsApp webhook configuration present"
 
       # Step 8: Upload JAR + env file + deploy script to S3
       # All three files land in deploy/dev/<run_id>/ so cleanup is a single rm.
@@ -209,6 +223,8 @@ jobs:
           OPENAI_IMAGE_SIZE=1024x1024
 
           TWO_FACTOR_API_KEY=${{ env.TWO_FACTOR_API_KEY }}
+          WHATSAPP_WEBHOOK_VERIFY_TOKEN=${WHATSAPP_WEBHOOK_VERIFY_TOKEN}
+          WHATSAPP_APP_SECRET=${WHATSAPP_APP_SECRET}
 
           AWS_S3_BUCKET_NAME=${S3_BUCKET}
           AWS_S3_REGION=${S3_REGION}
