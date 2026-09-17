@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="ic_launcher_background">#ef4444</color>
+    <color name="ic_launcher_background">#ffffff</color>
     <color name="splash_background">#fffaf0</color>
     <string name="app_name">BRO &amp; BRO</string>
     <string name="start_url">https://www.broandbro.in/</string>

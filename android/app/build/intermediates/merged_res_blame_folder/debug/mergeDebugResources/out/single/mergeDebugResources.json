@@ -4,8 +4,12 @@
         "source": "in.broandbro.app-main-29:/mipmap-hdpi/ic_launcher_round.png"
     },
     {
-        "merged": "in.broandbro.app-debug-27:/mipmap-anydpi-v26_ic_launcher.xml.flat",
-        "source": "in.broandbro.app-main-29:/mipmap-anydpi-v26/ic_launcher.xml"
+        "merged": "C:\\Users\\venum\\.gradle\\daemon\\8.11.1\\in.broandbro.app-debug-27:\\mipmap-anydpi-v26_ic_launcher_round.xml.flat",
+        "source": "C:\\Users\\venum\\.gradle\\daemon\\8.11.1\\in.broandbro.app-main-29:\\mipmap-anydpi-v26\\ic_launcher_round.xml"
+    },
+    {
+        "merged": "C:\\Users\\venum\\.gradle\\daemon\\8.11.1\\in.broandbro.app-debug-27:\\mipmap-hdpi_ic_launcher.png.flat",
+        "source": "C:\\Users\\venum\\.gradle\\daemon\\8.11.1\\in.broandbro.app-main-29:\\mipmap-hdpi\\ic_launcher.png"
     },
     {
         "merged": "in.broandbro.app-debug-27:/mipmap-xxxhdpi_ic_launcher_round.png.flat",
@@ -16,39 +20,79 @@
         "source": "in.broandbro.app-main-29:/drawable-nodpi/bro_logo.png"
     },
     {
-        "merged": "in.broandbro.app-debug-27:/mipmap-mdpi_ic_launcher_round.png.flat",
-        "source": "in.broandbro.app-main-29:/mipmap-mdpi/ic_launcher_round.png"
-    },
-    {
         "merged": "in.broandbro.app-debug-27:/mipmap-xhdpi_ic_launcher_round.png.flat",
         "source": "in.broandbro.app-main-29:/mipmap-xhdpi/ic_launcher_round.png"
+    },
+    {
+        "merged": "C:\\Users\\venum\\.gradle\\daemon\\8.11.1\\in.broandbro.app-debug-27:\\mipmap-xxhdpi_ic_launcher.png.flat",
+        "source": "C:\\Users\\venum\\.gradle\\daemon\\8.11.1\\in.broandbro.app-main-29:\\mipmap-xxhdpi\\ic_launcher.png"
     },
     {
         "merged": "in.broandbro.app-debug-27:/mipmap-xhdpi_ic_launcher.png.flat",
         "source": "in.broandbro.app-main-29:/mipmap-xhdpi/ic_launcher.png"
     },
     {
-        "merged": "in.broandbro.app-debug-27:/mipmap-mdpi_ic_launcher.png.flat",
-        "source": "in.broandbro.app-main-29:/mipmap-mdpi/ic_launcher.png"
-    },
-    {
         "merged": "in.broandbro.app-debug-27:/mipmap-xxhdpi_ic_launcher_round.png.flat",
         "source": "in.broandbro.app-main-29:/mipmap-xxhdpi/ic_launcher_round.png"
+    },
+    {
+        "merged": "C:\\Users\\venum\\.gradle\\daemon\\8.11.1\\in.broandbro.app-debug-27:\\mipmap-xxhdpi_ic_launcher_round.png.flat",
+        "source": "C:\\Users\\venum\\.gradle\\daemon\\8.11.1\\in.broandbro.app-main-29:\\mipmap-xxhdpi\\ic_launcher_round.png"
     },
     {
         "merged": "in.broandbro.app-debug-27:/mipmap-hdpi_ic_launcher.png.flat",
         "source": "in.broandbro.app-main-29:/mipmap-hdpi/ic_launcher.png"
     },
     {
+        "merged": "C:\\Users\\venum\\.gradle\\daemon\\8.11.1\\in.broandbro.app-debug-27:\\mipmap-xxxhdpi_ic_launcher_round.png.flat",
+        "source": "C:\\Users\\venum\\.gradle\\daemon\\8.11.1\\in.broandbro.app-main-29:\\mipmap-xxxhdpi\\ic_launcher_round.png"
+    },
+    {
+        "merged": "C:\\Users\\venum\\.gradle\\daemon\\8.11.1\\in.broandbro.app-debug-27:\\mipmap-xxxhdpi_ic_launcher.png.flat",
+        "source": "C:\\Users\\venum\\.gradle\\daemon\\8.11.1\\in.broandbro.app-main-29:\\mipmap-xxxhdpi\\ic_launcher.png"
+    },
+    {
         "merged": "in.broandbro.app-debug-27:/mipmap-xxxhdpi_ic_launcher.png.flat",
         "source": "in.broandbro.app-main-29:/mipmap-xxxhdpi/ic_launcher.png"
     },
     {
-        "merged": "in.broandbro.app-debug-27:/mipmap-xxhdpi_ic_launcher.png.flat",
-        "source": "in.broandbro.app-main-29:/mipmap-xxhdpi/ic_launcher.png"
+        "merged": "C:\\Users\\venum\\.gradle\\daemon\\8.11.1\\in.broandbro.app-debug-27:\\mipmap-xhdpi_ic_launcher.png.flat",
+        "source": "C:\\Users\\venum\\.gradle\\daemon\\8.11.1\\in.broandbro.app-main-29:\\mipmap-xhdpi\\ic_launcher.png"
     },
     {
-        "merged": "in.broandbro.app-debug-27:/mipmap-anydpi-v26_ic_launcher_round.xml.flat",
-        "source": "in.broandbro.app-main-29:/mipmap-anydpi-v26/ic_launcher_round.xml"
+        "merged": "C:\\Users\\venum\\.gradle\\daemon\\8.11.1\\in.broandbro.app-debug-27:\\mipmap-anydpi-v26_ic_launcher.xml.flat",
+        "source": "C:\\Users\\venum\\.gradle\\daemon\\8.11.1\\in.broandbro.app-main-29:\\mipmap-anydpi-v26\\ic_launcher.xml"
+    },
+    {
+        "merged": "C:\\Users\\venum\\.gradle\\daemon\\8.11.1\\in.broandbro.app-debug-27:\\mipmap-mdpi_ic_launcher.png.flat",
+        "source": "C:\\Users\\venum\\.gradle\\daemon\\8.11.1\\in.broandbro.app-main-29:\\mipmap-mdpi\\ic_launcher.png"
+    },
+    {
+        "merged": "in.broandbro.app-debug-27:/mipmap-mdpi_ic_launcher_round.png.flat",
+        "source": "in.broandbro.app-main-29:/mipmap-mdpi/ic_launcher_round.png"
+    },
+    {
+        "merged": "C:\\Users\\venum\\.gradle\\daemon\\8.11.1\\in.broandbro.app-debug-27:\\mipmap-mdpi_ic_launcher_round.png.flat",
+        "source": "C:\\Users\\venum\\.gradle\\daemon\\8.11.1\\in.broandbro.app-main-29:\\mipmap-mdpi\\ic_launcher_round.png"
+    },
+    {
+        "merged": "in.broandbro.app-debug-27:/mipmap-mdpi_ic_launcher.png.flat",
+        "source": "in.broandbro.app-main-29:/mipmap-mdpi/ic_launcher.png"
+    },
+    {
+        "merged": "C:\\Users\\venum\\.gradle\\daemon\\8.11.1\\in.broandbro.app-debug-27:\\mipmap-hdpi_ic_launcher_round.png.flat",
+        "source": "C:\\Users\\venum\\.gradle\\daemon\\8.11.1\\in.broandbro.app-main-29:\\mipmap-hdpi\\ic_launcher_round.png"
+    },
+    {
+        "merged": "C:\\Users\\venum\\.gradle\\daemon\\8.11.1\\in.broandbro.app-debug-27:\\drawable-nodpi_bro_logo.png.flat",
+        "source": "C:\\Users\\venum\\.gradle\\daemon\\8.11.1\\in.broandbro.app-main-29:\\drawable-nodpi\\bro_logo.png"
+    },
+    {
+        "merged": "C:\\Users\\venum\\.gradle\\daemon\\8.11.1\\in.broandbro.app-debug-27:\\mipmap-xhdpi_ic_launcher_round.png.flat",
+        "source": "C:\\Users\\venum\\.gradle\\daemon\\8.11.1\\in.broandbro.app-main-29:\\mipmap-xhdpi\\ic_launcher_round.png"
+    },
+    {
+        "merged": "in.broandbro.app-debug-27:/mipmap-xxhdpi_ic_launcher.png.flat",
+        "source": "in.broandbro.app-main-29:/mipmap-xxhdpi/ic_launcher.png"
     }
 ]
