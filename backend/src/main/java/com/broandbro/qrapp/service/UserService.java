@@ -80,6 +80,34 @@ public class UserService {
         return res;
     }
 
+    @Transactional
+    public LoginResponse registerVerified(String phone, String name, String passwordHash) {
+        if (userRepository.findByPhone(phone).isPresent()) {
+            throw new IllegalArgumentException("phone_taken");
+        }
+        User user = userRepository.save(User.builder()
+                .phone(phone)
+                .password(passwordHash)
+                .name(name)
+                .build());
+        walletRepository.save(Wallet.builder().user(user).balance(0L).build());
+        String token = generateToken(user);
+        LoginResponse response = new LoginResponse();
+        response.setToken(token);
+        response.setUser(toResponse(user));
+        return response;
+    }
+
+    private String generateToken(User user) {
+        byte[] b = new byte[24];
+        random.nextBytes(b);
+        String token = Base64.getUrlEncoder().withoutPadding().encodeToString(b);
+        user.setToken(token);
+        userRepository.save(user);
+        cacheUser(user);
+        return token;
+    }
+
     public Optional<User> findByPhone(String phone) {
         return userRepository.findByPhone(phone);
     }
@@ -163,4 +191,3 @@ public class UserService {
         return r;
     }
 }
-

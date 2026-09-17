@@ -20,7 +20,6 @@ import {
   InputOTPSlot,
 } from "@/components/ui/input-otp";
 import { PencilSimpleLineIcon, SpinnerIcon } from "@phosphor-icons/react";
-import { verifyOTP } from "@/services/auth-service";
 import { extractApiError } from "@/lib/apiError";
 import { REGEXP_ONLY_DIGITS } from "input-otp";
 
@@ -33,6 +32,7 @@ export default function OTPVerifyDialog({
   phone,
   onVerified,
   onResend,
+  verifyOtp,
 }) {
   const [otp, setOtp] = useState("");
   const [countdown, setCountdown] = useState(RESEND_COUNTDOWN);
@@ -40,9 +40,9 @@ export default function OTPVerifyDialog({
   const [prevOpen, setPrevOpen] = useState(open);
 
   const verifyMutation = useMutation({
-    mutationFn: ({ phone, otp }) => verifyOTP({ phone, otp }),
-    onSuccess: () => {
-      onVerified?.(otp);
+    mutationFn: ({ phone, otp }) => verifyOtp({ phone, otp }),
+    onSuccess: (data) => {
+      onVerified?.(data);
     },
   });
 

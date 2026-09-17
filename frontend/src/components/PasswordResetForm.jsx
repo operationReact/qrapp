@@ -9,6 +9,11 @@ export default function PasswordResetForm({
   onSubmit,
   isPending,
   error,
+  resetting,
+  newPassword,
+  confirmPassword,
+  onNewPasswordChange,
+  onConfirmPasswordChange,
 }) {
   return (
     <>
@@ -30,13 +35,41 @@ export default function PasswordResetForm({
             />
           </FieldContent>
         </Field>
+        {resetting && (
+          <>
+            <Field>
+              <FieldLabel>New Password</FieldLabel>
+              <FieldContent>
+                <input
+                  className="h-10 w-full rounded-md border px-3"
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => onNewPasswordChange(e.target.value)}
+                  required
+                />
+              </FieldContent>
+            </Field>
+            <Field>
+              <FieldLabel>Confirm Password</FieldLabel>
+              <FieldContent>
+                <input
+                  className="h-10 w-full rounded-md border px-3"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => onConfirmPasswordChange(e.target.value)}
+                  required
+                />
+              </FieldContent>
+            </Field>
+          </>
+        )}
         <div className="flex mt-5 flex-col gap-2">
           <Button
             type="submit"
             disabled={isPending}
             className="h-10 text-sm! font-medium!"
           >
-            {isPending ? "Sending..." : "Reset Password"}
+            {isPending ? "Please wait..." : resetting ? "Set New Password" : "Reset Password"}
           </Button>
           <Link
             className={buttonVariants({ variant: "ghost", size: "lg" })}

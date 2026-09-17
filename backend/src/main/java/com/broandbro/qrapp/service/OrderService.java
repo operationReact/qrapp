@@ -70,7 +70,6 @@ public class OrderService {
     private final OrderItemRepository orderItemRepo;
     private final MenuRepository menuRepository;
     private final OrderStatusHistoryRepository orderStatusHistoryRepository;
-    private final WhatsAppService whatsappService;
     private final OrderNumberGenerator orderNumberGenerator;
     private final PricingService pricingService;
     private final PromotionRepository promotionRepository;
@@ -1086,4 +1085,3 @@ public class OrderService {
         }
     }
 }
-

@@ -155,6 +155,8 @@ jobs:
           TWO_FACTOR_API_KEY=$(get_optional_parameter "/broandbro/backend/dev/twofactor/apiKey")
           WHATSAPP_WEBHOOK_VERIFY_TOKEN=$(get_optional_parameter "/broandbro/backend/dev/whatsapp/webhookVerifyToken")
           WHATSAPP_APP_SECRET=$(get_optional_parameter "/broandbro/backend/dev/whatsapp/appSecret")
+          WHATSAPP_PHONE_NUMBER_ID=$(get_optional_parameter "/broandbro/backend/dev/whatsapp/phoneNumberId")
+          WHATSAPP_ACCESS_TOKEN=$(get_optional_parameter "/broandbro/backend/dev/whatsapp/accessToken")
 
           # Store in environment for next step
           echo "DB_URL=$DB_URL" >> $GITHUB_ENV
@@ -172,6 +174,8 @@ jobs:
           echo "TWO_FACTOR_API_KEY=$TWO_FACTOR_API_KEY" >> $GITHUB_ENV
           echo "WHATSAPP_WEBHOOK_VERIFY_TOKEN=$WHATSAPP_WEBHOOK_VERIFY_TOKEN" >> $GITHUB_ENV
           echo "WHATSAPP_APP_SECRET=$WHATSAPP_APP_SECRET" >> $GITHUB_ENV
+          echo "WHATSAPP_PHONE_NUMBER_ID=$WHATSAPP_PHONE_NUMBER_ID" >> $GITHUB_ENV
+          echo "WHATSAPP_ACCESS_TOKEN=$WHATSAPP_ACCESS_TOKEN" >> $GITHUB_ENV
           echo "✅ Configuration fetched from AWS Parameter Store"
 
       - name: Validate TWO_FACTOR_API_KEY present
@@ -184,13 +188,13 @@ jobs:
 
       - name: Validate WhatsApp webhook configuration
         run: |
-          for REQUIRED in WHATSAPP_WEBHOOK_VERIFY_TOKEN WHATSAPP_APP_SECRET; do
+          for REQUIRED in WHATSAPP_WEBHOOK_VERIFY_TOKEN WHATSAPP_APP_SECRET WHATSAPP_PHONE_NUMBER_ID WHATSAPP_ACCESS_TOKEN; do
             if [ -z "${!REQUIRED}" ]; then
               echo "❌ $REQUIRED not found in SSM for dev. Aborting deploy." >&2
               exit 1
             fi
           done
-          echo "✅ WhatsApp webhook configuration present"
+          echo "✅ WhatsApp configuration present"
 
       # Step 8: Upload JAR + env file + deploy script to S3
       # All three files land in deploy/dev/<run_id>/ so cleanup is a single rm.
@@ -225,6 +229,9 @@ jobs:
           TWO_FACTOR_API_KEY=${{ env.TWO_FACTOR_API_KEY }}
           WHATSAPP_WEBHOOK_VERIFY_TOKEN=${WHATSAPP_WEBHOOK_VERIFY_TOKEN}
           WHATSAPP_APP_SECRET=${WHATSAPP_APP_SECRET}
+          WHATSAPP_OTP_ENABLED=true
+          WHATSAPP_PHONE_NUMBER_ID=${WHATSAPP_PHONE_NUMBER_ID}
+          WHATSAPP_ACCESS_TOKEN=${WHATSAPP_ACCESS_TOKEN}
 
           AWS_S3_BUCKET_NAME=${S3_BUCKET}
           AWS_S3_REGION=${S3_REGION}

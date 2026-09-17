@@ -2,7 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { useMutation } from "@tanstack/react-query";
-import { generateOTP, loginUser, registerUser } from "@/services/auth-service";
+
+import { requestRegistrationOTP, verifyRegistrationOTP } from "@/services/auth-service";
 import { setUserAuth } from "@/services";
 import { Link } from "@tanstack/react-router";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -26,7 +27,7 @@ export const Route = createFileRoute("/(auth)/register")({
     const [error, setError] = useState(null);
 
     const otpMutation = useMutation({
-      mutationFn: () => generateOTP({ userName: name, phone }),
+      mutationFn: () => requestRegistrationOTP({ name, phone, password }),
       onSuccess: () => {
         navigate({ to: "/register", search: { verify: true } });
       },
@@ -35,25 +36,16 @@ export const Route = createFileRoute("/(auth)/register")({
       },
     });
 
-    const registerMutation = useMutation({
-      mutationFn: async () => {
-        await registerUser({ phone, password, name });
-        return loginUser({ phone, password });
-      },
-      onSuccess: (data) => {
-        const token = data?.token;
-        if (!token) {
-          setError("Registration succeeded but no token returned");
-          return;
-        }
-        setUser({ token, info: data.user || { phone, name } });
-        setUserAuth(token);
-        navigate({ to: "/" });
-      },
-      onError: (err) => {
-        setError(err?.response?.data || "Unable to register");
-      },
-    });
+    const handleOTPVerified = (data) => {
+      const token = data?.token;
+      if (!token) {
+        setError("Registration succeeded but no token returned");
+        return;
+      }
+      setUser({ token, info: data.user || { phone, name } });
+      setUserAuth(token);
+      navigate({ to: "/" });
+    };
 
     const handleGenerateOTP = (e) => {
       e.preventDefault();
@@ -62,11 +54,6 @@ export const Route = createFileRoute("/(auth)/register")({
     };
 
     const handleResendOTP = () => otpMutation.mutateAsync();
-
-    const handleOTPVerified = () => {
-      setError(null);
-      registerMutation.mutate();
-    };
 
     return (
       <div className="flex w-full flex-1 items-center justify-center py-6 sm:px-4">
@@ -157,6 +144,7 @@ export const Route = createFileRoute("/(auth)/register")({
           }}
           phone={phone}
           onVerified={handleOTPVerified}
+          verifyOtp={verifyRegistrationOTP}
           onResend={handleResendOTP}
         />
       </div>

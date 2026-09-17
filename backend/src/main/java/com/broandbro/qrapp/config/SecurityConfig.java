@@ -87,7 +87,12 @@ public class SecurityConfig {
                         .requestMatchers(
                                 HttpMethod.POST,
                                 "/auth/register",
+                                "/auth/register/request-otp",
+                                "/auth/register/verify-otp",
                                 "/auth/login",
+                                "/auth/password/forgot/request-otp",
+                                "/auth/password/forgot/verify-otp",
+                                "/auth/password/reset",
                                 "/auth/send-otp",
                                 "/auth/verify-otp",
                                 "/whatsapp/send",

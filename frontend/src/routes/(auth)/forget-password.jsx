@@ -3,7 +3,11 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { generateOTP, forgotPassword } from "@/services/auth-service";
+import {
+  requestPasswordResetOTP,
+  verifyPasswordResetOTP,
+  resetPassword,
+} from "@/services/auth-service";
 import { extractApiError } from "@/lib/apiError";
 import { buttonVariants } from "@/components/ui/button";
 import { CaretLeftIcon } from "@phosphor-icons/react";
@@ -17,10 +21,13 @@ export const Route = createFileRoute("/(auth)/forget-password")({
     const [phone, setPhone] = useState("");
     const [isOtpDialogOpen, setIsOtpDialogOpen] = useState(false);
     const [error, setError] = useState(null);
+    const [resetAuthorization, setResetAuthorization] = useState(null);
+    const [newPassword, setNewPassword] = useState("");
+    const [confirmPassword, setConfirmPassword] = useState("");
     const redirectTimerRef = useRef(null);
 
     const sendOtpMutation = useMutation({
-      mutationFn: () => generateOTP({ userName: phone, phone }),
+      mutationFn: () => requestPasswordResetOTP(phone.startsWith("+91") ? phone : `+91${phone}`),
       onSuccess: () => {
         setError(null);
         setIsOtpDialogOpen(true);
@@ -31,11 +38,11 @@ export const Route = createFileRoute("/(auth)/forget-password")({
     });
 
     const forgotPasswordMutation = useMutation({
-      mutationFn: ({ otp }) =>
-        forgotPassword({
-          phone: phone.startsWith("+91") ? phone : `+91${phone}`,
-          otp,
-        }),
+      mutationFn: () => resetPassword({
+        phone: phone.startsWith("+91") ? phone : `+91${phone}`,
+        resetAuthorization,
+        newPassword,
+      }),
       onSuccess: () => {
         toast.success("Password reset successfully");
         setIsOtpDialogOpen(false);
@@ -50,6 +57,16 @@ export const Route = createFileRoute("/(auth)/forget-password")({
         setIsOtpDialogOpen(false);
       },
     });
+
+    function handleResetSubmit(e) {
+      e.preventDefault();
+      if (newPassword !== confirmPassword) {
+        setError("New password and confirm password do not match.");
+        return;
+      }
+      setError(null);
+      forgotPasswordMutation.mutate();
+    }
 
     useEffect(() => {
       return () => {
@@ -90,9 +107,14 @@ export const Route = createFileRoute("/(auth)/forget-password")({
             <PasswordResetForm
               phone={phone}
               onPhoneChange={setPhone}
-              onSubmit={handleSendOTP}
-              isPending={sendOtpMutation.isPending}
+               onSubmit={resetAuthorization ? handleResetSubmit : handleSendOTP}
+               isPending={resetAuthorization ? forgotPasswordMutation.isPending : sendOtpMutation.isPending}
               error={error}
+               resetting={!!resetAuthorization}
+               newPassword={newPassword}
+               confirmPassword={confirmPassword}
+               onNewPasswordChange={setNewPassword}
+               onConfirmPasswordChange={setConfirmPassword}
             />
           </div>
         </div>
@@ -102,7 +124,12 @@ export const Route = createFileRoute("/(auth)/forget-password")({
             if (!next) setIsOtpDialogOpen(false);
           }}
           phone={phone}
-          onVerified={(otp) => forgotPasswordMutation.mutate({ otp })}
+          verifyOtp={verifyPasswordResetOTP}
+          onVerified={(data) => {
+            setResetAuthorization(data.resetAuthorization);
+            setIsOtpDialogOpen(false);
+            setError(null);
+          }}
           onResend={() => sendOtpMutation.mutateAsync()}
         />
       </div>
