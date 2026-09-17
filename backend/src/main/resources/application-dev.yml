@@ -18,7 +18,9 @@ spring:
   # Reads secrets from AWS Parameter Store (recommended for production)
   # Fallback: Uses environment variables if Parameter Store is not available
   config:
-    import: "optional:aws-parameterstore:/broandbro/backend/dev?prefix=app.parameter-store."
+    import:
+      - "optional:aws-parameterstore:/broandbro/backend/dev?prefix=app.parameter-store."
+      - "optional:aws-parameterstore:/broandbro/backend/dev/whatsapp?prefix=app.parameter-store.whatsapp."
 
   datasource:
     # ONLY read from SSM Parameter Store (application-ssm-dev.yml)
@@ -53,6 +55,7 @@ spring:
     show-sql: false
     open-in-view: false
    ## database-platform: org.hibernate.dialect.PostgreSQLDialect
+
   cors:
     allowed-origins: "${app.parameter-store.app.corsAllowedOrigins:https://develop.broandbro.in,http://localhost:5173}"
   bundle:
@@ -62,6 +65,13 @@ spring:
   meal:
     discount-percent: 10       # 10 % of the meal items total
     max-discount-rupees: 50    # ₹50 absolute cap
+
+# WhatsApp OTP credentials are resolved from the dev SSM import when running
+# the dev profile locally. Deployment environment variables take precedence.
+whatsapp:
+  enabled: ${WHATSAPP_OTP_ENABLED:true}
+  phone-number-id: ${WHATSAPP_PHONE_NUMBER_ID:${app.parameter-store.whatsapp.phoneNumberId:}}
+  access-token: ${WHATSAPP_ACCESS_TOKEN:${app.parameter-store.whatsapp.accessToken:}}
 
 
 # Default profile: require explicit Razorpay credentials from SSM Parameter Store

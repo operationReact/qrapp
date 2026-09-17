@@ -1,4 +1,8 @@
 spring:
+  config:
+    import:
+      - "optional:aws-parameterstore:/broandbro/backend/prod?prefix=app.parameter-store."
+      - "optional:aws-parameterstore:/broandbro/backend/prod/whatsapp?prefix=app.parameter-store.whatsapp."
   cache:
     type: caffeine
     cache-names: walletBalance,menu,menuRecommended,otp
@@ -66,9 +70,9 @@ openai:
   image-size: ${OPENAI_IMAGE_SIZE:1024x1024}
 
 whatsapp:
-  enabled: ${WHATSAPP_OTP_ENABLED:false}
-  phone-number-id: ${WHATSAPP_PHONE_NUMBER_ID:}
-  access-token: ${WHATSAPP_ACCESS_TOKEN:}
+  enabled: ${WHATSAPP_OTP_ENABLED:true}
+  phone-number-id: ${WHATSAPP_PHONE_NUMBER_ID:${app.parameter-store.whatsapp.phoneNumberId:}}
+  access-token: ${WHATSAPP_ACCESS_TOKEN:${app.parameter-store.whatsapp.accessToken:}}
   verification-template-name: ${WHATSAPP_VERIFICATION_TEMPLATE_NAME:bro_bro_verification_code}
   verification-template-language: ${WHATSAPP_VERIFICATION_TEMPLATE_LANGUAGE:en_US}
   graph-api:
