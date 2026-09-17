@@ -72,6 +72,7 @@ whatsapp:
   enabled: ${WHATSAPP_OTP_ENABLED:true}
   phone-number-id: ${WHATSAPP_PHONE_NUMBER_ID:${app.parameter-store.whatsapp.phoneNumberId:}}
   access-token: ${WHATSAPP_ACCESS_TOKEN:${app.parameter-store.whatsapp.accessToken:}}
+  verification-template-language: ${WHATSAPP_VERIFICATION_TEMPLATE_LANGUAGE:en}
 
 
 # Default profile: require explicit Razorpay credentials from SSM Parameter Store
