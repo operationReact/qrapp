@@ -50,7 +50,7 @@ whatsapp:
   phone-number-id: ${WHATSAPP_PHONE_NUMBER_ID:}
   access-token: ${WHATSAPP_ACCESS_TOKEN:}
   verification-template-name: ${WHATSAPP_VERIFICATION_TEMPLATE_NAME:bro_bro_verification_code}
-  verification-template-language: ${WHATSAPP_VERIFICATION_TEMPLATE_LANGUAGE:en_US}
+  verification-template-language: ${WHATSAPP_VERIFICATION_TEMPLATE_LANGUAGE:en}
   graph-api:
     version: ${META_GRAPH_API_VERSION:v23.0}
     base-url: ${META_GRAPH_API_BASE_URL:https://graph.facebook.com}

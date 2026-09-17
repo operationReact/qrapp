@@ -14,7 +14,7 @@ public class WhatsAppOtpProperties {
     private String phoneNumberId;
     private String accessToken;
     private String verificationTemplateName = "bro_bro_verification_code";
-    private String verificationTemplateLanguage = "en_US";
+    private String verificationTemplateLanguage = "en";
     private GraphApi graphApi = new GraphApi();
     private Otp otp = new Otp();
 
