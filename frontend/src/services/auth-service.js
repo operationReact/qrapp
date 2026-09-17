@@ -15,17 +15,22 @@ export const updateCurrentUser = (data) =>
 export const registerUser = (data) =>
   apiClient.post("/auth/register", data).then((r) => r.data);
 
-export const generateOTP = ({ userName, phone }) =>
-  apiClient.post("/auth/send-otp", { mobileNumber: phone }).then((r) => r.data);
+export const requestRegistrationOTP = ({ phone, password, name }) =>
+  apiClient.post("/auth/register/request-otp", {
+    phoneNumber: phone,
+    password,
+    name,
+  }).then((r) => r.data);
 
-export const verifyOTP = ({ phone, otp }) =>
-  apiClient.post("/auth/verify-otp", { mobileNumber: phone, otp }).then((r) => r.data);
+export const verifyRegistrationOTP = ({ phone, otp }) =>
+  apiClient.post("/auth/register/verify-otp", { phoneNumber: phone, otp }).then((r) => r.data);
 
-export const forgotPassword = async ({ phone, otp }) => {
-  // Mocked for now. Will be replaced with a real backend call.
-  if (!phone || !otp) {
-    throw new Error("phone and otp are required");
-  }
-  await new Promise((r) => setTimeout(r, 300));
-  return { success: true, message: "Password reset successfully" };
-};
+export const requestPasswordResetOTP = (phone) =>
+  apiClient.post("/auth/password/forgot/request-otp", { phoneNumber: phone }).then((r) => r.data);
+
+export const verifyPasswordResetOTP = ({ phone, otp }) =>
+  apiClient.post("/auth/password/forgot/verify-otp", { phoneNumber: phone, otp }).then((r) => r.data);
+
+export const resetPassword = ({ phone, resetAuthorization, newPassword }) =>
+  apiClient.post("/auth/password/reset", { phoneNumber: phone, resetAuthorization, newPassword })
+    .then((r) => r.data);

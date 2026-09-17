@@ -3,9 +3,18 @@ package com.broandbro.qrapp.controller;
 import com.broandbro.qrapp.dto.RegisterRequest;
 import com.broandbro.qrapp.dto.UpdateProfileRequest;
 import com.broandbro.qrapp.dto.UserResponse;
+import com.broandbro.qrapp.dto.OtpResponse;
+import com.broandbro.qrapp.dto.PasswordResetOtpResponse;
+import com.broandbro.qrapp.dto.PasswordResetRequest;
+import com.broandbro.qrapp.dto.PhoneNumberRequest;
+import com.broandbro.qrapp.dto.RegistrationOtpRequest;
+import com.broandbro.qrapp.dto.WhatsAppOtpVerifyRequest;
 import com.broandbro.qrapp.entity.User;
+import com.broandbro.qrapp.exception.OtpException;
+import com.broandbro.qrapp.exception.WhatsAppDeliveryException;
 import com.broandbro.qrapp.service.MilestoneCouponService;
 import com.broandbro.qrapp.service.UserService;
+import com.broandbro.qrapp.service.WhatsAppOtpService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -23,6 +32,71 @@ import java.util.List;
 public class UserAuthController {
     private final UserService userService;
     private final MilestoneCouponService milestoneCouponService;
+    private final WhatsAppOtpService whatsAppOtpService;
+
+    private static final String GENERIC_RESET_MESSAGE =
+            "If the account is eligible, a verification code has been sent to your WhatsApp.";
+
+    @PostMapping("/register/request-otp")
+    public ResponseEntity<?> requestRegistrationOtp(@Valid @RequestBody RegistrationOtpRequest req) {
+        try {
+            whatsAppOtpService.requestRegistrationOtp(req.getPhoneNumber(), req.getName(), req.getPassword());
+            return ResponseEntity.ok(new OtpResponse(true,
+                    "A verification code has been sent to your WhatsApp."));
+        } catch (OtpException ex) {
+            return ResponseEntity.status("too_many_requests".equals(ex.getMessage())
+                    || "resend_cooldown".equals(ex.getMessage()) ? 429 : 400)
+                    .body(new OtpResponse(false, ex.getMessage()));
+        } catch (WhatsAppDeliveryException ex) {
+            return ResponseEntity.status(503).body(new OtpResponse(false, "OTP delivery unavailable"));
+        }
+    }
+
+    @PostMapping("/register/verify-otp")
+    public ResponseEntity<?> verifyRegistrationOtp(@Valid @RequestBody WhatsAppOtpVerifyRequest req) {
+        try {
+            return ResponseEntity.ok(whatsAppOtpService.verifyRegistrationOtp(req.getPhoneNumber(), req.getOtp()));
+        } catch (OtpException ex) {
+            return ResponseEntity.badRequest().body(new OtpResponse(false, ex.getMessage()));
+        }
+    }
+
+    @PostMapping("/password/forgot/request-otp")
+    public ResponseEntity<?> requestPasswordResetOtp(@Valid @RequestBody PhoneNumberRequest req) {
+        try {
+            whatsAppOtpService.requestPasswordResetOtp(req.getPhoneNumber());
+            return ResponseEntity.ok(new OtpResponse(true, GENERIC_RESET_MESSAGE));
+        } catch (OtpException ex) {
+            return ResponseEntity.status("too_many_requests".equals(ex.getMessage())
+                    || "resend_cooldown".equals(ex.getMessage()) ? 429 : 400)
+                    .body(new OtpResponse(false, GENERIC_RESET_MESSAGE));
+        } catch (WhatsAppDeliveryException ex) {
+            return ResponseEntity.status(503).body(new OtpResponse(false, GENERIC_RESET_MESSAGE));
+        }
+    }
+
+    @PostMapping("/password/forgot/verify-otp")
+    public ResponseEntity<?> verifyPasswordResetOtp(@Valid @RequestBody WhatsAppOtpVerifyRequest req) {
+        try {
+            String authorization = whatsAppOtpService.verifyPasswordResetOtp(
+                    req.getPhoneNumber(), req.getOtp());
+            return ResponseEntity.ok(new PasswordResetOtpResponse(true,
+                    "Verification successful", authorization));
+        } catch (OtpException ex) {
+            return ResponseEntity.badRequest().body(new OtpResponse(false, "Invalid or expired OTP"));
+        }
+    }
+
+    @PostMapping("/password/reset")
+    public ResponseEntity<?> resetPassword(@Valid @RequestBody PasswordResetRequest req) {
+        try {
+            whatsAppOtpService.resetPassword(req.getPhoneNumber(), req.getResetAuthorization(),
+                    req.getNewPassword());
+            return ResponseEntity.ok(new OtpResponse(true, "Password reset successfully"));
+        } catch (OtpException ex) {
+            return ResponseEntity.badRequest().body(new OtpResponse(false, "Invalid or expired reset authorization"));
+        }
+    }
 
     @PostMapping("/register")
     public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest req) {
