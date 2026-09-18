@@ -51,8 +51,8 @@ const TABS = ["Overview", "Activity", "Insights"];
 function CombinedNav({ active, onChange, d, toggleSidebar }) {
   const notifCount = Math.min((d.delayedOrders ?? 0) + (d.placedOrders ?? 0), 9);
   return (
-    <header className="sticky top-0 z-40 bg-white border-b border-zinc-100 shadow-[0_1px_3px_rgba(0,0,0,.04)]">
-      <div className="flex items-center h-12 px-2">
+    <header className="sticky top-0 z-40 border-b border-zinc-200/70 bg-background/90 shadow-[0_1px_0_rgba(24,24,27,.03)] backdrop-blur-xl">
+      <div className="flex h-14 items-center px-3 md:px-6">
         {/* hamburger */}
         <Button
           size="icon"
@@ -67,9 +67,9 @@ function CombinedNav({ active, onChange, d, toggleSidebar }) {
         <div className="flex flex-1 max-w-lg mx-auto">
           {TABS.map((tab) => (
             <button key={tab} onClick={() => onChange(tab)}
-              className={cn(
-                "flex-1 relative h-12 text-sm font-medium transition-colors",
-                active === tab ? "text-primary" : "text-zinc-400 hover:text-zinc-600"
+                  className={cn(
+                    "relative h-14 flex-1 text-sm font-semibold transition-colors",
+                    active === tab ? "text-primary" : "text-zinc-400 hover:text-zinc-700"
               )}>
               {tab}
               {active === tab && (
@@ -107,10 +107,10 @@ function ChartTooltip({ active, payload }) {
 // ── Shared ────────────────────────────────────────────────────────────────────
 function SectionLabel({ children, action, to }) {
   return (
-    <div className="flex items-center justify-between mb-2.5">
-      <p className="text-sm font-medium text-zinc-500">{children}</p>
+    <div className="mb-3 flex items-center justify-between gap-3">
+      <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-zinc-500">{children}</p>
       {action && (
-        <Link to={to ?? "#"} className="flex items-center gap-0.5 text-sm hover:underline font-medium text-primary">
+        <Link to={to ?? "#"} className="flex items-center gap-0.5 text-xs font-semibold text-primary hover:underline">
           {action} <ChevronRight size={11} />
         </Link>
       )}
@@ -181,71 +181,82 @@ function OverviewTab({ d, ownerName }) {
   const profitLoading  = profit.loading;
 
   return (
-    <div className="px-4 py-4 space-y-4 md:space-y-6">
+    <div className="mx-auto w-full max-w-[1440px] space-y-5 px-4 py-5 md:space-y-7 md:px-8 md:py-7 xl:px-10">
       {/* Greeting */}
-      <div>
-        <p className="text-xs uppercase tracking-wide font-medium text-primary">{todayLabel()}</p>
-        <h1 className="text-xl md:text-2xl font-semibold capitalize leading-tight mt-1.5">
+      <div className="flex items-end justify-between gap-4">
+        <div>
+          <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-primary">{todayLabel()}</p>
+          <h1 className="mt-1.5 text-2xl font-bold leading-tight tracking-tight text-zinc-950 md:text-3xl">
           {greet()}{ownerName ? `, ${ownerName}` : ""} 👋
-        </h1>
+          </h1>
+          <p className="mt-1 text-sm text-zinc-500">Here is what needs your attention today.</p>
+        </div>
+        <div className="hidden items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 sm:flex">
+          <span className="size-2 rounded-full bg-emerald-500 shadow-[0_0_0_3px_rgba(16,185,129,.15)]" />
+          Live operations
+        </div>
       </div>
 
       {/* Alert banner — only when there are pending orders */}
       {pendingOrders > 0 && (
         <Link to="/admin/kitchen-queue"
-          className="flex items-center gap-2.5 bg-amber-50 border border-amber-200 rounded-xl px-3.5 py-2.5 active:opacity-80">
-          <AlertCircle size={14} className="text-amber-500 shrink-0" />
-          <span className="flex-1 text-[12px] font-semibold text-amber-800">
+          className="group flex items-center gap-3 rounded-2xl border border-amber-200/80 bg-gradient-to-r from-amber-50 to-orange-50 px-4 py-3.5 shadow-[0_5px_20px_rgba(245,158,11,.08)] active:opacity-80">
+          <span className="grid size-8 shrink-0 place-items-center rounded-xl bg-white/80 text-amber-500 shadow-sm">
+            <AlertCircle size={16} />
+          </span>
+          <span className="flex-1 text-sm font-semibold text-amber-900">
             {pendingOrders} order{pendingOrders > 1 ? "s" : ""} need attention
           </span>
-          <span className="text-[11px] font-bold text-amber-600">Review →</span>
+          <span className="text-xs font-bold text-amber-700 transition-transform group-hover:translate-x-0.5">Review <span aria-hidden="true">→</span></span>
         </Link>
       )}
 
       {/* Revenue Hero */}
-      <div className="bg-white border-card rounded-lg p-4">
-        <div className="flex items-start justify-between mb-1">
-          <span className="text-sm font-medium text-primary">Today's Revenue</span>
-          <TrendingUp className="text-primary mt-0.5 size-5" />
-        </div>
-        {revenueLoading ? (
-          <Skeleton className="h-9 w-36 bg-white/20 mt-0.5" />
-        ) : (
-          <div className="text-2xl font-semibold leading-tight tracking-tight">
-            {fmtCur(todayRevenue ?? 0)} <span className="tracking-normal font-medium uppercase text-xs text-zinc-500 ml-1">/ Live</span>
+      <div className="overflow-hidden rounded-3xl bg-gradient-to-br from-[#35151a] via-[#5e1e27] to-[#8d2635] p-5 text-white shadow-[0_16px_35px_rgba(99,25,37,.18)] md:p-6">
+        <div className="flex items-start justify-between">
+          <div>
+            <span className="text-xs font-semibold uppercase tracking-[0.12em] text-rose-100/80">Today's Revenue</span>
+            <p className="mt-3 text-3xl font-bold tracking-tight md:text-4xl">
+              {revenueLoading ? "—" : fmtCur(todayRevenue ?? 0)}
+              <span className="ml-2 text-xs font-medium uppercase tracking-normal text-rose-100/70">Live</span>
+            </p>
           </div>
-        )}
-        <div className="flex items-center gap-1 mt-1.5">
+          <span className="grid size-11 place-items-center rounded-2xl bg-white/10 text-rose-100 ring-1 ring-white/15">
+            <TrendingUp className="size-5" />
+          </span>
+        </div>
+        <div className="mt-4 flex items-center gap-1.5 border-t border-white/10 pt-3">
           {revenueTrend != null && (
             <>
               {revenueTrend >= 0
-                ? <ArrowUpRight size={12} className="text-emerald-500" />
-                : <ArrowDownRight size={12} className="text-red-500" />
+                ? <ArrowUpRight size={14} className="text-emerald-300" />
+                : <ArrowDownRight size={14} className="text-rose-200" />
               }
-              <span className={cn("text-[11px] font-semibold", revenueTrend >= 0 ? "text-emerald-500" : "text-red-500")}>
+              <span className={cn("text-xs font-semibold", revenueTrend >= 0 ? "text-emerald-300" : "text-rose-200")}>
                 {trendSign(revenueTrend)} vs yesterday
               </span>
             </>
           )}
+          {revenueTrend == null && <span className="text-xs text-rose-100/70">Live sales performance</span>}
         </div>
       </div>
 
       {/* Profit + Orders */}
-      <div className="grid grid-cols-2 gap-3">
-        <div className="bg-white rounded-lg p-3.5 border-card">
-          <span className="text-sm font-medium text-primary">   Est. Profit</span>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="rounded-2xl border border-zinc-200/80 bg-white p-4 shadow-[0_4px_18px_rgba(24,24,27,.04)]">
+          <span className="text-xs font-bold uppercase tracking-[0.1em] text-zinc-500">Estimated profit</span>
           {profitLoading ? (
             <Skeleton className="h-7 w-24 mt-1" />
           ) : (
-            <div className="text-2xl font-semibold mt-0.5 tracking-tight">{fmtCur(estProfit ?? 0)}</div>
+            <div className="mt-2 text-2xl font-bold tracking-tight text-zinc-950">{fmtCur(estProfit ?? 0)}</div>
           )}
           <div className="text-[10px] text-emerald-700 font-semibold mt-0.5">
             {margin != null ? `${fmtPct(margin)} margin` : "—"}
           </div>
         </div>
-        <div className="bg-white rounded-lg p-3.5 border-card">
-           <span className="text-sm font-medium text-primary">Orders</span>
-          <div className="text-2xl font-semibold mt-0.5 tracking-tight">{fmt(todayOrders || 0)}</div>
+        <div className="rounded-2xl border border-zinc-200/80 bg-white p-4 shadow-[0_4px_18px_rgba(24,24,27,.04)]">
+           <span className="text-xs font-bold uppercase tracking-[0.1em] text-zinc-500">Orders today</span>
+          <div className="mt-2 text-2xl font-bold tracking-tight text-zinc-950">{fmt(todayOrders || 0)}</div>
           {pendingOrders > 0
             ? <div className="text-xs text-amber-700 font-medium mt-0.5">{pendingOrders} pending orders</div>
             : <div className="text-xs text-zinc-500 mt-0.5">today</div>
@@ -256,14 +267,14 @@ function OverviewTab({ d, ownerName }) {
       {/* Quick Actions */}
       <div>
         <SectionLabel>Quick Actions</SectionLabel>
-        <div className="grid grid-cols-4 gap-2">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {quickActions.map(({ label, icon: Icon, bgCls, iconCls, to }) => ( // eslint-disable-line no-unused-vars
             <Link key={label} to={to}
-              className="flex flex-col items-center gap-2 bg-white rounded-lg hover:shadow-sm p-2.5 border border-zinc-200 active:scale-95 transition-all">
-              <div className={cn("size-9 rounded-lg flex items-center justify-center", bgCls)}>
+              className="group flex min-h-[104px] flex-col items-center justify-center gap-2 rounded-2xl border border-zinc-200/80 bg-white p-3 shadow-[0_4px_18px_rgba(24,24,27,.035)] transition-all hover:-translate-y-0.5 hover:border-primary/25 hover:shadow-md active:scale-[.98]">
+              <div className={cn("grid size-10 place-items-center rounded-xl transition-transform group-hover:scale-105", bgCls)}>
                 <Icon weight="duotone" size={16} className={iconCls} />
               </div>
-              <span className="text-xs font-medium text-zinc-600 text-center leading-tight">{label}</span>
+              <span className="text-xs font-semibold text-zinc-700 text-center leading-tight">{label}</span>
             </Link>
           ))}
         </div>
@@ -281,9 +292,9 @@ function OverviewTab({ d, ownerName }) {
           <div className="space-y-2">
             {priorities.map(({ dotCls, tagCls, tagBg, text, tag, to }) => (
               <Link key={text} to={to}
-                className="flex items-center gap-2.5 bg-white rounded-sm border-card px-3 py-2.5 shadow-[0_1px_6px_rgba(0,0,0,.04)] border active:bg-zinc-50">
-                <span className={cn("size-1.5 rounded-[2px] shrink-0", dotCls)} />
-                <span className="text-sm flex-1">{text}</span>
+                className="flex items-center gap-3 rounded-2xl border border-zinc-200/70 bg-white px-4 py-3.5 shadow-[0_4px_18px_rgba(24,24,27,.035)] transition-colors hover:border-primary/20 active:bg-zinc-50">
+                <span className={cn("size-2 rounded-full shrink-0", dotCls)} />
+                <span className="flex-1 text-sm font-medium text-zinc-800">{text}</span>
                 <Badge className={cn(tagCls, tagBg)}>{tag}</Badge>
               </Link>
             ))}
