@@ -24,8 +24,8 @@ function SubPageHeader() {
   );
 
   return (
-    <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-sm border-b border-zinc-100/80">
-      <div className="flex items-center justify-between px-3 h-12">
+    <header className="sticky top-0 z-40 border-b border-zinc-200/70 bg-background/90 backdrop-blur-xl">
+      <div className="flex h-14 items-center justify-between px-3 md:px-6">
         {/* hamburger */}
         <Button
           size="icon"
@@ -65,7 +65,7 @@ function AdminLayout() {
     <AdminDashboardProvider>
       <SidebarProvider>
         <AdminSidebar />
-        <SidebarInset>
+        <SidebarInset className="min-w-0 bg-[#f7f6f3]">
           {!isDashboard && <SubPageHeader />}
           <div className="flex-1 flex flex-col">
             <Outlet />

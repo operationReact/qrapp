@@ -49,8 +49,10 @@ function NavItem({ to, label, icon, pathname }) {
     <SidebarMenuItem>
       <SidebarMenuButton
         className={cn(
-          "text-sm! font-medium! transition-colors",
-          active ? "text-primary! bg-primary/8!" : "text-zinc-600! hover:text-zinc-900!",
+          "h-10! rounded-xl! text-sm! font-medium! transition-all",
+          active
+            ? "bg-primary/10! text-primary! shadow-[inset_3px_0_0_var(--primary)]"
+            : "text-zinc-600! hover:bg-white/80! hover:text-zinc-950!",
         )}
         isActive={active}
         render={
@@ -74,17 +76,17 @@ export function AdminSidebar() {
 
   return (
     <Sidebar>
-      <SidebarHeader className="px-3 py-3 border-b border-sidebar-border/60">
+      <SidebarHeader className="border-b border-sidebar-border/60 px-3 py-4">
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton
-              className="data-[slot=sidebar-menu-button]:p-1.5! h-auto hover:bg-transparent!"
+              className="h-auto! rounded-2xl! p-2! hover:bg-white/70!"
               render={
                 <Link to="/admin" className="flex gap-2.5 items-center">
-                  <img src="/bro-logo.png" alt="Bro and Bro Admin" className="size-9!" />
-                  <span className="font-bold text-sm text-foreground tracking-tight leading-none">
+                  <img src="/bro-logo.png" alt="Bro and Bro Admin" className="size-10! rounded-xl shadow-sm" />
+                  <span className="text-sm font-bold leading-none tracking-tight text-foreground">
                     Bro & Bro<br />
-                    <span className="text-[10px] font-medium text-muted-foreground tracking-normal">Admin Console</span>
+                    <span className="mt-1 inline-block text-[10px] font-medium tracking-normal text-muted-foreground">Admin Console</span>
                   </span>
                 </Link>
               }
@@ -93,18 +95,18 @@ export function AdminSidebar() {
         </SidebarMenu>
       </SidebarHeader>
 
-      <SidebarContent className="px-2 py-3 gap-1">
+      <SidebarContent className="gap-1 px-3 py-4">
 
         {/* Dashboard */}
-        <SidebarGroup className="p-0">
+        <SidebarGroup className="p-0 pb-3">
           <SidebarMenu>
             <NavItem to="/admin" label="Dashboard" icon={SquaresFourIcon} pathname={pathname === "/admin" || pathname === "/admin/" ? "/admin" : ""} />
           </SidebarMenu>
         </SidebarGroup>
 
         {/* Menu */}
-        <SidebarGroup className="p-0 group-data-[collapsible=icon]:hidden">
-          <SidebarGroupLabel className="text-[10px] uppercase tracking-widest font-semibold text-zinc-400 px-2 py-1.5 mb-0.5">
+        <SidebarGroup className="border-t border-zinc-200/60 p-0 pt-3 group-data-[collapsible=icon]:hidden">
+          <SidebarGroupLabel className="mb-1 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-zinc-400">
             Menu
           </SidebarGroupLabel>
           <SidebarMenu>
@@ -117,7 +119,7 @@ export function AdminSidebar() {
 
         {/* Orders */}
         <SidebarGroup className="p-0 group-data-[collapsible=icon]:hidden">
-          <SidebarGroupLabel className="text-[10px] uppercase tracking-widest font-semibold text-zinc-400 px-2 py-1.5 mb-0.5">
+          <SidebarGroupLabel className="mb-1 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-zinc-400">
             Orders
             {alertCount > 0 && (
               <span className="ml-auto inline-flex items-center justify-center size-4 rounded-full bg-red-500 text-white text-[9px] font-bold">
@@ -134,7 +136,7 @@ export function AdminSidebar() {
 
         {/* Offers */}
         <SidebarGroup className="p-0 group-data-[collapsible=icon]:hidden">
-          <SidebarGroupLabel className="text-[10px] uppercase tracking-widest font-semibold text-zinc-400 px-2 py-1.5 mb-0.5">
+          <SidebarGroupLabel className="mb-1 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-zinc-400">
             Offers
           </SidebarGroupLabel>
           <SidebarMenu>
@@ -145,7 +147,7 @@ export function AdminSidebar() {
 
         {/* Growth */}
         <SidebarGroup className="p-0 group-data-[collapsible=icon]:hidden">
-          <SidebarGroupLabel className="text-[10px] uppercase tracking-widest font-semibold text-zinc-400 px-2 py-1.5 mb-0.5">
+          <SidebarGroupLabel className="mb-1 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-zinc-400">
             Growth Tools
           </SidebarGroupLabel>
           <SidebarMenu>
@@ -164,7 +166,7 @@ export function AdminSidebar() {
 
         {/* Settings */}
         <SidebarGroup className="p-0 group-data-[collapsible=icon]:hidden">
-          <SidebarGroupLabel className="text-[10px] uppercase tracking-widest font-semibold text-zinc-400 px-2 py-1.5 mb-0.5">
+          <SidebarGroupLabel className="mb-1 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-zinc-400">
             System
           </SidebarGroupLabel>
           <SidebarMenu>
@@ -195,11 +197,11 @@ export function AdminSidebar() {
 
       </SidebarContent>
 
-      <SidebarFooter className="px-3 py-3 border-t border-sidebar-border/60">
+      <SidebarFooter className="border-t border-sidebar-border/60 px-3 py-4">
         <SidebarMenu>
           {/* Live sync status */}
           <SidebarMenuItem>
-            <div className="flex items-center gap-2 px-2 py-2 rounded-lg bg-zinc-50 border border-zinc-200/80 mb-1">
+            <div className="mb-2 flex items-center gap-2 rounded-2xl border border-emerald-100 bg-white/80 px-3 py-2.5 shadow-sm">
               <span className={cn(
                 "size-2 rounded-full shrink-0",
                 refreshing ? "bg-amber-400 animate-pulse" : "bg-emerald-500 animate-pulse",
@@ -223,7 +225,7 @@ export function AdminSidebar() {
           {/* Logout */}
           <SidebarMenuItem>
             <SidebarMenuButton
-              className="text-sm! font-medium! text-zinc-600! hover:text-red-600! hover:bg-red-50!"
+              className="h-10! rounded-xl! text-sm! font-medium! text-zinc-600! hover:bg-red-50! hover:text-red-600!"
               render={
                 <button
                   onClick={() => {
