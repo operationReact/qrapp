@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect, useRef } from "react";
-import { useNavigate, Link, useLocation } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { useMutation } from "@tanstack/react-query";
 import { loginUser } from "@/services/auth-service";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -12,38 +12,15 @@ import { useAuth } from "@/context/AuthContext";
 
 export const Route = createFileRoute("/(auth)/login")({
   component: function UserLogin() {
-    const navigate = useNavigate();
-    const location = useLocation();
-    const { user, setUser, isAdmin, isSuperUser } = useAuth();
+    const { setUser } = useAuth();
 
     const [identifier, setIdentifier] = useState("");
     const [password, setPassword] = useState("");
-
-    const returnPath =
-      typeof location.state?.from === "string" ? location.state.from : null;
 
     const firstFormField = useRef(null);
     useEffect(() => {
       firstFormField.current?.focus();
     }, []);
-
-    useEffect(() => {
-      if (!user) return;
-
-      if (isAdmin || isSuperUser) {
-        navigate({
-          to:
-            returnPath && returnPath.startsWith("/admin")
-              ? returnPath
-              : "/admin",
-        });
-        return;
-      }
-
-      navigate({
-        to: returnPath && !returnPath.startsWith("/admin") ? returnPath : "/",
-      });
-    }, [user, isAdmin, isSuperUser, navigate, returnPath]);
 
     const [noToken, setNoToken] = useState(false);
 
@@ -55,7 +32,6 @@ export const Route = createFileRoute("/(auth)/login")({
           return;
         }
         setUser({ token: data.token, ...data.user });
-        navigate({ to: returnPath ? returnPath : "/" });
       },
     });
 
