@@ -125,6 +125,8 @@ public class UserAuthController {
         r.setId(currentUser.getId());
         r.setPhone(currentUser.getPhone());
         r.setName(currentUser.getName());
+        r.setIsAdmin(currentUser.getIsAdmin());
+        r.setIsSuperUser(currentUser.getIsSuperUser());
         return ResponseEntity.ok(r);
     }
 

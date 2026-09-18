@@ -1,4 +1,10 @@
-import { createRootRoute, Outlet } from "@tanstack/react-router";
+import {
+  createRootRoute,
+  Outlet,
+  useLocation,
+  useNavigate,
+} from "@tanstack/react-router";
+import { useEffect } from "react";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { CartProvider, useCart } from "../context/CartContext";
 import OffCanvasCart from "../components/OffCanvasCart";
@@ -11,6 +17,7 @@ import { Toaster } from "../components/ui/sonner";
 import PropTypes from "prop-types";
 import SiteFooter from "../components/shared/SiteFooter";
 import { HeadContent } from "@tanstack/react-router";
+import { useAuth } from "../context/AuthContext";
 
 function SafeAreaWrapper({ children }) {
   const { cart } = useCart();
@@ -25,23 +32,70 @@ SafeAreaWrapper.propTypes = {
   children: PropTypes.node,
 };
 
+function AuthenticatedRoot() {
+  const { authInitialized, user, isAdmin, isSuperUser } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const isPublicEntry =
+    location.pathname === "/" ||
+    location.pathname === "/home" ||
+    location.pathname === "/login";
+  const targetPath = isAdmin || isSuperUser ? "/admin" : "/";
+
+  useEffect(() => {
+    if (
+      !authInitialized ||
+      !user ||
+      !isPublicEntry ||
+      targetPath === location.pathname
+    ) return;
+
+    navigate({
+      to: targetPath,
+      replace: true,
+    });
+  }, [
+    authInitialized,
+    location.pathname,
+    navigate,
+    isPublicEntry,
+    targetPath,
+    user,
+  ]);
+
+  const shouldResolveAuthenticatedEntry =
+    authInitialized && user && isPublicEntry && targetPath !== location.pathname;
+
+  if (!authInitialized || shouldResolveAuthenticatedEntry) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <span className="text-sm text-muted-foreground">Loading...</span>
+      </div>
+    );
+  }
+
+  return (
+    <PreferencesProvider>
+      <OffCanvasCart />
+      <SafeAreaWrapper>
+        <HeadContent />
+        <Outlet />
+        <SiteFooter />
+      </SafeAreaWrapper>
+      <Toast />
+      <Toaster />
+      <StickyCartBar />
+      <TanStackRouterDevtools position="bottom-right" />
+    </PreferencesProvider>
+  );
+}
+
 function RootComponent() {
   return (
     <TooltipProvider>
       <CartProvider>
         <AuthProvider>
-          <PreferencesProvider>
-            <OffCanvasCart />
-            <SafeAreaWrapper>
-              <HeadContent />
-              <Outlet />
-              <SiteFooter />
-            </SafeAreaWrapper>
-            <Toast />
-            <Toaster />
-            <StickyCartBar />
-            <TanStackRouterDevtools position="bottom-right" />
-          </PreferencesProvider>
+          <AuthenticatedRoot />
         </AuthProvider>
       </CartProvider>
     </TooltipProvider>
