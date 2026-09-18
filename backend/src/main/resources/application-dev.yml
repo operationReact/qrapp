@@ -39,10 +39,11 @@ spring:
       maximum-pool-size: 10
       minimum-idle: 2
       idle-timeout: 60000
-      max-lifetime: 540000
-      connection-timeout: 10000
+      max-lifetime: 240000
+      connection-timeout: 30000
       validation-timeout: 5000
       keepalive-time: 30000
+      connection-test-query: SELECT 1
       connection-init-sql: "SET statement_timeout = '8s'"
   flyway:
     enabled: true

@@ -105,8 +105,9 @@ public class MenuController {
         // Batch-load all active prices in ONE query instead of N individual queries
         List<Long> ids = items.stream().map(MenuItem::getId).toList();
         Map<Long, BigDecimal> priceMap = pricingService.getCurrentSellingPrices(ids);
+        Map<Long, InventoryService.MenuItemAvailability> availabilityMap = inventoryService.getAvailability(items);
         return items.stream()
-            .map(item -> buildMenuItemResponse(item, priceMap.get(item.getId())))
+            .map(item -> buildMenuItemResponse(item, priceMap.get(item.getId()), availabilityMap.get(item.getId())))
             .toList();
     }
 
@@ -118,8 +119,9 @@ public class MenuController {
         List<MenuItem> items = repo.findTopRecommended(PageRequest.of(0, safeLimit));
         List<Long> ids = items.stream().map(MenuItem::getId).toList();
         Map<Long, BigDecimal> priceMap = pricingService.getCurrentSellingPrices(ids);
+        Map<Long, InventoryService.MenuItemAvailability> availabilityMap = inventoryService.getAvailability(items);
         return items.stream()
-            .map(item -> buildMenuItemResponse(item, priceMap.get(item.getId())))
+            .map(item -> buildMenuItemResponse(item, priceMap.get(item.getId()), availabilityMap.get(item.getId())))
             .toList();
     }
 
@@ -515,7 +517,10 @@ public class MenuController {
      * The price is sourced from MenuItemSellingPriceHistory (batch-loaded by the caller)
      * to avoid N+1 queries. Null price means no active price record exists.
      */
-    private MenuItemResponse buildMenuItemResponse(MenuItem item, BigDecimal price) {
+    private MenuItemResponse buildMenuItemResponse(
+            MenuItem item,
+            BigDecimal price,
+            InventoryService.MenuItemAvailability availability) {
         Long shopId = item.getShop() != null ? item.getShop().getId() : null;
 
         return MenuItemResponse.builder()
@@ -532,10 +537,10 @@ public class MenuController {
             .fulfillmentType(item.getFulfillmentType())
             .inventoryMode(item.getInventoryMode())
             .isHidden(item.getIsHidden())
-            .available(inventoryService.isOrderable(item.getId()))
+            .available(availability.orderable())
             .createdAt(item.getCreatedAt())
             .updatedAt(item.getUpdatedAt())
-            .stockStatus(inventoryService.getStockStatus(item.getId()))
+            .stockStatus(availability.stockStatus())
             .estimatedCost(item.getEstimatedCost())
             .build();
     }

@@ -127,7 +127,6 @@ class ParameterStoreInitializer {
                 .value(value)
                 .type(ParameterType.fromValue(type))
                 .overwrite(true)
-                .tags(Tag.builder().key("Environment").value(environment).build())
                 .build());
 
             log.info("  ✅ {}", paramName);
@@ -139,4 +138,3 @@ class ParameterStoreInitializer {
         }
     }
 }
-

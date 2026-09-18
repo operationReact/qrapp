@@ -9,6 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.CacheControl;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -46,6 +47,7 @@ public class MenuItemImageController {
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType(image.getContentType()))
                 .contentLength(image.getFileSize())
+                .cacheControl(CacheControl.maxAge(java.time.Duration.ofHours(24)).cachePublic())
                 .body(image.getImageData());
     }
 
@@ -59,6 +61,7 @@ public class MenuItemImageController {
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType(image.getContentType()))
                 .contentLength(image.getFileSize())
+                .cacheControl(CacheControl.maxAge(java.time.Duration.ofHours(24)).cachePublic())
                 .body(image.getImageData());
     }
 
@@ -82,4 +85,3 @@ public class MenuItemImageController {
         return ResponseEntity.noContent().build();
     }
 }
-

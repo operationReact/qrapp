@@ -2,6 +2,7 @@ package com.broandbro.qrapp.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.time.LocalDateTime;
 
@@ -16,6 +17,7 @@ public class MenuItemImage {
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "menu_item_id", nullable = false, unique = true)
+    @JsonIgnore
     private MenuItem menuItem;
 
     @Column(name = "file_name", nullable = false, length = 255)
@@ -54,4 +56,3 @@ public class MenuItemImage {
         updatedAt = LocalDateTime.now();
     }
 }
-
