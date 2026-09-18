@@ -211,67 +211,73 @@ function OverviewTab({ d, ownerName }) {
         </Link>
       )}
 
-      {/* Revenue Hero */}
-      <div className="overflow-hidden rounded-3xl bg-gradient-to-br from-[#35151a] via-[#5e1e27] to-[#8d2635] p-5 text-white shadow-[0_16px_35px_rgba(99,25,37,.18)] md:p-6">
-        <div className="flex items-start justify-between">
-          <div>
-            <span className="text-xs font-semibold uppercase tracking-[0.12em] text-rose-100/80">Today's Revenue</span>
-            <p className="mt-3 text-3xl font-bold tracking-tight md:text-4xl">
-              {revenueLoading ? "—" : fmtCur(todayRevenue ?? 0)}
-              <span className="ml-2 text-xs font-medium uppercase tracking-normal text-rose-100/70">Live</span>
-            </p>
-          </div>
-          <span className="grid size-11 place-items-center rounded-2xl bg-white/10 text-rose-100 ring-1 ring-white/15">
-            <TrendingUp className="size-5" />
+      {/* Compact KPI strip — supporting context, not the main action area */}
+      <div className="grid grid-cols-3 gap-2 sm:gap-3">
+        <div className="min-w-0 rounded-xl border border-zinc-200/80 bg-white px-3 py-3 shadow-[0_3px_14px_rgba(24,24,27,.035)] sm:px-4">
+          <span className="block truncate text-[9px] font-bold uppercase tracking-[0.08em] text-zinc-500 sm:text-[10px]">
+            Revenue
           </span>
-        </div>
-        <div className="mt-4 flex items-center gap-1.5 border-t border-white/10 pt-3">
-          {revenueTrend != null && (
-            <>
-              {revenueTrend >= 0
-                ? <ArrowUpRight size={14} className="text-emerald-300" />
-                : <ArrowDownRight size={14} className="text-rose-200" />
-              }
-              <span className={cn("text-xs font-semibold", revenueTrend >= 0 ? "text-emerald-300" : "text-rose-200")}>
-                {trendSign(revenueTrend)} vs yesterday
-              </span>
-            </>
-          )}
-          {revenueTrend == null && <span className="text-xs text-rose-100/70">Live sales performance</span>}
-        </div>
-      </div>
-
-      {/* Profit + Orders */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <div className="rounded-2xl border border-zinc-200/80 bg-white p-4 shadow-[0_4px_18px_rgba(24,24,27,.04)]">
-          <span className="text-xs font-bold uppercase tracking-[0.1em] text-zinc-500">Estimated profit</span>
-          {profitLoading ? (
-            <Skeleton className="h-7 w-24 mt-1" />
+          {revenueLoading ? (
+            <Skeleton className="mt-2 h-6 w-14" />
           ) : (
-            <div className="mt-2 text-2xl font-bold tracking-tight text-zinc-950">{fmtCur(estProfit ?? 0)}</div>
+            <div className="mt-1.5 truncate text-xl font-bold tracking-tight text-zinc-950 sm:text-2xl">
+              {fmtCur(todayRevenue ?? 0)}
+            </div>
           )}
-          <div className="text-[10px] text-emerald-700 font-semibold mt-0.5">
+          <div className="mt-1 flex min-h-4 items-center gap-0.5 truncate text-[10px] font-semibold">
+            {revenueTrend != null ? (
+              <>
+                {revenueTrend >= 0
+                  ? <ArrowUpRight size={11} className="shrink-0 text-emerald-600" />
+                  : <ArrowDownRight size={11} className="shrink-0 text-red-500" />}
+                <span className={revenueTrend >= 0 ? "text-emerald-600" : "text-red-500"}>
+                  {trendSign(revenueTrend)}
+                </span>
+              </>
+            ) : <span className="text-zinc-500">Live</span>}
+          </div>
+        </div>
+
+        <div className="min-w-0 rounded-xl border border-zinc-200/80 bg-white px-3 py-3 shadow-[0_3px_14px_rgba(24,24,27,.035)] sm:px-4">
+          <span className="block truncate text-[9px] font-bold uppercase tracking-[0.08em] text-zinc-500 sm:text-[10px]">
+            Profit
+          </span>
+          {profitLoading ? (
+            <Skeleton className="mt-2 h-6 w-14" />
+          ) : (
+            <div className="mt-1.5 truncate text-xl font-bold tracking-tight text-zinc-950 sm:text-2xl">
+              {fmtCur(estProfit ?? 0)}
+            </div>
+          )}
+          <div className="mt-1 min-h-4 truncate text-[10px] font-semibold text-emerald-700">
             {margin != null ? `${fmtPct(margin)} margin` : "—"}
           </div>
         </div>
-        <div className="rounded-2xl border border-zinc-200/80 bg-white p-4 shadow-[0_4px_18px_rgba(24,24,27,.04)]">
-           <span className="text-xs font-bold uppercase tracking-[0.1em] text-zinc-500">Orders today</span>
-          <div className="mt-2 text-2xl font-bold tracking-tight text-zinc-950">{fmt(todayOrders || 0)}</div>
-          {pendingOrders > 0
-            ? <div className="text-xs text-amber-700 font-medium mt-0.5">{pendingOrders} pending orders</div>
-            : <div className="text-xs text-zinc-500 mt-0.5">today</div>
-          }
+
+        <div className="min-w-0 rounded-xl border border-zinc-200/80 bg-white px-3 py-3 shadow-[0_3px_14px_rgba(24,24,27,.035)] sm:px-4">
+          <span className="block truncate text-[9px] font-bold uppercase tracking-[0.08em] text-zinc-500 sm:text-[10px]">
+            Orders
+          </span>
+          <div className="mt-1.5 truncate text-xl font-bold tracking-tight text-zinc-950 sm:text-2xl">
+            {fmt(todayOrders || 0)}
+          </div>
+          <div className={cn(
+            "mt-1 min-h-4 truncate text-[10px] font-semibold",
+            pendingOrders > 0 ? "text-amber-700" : "text-zinc-500",
+          )}>
+            {pendingOrders > 0 ? `${pendingOrders} pending` : "Today"}
+          </div>
         </div>
       </div>
 
       {/* Quick Actions */}
       <div>
         <SectionLabel>Quick Actions</SectionLabel>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 sm:gap-3">
           {quickActions.map(({ label, icon: Icon, bgCls, iconCls, to }) => ( // eslint-disable-line no-unused-vars
             <Link key={label} to={to}
-              className="group flex min-h-[104px] flex-col items-center justify-center gap-2 rounded-2xl border border-zinc-200/80 bg-white p-3 shadow-[0_4px_18px_rgba(24,24,27,.035)] transition-all hover:-translate-y-0.5 hover:border-primary/25 hover:shadow-md active:scale-[.98]">
-              <div className={cn("grid size-10 place-items-center rounded-xl transition-transform group-hover:scale-105", bgCls)}>
+              className="group flex min-h-[88px] flex-col items-center justify-center gap-1.5 rounded-xl border border-zinc-200/80 bg-white p-2.5 shadow-[0_3px_14px_rgba(24,24,27,.035)] transition-all hover:-translate-y-0.5 hover:border-primary/25 hover:shadow-md active:scale-[.98] sm:min-h-[96px]">
+              <div className={cn("grid size-9 place-items-center rounded-xl transition-transform group-hover:scale-105", bgCls)}>
                 <Icon weight="duotone" size={16} className={iconCls} />
               </div>
               <span className="text-xs font-semibold text-zinc-700 text-center leading-tight">{label}</span>
