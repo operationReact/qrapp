@@ -1,6 +1,7 @@
 package com.broandbro.qrapp.service;
 
 import com.broandbro.qrapp.dto.*;
+import com.broandbro.qrapp.entity.MenuItem;
 import com.broandbro.qrapp.enums.InventoryOperation;
 import com.broandbro.qrapp.enums.StockStatus;
 import com.broandbro.qrapp.exception.InsufficientInventoryException;
@@ -9,6 +10,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Service interface for inventory management.
@@ -24,6 +26,8 @@ import java.util.List;
  * All operations are transactional and include proper locking for concurrency safety.
  */
 public interface InventoryService {
+
+    record MenuItemAvailability(boolean orderable, StockStatus stockStatus) {}
 
     // ============================================================================
     // CUSTOMER-FACING METHODS
@@ -46,6 +50,8 @@ public interface InventoryService {
      * @return true if item can be ordered
      */
     boolean isOrderable(Long menuItemId);
+
+    Map<Long, MenuItemAvailability> getAvailability(List<MenuItem> menuItems);
 
     /**
      * Validate if requested quantity is available.
@@ -210,4 +216,3 @@ public interface InventoryService {
      */
     AdminInventoryItemResponse updateItem(Long menuItemId, AdminInventoryUpdateRequest request, String changedByName);
 }
-

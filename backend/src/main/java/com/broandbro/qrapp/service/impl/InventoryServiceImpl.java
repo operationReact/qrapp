@@ -95,6 +95,46 @@ public class InventoryServiceImpl implements InventoryService {
 
     @Override
     @Transactional(readOnly = true)
+    public Map<Long, MenuItemAvailability> getAvailability(List<MenuItem> menuItems) {
+        List<Long> limitedItemIds = menuItems.stream()
+                .filter(item -> item.getInventoryMode() == InventoryMode.LIMITED)
+                .map(MenuItem::getId)
+                .toList();
+        Map<Long, Inventory> inventoriesByItemId = limitedItemIds.isEmpty()
+                ? Map.of()
+                : inventoryRepository.findByMenuItemIds(limitedItemIds)
+                .stream()
+                .collect(Collectors.toMap(inventory -> inventory.getMenuItem().getId(), inventory -> inventory));
+
+        Map<Long, MenuItemAvailability> availability = new HashMap<>();
+        for (MenuItem item : menuItems) {
+            boolean orderable = !Boolean.TRUE.equals(item.getIsDeleted())
+                    && !Boolean.TRUE.equals(item.getIsHidden())
+                    && !Boolean.FALSE.equals(item.getAvailable());
+
+            if (item.getInventoryMode() == InventoryMode.UNLIMITED) {
+                availability.put(item.getId(), new MenuItemAvailability(orderable, StockStatus.UNLIMITED));
+                continue;
+            }
+
+            Inventory inventory = inventoriesByItemId.get(item.getId());
+            if (inventory == null) {
+                throw new InventoryNotConfiguredException(item.getId());
+            }
+
+            StockStatus status = inventory.isOutOfStock()
+                    ? StockStatus.OUT_OF_STOCK
+                    : inventory.isLowStock() ? StockStatus.LIMITED : StockStatus.AVAILABLE;
+            availability.put(item.getId(), new MenuItemAvailability(
+                    orderable && inventory.getAvailableQuantity() > 0,
+                    status
+            ));
+        }
+        return availability;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public void validateQuantityAvailable(Long menuItemId, Long requestedQuantity) {
         MenuItem menuItem = getMenuItemOrThrow(menuItemId);
 
@@ -604,4 +644,3 @@ public class InventoryServiceImpl implements InventoryService {
                 .build();
     }
 }
-

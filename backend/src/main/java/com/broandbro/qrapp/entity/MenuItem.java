@@ -2,6 +2,7 @@ package com.broandbro.qrapp.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.broandbro.qrapp.enums.FulfillmentType;
 import com.broandbro.qrapp.enums.InventoryMode;
 import com.broandbro.qrapp.enums.ImageGenerationStatus;
@@ -82,6 +83,7 @@ public class MenuItem {
     private Instant updatedAt;
 
     @OneToOne(mappedBy = "menuItem", fetch = FetchType.LAZY)
+    @JsonIgnore
     private MenuItemImage image;
 
     // ============================================================================
