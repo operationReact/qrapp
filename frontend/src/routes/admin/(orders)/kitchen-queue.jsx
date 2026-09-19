@@ -1,319 +1,276 @@
 import { createFileRoute, Navigate } from "@tanstack/react-router";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMemo, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import {
+  AlertTriangle,
+  ArrowRight,
+  CheckCircle2,
+  CircleAlert,
+  Clock3,
+  Filter,
+  LoaderCircle,
+  RefreshCw,
+} from "lucide-react";
 import { liveOrdersAdminOptions } from "@/query/options/orders";
 import { updateAdminOrder } from "@/services/order-service";
 import { useAuth } from "@/context/AuthContext";
 import { cn, isOrderPaid, formatAge } from "@/lib/utils";
-import { useState, useMemo } from "react";
 import {
-  ArrowCounterClockwiseIcon,
   CheckCircleIcon,
-  CaretRightIcon,
   CookingPotIcon,
-  ClockCountdownIcon,
-  WarningCircleIcon,
   HandWavingIcon,
-  SmileyIcon,
 } from "@phosphor-icons/react";
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Helpers
-// ─────────────────────────────────────────────────────────────────────────────
+const STATUS_META = {
+  PLACED: {
+    label: "New",
+    rail: "border-l-violet-500",
+    dot: "bg-violet-500",
+    chip: "border-violet-200 bg-violet-50 text-violet-700",
+    action: "bg-violet-600 text-white hover:bg-violet-700 active:bg-violet-800",
+  },
+  PREPARING: {
+    label: "Cooking",
+    rail: "border-l-orange-500",
+    dot: "bg-orange-500",
+    chip: "border-orange-200 bg-orange-50 text-orange-700",
+    action: "bg-orange-500 text-white hover:bg-orange-600 active:bg-orange-700",
+  },
+  READY: {
+    label: "Ready",
+    rail: "border-l-emerald-500",
+    dot: "bg-emerald-500",
+    chip: "border-emerald-200 bg-emerald-50 text-emerald-700",
+    action: "bg-emerald-600 text-white hover:bg-emerald-700 active:bg-emerald-800",
+  },
+};
+
+const NEXT_ACTION = {
+  PLACED: { status: "PREPARING", label: "Start preparing", Icon: CookingPotIcon },
+  PREPARING: { status: "READY", label: "Mark ready", Icon: CheckCircleIcon },
+  READY: { status: "COMPLETED", label: "Hand over", Icon: HandWavingIcon },
+};
+
+const PRIMARY_FILTERS = [
+  { key: "ALL", label: "All" },
+  { key: "PLACED", label: "New" },
+  { key: "PREPARING", label: "Cooking" },
+  { key: "READY", label: "Ready" },
+];
+
+const SECONDARY_FILTERS = [
+  { key: "DELAYED", label: "Delayed" },
+  { key: "PAID", label: "Paid" },
+  { key: "UNPAID", label: "Unpaid" },
+];
+
 function getStatusKey(status) {
-  const s = String(status ?? "").toUpperCase();
-  if (s.includes("PLACED")) return "PLACED";
-  if (s.includes("PREPARING")) return "PREPARING";
-  if (s.includes("READY")) return "READY";
+  const value = String(status ?? "").toUpperCase();
+  if (value.includes("PLACED")) return "PLACED";
+  if (value.includes("PREPARING")) return "PREPARING";
+  if (value.includes("READY")) return "READY";
   return null;
 }
 
-// Maps current stage → single "next primary action"
-const NEXT_ACTION = {
-  PLACED:    { status: "PREPARING", label: "Start Preparing", Icon: CookingPotIcon },
-  PREPARING: { status: "READY",     label: "Mark Ready",      Icon: CheckCircleIcon },
-  READY:     { status: "COMPLETED", label: "Hand Over",        Icon: HandWavingIcon },
-};
+function formatCurrency(value) {
+  return new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    maximumFractionDigits: 0,
+  }).format(Number(value ?? 0));
+}
 
-// Visual config per status key
-const STATUS_STYLE = {
-  PLACED: {
-    label:      "New",
-    chipCls:    "bg-violet-100 text-violet-700 border-violet-200",
-    dot:        "bg-violet-500",
-    btnCls:     "bg-violet-600 active:bg-violet-700 text-white",
-    statsBg:    "bg-violet-50",
-    statsNum:   "text-violet-700",
-    statsLabel: "text-violet-400",
-  },
-  PREPARING: {
-    label:      "Preparing",
-    chipCls:    "bg-orange-100 text-orange-700 border-orange-200",
-    dot:        "bg-orange-500",
-    btnCls:     "bg-orange-500 active:bg-orange-600 text-white",
-    statsBg:    "bg-orange-50",
-    statsNum:   "text-orange-700",
-    statsLabel: "text-orange-400",
-  },
-  READY: {
-    label:      "Ready",
-    chipCls:    "bg-green-100 text-green-700 border-green-200",
-    dot:        "bg-green-500",
-    btnCls:     "bg-green-600 active:bg-green-700 text-white",
-    statsBg:    "bg-green-50",
-    statsNum:   "text-green-700",
-    statsLabel: "text-green-400",
-  },
-};
+function formatOrderNumber(order) {
+  const value = order.orderNumber ?? order.id;
+  return String(value).startsWith("#") ? String(value) : `#${value}`;
+}
 
-const FILTER_LIST = [
-  { key: "ALL",       label: "All" },
-  { key: "PLACED",    label: "New" },
-  { key: "PREPARING", label: "Preparing" },
-  { key: "READY",     label: "Ready" },
-  { key: "DELAYED",   label: "Delayed" },
-  { key: "PAID",      label: "Paid" },
-  { key: "UNPAID",    label: "Unpaid" },
-];
-
-
-// ─────────────────────────────────────────────────────────────────────────────
-// VegDot
-// ─────────────────────────────────────────────────────────────────────────────
 function VegDot({ isVeg }) {
   return (
     <span
       className={cn(
-        "shrink-0 inline-flex h-3 w-3 rounded-sm border-2 items-center justify-center mt-px",
-        isVeg ? "border-green-600" : "border-red-500",
+        "mt-0.5 inline-flex size-3.5 shrink-0 items-center justify-center rounded-[4px] border-2",
+        isVeg ? "border-emerald-600" : "border-red-500",
       )}
+      role="img"
+      aria-label={isVeg ? "Vegetarian item" : "Non-vegetarian item"}
     >
-      <span className={cn("block h-1.5 w-1.5 rounded-full", isVeg ? "bg-green-600" : "bg-red-500")} />
+      <span className={cn("size-1.5 rounded-full", isVeg ? "bg-emerald-600" : "bg-red-500")} />
     </span>
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// OrderCard
-// ─────────────────────────────────────────────────────────────────────────────
+function StatusChip({ status, delayed }) {
+  const meta = STATUS_META[status];
+  if (!meta) return null;
+  return (
+    <span className="inline-flex flex-wrap items-center gap-1.5">
+      {delayed && (
+        <span className="inline-flex min-h-6 items-center gap-1 rounded-full border border-red-200 bg-red-50 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-red-700">
+          <AlertTriangle size={12} aria-hidden="true" />
+          Delayed
+        </span>
+      )}
+      <span className={cn("inline-flex min-h-6 items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-bold uppercase tracking-wide", meta.chip)}>
+        <span className={cn("size-1.5 rounded-full", meta.dot)} aria-hidden="true" />
+        {meta.label}
+      </span>
+    </span>
+  );
+}
+
 function OrderCard({ order, onAction, isPending }) {
-  const stageKey  = getStatusKey(order.status);
-  const nextAction = NEXT_ACTION[stageKey];
-  const style      = STATUS_STYLE[stageKey];
-  const isDelayed  = order.delayed;
-  const isPaid     = isOrderPaid(order);
+  const status = getStatusKey(order.status);
+  const meta = STATUS_META[status];
+  const nextAction = NEXT_ACTION[status];
+  const ActionIcon = nextAction?.Icon;
+  const delayed = Boolean(order.delayed);
+  const paid = isOrderPaid(order);
 
   return (
-    <div
+    <article
       className={cn(
-        "bg-white rounded-2xl border overflow-hidden transition-opacity",
-        isDelayed ? "border-red-300 ring-1 ring-red-200" : "border-gray-100 shadow-sm",
-        isPending && "opacity-60",
+        "border-l-4 bg-white shadow-[0_4px_16px_rgba(24,24,27,.04)] transition-shadow hover:shadow-[0_8px_24px_rgba(24,24,27,.07)]",
+        "rounded-2xl border border-zinc-200/80",
+        delayed ? "border-l-red-500 ring-1 ring-red-100" : meta?.rail,
+        isPending && "opacity-70",
       )}
+      aria-busy={isPending}
     >
-      {/* Colored top strip */}
-      <div className={cn("h-[3px] w-full", isDelayed ? "bg-red-500" : (style?.dot ?? "bg-gray-200"))} />
-
-      <div className="px-3.5 pt-3 pb-3.5 flex flex-col gap-2.5">
-
-        {/* ── Row 1: Order ID + Status chip + Time badge ── */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="min-w-0 break-words text-[15px] font-black text-gray-900 tracking-tight leading-tight">
-            {order.orderNumber ?? `#${order.id}`}
-          </span>
-
-          {isDelayed ? (
-            <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold border bg-red-100 text-red-700 border-red-200">
-              <WarningCircleIcon weight="fill" className="size-3" />
-              Delayed
-            </span>
-          ) : style ? (
-            <span className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold border", style.chipCls)}>
-              <span className={cn("h-1.5 w-1.5 rounded-full", style.dot)} />
-              {style.label}
-            </span>
-          ) : null}
-
-          {/* Time in stage */}
-          <span
-            className={cn(
-              "ml-auto shrink-0 flex items-center gap-0.5 text-[11px] font-semibold tabular-nums rounded-full px-2 py-0.5",
-              isDelayed
-                ? "bg-red-100 text-red-700"
-                : (order.stageAgeMinutes ?? 0) >= 10
-                ? "bg-amber-100 text-amber-700"
-                : "bg-gray-100 text-gray-500",
-            )}
-          >
-            <ClockCountdownIcon weight={isDelayed ? "fill" : "regular"} className="size-3" />
-            {formatAge(order.stageAgeMinutes)}
-          </span>
-        </div>
-
-        {/* ── Row 2: Items (primary content) ── */}
-        <div className="space-y-1.5">
-          {(order.items ?? []).map((item, i) => (
-            <div key={i} className="flex items-center gap-1.5">
-              <VegDot isVeg={item.isVeg} />
-              <span className="min-w-0 flex-1 break-words text-[13px] font-semibold text-gray-800 leading-tight">
-                {item.name}
-              </span>
-              <span className="shrink-0 text-[12px] font-bold text-gray-400 tabular-nums">
-                ×{item.quantity}
-              </span>
+      <div className="p-4 sm:p-5">
+        <header className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="min-w-0 break-words text-lg font-black leading-tight tracking-tight text-zinc-950">
+                {formatOrderNumber(order)}
+              </h2>
+              <StatusChip status={status} delayed={delayed} />
             </div>
-          ))}
-          {(!order.items || order.items.length === 0) && (
-            <span className="text-[12px] text-gray-400 italic">No items</span>
-          )}
-        </div>
+          </div>
 
-        {/* ── Row 3: Customer + Amount + Payment (secondary) ── */}
-        <div className="flex items-center gap-1.5 pt-1.5 border-t border-gray-50">
-          <span className="min-w-0 flex-1 break-words text-[11px] text-gray-400">
-            {order.userName
-              ? `${order.userName}${order.phone ? ` · ${order.phone}` : ""}`
-              : (order.phone ?? "Guest")}
+          <div
+            className={cn(
+              "flex shrink-0 items-center gap-1 rounded-lg px-2 py-1 text-sm font-bold tabular-nums",
+              delayed ? "bg-red-50 text-red-700" : "bg-zinc-100 text-zinc-700",
+            )}
+            aria-label={`${formatAge(order.stageAgeMinutes)} in current stage`}
+          >
+            <Clock3 size={14} aria-hidden="true" />
+            {formatAge(order.stageAgeMinutes)}
+          </div>
+        </header>
+
+        <section className="mt-4 border-t border-zinc-100 pt-3" aria-label="Order items">
+          <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.14em] text-zinc-400">
+            Items
+          </p>
+          <ul className="space-y-2">
+            {(order.items ?? []).map((item, index) => (
+              <li key={`${order.id}-${index}-${item.itemId ?? "item"}`} className="flex items-start gap-2">
+                <span className="min-w-[2rem] text-sm font-black tabular-nums text-zinc-950">
+                  {item.quantity}×
+                </span>
+                <VegDot isVeg={item.isVeg} />
+                <span className="min-w-0 flex-1 break-words text-sm font-semibold leading-snug text-zinc-800">
+                  {item.name || "Menu item"}
+                </span>
+              </li>
+            ))}
+            {(!order.items || order.items.length === 0) && (
+              <li className="text-sm italic text-zinc-400">No items attached</li>
+            )}
+          </ul>
+        </section>
+
+        <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-zinc-100 pt-3">
+          <span className="min-w-0 flex-1 break-words text-xs text-zinc-500">
+            {order.userName || "Guest"}
+            {order.phone && <span className="text-zinc-400"> · {order.phone}</span>}
           </span>
-          <span className="text-[12px] font-bold text-gray-700 shrink-0">
-            ₹{Number(order.total ?? 0).toFixed(0)}
+          <span className="shrink-0 text-sm font-bold tabular-nums text-zinc-800">
+            {formatCurrency(order.total)}
           </span>
           <span
             className={cn(
-              "shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-bold border",
-              isPaid
-                ? "bg-green-50 text-green-700 border-green-200"
-                : "bg-amber-50 text-amber-700 border-amber-200",
+              "shrink-0 rounded-full border px-2 py-1 text-[10px] font-bold uppercase tracking-wide",
+              paid
+                ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                : "border-amber-200 bg-amber-50 text-amber-700",
             )}
           >
-            {isPaid ? "Paid" : "Unpaid"}
+            {paid ? "Paid" : "Unpaid"}
           </span>
         </div>
 
-        {/* ── Action Button (next valid step only) ── */}
         {nextAction && (
           <button
-            onClick={() => !isPending && onAction(order.id, nextAction.status)}
+            type="button"
+            onClick={() => onAction(order.id, nextAction.status)}
             disabled={isPending}
             className={cn(
-              "w-full flex items-center gap-2 rounded-xl py-3 px-4 text-[13px] font-bold transition-all select-none",
-              isDelayed
-                ? "bg-red-600 active:bg-red-700 text-white"
-                : (style?.btnCls ?? "bg-gray-700 text-white"),
-              isPending && "opacity-50 cursor-not-allowed",
+              "mt-4 flex min-h-11 w-full items-center gap-2 rounded-xl px-4 py-3 text-sm font-bold uppercase tracking-wide transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 active:scale-[.99] disabled:cursor-not-allowed",
+              delayed ? "bg-red-600 text-white hover:bg-red-700 active:bg-red-800" : meta?.action,
             )}
+            aria-label={`${nextAction.label} for ${formatOrderNumber(order)}`}
           >
-            <nextAction.Icon weight="bold" className="size-4 shrink-0" />
-            <span className="flex-1 text-left">{nextAction.label}</span>
-            <CaretRightIcon weight="bold" className="size-3.5 shrink-0" />
+            {isPending ? (
+              <LoaderCircle size={18} className="animate-spin" aria-hidden="true" />
+            ) : (
+              <ActionIcon weight="bold" className="size-[18px]" aria-hidden="true" />
+            )}
+            <span className="flex-1 text-left">{isPending ? "Updating…" : nextAction.label}</span>
+            {!isPending && <ArrowRight size={18} aria-hidden="true" />}
           </button>
         )}
       </div>
-    </div>
+    </article>
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// NeedsAttentionBanner — sticky top of content scroll area
-// ─────────────────────────────────────────────────────────────────────────────
-function NeedsAttentionBanner({ orders, onAction, pendingId }) {
-  const [open, setOpen] = useState(true);
-  if (!orders.length) return null;
-
+function QueueSkeleton() {
   return (
-    <div className="rounded-2xl border border-red-200 bg-red-50/90 overflow-hidden mb-3 sticky top-0 z-10 backdrop-blur-sm">
-      <button
-        onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-left active:bg-red-100/50 transition-colors"
-      >
-        <span className="relative flex h-2.5 w-2.5 shrink-0">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
-          <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-red-500" />
-        </span>
-        <span className="flex-1 text-[12px] font-black text-red-700 uppercase tracking-wider">
-          Needs Attention
-        </span>
-        <span className="rounded-full bg-red-500 text-white text-[10px] font-black px-2 py-0.5 leading-none">
-          {orders.length}
-        </span>
-        <span className="text-red-400 text-[11px] font-bold">{open ? "▲" : "▼"}</span>
-      </button>
-
-      {open && (
-        <div className="px-3 pb-3 space-y-2">
-          {orders.map((order) => (
-            <OrderCard
-              key={order.id}
-              order={order}
-              onAction={onAction}
-              isPending={pendingId === order.id}
-            />
-          ))}
+    <div className="rounded-2xl border border-zinc-200/80 bg-white p-4 shadow-sm sm:p-5" aria-hidden="true">
+      <div className="flex items-start justify-between gap-4">
+        <div className="space-y-2">
+          <div className="h-5 w-32 animate-pulse rounded-md bg-zinc-100" />
+          <div className="h-3 w-24 animate-pulse rounded-md bg-zinc-100" />
         </div>
-      )}
+        <div className="h-7 w-14 animate-pulse rounded-lg bg-zinc-100" />
+      </div>
+      <div className="mt-5 space-y-3 border-t border-zinc-100 pt-4">
+        <div className="h-3 w-10 animate-pulse rounded bg-zinc-100" />
+        <div className="h-5 w-4/5 animate-pulse rounded bg-zinc-100" />
+        <div className="h-5 w-2/3 animate-pulse rounded bg-zinc-100" />
+      </div>
+      <div className="mt-5 h-11 animate-pulse rounded-xl bg-zinc-100" />
     </div>
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// FilterChips
-// ─────────────────────────────────────────────────────────────────────────────
-const FILTER_ACTIVE_CLS = {
-  ALL:       "bg-gray-900  border-gray-900  text-white",
-  PLACED:    "bg-violet-600 border-violet-600 text-white",
-  PREPARING: "bg-orange-500 border-orange-500 text-white",
-  READY:     "bg-green-600  border-green-600  text-white",
-  DELAYED:   "bg-red-600    border-red-600    text-white",
-  PAID:      "bg-gray-900  border-gray-900  text-white",
-  UNPAID:    "bg-gray-900  border-gray-900  text-white",
-};
-
-function FilterChips({ active, onChange, counts }) {
+function FilterChip({ filter, count, active, onClick, attention }) {
   return (
-    <div
-      className="flex gap-2 overflow-x-auto pb-0.5"
-      style={{ scrollbarWidth: "none", WebkitOverflowScrolling: "touch" }}
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={cn(
+        "inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border px-3.5 text-xs font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30",
+        active
+          ? "border-zinc-950 bg-zinc-950 text-white"
+          : attention
+            ? "border-red-200 bg-red-50 text-red-700"
+            : "border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 hover:text-zinc-950",
+      )}
     >
-      {FILTER_LIST.map((f) => {
-        const count    = counts[f.key] ?? 0;
-        const isActive = active === f.key;
-        return (
-          <button
-            key={f.key}
-            onClick={() => onChange(f.key)}
-            className={cn(
-              "shrink-0 flex items-center gap-1 rounded-full px-3 py-1.5 text-[12px] font-semibold border transition-all whitespace-nowrap",
-              isActive
-                ? FILTER_ACTIVE_CLS[f.key]
-                : f.key === "DELAYED" && count > 0
-                ? "bg-red-50 border-red-200 text-red-600"
-                : "bg-white border-gray-200 text-gray-600",
-            )}
-          >
-            {f.label}
-            {count > 0 && (
-              <span
-                className={cn(
-                  "rounded-full text-[10px] font-black px-1.5 py-0.5 leading-none",
-                  isActive
-                    ? "bg-white/25 text-inherit"
-                    : f.key === "DELAYED"
-                    ? "bg-red-100 text-red-600"
-                    : "bg-gray-100 text-gray-500",
-                )}
-              >
-                {count}
-              </span>
-            )}
-          </button>
-        );
-      })}
-    </div>
+      {filter.label}
+      <span className={cn("tabular-nums", active ? "text-white/70" : attention ? "text-red-600" : "text-zinc-400")}>
+        {count}
+      </span>
+    </button>
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Page
-// ─────────────────────────────────────────────────────────────────────────────
 export const Route = createFileRoute("/admin/(orders)/kitchen-queue")({
   component: KitchenQueuePage,
 });
@@ -322,209 +279,243 @@ function KitchenQueuePage() {
   const { isAdmin, isSuperUser } = useAuth();
   const queryClient = useQueryClient();
   const [activeFilter, setActiveFilter] = useState("ALL");
+  const [showMoreFilters, setShowMoreFilters] = useState(false);
   const [pendingId, setPendingId] = useState(null);
 
-  // ── Live query — auto-refetches every 15 s ──
-  const { data: liveOrders = [], isLoading, isFetching } = useQuery({
+  const {
+    data: liveOrders = [],
+    isLoading,
+    isFetching,
+    isError,
+    refetch,
+  } = useQuery({
     ...liveOrdersAdminOptions(50),
     refetchInterval: 15000,
     refetchIntervalInBackground: true,
   });
 
-  // ── Update mutation ──
   const mutation = useMutation({
     mutationFn: ({ orderId, status }) => updateAdminOrder(orderId, { status }),
-    onMutate:   ({ orderId }) => setPendingId(orderId),
-    onSettled:  () => setPendingId(null),
-    onSuccess:  () => {
+    onMutate: ({ orderId }) => setPendingId(orderId),
+    onError: () => toast.error("Couldn't update the kitchen order. Try again."),
+    onSettled: () => setPendingId(null),
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["orders", "admin", "live"] });
       queryClient.invalidateQueries({ queryKey: ["orders", "admin"] });
     },
   });
 
-  const handleAction  = (orderId, status) => mutation.mutate({ orderId, status });
-  const manualRefresh = () => queryClient.invalidateQueries({ queryKey: ["orders", "admin", "live"] });
-
-  // ── Derived data ──
-  const nonPreOrders = useMemo(
-    () => liveOrders.filter((o) => !o.preOrder),
+  const orders = useMemo(
+    () => liveOrders.filter((order) => !order.preOrder),
     [liveOrders],
   );
 
   const delayedOrders = useMemo(
-    () => nonPreOrders.filter((o) => o.delayed),
-    [nonPreOrders],
+    () => orders.filter((order) => order.delayed),
+    [orders],
   );
 
   const counts = useMemo(() => ({
-    ALL:       nonPreOrders.length,
-    PLACED:    nonPreOrders.filter((o) => getStatusKey(o.status) === "PLACED").length,
-    PREPARING: nonPreOrders.filter((o) => getStatusKey(o.status) === "PREPARING").length,
-    READY:     nonPreOrders.filter((o) => getStatusKey(o.status) === "READY").length,
-    DELAYED:   delayedOrders.length,
-    PAID:      nonPreOrders.filter((o) => isOrderPaid(o)).length,
-    UNPAID:    nonPreOrders.filter((o) => !isOrderPaid(o)).length,
-  }), [nonPreOrders, delayedOrders]);
+    ALL: orders.length,
+    PLACED: orders.filter((order) => getStatusKey(order.status) === "PLACED").length,
+    PREPARING: orders.filter((order) => getStatusKey(order.status) === "PREPARING").length,
+    READY: orders.filter((order) => getStatusKey(order.status) === "READY").length,
+    DELAYED: delayedOrders.length,
+    PAID: orders.filter((order) => isOrderPaid(order)).length,
+    UNPAID: orders.filter((order) => !isOrderPaid(order)).length,
+  }), [orders, delayedOrders]);
 
   const filteredOrders = useMemo(() => {
     switch (activeFilter) {
-      case "DELAYED":   return delayedOrders;
-      case "PAID":      return nonPreOrders.filter((o) => String(o.paymentStatus ?? "").toUpperCase() === "PAID");
-      case "UNPAID":    return nonPreOrders.filter((o) => String(o.paymentStatus ?? "").toUpperCase() !== "PAID");
+      case "DELAYED":
+        return delayedOrders;
+      case "PAID":
+        return orders.filter((order) => isOrderPaid(order));
+      case "UNPAID":
+        return orders.filter((order) => !isOrderPaid(order));
       case "PLACED":
       case "PREPARING":
-      case "READY":     return nonPreOrders.filter((o) => getStatusKey(o.status) === activeFilter);
-      default:          return nonPreOrders;
+      case "READY":
+        return orders.filter((order) => getStatusKey(order.status) === activeFilter);
+      default:
+        return orders;
     }
-  }, [nonPreOrders, delayedOrders, activeFilter]);
-
-  // Show attention banner only when NOT already filtering by DELAYED
-  const attentionOrders = useMemo(
-    () => (activeFilter === "DELAYED" ? [] : delayedOrders),
-    [delayedOrders, activeFilter],
-  );
+  }, [activeFilter, delayedOrders, orders]);
 
   if (!isAdmin && !isSuperUser) {
     return <Navigate to="/login" replace />;
   }
 
-  // ── Summary stats chips ──
-  const STATS = [
-    {
-      key:    "PLACED",
-      label:  "New",
-      bg:     "bg-violet-50",
-      numCls: "text-violet-700",
-      lblCls: "text-violet-400",
-    },
-    {
-      key:    "PREPARING",
-      label:  "Cooking",
-      bg:     "bg-orange-50",
-      numCls: "text-orange-700",
-      lblCls: "text-orange-400",
-    },
-    {
-      key:    "READY",
-      label:  "Ready",
-      bg:     "bg-green-50",
-      numCls: "text-green-700",
-      lblCls: "text-green-400",
-    },
-    {
-      key:    "DELAYED",
-      label:  "Delayed",
-      bg:     delayedOrders.length > 0 ? "bg-red-50"  : "bg-gray-50",
-      numCls: delayedOrders.length > 0 ? "text-red-700" : "text-gray-300",
-      lblCls: delayedOrders.length > 0 ? "text-red-400" : "text-gray-300",
-    },
-  ];
-
+  const secondaryVisible = showMoreFilters || !PRIMARY_FILTERS.some((filter) => filter.key === activeFilter);
   const emptyLabel = activeFilter === "ALL"
-    ? "Queue is clear"
-    : `No ${FILTER_LIST.find((f) => f.key === activeFilter)?.label ?? ""} orders`;
+    ? "Kitchen is clear"
+    : `No ${[...PRIMARY_FILTERS, ...SECONDARY_FILTERS].find((filter) => filter.key === activeFilter)?.label ?? ""} orders`;
 
   return (
-    <div className="flex h-[calc(100dvh-3.5rem)] min-h-0 flex-col bg-gray-50">
-
-      {/* ════════════════════════════════════════════════════
-          Sticky header — title + stats chips + filter chips
-          ════════════════════════════════════════════════════ */}
-      <div className="bg-white border-b sticky top-0 z-20 px-4 pt-3 pb-3 space-y-3">
-
-        {/* ── Title row ── */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="text-[17px] font-black text-gray-900 tracking-tight">
-              Kitchen Queue
-            </span>
-            {/* Live pulse while fetching */}
-            {isFetching && !isLoading && (
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+    <div className="flex h-[calc(100dvh-3.5rem)] min-h-0 flex-col bg-[#f7f6f3]">
+      <header className="sticky top-0 z-20 shrink-0 border-b border-zinc-200/80 bg-white/95 px-4 py-3 backdrop-blur sm:px-6">
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl font-black tracking-tight text-zinc-950 sm:text-2xl">Kitchen</h1>
+              <span className="sr-only">Kitchen Queue</span>
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-emerald-700">
+                <span className="size-1.5 rounded-full bg-emerald-500" aria-hidden="true" />
+                Live
               </span>
-            )}
+            </div>
+            <p className="mt-1 text-xs font-medium text-zinc-500" aria-live="polite">
+              {isFetching && !isLoading ? "Updating queue…" : `${orders.length} active ${orders.length === 1 ? "order" : "orders"}`}
+              {delayedOrders.length > 0 && (
+                <span className="font-bold text-red-600"> · {delayedOrders.length} need attention</span>
+              )}
+            </p>
           </div>
-
           <button
-            onClick={manualRefresh}
+            type="button"
+            onClick={() => refetch()}
             disabled={isFetching}
-            className="flex items-center gap-1.5 rounded-full bg-gray-100 px-3 py-1.5 text-[12px] font-semibold text-gray-600 active:bg-gray-200 disabled:opacity-50 transition-colors"
+            className="grid size-11 shrink-0 place-items-center rounded-xl border border-zinc-200 bg-white text-zinc-600 transition-colors hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 active:scale-95 disabled:opacity-50"
+            aria-label={isFetching ? "Updating kitchen queue" : "Refresh kitchen queue"}
+            title={isFetching ? "Updating…" : "Refresh queue"}
           >
-            <ArrowCounterClockwiseIcon
-              weight="bold"
-              className={cn("size-3.5", isFetching && "animate-spin")}
-            />
-            Refresh
+            <RefreshCw size={17} className={cn(isFetching && "animate-spin")} aria-hidden="true" />
           </button>
         </div>
 
-        {/* ── Compact status summary chips (tap to filter) ── */}
-        <div className="grid grid-cols-4 gap-2">
-          {STATS.map((s) => (
+        <div className={cn("mt-3 grid gap-2", delayedOrders.length > 0 ? "grid-cols-4" : "grid-cols-3")}>
+          {PRIMARY_FILTERS.slice(1).map((filter) => (
             <button
-              key={s.key}
-              onClick={() => setActiveFilter(s.key)}
+              key={filter.key}
+              type="button"
+              onClick={() => setActiveFilter(activeFilter === filter.key ? "ALL" : filter.key)}
+              aria-pressed={activeFilter === filter.key}
               className={cn(
-                "flex flex-col items-center justify-center rounded-xl py-2 px-1 transition-all active:scale-95",
-                s.bg,
-                activeFilter === s.key && "ring-2 ring-current ring-offset-1",
+                "flex min-h-14 flex-col items-center justify-center rounded-xl border px-1 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 active:scale-[.98]",
+                activeFilter === filter.key
+                  ? "border-zinc-950 bg-zinc-950 text-white"
+                  : "border-zinc-100 bg-zinc-50 text-zinc-800 hover:border-zinc-200",
               )}
             >
-              <span className={cn("text-[20px] font-black leading-none tabular-nums", s.numCls)}>
-                {isLoading ? "—" : counts[s.key]}
-              </span>
-              <span className={cn("text-[10px] font-semibold mt-0.5 leading-none", s.lblCls)}>
-                {s.label}
+              <span className="text-lg font-black leading-none tabular-nums">{isLoading ? "—" : counts[filter.key]}</span>
+              <span className={cn("mt-1 text-[10px] font-bold uppercase tracking-wide", activeFilter === filter.key ? "text-white/70" : "text-zinc-400")}>
+                {filter.label}
               </span>
             </button>
           ))}
+          {delayedOrders.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setActiveFilter(activeFilter === "DELAYED" ? "ALL" : "DELAYED")}
+              aria-pressed={activeFilter === "DELAYED"}
+              className={cn(
+                "flex min-h-14 flex-col items-center justify-center rounded-xl border px-1 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-300 active:scale-[.98]",
+                activeFilter === "DELAYED"
+                  ? "border-red-600 bg-red-600 text-white"
+                  : "border-red-100 bg-red-50 text-red-700",
+              )}
+            >
+              <span className="text-lg font-black leading-none tabular-nums">{counts.DELAYED}</span>
+              <span className={cn("mt-1 text-[10px] font-bold uppercase tracking-wide", activeFilter === "DELAYED" ? "text-white/80" : "text-red-500")}>
+                Delayed
+              </span>
+            </button>
+          )}
         </div>
 
-        {/* ── Inline filter chips ── */}
-        <FilterChips active={activeFilter} onChange={setActiveFilter} counts={counts} />
-      </div>
+        <div className="mt-3 flex min-w-0 items-center gap-2">
+          <div className="min-w-0 flex-1 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <div className="flex w-max gap-2">
+              <FilterChip
+                filter={PRIMARY_FILTERS[0]}
+                count={counts.ALL}
+                active={activeFilter === "ALL"}
+                onClick={() => setActiveFilter("ALL")}
+              />
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowMoreFilters((value) => !value)}
+            aria-expanded={secondaryVisible}
+            className={cn(
+              "inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border px-3 text-xs font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30",
+              secondaryVisible || SECONDARY_FILTERS.some((filter) => filter.key === activeFilter)
+                ? "border-zinc-950 bg-zinc-950 text-white"
+                : "border-zinc-200 bg-white text-zinc-600",
+            )}
+          >
+            <Filter size={14} aria-hidden="true" />
+            More
+          </button>
+        </div>
 
-      {/* ════════════════════════════════════════════════════
-          Scrollable content
-          ════════════════════════════════════════════════════ */}
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pt-3 pb-[calc(1.5rem+env(safe-area-inset-bottom))] [touch-action:pan-y]">
-
-        {/* Needs Attention — sticky within scroll area */}
-        {!isLoading && attentionOrders.length > 0 && (
-          <NeedsAttentionBanner
-            orders={attentionOrders}
-            onAction={handleAction}
-            pendingId={pendingId}
-          />
-        )}
-
-        {/* Main order list */}
-        {isLoading ? (
-          <div className="space-y-2.5">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="h-44 animate-pulse rounded-2xl bg-gray-200" />
+        {secondaryVisible && (
+          <div className="mt-2 flex gap-2 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {SECONDARY_FILTERS.map((filter) => (
+              <FilterChip
+                key={filter.key}
+                filter={filter}
+                count={counts[filter.key]}
+                active={activeFilter === filter.key}
+                attention={filter.key === "DELAYED" && counts.DELAYED > 0}
+                onClick={() => setActiveFilter(filter.key)}
+              />
             ))}
           </div>
+        )}
+      </header>
+
+      <main className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-4 py-4 pb-[calc(1rem+env(safe-area-inset-bottom))] [touch-action:pan-y] sm:px-6 sm:py-5">
+        {isError && (
+          <div className="mb-4 flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-3.5 py-3 text-red-800" role="alert">
+            <CircleAlert size={18} className="mt-0.5 shrink-0 text-red-600" aria-hidden="true" />
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-bold">{orders.length ? "Queue connection interrupted" : "Couldn't load the kitchen queue"}</p>
+              <p className="mt-0.5 text-xs text-red-700/80">
+                {orders.length ? "Showing the last available orders." : "Try again to retrieve live orders."}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => refetch()}
+              className="min-h-9 shrink-0 rounded-lg px-2 text-xs font-bold text-red-700 underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
+            >
+              Try again
+            </button>
+          </div>
+        )}
+
+        {isLoading ? (
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+            {Array.from({ length: 6 }, (_, index) => <QueueSkeleton key={index} />)}
+          </div>
         ) : filteredOrders.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 gap-3">
-            <SmileyIcon weight="thin" className="size-14 text-gray-300" />
-            <span className="text-[13px] font-semibold text-gray-400">{emptyLabel}</span>
+          <div className="flex min-h-[min(26rem,55vh)] flex-col items-center justify-center rounded-2xl border border-dashed border-zinc-200 bg-white/60 px-6 text-center">
+            <span className="grid size-12 place-items-center rounded-2xl bg-emerald-50 text-emerald-600">
+              <CheckCircle2 size={24} aria-hidden="true" />
+            </span>
+            <h2 className="mt-4 text-base font-bold text-zinc-800">{emptyLabel}</h2>
+            <p className="mt-1 max-w-xs text-sm leading-relaxed text-zinc-500">
+              {activeFilter === "ALL" ? "No live orders are waiting for kitchen action." : "Try another filter to view more orders."}
+            </p>
+            <p className="mt-3 text-xs font-medium text-zinc-400">
+              {isFetching ? "Updating…" : "Updated just now"}
+            </p>
           </div>
         ) : (
-          <div className="space-y-2.5">
+          <div className="grid grid-cols-1 items-start gap-3 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
             {filteredOrders.map((order) => (
               <OrderCard
                 key={order.id}
                 order={order}
-                onAction={handleAction}
+                onAction={(orderId, status) => mutation.mutate({ orderId, status })}
                 isPending={pendingId === order.id}
               />
             ))}
           </div>
         )}
-      </div>
+      </main>
     </div>
   );
 }
