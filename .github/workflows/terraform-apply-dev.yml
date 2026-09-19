@@ -197,9 +197,20 @@ jobs:
       - name: Import existing DB SSM parameters (if orphaned)
         run: |
           for suffix in url username pass_word; do
-            suffix_resolved="${suffix//_/}"
-            parameter_name="/broandbro/backend/dev/database/$suffix_resolved"
-            terraform_address="module.rds.aws_ssm_parameter.db_$suffix_resolved"
+            case "$suffix" in
+              url)
+                parameter_name="/broandbro/backend/dev/database/url"
+                terraform_address="module.rds.aws_ssm_parameter.db_url"
+                ;;
+              username)
+                parameter_name="/broandbro/backend/dev/database/username"
+                terraform_address="module.rds.aws_ssm_parameter.db_username"
+                ;;
+              pass_word)
+                parameter_name="/broandbro/backend/dev/database/password"
+                terraform_address="module.rds.aws_ssm_parameter.db_password"
+                ;;
+            esac
 
             if aws ssm get-parameter --name "$parameter_name" --region us-east-1 >/dev/null 2>&1; then
               echo "SSM parameter $parameter_name exists - checking state..."
