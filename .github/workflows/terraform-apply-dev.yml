@@ -214,7 +214,7 @@ jobs:
 
             if aws ssm get-parameter --name "$parameter_name" --region "$AWS_REGION" >/dev/null 2>&1; then
               echo "SSM parameter $parameter_name exists - checking state..."
-              if ! terraform state show "$terraform_address" >/dev/null 2>&1; then
+              if ! terraform state list | grep -Fx "$terraform_address" >/dev/null 2>&1; then
                 echo "Importing $parameter_name into $terraform_address..."
                 terraform import "$terraform_address" "$parameter_name"
               else
