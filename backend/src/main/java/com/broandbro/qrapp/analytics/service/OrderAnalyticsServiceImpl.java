@@ -6,6 +6,7 @@ import com.broandbro.qrapp.analytics.dto.PeakHourResponse;
 import com.broandbro.qrapp.analytics.projection.HourlyOrderSummaryProjection;
 import com.broandbro.qrapp.analytics.repository.HourlyOrderAnalyticsRepository;
 import com.broandbro.qrapp.analytics.scheduler.HourlyAnalyticsScheduler;
+import com.broandbro.qrapp.time.BusinessTime;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
@@ -41,7 +42,7 @@ public class OrderAnalyticsServiceImpl implements OrderAnalyticsService {
         key           = "'daily:' + #date"
     )
     public List<HourlyOrderResponse> getHourlyBreakdown(LocalDate date) {
-        LocalDateTime now        = LocalDateTime.now();
+        LocalDateTime now        = BusinessTime.now();
         LocalDate     today      = now.toLocalDate();
         int           currentHour = now.getHour();
 
@@ -121,9 +122,9 @@ public class OrderAnalyticsServiceImpl implements OrderAnalyticsService {
      * immediately without waiting for the hourly scheduler.
      */
     private void refreshCurrentHourIfTodayInRange(LocalDate to) {
-        LocalDate today = LocalDate.now();
+        LocalDate today = BusinessTime.today();
         if (!to.isBefore(today)) {               // range includes today
-            int currentHour = LocalDateTime.now().getHour();
+            int currentHour = BusinessTime.now().getHour();
             scheduler.executeUpsert(today, currentHour);
             if (currentHour > 0) {
                 scheduler.executeUpsert(today, currentHour - 1);
@@ -139,4 +140,3 @@ public class OrderAnalyticsServiceImpl implements OrderAnalyticsService {
         return v != null ? v : BigDecimal.ZERO;
     }
 }
-

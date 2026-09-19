@@ -151,13 +151,13 @@ When the backend starts, it reads values in this order:
 
 ```yaml
 # application-dev.yml
-password: ${SPRING_DATASOURCE_PASSWORD:${app.parameter-store.database.password:BroApp#2025}}
+password: ${SPRING_DATASOURCE_PASSWORD:${app.parameter-store.database.password:}}
 ```
 
 **Flow:**
 1. Check `SPRING_DATASOURCE_PASSWORD` env var
 2. If not set, check `/broandbro/backend/dev/database/password` in Parameter Store
-3. If not found, use hardcoded default `BroApp#2025`
+3. If not found, startup fails rather than using a bundled password
 
 ### Logging
 
@@ -490,4 +490,3 @@ sudo systemctl restart qrapp
 
 **Status:** ✅ Production-Ready  
 **Last Updated:** August 15, 2026
-

@@ -36,9 +36,9 @@ app:
     environment: dev
   parameters:
     database:
-      url: jdbc:postgresql://broandbro-dev.csjkasgs2ig6.us-east-1.rds.amazonaws.com:5432/postgres
-      username: BROANDBRODEV
-      password: BroApp#2025
+      url: jdbc:postgresql://broandbro-dev.csjkasgs2ig6.us-east-1.rds.amazonaws.com:5432/broandbro_dev?sslmode=require
+      username: broandbro
+      password: ${SPRING_DATASOURCE_PASSWORD}
 ```
 
 ### `application-dev.yml`
@@ -291,4 +291,3 @@ All values come from `application-ssm-dev.yml` ✅
 
 **Status:** ✅ Ready to Use  
 **Next Step:** Rebuild and deploy backend
-

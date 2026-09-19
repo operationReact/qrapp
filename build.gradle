@@ -34,9 +34,6 @@ subprojects {
         // Spring Boot test support
         testImplementation 'org.springframework.boot:spring-boot-starter-test'
 
-        // Twilio WhatsApp SDK
-        implementation 'com.twilio.sdk:twilio:10.1.2'
-
         // JSON support
         implementation 'org.json:json:20240303'
     }

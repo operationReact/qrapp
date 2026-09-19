@@ -31,6 +31,7 @@ export const adminOrderDashboardOptions = (liveLimit = 12) =>
     queryKey: ["orders", "admin", "dashboard", { liveLimit }],
     queryFn: () => getAdminOrderDashboard({ liveLimit }),
     staleTime: 1000 * 15,
+    refetchInterval: 15000,
   });
 
 export const liveOrdersAdminOptions = (limit = 12) =>

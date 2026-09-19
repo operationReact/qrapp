@@ -77,7 +77,7 @@ sudo journalctl -u qrapp -n 200
 
 **Before Fix:**
 ```
-java.net.UnknownHostException: broandbro-dev.chi2yu0m6hp0.us-east-1.rds.amazonaws.com
+java.net.UnknownHostException: the previous RDS endpoint
 (Trying to connect to wrong database - from GitHub secrets)
 ```
 
@@ -171,4 +171,3 @@ ssh EC2 && sudo journalctl -u qrapp -n 200 | tail -50
 ---
 
 **Ready to deploy! 🚀**
-

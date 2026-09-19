@@ -5,6 +5,7 @@ import com.broandbro.qrapp.analytics.dto.DailySalesResponse;
 import com.broandbro.qrapp.analytics.dto.DashboardSummaryResponse;
 import com.broandbro.qrapp.analytics.scheduler.DailySalesAggregationScheduler;
 import com.broandbro.qrapp.analytics.service.SalesAnalyticsService;
+import com.broandbro.qrapp.time.BusinessTime;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -16,6 +17,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -38,6 +40,7 @@ import java.util.Optional;
 @RequestMapping("/api/v1/analytics/sales")
 @RequiredArgsConstructor
 @Validated
+@PreAuthorize("hasAnyRole('ADMIN', 'SUPERUSER')")
 @Tag(name = "Analytics — Sales", description = "Daily & weekly sales KPI endpoints")
 public class AnalyticsSalesController {
 
@@ -62,7 +65,7 @@ public class AnalyticsSalesController {
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
             LocalDate to) {
 
-        LocalDate resolvedTo   = to   != null ? to   : LocalDate.now();
+        LocalDate resolvedTo   = to   != null ? to   : BusinessTime.today();
         LocalDate resolvedFrom = from != null ? from : resolvedTo.minusDays(1);
         validateRange(resolvedFrom, resolvedTo);
 
@@ -78,7 +81,7 @@ public class AnalyticsSalesController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
             @PageableDefault(size = 30, sort = "salesDate") Pageable pageable) {
 
-        LocalDate resolvedTo   = to   != null ? to   : LocalDate.now();
+        LocalDate resolvedTo   = to   != null ? to   : BusinessTime.today();
         LocalDate resolvedFrom = from != null ? from : resolvedTo.minusDays(29);
         validateRange(resolvedFrom, resolvedTo);
 
@@ -100,7 +103,7 @@ public class AnalyticsSalesController {
             @RequestParam(required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
 
-        LocalDate referenceDate = date != null ? date : LocalDate.now();
+        LocalDate referenceDate = date != null ? date : BusinessTime.today();
         log.debug("[SalesController] GET /daily/previous referenceDate={}", referenceDate);
 
         Optional<DailySalesResponse> result = salesService.findByPreviousDate(referenceDate);
@@ -175,4 +178,3 @@ public class AnalyticsSalesController {
         }
     }
 }
-

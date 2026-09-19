@@ -93,14 +93,15 @@ jobs:
             fi
           }
 
-          # Terraform owns the production RDS endpoint and generated password.
-          DB_HOST=$(aws ssm get-parameter \
-            --name "/broandbro/prod/db-endpoint" \
+          # Terraform publishes the same database parameter shape for every environment.
+          DB_URL=$(aws ssm get-parameter \
+            --name "/broandbro/backend/prod/database/url" \
             --query "Parameter.Value" --output text --region us-east-1)
-          DB_URL="jdbc:postgresql://${DB_HOST}:5432/broandbro"
-          DB_USERNAME="broandbro"
+          DB_USERNAME=$(aws ssm get-parameter \
+            --name "/broandbro/backend/prod/database/username" \
+            --query "Parameter.Value" --output text --region us-east-1)
           DB_PASSWORD=$(aws ssm get-parameter \
-            --name "/broandbro/prod/db-password" \
+            --name "/broandbro/backend/prod/database/password" \
             --with-decryption \
             --query "Parameter.Value" --output text --region us-east-1)
 
@@ -120,10 +121,6 @@ jobs:
           RAZORPAY_SECRET=$(get_optional_parameter "/broandbro/backend/prod/razorpay/secret")
           RAZORPAY_WEBHOOK_SECRET=$(get_optional_parameter "/broandbro/backend/prod/razorpay/webhookSecret")
 
-          TWILIO_ACCOUNT_SID=$(get_optional_parameter "/broandbro/backend/prod/twilio/accountSid")
-          TWILIO_AUTH_TOKEN=$(get_optional_parameter "/broandbro/backend/prod/twilio/authToken")
-
-          TWO_FACTOR_API_KEY=$(get_optional_parameter "/broandbro/backend/prod/twofactor/apiKey")
           WHATSAPP_WEBHOOK_VERIFY_TOKEN=$(get_optional_parameter "/broandbro/backend/prod/whatsapp/webhookVerifyToken")
           WHATSAPP_APP_SECRET=$(get_optional_parameter "/broandbro/backend/prod/whatsapp/appSecret")
           WHATSAPP_PHONE_NUMBER_ID=$(get_optional_parameter "/broandbro/backend/prod/whatsapp/phoneNumberId")
@@ -142,23 +139,12 @@ jobs:
           echo "RAZORPAY_KEY=$RAZORPAY_KEY" >> $GITHUB_ENV
           echo "RAZORPAY_SECRET=$RAZORPAY_SECRET" >> $GITHUB_ENV
           echo "RAZORPAY_WEBHOOK_SECRET=$RAZORPAY_WEBHOOK_SECRET" >> $GITHUB_ENV
-          echo "TWILIO_ACCOUNT_SID=$TWILIO_ACCOUNT_SID" >> $GITHUB_ENV
-          echo "TWILIO_AUTH_TOKEN=$TWILIO_AUTH_TOKEN" >> $GITHUB_ENV
-          echo "TWO_FACTOR_API_KEY=$TWO_FACTOR_API_KEY" >> $GITHUB_ENV
           echo "WHATSAPP_WEBHOOK_VERIFY_TOKEN=$WHATSAPP_WEBHOOK_VERIFY_TOKEN" >> $GITHUB_ENV
           echo "WHATSAPP_APP_SECRET=$WHATSAPP_APP_SECRET" >> $GITHUB_ENV
           echo "WHATSAPP_PHONE_NUMBER_ID=$WHATSAPP_PHONE_NUMBER_ID" >> $GITHUB_ENV
           echo "WHATSAPP_ACCESS_TOKEN=$WHATSAPP_ACCESS_TOKEN" >> $GITHUB_ENV
           echo "APP_CORS_ALLOWED_ORIGINS=https://broandbro.in,https://www.broandbro.in" >> $GITHUB_ENV
           echo "✅ Configuration fetched from AWS Parameter Store"
-
-      - name: Validate TWO_FACTOR_API_KEY present
-        run: |
-          if [ -z "$TWO_FACTOR_API_KEY" ]; then
-            echo "❌ TWO_FACTOR_API_KEY not found in SSM for prod. Aborting deploy." >&2
-            exit 1
-          fi
-          echo "✅ TWO_FACTOR_API_KEY present"
 
       - name: Validate WhatsApp webhook configuration
         run: |
@@ -255,7 +241,6 @@ jobs:
           OPENAI_IMAGE_MODEL=gpt-image-1
           OPENAI_IMAGE_SIZE=1024x1024
 
-          TWO_FACTOR_API_KEY=${{ env.TWO_FACTOR_API_KEY }}
           WHATSAPP_WEBHOOK_VERIFY_TOKEN=${{ env.WHATSAPP_WEBHOOK_VERIFY_TOKEN }}
           WHATSAPP_APP_SECRET=${{ env.WHATSAPP_APP_SECRET }}
           WHATSAPP_OTP_ENABLED=true
@@ -275,12 +260,6 @@ jobs:
           RAZORPAY_SECRET=${{ env.RAZORPAY_SECRET }}
           RAZORPAY_WEBHOOK_SECRET=${{ env.RAZORPAY_WEBHOOK_SECRET }}
 
-          # Twilio / WhatsApp
-          TWILIO_ACCOUNT_SID=${{ env.TWILIO_ACCOUNT_SID }}
-          TWILIO_AUTH_TOKEN=${{ env.TWILIO_AUTH_TOKEN }}
-          TWILIO_FROM_NUMBER=+918879998899
-          TWILIO_ORDER_PLACED_CONTENT_SID=HXb23bcb8f1d5f7c8b9e0a1c2d3e4f5a
-          TWILIO_OTP_CONTENT_SID=HXb23bcb8f1d5f7c8b9e0a1c2d3e4f5a
           EOF
 
             sudo chmod 640 /opt/broandbro/config/application.env

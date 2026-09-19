@@ -2,14 +2,18 @@ import { queryOptions } from "@tanstack/react-query";
 import {
   fetchOverviewKpis,
   fetchDailySales,
+  fetchDailySalesRange,
+  fetchSalesSummary,
   fetchWeeklySales,
   fetchMonthlySales,
   fetchHourlyOrders,
+  fetchOrderHeatmap,
   fetchPeakHours,
   fetchTrendingItems,
   fetchTopSellingItems,
   fetchLeastSellingItems,
   fetchMenuRevenue,
+  fetchStallPerformance,
   fetchUserPreferences,
   fetchRepeatCustomers,
   fetchRepeatRate,
@@ -36,6 +40,20 @@ export const dailySalesOptions = (params) =>
     staleTime: 1000 * 60 * 2,
   });
 
+export const dailySalesRangeOptions = (params) =>
+  queryOptions({
+    queryKey: ["analytics", "sales", "daily-range", params],
+    queryFn: () => fetchDailySalesRange(params),
+    staleTime: 1000 * 60 * 2,
+  });
+
+export const salesSummaryOptions = (params) =>
+  queryOptions({
+    queryKey: ["analytics", "sales", "summary", params],
+    queryFn: () => fetchSalesSummary(params),
+    staleTime: 1000 * 60 * 2,
+  });
+
 export const weeklySalesOptions = (params) =>
   queryOptions({
     queryKey: ["analytics", "sales", "weekly", params],
@@ -54,6 +72,13 @@ export const hourlyOrdersOptions = (params) =>
   queryOptions({
     queryKey: ["analytics", "orders", "hourly", params],
     queryFn: () => fetchHourlyOrders(params),
+    staleTime: 1000 * 60 * 2,
+  });
+
+export const orderHeatmapOptions = (params) =>
+  queryOptions({
+    queryKey: ["analytics", "orders", "heatmap", params],
+    queryFn: () => fetchOrderHeatmap(params),
     staleTime: 1000 * 60 * 2,
   });
 
@@ -88,6 +113,13 @@ export const menuRevenueOptions = (params) =>
   queryOptions({
     queryKey: ["analytics", "menu", "revenue", params],
     queryFn: () => fetchMenuRevenue(params),
+    staleTime: 1000 * 60 * 2,
+  });
+
+export const stallPerformanceOptions = (params) =>
+  queryOptions({
+    queryKey: ["analytics", "stalls", "performance", params],
+    queryFn: () => fetchStallPerformance(params),
     staleTime: 1000 * 60 * 2,
   });
 
@@ -170,4 +202,3 @@ export const highestMarginItemsOptions = (params) =>
     queryFn: () => fetchHighestMarginItems(params),
     staleTime: 1000 * 60 * 2,
   });
-

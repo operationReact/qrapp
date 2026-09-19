@@ -32,9 +32,35 @@ resource "random_password" "db" {
   }
 }
 
-# ── Store the password in SSM so the app can read it ─────────────────────────
+# ── Store the complete database connection in the application namespace ───────
+# Both environments intentionally use the same path shape:
+# /broandbro/backend/{environment}/database/{url,username,password}
+resource "aws_ssm_parameter" "db_url" {
+  name        = "/broandbro/backend/${var.environment}/database/url"
+  description = "JDBC URL for broandbro ${var.environment} RDS"
+  type        = "String"
+  value       = "jdbc:postgresql://${aws_db_instance.this.address}:5432/${var.db_name}?sslmode=require"
+
+  tags = {
+    Name        = "broandbro-${var.environment}-db-url"
+    Environment = var.environment
+  }
+}
+
+resource "aws_ssm_parameter" "db_username" {
+  name        = "/broandbro/backend/${var.environment}/database/username"
+  description = "RDS username for broandbro ${var.environment}"
+  type        = "String"
+  value       = var.db_username
+
+  tags = {
+    Name        = "broandbro-${var.environment}-db-username"
+    Environment = var.environment
+  }
+}
+
 resource "aws_ssm_parameter" "db_password" {
-  name        = "/broandbro/${var.environment}/db-password"
+  name        = "/broandbro/backend/${var.environment}/database/password"
   description = "RDS master password for broandbro ${var.environment}"
   type        = "SecureString"
   value       = random_password.db.result
@@ -46,20 +72,6 @@ resource "aws_ssm_parameter" "db_password" {
 
   lifecycle {
     ignore_changes = [value]
-  }
-}
-
-# ── Store RDS endpoint in SSM so the deploy workflow can read it ──────────────
-resource "aws_ssm_parameter" "db_endpoint" {
-  name        = "/broandbro/${var.environment}/db-endpoint"
-  description = "RDS endpoint (host only) for broandbro ${var.environment}"
-  type        = "String"
-  # aws_db_instance.endpoint returns "host:port" – strip the port
-  value       = split(":", aws_db_instance.this.endpoint)[0]
-
-  tags = {
-    Name        = "broandbro-${var.environment}-db-endpoint"
-    Environment = var.environment
   }
 }
 
@@ -195,4 +207,3 @@ resource "aws_cloudwatch_metric_alarm" "rds_free_storage_low" {
     Environment = var.environment
   }
 }
-

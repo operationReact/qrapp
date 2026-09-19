@@ -96,7 +96,7 @@ app:
 # Uses local defaults:
 # Database: localhost:5432/broandbro_dev
 # User: broandbro
-# Password: BroApp#2025
+# Password: set through `SPRING_DATASOURCE_PASSWORD`
 # No AWS, Razorpay, OpenAI, or Twilio credentials needed
 ```
 
@@ -118,7 +118,7 @@ psql -U postgres
 CREATE DATABASE broandbro_dev;
 
 # Create user
-CREATE USER broandbro WITH PASSWORD 'BroApp#2025';
+CREATE USER broandbro WITH PASSWORD '<local-db-password>';
 
 # Grant privileges
 GRANT ALL PRIVILEGES ON DATABASE broandbro_dev TO broandbro;
@@ -272,4 +272,3 @@ java -Dspring.profiles.active=prod -jar app.jar
 **Ready to develop:** ✅ Yes
 
 **Next:** Set profile to `local` and run application! 🚀
-

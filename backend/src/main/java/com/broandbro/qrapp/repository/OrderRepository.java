@@ -25,6 +25,45 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
     /** Same as above but strictly excludes pre-orders (for kitchen queue). */
     List<Order> findAllByStatusInAndPreOrderFalseOrderByCreatedAtAscIdAsc(Collection<OrderStatus> statuses, Pageable pageable);
 
+    long countByPreOrderFalse();
+    long countByStatusAndPreOrderFalse(OrderStatus status);
+    long countByStatusInAndPreOrderFalse(Collection<OrderStatus> statuses);
+    long countByPaymentStatusIgnoreCaseAndPreOrderFalse(String paymentStatus);
+    long countByCompletedAtGreaterThanEqualAndCompletedAtLessThanAndPreOrderFalse(
+            LocalDateTime from,
+            LocalDateTime to);
+
+    @Query(value = """
+            SELECT AVG(EXTRACT(EPOCH FROM (completed_at - created_at)) / 60.0)
+            FROM orders
+            WHERE pre_order = FALSE
+              AND created_at IS NOT NULL
+              AND completed_at IS NOT NULL
+              AND completed_at >= :from
+              AND completed_at < :to
+            """, nativeQuery = true)
+    Double averageFulfillmentMinutes(
+            @Param("from") LocalDateTime from,
+            @Param("to") LocalDateTime to);
+
+    @Query(value = """
+            SELECT COUNT(*)
+            FROM orders
+            WHERE pre_order = FALSE
+              AND (
+                    (status = 'ORDER_PLACED'
+                     AND COALESCE(last_status_changed_at, created_at)
+                         <= CURRENT_TIMESTAMP - INTERVAL '5 minutes')
+                 OR (status = 'PREPARING'
+                     AND COALESCE(last_status_changed_at, created_at)
+                         <= CURRENT_TIMESTAMP - INTERVAL '15 minutes')
+                 OR (status = 'READY'
+                     AND COALESCE(last_status_changed_at, created_at)
+                         <= CURRENT_TIMESTAMP - INTERVAL '10 minutes')
+              )
+            """, nativeQuery = true)
+    long countDelayedLiveOrders();
+
     long countByUserId(Long userId);
 
     @Query("SELECT MAX(o.createdAt) FROM Order o WHERE o.userId = :userId")
@@ -41,4 +80,3 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
     /** Count pre-orders by status */
     long countByPreOrderTrueAndStatus(com.broandbro.qrapp.enums.OrderStatus status);
 }
-

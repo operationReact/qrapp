@@ -2,6 +2,7 @@ package com.broandbro.qrapp.analytics.scheduler;
 
 import com.broandbro.qrapp.analytics.config.AnalyticsCacheConfig;
 import com.broandbro.qrapp.analytics.repository.DailySalesAnalyticsRepository;
+import com.broandbro.qrapp.time.BusinessTime;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.cache.Cache;
@@ -42,7 +43,7 @@ public class DailySalesAggregationScheduler {
     @Scheduled(cron = "${analytics.cron.daily-sales:0 * * * * *}",
                zone = "Asia/Kolkata")
     public void computeYesterdaySnapshot() {
-        LocalDate yesterday = LocalDate.now().minusDays(1);
+        LocalDate yesterday = BusinessTime.today().minusDays(1);
         log.info("[DailySalesScheduler] Starting daily snapshot for {}", yesterday);
         executeUpsert(yesterday);
     }
@@ -54,7 +55,7 @@ public class DailySalesAggregationScheduler {
     @Scheduled(cron = "${analytics.cron.daily-sales-intraday:0 0 12 * * *}",
                zone = "Asia/Kolkata")
     public void computeTodayPartialSnapshot() {
-        LocalDate today = LocalDate.now();
+        LocalDate today = BusinessTime.today();
         log.info("[DailySalesScheduler] Refreshing intraday snapshot for {}", today);
         executeUpsert(today);
     }
@@ -118,4 +119,3 @@ public class DailySalesAggregationScheduler {
         log.debug("[DailySalesScheduler] Evicted cache '{}'", cacheName);
     }
 }
-

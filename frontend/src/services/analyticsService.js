@@ -4,6 +4,12 @@ import { apiClient } from "./index";
 export const fetchDailySales = (params) =>
   apiClient.get("/api/v1/analytics/sales/daily/previous", { params }).then((r) => r.data?.data);
 
+export const fetchDailySalesRange = (params) =>
+  apiClient.get("/api/v1/analytics/sales/daily", { params }).then((r) => r.data?.data ?? []);
+
+export const fetchSalesSummary = (params) =>
+  apiClient.get("/api/v1/analytics/sales/summary", { params }).then((r) => r.data?.data);
+
 export const fetchWeeklySales = (params) =>
   apiClient.get("/api/v1/analytics/sales/weekly", { params }).then((r) => r.data?.data);
 
@@ -26,6 +32,9 @@ export const fetchHourlyOrders = (params) =>
     }));
   });
 
+export const fetchOrderHeatmap = (params) =>
+  apiClient.get("/api/v1/analytics/orders/heatmap", { params }).then((r) => r.data?.data ?? []);
+
 export const fetchPeakHours = (params) =>
   apiClient.get("/api/v1/analytics/orders/peak-hours", { params }).then((r) => r.data?.data);
 
@@ -38,6 +47,9 @@ export const fetchLeastSellingItems = (params) =>
 
 export const fetchMenuRevenue = (params) =>
   apiClient.get("/api/v1/analytics/menu/revenue", { params }).then((r) => r.data?.data);
+
+export const fetchStallPerformance = (params) =>
+  apiClient.get("/api/v1/analytics/stalls/performance", { params }).then((r) => r.data?.data ?? []);
 
 // ── Users ──────────────────────────────────────────────────────────────────
 export const fetchUserPreferences = (params) =>
@@ -93,4 +105,3 @@ export const updateItemSellingPrice = (menuItemId, sellingPrice) =>
     effectiveFrom: null,
     reason: "Updated via Profitability Dashboard",
   }).then((r) => r.data);
-

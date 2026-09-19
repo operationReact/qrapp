@@ -42,8 +42,8 @@ app:
   parameters:
     database:
       url: jdbc:postgresql://...
-      username: BROANDBRODEV
-      password: BroApp#2025
+      username: broandbro
+      password: ${SPRING_DATASOURCE_PASSWORD}
     razorpay:
       key: rzp_test_...
       secret: ...
@@ -320,4 +320,3 @@ SSM_PARAMETERS_FILE_STRUCTURE.md
 - Need new env? → Create `application-ssm-{env}.yml`
 - Change value? → Edit file + rebuild + deploy
 - Done! ✅
-

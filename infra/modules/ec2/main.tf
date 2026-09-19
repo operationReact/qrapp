@@ -116,7 +116,10 @@ resource "aws_iam_role_policy" "ssm_read" {
     Statement = [{
       Effect   = "Allow"
       Action   = ["ssm:GetParameter", "ssm:GetParameters"]
-      Resource = "arn:aws:ssm:*:*:parameter/broandbro/${var.environment}/*"
+      Resource = [
+        "arn:aws:ssm:*:*:parameter/broandbro/${var.environment}/*",
+        "arn:aws:ssm:*:*:parameter/broandbro/backend/${var.environment}/*"
+      ]
     }]
   })
 }

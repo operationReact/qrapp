@@ -14,6 +14,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -35,6 +36,7 @@ import java.util.List;
 @RequestMapping("/api/v1/analytics/users")
 @RequiredArgsConstructor
 @Validated
+@PreAuthorize("hasAnyRole('ADMIN', 'SUPERUSER')")
 @Tag(name = "Analytics — Users", description = "Customer segmentation and preference analytics")
 public class AnalyticsUserController {
 
@@ -127,4 +129,3 @@ public class AnalyticsUserController {
         return ResponseEntity.ok(ApiResponse.ok(userService.getRepeatCustomerRate()));
     }
 }
-

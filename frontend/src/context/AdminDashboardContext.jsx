@@ -17,8 +17,9 @@ const AdminDashboardContext = createContext(null);
 export const AdminDashboardProvider = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { setUser: setAdmin } = useAuth();
+  const { setUser: setAdmin, isAdmin, isSuperUser } = useAuth();
   const queryClient = useQueryClient();
+  const canViewAdmin = isAdmin || isSuperUser;
 
 
   const [page, setPage] = useState(0);
@@ -44,16 +45,28 @@ export const AdminDashboardProvider = ({ children }) => {
     isLoading: loading,
     isRefetching: refreshing,
     error: queryError,
-  } = useQuery(adminOrdersOptions(ordersParams));
+  } = useQuery({
+    ...adminOrdersOptions(ordersParams),
+    enabled: canViewAdmin,
+  });
 
-  const { data: dashboard } = useQuery(adminOrderDashboardOptions());
+  const {
+    data: dashboard,
+    isLoading: dashboardLoading,
+    isRefetching: dashboardRefreshing,
+    error: dashboardError,
+    refetch: refetchDashboard,
+  } = useQuery({
+    ...adminOrderDashboardOptions(),
+    enabled: canViewAdmin,
+  });
 
   useEffect(() => {
     if (queryError && (queryError?.response?.status === 401 || queryError?.response?.status === 403)) {
       setAdmin(null);
       navigate({ to: "/login", replace: true, state: { from: location.pathname } });
     }
-  }, [queryError, navigate, setAdmin]);
+  }, [queryError, navigate, setAdmin, location.pathname]);
 
   const error = useMemo(() => {
     if (!queryError) return null;
@@ -76,6 +89,7 @@ export const AdminDashboardProvider = ({ children }) => {
 
   const loadData = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ['orders', 'admin'] });
+    queryClient.invalidateQueries({ queryKey: ['orders', 'admin', 'dashboard'] });
   }, [queryClient]);
 
   const handleOrderUpdate = useCallback(async (orderId, payload) => {
@@ -86,17 +100,27 @@ export const AdminDashboardProvider = ({ children }) => {
     }
   }, [orderUpdateMutation]);
 
-  const ordersPageOrDefault = ordersPage || { content: [], totalPages: 0, totalElements: 0, number: 0 };
-  const dashboardOrDefault = dashboard || {
-    totalOrders: 0, liveOrders: 0, placedOrders: 0, preparingOrders: 0,
-    readyOrders: 0, completedToday: 0, delayedOrders: 0, paidOrders: 0,
-    averageFulfillmentMinutes: 0, liveOrdersQueue: [],
-  };
+  const ordersPageOrDefault = useMemo(
+    () => ordersPage || { content: [], totalPages: 0, totalElements: 0, number: 0 },
+    [ordersPage],
+  );
+  const dashboardOrDefault = useMemo(
+    () => dashboard || {
+      totalOrders: 0, liveOrders: 0, placedOrders: 0, preparingOrders: 0,
+      readyOrders: 0, completedToday: 0, delayedOrders: 0, paidOrders: 0,
+      averageFulfillmentMinutes: 0, liveOrdersQueue: [],
+    },
+    [dashboard],
+  );
 
   const value = useMemo(
     () => ({
       ordersPage: ordersPageOrDefault,
       dashboard: dashboardOrDefault,
+      dashboardLoading,
+      dashboardRefreshing,
+      dashboardError,
+      refetchDashboard,
       page, setPage, size, setSize,
       filters, setFilters,
       loading: loading && !ordersPage,
@@ -106,7 +130,8 @@ export const AdminDashboardProvider = ({ children }) => {
     }),
     [
       ordersPageOrDefault, dashboardOrDefault,
-      page, size, filters, loading, refreshing, error,
+      page, size, filters, loading, ordersPage, refreshing, error,
+      dashboardLoading, dashboardRefreshing, dashboardError, refetchDashboard,
       orderUpdateMutation.isPending,
       loadData, handleOrderUpdate,
     ],
@@ -128,6 +153,8 @@ export const useAdminDashboard = (selectedOrderId) => {
   }
 
   const { ordersPage } = context;
+  const { isAdmin, isSuperUser } = useAuth();
+  const canViewAdmin = isAdmin || isSuperUser;
 
   const orderFromPage = useMemo(() => {
     if (!selectedOrderId || !ordersPage?.content) return null;
@@ -136,7 +163,7 @@ export const useAdminDashboard = (selectedOrderId) => {
 
   const { data: fetchedOrder } = useQuery({
     ...adminOrderOptions(selectedOrderId),
-    enabled: !!selectedOrderId && !orderFromPage,
+    enabled: canViewAdmin && !!selectedOrderId && !orderFromPage,
   });
 
   const selectedOrder = orderFromPage || fetchedOrder || null;
