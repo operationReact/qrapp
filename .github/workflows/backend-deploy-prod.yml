@@ -168,6 +168,19 @@ jobs:
 
           if [ -z "$IP" ] || [ "$IP" = "None" ]; then
             echo "::warning::SSM parameter /broandbro/prod/ec2-public-ip not found; resolving host from EC2 tag"
+            MATCH_COUNT=$(aws ec2 describe-instances \
+              --filters \
+                "Name=tag:Name,Values=broandbro-prod-backend" \
+                "Name=instance-state-name,Values=running" \
+              --query "length(Reservations[].Instances[])" \
+              --output text \
+              --region us-east-1)
+
+            if [ "$MATCH_COUNT" -gt 1 ]; then
+              echo "❌ Found multiple running EC2 instances with Name=broandbro-prod-backend; refusing ambiguous deploy target"
+              exit 1
+            fi
+
             IP=$(aws ec2 describe-instances \
               --filters \
                 "Name=tag:Name,Values=broandbro-prod-backend" \
