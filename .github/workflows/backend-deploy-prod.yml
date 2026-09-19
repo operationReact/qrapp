@@ -163,7 +163,24 @@ jobs:
           IP=$(aws ssm get-parameter \
             --name "/broandbro/prod/ec2-public-ip" \
             --query "Parameter.Value" \
-            --output text)
+            --output text \
+            --region us-east-1 2>/dev/null || true)
+
+          if [ -z "$IP" ] || [ "$IP" = "None" ]; then
+            echo "::warning::SSM parameter /broandbro/prod/ec2-public-ip not found; resolving host from EC2 tag"
+            IP=$(aws ec2 describe-instances \
+              --filters \
+                "Name=tag:Name,Values=broandbro-prod-backend" \
+                "Name=instance-state-name,Values=running" \
+              --query "Reservations[0].Instances[0].PublicIpAddress" \
+              --output text \
+              --region us-east-1)
+          fi
+
+          if [ -z "$IP" ] || [ "$IP" = "None" ]; then
+            echo "❌ Unable to resolve prod EC2 public IP from SSM or EC2 tags"
+            exit 1
+          fi
           echo "host=$IP" >> "$GITHUB_OUTPUT"
 
       # Step 7: Fetch SSH private key from SSM (SecureString)
