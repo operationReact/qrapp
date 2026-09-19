@@ -196,7 +196,7 @@ jobs:
 
       - name: Import existing DB SSM parameters (if orphaned)
         run: |
-          for suffix in url username pass_word; do
+          for suffix in url username password; do
             case "$suffix" in
               url)
                 parameter_name="/broandbro/backend/dev/database/url"
@@ -206,7 +206,7 @@ jobs:
                 parameter_name="/broandbro/backend/dev/database/username"
                 terraform_address="module.rds.aws_ssm_parameter.db_username"
                 ;;
-              pass_word)
+              password)
                 parameter_name="/broandbro/backend/dev/database/password"
                 terraform_address="module.rds.aws_ssm_parameter.db_password"
                 ;;
