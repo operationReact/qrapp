@@ -180,6 +180,10 @@ jobs:
               echo "❌ Found multiple running EC2 instances with Name=broandbro-prod-backend; refusing ambiguous deploy target"
               exit 1
             fi
+            if [ "$MATCH_COUNT" -eq 0 ]; then
+              echo "❌ No running EC2 instance found with Name=broandbro-prod-backend"
+              exit 1
+            fi
 
             IP=$(aws ec2 describe-instances \
               --filters \
