@@ -174,7 +174,12 @@ jobs:
                 "Name=instance-state-name,Values=running" \
               --query "length(Reservations[].Instances[])" \
               --output text \
-              --region us-east-1)
+              --region us-east-1 2>/dev/null || echo "__ERROR__")
+
+            if ! [[ "$MATCH_COUNT" =~ ^[0-9]+$ ]]; then
+              echo "❌ Failed to resolve EC2 instance count for Name=broandbro-prod-backend"
+              exit 1
+            fi
 
             if [ "$MATCH_COUNT" -gt 1 ]; then
               echo "❌ Found multiple running EC2 instances with Name=broandbro-prod-backend; refusing ambiguous deploy target"
