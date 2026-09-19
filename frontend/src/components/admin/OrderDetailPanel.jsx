@@ -73,7 +73,7 @@ function ItemThumb({ src, alt, isVeg }) {
  *
  * Shared detail content used by:
  *   • Desktop right pane  ($orderId.jsx)
- *   • Mobile bottom drawer (MobileOrderDrawer via operational-queue.jsx)
+ *   • Mobile bottom drawer (MobileOrderDrawer)
  *
  * Props:
  *   order         — AdminOrderResponse
@@ -346,4 +346,3 @@ export default function OrderDetailPanel({ order, actionLoading, onUpdate }) {
     </div>
   );
 }
-
