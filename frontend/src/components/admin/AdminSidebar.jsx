@@ -128,7 +128,7 @@ export function AdminSidebar() {
             )}
           </SidebarGroupLabel>
           <SidebarMenu>
-            <NavItem to="/admin/operational-queue" label="Kitchen Queue" icon={QueueIcon} pathname={pathname} />
+            <NavItem to="/admin/kitchen-queue" label="Kitchen Queue" icon={QueueIcon} pathname={pathname} />
             <NavItem to="/admin/party-orders" label="Party Orders" icon={UsersThreeIcon} pathname={pathname} />
             <NavItem to="/admin/pre-orders" label="Pre-Orders" icon={CalendarCheckIcon} pathname={pathname} />
           </SidebarMenu>

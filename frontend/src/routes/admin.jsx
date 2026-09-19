@@ -67,7 +67,7 @@ function AdminLayout() {
         <AdminSidebar />
         <SidebarInset className="min-w-0 bg-[#f7f6f3]">
           {!isDashboard && <SubPageHeader />}
-          <div className="flex-1 flex flex-col">
+          <div className="min-h-0 flex-1 flex flex-col">
             <Outlet />
           </div>
         </SidebarInset>

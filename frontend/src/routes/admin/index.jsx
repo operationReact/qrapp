@@ -1,8 +1,9 @@
 import { createFileRoute, Link, Navigate, useLocation } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Bell, CalendarDays, Menu, Radio } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { useSidebar } from "@/components/ui/sidebar";
 import { useAuth } from "@/context/AuthContext";
 import { useAdminDashboard } from "@/context/AdminDashboardContext";
@@ -92,9 +93,34 @@ function greeting() {
   return hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
 }
 
-function DashboardHeader({ rangeKey, onRangeChange, ownerName, alertCount }) {
+function DashboardHeader({ rangeKey, onRangeChange, ownerName, notifications }) {
   const { toggleSidebar } = useSidebar();
   const range = getRange(rangeKey);
+  const panelRef = useRef(null);
+  const [open, setOpen] = useState(false);
+  const [readIds, setReadIds] = useState(() => {
+    try {
+      const stored = JSON.parse(window.localStorage.getItem("admin-notification-read") || "[]");
+      return Array.isArray(stored) ? stored : [];
+    } catch {
+      return [];
+    }
+  });
+  const unreadCount = notifications.filter((notification) => !readIds.includes(notification.id)).length;
+
+  useEffect(() => {
+    const handlePointerDown = (event) => {
+      if (open && panelRef.current && !panelRef.current.contains(event.target)) setOpen(false);
+    };
+    document.addEventListener("pointerdown", handlePointerDown);
+    return () => document.removeEventListener("pointerdown", handlePointerDown);
+  }, [open]);
+
+  const markRead = (ids) => {
+    setReadIds(ids);
+    window.localStorage.setItem("admin-notification-read", JSON.stringify(ids));
+  };
+
   return (
     <header className="border-b border-zinc-200/80 bg-white">
       <div className="mx-auto flex min-h-[72px] w-full max-w-[1600px] items-center gap-3 px-4 py-3 sm:px-6 lg:px-8">
@@ -103,7 +129,7 @@ function DashboardHeader({ rangeKey, onRangeChange, ownerName, alertCount }) {
         </Button>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <h1 className="truncate text-xl font-bold tracking-tight text-zinc-950 sm:text-2xl">
+            <h1 className="break-words text-xl font-bold leading-tight tracking-tight text-zinc-950 sm:text-2xl">
               {greeting()}{ownerName ? `, ${ownerName}` : ""}
             </h1>
             <span className="hidden items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-1 text-[10px] font-bold text-emerald-700 sm:inline-flex">
@@ -126,14 +152,76 @@ function DashboardHeader({ rangeKey, onRangeChange, ownerName, alertCount }) {
           >
             {RANGE_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
           </select>
-          <Link
-            to="/admin/ops-center"
-            aria-label={alertCount > 0 ? `${alertCount} unresolved operations alerts` : "Notifications"}
-            className="relative grid size-9 place-items-center rounded-lg border border-zinc-200 text-zinc-600 transition-colors hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
-          >
-            <Bell size={17} aria-hidden="true" />
-            {alertCount > 0 && <span className="absolute -right-1 -top-1 grid min-w-4 place-items-center rounded-full bg-red-600 px-1 text-[9px] font-bold leading-4 text-white">{alertCount > 9 ? "9+" : alertCount}</span>}
-          </Link>
+          <div ref={panelRef} className="relative">
+            <button
+              type="button"
+              aria-label={unreadCount > 0 ? `${unreadCount} unread notifications` : "Notifications"}
+              aria-expanded={open}
+              onClick={() => setOpen((value) => !value)}
+              className="relative grid size-9 place-items-center rounded-lg border border-zinc-200 text-zinc-600 transition-colors hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+            >
+              <Bell size={17} aria-hidden="true" />
+              {unreadCount > 0 && <span className="absolute -right-1 -top-1 grid min-w-4 place-items-center rounded-full bg-red-600 px-1 text-[9px] font-bold leading-4 text-white">{unreadCount > 9 ? "9+" : unreadCount}</span>}
+            </button>
+            {open && (
+              <div className="absolute right-0 top-11 z-50 w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-xl">
+                <div className="flex items-center justify-between border-b border-zinc-100 px-4 py-3">
+                  <div>
+                    <p className="text-sm font-bold text-zinc-950">Notifications</p>
+                    <p className="mt-0.5 text-[11px] text-zinc-400">Live operational signals</p>
+                  </div>
+                  {notifications.length > 0 && (
+                    <button
+                      type="button"
+                      className="rounded-md px-2 py-1 text-[11px] font-semibold text-primary hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+                      onClick={() => markRead(notifications.map((notification) => notification.id))}
+                    >
+                      Mark all read
+                    </button>
+                  )}
+                </div>
+                {notifications.length === 0 ? (
+                  <div className="px-4 py-8 text-center">
+                    <Bell className="mx-auto mb-2 size-5 text-zinc-300" aria-hidden="true" />
+                    <p className="text-sm font-semibold text-zinc-700">You’re all caught up</p>
+                    <p className="mt-1 text-xs text-zinc-400">No live admin alerts need attention.</p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-zinc-100">
+                    {notifications.map((notification) => {
+                      const unread = !readIds.includes(notification.id);
+                      return (
+                        <Link
+                          key={notification.id}
+                          to={notification.to}
+                          onClick={() => {
+                            markRead([...new Set([...readIds, notification.id])]);
+                            setOpen(false);
+                          }}
+                          className={cn(
+                            "block px-4 py-3 transition-colors hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/30",
+                            unread && "bg-primary/[0.03]",
+                          )}
+                        >
+                          <div className="flex items-start gap-2.5">
+                            <span className={cn("mt-1.5 size-2 shrink-0 rounded-full", unread ? notification.tone : "bg-zinc-300")} />
+                            <span className="min-w-0">
+                              <span className="flex items-center gap-2 text-xs font-bold text-zinc-800">
+                                {notification.title}
+                                <span className={cn("text-[9px] font-bold uppercase tracking-wide", unread ? "text-primary" : "text-zinc-400")}>{unread ? "New" : "Viewed"}</span>
+                              </span>
+                              <span className="mt-0.5 block text-[11px] leading-relaxed text-zinc-500">{notification.detail}</span>
+                              <span className="mt-1 block text-[10px] font-semibold uppercase tracking-wide text-zinc-400">{notification.time}</span>
+                            </span>
+                          </div>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </header>
@@ -188,8 +276,6 @@ function AdminDashboardPage() {
   const repeatQuery = useQuery({ ...repeatRateOptions, enabled: canViewAdmin });
   const inventoryQuery = useQuery({ ...inventoryAlertsOptions(6), enabled: canViewAdmin });
 
-  if (!canViewAdmin) return <Navigate to="/login" replace state={{ from: location.pathname }} />;
-
   const ownerName = user?.info?.name?.split(" ")[0] ?? "";
   const live = dashboard ?? {};
   const summary = summaryQuery.data ?? {};
@@ -198,13 +284,48 @@ function AdminDashboardPage() {
     pendingOrders: (live.placedOrders ?? 0) + (live.preparingOrders ?? 0),
     delayedOrders: live.delayedOrders ?? 0,
   };
-  const alertCount = (live.delayedOrders ?? 0) + (live.placedOrders ?? 0);
   const selectedLabel = rangeKey === "today" ? "Today" : RANGE_OPTIONS.find((item) => item.value === rangeKey)?.label;
+  const notifications = useMemo(() => [
+    live.delayedOrders > 0 && {
+      id: `delayed-orders-${live.delayedOrders}`,
+      title: `${live.delayedOrders} delayed order${live.delayedOrders === 1 ? "" : "s"}`,
+      detail: "Review the kitchen queue before wait times grow.",
+      time: "Live now",
+      tone: "bg-red-500",
+      to: "/admin/kitchen-queue",
+    },
+    live.placedOrders > 0 && {
+      id: `new-orders-${live.placedOrders}`,
+      title: `${live.placedOrders} new order${live.placedOrders === 1 ? "" : "s"} waiting`,
+      detail: "Acknowledge incoming orders in the kitchen queue.",
+      time: "Live now",
+      tone: "bg-amber-500",
+      to: "/admin/kitchen-queue",
+    },
+    (inventoryQuery.data?.totalElements ?? inventoryQuery.data?.content?.length ?? 0) > 0 && {
+      id: `inventory-alerts-${inventoryQuery.data?.totalElements ?? inventoryQuery.data?.content?.length}`,
+      title: "Inventory needs attention",
+      detail: `${inventoryQuery.data?.totalElements ?? inventoryQuery.data?.content?.length} item${(inventoryQuery.data?.totalElements ?? inventoryQuery.data?.content?.length) === 1 ? "" : "s"} running low.`,
+      time: "Current stock",
+      tone: "bg-orange-500",
+      to: "/admin/menu",
+    },
+    summary.cancelledOrders > 0 && {
+      id: `cancelled-orders-${rangeKey}-${summary.cancelledOrders}`,
+      title: `${summary.cancelledOrders} cancelled order${summary.cancelledOrders === 1 ? "" : "s"}`,
+      detail: "Review cancellation activity for the selected period.",
+      time: selectedLabel,
+      tone: "bg-zinc-400",
+      to: "/admin/analytics/orders",
+    },
+  ].filter(Boolean), [inventoryQuery.data, live.delayedOrders, live.placedOrders, rangeKey, selectedLabel, summary.cancelledOrders]);
   const activityRangeLabel = rangeKey === "today" ? "Today" : selectedLabel;
+
+  if (!canViewAdmin) return <Navigate to="/login" replace state={{ from: location.pathname }} />;
 
   return (
     <div className="min-h-screen bg-[#f7f6f3]">
-      <DashboardHeader rangeKey={rangeKey} onRangeChange={setRangeKey} ownerName={ownerName} alertCount={alertCount} />
+      <DashboardHeader rangeKey={rangeKey} onRangeChange={setRangeKey} ownerName={ownerName} notifications={notifications} />
       <main className="mx-auto flex w-full max-w-[1600px] flex-col gap-4 px-4 py-4 sm:px-6 lg:gap-5 lg:px-8 lg:py-5">
         <div className="order-1"><KpiStrip summary={summaryWithLive} comparison={comparisonQuery.data} loading={summaryQuery.isLoading || dashboardLoading} /></div>
 
@@ -252,7 +373,7 @@ function AdminDashboardPage() {
 
         <div className="order-6"><QuickActions /></div>
         <p className="order-7 pb-2 text-[11px] text-zinc-400">
-          Revenue uses completed orders and their recorded grand totals. Profit is intentionally not shown: the current cost and expense data is not sufficient for a reliable business profit figure.
+          Estimated profit uses recorded menu-item costs against completed-order revenue. It is an operational estimate, not finalized accounting profit.
         </p>
       </main>
     </div>

@@ -25,7 +25,7 @@ export default function FlaggedOrders({ flaggedOrders = [] }) {
       <div className="grid p-4 grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
         {flaggedOrders.map((order) => (
           <Link
-            to={`/admin/operational-queue/${order.id}`}
+            to="/admin/kitchen-queue"
             key={order.id}
             className="bg-white lg:pb-9 pb-4 isolate z-10 relative group no-underline! block hover:border-amber-200 transition-all rounded-lg p-3 border-2 border-amber-100"
           >

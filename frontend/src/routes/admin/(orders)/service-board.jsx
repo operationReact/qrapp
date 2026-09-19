@@ -4,7 +4,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useAdminDashboard } from "@/context/AdminDashboardContext";
 import { useEffect, useMemo } from "react";
-import { motion } from "motion/react";
 import {
   CaretRightIcon,
   CheckCircleIcon,
@@ -79,12 +78,6 @@ function formatCurrency(value) {
   return `₹${Number(value || 0).toFixed(2)}`;
 }
 
-function formatDateTime(value) {
-  if (!value) return "—";
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? "—" : date.toLocaleString();
-}
-
 function toneForStatus(status) {
   return STATUS_META[status] || STATUS_META.ORDER_PLACED;
 }
@@ -113,7 +106,7 @@ function ServiceBoardPage() {
 
   useEffect(() => {
     loadData({ quiet: true });
-  }, []);
+  }, [loadData]);
 
   const groupedLiveOrders = useMemo(() => {
     return LIVE_STAGES.reduce((acc, stage) => {
@@ -189,7 +182,7 @@ function ServiceBoardPage() {
                             <div className="flex gap-2 flex-wrap items-center justify-between">
                               <div className="flex gap-2 items-center">
                                 <Link
-                                  to={`/admin/operational-queue/${order.id}`}
+                                  to="/admin/kitchen-queue"
                                   className="text-base font-medium hover:text-primary transition-colors"
                                 >
                                   Order #{order.id}
