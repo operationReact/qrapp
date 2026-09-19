@@ -194,6 +194,26 @@ jobs:
             echo "RDS will be created"
           fi
 
+      - name: Import existing DB SSM parameters (if orphaned)
+        run: |
+          for suffix in url username pass_word; do
+            suffix_resolved="${suffix//_/}"
+            parameter_name="/broandbro/backend/dev/database/$suffix_resolved"
+            terraform_address="module.rds.aws_ssm_parameter.db_$suffix_resolved"
+
+            if aws ssm get-parameter --name "$parameter_name" --region us-east-1 >/dev/null 2>&1; then
+              echo "SSM parameter $parameter_name exists - checking state..."
+              if ! terraform state show "$terraform_address" >/dev/null 2>&1; then
+                echo "Importing $parameter_name into $terraform_address..."
+                terraform import "$terraform_address" "$parameter_name"
+              else
+                echo "Parameter already in state"
+              fi
+            else
+              echo "Parameter $parameter_name not found - will be created by apply"
+            fi
+          done
+
       - name: Terraform Plan
         run: terraform plan -out=tfplan
 
@@ -208,4 +228,3 @@ jobs:
           echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
           echo "| Frontend | https://dev.broandbro.in |" >> $GITHUB_STEP_SUMMARY
           echo "| API | https://dev-api.broandbro.in |" >> $GITHUB_STEP_SUMMARY
-
