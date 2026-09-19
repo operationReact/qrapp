@@ -86,7 +86,7 @@ app.parameter-store.* properties populated from application-ssm-dev.yml
     ↓
 spring.datasource.url = ${app.parameter-store.database.url}
     ↓
-= jdbc:postgresql://broandbro-dev.chi2yu0m6hp0.us-east-1.rds.amazonaws.com:5432/broandbro_dev
+= jdbc:postgresql://broandbro-dev.csjkasgs2ig6.us-east-1.rds.amazonaws.com:5432/broandbro_dev?sslmode=require
     ↓
 ✅ Correct database connection! (from SSM)
     ↓
@@ -208,4 +208,3 @@ When `application-ssm-dev.yml` is loaded, `app.parameter-store.database.url` get
 **Compilation:** ✅ SUCCESS  
 
 **Deploy and verify database connection!** 🚀
-

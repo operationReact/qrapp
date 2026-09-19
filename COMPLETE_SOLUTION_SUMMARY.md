@@ -41,9 +41,9 @@ app:
     auto-create: false  # Disabled - no AWS
   parameters:
     database:
-      url: jdbc:postgresql://localhost:5432/broandbro_dev
+      url: jdbc:postgresql://broandbro-dev.csjkasgs2ig6.us-east-1.rds.amazonaws.com:5432/broandbro_dev?sslmode=require
       username: broandbro
-      password: BroApp#2025
+      password: ${SPRING_DATASOURCE_PASSWORD}
 
 # AWS disabled completely
 # Localhost database
@@ -59,8 +59,8 @@ app:
 ### 3. Updated `application-dev.yml`
 **Changes:**
 - Set `app.parameter-store.auto-create: true` (dev only)
-- Updated database URL: `broandbro-dev.chi2yu0m6hp0...` (from EC2)
-- Updated credentials: `broandbro` / `BroApp#2025`
+- Updated database URL: `broandbro-dev.csjkasgs2ig6.us-east-1.rds.amazonaws.com` (AWS RDS)
+- Updated credentials: `broandbro` / `SPRING_DATASOURCE_PASSWORD`
 
 ### 4. Updated `application-ssm-dev.yml`
 **Changes:**
@@ -101,7 +101,7 @@ java -Dspring.profiles.active=local -jar backend/build/libs/qrapp-*.jar
 # Ensure PostgreSQL is running on localhost:5432
 # Database: broandbro_dev
 # User: broandbro
-# Password: BroApp#2025
+# Password: supplied through `SPRING_DATASOURCE_PASSWORD` or AWS SSM
 ```
 
 **Step 3: Run Application**
@@ -163,9 +163,9 @@ backend/src/main/resources/
 
 ### Database
 ```yaml
-url: jdbc:postgresql://broandbro-dev.chi2yu0m6hp0.us-east-1.rds.amazonaws.com:5432/broandbro_dev
+url: jdbc:postgresql://broandbro-dev.csjkasgs2ig6.us-east-1.rds.amazonaws.com:5432/broandbro_dev?sslmode=require
 username: broandbro
-password: BroApp#2025
+password: ${SPRING_DATASOURCE_PASSWORD}
 ```
 ✅ Updated from EC2
 
@@ -277,4 +277,3 @@ java -Dspring.profiles.active=local -jar backend/build/libs/qrapp-*.jar
 **Ready for Local Dev:** ✅ YES  
 
 **Everything is working! 🎉**
-

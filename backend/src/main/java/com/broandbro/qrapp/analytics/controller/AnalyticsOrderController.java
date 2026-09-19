@@ -4,18 +4,19 @@ import com.broandbro.qrapp.analytics.dto.ApiResponse;
 import com.broandbro.qrapp.analytics.dto.HourlyOrderResponse;
 import com.broandbro.qrapp.analytics.dto.PeakHourResponse;
 import com.broandbro.qrapp.analytics.service.OrderAnalyticsService;
+import com.broandbro.qrapp.time.BusinessTime;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.ZoneOffset;
 import java.util.List;
 
 @Slf4j
@@ -23,6 +24,7 @@ import java.util.List;
 @RequestMapping("/api/v1/analytics/orders")
 @RequiredArgsConstructor
 @Validated
+@PreAuthorize("hasAnyRole('ADMIN', 'SUPERUSER')")
 @Tag(name = "Analytics — Orders", description = "Hourly order distribution and peak-hour analysis")
 public class AnalyticsOrderController {
 
@@ -38,7 +40,7 @@ public class AnalyticsOrderController {
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
             LocalDate date) {
 
-        LocalDate target = date != null ? date : LocalDate.now();
+        LocalDate target = date != null ? date : BusinessTime.today();
         log.debug("[OrderController] GET /hourly date={}", target);
         return ResponseEntity.ok(ApiResponse.ok(orderService.getHourlyBreakdown(target)));
     }
@@ -52,7 +54,7 @@ public class AnalyticsOrderController {
             @RequestParam(required = false) String from,
             @RequestParam(required = false) String to) {
 
-        LocalDate resolvedTo   = parseDate(to,   LocalDate.now());
+        LocalDate resolvedTo   = parseDate(to,   BusinessTime.today());
         LocalDate resolvedFrom = parseDate(from, resolvedTo.minusDays(29));
         validateRange(resolvedFrom, resolvedTo);
 
@@ -70,7 +72,7 @@ public class AnalyticsOrderController {
             @RequestParam(required = false) String from,
             @RequestParam(required = false) String to) {
 
-        LocalDate resolvedTo   = parseDate(to,   LocalDate.now());
+        LocalDate resolvedTo   = parseDate(to,   BusinessTime.today());
         LocalDate resolvedFrom = parseDate(from, resolvedTo.minusDays(29));
         validateRange(resolvedFrom, resolvedTo);
 
@@ -85,14 +87,14 @@ public class AnalyticsOrderController {
      * Accepts either:
      *   - plain date:     "2026-06-01"
      *   - ISO datetime:   "2026-06-01T19:51:56.096Z"
-     * and returns the LocalDate portion (UTC).
+     * and returns the date in the business timezone.
      * Falls back to {@code defaultDate} when the value is null/blank.
      */
     private LocalDate parseDate(String value, LocalDate defaultDate) {
         if (value == null || value.isBlank()) return defaultDate;
         try {
             if (value.contains("T")) {
-                return Instant.parse(value).atZone(ZoneOffset.UTC).toLocalDate();
+                return BusinessTime.dateOf(Instant.parse(value));
             }
             return LocalDate.parse(value);
         } catch (Exception e) {
@@ -108,4 +110,3 @@ public class AnalyticsOrderController {
             throw new IllegalArgumentException("Date range must not exceed 365 days");
     }
 }
-

@@ -82,14 +82,6 @@ class ParameterStoreInitializer {
                     s3.getSecretKey(), "SecureString");
             }
 
-            // Twilio
-            if (definitions.getTwilio() != null) {
-                count += syncParameter("twilio/accountSid",
-                    definitions.getTwilio().getAccountSid(), "String");
-                count += syncParameter("twilio/authToken",
-                    definitions.getTwilio().getAuthToken(), "SecureString");
-            }
-
             // OpenAI
             if (definitions.getOpenai() != null) {
                 count += syncParameter("openai/apiKey",

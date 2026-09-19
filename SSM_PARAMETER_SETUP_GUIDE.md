@@ -204,7 +204,7 @@ sudo journalctl -u qrapp -n 200
 |-----------|-------|------|---------|
 | database/url | jdbc:postgresql://... | String | DB connection |
 | database/username | broandbro | String | DB user |
-| database/password | BroApp#2025 | SecureString | DB password |
+| database/password | supplied securely at deployment time | SecureString | DB password |
 | razorpay/key | rzp_test_... | String | Payment key |
 | razorpay/secret | rzp_test_... | SecureString | Payment secret |
 | razorpay/webhookSecret | (empty) | SecureString | Webhook (optional) |
@@ -296,4 +296,3 @@ scripts/
 Choose your option:
 - **EC2:** Run `/tmp/create-ssm-parameters.sh`
 - **Windows:** Run `.\Create-SSMParameters.ps1`
-

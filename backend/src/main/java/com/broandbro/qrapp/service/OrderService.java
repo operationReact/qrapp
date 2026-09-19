@@ -30,6 +30,7 @@ import com.broandbro.qrapp.repository.MenuRepository;
 import com.broandbro.qrapp.repository.OrderItemRepository;
 import com.broandbro.qrapp.repository.OrderRepository;
 import com.broandbro.qrapp.repository.OrderStatusHistoryRepository;
+import com.broandbro.qrapp.time.BusinessTime;
 import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -106,7 +107,7 @@ public class OrderService {
                 "Please use the pre-order flow to schedule them.");
         }
 
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = BusinessTime.now();
         Order order = new Order();
         order.setPhone(user != null ? user.getPhone() : req.getPhone());
         order.setUserId(user != null ? user.getId() : null);
@@ -379,33 +380,28 @@ public class OrderService {
     @Transactional(readOnly = true)
     public AdminOrderDashboardResponse getAdminDashboard(int liveLimit) {
         // Exclude pre-orders — they have their own dashboard
-        List<Order> allOrders = orderRepo.findAll(Sort.by(Sort.Order.desc("createdAt"), Sort.Order.desc("id")))
-                .stream().filter(o -> !o.isPreOrder()).toList();
         AdminOrderDashboardResponse response = new AdminOrderDashboardResponse();
-        response.setTotalOrders(allOrders.size());
-        response.setPlacedOrders(countByStatus(allOrders, OrderStatus.ORDER_PLACED));
-        response.setPreparingOrders(countByStatus(allOrders, OrderStatus.PREPARING));
-        response.setReadyOrders(countByStatus(allOrders, OrderStatus.READY));
-        response.setLiveOrders(allOrders.stream().filter(this::isLive).count());
-        response.setPaidOrders(allOrders.stream().filter(order -> "PAID".equalsIgnoreCase(order.getPaymentStatus())).count());
+        response.setTotalOrders(orderRepo.countByPreOrderFalse());
+        response.setPlacedOrders(orderRepo.countByStatusAndPreOrderFalse(OrderStatus.ORDER_PLACED));
+        response.setPreparingOrders(orderRepo.countByStatusAndPreOrderFalse(OrderStatus.PREPARING));
+        response.setReadyOrders(orderRepo.countByStatusAndPreOrderFalse(OrderStatus.READY));
+        response.setLiveOrders(orderRepo.countByStatusInAndPreOrderFalse(LIVE_STATUSES));
+        response.setPaidOrders(orderRepo.countByPaymentStatusIgnoreCaseAndPreOrderFalse("PAID"));
 
-        LocalDate today = LocalDate.now();
-        response.setCompletedToday(allOrders.stream()
-                .filter(order -> order.getCompletedAt() != null)
-                .filter(order -> today.equals(order.getCompletedAt().toLocalDate()))
-                .count());
+        LocalDate today = BusinessTime.today();
+        LocalDateTime todayStart = today.atStartOfDay();
+        LocalDateTime tomorrowStart = today.plusDays(1).atStartOfDay();
+        response.setCompletedToday(orderRepo.countByCompletedAtGreaterThanEqualAndCompletedAtLessThanAndPreOrderFalse(
+                todayStart, tomorrowStart));
 
-        List<Long> fulfillmentDurations = allOrders.stream()
-                .filter(order -> order.getCreatedAt() != null && order.getCompletedAt() != null)
-                .filter(order -> today.equals(order.getCompletedAt().toLocalDate()))
-                .map(order -> Duration.between(order.getCreatedAt(), order.getCompletedAt()).toMinutes())
-                .toList();
-        double averageFulfillment = fulfillmentDurations.stream().mapToLong(Long::longValue).average().orElse(0.0);
+        double averageFulfillment = Optional.ofNullable(
+                        orderRepo.averageFulfillmentMinutes(todayStart, tomorrowStart))
+                .orElse(0.0);
         response.setAverageFulfillmentMinutes(Math.round(averageFulfillment * 10.0) / 10.0);
 
         List<AdminOrderResponse> liveOrders = getLiveOrders(liveLimit);
         response.setLiveOrdersQueue(liveOrders);
-        response.setDelayedOrders(liveOrders.stream().filter(AdminOrderResponse::isDelayed).count());
+        response.setDelayedOrders(orderRepo.countDelayedLiveOrders());
         response.setAttentionOrders(liveOrders.stream()
                 .filter(order -> order.isDelayed() || order.getStatus() == OrderStatus.READY)
                 .limit(6)
@@ -441,7 +437,7 @@ public class OrderService {
         }
 
         String normalizedActor = trimToNull(actor);
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = BusinessTime.now();
         OrderStatus previousStatus = order.getStatus();
         OrderStatus nextStatus = previousStatus;
 
@@ -565,7 +561,7 @@ public class OrderService {
                 : userRepository.findAllById(userIds).stream()
                         .collect(Collectors.toMap(User::getId, u -> u));
 
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = BusinessTime.now();
         List<AdminOrderResponse> responses = new ArrayList<>();
         for (Order order : orders) {
             responses.add(toAdminOrderResponse(order, itemsByOrderId.getOrDefault(order.getId(), List.of()), menuById, historyByOrderId.getOrDefault(order.getId(), List.of()), now, userById));
@@ -716,7 +712,7 @@ public class OrderService {
                 "Only items tagged 'PreOrderOnly' can be pre-ordered.");
         }
 
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = BusinessTime.now();
         Order order = new Order();
         order.setPhone(user != null ? user.getPhone() : req.getPhone());
         order.setUserId(user != null ? user.getId() : null);
@@ -866,8 +862,8 @@ public class OrderService {
         Specification<Order> preOrderSpec = (root, cq, cb) -> cb.isTrue(root.get("preOrder"));
         List<Order> allPreOrders = orderRepo.findAll(preOrderSpec, Sort.by(Sort.Order.asc("scheduledAt")));
 
-        LocalDateTime now = LocalDateTime.now();
-        LocalDate today = LocalDate.now();
+        LocalDateTime now = BusinessTime.now();
+        LocalDate today = BusinessTime.today();
         LocalDate tomorrow = today.plusDays(1);
 
         AdminPreOrderDashboardResponse response = new AdminPreOrderDashboardResponse();
@@ -910,7 +906,7 @@ public class OrderService {
         if (order.getStatus() != OrderStatus.PRE_ORDERED) {
             throw new IllegalStateException("Order " + orderId + " is not in PRE_ORDERED status");
         }
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = BusinessTime.now();
         order.setStatus(OrderStatus.ORDER_PLACED);
         order.setLastStatusChangedAt(now);
         if (adminNote != null && !adminNote.isBlank()) {
@@ -994,7 +990,7 @@ public class OrderService {
         history.setNewStatus(newStatus);
         history.setNote(note);
         history.setChangedBy(changedBy);
-        history.setChangedAt(changedAt != null ? changedAt : LocalDateTime.now());
+        history.setChangedAt(changedAt != null ? changedAt : BusinessTime.now());
         orderStatusHistoryRepository.save(history);
     }
 
@@ -1052,7 +1048,7 @@ public class OrderService {
                     }).orElse(null);
 
             CartContext cartCtx = new CartContext(restaurantId, subtotal, java.math.BigDecimal.ZERO, items);
-            EligibilityContext ctx = new EligibilityContext(userCtx, cartCtx, java.time.LocalDateTime.now());
+            EligibilityContext ctx = new EligibilityContext(userCtx, cartCtx, BusinessTime.now());
 
             EligibilityResult result = promotionRuleEngine.evaluate(ctx, promotion);
             if (!result.eligible()) {

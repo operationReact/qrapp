@@ -5,31 +5,20 @@ server:
 # AWS Parameter Store Configuration
 # ──────────────────────────────────────────────────────────────────────────────
 #
-# Auto-Create Feature:
-#   app.parameter-store.auto-create=true
-#   - Automatically creates/syncs parameters on startup
-#   - Requires EC2 IAM role with ssm:PutParameter permission
-#   - Safe to run multiple times (overwrites existing parameters)
-#   - Define parameters in 'app.parameters' section
-#
-# Read Feature:
-#   - Backend automatically reads from Parameter Store
-#   - Falls back to environment variables
-#   - Falls back to hardcoded defaults
+# AWS Parameter Store is the only SSM source.
+# Parameters are managed manually in AWS and imported by the active profile.
+# Environment variables provide explicit local/CI overrides.
 #
 
 # Default datasource: PostgreSQL. Use environment variables to override in CI or other environments.
 spring:
-  profiles:
-    default: dev
-
   config:
     import: "optional:aws-parameterstore:"  # Optional - won't fail if AWS unavailable
 
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://aws-1-ap-northeast-1.pooler.supabase.com:5432/postgres}
-    username: ${SPRING_DATASOURCE_USERNAME:postgres.yoxxgeiwbekdvczedotg}
-    password: ${SPRING_DATASOURCE_PASSWORD:BroApp#2025}
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
     driver-class-name: org.postgresql.Driver
     hikari:
       pool-name: ${SPRING_DATASOURCE_HIKARI_POOL_NAME:QrAppHikariPool}
@@ -71,39 +60,8 @@ spring:
 app:
   # ── AWS Parameter Store Configuration ────────────────────────────────────
   parameter-store:
-    auto-create: false  # Default: disabled. Enable in dev/prod profiles only
+    auto-create: false
     environment: default
-
-  # ── Parameter Definitions (for auto-sync) ────────────────────────────────
-  # These are synced to AWS Parameter Store when app.parameter-store.auto-create=true
-  parameters:
-    database:
-      url: ${DB_URL:jdbc:postgresql://aws-1-ap-northeast-1.pooler.supabase.com:5432/postgres}
-      username: ${DB_USER:postgres.yoxxgeiwbekdvczedotg}
-      password: ${DB_PASS:BroApp#2025}
-
-    razorpay:
-      key: ${RAZORPAY_KEY:}
-      secret: ${RAZORPAY_SECRET:}
-      webhookSecret: ${RAZORPAY_WEBHOOK_SECRET:}
-
-    aws:
-      s3:
-        enabled: true
-        bucketName: broandbro-menu-images
-        region: us-east-1
-        accessKey: ${AWS_S3_ACCESS_KEY:}
-        secretKey: ${AWS_S3_SECRET_KEY:}
-
-    twilio:
-      accountSid: ${TWILIO_ACCOUNT_SID:ACc9ccb1101977a6bc3adc0806c56f026f}
-      authToken: ${TWILIO_AUTH_TOKEN:}
-
-    openai:
-      apiKey: ${OPENAI_API_KEY:}
-
-    app:
-      corsAllowedOrigins: http://localhost:5173
 
   # ── CORS Configuration ─────────────────────────────────────────────────────
   cors:
@@ -143,15 +101,15 @@ recommendation:
   cron:
     co-occurrence: "${RECOMMENDATION_CRON_CO_OCCURRENCE:0 30 1 * * *}"
 
-# Razorpay settings - read from env if available, otherwise fall back to the YAML value below.
+# Razorpay settings are supplied by the active environment profile.
 razorpay:
-  key: ${RAZORPAY_KEY:YOUR_KEY}
-  secret: ${RAZORPAY_SECRET:YOUR_SECRET}
-  webhookSecret: ${RAZORPAY_WEBHOOK_SECRET:YOUR_WEBHOOK_SECRET}
+  key: ${RAZORPAY_KEY:}
+  secret: ${RAZORPAY_SECRET:}
+  webhookSecret: ${RAZORPAY_WEBHOOK_SECRET:}
 
 
 openai:
-  api-key: ${OPENAI_API_KEY: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}
+  api-key: ${OPENAI_API_KEY:}
   image-model: ${OPENAI_IMAGE_MODEL:gpt-image-1}
   image-quality: ${OPENAI_IMAGE_QUALITY:low}
   base-url: https://api.openai.com/v1
@@ -162,19 +120,11 @@ openai:
 
 aws:
   s3:
-    bucket-name: ${AWS_S3_BUCKET_NAME:broandbro-menu-images}
+    bucket-name: ${AWS_S3_BUCKET_NAME:}
     region: ${AWS_S3_REGION:us-east-1}
     access-key: ${AWS_ACCESS_KEY_ID:}
     secret-key: ${AWS_SECRET_ACCESS_KEY:}
-    enabled: ${AWS_S3_ENABLED:true}   # override per environment
-
-twilio:
-  accountSid: ${TWILIO_ACCOUNT_SID:ACc9ccb1101977a6bc3adc0806c56f026f}
-  authToken: ${TWILIO_AUTH_TOKEN:8c98ee56d052a01711546c12441b230b}
-  fromNumber: ${TWILIO_FROM_NUMBER:whatsapp:+14155238886}
-  orderPlacedContentSid: ${TWILIO_ORDER_PLACED_CONTENT_SID:HX7926f06db10abf2c81bd27dc98c27423}
-  orderReadyContentSid: ${TWILIO_ORDER_READY_CONTENT_SID:}
-  otpContentSid: ${TWILIO_OTP_CONTENT_SID:HX229f5a04fd0510ce1b071852155d3e75}
+    enabled: ${AWS_S3_ENABLED:false}
 
 whatsapp:
   enabled: ${WHATSAPP_OTP_ENABLED:false}

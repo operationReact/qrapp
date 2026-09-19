@@ -9,6 +9,7 @@ import com.broandbro.qrapp.analytics.repository.HourlyOrderAnalyticsRepository;
 import com.broandbro.qrapp.analytics.scheduler.DailySalesAggregationScheduler;
 import com.broandbro.qrapp.analytics.service.MenuAnalyticsService;
 import com.broandbro.qrapp.promotion.repository.PromotionRepository;
+import com.broandbro.qrapp.time.BusinessTime;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -49,7 +50,7 @@ public class AnalyticsDashboardController {
     // ── GET /api/v1/analytics/overview ────────────────────────────────────────
 
     @GetMapping("/overview")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPERUSER')")
     @Operation(
         summary  = "Dashboard overview KPIs",
         description = "Returns today's revenue, order count, avg order value with day-over-day trends, "
@@ -58,7 +59,7 @@ public class AnalyticsDashboardController {
     )
     public ResponseEntity<ApiResponse<OverviewKpiResponse>> getOverview() {
 
-        LocalDate today     = LocalDate.now();
+        LocalDate today     = BusinessTime.today();
         LocalDate yesterday = today.minusDays(1);
 
         // ── Refresh today's intraday snapshot so revenue is live ──────────────
@@ -100,7 +101,7 @@ public class AnalyticsDashboardController {
         String topItem = topList.isEmpty() ? null : topList.get(0).menuItemName();
 
         // ── Active promotions count ───────────────────────────────────────────
-        long activePromos = promotionRepo.findActiveCandidates(LocalDateTime.now()).size();
+        long activePromos = promotionRepo.findActiveCandidates(BusinessTime.now()).size();
 
         log.debug("[OverviewKPI] today={} rev={} orders={} trend={}%",
                 today, revToday, ordToday, revTrend);
@@ -149,4 +150,3 @@ public class AnalyticsDashboardController {
         return (h - 12) + "P";
     }
 }
-

@@ -12,7 +12,7 @@ java -Dspring.profiles.active=local -jar backend/build/libs/qrapp-0.0.1-SNAPSHOT
 **What you need:**
 - ✅ PostgreSQL running on localhost:5432
 - ✅ Database: `broandbro_dev`
-- ✅ User: `broandbro` / Password: `BroApp#2025`
+- ✅ User: `broandbro` / Password: supplied through `SPRING_DATASOURCE_PASSWORD`
 
 **What you DON'T need:**
 - ❌ AWS credentials
@@ -133,4 +133,3 @@ java -Dspring.profiles.active=dev -jar app.jar
 ```
 
 **That's it!** 🎉
-

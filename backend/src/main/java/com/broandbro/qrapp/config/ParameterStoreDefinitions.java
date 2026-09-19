@@ -31,7 +31,6 @@ public class ParameterStoreDefinitions {
     private DatabaseConfig database;
     private RazorpayConfig razorpay;
     private AwsConfig aws;
-    private TwilioConfig twilio;
     private OpenaiConfig openai;
     private AppConfig app;
 
@@ -64,12 +63,6 @@ public class ParameterStoreDefinitions {
     }
 
     @Data
-    public static class TwilioConfig {
-        private String accountSid;
-        private String authToken;
-    }
-
-    @Data
     public static class OpenaiConfig {
         private String apiKey;
     }
@@ -79,4 +72,3 @@ public class ParameterStoreDefinitions {
         private String corsAllowedOrigins;
     }
 }
-

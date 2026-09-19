@@ -5,7 +5,6 @@ import {
   useNavigate,
 } from "@tanstack/react-router";
 import { useEffect } from "react";
-import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { CartProvider, useCart } from "../context/CartContext";
 import OffCanvasCart from "../components/OffCanvasCart";
 import Toast from "../components/Toast";
@@ -41,6 +40,7 @@ function AuthenticatedRoot() {
     location.pathname === "/home" ||
     location.pathname === "/login";
   const targetPath = isAdmin || isSuperUser ? "/admin" : "/";
+  const isAdminRoute = location.pathname === "/admin" || location.pathname.startsWith("/admin/");
 
   useEffect(() => {
     if (
@@ -80,12 +80,11 @@ function AuthenticatedRoot() {
       <SafeAreaWrapper>
         <HeadContent />
         <Outlet />
-        <SiteFooter />
+        {!isAdminRoute && <SiteFooter />}
       </SafeAreaWrapper>
       <Toast />
       <Toaster />
       <StickyCartBar />
-      <TanStackRouterDevtools position="bottom-right" />
     </PreferencesProvider>
   );
 }

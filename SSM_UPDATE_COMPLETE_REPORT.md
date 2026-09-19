@@ -53,9 +53,9 @@ If you want the initializing expression to serve as default, add @Builder.Defaul
 
 ### Database
 ```yaml
-url: jdbc:postgresql://broandbro-dev.chi2yu0m6hp0.us-east-1.rds.amazonaws.com:5432/broandbro_dev
+url: jdbc:postgresql://broandbro-dev.csjkasgs2ig6.us-east-1.rds.amazonaws.com:5432/broandbro_dev?sslmode=require
 username: broandbro
-password: BroApp#2025
+password: ${SPRING_DATASOURCE_PASSWORD}
 ```
 ✅ Ready
 
@@ -148,4 +148,3 @@ All values now match `/opt/broandbro/config/application.env` from EC2 instance.
 **Status:** ✅ COMPLETE & VERIFIED  
 **Compilation:** ✅ SUCCESS  
 **Ready to Deploy:** ✅ YES
-

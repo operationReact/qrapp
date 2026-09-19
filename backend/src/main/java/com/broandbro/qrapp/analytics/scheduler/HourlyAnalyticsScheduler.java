@@ -2,6 +2,7 @@ package com.broandbro.qrapp.analytics.scheduler;
 
 import com.broandbro.qrapp.analytics.config.AnalyticsCacheConfig;
 import com.broandbro.qrapp.analytics.repository.HourlyOrderAnalyticsRepository;
+import com.broandbro.qrapp.time.BusinessTime;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.CacheManager;
@@ -36,7 +37,7 @@ public class HourlyAnalyticsScheduler {
    @Scheduled(cron = "${analytics.cron.hourly-orders:0 * * * * *}",
                zone = "Asia/Kolkata")
     public void computeCurrentHourSnapshot() {
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = BusinessTime.now();
         LocalDate today  = now.toLocalDate();
         int currentHour  = now.getHour();
 
@@ -106,4 +107,3 @@ public class HourlyAnalyticsScheduler {
         }
     }
 }
-

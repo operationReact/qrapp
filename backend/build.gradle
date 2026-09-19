@@ -58,9 +58,6 @@ dependencies {
     // Thumbnailator for image resizing and compression before storing in PostgreSQL BYTEA
     implementation 'net.coobird:thumbnailator:0.4.20'
 
-    // Twilio SDK for WhatsApp
-    implementation 'com.twilio.sdk:twilio:9.2.1'
-
     // Swagger / OpenAPI documentation
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.8'
 

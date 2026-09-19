@@ -34,17 +34,17 @@ spring:
     import: "optional:aws-parameterstore:"  # Optional - won't fail if unavailable
   
   datasource:
-    url: jdbc:postgresql://broandbro-dev.chi2yu0m6hp0.us-east-1.rds.amazonaws.com:5432/broandbro_dev
+    url: jdbc:postgresql://broandbro-dev.csjkasgs2ig6.us-east-1.rds.amazonaws.com:5432/broandbro_dev?sslmode=require
     username: broandbro
-    password: BroApp#2025
+    password: ${SPRING_DATASOURCE_PASSWORD}
 ```
 
 ### Dev Parameters (`application-ssm-dev.yml`)
 ```yaml
 database:
-  url: jdbc:postgresql://broandbro-dev.chi2yu0m6hp0.us-east-1.rds.amazonaws.com:5432/broandbro_dev
+  url: jdbc:postgresql://broandbro-dev.csjkasgs2ig6.us-east-1.rds.amazonaws.com:5432/broandbro_dev?sslmode=require
   username: broandbro
-  password: BroApp#2025
+  password: ${SPRING_DATASOURCE_PASSWORD}
 
 razorpay:
   key: rzp_test_SXoONgvkn7mSte
@@ -155,4 +155,3 @@ Parameters auto-synced on EC2: ✅
 **Ready for Local Dev:** ✅ YES  
 
 **Use dev profile everywhere. Done!** 🚀
-

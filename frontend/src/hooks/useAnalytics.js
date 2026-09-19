@@ -2,14 +2,18 @@ import { useQuery } from '@tanstack/react-query'
 import {
   overviewKpisOptions,
   dailySalesOptions,
+  dailySalesRangeOptions,
+  salesSummaryOptions,
   weeklySalesOptions,
   monthlySalesOptions,
   hourlyOrdersOptions,
+  orderHeatmapOptions,
   peakHoursOptions,
   trendingItemsOptions,
   topSellingItemsOptions,
   leastSellingItemsOptions,
   menuRevenueOptions,
+  stallPerformanceOptions,
   userPreferencesOptions,
   repeatCustomersOptions,
   repeatRateOptions,
@@ -34,6 +38,12 @@ export const useOverviewKpis = () =>
 export const useDailySales = (params) =>
   useQueryWrapper(dailySalesOptions(params))
 
+export const useDailySalesRange = (params) =>
+  useQueryWrapper(dailySalesRangeOptions(params))
+
+export const useSalesSummary = (params) =>
+  useQueryWrapper(salesSummaryOptions(params))
+
 export const useWeeklySales = (params) =>
   useQueryWrapper(weeklySalesOptions(params))
 
@@ -42,6 +52,9 @@ export const useMonthlySales = (params) =>
 
 export const useHourlyOrders = (params) =>
   useQueryWrapper(hourlyOrdersOptions(params))
+
+export const useOrderHeatmap = (params) =>
+  useQueryWrapper(orderHeatmapOptions(params))
 
 export const usePeakHours = (params) =>
   useQueryWrapper(peakHoursOptions(params))
@@ -54,6 +67,9 @@ export const useLeastSellingItems = (params) =>
 
 export const useMenuRevenue = (params) =>
   useQueryWrapper(menuRevenueOptions(params))
+
+export const useStallPerformance = (params) =>
+  useQueryWrapper(stallPerformanceOptions(params))
 
 export const useUserPreferences = (params) =>
   useQueryWrapper(userPreferencesOptions(params))
@@ -92,4 +108,3 @@ export const useMostProfitableItems = (params) =>
 
 export const useHighestMarginItems = (params) =>
   useQueryWrapper(highestMarginItemsOptions(params))
-

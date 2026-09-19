@@ -67,8 +67,8 @@ app:
   parameters:
     database:
       url: jdbc:postgresql://broandbro-dev.csjkasgs2ig6.us-east-1.rds.amazonaws.com:5432/postgres
-      username: BROANDBRODEV
-      password: BroApp#2025
+      username: broandbro
+      password: ${SPRING_DATASOURCE_PASSWORD}
     
     razorpay:
       key: rzp_test_SXoONgvkn7mSte
@@ -263,8 +263,8 @@ OVERRIDDEN BY ↓
 
 application-ssm-dev.yml
 ├─ database.url: broandbro-dev.rds...
-├─ database.username: BROANDBRODEV
-└─ database.password: BroApp#2025
+├─ database.username: broandbro
+└─ database.password: supplied securely at deployment time
 
 RESULT → Dev values used ✅
 ```
@@ -389,4 +389,3 @@ backend/src/main/resources/application-ssm-dev.yml
 **Next:** Rebuild and deploy!
 
 **Clean, organized, production-ready! 🚀**
-

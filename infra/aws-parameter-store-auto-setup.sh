@@ -5,6 +5,13 @@
 
 set -euo pipefail
 
+: "${DB_PASSWORD:?Set DB_PASSWORD to the current RDS password}"
+: "${RAZORPAY_KEY:?Set RAZORPAY_KEY before provisioning SSM}"
+: "${RAZORPAY_SECRET:?Set RAZORPAY_SECRET before provisioning SSM}"
+: "${AWS_ACCESS_KEY_ID:?Set AWS_ACCESS_KEY_ID before provisioning SSM}"
+: "${AWS_SECRET_ACCESS_KEY:?Set AWS_SECRET_ACCESS_KEY before provisioning SSM}"
+: "${OPENAI_API_KEY:?Set OPENAI_API_KEY before provisioning SSM}"
+
 ENVIRONMENT="${1:-dev}"
 AWS_REGION="${2:-us-east-1}"
 PREFIX="/broandbro/backend/${ENVIRONMENT}"
@@ -56,15 +63,15 @@ set_param() {
 echo "📝 Setting Database Parameters..."
 
 set_param "$PREFIX/database/url" \
-  "jdbc:postgresql://broandbro-dev.csjkasgs2ig6.us-east-1.rds.amazonaws.com:5432/postgres" \
+  "jdbc:postgresql://broandbro-dev.csjkasgs2ig6.us-east-1.rds.amazonaws.com:5432/broandbro_dev?sslmode=require" \
   "String"
 
 set_param "$PREFIX/database/username" \
-  "BROANDBRODEV" \
+  "broandbro" \
   "String"
 
 set_param "$PREFIX/database/password" \
-  "BroApp#2025" \
+  "$DB_PASSWORD" \
   "SecureString"
 
 echo ""
@@ -75,11 +82,11 @@ echo ""
 echo "💳 Setting Razorpay Parameters..."
 
 set_param "$PREFIX/razorpay/key" \
-  "rzp_test_SXoONgvkn7mSte" \
+  "$RAZORPAY_KEY" \
   "SecureString"
 
 set_param "$PREFIX/razorpay/secret" \
-  "cT115GamOarfQX8BhxVmIwj9" \
+  "$RAZORPAY_SECRET" \
   "SecureString"
 
 set_param "$PREFIX/razorpay/webhookSecret" \
@@ -106,26 +113,11 @@ set_param "$PREFIX/aws/s3/region" \
   "String"
 
 set_param "$PREFIX/aws/s3/accessKey" \
-  "AKIA34EPRSL6ICFWRYHI" \
+  "$AWS_ACCESS_KEY_ID" \
   "SecureString"
 
 set_param "$PREFIX/aws/s3/secretKey" \
-  "Y7wq2csJAE9+lTIXh/YISp5DkFOP8ETr9P1nifS0" \
-  "SecureString"
-
-echo ""
-
-# ─────────────────────────────────────────────────────────────────
-# Twilio Configuration
-# ─────────────────────────────────────────────────────────────────
-echo "💬 Setting Twilio Parameters..."
-
-set_param "$PREFIX/twilio/accountSid" \
-  "ACc9ccb1101977a6bc3adc0806c56f026f" \
-  "String"
-
-set_param "$PREFIX/twilio/authToken" \
-  "8c98ee56d052a01711546c12441b230b" \
+  "$AWS_SECRET_ACCESS_KEY" \
   "SecureString"
 
 echo ""
@@ -136,7 +128,7 @@ echo ""
 echo "🤖 Setting OpenAI Parameters..."
 
 set_param "$PREFIX/openai/apiKey" \
-  "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" \
+  "$OPENAI_API_KEY" \
   "SecureString"
 
 echo ""
@@ -175,4 +167,3 @@ echo "   2. Rebuild backend: ./gradlew :backend:bootJar -x test"
 echo "   3. Deploy to EC2"
 echo "   4. Backend will automatically read from Parameter Store"
 echo ""
-

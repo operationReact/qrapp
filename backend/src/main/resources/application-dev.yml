@@ -23,15 +23,13 @@ spring:
       - "optional:aws-parameterstore:/broandbro/backend/dev/whatsapp?prefix=app.parameter-store.whatsapp."
 
   datasource:
-    # ONLY read from SSM Parameter Store (application-ssm-dev.yml)
-    # NO environment variable fallbacks - ensures SSM values are always used
     url: ${app.parameter-store.database.url}
     username: ${app.parameter-store.database.username}
     password: ${app.parameter-store.database.password}
 
 # ── AWS Parameter Store Configuration ────────────────────────────────────────
-# SSM parameter values are defined in: application-ssm-dev.yml
-# This file merges with application-ssm-dev.yml through Spring's profile mechanism
+# SSM values are managed manually in AWS Parameter Store under
+# /broandbro/backend/dev.
 
     driver-class-name: org.postgresql.Driver
     hikari:
@@ -82,14 +80,6 @@ razorpay:
   secret:        ${RAZORPAY_SECRET:${app.parameter-store.razorpay.secret:}}
   webhookSecret: ${RAZORPAY_WEBHOOK_SECRET:${app.parameter-store.razorpay.webhookSecret:}}
 
-twilio:
-  accountSid: ${app.parameter-store.twilio.accountSid:}
-  authToken: ${app.parameter-store.twilio.authToken:}
-  fromNumber: ${TWILIO_FROM_NUMBER:whatsapp:+14155238886}
-  orderPlacedContentSid: ${TWILIO_ORDER_PLACED_CONTENT_SID:HX7926f06db10abf2c81bd27dc98c27423}
-  orderReadyContentSid: ${TWILIO_ORDER_READY_CONTENT_SID:}
-  otpContentSid: ${TWILIO_OTP_CONTENT_SID:HX229f5a04fd0510ce1b071852155d3e75}
-
 # ── AWS S3 ────────────────────────────────────────────────────────────────────
 # Disabled by default for local dev — no AWS credentials needed.
 # To test real S3 uploads locally, export these env vars and restart:
@@ -117,8 +107,7 @@ openai:
 # Override via environment variable: APP_CORS_ALLOWED_ORIGINS
 
 # ── AWS Parameter Store Settings ────────────────────────────────────────────
-# Enable auto-create only in dev environment
 app:
   parameter-store:
-    auto-create: true  # Enable auto-create in DEV environment
+    auto-create: false
     environment: dev

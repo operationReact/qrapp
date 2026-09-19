@@ -70,15 +70,6 @@ public class ParameterStoreConfig {
     private String s3SecretKey;
 
     // ──────────────────────────────────────────────────────────────────────────
-    // Twilio Configuration
-    // ──────────────────────────────────────────────────────────────────────────
-
-    @Value("${app.parameter-store.twilio.accountSid:#{null}}")
-    private String twilioAccountSid;
-
-    @Value("${app.parameter-store.twilio.authToken:#{null}}")
-    private String twilioAuthToken;
-
     // ──────────────────────────────────────────────────────────────────────────
     // OpenAI Configuration
     // ──────────────────────────────────────────────────────────────────────────
@@ -112,11 +103,9 @@ public class ParameterStoreConfig {
         log.info("S3 Enabled: {}", s3Enabled != null ? "✅ LOADED" : "❌ NOT FOUND");
         log.info("S3 Bucket: {}", s3BucketName != null ? "✅ LOADED" : "❌ NOT FOUND");
 
-        log.info("Twilio Account: {}", twilioAccountSid != null ? "✅ LOADED" : "❌ NOT FOUND");
         log.info("OpenAI API Key: {}", openaiApiKey != null ? "✅ LOADED" : "❌ NOT FOUND");
 
         log.info("CORS Origins: {}", corsAllowedOrigins != null ? "✅ LOADED" : "❌ NOT FOUND");
         log.info("════════════════════════════════════════════════════════════════");
     }
 }
-

@@ -152,14 +152,14 @@ public class SecurityConfig {
                         ).hasRole("ADMIN")
 
                         .requestMatchers("/admin/**")
-                        .hasRole("ADMIN")
+                        .hasAnyRole("ADMIN", "SUPERUSER")
 
                         .requestMatchers("/api/admin/**")
-                        .hasRole("ADMIN")
+                        .hasAnyRole("ADMIN", "SUPERUSER")
 
                         // All analytics endpoints — admin only
                         .requestMatchers("/api/v1/analytics/**")
-                        .hasRole("ADMIN")
+                        .hasAnyRole("ADMIN", "SUPERUSER")
 
                         // Allow wallet endpoints to pass through (controller will handle auth)
                         .requestMatchers("/api/wallet/**").permitAll()

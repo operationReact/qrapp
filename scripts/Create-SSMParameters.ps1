@@ -47,9 +47,10 @@ function Create-Param {
 Write-Host ""
 Write-Host "📦 Database Configuration" -ForegroundColor Yellow
 Create-Param "$PREFIX/database/url" `
-    "jdbc:postgresql://broandbro-dev.chi2yu0m6hp0.us-east-1.rds.amazonaws.com:5432/broandbro_dev"
+    "jdbc:postgresql://broandbro-dev.csjkasgs2ig6.us-east-1.rds.amazonaws.com:5432/broandbro_dev?sslmode=require"
 Create-Param "$PREFIX/database/username" "broandbro"
-Create-Param "$PREFIX/database/password" "BroApp#2025" "SecureString"
+if ([string]::IsNullOrWhiteSpace($env:DB_PASSWORD)) { throw "Set DB_PASSWORD to the current RDS password" }
+Create-Param "$PREFIX/database/password" $env:DB_PASSWORD "SecureString"
 
 # ═══════════════════════════════════════════════════════════════════════════
 # RAZORPAY CONFIGURATION (Payment Gateway)
@@ -70,14 +71,6 @@ Create-Param "$PREFIX/aws/s3/bucketName" "broandbro-menu-images-dev"
 Create-Param "$PREFIX/aws/s3/region" "us-east-1"
 Create-Param "$PREFIX/aws/s3/accessKey" "AKIA34EPRSL6ICFWRYHI" "SecureString"
 Create-Param "$PREFIX/aws/s3/secretKey" "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" "SecureString"
-
-# ═══════════════════════════════════════════════════════════════════════════
-# TWILIO CONFIGURATION (SMS/WhatsApp)
-# ═══════════════════════════════════════════════════════════════════════════
-Write-Host ""
-Write-Host "📱 Twilio Configuration" -ForegroundColor Yellow
-Create-Param "$PREFIX/twilio/accountSid" "ACc9ccb1101977a6bc3adc0806c56f026f" "SecureString"
-Create-Param "$PREFIX/twilio/authToken" "8c98ee56d052a01711546c12441b230b" "SecureString"
 
 # ═══════════════════════════════════════════════════════════════════════════
 # OPENAI CONFIGURATION (Image Generation)
@@ -121,4 +114,3 @@ Write-Host "Next steps:" -ForegroundColor Yellow
 Write-Host "1. On EC2: sudo systemctl restart broandbro" -ForegroundColor Gray
 Write-Host "2. On EC2: sudo journalctl -u broandbro -n 200" -ForegroundColor Gray
 Write-Host "3. Verify: Check that application connects to correct database" -ForegroundColor Gray
-

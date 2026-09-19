@@ -21,7 +21,7 @@ output "ec2_elastic_ip" {
 output "rds_endpoint" {
   value       = module.rds.db_endpoint
   sensitive   = true
-  description = "RDS endpoint for Spring Boot datasource URL"
+  description = "RDS endpoint; the application reads the complete JDBC URL from the environment-scoped SSM database parameters"
 }
 
 output "cloudwatch_dashboard_url" {
@@ -48,4 +48,3 @@ output "media_bucket_regional_domain" {
   value       = aws_s3_bucket.media.bucket_regional_domain_name
   description = "Regional domain – base URL for public image access"
 }
-

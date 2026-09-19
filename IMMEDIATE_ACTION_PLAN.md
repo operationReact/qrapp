@@ -107,7 +107,7 @@ Should see:
 
 **Before Creating Parameters:**
 ```
-java.net.UnknownHostException: broandbro-dev.chi2yu0m6hp0.us-east-1.rds.amazonaws.com
+java.net.UnknownHostException: the previous RDS endpoint
 (Using wrong database from GitHub secrets)
 ```
 
@@ -208,4 +208,3 @@ See `SSM_PARAMETER_SETUP_GUIDE.md` for:
 # Windows:
 .\Create-SSMParameters.ps1
 ```
-

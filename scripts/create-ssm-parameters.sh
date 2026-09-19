@@ -6,6 +6,8 @@
 
 set -e
 
+: "${DB_PASSWORD:?Set DB_PASSWORD to the current RDS password}"
+
 ENVIRONMENT="dev"
 REGION="us-east-1"
 PREFIX="/broandbro/backend/${ENVIRONMENT}"
@@ -45,17 +47,17 @@ create_param() {
 echo ""
 echo "📦 Database Configuration"
 create_param "$PREFIX/database/url" \
-    "jdbc:postgresql://broandbro-dev.chi2yu0m6hp0.us-east-1.rds.amazonaws.com:5432/broandbro_dev"
+    "jdbc:postgresql://broandbro-dev.csjkasgs2ig6.us-east-1.rds.amazonaws.com:5432/broandbro_dev?sslmode=require"
 create_param "$PREFIX/database/username" "broandbro"
-create_param "$PREFIX/database/password" "BroApp#2025" "SecureString"
+create_param "$PREFIX/database/password" "$DB_PASSWORD" "SecureString"
 
 # ══════════════════════════════════════════════════════════════════════════
 # RAZORPAY CONFIGURATION (Payment Gateway)
 # ══════════════════════════════════════════════════════════════════════════
 echo ""
 echo "💳 Razorpay Configuration"
-create_param "$PREFIX/razorpay/key" "rzp_test_SXoONgvkn7mSte"
-create_param "$PREFIX/razorpay/secret" "rzp_test_SXoONgvkn7mSte" "SecureString"
+create_param "$PREFIX/razorpay/key" "${RAZORPAY_KEY:?Set RAZORPAY_KEY}" "SecureString"
+create_param "$PREFIX/razorpay/secret" "${RAZORPAY_SECRET:?Set RAZORPAY_SECRET}" "SecureString"
 create_param "$PREFIX/razorpay/webhookSecret" "" "SecureString"
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -66,16 +68,8 @@ echo "📦 AWS S3 Configuration"
 create_param "$PREFIX/aws/s3/enabled" "true"
 create_param "$PREFIX/aws/s3/bucketName" "broandbro-dev-root-bucket"
 create_param "$PREFIX/aws/s3/region" "us-east-1"
-create_param "$PREFIX/aws/s3/accessKey" "AKIA34EPRSL6ICFWRYHI" "SecureString"
-create_param "$PREFIX/aws/s3/secretKey" "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" "SecureString"
-
-# ══════════════════════════════════════════════════════════════════════════
-# TWILIO CONFIGURATION (SMS/WhatsApp)
-# ══════════════════════════════════════════════════════════════════════════
-echo ""
-echo "📱 Twilio Configuration"
-create_param "$PREFIX/twilio/accountSid" "ACc9ccb1101977a6bc3adc0806c56f026f" "SecureString"
-create_param "$PREFIX/twilio/authToken" "8c98ee56d052a01711546c12441b230b" "SecureString"
+create_param "$PREFIX/aws/s3/accessKey" "${AWS_ACCESS_KEY_ID:?Set AWS_ACCESS_KEY_ID}" "SecureString"
+create_param "$PREFIX/aws/s3/secretKey" "${AWS_SECRET_ACCESS_KEY:?Set AWS_SECRET_ACCESS_KEY}" "SecureString"
 
 # ══════════════════════════════════════════════════════════════════════════
 # OPENAI CONFIGURATION (Image Generation)
@@ -83,7 +77,7 @@ create_param "$PREFIX/twilio/authToken" "8c98ee56d052a01711546c12441b230b" "Secu
 echo ""
 echo "🤖 OpenAI Configuration"
 create_param "$PREFIX/openai/apiKey" \
-    "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" \
+    "${OPENAI_API_KEY:?Set OPENAI_API_KEY}" \
     "SecureString"
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -119,4 +113,3 @@ echo "Next steps:"
 echo "1. Restart application: sudo systemctl restart broandbro"
 echo "2. Check logs: sudo journalctl -u broandbro -n 200"
 echo "3. Verify: Check that application connects to correct database"
-

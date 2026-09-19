@@ -6,6 +6,7 @@ import com.broandbro.qrapp.analytics.dto.DashboardSummaryResponse;
 import com.broandbro.qrapp.analytics.entity.DailySalesAnalytics;
 import com.broandbro.qrapp.analytics.projection.DailySalesSummaryProjection;
 import com.broandbro.qrapp.analytics.repository.DailySalesAnalyticsRepository;
+import com.broandbro.qrapp.time.BusinessTime;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
@@ -84,7 +85,7 @@ public class SalesAnalyticsServiceImpl implements SalesAnalyticsService {
 
     @Override
     public DashboardSummaryResponse getWeeklySummary() {
-        LocalDate to   = LocalDate.now();
+        LocalDate to   = BusinessTime.today();
         LocalDate from = to.minusDays(6);
         var kpi = dailySalesRepo.aggregateKpiForRange(from, to);
         var series = dailySalesRepo.findSummaryByDateRange(from, to)
@@ -94,7 +95,7 @@ public class SalesAnalyticsServiceImpl implements SalesAnalyticsService {
 
     @Override
     public DashboardSummaryResponse getMonthlySummary() {
-        LocalDate to   = LocalDate.now();
+        LocalDate to   = BusinessTime.today();
         LocalDate from = to.minusDays(29);
         var kpi = dailySalesRepo.aggregateKpiForRange(from, to);
         var series = dailySalesRepo.findSummaryByDateRange(from, to)
@@ -176,4 +177,3 @@ public class SalesAnalyticsServiceImpl implements SalesAnalyticsService {
     private long       nullSafeLong(Number v) { return v != null ? v.longValue() : 0L; }
     private int        nullSafeInt(Number v)  { return v != null ? v.intValue()  : 0;  }
 }
-

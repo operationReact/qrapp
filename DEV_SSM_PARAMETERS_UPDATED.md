@@ -18,11 +18,11 @@ Source: /opt/broandbro/config/application.env
 ### Database Configuration
 ```yaml
 database:
-  url: jdbc:postgresql://broandbro-dev.chi2yu0m6hp0.us-east-1.rds.amazonaws.com:5432/broandbro_dev
+  url: jdbc:postgresql://broandbro-dev.csjkasgs2ig6.us-east-1.rds.amazonaws.com:5432/broandbro_dev?sslmode=require
   username: broandbro
-  password: BroApp#2025
+  password: ${SPRING_DATASOURCE_PASSWORD}
 ```
-✅ Updated RDS endpoint and credentials
+✅ Updated RDS endpoint and credential resolution
 
 ### Razorpay Configuration
 ```yaml
@@ -105,7 +105,7 @@ BUILD SUCCESSFUL in 27s
 | Parameter | Old Value | New Value | Status |
 |-----------|-----------|-----------|--------|
 | Database URL | csjkasgs2ig6... | chi2yu0m6hp0... | ✅ Updated |
-| Database User | BROANDBRODEV | broandbro | ✅ Updated |
+| Database User | previous value | broandbro | ✅ Updated |
 | Database DB | postgres | broandbro_dev | ✅ Updated |
 | Razorpay Secret | cT115GamOarf... | rzp_test_SXoO... | ✅ Updated |
 | S3 Bucket | broandbro-menu-images-dev | broandbro-menu-images-dev | ✅ Same |
@@ -154,4 +154,3 @@ BUILD SUCCESSFUL in 27s
 ---
 
 **Ready to rebuild and deploy! 🚀**
-

@@ -11,7 +11,7 @@
 │ app:                                                   │
 │   parameters:                                          │
 │     database:                                          │
-│       password: BroApp#2025                            │
+│       password: ${SPRING_DATASOURCE_PASSWORD}           │
 │     razorpay:                                          │
 │       key: rzp_test_123                                │
 └──────────────────┬──────────────────────────────────────┘
@@ -174,7 +174,7 @@ aws ssm put-parameter --name ... --value ...
 app:
   parameters:
     database:
-      password: BroApp#2025
+      password: ${SPRING_DATASOURCE_PASSWORD}
     stripe:
       apiKey: sk_test_123
 
@@ -214,7 +214,7 @@ git push
    app:
      parameters:
        database:
-         password: BroApp#2025
+         password: ${SPRING_DATASOURCE_PASSWORD}
 
 2. ParameterStoreDefinitions bean created
    Maps YAML to Java objects
@@ -400,4 +400,3 @@ aws ssm delete-parameter --name "/broandbro/backend/dev/..."
 **Benefit:** Automatic parameter management forever  
 
 **Deploy now! 🚀**
-

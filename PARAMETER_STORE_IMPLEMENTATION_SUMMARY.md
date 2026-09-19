@@ -198,7 +198,7 @@ When backend starts, it reads values in order:
    -Dspring.datasource.password=xxx
    
 4️⃣ Hardcoded Default ← LAST RESORT
-   BroApp#2025
+   None; startup requires a supplied credential
 ```
 
 This means:
@@ -339,4 +339,3 @@ You now have a **production-grade secret management solution** that:
 **Effort:** < 10 minutes  
 **Risk:** Minimal (backward compatible with env vars)  
 **Benefit:** Enterprise-grade secret management
-

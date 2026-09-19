@@ -40,14 +40,18 @@ echo ""
 # ─────────────────────────────────────────────────────────────────
 echo "📝 Setting Database Parameters..."
 
-read -p "Database URL (default: jdbc:postgresql://broandbro-dev.csjkasgs2ig6.us-east-1.rds.amazonaws.com:5432/postgres): " DB_URL
-DB_URL=${DB_URL:-jdbc:postgresql://broandbro-dev.csjkasgs2ig6.us-east-1.rds.amazonaws.com:5432/postgres}
+read -p "Database URL (default: jdbc:postgresql://broandbro-dev.csjkasgs2ig6.us-east-1.rds.amazonaws.com:5432/broandbro_dev?sslmode=require): " DB_URL
+DB_URL=${DB_URL:-jdbc:postgresql://broandbro-dev.csjkasgs2ig6.us-east-1.rds.amazonaws.com:5432/broandbro_dev?sslmode=require}
 
-read -p "Database Username (default: BROANDBRODEV): " DB_USER
-DB_USER=${DB_USER:-BROANDBRODEV}
+read -p "Database Username (default: broandbro): " DB_USER
+DB_USER=${DB_USER:-broandbro}
 
-read -sp "Database Password (default: BroApp#2025): " DB_PASS
-DB_PASS=${DB_PASS:-BroApp#2025}
+read -sp "Database Password: " DB_PASS
+if [ -z "$DB_PASS" ]; then
+  echo ""
+  echo "❌ Database password is required"
+  exit 1
+fi
 echo ""
 
 aws ssm put-parameter \
@@ -187,38 +191,6 @@ echo "✅ S3 parameters stored"
 echo ""
 
 # ─────────────────────────────────────────────────────────────────
-# Twilio Configuration
-# ─────────────────────────────────────────────────────────────────
-echo "💬 Setting Twilio Parameters..."
-
-read -p "Twilio Account SID (default: ACc9ccb1101977a6bc3adc0806c56f026f): " TWILIO_ACCOUNT
-TWILIO_ACCOUNT=${TWILIO_ACCOUNT:-ACc9ccb1101977a6bc3adc0806c56f026f}
-
-read -sp "Twilio Auth Token (leave empty to skip): " TWILIO_AUTH
-if [ -n "$TWILIO_AUTH" ]; then
-  echo ""
-  aws ssm put-parameter \
-    --name "$PREFIX/twilio/authToken" \
-    --value "$TWILIO_AUTH" \
-    --type "SecureString" \
-    --overwrite \
-    --region "$AWS_REGION" \
-    --tags "Key=Environment,Value=$ENVIRONMENT" "Key=Component,Value=Communication"
-fi
-
-aws ssm put-parameter \
-  --name "$PREFIX/twilio/accountSid" \
-  --value "$TWILIO_ACCOUNT" \
-  --type "String" \
-  --overwrite \
-  --region "$AWS_REGION" \
-  --tags "Key=Environment,Value=$ENVIRONMENT" "Key=Component,Value=Communication"
-
-echo ""
-echo "✅ Twilio parameters stored"
-echo ""
-
-# ─────────────────────────────────────────────────────────────────
 # OpenAI Configuration
 # ─────────────────────────────────────────────────────────────────
 echo "🤖 Setting OpenAI Parameters..."
@@ -277,4 +249,3 @@ echo ""
 echo "📝 Backend will automatically read from Parameter Store"
 echo "   Update the IAM role to allow ssm:GetParameter*"
 echo ""
-

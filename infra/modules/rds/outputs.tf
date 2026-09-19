@@ -21,5 +21,5 @@ output "db_instance_id" {
 
 output "ssm_db_password_path" {
   value       = aws_ssm_parameter.db_password.name
-  description = "SSM path where the DB password is stored – used by the Spring Boot app"
+  description = "SSM path where the database password is stored under the environment-scoped backend namespace"
 }
