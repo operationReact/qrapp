@@ -117,7 +117,7 @@ function OrderCard({ order, onAction, isPending }) {
 
         {/* ── Row 1: Order ID + Status chip + Time badge ── */}
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-[15px] font-black text-gray-900 tracking-tight leading-none">
+          <span className="min-w-0 break-words text-[15px] font-black text-gray-900 tracking-tight leading-tight">
             {order.orderNumber ?? `#${order.id}`}
           </span>
 
@@ -154,7 +154,7 @@ function OrderCard({ order, onAction, isPending }) {
           {(order.items ?? []).map((item, i) => (
             <div key={i} className="flex items-center gap-1.5">
               <VegDot isVeg={item.isVeg} />
-              <span className="flex-1 text-[13px] font-semibold text-gray-800 leading-tight truncate">
+              <span className="min-w-0 flex-1 break-words text-[13px] font-semibold text-gray-800 leading-tight">
                 {item.name}
               </span>
               <span className="shrink-0 text-[12px] font-bold text-gray-400 tabular-nums">
@@ -169,7 +169,7 @@ function OrderCard({ order, onAction, isPending }) {
 
         {/* ── Row 3: Customer + Amount + Payment (secondary) ── */}
         <div className="flex items-center gap-1.5 pt-1.5 border-t border-gray-50">
-          <span className="flex-1 text-[11px] text-gray-400 truncate">
+          <span className="min-w-0 flex-1 break-words text-[11px] text-gray-400">
             {order.userName
               ? `${order.userName}${order.phone ? ` · ${order.phone}` : ""}`
               : (order.phone ?? "Guest")}
@@ -425,7 +425,7 @@ function KitchenQueuePage() {
     : `No ${FILTER_LIST.find((f) => f.key === activeFilter)?.label ?? ""} orders`;
 
   return (
-    <div className="flex flex-col h-full min-h-0 bg-gray-50">
+    <div className="flex h-[calc(100dvh-3.5rem)] min-h-0 flex-col bg-gray-50">
 
       {/* ════════════════════════════════════════════════════
           Sticky header — title + stats chips + filter chips
@@ -489,7 +489,7 @@ function KitchenQueuePage() {
       {/* ════════════════════════════════════════════════════
           Scrollable content
           ════════════════════════════════════════════════════ */}
-      <div className="flex-1 overflow-y-auto overscroll-contain px-3 pt-3 pb-24">
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pt-3 pb-[calc(1.5rem+env(safe-area-inset-bottom))] [touch-action:pan-y]">
 
         {/* Needs Attention — sticky within scroll area */}
         {!isLoading && attentionOrders.length > 0 && (
@@ -528,4 +528,3 @@ function KitchenQueuePage() {
     </div>
   );
 }
-

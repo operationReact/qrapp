@@ -46,7 +46,7 @@ export function KpiStrip({ summary, comparison, loading }) {
   const orders = current.completedOrders;
   const cards = [
     {
-      label: "Completed revenue",
+      label: "Revenue",
       value: formatCurrency(current.totalRevenue),
       trend: current.totalRevenue == null ? null : (previous.totalRevenue != null
         ? ((Number(current.totalRevenue) - Number(previous.totalRevenue)) / Number(previous.totalRevenue || 1)) * 100
@@ -54,7 +54,7 @@ export function KpiStrip({ summary, comparison, loading }) {
       tone: "text-zinc-950",
     },
     {
-      label: "Completed orders",
+      label: "Orders",
       value: formatNumber(orders),
       trend: orders != null && previous.completedOrders != null
         ? ((Number(orders) - Number(previous.completedOrders)) / Number(previous.completedOrders || 1)) * 100
@@ -62,32 +62,38 @@ export function KpiStrip({ summary, comparison, loading }) {
       tone: "text-zinc-950",
     },
     {
-      label: "Average order value",
+      label: "Avg. order value",
       value: formatCurrency(current.averageOrderValue),
       trend: current.averageOrderValue != null && previous.averageOrderValue != null
         ? ((Number(current.averageOrderValue) - Number(previous.averageOrderValue)) / Number(previous.averageOrderValue || 1)) * 100
         : null,
       tone: "text-zinc-950",
     },
+    {
+      label: "Est. profit",
+      value: formatCurrency(current.totalEstimatedProfit),
+      note: "Cost-backed estimate",
+      tone: "text-emerald-700",
+    },
     { label: "Pending", value: loading ? null : formatNumber(current.pendingOrders), note: "Live queue", tone: "text-amber-700" },
     { label: "Delayed", value: loading ? null : formatNumber(current.delayedOrders), note: "Live queue", tone: "text-red-600" },
   ];
 
   return (
-    <div className="grid grid-cols-6 gap-px overflow-hidden rounded-xl border border-zinc-200/80 bg-zinc-200/80 sm:grid-cols-5">
+    <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-zinc-200/80 bg-zinc-200/80 sm:grid-cols-3 lg:grid-cols-6">
       {cards.map((card, index) => (
         <div key={card.label} className={cn(
-          "min-w-0 bg-white px-2.5 py-3 sm:px-4",
-          index < 3 ? "col-span-2 sm:col-span-1" : "col-span-3 sm:col-span-1",
+          "min-w-0 bg-white px-3 py-3 sm:px-4 sm:py-3.5",
+          index === 3 && "bg-emerald-50/30",
         )}>
-          <p className="truncate text-[10px] font-bold uppercase tracking-[0.12em] text-zinc-400">{card.label}</p>
+          <p className="text-[10px] font-bold uppercase leading-snug tracking-[0.1em] text-zinc-400">{card.label}</p>
           {loading && index < 3 ? <Skeleton className="mt-2 h-7 w-20" /> : (
-            <p className={cn("mt-1.5 truncate text-[22px] font-bold tracking-tight tabular-nums", card.tone)}>
+            <p className={cn("mt-1.5 break-words text-[21px] font-bold leading-tight tracking-tight tabular-nums sm:text-[22px]", card.tone)}>
               {card.value ?? "—"}
             </p>
           )}
           <div className="mt-1 min-h-4">
-            {card.note ? <span className="text-xs text-zinc-400">{card.note}</span> : <Trend value={card.trend} />}
+            {card.note ? <span className="text-[11px] leading-snug text-zinc-400">{card.note}</span> : <Trend value={card.trend} />}
           </div>
         </div>
       ))}
@@ -182,8 +188,8 @@ export function LiveOperations({ dashboard, loading, error, onRetry }) {
             <Link key={order.id} to="/admin/kitchen-queue" className="flex items-center gap-2.5 py-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30">
               <span className="grid size-7 shrink-0 place-items-center rounded-lg bg-zinc-100 text-zinc-500"><ChefHat size={14} aria-hidden="true" /></span>
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-xs font-bold text-zinc-800">#{order.orderNumber ?? order.id}</span>
-                <span className="block truncate text-[11px] text-zinc-400">{order.isDelayed ? "Needs attention" : "Active order"}</span>
+                <span className="block break-words text-xs font-bold text-zinc-800">#{order.orderNumber ?? order.id}</span>
+                <span className="block text-[11px] text-zinc-400">{order.isDelayed ? "Needs attention" : "Active order"}</span>
               </span>
               <span className={cn("rounded-md px-2 py-1 text-[10px] font-bold", meta.bg, meta.color)}>{meta.label}</span>
             </Link>

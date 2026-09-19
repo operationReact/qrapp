@@ -66,10 +66,8 @@ import { Route as AdmingrowthComboOpportunitiesRouteImport } from './routes/admi
 import { Route as AdmingrowthCategoryPairingsRouteImport } from './routes/admin/(growth)/category-pairings'
 import { Route as AdmingrowthAutoSuggestionsRouteImport } from './routes/admin/(growth)/auto-suggestions'
 import { Route as AdmincouponsCouponsRouteImport } from './routes/admin/(coupons)/coupons'
-import { Route as AdminordersOperationalQueueIndexRouteImport } from './routes/admin/(orders)/operational-queue/index'
 import { Route as AdminmenuCombosIndexRouteImport } from './routes/admin/(menu)/combos/index'
 import { Route as AdminmenuComboCampaignsIndexRouteImport } from './routes/admin/(menu)/combo-campaigns/index'
-import { Route as AdminordersOperationalQueueOrderIdRouteImport } from './routes/admin/(orders)/operational-queue/$orderId'
 import { Route as AdminmenuCombosEditRouteImport } from './routes/admin/(menu)/combos/edit'
 import { Route as AdminmenuCombosCreateRouteImport } from './routes/admin/(menu)/combos/create'
 
@@ -370,12 +368,6 @@ const AdmincouponsCouponsRoute = AdmincouponsCouponsRouteImport.update({
   path: '/coupons',
   getParentRoute: () => AdminRoute,
 } as any)
-const AdminordersOperationalQueueIndexRoute =
-  AdminordersOperationalQueueIndexRouteImport.update({
-    id: '/',
-    path: '/',
-    getParentRoute: () => AdminordersOperationalQueueRoute,
-  } as any)
 const AdminmenuCombosIndexRoute = AdminmenuCombosIndexRouteImport.update({
   id: '/(menu)/combos/',
   path: '/combos/',
@@ -386,12 +378,6 @@ const AdminmenuComboCampaignsIndexRoute =
     id: '/(menu)/combo-campaigns/',
     path: '/combo-campaigns/',
     getParentRoute: () => AdminRoute,
-  } as any)
-const AdminordersOperationalQueueOrderIdRoute =
-  AdminordersOperationalQueueOrderIdRouteImport.update({
-    id: '/$orderId',
-    path: '/$orderId',
-    getParentRoute: () => AdminordersOperationalQueueRoute,
   } as any)
 const AdminmenuCombosEditRoute = AdminmenuCombosEditRouteImport.update({
   id: '/(menu)/combos/edit',
@@ -446,7 +432,7 @@ export interface FileRoutesByFullPath {
   '/admin/menu': typeof AdminmenuMenuRoute
   '/admin/milestones': typeof AdminmilestonesMilestonesRoute
   '/admin/kitchen-queue': typeof AdminordersKitchenQueueRoute
-  '/admin/operational-queue': typeof AdminordersOperationalQueueRouteWithChildren
+  '/admin/operational-queue': typeof AdminordersOperationalQueueRoute
   '/admin/party-orders': typeof AdminordersPartyOrdersRoute
   '/admin/pre-orders': typeof AdminordersPreOrdersRoute
   '/admin/service-board': typeof AdminordersServiceBoardRoute
@@ -464,10 +450,8 @@ export interface FileRoutesByFullPath {
   '/admin/analytics/': typeof AdminAnalyticsIndexRoute
   '/admin/combos/create': typeof AdminmenuCombosCreateRoute
   '/admin/combos/edit': typeof AdminmenuCombosEditRoute
-  '/admin/operational-queue/$orderId': typeof AdminordersOperationalQueueOrderIdRoute
   '/admin/combo-campaigns/': typeof AdminmenuComboCampaignsIndexRoute
   '/admin/combos/': typeof AdminmenuCombosIndexRoute
-  '/admin/operational-queue/': typeof AdminordersOperationalQueueIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -510,6 +494,7 @@ export interface FileRoutesByTo {
   '/admin/menu': typeof AdminmenuMenuRoute
   '/admin/milestones': typeof AdminmilestonesMilestonesRoute
   '/admin/kitchen-queue': typeof AdminordersKitchenQueueRoute
+  '/admin/operational-queue': typeof AdminordersOperationalQueueRoute
   '/admin/party-orders': typeof AdminordersPartyOrdersRoute
   '/admin/pre-orders': typeof AdminordersPreOrdersRoute
   '/admin/service-board': typeof AdminordersServiceBoardRoute
@@ -527,10 +512,8 @@ export interface FileRoutesByTo {
   '/admin/analytics': typeof AdminAnalyticsIndexRoute
   '/admin/combos/create': typeof AdminmenuCombosCreateRoute
   '/admin/combos/edit': typeof AdminmenuCombosEditRoute
-  '/admin/operational-queue/$orderId': typeof AdminordersOperationalQueueOrderIdRoute
   '/admin/combo-campaigns': typeof AdminmenuComboCampaignsIndexRoute
   '/admin/combos': typeof AdminmenuCombosIndexRoute
-  '/admin/operational-queue': typeof AdminordersOperationalQueueIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -575,7 +558,7 @@ export interface FileRoutesById {
   '/admin/(menu)/menu': typeof AdminmenuMenuRoute
   '/admin/(milestones)/milestones': typeof AdminmilestonesMilestonesRoute
   '/admin/(orders)/kitchen-queue': typeof AdminordersKitchenQueueRoute
-  '/admin/(orders)/operational-queue': typeof AdminordersOperationalQueueRouteWithChildren
+  '/admin/(orders)/operational-queue': typeof AdminordersOperationalQueueRoute
   '/admin/(orders)/party-orders': typeof AdminordersPartyOrdersRoute
   '/admin/(orders)/pre-orders': typeof AdminordersPreOrdersRoute
   '/admin/(orders)/service-board': typeof AdminordersServiceBoardRoute
@@ -593,10 +576,8 @@ export interface FileRoutesById {
   '/admin/analytics/': typeof AdminAnalyticsIndexRoute
   '/admin/(menu)/combos/create': typeof AdminmenuCombosCreateRoute
   '/admin/(menu)/combos/edit': typeof AdminmenuCombosEditRoute
-  '/admin/(orders)/operational-queue/$orderId': typeof AdminordersOperationalQueueOrderIdRoute
   '/admin/(menu)/combo-campaigns/': typeof AdminmenuComboCampaignsIndexRoute
   '/admin/(menu)/combos/': typeof AdminmenuCombosIndexRoute
-  '/admin/(orders)/operational-queue/': typeof AdminordersOperationalQueueIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -660,10 +641,8 @@ export interface FileRouteTypes {
     | '/admin/analytics/'
     | '/admin/combos/create'
     | '/admin/combos/edit'
-    | '/admin/operational-queue/$orderId'
     | '/admin/combo-campaigns/'
     | '/admin/combos/'
-    | '/admin/operational-queue/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -706,6 +685,7 @@ export interface FileRouteTypes {
     | '/admin/menu'
     | '/admin/milestones'
     | '/admin/kitchen-queue'
+    | '/admin/operational-queue'
     | '/admin/party-orders'
     | '/admin/pre-orders'
     | '/admin/service-board'
@@ -723,10 +703,8 @@ export interface FileRouteTypes {
     | '/admin/analytics'
     | '/admin/combos/create'
     | '/admin/combos/edit'
-    | '/admin/operational-queue/$orderId'
     | '/admin/combo-campaigns'
     | '/admin/combos'
-    | '/admin/operational-queue'
   id:
     | '__root__'
     | '/'
@@ -788,10 +766,8 @@ export interface FileRouteTypes {
     | '/admin/analytics/'
     | '/admin/(menu)/combos/create'
     | '/admin/(menu)/combos/edit'
-    | '/admin/(orders)/operational-queue/$orderId'
     | '/admin/(menu)/combo-campaigns/'
     | '/admin/(menu)/combos/'
-    | '/admin/(orders)/operational-queue/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -1224,13 +1200,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdmincouponsCouponsRouteImport
       parentRoute: typeof AdminRoute
     }
-    '/admin/(orders)/operational-queue/': {
-      id: '/admin/(orders)/operational-queue/'
-      path: '/'
-      fullPath: '/admin/operational-queue/'
-      preLoaderRoute: typeof AdminordersOperationalQueueIndexRouteImport
-      parentRoute: typeof AdminordersOperationalQueueRoute
-    }
     '/admin/(menu)/combos/': {
       id: '/admin/(menu)/combos/'
       path: '/combos'
@@ -1244,13 +1213,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/combo-campaigns/'
       preLoaderRoute: typeof AdminmenuComboCampaignsIndexRouteImport
       parentRoute: typeof AdminRoute
-    }
-    '/admin/(orders)/operational-queue/$orderId': {
-      id: '/admin/(orders)/operational-queue/$orderId'
-      path: '/$orderId'
-      fullPath: '/admin/operational-queue/$orderId'
-      preLoaderRoute: typeof AdminordersOperationalQueueOrderIdRouteImport
-      parentRoute: typeof AdminordersOperationalQueueRoute
     }
     '/admin/(menu)/combos/edit': {
       id: '/admin/(menu)/combos/edit'
@@ -1269,24 +1231,6 @@ declare module '@tanstack/react-router' {
   }
 }
 
-interface AdminordersOperationalQueueRouteChildren {
-  AdminordersOperationalQueueOrderIdRoute: typeof AdminordersOperationalQueueOrderIdRoute
-  AdminordersOperationalQueueIndexRoute: typeof AdminordersOperationalQueueIndexRoute
-}
-
-const AdminordersOperationalQueueRouteChildren: AdminordersOperationalQueueRouteChildren =
-  {
-    AdminordersOperationalQueueOrderIdRoute:
-      AdminordersOperationalQueueOrderIdRoute,
-    AdminordersOperationalQueueIndexRoute:
-      AdminordersOperationalQueueIndexRoute,
-  }
-
-const AdminordersOperationalQueueRouteWithChildren =
-  AdminordersOperationalQueueRoute._addFileChildren(
-    AdminordersOperationalQueueRouteChildren,
-  )
-
 interface AdminRouteChildren {
   AdminOpsCenterRoute: typeof AdminOpsCenterRoute
   AdminIndexRoute: typeof AdminIndexRoute
@@ -1303,7 +1247,7 @@ interface AdminRouteChildren {
   AdminmenuMenuRoute: typeof AdminmenuMenuRoute
   AdminmilestonesMilestonesRoute: typeof AdminmilestonesMilestonesRoute
   AdminordersKitchenQueueRoute: typeof AdminordersKitchenQueueRoute
-  AdminordersOperationalQueueRoute: typeof AdminordersOperationalQueueRouteWithChildren
+  AdminordersOperationalQueueRoute: typeof AdminordersOperationalQueueRoute
   AdminordersPartyOrdersRoute: typeof AdminordersPartyOrdersRoute
   AdminordersPreOrdersRoute: typeof AdminordersPreOrdersRoute
   AdminordersServiceBoardRoute: typeof AdminordersServiceBoardRoute
@@ -1341,8 +1285,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminmenuMenuRoute: AdminmenuMenuRoute,
   AdminmilestonesMilestonesRoute: AdminmilestonesMilestonesRoute,
   AdminordersKitchenQueueRoute: AdminordersKitchenQueueRoute,
-  AdminordersOperationalQueueRoute:
-    AdminordersOperationalQueueRouteWithChildren,
+  AdminordersOperationalQueueRoute: AdminordersOperationalQueueRoute,
   AdminordersPartyOrdersRoute: AdminordersPartyOrdersRoute,
   AdminordersPreOrdersRoute: AdminordersPreOrdersRoute,
   AdminordersServiceBoardRoute: AdminordersServiceBoardRoute,
