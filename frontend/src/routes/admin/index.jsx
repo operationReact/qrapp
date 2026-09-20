@@ -1,7 +1,7 @@
 import { createFileRoute, Link, Navigate, useLocation } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Bell, CalendarDays, Menu, Radio } from "lucide-react";
+import { Bell, CalendarDays, ChevronDown, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useSidebar } from "@/components/ui/sidebar";
@@ -122,46 +122,74 @@ function DashboardHeader({ rangeKey, onRangeChange, ownerName, notifications }) 
   };
 
   return (
-    <header className="border-b border-zinc-200/80 bg-white">
-      <div className="mx-auto flex min-h-[72px] w-full max-w-[1600px] items-center gap-3 px-4 py-3 sm:px-6 lg:px-8">
-        <Button variant="ghost" size="icon" onClick={toggleSidebar} aria-label="Open admin menu" className="lg:hidden">
-          <Menu size={19} />
-        </Button>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <h1 className="break-words text-xl font-bold leading-tight tracking-tight text-zinc-950 sm:text-2xl">
-              {greeting()}{ownerName ? `, ${ownerName}` : ""}
-            </h1>
-            <span className="hidden items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-1 text-[10px] font-bold text-emerald-700 sm:inline-flex">
-              <Radio size={11} className="animate-pulse" aria-hidden="true" />
-              Live
-            </span>
-          </div>
-          <p className="mt-0.5 flex items-center gap-1.5 truncate text-xs text-zinc-400">
-            <CalendarDays size={12} aria-hidden="true" />
-            {dateLabel(range.to)}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <label className="sr-only" htmlFor="dashboard-range">Dashboard date range</label>
-          <select
-            id="dashboard-range"
-            value={rangeKey}
-            onChange={(event) => onRangeChange(event.target.value)}
-            className="h-9 max-w-[132px] rounded-lg border border-zinc-200 bg-white px-2.5 text-xs font-semibold text-zinc-700 outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20"
+    <header className="border-b border-zinc-200/50 bg-white/95 pt-[env(safe-area-inset-top)]">
+      <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-2 px-4 pb-3 pt-2.5 sm:px-6 lg:flex-row lg:items-center lg:gap-6 lg:px-8 lg:py-3">
+        <div className="flex min-w-0 items-center justify-between gap-3 lg:contents">
+          <Button
+            variant="ghost"
+            size="icon-lg"
+            onClick={toggleSidebar}
+            aria-label="Open admin menu"
+            className="size-11 rounded-xl text-zinc-600 lg:hidden"
           >
-            {RANGE_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-          </select>
-          <div ref={panelRef} className="relative">
+            <Menu size={19} />
+          </Button>
+          <div className="flex min-w-0 flex-1 items-center gap-2 lg:flex-none">
+            <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-zinc-950 text-[11px] font-black tracking-tight text-white">
+              Q
+            </span>
+            <div className="min-w-0">
+              <p className="truncate text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-400">
+                Operations
+              </p>
+              <p className="truncate text-xs font-semibold text-zinc-700">Admin workspace</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex min-w-0 items-center justify-between gap-3 lg:flex-1">
+          <div className="min-w-0">
+            <h1 className="truncate text-xl font-bold leading-tight tracking-tight text-zinc-950 sm:text-2xl">
+              Dashboard
+            </h1>
+            <p className="mt-0.5 flex min-w-0 items-center gap-1.5 truncate text-xs text-zinc-400 sm:text-sm">
+              <CalendarDays size={13} aria-hidden="true" />
+              <span className="truncate">{dateLabel(range.to)}</span>
+              <span className="hidden text-zinc-300 sm:inline">·</span>
+              <span className="hidden truncate sm:inline">
+                {greeting()}{ownerName ? `, ${ownerName}` : ""}
+              </span>
+            </p>
+          </div>
+
+          <div className="flex shrink-0 items-center gap-2">
+            <label className="sr-only" htmlFor="dashboard-range">Dashboard date range</label>
+            <div className="relative">
+              <select
+                id="dashboard-range"
+                value={rangeKey}
+                onChange={(event) => onRangeChange(event.target.value)}
+                className="h-11 w-[116px] appearance-none rounded-xl border border-zinc-200 bg-zinc-50 pl-3 pr-8 text-xs font-bold text-zinc-700 outline-none transition-colors hover:bg-white focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20 sm:w-[132px]"
+              >
+                {RANGE_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+              </select>
+              <ChevronDown
+                size={15}
+                className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400"
+                aria-hidden="true"
+              />
+            </div>
+
+            <div ref={panelRef} className="relative">
             <button
               type="button"
               aria-label={unreadCount > 0 ? `${unreadCount} unread notifications` : "Notifications"}
               aria-expanded={open}
               onClick={() => setOpen((value) => !value)}
-              className="relative grid size-9 place-items-center rounded-lg border border-zinc-200 text-zinc-600 transition-colors hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+              className="relative grid size-11 place-items-center rounded-xl border border-zinc-200 text-zinc-600 transition-colors hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
             >
               <Bell size={17} aria-hidden="true" />
-              {unreadCount > 0 && <span className="absolute -right-1 -top-1 grid min-w-4 place-items-center rounded-full bg-red-600 px-1 text-[9px] font-bold leading-4 text-white">{unreadCount > 9 ? "9+" : unreadCount}</span>}
+              {unreadCount > 0 && <span className="absolute right-0.5 top-0.5 grid min-w-4 place-items-center rounded-full bg-red-600 px-1 text-[9px] font-bold leading-4 text-white">{unreadCount > 9 ? "9+" : unreadCount}</span>}
             </button>
             {open && (
               <div className="absolute right-0 top-11 z-50 w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-xl">
@@ -221,6 +249,7 @@ function DashboardHeader({ rangeKey, onRangeChange, ownerName, notifications }) 
                 )}
               </div>
             )}
+          </div>
           </div>
         </div>
       </div>
