@@ -29,7 +29,7 @@ public interface MenuRepository extends JpaRepository<MenuItem, Long> {
            "(:categoryId  IS NULL OR m.category.id  = :categoryId) AND " +
            "(:recommended IS NULL OR m.recommended  = :recommended) " +
            "ORDER BY m.id ASC")
-    @EntityGraph(attributePaths = {"category", "tag", "shop"})
+    @EntityGraph(attributePaths = {"category", "tag", "vendor"})
     List<MenuItem> findByFilters(
             @Param("isVeg")         Boolean isVeg,
             @Param("categoryId")    Long    categoryId,
@@ -44,7 +44,7 @@ public interface MenuRepository extends JpaRepository<MenuItem, Long> {
     @Query("SELECT m FROM MenuItem m " +
            "WHERE m.recommended = true AND m.isHidden = false AND m.isDeleted = false " +
            "ORDER BY m.id DESC")
-    @EntityGraph(attributePaths = {"category", "tag", "shop"})
+    @EntityGraph(attributePaths = {"category", "tag", "vendor"})
     List<MenuItem> findTopRecommended(Pageable pageable);
 
     /**
@@ -54,7 +54,7 @@ public interface MenuRepository extends JpaRepository<MenuItem, Long> {
     @Query("SELECT m FROM MenuItem m " +
            "WHERE m.category.id = :categoryId AND m.isDeleted = false " +
            "ORDER BY m.id ASC")
-    @EntityGraph(attributePaths = {"category", "tag", "shop"})
+    @EntityGraph(attributePaths = {"category", "tag", "vendor"})
     List<MenuItem> findByCategoryId(@Param("categoryId") Long categoryId);
 
     /**
@@ -64,7 +64,7 @@ public interface MenuRepository extends JpaRepository<MenuItem, Long> {
     @Query("SELECT m FROM MenuItem m " +
            "WHERE m.tag.id = :tagId AND m.isDeleted = false " +
            "ORDER BY m.id ASC")
-    @EntityGraph(attributePaths = {"category", "tag", "shop"})
+    @EntityGraph(attributePaths = {"category", "tag", "vendor"})
     List<MenuItem> findByTagId(@Param("tagId") Long tagId);
 
     /**

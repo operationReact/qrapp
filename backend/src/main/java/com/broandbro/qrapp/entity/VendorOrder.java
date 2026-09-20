@@ -9,16 +9,16 @@ import java.util.List;
 import com.broandbro.qrapp.enums.OrderStatus;
 
 @Entity
-@Table(name = "shop_order")
+@Table(name = "vendor_order")
 @Data
-public class ShopOrder {
+public class VendorOrder {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne(optional = true)
-    @JoinColumn(name = "shop_id")
-    private Shop shop;
+    @JoinColumn(name = "vendor_id")
+    private Vendor vendor;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -33,8 +33,8 @@ public class ShopOrder {
     @Column(name = "ordered_by")
     private String orderedBy;
 
-    @OneToMany(mappedBy = "shopOrder", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<ShopOrderItem> items = new ArrayList<>();
+    @OneToMany(mappedBy = "vendorOrder", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<VendorOrderItem> items = new ArrayList<>();
 
     @Column(name = "created_at", updatable = false)
     private Instant createdAt;

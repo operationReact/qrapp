@@ -130,8 +130,8 @@ public class OrderService {
         for (CreateOrderRequest.Item i : req.getItems()) {
             MenuItem menuItem = menuRepository.findById(i.getItemId())
                     .orElseThrow(() -> new RuntimeException("MenuItem not found: " + i.getItemId()));
-            Long shopId = menuItem.getShop() != null ? menuItem.getShop().getId() : null;
-            PricingService.OrderItemSnapshot snap = pricingService.createSnapshot(i.getItemId(), shopId, i.getQuantity());
+            Long vendorId = menuItem.getVendor() != null ? menuItem.getVendor().getId() : null;
+            PricingService.OrderItemSnapshot snap = pricingService.createSnapshot(i.getItemId(), vendorId, i.getQuantity());
             itemSnaps.add(new Object[]{i, snap});
             subtotal = subtotal.add(snap.lineTotal() != null ? snap.lineTotal() : java.math.BigDecimal.ZERO);
         }
@@ -747,10 +747,10 @@ public class OrderService {
             log.info("[createPreOrder] Looking up menuItem id={}", i.getItemId());
             MenuItem menuItem = menuRepository.findById(i.getItemId())
                     .orElseThrow(() -> new RuntimeException("MenuItem not found: " + i.getItemId()));
-            Long shopId = menuItem.getShop() != null ? menuItem.getShop().getId() : null;
-            log.info("[createPreOrder] MenuItem found — id={} name='{}' shopId={}", menuItem.getId(), menuItem.getName(), shopId);
+            Long vendorId = menuItem.getVendor() != null ? menuItem.getVendor().getId() : null;
+            log.info("[createPreOrder] MenuItem found — id={} name='{}' vendorId={}", menuItem.getId(), menuItem.getName(), vendorId);
 
-            PricingService.OrderItemSnapshot snap = pricingService.createSnapshot(i.getItemId(), shopId, i.getQuantity());
+            PricingService.OrderItemSnapshot snap = pricingService.createSnapshot(i.getItemId(), vendorId, i.getQuantity());
             log.info("[createPreOrder] Snapshot — itemId={} qty={} sellingPrice={} lineTotal={}",
                     i.getItemId(), i.getQuantity(), snap.sellingPriceSnapshot(), snap.lineTotal());
 
@@ -1043,7 +1043,7 @@ public class OrderService {
                     .map(id -> {
                         try {
                             var mi = menuRepository.findById(id).orElse(null);
-                            return (mi != null && mi.getShop() != null) ? mi.getShop().getId() : null;
+                            return (mi != null && mi.getVendor() != null) ? mi.getVendor().getId() : null;
                         } catch (Exception e) { return null; }
                     }).orElse(null);
 

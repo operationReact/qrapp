@@ -12,7 +12,7 @@ import lombok.NoArgsConstructor;
  * Format: BB-YYYYMMDD-XXXX
  * Example: BB-20260515-0001
  *
- * Single global sequence per day (one shop: BB).
+ * Single global sequence per day (one location: BB).
  */
 @Entity
 @Table(name = "daily_order_sequence")
@@ -41,4 +41,3 @@ public class DailyOrderSequence {
     @Column(name = "last_sequence", nullable = false)
     private Integer lastSequence = 0;
 }
-

@@ -3,14 +3,14 @@ import jakarta.persistence.*;
 import lombok.Data;
 import java.time.Instant;
 @Entity
-@Table(name = "shop")
+@Table(name = "vendor")
 @Data
-public class Shop {
+public class Vendor {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    @Column(name = "shop_name", nullable = false)
-    private String shopName;
+    @Column(name = "vendor_name", nullable = false)
+    private String vendorName;
     @Column(name = "phone_number", nullable = false, unique = true)
     private String phoneNumber;
     @Column(name = "alternate_phone_number")

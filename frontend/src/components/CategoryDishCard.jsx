@@ -88,7 +88,7 @@ CategoryDishCard.propTypes = {
       id: PropTypes.number,
       name: PropTypes.string,
     }),
-    shopId: PropTypes.number,
+    vendorId: PropTypes.number,
     fulfillmentType: PropTypes.string,
     inventoryMode: PropTypes.string,
     isHidden: PropTypes.bool,

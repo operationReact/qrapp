@@ -5,28 +5,28 @@ import java.math.BigDecimal;
 import java.time.Instant;
 
 /**
- * A line item within a procurement (shop) order.
+ * A line item within a procurement (vendor) order.
  *
  * <p>Financial snapshots use PROCUREMENT (cost) pricing only.
  * Selling price is irrelevant here – this represents what was ordered from
  * the vendor and at what cost at the time of ordering.
  */
 @Entity
-@Table(name = "shop_order_item",
+@Table(name = "vendor_order_item",
     indexes = {
-        @Index(name = "idx_shoporderitem_order", columnList = "shop_order_id"),
-        @Index(name = "idx_shoporderitem_item",  columnList = "menu_item_id")
+        @Index(name = "idx_vendororderitem_order", columnList = "vendor_order_id"),
+        @Index(name = "idx_vendororderitem_item",  columnList = "menu_item_id")
     }
 )
 @Data
-public class ShopOrderItem {
+public class VendorOrderItem {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne(optional = false)
-    @JoinColumn(name = "shop_order_id")
-    private ShopOrder shopOrder;
+    @JoinColumn(name = "vendor_order_id")
+    private VendorOrder vendorOrder;
 
     /** FK to the ordered menu item – kept as a relation for query joins. */
     @ManyToOne(fetch = FetchType.LAZY, optional = false)

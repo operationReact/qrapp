@@ -13,7 +13,7 @@ import java.util.Optional;
 /**
  * Repository for managing daily order sequences with pessimistic locking.
  *
- * Single sequence per day (BB shop only).
+ * Single sequence per day (BB location only).
  *
  * Critical: Query method uses @Lock(LockModeType.PESSIMISTIC_WRITE) to ensure
  * thread-safe sequence generation even under high concurrent load.
@@ -35,4 +35,3 @@ public interface DailyOrderSequenceRepository extends JpaRepository<DailyOrderSe
     @Query("SELECT dos FROM DailyOrderSequence dos WHERE dos.dateKey = :dateKey")
     Optional<DailyOrderSequence> findByDateKeyWithLock(@Param("dateKey") String dateKey);
 }
-

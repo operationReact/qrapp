@@ -91,10 +91,10 @@ analytics:
     abuse-detection-threshold: ${ANALYTICS_LIMITS_ABUSE_THRESHOLD:1}
     churn-threshold-days:     ${ANALYTICS_LIMITS_CHURN_DAYS:30}
   order:
-    # Shop code used in human-readable order number generation
-    # Format: SHOPCODE-YYYYMMDD-XXXX
+    # Location code used in human-readable order number generation
+    # Format: LOCATIONCODE-YYYYMMDD-XXXX
     # Example: BB-20260515-0001
-    shop-code: "${APP_ORDER_SHOP_CODE:BB}"
+    location-code: "${APP_ORDER_LOCATION_CODE:${APP_ORDER_SHOP_CODE:BB}}"
 
 # Recommendation Engine configuration
 recommendation:

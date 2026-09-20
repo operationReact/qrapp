@@ -1,43 +1,43 @@
 package com.broandbro.qrapp.controller;
-import com.broandbro.qrapp.dto.ShopOrderCreateRequest;
-import com.broandbro.qrapp.dto.ShopOrderResponse;
+import com.broandbro.qrapp.dto.VendorOrderCreateRequest;
+import com.broandbro.qrapp.dto.VendorOrderResponse;
 import com.broandbro.qrapp.enums.OrderStatus;
-import com.broandbro.qrapp.service.ShopOrderService;
+import com.broandbro.qrapp.service.VendorOrderService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 @RestController
-@RequestMapping("/api/v1/shop-orders")
+@RequestMapping({"/api/v1/vendor-orders", "/api/v1/shop-orders"})
 @CrossOrigin(origins = "*")
-public class ShopOrderController {
-    private final ShopOrderService shopOrderService;
-    public ShopOrderController(ShopOrderService shopOrderService) {
-        this.shopOrderService = shopOrderService;
+public class VendorOrderController {
+    private final VendorOrderService vendorOrderService;
+    public VendorOrderController(VendorOrderService vendorOrderService) {
+        this.vendorOrderService = vendorOrderService;
     }
     @PostMapping
-    public ResponseEntity<ShopOrderResponse> createOrder(@RequestBody ShopOrderCreateRequest request) {
+    public ResponseEntity<VendorOrderResponse> createOrder(@RequestBody VendorOrderCreateRequest request) {
         try {
-            ShopOrderResponse response = shopOrderService.createOrder(request);
+            VendorOrderResponse response = vendorOrderService.createOrder(request);
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
         }
     }
     @GetMapping("/{orderId}")
-    public ResponseEntity<ShopOrderResponse> getOrder(@PathVariable Long orderId) {
+    public ResponseEntity<VendorOrderResponse> getOrder(@PathVariable Long orderId) {
         try {
-            ShopOrderResponse response = shopOrderService.getOrder(orderId);
+            VendorOrderResponse response = vendorOrderService.getOrder(orderId);
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         }
     }
     @PatchMapping("/{orderId}/status")
-    public ResponseEntity<ShopOrderResponse> updateOrderStatus(
+    public ResponseEntity<VendorOrderResponse> updateOrderStatus(
             @PathVariable Long orderId,
             @RequestBody StatusUpdateRequest request) {
         try {
-            ShopOrderResponse response = shopOrderService.transitionOrderStatus(orderId, request.getStatus());
+            VendorOrderResponse response = vendorOrderService.transitionOrderStatus(orderId, request.getStatus());
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
             if (e.getMessage().contains("Invalid transition")) {

@@ -521,7 +521,7 @@ public class MenuController {
             MenuItem item,
             BigDecimal price,
             InventoryService.MenuItemAvailability availability) {
-        Long shopId = item.getShop() != null ? item.getShop().getId() : null;
+        Long vendorId = item.getVendor() != null ? item.getVendor().getId() : null;
 
         return MenuItemResponse.builder()
             .id(item.getId())
@@ -533,7 +533,7 @@ public class MenuController {
             .recommended(item.isRecommended())
             .category(item.getCategory())
             .tag(item.getTag())
-            .shopId(shopId)
+            .vendorId(vendorId)
             .fulfillmentType(item.getFulfillmentType())
             .inventoryMode(item.getInventoryMode())
             .isHidden(item.getIsHidden())

@@ -81,18 +81,21 @@ public class PricingController {
     }
 
     /**
-     * Get the full cost history for a specific (shop, menuItem) pair.
+     * Get the full cost history for a specific (vendor, menuItem) pair.
      */
-    @GetMapping("/shops/{shopId}/menu-items/{menuItemId}/cost-history")
+    @GetMapping({
+            "/vendors/{vendorId}/menu-items/{menuItemId}/cost-history",
+            "/shops/{vendorId}/menu-items/{menuItemId}/cost-history"
+    })
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_USER')")
     public ResponseEntity<List<VendorCostHistoryResponse>> getVendorCostHistory(
-            @PathVariable Long shopId,
+            @PathVariable Long vendorId,
             @PathVariable Long menuItemId) {
-        return ResponseEntity.ok(pricingService.getVendorCostHistory(shopId, menuItemId));
+        return ResponseEntity.ok(pricingService.getVendorCostHistory(vendorId, menuItemId));
     }
 
     /**
-     * Set (or update) the procurement cost for a (shop, menuItem) pair.
+     * Set (or update) the procurement cost for a (vendor, menuItem) pair.
      */
     @PostMapping("/vendor-costs/set")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_USER')")
@@ -121,4 +124,3 @@ public class PricingController {
         ));
     }
 }
-

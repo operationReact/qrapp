@@ -33,12 +33,12 @@ public class OrderNumberGenerator {
     private final DailyOrderSequenceRepository dailyOrderSequenceRepository;
 
     /**
-     * Shop code used in order number generation.
-     * Hardcoded to "BB" (single shop).
+     * Location code used in order number generation.
+     * Hardcoded to "BB" (single location).
      * Configurable via application.properties/yml if needed in future.
      */
-    @Value("${app.order.shop-code:BB}")
-    private String shopCode;
+    @Value("${app.order.location-code:${app.order.shop-code:BB}}")
+    private String locationCode;
 
     /**
      * Generates a human-readable order number in the format: BB-YYYYMMDD-XXXX
@@ -92,7 +92,7 @@ public class OrderNumberGenerator {
             // Format order number: BB-YYYYMMDD-XXXX (sequence padded to 4 digits)
             String orderNumber = String.format(
                 "%s-%s-%04d",
-                shopCode,
+                locationCode,
                 dateKey,
                 sequence.getLastSequence()
             );
@@ -127,4 +127,3 @@ public class OrderNumberGenerator {
         return generateOrderNumber(today);
     }
 }
-

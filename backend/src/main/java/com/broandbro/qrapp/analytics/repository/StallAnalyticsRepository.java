@@ -10,15 +10,15 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- * Database-side rollups for menu-item revenue attributed to its configured shop.
+ * Database-side rollups for menu-item revenue attributed to its configured vendor.
  * Only completed customer orders are included.
  */
 @Repository
-public interface StallAnalyticsRepository extends JpaRepository<com.broandbro.qrapp.entity.Shop, Long> {
+public interface StallAnalyticsRepository extends JpaRepository<com.broandbro.qrapp.entity.Vendor, Long> {
 
     @Query(value = """
             SELECT s.id AS stallId,
-                   s.shop_name AS stallName,
+                   s.vendor_name AS stallName,
                    COUNT(DISTINCT o.id) AS orders,
                    COALESCE(SUM(COALESCE(oi.line_total,
                        oi.quantity * oi.selling_price_snapshot)), 0) AS revenue,
@@ -28,12 +28,12 @@ public interface StallAnalyticsRepository extends JpaRepository<com.broandbro.qr
             FROM orders o
             JOIN order_item oi ON oi.order_id = o.id
             JOIN menu_item mi ON mi.id = oi.item_id
-            JOIN shop s ON s.id = mi.shop_id
+            JOIN vendor s ON s.id = mi.vendor_id
             WHERE o.status = 'COMPLETED'
               AND o.created_at >= :from
               AND o.created_at < :toExclusive
               AND s.is_active = TRUE
-            GROUP BY s.id, s.shop_name
+            GROUP BY s.id, s.vendor_name
             ORDER BY revenue DESC
             """, nativeQuery = true)
     List<StallPerformanceProjection> findPerformance(
