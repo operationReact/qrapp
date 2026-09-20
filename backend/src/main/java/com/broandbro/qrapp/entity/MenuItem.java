@@ -24,6 +24,7 @@ public class MenuItem {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "location_id", nullable = false)
+    @JsonIgnore
     private Location location;
 
     // Make recommended nullable to avoid forcing a NOT NULL schema change that may time out
