@@ -125,7 +125,7 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
         SELECT i FROM Inventory i
         JOIN FETCH i.menuItem m
         WHERE (:inventoryMode IS NULL OR m.inventoryMode = :inventoryMode)
-        AND (:search        IS NULL OR LOWER(m.name)       LIKE LOWER(CONCAT('%', :search, '%')))
+        AND (:search        IS NULL OR LOWER(m.name)       LIKE CONCAT('%', LOWER(CAST(:search AS string)), '%'))
         AND (:isHidden      IS NULL OR m.isHidden           = :isHidden)
         AND (:inStockOnly   = false  OR i.availableQuantity > 0)
         AND (:lowStockOnly  = false  OR i.availableQuantity <= i.lowStockThreshold)
@@ -138,4 +138,3 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
             @Param("lowStockOnly")  boolean       lowStockOnly,
             Pageable pageable);
 }
-

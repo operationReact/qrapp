@@ -46,7 +46,7 @@ export function ControlCenterUsers() {
 
 export function ControlCenterLocations() {
   const { data = [], isLoading, error } = useQuery(adminLocationsOptions()); const { activeLocation } = useActiveLocation(); const [name, setName] = useState(""); const queryClient = useQueryClient();
-  const mutation = useMutation({ mutationFn: () => createManagementResource("/admin/locations", { code: name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-"), name, active: true }), onSuccess: () => { setName(""); queryClient.invalidateQueries({ queryKey: ["admin", "locations"] }); } });
+  const mutation = useMutation({ mutationFn: () => createManagementResource("/api/admin/locations", { code: name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-"), name, active: true }), onSuccess: () => { setName(""); queryClient.invalidateQueries({ queryKey: ["admin", "locations"] }); } });
   return <Shell title="Locations" description="Create and review the locations available to administrators."><Card><CardHeader><CardTitle>Authorized locations</CardTitle></CardHeader><CardContent className="space-y-4"><form className="flex gap-2" onSubmit={(event) => { event.preventDefault(); if (name.trim()) mutation.mutate(); }}><Input className="min-h-11" required placeholder="New location name" value={name} onChange={(event) => setName(event.target.value)} /><Button className="min-h-11" disabled={mutation.isPending}>Add</Button></form><div className="rounded-xl bg-primary/5 p-3 text-sm text-primary">Active: <strong>{activeLocation?.name || "Not selected"}</strong></div>{isLoading ? <p className="text-sm text-zinc-500">Loading locations…</p> : <Items items={data} empty="No locations are configured." />}<ErrorState error={error || mutation.error} /></CardContent></Card></Shell>;
 }
 

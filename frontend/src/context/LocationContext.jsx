@@ -14,7 +14,7 @@ export function authorizedLocationsOptions(enabled = true) {
   return {
     queryKey: ["locations", "accessible"],
     queryFn: async () => {
-      const response = await apiClient.get("/locations/accessible");
+      const response = await apiClient.get("/api/locations/accessible");
       const body = response.data;
       return Array.isArray(body) ? body : (body?.content || body?.data || body?.locations || []);
     },
