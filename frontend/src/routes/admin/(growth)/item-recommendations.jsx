@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import PairingsSection from "@/components/admin/PairingsSection";
 import { fetchItemClassification } from "@/services/classification-service";
+import { useLocation as useActiveLocation } from "@/context/LocationContext";
 import { Input } from "@/components/ui/input";
 import {
   Sheet,
@@ -99,21 +100,22 @@ function ItemRow({ item, onClick }) {
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 function ItemPairingsPage() {
+  const { activeLocationId } = useActiveLocation();
   const [search, setSearch]         = useState("");
   const [selectedItem, setSelectedItem] = useState(null);
 
   // Full menu list
   const { data: items = [], isLoading } = useQuery({
-    queryKey: ["menu", "admin-item-recs"],
-    queryFn: () => apiClient.get("/menu").then((r) => r.data),
+    queryKey: ["menu", "admin-item-recs", JSON.parse(localStorage.getItem("active-location") || "null")?.id],
+    queryFn: () => apiClient.get("/menu", { params: { locationId: JSON.parse(localStorage.getItem("active-location") || "null")?.id } }).then((r) => r.data),
     staleTime: 1000 * 60 * 2,
   });
 
   // Classification of the currently-open item — powers the quality context strip
   const { data: itemClassification } = useQuery({
-    queryKey: ["item-classification", selectedItem?.id],
-    queryFn:  () => fetchItemClassification(selectedItem.id),
-    enabled:  !!selectedItem?.id,
+    queryKey: ["item-classification", activeLocationId, selectedItem?.id],
+    queryFn:  () => fetchItemClassification(selectedItem.id, activeLocationId),
+    enabled: !!selectedItem?.id && !!activeLocationId,
     staleTime: 1000 * 60 * 5,
   });
 

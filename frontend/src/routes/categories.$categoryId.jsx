@@ -23,6 +23,7 @@ import {
 } from "@phosphor-icons/react";
 import Navbar from "@/components/shared/Navbar";
 import MobileMenu from "@/components/shared/MobileMenu";
+import { useLocation as useActiveLocation } from "@/context/LocationContext";
 
 export const Route = createFileRoute("/categories/$categoryId")({
   component: CategoryPage,
@@ -31,19 +32,20 @@ export const Route = createFileRoute("/categories/$categoryId")({
 function CategoryPage() {
   const { categoryId } = useParams({ strict: false });
   const navigate = useNavigate();
+  const { activeLocationId } = useActiveLocation();
 
   const {
     data: category,
     isLoading: categoryLoading,
     isError: categoryError,
-  } = useQuery(categoryOptions(categoryId));
+  } = useQuery(categoryOptions(categoryId, activeLocationId));
 
   const {
     data: items,
     isLoading: itemsLoading,
     isError: itemsError,
     refetch: refetchItems,
-  } = useQuery(categoryMenuOptions(categoryId));
+  } = useQuery(categoryMenuOptions(categoryId, activeLocationId));
 
   const isLoading = categoryLoading || itemsLoading;
   const isError = categoryError || itemsError;

@@ -41,8 +41,25 @@ public class ManualRecommendationService {
     }
 
     @Transactional(readOnly = true)
+    public List<ItemRecommendationResponse> getForSource(Long sourceItemId, Long locationId) {
+        List<ItemRecommendation> recs =
+                recRepo.findBySourceItemIdWithItemsByLocation(sourceItemId, locationId);
+        List<Long> targetIds = recs.stream().map(r -> r.getTargetItem().getId()).toList();
+        Map<Long, BigDecimal> prices = loadPrices(targetIds);
+        return recs.stream().map(r -> toResponse(r, prices)).toList();
+    }
+
+    @Transactional(readOnly = true)
     public List<ItemRecommendationResponse> getAll() {
         List<ItemRecommendation> all = recRepo.findAllWithItems();
+        List<Long> targetIds = all.stream().map(r -> r.getTargetItem().getId()).toList();
+        Map<Long, BigDecimal> prices = loadPrices(targetIds);
+        return all.stream().map(r -> toResponse(r, prices)).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<ItemRecommendationResponse> getAll(Long locationId) {
+        List<ItemRecommendation> all = recRepo.findAllWithItemsByLocation(locationId);
         List<Long> targetIds = all.stream().map(r -> r.getTargetItem().getId()).toList();
         Map<Long, BigDecimal> prices = loadPrices(targetIds);
         return all.stream().map(r -> toResponse(r, prices)).toList();
@@ -51,10 +68,11 @@ public class ManualRecommendationService {
     // ── Mutation ──────────────────────────────────────────────────────────────
 
     @Transactional
-    public ItemRecommendationResponse add(AddItemRecommendationRequest req, String actor) {
+    ItemRecommendationResponse add(AddItemRecommendationRequest req, String actor) {
         MenuItem source = menuRepo.findById(req.getSourceItemId())
                 .orElseThrow(() -> new IllegalArgumentException("Source item not found: " + req.getSourceItemId()));
-        MenuItem target = menuRepo.findById(req.getTargetItemId())
+        Long locationId = source.getLocation().getId();
+        MenuItem target = menuRepo.findByIdAndLocationId(req.getTargetItemId(), locationId)
                 .orElseThrow(() -> new IllegalArgumentException("Target item not found: " + req.getTargetItemId()));
 
         if (recRepo.findBySourceItemIdAndTargetItemId(source.getId(), target.getId()).isPresent()) {
@@ -75,14 +93,36 @@ public class ManualRecommendationService {
     }
 
     @Transactional
-    public void delete(Long id) {
+    public ItemRecommendationResponse add(AddItemRecommendationRequest req, String actor, Long locationId) {
+        MenuItem source = menuRepo.findByIdAndLocationId(req.getSourceItemId(), locationId)
+                .orElseThrow(() -> new IllegalArgumentException("Source item not found"));
+        MenuItem target = menuRepo.findByIdAndLocationId(req.getTargetItemId(), locationId)
+                .orElseThrow(() -> new IllegalArgumentException("Target item not found"));
+        if (recRepo.findBySourceItemIdAndTargetItemId(source.getId(), target.getId()).isPresent()) {
+            throw new IllegalStateException("Recommendation pair already exists");
+        }
+        ItemRecommendation saved = recRepo.save(ItemRecommendation.builder()
+                .sourceItem(source).targetItem(target)
+                .displayOrder(req.getDisplayOrder() != null ? req.getDisplayOrder() : 0)
+                .isActive(true).createdBy(actor).updatedBy(actor).build());
+        return toResponse(saved, loadPrices(List.of(target.getId())));
+    }
+
+    @Transactional
+    void delete(Long id) {
         ItemRecommendation rec = recRepo.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Recommendation not found: " + id));
         recRepo.delete(rec);
     }
 
     @Transactional
-    public ItemRecommendationResponse updateOrder(Long id, Integer displayOrder, String actor) {
+    public void delete(Long id, Long locationId) {
+        recRepo.delete(recRepo.findByIdAndLocation(id, locationId)
+                .orElseThrow(() -> new IllegalArgumentException("Recommendation not found: " + id)));
+    }
+
+    @Transactional
+    ItemRecommendationResponse updateOrder(Long id, Integer displayOrder, String actor) {
         ItemRecommendation rec = recRepo.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Recommendation not found: " + id));
         rec.setDisplayOrder(displayOrder);
@@ -93,7 +133,18 @@ public class ManualRecommendationService {
     }
 
     @Transactional
-    public ItemRecommendationResponse toggle(Long id, String actor) {
+    public ItemRecommendationResponse updateOrder(Long id, Integer displayOrder, String actor,
+                                                   Long locationId) {
+        ItemRecommendation rec = recRepo.findByIdAndLocation(id, locationId)
+                .orElseThrow(() -> new IllegalArgumentException("Recommendation not found: " + id));
+        rec.setDisplayOrder(displayOrder);
+        rec.setUpdatedBy(actor);
+        ItemRecommendation saved = recRepo.save(rec);
+        return toResponse(saved, loadPrices(List.of(rec.getTargetItem().getId())));
+    }
+
+    @Transactional
+    ItemRecommendationResponse toggle(Long id, String actor) {
         ItemRecommendation rec = recRepo.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Recommendation not found: " + id));
         rec.setIsActive(!rec.getIsActive());
@@ -101,6 +152,16 @@ public class ManualRecommendationService {
         ItemRecommendation saved = recRepo.save(rec);
         Map<Long, BigDecimal> prices = loadPrices(List.of(rec.getTargetItem().getId()));
         return toResponse(saved, prices);
+    }
+
+    @Transactional
+    public ItemRecommendationResponse toggle(Long id, String actor, Long locationId) {
+        ItemRecommendation rec = recRepo.findByIdAndLocation(id, locationId)
+                .orElseThrow(() -> new IllegalArgumentException("Recommendation not found: " + id));
+        rec.setIsActive(!rec.getIsActive());
+        rec.setUpdatedBy(actor);
+        ItemRecommendation saved = recRepo.save(rec);
+        return toResponse(saved, loadPrices(List.of(rec.getTargetItem().getId())));
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
@@ -130,4 +191,3 @@ public class ManualRecommendationService {
                 .build();
     }
 }
-

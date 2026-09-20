@@ -4,6 +4,9 @@ import com.broandbro.qrapp.entity.Category;
 import com.broandbro.qrapp.entity.MenuItem;
 import com.broandbro.qrapp.repository.MenuRepository;
 import com.broandbro.qrapp.service.CategoryService;
+import com.broandbro.qrapp.service.LocationAccessService;
+import com.broandbro.qrapp.service.UserService;
+import com.broandbro.qrapp.repository.LocationRepository;
 import lombok.Builder;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
@@ -31,11 +34,14 @@ import java.util.Optional;
 @RestController
 @RequestMapping("/admin")
 @RequiredArgsConstructor
-@PreAuthorize("hasAnyRole('ADMIN', 'SUPER_USER')")
+@PreAuthorize("hasAnyRole('ADMIN', 'SUPER_USER', 'SUPERUSER', 'SUPER_ADMIN', 'MANAGER')")
 public class AdminTrashController {
 
     private final CategoryService categoryService;
     private final MenuRepository  menuRepository;
+    private final LocationAccessService locationAccessService;
+    private final LocationRepository locationRepository;
+    private final UserService userService;
 
     // ── Lightweight DTO (avoids circular-reference in raw MenuItem entity) ────
 
@@ -52,14 +58,16 @@ public class AdminTrashController {
     // ── Categories ────────────────────────────────────────────────────────────
 
     @GetMapping("/categories/deleted")
-    public ResponseEntity<List<Category>> getDeletedCategories() {
-        return ResponseEntity.ok(categoryService.getDeletedCategories());
+    public ResponseEntity<List<Category>> getDeletedCategories(
+            @RequestParam Long locationId, java.security.Principal principal) {
+        return ResponseEntity.ok(categoryService.getDeletedCategories(locationId, currentUser(principal)));
     }
 
     @PatchMapping("/categories/{id}/restore")
-    public ResponseEntity<?> restoreCategory(@PathVariable Long id) {
+    public ResponseEntity<?> restoreCategory(
+            @PathVariable Long id, @RequestParam Long locationId, java.security.Principal principal) {
         try {
-            categoryService.restoreCategory(id);
+            categoryService.restoreCategory(locationId, id, currentUser(principal));
             log.info("Admin restored category id={}", id);
             return ResponseEntity.ok().build();
         } catch (RuntimeException ex) {
@@ -70,8 +78,10 @@ public class AdminTrashController {
     // ── Menu Items ────────────────────────────────────────────────────────────
 
     @GetMapping("/menu/deleted")
-    public ResponseEntity<List<DeletedItemView>> getDeletedMenuItems() {
-        List<DeletedItemView> views = menuRepository.findByIsDeletedTrue().stream()
+    public ResponseEntity<List<DeletedItemView>> getDeletedMenuItems(
+            @RequestParam Long locationId, java.security.Principal principal) {
+        requireLocationAccess(locationId, principal);
+        List<DeletedItemView> views = menuRepository.findByLocationIdAndIsDeletedTrue(locationId).stream()
                 .map(item -> {
                     Category cat = item.getCategory();
                     return DeletedItemView.builder()
@@ -88,8 +98,10 @@ public class AdminTrashController {
 
     @PatchMapping("/menu/{id}/restore")
     @CacheEvict(cacheNames = {"menu", "menuRecommended"}, allEntries = true)
-    public ResponseEntity<?> restoreMenuItem(@PathVariable Long id) {
-        Optional<MenuItem> opt = menuRepository.findById(id);
+    public ResponseEntity<?> restoreMenuItem(
+            @PathVariable Long id, @RequestParam Long locationId, java.security.Principal principal) {
+        requireLocationAccess(locationId, principal);
+        Optional<MenuItem> opt = menuRepository.findByIdAndLocationId(id, locationId);
         if (opt.isEmpty() || !Boolean.TRUE.equals(opt.get().getIsDeleted())) {
             return ResponseEntity.notFound().build();
         }
@@ -99,5 +111,15 @@ public class AdminTrashController {
         log.info("Admin restored menu item id={} name='{}'", id, item.getName());
         return ResponseEntity.ok().build();
     }
-}
 
+    private com.broandbro.qrapp.entity.User currentUser(java.security.Principal principal) {
+        return userService.findByPhone(principal.getName()).orElseThrow();
+    }
+
+    private void requireLocationAccess(Long locationId, java.security.Principal principal) {
+        locationRepository.findById(locationId)
+                .filter(location -> Boolean.TRUE.equals(location.getActive()))
+                .orElseThrow(() -> new IllegalArgumentException("location_not_found_or_inactive"));
+        locationAccessService.requireLocationAccess(currentUser(principal), locationId);
+    }
+}

@@ -150,10 +150,10 @@ public class SecurityConfig {
                         .requestMatchers(
                                 HttpMethod.POST,
                                 "/menu"
-                        ).hasRole("ADMIN")
+                        ).hasAnyRole("ADMIN", "SUPERUSER", "SUPER_ADMIN", "MANAGER")
 
                         .requestMatchers("/admin/**")
-                        .hasAnyRole("ADMIN", "SUPERUSER")
+                        .hasAnyRole("ADMIN", "SUPERUSER", "SUPER_ADMIN", "MANAGER")
 
                         .requestMatchers("/api/admin/**")
                         .hasAnyRole("ADMIN", "SUPERUSER", "SUPER_ADMIN")

@@ -5,6 +5,10 @@ import com.broandbro.qrapp.recommendation.dto.RecommendationAnalyticsDtos.*;
 import com.broandbro.qrapp.recommendation.dto.RecommendationDtos.*;
 import com.broandbro.qrapp.recommendation.scheduler.CoOccurrenceScheduler;
 import com.broandbro.qrapp.recommendation.service.*;
+import com.broandbro.qrapp.entity.User;
+import com.broandbro.qrapp.repository.LocationRepository;
+import com.broandbro.qrapp.service.LocationAccessService;
+import com.broandbro.qrapp.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -51,7 +55,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/admin/growth")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN', 'SUPER_USER')")
 public class GrowthAdminController {
 
     private final ManualRecommendationService manualSvc;
@@ -61,24 +65,33 @@ public class GrowthAdminController {
     private final CoOccurrenceScheduler scheduler;
     private final RecommendationInteractionService interactionService;
     private final ComboOpportunityService comboOpportunitySvc;
+    private final LocationRepository locationRepository;
+    private final LocationAccessService locationAccessService;
+    private final UserService userService;
 
     // ── L1: Manual Recommendations ───────────────────────────────────────────
 
     @GetMapping("/recommendations")
-    public ResponseEntity<List<ItemRecommendationResponse>> getAllRecommendations() {
-        return ResponseEntity.ok(manualSvc.getAll());
+    public ResponseEntity<List<ItemRecommendationResponse>> getAllRecommendations(
+            @RequestParam Long locationId, Authentication auth) {
+        requireLocation(locationId, auth);
+        return ResponseEntity.ok(manualSvc.getAll(locationId));
     }
 
     @GetMapping("/recommendations/source/{itemId}")
-    public ResponseEntity<List<ItemRecommendationResponse>> getForSource(@PathVariable Long itemId) {
-        return ResponseEntity.ok(manualSvc.getForSource(itemId));
+    public ResponseEntity<List<ItemRecommendationResponse>> getForSource(
+            @PathVariable Long itemId, @RequestParam Long locationId, Authentication auth) {
+        requireLocation(locationId, auth);
+        return ResponseEntity.ok(manualSvc.getForSource(itemId, locationId));
     }
 
     @PostMapping("/recommendations")
     public ResponseEntity<?> addRecommendation(
-            @RequestBody AddItemRecommendationRequest req, Authentication auth) {
+            @RequestBody AddItemRecommendationRequest req, @RequestParam Long locationId,
+            Authentication auth) {
         try {
-            ItemRecommendationResponse resp = manualSvc.add(req, actor(auth));
+            requireLocation(locationId, auth);
+            ItemRecommendationResponse resp = manualSvc.add(req, actor(auth), locationId);
             return ResponseEntity.status(HttpStatus.CREATED).body(resp);
         } catch (IllegalArgumentException | IllegalStateException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
@@ -89,27 +102,35 @@ public class GrowthAdminController {
     public ResponseEntity<?> updateOrder(
             @PathVariable Long id,
             @RequestBody Map<String, Integer> body,
-            Authentication auth) {
+            @RequestParam Long locationId, Authentication auth) {
         try {
-            return ResponseEntity.ok(manualSvc.updateOrder(id, body.get("displayOrder"), actor(auth)));
+            requireLocation(locationId, auth);
+            return ResponseEntity.ok(manualSvc.updateOrder(
+                    id, body.get("displayOrder"), actor(auth), locationId));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.notFound().build();
         }
     }
 
     @PatchMapping("/recommendations/{id}/toggle")
-    public ResponseEntity<?> toggleRecommendation(@PathVariable Long id, Authentication auth) {
+    public ResponseEntity<?> toggleRecommendation(@PathVariable Long id,
+                                                   @RequestParam Long locationId,
+                                                   Authentication auth) {
         try {
-            return ResponseEntity.ok(manualSvc.toggle(id, actor(auth)));
+            requireLocation(locationId, auth);
+            return ResponseEntity.ok(manualSvc.toggle(id, actor(auth), locationId));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.notFound().build();
         }
     }
 
     @DeleteMapping("/recommendations/{id}")
-    public ResponseEntity<Void> deleteRecommendation(@PathVariable Long id) {
+    public ResponseEntity<Void> deleteRecommendation(@PathVariable Long id,
+                                                     @RequestParam Long locationId,
+                                                     Authentication auth) {
         try {
-            manualSvc.delete(id);
+            requireLocation(locationId, auth);
+            manualSvc.delete(id, locationId);
             return ResponseEntity.noContent().build();
         } catch (IllegalArgumentException e) {
             return ResponseEntity.notFound().build();
@@ -119,27 +140,34 @@ public class GrowthAdminController {
     // ── L2: Auto Suggestions ─────────────────────────────────────────────────
 
     @GetMapping("/suggestions")
-    public ResponseEntity<List<AutoSuggestionResponse>> getAllSuggestions() {
-        return ResponseEntity.ok(autoSvc.getAll());
+    public ResponseEntity<List<AutoSuggestionResponse>> getAllSuggestions(
+            @RequestParam Long locationId, Authentication auth) {
+        requireLocation(locationId, auth);
+        return ResponseEntity.ok(autoSvc.getAll(locationId));
     }
 
     @GetMapping("/suggestions/pending")
-    public ResponseEntity<List<AutoSuggestionResponse>> getPendingSuggestions() {
-        return ResponseEntity.ok(autoSvc.getPending());
+    public ResponseEntity<List<AutoSuggestionResponse>> getPendingSuggestions(
+            @RequestParam Long locationId, Authentication auth) {
+        requireLocation(locationId, auth);
+        return ResponseEntity.ok(autoSvc.getPending(locationId));
     }
 
     @GetMapping("/suggestions/count")
-    public ResponseEntity<Map<String, Long>> countPending() {
-        return ResponseEntity.ok(Map.of("pending", autoSvc.countPending()));
+    public ResponseEntity<Map<String, Long>> countPending(
+            @RequestParam Long locationId, Authentication auth) {
+        requireLocation(locationId, auth);
+        return ResponseEntity.ok(Map.of("pending", autoSvc.countPending(locationId)));
     }
 
     @PostMapping("/suggestions/{id}/review")
     public ResponseEntity<?> reviewSuggestion(
             @PathVariable Long id,
             @RequestBody ReviewSuggestionRequest req,
-            Authentication auth) {
+            @RequestParam Long locationId, Authentication auth) {
         try {
-            return ResponseEntity.ok(autoSvc.review(id, req.getAction(), actor(auth)));
+            requireLocation(locationId, auth);
+            return ResponseEntity.ok(autoSvc.review(id, req.getAction(), actor(auth), locationId));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.notFound().build();
         }
@@ -147,8 +175,10 @@ public class GrowthAdminController {
 
     @PostMapping("/suggestions/bulk-review")
     public ResponseEntity<Void> bulkReview(
-            @RequestBody BulkReviewRequest req, Authentication auth) {
-        autoSvc.bulkReview(req, actor(auth));
+            @RequestBody BulkReviewRequest req, @RequestParam Long locationId,
+            Authentication auth) {
+        requireLocation(locationId, auth);
+        autoSvc.bulkReview(req, actor(auth), locationId);
         return ResponseEntity.noContent().build();
     }
 
@@ -167,15 +197,20 @@ public class GrowthAdminController {
     // ── L4: Upsell Rules ─────────────────────────────────────────────────────
 
     @GetMapping("/upsell-rules")
-    public ResponseEntity<List<UpsellRuleResponse>> getAllUpsellRules() {
-        return ResponseEntity.ok(upsellSvc.getAllIncludingInactive());
+    public ResponseEntity<List<UpsellRuleResponse>> getAllUpsellRules(
+            @RequestParam Long locationId, Authentication auth) {
+        requireLocation(locationId, auth);
+        return ResponseEntity.ok(upsellSvc.getAllIncludingInactive(locationId));
     }
 
     @PostMapping("/upsell-rules")
     public ResponseEntity<?> createUpsellRule(
-            @RequestBody UpsellRuleRequest req, Authentication auth) {
+            @RequestBody UpsellRuleRequest req, @RequestParam Long locationId,
+            Authentication auth) {
         try {
-            return ResponseEntity.status(HttpStatus.CREATED).body(upsellSvc.create(req, actor(auth)));
+            requireLocation(locationId, auth);
+            return ResponseEntity.status(HttpStatus.CREATED)
+                    .body(upsellSvc.create(req, actor(auth), locationId));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
@@ -185,27 +220,34 @@ public class GrowthAdminController {
     public ResponseEntity<?> updateUpsellRule(
             @PathVariable Long id,
             @RequestBody UpsellRuleRequest req,
-            Authentication auth) {
+            @RequestParam Long locationId, Authentication auth) {
         try {
-            return ResponseEntity.ok(upsellSvc.update(id, req, actor(auth)));
+            requireLocation(locationId, auth);
+            return ResponseEntity.ok(upsellSvc.update(id, req, actor(auth), locationId));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
 
     @PatchMapping("/upsell-rules/{id}/toggle")
-    public ResponseEntity<?> toggleUpsellRule(@PathVariable Long id, Authentication auth) {
+    public ResponseEntity<?> toggleUpsellRule(@PathVariable Long id,
+                                              @RequestParam Long locationId,
+                                              Authentication auth) {
         try {
-            return ResponseEntity.ok(upsellSvc.toggle(id, actor(auth)));
+            requireLocation(locationId, auth);
+            return ResponseEntity.ok(upsellSvc.toggle(id, actor(auth), locationId));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.notFound().build();
         }
     }
 
     @DeleteMapping("/upsell-rules/{id}")
-    public ResponseEntity<Void> deleteUpsellRule(@PathVariable Long id) {
+    public ResponseEntity<Void> deleteUpsellRule(@PathVariable Long id,
+                                                 @RequestParam Long locationId,
+                                                 Authentication auth) {
         try {
-            upsellSvc.delete(id);
+            requireLocation(locationId, auth);
+            upsellSvc.delete(id, locationId);
             return ResponseEntity.noContent().build();
         } catch (Exception e) {
             return ResponseEntity.notFound().build();
@@ -215,32 +257,42 @@ public class GrowthAdminController {
     // ── L5: Category Pairings ────────────────────────────────────────────────
 
     @GetMapping("/category-pairings")
-    public ResponseEntity<List<CategoryPairingResponse>> getAllPairings() {
-        return ResponseEntity.ok(catPairingSvc.getAll());
+    public ResponseEntity<List<CategoryPairingResponse>> getAllPairings(
+            @RequestParam Long locationId, Authentication auth) {
+        requireLocation(locationId, auth);
+        return ResponseEntity.ok(catPairingSvc.getAll(locationId));
     }
 
     @PostMapping("/category-pairings")
     public ResponseEntity<?> createPairing(
-            @RequestBody CategoryPairingRequest req, Authentication auth) {
+            @RequestBody CategoryPairingRequest req, @RequestParam Long locationId,
+            Authentication auth) {
         try {
-            return ResponseEntity.status(HttpStatus.CREATED).body(catPairingSvc.create(req, actor(auth)));
+            requireLocation(locationId, auth);
+            return ResponseEntity.status(HttpStatus.CREATED)
+                    .body(catPairingSvc.create(req, actor(auth), locationId));
         } catch (IllegalArgumentException | IllegalStateException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
 
     @PatchMapping("/category-pairings/{id}/toggle")
-    public ResponseEntity<?> togglePairing(@PathVariable Long id) {
+    public ResponseEntity<?> togglePairing(@PathVariable Long id,
+                                           @RequestParam Long locationId, Authentication auth) {
         try {
-            return ResponseEntity.ok(catPairingSvc.toggle(id));
+            requireLocation(locationId, auth);
+            return ResponseEntity.ok(catPairingSvc.toggle(id, locationId));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.notFound().build();
         }
     }
 
     @DeleteMapping("/category-pairings/{id}")
-    public ResponseEntity<Void> deletePairing(@PathVariable Long id) {
-        catPairingSvc.delete(id);
+    public ResponseEntity<Void> deletePairing(@PathVariable Long id,
+                                              @RequestParam Long locationId,
+                                              Authentication auth) {
+        requireLocation(locationId, auth);
+        catPairingSvc.delete(id, locationId);
         return ResponseEntity.noContent().build();
     }
 
@@ -272,6 +324,20 @@ public class GrowthAdminController {
         return auth != null ? auth.getName() : "system";
     }
 
+    private void requireLocation(Long locationId, Authentication auth) {
+        if (locationId == null || auth == null) {
+            throw new org.springframework.security.access.AccessDeniedException("location_access_denied");
+        }
+        User user = userService.findByPhone(auth.getName())
+                .orElseThrow(() -> new org.springframework.security.access.AccessDeniedException(
+                        "location_access_denied"));
+        locationRepository.findById(locationId)
+                .filter(location -> Boolean.TRUE.equals(location.getActive()))
+                .orElseThrow(() -> new org.springframework.security.access.AccessDeniedException(
+                        "location_not_found_or_inactive"));
+        locationAccessService.requireLocationAccess(user, locationId);
+    }
+
     // ── AI Combo Opportunities ────────────────────────────────────────────────
 
     /**
@@ -280,15 +346,17 @@ public class GrowthAdminController {
      */
     @GetMapping("/combo-opportunities")
     public ResponseEntity<List<ComboOpportunityResponse>> listOpportunities(
-            @RequestParam(required = false) String status) {
+            @RequestParam Long locationId, @RequestParam(required = false) String status,
+            Authentication auth) {
+        requireLocation(locationId, auth);
         if (status != null && !status.isBlank()) {
             try {
-                return ResponseEntity.ok(comboOpportunitySvc.listByStatus(status));
+                return ResponseEntity.ok(comboOpportunitySvc.listByStatus(status, locationId));
             } catch (IllegalArgumentException e) {
                 return ResponseEntity.badRequest().build();
             }
         }
-        return ResponseEntity.ok(comboOpportunitySvc.listAll());
+        return ResponseEntity.ok(comboOpportunitySvc.listAll(locationId));
     }
 
     /**
@@ -296,8 +364,10 @@ public class GrowthAdminController {
      * Pairs frequently bought together that have no combo.
      */
     @GetMapping("/combo-opportunities/missed")
-    public ResponseEntity<List<MissedOpportunityResponse>> listMissedOpportunities() {
-        return ResponseEntity.ok(comboOpportunitySvc.listMissed());
+    public ResponseEntity<List<MissedOpportunityResponse>> listMissedOpportunities(
+            @RequestParam Long locationId, Authentication auth) {
+        requireLocation(locationId, auth);
+        return ResponseEntity.ok(comboOpportunitySvc.listMissed(locationId));
     }
 
     /**
@@ -329,9 +399,11 @@ public class GrowthAdminController {
     public ResponseEntity<?> reviewOpportunity(
             @PathVariable Long id,
             @RequestBody ReviewOpportunityRequest req,
-            Authentication auth) {
+            @RequestParam Long locationId, Authentication auth) {
         try {
-            return ResponseEntity.ok(comboOpportunitySvc.review(id, req.getAction(), actor(auth)));
+            requireLocation(locationId, auth);
+            return ResponseEntity.ok(comboOpportunitySvc.review(
+                    id, req.getAction(), actor(auth), locationId));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
@@ -345,12 +417,12 @@ public class GrowthAdminController {
     public ResponseEntity<?> updateOpportunity(
             @PathVariable Long id,
             @RequestBody UpdateOpportunityRequest req,
-            Authentication auth) {
+            @RequestParam Long locationId, Authentication auth) {
         try {
-            return ResponseEntity.ok(comboOpportunitySvc.update(id, req, actor(auth)));
+            requireLocation(locationId, auth);
+            return ResponseEntity.ok(comboOpportunitySvc.update(id, req, actor(auth), locationId));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
 }
-

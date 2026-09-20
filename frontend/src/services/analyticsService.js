@@ -98,10 +98,10 @@ export const fetchHighestMarginItems = (params) =>
 export const updateItemEstimatedCost = (itemId, estimatedCost) =>
   apiClient.patch(`/menu/${itemId}/estimated-cost`, { estimatedCost }).then((r) => r.data);
 
-export const updateItemSellingPrice = (menuItemId, sellingPrice) =>
+export const updateItemSellingPrice = (menuItemId, sellingPrice, locationId) =>
   apiClient.post("/api/pricing/menu-items/set-price", {
     menuItemId,
     sellingPrice,
     effectiveFrom: null,
     reason: "Updated via Profitability Dashboard",
-  }).then((r) => r.data);
+  }, { params: { locationId } }).then((r) => r.data);

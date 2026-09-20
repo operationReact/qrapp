@@ -5,12 +5,16 @@ import com.broandbro.qrapp.analytics.repository.MenuItemAnalyticsRepository;
 import com.broandbro.qrapp.entity.MenuItem;
 import com.broandbro.qrapp.entity.Category;
 import com.broandbro.qrapp.entity.Tag;
+import com.broandbro.qrapp.entity.User;
 import com.broandbro.qrapp.repository.MenuRepository;
 import com.broandbro.qrapp.repository.CategoryRepository;
 import com.broandbro.qrapp.repository.TagRepository;
 import com.broandbro.qrapp.dto.MenuItemResponse;
 import com.broandbro.qrapp.service.InventoryService;
 import com.broandbro.qrapp.service.PricingService;
+import com.broandbro.qrapp.service.LocationAccessService;
+import com.broandbro.qrapp.service.UserService;
+import com.broandbro.qrapp.repository.LocationRepository;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -69,6 +73,9 @@ public class MenuController {
     private final PricingService pricingService;
     private final ApplicationEventPublisher eventPublisher;
     private final MenuItemAnalyticsRepository analyticsMenuItemRepo;
+    private final LocationRepository locationRepository;
+    private final LocationAccessService locationAccessService;
+    private final UserService userService;
 
     @Autowired
     @Qualifier("analyticsCacheManager")
@@ -93,6 +100,7 @@ public class MenuController {
 
     @GetMapping
     public List<MenuItemResponse> getMenu(
+            @RequestParam Long locationId,
             @RequestParam(value = "isVeg", required = false) Boolean isVeg,
             @RequestParam(value = "categoryId", required = false) Long categoryId,
             @RequestParam(value = "recommended", required = false) Boolean recommended,
@@ -101,7 +109,8 @@ public class MenuController {
     ) {
         int safePage = page == null ? DEFAULT_MENU_PAGE : Math.max(0, page);
         int safeSize = size == null ? DEFAULT_MENU_SIZE : Math.max(1, Math.min(size, MAX_MENU_SIZE));
-        List<MenuItem> items = repo.findByFilters(isVeg, categoryId, recommended, PageRequest.of(safePage, safeSize));
+        requireActiveLocation(locationId);
+        List<MenuItem> items = repo.findByFilters(locationId, isVeg, categoryId, recommended, PageRequest.of(safePage, safeSize));
         // Batch-load all active prices in ONE query instead of N individual queries
         List<Long> ids = items.stream().map(MenuItem::getId).toList();
         Map<Long, BigDecimal> priceMap = pricingService.getCurrentSellingPrices(ids);
@@ -113,10 +122,13 @@ public class MenuController {
 
 
     @GetMapping("/recommended")
-    @Cacheable(cacheNames = "menuRecommended", key = "#limit == null ? 'default' : #limit")
-    public List<MenuItemResponse> getRecommendedMenu(@RequestParam(value = "limit", required = false) Integer limit) {
+    @Cacheable(cacheNames = "menuRecommended", key = "#locationId + ':' + (#limit == null ? 'default' : #limit)")
+    public List<MenuItemResponse> getRecommendedMenu(
+            @RequestParam Long locationId,
+            @RequestParam(value = "limit", required = false) Integer limit) {
+        requireActiveLocation(locationId);
         int safeLimit = limit == null ? DEFAULT_RECOMMENDED_LIMIT : Math.max(1, Math.min(limit, MAX_RECOMMENDED_LIMIT));
-        List<MenuItem> items = repo.findTopRecommended(PageRequest.of(0, safeLimit));
+        List<MenuItem> items = repo.findTopRecommended(locationId, PageRequest.of(0, safeLimit));
         List<Long> ids = items.stream().map(MenuItem::getId).toList();
         Map<Long, BigDecimal> priceMap = pricingService.getCurrentSellingPrices(ids);
         Map<Long, InventoryService.MenuItemAvailability> availabilityMap = inventoryService.getAvailability(items);
@@ -126,10 +138,16 @@ public class MenuController {
     }
 
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPERUSER', 'SUPER_ADMIN', 'MANAGER')")
     @ResponseStatus(HttpStatus.CREATED)
     @CacheEvict(cacheNames = {"menu", "menuRecommended"}, allEntries = true)
-    public MenuItem addMenuItem(@Valid @RequestBody MenuItem item) {
+    public MenuItem addMenuItem(
+            @RequestParam Long locationId,
+            @Valid @RequestBody MenuItem item,
+            org.springframework.security.core.Authentication authentication) {
+        requireManagementLocation(locationId, authentication);
+        item.setLocation(locationRepository.findById(locationId).orElseThrow());
+        item.setCategory(resolveCategory(item.getCategory(), locationId));
         // Ensure id is null so a new entity is created rather than updated
         item.setId(null);
         MenuItem saved = repo.save(item);
@@ -139,7 +157,7 @@ public class MenuController {
     }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPERUSER', 'SUPER_ADMIN', 'MANAGER')")
     @CacheEvict(cacheNames = {"menu", "menuRecommended"}, allEntries = true)
     public ResponseEntity<?> addMenuItemMultipart(
             @RequestPart("name") String name,
@@ -155,10 +173,14 @@ public class MenuController {
             @RequestPart(value = "estimatedCost",  required = false) String estimatedCostStr,
             @RequestPart(value = "imageUrl",       required = false) String imageUrlStr,
             @RequestPart(value = "image",          required = false) MultipartFile image
+            , @RequestParam Long locationId,
+            org.springframework.security.core.Authentication authentication
     ) {
         try {
+            requireManagementLocation(locationId, authentication);
             MenuItem item = new MenuItem();
             item.setId(null);
+            item.setLocation(locationRepository.findById(locationId).orElseThrow());
             item.setName(name == null ? "" : name);
             double price = 0.0;
             if (priceStr != null && !priceStr.isBlank()) {
@@ -174,7 +196,7 @@ public class MenuController {
             if (categoryIdStr != null && !categoryIdStr.isBlank()) {
                 try {
                     Long categoryId = Long.parseLong(categoryIdStr);
-                    Category category = categoryRepository.findById(categoryId)
+                    Category category = categoryRepository.findByIdAndLocationIdAndIsDeletedFalse(categoryId, locationId)
                             .orElseThrow(() -> new RuntimeException("Category not found with id: " + categoryId));
                     item.setCategory(category);
                 } catch (NumberFormatException nfe) {
@@ -270,15 +292,18 @@ public class MenuController {
 
     // --- Flexible single PUT handler (handles JSON, multipart, raw bytes) ---
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPERUSER', 'SUPER_ADMIN', 'MANAGER')")
     @CacheEvict(cacheNames = {"menu", "menuRecommended"}, allEntries = true)
     @org.springframework.transaction.annotation.Transactional
     public ResponseEntity<?> updateMenuItemFlexible(
             @PathVariable Long id,
             HttpServletRequest request,
             @RequestHeader(value = "X-Filename", required = false) String xFilename
+            , @RequestParam Long locationId,
+            org.springframework.security.core.Authentication authentication
     ) {
-        Optional<MenuItem> o = repo.findById(id);
+        requireManagementLocation(locationId, authentication);
+        Optional<MenuItem> o = repo.findByIdAndLocationId(id, locationId);
         if (o.isEmpty()) return ResponseEntity.notFound().build();
         MenuItem existing = o.get();
 
@@ -310,7 +335,7 @@ public class MenuController {
                     if (categoryIdStr != null && !categoryIdStr.isBlank()) {
                         try {
                             Long categoryId = Long.parseLong(categoryIdStr);
-                            Category category = categoryRepository.findById(categoryId)
+                            Category category = categoryRepository.findByIdAndLocationIdAndIsDeletedFalse(categoryId, locationId)
                                     .orElseThrow(() -> new RuntimeException("Category not found with id: " + categoryId));
                             existing.setCategory(category);
                         } catch (NumberFormatException ex) { /* ignore */ }
@@ -379,7 +404,7 @@ public class MenuController {
                     if (c != null) {
                         try {
                             Long categoryId = c instanceof Number ? ((Number)c).longValue() : Long.parseLong(String.valueOf(c));
-                            Category category = categoryRepository.findById(categoryId)
+                            Category category = categoryRepository.findByIdAndLocationIdAndIsDeletedFalse(categoryId, locationId)
                                     .orElseThrow(() -> new RuntimeException("Category not found with id: " + categoryId));
                             existing.setCategory(category);
                         } catch (Exception ex) { /* ignore */ }
@@ -441,7 +466,7 @@ public class MenuController {
                     log.info("[MenuUpdate] imageUrl change detected for menuItemId={} | OLD='{}' | NEW='{}'", id, oldUrl, newUrl);
                     existing.setImageUrl(newUrl);
                     // Direct SQL update to guarantee imageUrl is persisted regardless of Hibernate session state
-                    int rows = repo.updateImageUrl(id, newUrl.isBlank() ? null : newUrl, java.time.Instant.now());
+                    int rows = repo.updateImageUrl(id, locationId, newUrl.isBlank() ? null : newUrl, java.time.Instant.now());
                     log.info("[MenuUpdate] Direct SQL updateImageUrl for menuItemId={} | rows updated={} | url='{}'", id, rows, newUrl);
                     if (rows == 0) {
                         log.warn("[MenuUpdate] ⚠ updateImageUrl affected 0 rows for menuItemId={} — imageUrl may NOT have been persisted!", id);
@@ -495,10 +520,14 @@ public class MenuController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPERUSER', 'SUPER_ADMIN', 'MANAGER')")
     @CacheEvict(cacheNames = {"menu", "menuRecommended"}, allEntries = true)
-    public ResponseEntity<?> deleteMenuItem(@PathVariable Long id) {
-        Optional<MenuItem> optItem = repo.findById(id);
+    public ResponseEntity<?> deleteMenuItem(
+            @PathVariable Long id,
+            @RequestParam Long locationId,
+            org.springframework.security.core.Authentication authentication) {
+        requireManagementLocation(locationId, authentication);
+        Optional<MenuItem> optItem = repo.findByIdAndLocationId(id, locationId);
         if (optItem.isEmpty()) {
             return ResponseEntity.notFound().build();
         }
@@ -553,7 +582,7 @@ public class MenuController {
      * Used by the admin profitability dashboard to configure costs for SELF_PREPARED items.
      */
 @PatchMapping("/{id}/estimated-cost")
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("hasAnyRole('ADMIN', 'SUPERUSER', 'SUPER_ADMIN', 'MANAGER')")
 @Caching(evict = {
     @CacheEvict(cacheNames = {"menu", "menuRecommended"}, allEntries = true),
     @CacheEvict(cacheManager = "analyticsCacheManager",
@@ -562,9 +591,12 @@ public class MenuController {
 })
 public ResponseEntity<?> updateEstimatedCost(
             @PathVariable Long id,
-            @RequestBody java.util.Map<String, BigDecimal> body) {
+            @RequestParam Long locationId,
+            @RequestBody java.util.Map<String, BigDecimal> body,
+            org.springframework.security.core.Authentication authentication) {
 
-        Optional<MenuItem> optItem = repo.findById(id);
+        requireManagementLocation(locationId, authentication);
+        Optional<MenuItem> optItem = repo.findByIdAndLocationId(id, locationId);
         if (optItem.isEmpty()) {
             return ResponseEntity.notFound().build();
         }
@@ -597,7 +629,7 @@ public ResponseEntity<?> updateEstimatedCost(
      * Items that would result in an active item with no cost are skipped with an error entry.
      */
 @PostMapping("/bulk-estimated-cost")
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("hasAnyRole('ADMIN', 'SUPERUSER', 'SUPER_ADMIN', 'MANAGER')")
 @Caching(evict = {
     @CacheEvict(cacheNames = {"menu", "menuRecommended"}, allEntries = true),
     @CacheEvict(cacheManager = "analyticsCacheManager",
@@ -606,7 +638,10 @@ public ResponseEntity<?> updateEstimatedCost(
 })
     @org.springframework.transaction.annotation.Transactional
     public ResponseEntity<?> bulkUpdateEstimatedCost(
-            @RequestBody List<java.util.Map<String, Object>> updates) {
+            @RequestParam Long locationId,
+            @RequestBody List<java.util.Map<String, Object>> updates,
+            org.springframework.security.core.Authentication authentication) {
+        requireManagementLocation(locationId, authentication);
 
         int updated = 0;
         List<java.util.Map<String, Object>> errors = new java.util.ArrayList<>();
@@ -621,7 +656,7 @@ public ResponseEntity<?> updateEstimatedCost(
             try { itemId = rawId instanceof Number ? ((Number) rawId).longValue() : Long.parseLong(String.valueOf(rawId)); }
             catch (NumberFormatException e) { continue; }
 
-            Optional<MenuItem> optItem = repo.findById(itemId);
+            Optional<MenuItem> optItem = repo.findByIdAndLocationId(itemId, locationId);
             if (optItem.isEmpty()) {
                 errors.add(Map.of("id", itemId, "error", "Item not found"));
                 continue;
@@ -640,6 +675,7 @@ public ResponseEntity<?> updateEstimatedCost(
                     errors.add(Map.of("id", itemId, "error", "Invalid cost format"));
                     continue;
                 }
+
             }
 
             BigDecimal previousCost = item.getEstimatedCost();
@@ -659,5 +695,24 @@ public ResponseEntity<?> updateEstimatedCost(
                 "errors",  errors,
                 "timestamp", java.time.Instant.now().toString()
         ));
+    }
+
+    private void requireActiveLocation(Long locationId) {
+        locationRepository.findById(locationId)
+                .filter(location -> Boolean.TRUE.equals(location.getActive()))
+                .orElseThrow(() -> new IllegalArgumentException("location_not_found_or_inactive"));
+    }
+
+    private void requireManagementLocation(
+            Long locationId, org.springframework.security.core.Authentication authentication) {
+        requireActiveLocation(locationId);
+        User user = userService.findByPhone(authentication.getName()).orElseThrow();
+        locationAccessService.requireLocationAccess(user, locationId);
+    }
+
+    private Category resolveCategory(Category category, Long locationId) {
+        if (category == null) return null;
+        return categoryRepository.findByIdAndLocationIdAndIsDeletedFalse(category.getId(), locationId)
+                .orElseThrow(() -> new IllegalArgumentException("category_location_mismatch"));
     }
 }

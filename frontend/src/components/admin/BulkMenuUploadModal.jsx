@@ -14,6 +14,7 @@ import {
   bulkMenuDownloadTemplate,
 } from "../../services/menu-service";
 import { CheckCircleIcon, CircleNotchIcon, DownloadIcon, MicrosoftExcelLogoIcon, UploadIcon, XCircleIcon } from "@phosphor-icons/react";
+import { useLocation as useActiveLocation } from "@/context/LocationContext";
 
 const STEP = {
   IDLE: "IDLE",
@@ -32,6 +33,7 @@ export default function BulkMenuUploadModal({ open, onClose, onSuccess }) {
   const [summary, setSummary] = useState(null); // BulkMenuUploadSummary
   const [uploadMode, setUploadMode] = useState("UPSERT");
   const [error, setError] = useState(null);
+  const { activeLocationId } = useActiveLocation();
 
   // ---- helpers ----
   const reset = () => {
@@ -70,7 +72,7 @@ export default function BulkMenuUploadModal({ open, onClose, onSuccess }) {
     setStep(STEP.VALIDATING);
     setError(null);
     try {
-      const res = await bulkMenuValidate(selectedFile);
+      const res = await bulkMenuValidate(selectedFile, activeLocationId);
       setPreview(res.data);
       setStep(STEP.PREVIEW);
     } catch (err) {
@@ -88,7 +90,7 @@ export default function BulkMenuUploadModal({ open, onClose, onSuccess }) {
     setStep(STEP.COMMITTING);
     setError(null);
     try {
-      const res = await bulkMenuCommit(validRows, uploadMode);
+      const res = await bulkMenuCommit(validRows, uploadMode, activeLocationId);
       setSummary(res.data);
       setStep(STEP.DONE);
       onSuccess?.();

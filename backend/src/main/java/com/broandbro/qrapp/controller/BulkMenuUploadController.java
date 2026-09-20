@@ -13,6 +13,10 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.security.Principal;
+import org.springframework.security.access.prepost.PreAuthorize;
+import com.broandbro.qrapp.entity.User;
+import com.broandbro.qrapp.service.LocationAccessService;
+import com.broandbro.qrapp.service.UserService;
 
 /**
  * REST controller for the Bulk Menu Upload feature.
@@ -31,6 +35,8 @@ import java.security.Principal;
 public class BulkMenuUploadController {
 
     private final BulkMenuUploadService uploadService;
+    private final LocationAccessService locationAccessService;
+    private final UserService userService;
 
     // =========================================================================
     // POST /admin/menu/bulk-upload/validate
@@ -47,7 +53,9 @@ public class BulkMenuUploadController {
     @PostMapping(value = "/validate", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<BulkMenuPreviewResponse> validate(
             @RequestPart("file") MultipartFile file,
+            @RequestParam Long locationId,
             Principal principal) throws Exception {
+        requireLocationAccess(locationId, principal);
 
         String adminUser = principal != null ? principal.getName() : "unknown";
         log.info("[BulkUpload] Validate started by admin='{}' file='{}' size={}",
@@ -78,6 +86,7 @@ public class BulkMenuUploadController {
     public ResponseEntity<BulkMenuUploadSummary> commit(
             @RequestBody BulkMenuCommitRequest request,
             Principal principal) {
+        requireLocationAccess(request.getLocationId(), principal);
 
         String adminUser = principal != null ? principal.getName() : "unknown";
         int rowCount = request.getRows() == null ? 0 : request.getRows().size();
@@ -94,6 +103,11 @@ public class BulkMenuUploadController {
                 adminUser, summary.getInsertedCount(), summary.getUpdatedCount(), summary.getSkippedCount());
 
         return ResponseEntity.ok(summary);
+    }
+
+    private void requireLocationAccess(Long locationId, Principal principal) {
+        User user = userService.findByPhone(principal.getName()).orElseThrow();
+        locationAccessService.requireLocationAccess(user, locationId);
     }
 
     // =========================================================================
@@ -131,4 +145,3 @@ public class BulkMenuUploadController {
         }
     }
 }
-

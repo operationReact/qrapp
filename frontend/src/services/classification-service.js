@@ -29,14 +29,13 @@ export const fetchCuisineTypes = () =>
  * @param {number} itemId
  * @returns {{ itemId, itemName, comboRole, mealTypes, cuisineTypes }}
  */
-export const fetchItemClassification = (itemId) =>
-  apiClient.get(`/classification/items/${itemId}`).then((r) => r.data);
+export const fetchItemClassification = (itemId, locationId) =>
+  apiClient.get(`/classification/items/${itemId}`, { params: { locationId } }).then((r) => r.data);
 
 /**
  * Update the classification dimensions for a menu item.
  * @param {number} itemId
  * @param {{ comboRoleId?: number|null, mealTypeIds?: number[], cuisineTypeIds?: number[] }} data
  */
-export const updateItemClassification = (itemId, data) =>
-  apiClient.patch(`/classification/items/${itemId}`, data).then((r) => r.data);
-
+export const updateItemClassification = (itemId, data, locationId) =>
+  apiClient.patch(`/classification/items/${itemId}`, data, { params: { locationId } }).then((r) => r.data);

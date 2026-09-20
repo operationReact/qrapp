@@ -22,6 +22,10 @@ public class MenuItem {
     @JoinColumn(name = "category_id")
     private Category category;
 
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "location_id", nullable = false)
+    private Location location;
+
     // Make recommended nullable to avoid forcing a NOT NULL schema change that may time out
     private Boolean recommended;
 

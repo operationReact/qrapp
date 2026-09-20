@@ -5,11 +5,13 @@ import com.broandbro.qrapp.dto.pricing.PriceSetRequest;
 import com.broandbro.qrapp.entity.Category;
 import com.broandbro.qrapp.entity.Inventory;
 import com.broandbro.qrapp.entity.MenuItem;
+import com.broandbro.qrapp.entity.Location;
 import com.broandbro.qrapp.enums.FulfillmentType;
 import com.broandbro.qrapp.enums.InventoryMode;
 import com.broandbro.qrapp.repository.CategoryRepository;
 import com.broandbro.qrapp.repository.InventoryRepository;
 import com.broandbro.qrapp.repository.MenuRepository;
+import com.broandbro.qrapp.repository.LocationRepository;
 import com.broandbro.qrapp.event.MenuItemCreatedEvent;
 import com.broandbro.qrapp.service.PricingService;
 import lombok.RequiredArgsConstructor;
@@ -47,6 +49,7 @@ public class BulkMenuUploadService {
     private final InventoryRepository      inventoryRepository;
     private final PricingService           pricingService;
     private final ApplicationEventPublisher eventPublisher;
+    private final LocationRepository locationRepository;
 
     // =========================================================================
     // VALIDATE — parse + validate only, no DB writes
@@ -77,6 +80,9 @@ public class BulkMenuUploadService {
 
     @Transactional
     public BulkMenuUploadSummary commit(BulkMenuCommitRequest request) {
+        Location location = locationRepository.findById(request.getLocationId())
+                .filter(l -> Boolean.TRUE.equals(l.getActive()))
+                .orElseThrow(() -> new IllegalArgumentException("location_not_found_or_inactive"));
         String mode = request.getUploadMode() == null ? "INSERT_ONLY" : request.getUploadMode().toUpperCase();
 
         int inserted = 0, updated = 0, skipped = 0;
@@ -93,7 +99,7 @@ public class BulkMenuUploadService {
                 continue;
             }
 
-            Category category = resolveCategory(row, request.isAutoCreateCategories());
+            Category category = resolveCategory(row, request.isAutoCreateCategories(), location);
             if (category == null) {
                 skipped++;
                 skippedErrors.add(new RowValidationError(row.getRowNumber(), "Category",
@@ -102,13 +108,13 @@ public class BulkMenuUploadService {
             }
 
             // Identify existing item by name + category
-            Optional<MenuItem> existing = menuRepository.findByNameIgnoreCaseAndCategoryId(
-                    row.getName(), category.getId());
+            Optional<MenuItem> existing = menuRepository.findByNameIgnoreCaseAndCategoryIdAndLocationId(
+                    row.getName(), category.getId(), location.getId());
 
             switch (mode) {
                 case "INSERT_ONLY" -> {
                     if (existing.isPresent()) { skipped++; continue; }
-                    MenuItem item = buildNewItem(row, category);
+                    MenuItem item = buildNewItem(row, category, location);
                     toInsert.add(item);
                     insertRowByIndex.put(toInsert.size() - 1, row);
                 }
@@ -124,7 +130,7 @@ public class BulkMenuUploadService {
                         toUpdate.add(existing.get());
                         updateRowByItemId.put(existing.get().getId(), row);
                     } else {
-                        MenuItem item = buildNewItem(row, category);
+                        MenuItem item = buildNewItem(row, category, location);
                         toInsert.add(item);
                         insertRowByIndex.put(toInsert.size() - 1, row);
                     }
@@ -495,23 +501,25 @@ public class BulkMenuUploadService {
                         "Unsupported file type. Please upload a .xlsx file."));
     }
 
-    private Category resolveCategory(BulkMenuRowDto row, boolean autoCreate) {
-        return categoryRepository.findByName(row.getCategoryName())
+    private Category resolveCategory(BulkMenuRowDto row, boolean autoCreate, Location location) {
+        return categoryRepository.findByLocationIdAndNameAndIsDeletedFalse(location.getId(), row.getCategoryName())
                 .orElseGet(() -> {
                     if (autoCreate) {
                         Category cat = new Category();
                         cat.setName(row.getCategoryName());
+                        cat.setLocation(location);
                         return categoryRepository.save(cat);
                     }
                     return null;
                 });
     }
 
-    private MenuItem buildNewItem(BulkMenuRowDto row, Category category) {
+    private MenuItem buildNewItem(BulkMenuRowDto row, Category category, Location location) {
         MenuItem item = new MenuItem();
         item.setName(row.getName().trim());
         item.setDescription(row.getDescription());
         item.setCategory(category);
+        item.setLocation(location);
         item.setIsVeg(parseBoolean(row.getIsVeg(), false));
         item.setRecommended(parseBoolean(row.getRecommended(), false));
         item.setIsHidden(parseBoolean(row.getIsHidden(), false));
@@ -573,4 +581,3 @@ public class BulkMenuUploadService {
         catch (Exception e) { return InventoryMode.UNLIMITED; }
     }
 }
-

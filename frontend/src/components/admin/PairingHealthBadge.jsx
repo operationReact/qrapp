@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/popover";
 import { CheckCircleIcon, WarningCircleIcon } from "@phosphor-icons/react";
 import { Loader2 } from "lucide-react";
+import { useLocation as useActiveLocation } from "@/context/LocationContext";
 
 /**
  * Self-contained Recommendation Health Badge.
@@ -30,29 +31,30 @@ export default function PairingHealthBadge({
   targetItemId,
   hasExplicitPairing = true,
 }) {
+  const { activeLocationId } = useActiveLocation();
   // ── Fetch source classification ─────────────────────────────────────────
   const { data: sourceClassif, isLoading: srcLoading } = useQuery({
-    queryKey: ["item-classification", sourceItemId],
-    queryFn:  () => fetchItemClassification(sourceItemId),
-    enabled:  !!sourceItemId,
+    queryKey: ["item-classification", activeLocationId, sourceItemId],
+    queryFn:  () => fetchItemClassification(sourceItemId, activeLocationId),
+    enabled:  !!sourceItemId && !!activeLocationId,
     staleTime: 1000 * 60 * 5,
   });
 
   // ── Fetch target classification ─────────────────────────────────────────
   const { data: targetClassif, isLoading: tgtLoading } = useQuery({
-    queryKey: ["item-classification", targetItemId],
-    queryFn:  () => fetchItemClassification(targetItemId),
-    enabled:  !!targetItemId,
+    queryKey: ["item-classification", activeLocationId, targetItemId],
+    queryFn:  () => fetchItemClassification(targetItemId, activeLocationId),
+    enabled:  !!targetItemId && !!activeLocationId,
     staleTime: 1000 * 60 * 5,
   });
 
   // ── Category pairings – shared global cache ──────────────────────────────
-  const { data: categoryPairings = [] } = useQuery(categoryPairingsOptions);
+  const { data: categoryPairings = [] } = useQuery(categoryPairingsOptions(activeLocationId));
 
   // ── Menu items – same cache key as PairingsSection's add-popover ─────────
   const { data: menuItems = [] } = useQuery({
-    queryKey: ["menu", "pairing-picker"],
-    queryFn:  () => apiClient.get("/menu").then(r => r.data),
+    queryKey: ["menu", "pairing-picker", JSON.parse(localStorage.getItem("active-location") || "null")?.id],
+    queryFn:  () => apiClient.get("/menu", { params: { locationId: JSON.parse(localStorage.getItem("active-location") || "null")?.id } }).then(r => r.data),
     staleTime: 1000 * 60 * 5,
   });
 
@@ -125,4 +127,3 @@ PairingHealthBadge.propTypes = {
   targetItemId:       PropTypes.number.isRequired,
   hasExplicitPairing: PropTypes.bool,
 };
-

@@ -71,8 +71,9 @@ public class RecommendationInteractionService {
         MenuItem sourceItem = menuRepo.findById(req.getSourceItemId())
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Source item not found: " + req.getSourceItemId()));
+        Long locationId = sourceItem.getLocation().getId();
 
-        MenuItem recommendedItem = menuRepo.findById(req.getRecommendedItemId())
+        MenuItem recommendedItem = menuRepo.findByIdAndLocationId(req.getRecommendedItemId(), locationId)
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Recommended item not found: " + req.getRecommendedItemId()));
 
@@ -218,4 +219,3 @@ public class RecommendationInteractionService {
         }
     }
 }
-

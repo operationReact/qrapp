@@ -64,6 +64,8 @@ public class MealRecommendationService {
         BigDecimal total    = req.getCartTotal()   != null ? req.getCartTotal()   : BigDecimal.ZERO;
 
         if (cartIds.isEmpty()) return Optional.empty();
+        Long locationId = menuRepo.findLocationIdById(cartIds.get(0)).orElse(null);
+        if (locationId == null) return Optional.empty();
 
         // ── Step 1: identify the PRIMARY item in the cart ─────────────────────
         Map<Long, String> cartRoles = batchRoles(cartIds);
@@ -73,7 +75,7 @@ public class MealRecommendationService {
                 .orElse(null);
 
         String mainItemName = mainItemId == null ? null
-                : menuRepo.findById(mainItemId).map(m -> m.getName()).orElse(null);
+                : menuRepo.findByIdAndLocationId(mainItemId, locationId).map(m -> m.getName()).orElse(null);
 
         log.debug("[MealRec] cart={} mainItem={} ('{}')", cartIds, mainItemId, mainItemName);
 
@@ -81,6 +83,7 @@ public class MealRecommendationService {
         CartRecommendationRequest recReq = new CartRecommendationRequest();
         recReq.setItemIds(cartIds);
         recReq.setCartTotal(total);
+        recReq.setLocationId(locationId);
         recReq.setMaxResults(12);
 
         List<RecommendationSuggestion> suggestions =
@@ -105,7 +108,7 @@ public class MealRecommendationService {
 
         for (String target : List.of("ACCOMPANIMENT", "DRINK")) {
             if (!picked.containsKey(target)) {
-                fallback(target, usedIds).ifPresent(v -> {
+                fallback(target, usedIds, locationId).ifPresent(v -> {
                     picked.put(target, v);
                     usedIds.add(v.getItemId());
                 });
@@ -165,13 +168,13 @@ public class MealRecommendationService {
      * Fallback: look up items by role name from the catalogue,
      * excluding any item already in {@code excludeIds}.
      */
-    private Optional<MealItemView> fallback(String canonicalRole, Set<Long> excludeIds) {
+    private Optional<MealItemView> fallback(String canonicalRole, Set<Long> excludeIds, Long locationId) {
         return comboRoleRepo.findByNameIgnoreCase(canonicalRole).flatMap(role -> {
             List<Long> candidates = itemComboRoleRepo.findItemIdsByRoleId(role.getId());
             return candidates.stream()
                     .filter(id -> !excludeIds.contains(id))
                     .findFirst()
-                    .flatMap(id -> menuRepo.findById(id).map(item -> {
+                    .flatMap(id -> menuRepo.findByIdAndLocationId(id, locationId).map(item -> {
                         BigDecimal price = pricingService.getCurrentSellingPrice(id);
                         return MealItemView.builder()
                                 .itemId(id)
@@ -217,4 +220,3 @@ public class MealRecommendationService {
         return "ADDON";
     }
 }
-

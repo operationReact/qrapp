@@ -38,6 +38,18 @@ public interface ItemPairingRepository extends JpaRepository<ItemPairing, Long> 
            """)
     List<ItemPairing> findAllBySourceItemId(@Param("itemId") Long itemId);
 
+    @Query("""
+           SELECT ip FROM ItemPairing ip
+           JOIN FETCH ip.sourceItem s
+           JOIN FETCH ip.targetItem t
+           WHERE s.id = :itemId
+             AND s.location.id = :locationId
+             AND t.location.id = :locationId
+           ORDER BY ip.priority DESC
+           """)
+    List<ItemPairing> findAllBySourceItemIdAndLocation(
+            @Param("itemId") Long itemId, @Param("locationId") Long locationId);
+
     /**
      * Active pairings for a source item filtered by role, sorted by priority DESC.
      */
@@ -77,7 +89,30 @@ public interface ItemPairingRepository extends JpaRepository<ItemPairing, Long> 
            """)
     List<Long> findTargetIdsBySourceIds(@Param("itemIds") List<Long> itemIds);
 
+    @Query("""
+           SELECT ip FROM ItemPairing ip
+           JOIN FETCH ip.targetItem t
+           WHERE ip.sourceItem.id = :itemId
+             AND ip.sourceItem.location.id = :locationId
+             AND t.location.id = :locationId
+             AND ip.isActive = TRUE
+           ORDER BY ip.priority DESC
+           """)
+    List<ItemPairing> findActiveBySourceItemIdAndLocation(
+            @Param("itemId") Long itemId, @Param("locationId") Long locationId);
+
     boolean existsBySourceItemIdAndTargetItemId(Long sourceItemId, Long targetItemId);
+
+    @Query("""
+           SELECT ip FROM ItemPairing ip
+           JOIN FETCH ip.sourceItem s
+           JOIN FETCH ip.targetItem t
+           WHERE ip.id = :id
+             AND s.location.id = :locationId
+             AND t.location.id = :locationId
+           """)
+    java.util.Optional<ItemPairing> findByIdAndLocation(
+            @Param("id") Long id, @Param("locationId") Long locationId);
 
     /** Soft-delete helper: does an active pairing for a specific pair exist? */
     boolean existsBySourceItemIdAndTargetItemIdAndIsActiveTrue(Long sourceItemId, Long targetItemId);
@@ -99,4 +134,3 @@ public interface ItemPairingRepository extends JpaRepository<ItemPairing, Long> 
     @Query("DELETE FROM ItemPairing ip WHERE ip.sourceItem.id = :itemId")
     void deleteAllBySourceItemId(@Param("itemId") Long itemId);
 }
-

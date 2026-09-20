@@ -107,8 +107,8 @@ public class ClassificationService {
     // Per-item classification queries
     // ─────────────────────────────────────────────────────────────────────────
 
-    public ItemClassificationResponse getItemClassification(Long itemId) {
-        MenuItem item = menuRepo.findById(itemId)
+    public ItemClassificationResponse getItemClassification(Long itemId, Long locationId) {
+        MenuItem item = menuRepo.findByIdAndLocationId(itemId, locationId)
                 .orElseThrow(() -> new EntityNotFoundException("MenuItem not found: " + itemId));
 
         // Combo Role (at most one primary role — first in displayOrder)
@@ -162,8 +162,9 @@ public class ClassificationService {
      * Returns a map of itemId → ItemClassificationResponse.
      * Items with no classification data are included with empty lists.
      */
-    public Map<Long, ItemClassificationResponse> getItemClassificationBatch(List<Long> itemIds) {
+    public Map<Long, ItemClassificationResponse> getItemClassificationBatch(List<Long> itemIds, Long locationId) {
         if (itemIds == null || itemIds.isEmpty()) return Map.of();
+        if (locationId == null) return Map.of();
 
         // Batch load all three dimensions
         Map<Long, ComboRoleView> roleMap = itemComboRoleRepo.findByItemIdsWithRoles(itemIds)
@@ -206,7 +207,13 @@ public class ClassificationService {
                                 .build(), Collectors.toList())
                 ));
 
-        return itemIds.stream().collect(Collectors.toMap(
+        Set<Long> scopedItemIds = menuRepo.findByIdInAndLocationId(itemIds, locationId).stream()
+                .map(MenuItem::getId)
+                .collect(Collectors.toSet());
+
+        return itemIds.stream()
+                .filter(scopedItemIds::contains)
+                .collect(Collectors.toMap(
                 id -> id,
                 id -> ItemClassificationResponse.builder()
                         .itemId(id)
@@ -214,7 +221,7 @@ public class ClassificationService {
                         .mealTypes(mealMap.getOrDefault(id, List.of()))
                         .cuisineTypes(cuisineMap.getOrDefault(id, List.of()))
                         .build()
-        ));
+                ));
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -228,9 +235,9 @@ public class ClassificationService {
      * Empty lists explicitly clear that dimension.
      */
     @Transactional
-    public ItemClassificationResponse updateItemClassification(Long itemId,
+    public ItemClassificationResponse updateItemClassification(Long itemId, Long locationId,
                                                                UpdateItemClassificationRequest req) {
-        MenuItem item = menuRepo.findById(itemId)
+        MenuItem item = menuRepo.findByIdAndLocationId(itemId, locationId)
                 .orElseThrow(() -> new EntityNotFoundException("MenuItem not found: " + itemId));
 
         // ── Dimension 1: Combo Role ──────────────────────────────────────────
@@ -277,7 +284,7 @@ public class ClassificationService {
         log.info("[Classification] Updated item={} comboRole={} mealTypes={} cuisineTypes={}",
                 itemId, req.getComboRoleId(), req.getMealTypeIds(), req.getCuisineTypeIds());
 
-        return getItemClassification(itemId);
+        return getItemClassification(itemId, locationId);
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -318,4 +325,3 @@ public class ClassificationService {
                 .orElse(Set.of());
     }
 }
-

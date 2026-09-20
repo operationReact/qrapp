@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { upsellRulesOptions } from "@/query/options/recommendations";
 import { menuOptions } from "@/query/options/menu";
 import { categoriesOptions } from "@/query/options/menu";
+import { useLocation as useActiveLocation } from "@/context/LocationContext";
 import {
   createUpsellRule,
   updateUpsellRule,
@@ -297,14 +298,15 @@ function UpsellRuleFormDialog({
 
 function AdminUpsellRulesPage() {
   const queryClient = useQueryClient();
+  const { activeLocationId } = useActiveLocation();
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const { data: rules = [], isLoading } = useQuery(upsellRulesOptions);
+  const { data: rules = [], isLoading } = useQuery(upsellRulesOptions(activeLocationId));
   const { data: menuData = [] } = useQuery(menuOptions());
-  const { data: categories = [] } = useQuery(categoriesOptions);
+  const { data: categories = [] } = useQuery(categoriesOptions());
 
   const createMutation = useMutation({
     mutationFn: createUpsellRule,

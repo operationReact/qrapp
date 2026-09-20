@@ -50,8 +50,8 @@ export const comboOpportunitiesOptions = (params = {}) =>
     staleTime: 1000 * 60 * 2,
   });
 
-export const missedOpportunitiesOptions = queryOptions({
-  queryKey: ["combo-opportunities", "missed"],
-  queryFn: listMissedOpportunities,
+export const missedOpportunitiesOptions = (locationId) => queryOptions({
+  queryKey: ["combo-opportunities", "missed", locationId],
+  queryFn: () => listMissedOpportunities(locationId),
   staleTime: 1000 * 60 * 5,
 });

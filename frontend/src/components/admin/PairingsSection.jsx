@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import { XCircleIcon, LinkSimpleIcon } from "@phosphor-icons/react";
 import { GripVertical, Plus, Search, Loader2 } from "lucide-react";
 import PairingHealthBadge from "@/components/admin/PairingHealthBadge";
+import { useLocation as useActiveLocation } from "@/context/LocationContext";
 
 // ── Util ──────────────────────────────────────────────────────────────────────
 
@@ -377,18 +378,19 @@ function pairingsReducer(state, action) {
 
 export default function PairingsSection({ itemId }) {
   const qc = useQueryClient();
+  const { activeLocationId } = useActiveLocation();
 
   // ── Server state ─────────────────────────────────────────────────────────
   const { data: serverPairings, isLoading } = useQuery({
-    queryKey: ["item-pairings", itemId],
-    queryFn:  () => fetchItemPairingsList(itemId),
-    enabled:  !!itemId,
+    queryKey: ["item-pairings", activeLocationId, itemId],
+    queryFn:  () => fetchItemPairingsList(itemId, activeLocationId),
+    enabled:  !!itemId && !!activeLocationId,
     staleTime: 1000 * 30,
   });
 
   const { data: menuItems = [] } = useQuery({
-    queryKey: ["menu", "pairing-picker"],
-    queryFn:  () => apiClient.get("/menu").then((r) => r.data),
+    queryKey: ["menu", "pairing-picker", JSON.parse(localStorage.getItem("active-location") || "null")?.id],
+    queryFn:  () => apiClient.get("/menu", { params: { locationId: JSON.parse(localStorage.getItem("active-location") || "null")?.id } }).then((r) => r.data),
     staleTime: 1000 * 60 * 5,
   });
 
@@ -527,5 +529,3 @@ export default function PairingsSection({ itemId }) {
 PairingsSection.propTypes = {
   itemId: PropTypes.number.isRequired,
 };
-
-

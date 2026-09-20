@@ -2,6 +2,10 @@ package com.broandbro.qrapp.recommendation.controller;
 
 import com.broandbro.qrapp.recommendation.dto.ItemPairingDtos.*;
 import com.broandbro.qrapp.recommendation.service.ItemPairingService;
+import com.broandbro.qrapp.entity.User;
+import com.broandbro.qrapp.repository.LocationRepository;
+import com.broandbro.qrapp.service.LocationAccessService;
+import com.broandbro.qrapp.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -37,6 +41,9 @@ import java.util.NoSuchElementException;
 public class ItemPairingController {
 
     private final ItemPairingService pairingService;
+    private final LocationRepository locationRepository;
+    private final LocationAccessService locationAccessService;
+    private final UserService userService;
 
     // ── Get pairings for an item (grouped by role) ────────────────────────────
 
@@ -45,9 +52,11 @@ public class ItemPairingController {
      * Each group is sorted by priority descending.
      */
     @GetMapping("/{itemId}")
-    public ResponseEntity<?> getPairings(@PathVariable Long itemId) {
+    public ResponseEntity<?> getPairings(@PathVariable Long itemId,
+                                         @RequestParam Long locationId, Authentication auth) {
         try {
-            return ResponseEntity.ok(pairingService.getPairings(itemId));
+            requireLocation(locationId, auth);
+            return ResponseEntity.ok(pairingService.getPairings(itemId, locationId));
         } catch (NoSuchElementException e) {
             return ResponseEntity.notFound().build();
         }
@@ -58,9 +67,11 @@ public class ItemPairingController {
      * Intended for admin management screens where inactive pairings must also be visible.
      */
     @GetMapping("/{itemId}/list")
-    public ResponseEntity<?> getPairingsList(@PathVariable Long itemId) {
+    public ResponseEntity<?> getPairingsList(@PathVariable Long itemId,
+                                             @RequestParam Long locationId, Authentication auth) {
         try {
-            List<ItemPairingResponse> list = pairingService.getPairingsList(itemId);
+            requireLocation(locationId, auth);
+            List<ItemPairingResponse> list = pairingService.getPairingsList(itemId, locationId);
             return ResponseEntity.ok(list);
         } catch (NoSuchElementException e) {
             return ResponseEntity.notFound().build();
@@ -85,9 +96,10 @@ public class ItemPairingController {
     @PostMapping
     public ResponseEntity<?> addPairing(
             @Valid @RequestBody AddPairingRequest req,
-            Authentication auth) {
+            @RequestParam Long locationId, Authentication auth) {
         try {
-            ItemPairingResponse resp = pairingService.addPairing(req, actor(auth));
+            requireLocation(locationId, auth);
+            ItemPairingResponse resp = pairingService.addPairing(req, actor(auth), locationId);
             return ResponseEntity.status(HttpStatus.CREATED).body(resp);
         } catch (IllegalArgumentException | IllegalStateException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
@@ -100,9 +112,12 @@ public class ItemPairingController {
      * Permanently deletes a pairing by its ID.
      */
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> removePairing(@PathVariable Long id) {
+    public ResponseEntity<Void> removePairing(@PathVariable Long id,
+                                              @RequestParam Long locationId,
+                                              Authentication auth) {
         try {
-            pairingService.removePairing(id);
+            requireLocation(locationId, auth);
+            pairingService.removePairing(id, locationId);
             return ResponseEntity.noContent().build();
         } catch (NoSuchElementException e) {
             return ResponseEntity.notFound().build();
@@ -119,9 +134,11 @@ public class ItemPairingController {
     @PatchMapping("/{id}/priority")
     public ResponseEntity<?> updatePriority(
             @PathVariable Long id,
-            @Valid @RequestBody UpdatePriorityRequest req) {
+            @Valid @RequestBody UpdatePriorityRequest req,
+            @RequestParam Long locationId, Authentication auth) {
         try {
-            return ResponseEntity.ok(pairingService.updatePriority(id, req.getPriority()));
+            requireLocation(locationId, auth);
+            return ResponseEntity.ok(pairingService.updatePriority(id, req.getPriority(), locationId));
         } catch (NoSuchElementException e) {
             return ResponseEntity.notFound().build();
         } catch (IllegalArgumentException e) {
@@ -135,9 +152,12 @@ public class ItemPairingController {
      * Toggles a pairing between active and inactive (soft-enable / soft-disable).
      */
     @PatchMapping("/{id}/toggle")
-    public ResponseEntity<?> togglePairing(@PathVariable Long id) {
+    public ResponseEntity<?> togglePairing(@PathVariable Long id,
+                                           @RequestParam Long locationId,
+                                           Authentication auth) {
         try {
-            return ResponseEntity.ok(pairingService.togglePairing(id));
+            requireLocation(locationId, auth);
+            return ResponseEntity.ok(pairingService.togglePairing(id, locationId));
         } catch (NoSuchElementException e) {
             return ResponseEntity.notFound().build();
         }
@@ -148,5 +168,18 @@ public class ItemPairingController {
     private String actor(Authentication auth) {
         return auth != null ? auth.getName() : "system";
     }
-}
 
+    private void requireLocation(Long locationId, Authentication auth) {
+        if (locationId == null || auth == null) {
+            throw new org.springframework.security.access.AccessDeniedException("location_access_denied");
+        }
+        User user = userService.findByPhone(auth.getName())
+                .orElseThrow(() -> new org.springframework.security.access.AccessDeniedException(
+                        "location_access_denied"));
+        locationRepository.findById(locationId)
+                .filter(location -> Boolean.TRUE.equals(location.getActive()))
+                .orElseThrow(() -> new org.springframework.security.access.AccessDeniedException(
+                        "location_not_found_or_inactive"));
+        locationAccessService.requireLocationAccess(user, locationId);
+    }
+}

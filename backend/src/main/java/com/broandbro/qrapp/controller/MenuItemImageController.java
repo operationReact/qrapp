@@ -31,9 +31,10 @@ public class MenuItemImageController {
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_USER')")
     public ResponseEntity<ImageUploadResponse> uploadImage(
             @PathVariable Long menuItemId,
+            @RequestParam Long locationId,
             @RequestPart("file") MultipartFile file) {
         log.info("Image upload request for menuItemId={}", menuItemId);
-        ImageUploadResponse response = imageService.uploadOrReplaceImage(menuItemId, file);
+        ImageUploadResponse response = imageService.uploadOrReplaceImage(menuItemId, locationId, file);
         return ResponseEntity.ok(response);
     }
 
@@ -79,9 +80,10 @@ public class MenuItemImageController {
      */
     @DeleteMapping("/images/{imageId}")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_USER')")
-    public ResponseEntity<Void> deleteImage(@PathVariable Long imageId) {
+    public ResponseEntity<Void> deleteImage(
+            @PathVariable Long imageId, @RequestParam Long locationId) {
         log.info("Delete image request id={}", imageId);
-        imageService.deleteImage(imageId);
+        imageService.deleteImage(imageId, locationId);
         return ResponseEntity.noContent().build();
     }
 }

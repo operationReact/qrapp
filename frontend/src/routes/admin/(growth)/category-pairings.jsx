@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/select";
 import { ArrowRightIcon, PlusIcon, TrashIcon } from "@phosphor-icons/react";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import { useLocation as useActiveLocation } from "@/context/LocationContext";
 
 export const Route = createFileRoute("/admin/(growth)/category-pairings")({
   component: AdminCategoryPairingsPage,
@@ -99,9 +100,10 @@ function AdminCategoryPairingsPage() {
   const [addOpen, setAddOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const { activeLocationId } = useActiveLocation();
 
-  const { data: pairings = [], isLoading } = useQuery(categoryPairingsOptions);
-  const { data: categories = [] } = useQuery(categoriesOptions);
+  const { data: pairings = [], isLoading } = useQuery(categoryPairingsOptions(activeLocationId));
+  const { data: categories = [] } = useQuery(categoriesOptions());
 
   const createMutation = useMutation({
     mutationFn: createCategoryPairing,

@@ -60,6 +60,8 @@ import {
   WarningCircleIcon,
 } from "@phosphor-icons/react";
 import { ButtonGroup } from "@/components/ui/button-group";
+import { useLocation as useActiveLocation } from "@/context/LocationContext";
+import { LocationSelector } from "@/components/LocationSelector";
 
 export const Route = createFileRoute("/admin/(menu)/menu")({
   component: function AdminMenuPage() {
@@ -67,6 +69,7 @@ export const Route = createFileRoute("/admin/(menu)/menu")({
     const location = useLocation();
     const search = useSearch({ strict: false });
     const { isAdmin, isSuperUser } = useAuth();
+    const { activeLocationId } = useActiveLocation();
 
     const initialAvailability = (() => {
       if (search.availability === "available") return "AVAILABLE";
@@ -105,23 +108,25 @@ export const Route = createFileRoute("/admin/(menu)/menu")({
       if (!open) setTimeout(() => setToolsView("menu"), 300);
     };
 
-    const { data: menu = [], isLoading: loadingMenu } = useQuery(menuOptions());
+    const { data: menu = [], isLoading: loadingMenu } =
+      useQuery(menuOptions({ locationId: activeLocationId }));
 
     const {
       data: deletedItems = [],
       isLoading: loadingDeleted,
       isFetching: fetchingDeleted,
     } = useQuery({
-      queryKey: ["menu-deleted"],
-      queryFn: getDeletedMenuItems,
+      queryKey: ["menu-deleted", activeLocationId],
+      queryFn: () => getDeletedMenuItems(activeLocationId),
+      enabled: Boolean(activeLocationId),
       staleTime: 30_000,
     });
 
     const restoreMutation = useMutation({
-      mutationFn: (id) => restoreMenuItem(id),
+      mutationFn: (id) => restoreMenuItem(id, activeLocationId),
       onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ["menu"] });
-        queryClient.invalidateQueries({ queryKey: ["menu-deleted"] });
+        queryClient.invalidateQueries({ queryKey: ["menu", activeLocationId] });
+        queryClient.invalidateQueries({ queryKey: ["menu-deleted", activeLocationId] });
         toast.success("Item restored successfully");
       },
       onError: (err) => {
@@ -206,7 +211,7 @@ export const Route = createFileRoute("/admin/(menu)/menu")({
     }, [menu, totalItems]);
 
     const deleteMutation = useMutation({
-      mutationFn: (id) => deleteMenuItem(id),
+      mutationFn: (id) => deleteMenuItem(id, activeLocationId),
       onSuccess: () => {
         toast.success("Item moved to Trash");
       },
@@ -219,13 +224,13 @@ export const Route = createFileRoute("/admin/(menu)/menu")({
         );
       },
       onSettled: () => {
-        queryClient.invalidateQueries({ queryKey: ["menu"] });
-        queryClient.invalidateQueries({ queryKey: ["menu-deleted"] });
+        queryClient.invalidateQueries({ queryKey: ["menu", activeLocationId] });
+        queryClient.invalidateQueries({ queryKey: ["menu-deleted", activeLocationId] });
       },
     });
 
     const quickUpdateMutation = useMutation({
-      mutationFn: ({ id, patch }) => patchMenuItemQuick(id, patch),
+      mutationFn: ({ id, patch }) => patchMenuItemQuick(id, patch, activeLocationId),
       onSuccess: (_, { patch }) => {
         if (Object.prototype.hasOwnProperty.call(patch, "available")) {
           toast.success(patch.available ? "Item available on menu" : "Item hidden from menu");
@@ -234,7 +239,7 @@ export const Route = createFileRoute("/admin/(menu)/menu")({
         } else if (Object.prototype.hasOwnProperty.call(patch, "isVeg")) {
           toast.success(patch.isVeg ? "Marked as Veg" : "Marked as Non-Veg");
         }
-        queryClient.invalidateQueries({ queryKey: ["menu"] });
+        queryClient.invalidateQueries({ queryKey: ["menu", activeLocationId] });
       },
       onError: (err, { patch }) => {
         const data = err?.response?.data;
@@ -249,14 +254,14 @@ export const Route = createFileRoute("/admin/(menu)/menu")({
     });
 
     const costMutation = useMutation({
-      mutationFn: ({ id, estimatedCost }) => setItemCost(id, estimatedCost),
+      mutationFn: ({ id, estimatedCost }) => setItemCost(id, estimatedCost, activeLocationId),
       onSuccess: (_, { estimatedCost }) => {
         toast.success(
           estimatedCost != null
             ? `Cost price saved as ₹${Number(estimatedCost).toFixed(0)}`
             : "Cost price cleared",
         );
-        queryClient.invalidateQueries({ queryKey: ["menu"] });
+        queryClient.invalidateQueries({ queryKey: ["menu", activeLocationId] });
       },
       onError: (err) => {
         toast.error(
@@ -274,7 +279,7 @@ export const Route = createFileRoute("/admin/(menu)/menu")({
 
     const handleEditSuccess = () => {
       setEditingItem(null);
-      queryClient.invalidateQueries({ queryKey: ["menu"] });
+      queryClient.invalidateQueries({ queryKey: ["menu", activeLocationId] });
     };
 
     const handleDeleteConfirm = (item) => {
@@ -377,6 +382,7 @@ export const Route = createFileRoute("/admin/(menu)/menu")({
         <div className="px-4 pt-4 pb-2">
           <div className="flex items-start justify-between gap-2">
             <div>
+              <LocationSelector className="max-w-[220px]" />
               <h1 className="text-lg font-bold tracking-tight leading-tight">
                 Menu Management
               </h1>
@@ -787,7 +793,7 @@ export const Route = createFileRoute("/admin/(menu)/menu")({
           onClose={() => setBulkUploadOpen(false)}
           onSuccess={() => {
             setBulkUploadOpen(false);
-            queryClient.invalidateQueries({ queryKey: ["menu"] });
+            queryClient.invalidateQueries({ queryKey: ["menu", activeLocationId] });
           }}
         />
 

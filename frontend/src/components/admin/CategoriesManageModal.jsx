@@ -40,6 +40,7 @@ import {
 } from "@/services/category-service";
 import { getDeletedMenuItems, restoreMenuItem } from "@/services/menu-service";
 import { categoriesOptions, menuOptions } from "@/query/options/menu";
+import { useLocation as useActiveLocation } from "@/context/LocationContext";
 
 export default function CategoriesManageModal({
   open,
@@ -49,25 +50,26 @@ export default function CategoriesManageModal({
   const [newName, setNewName] = useState("");
   const [tab, setTab] = useState("active"); // "active" | "trash"
   const queryClient = useQueryClient();
+  const { activeLocationId } = useActiveLocation();
 
   const { data: categories = [], isLoading: loadingCategories } = useQuery({
-    ...categoriesOptions,
+    ...categoriesOptions(activeLocationId),
     enabled: open,
   });
 
   const { data: deletedCategories = [], isLoading: loadingDeleted } = useQuery({
-    queryKey: ["categories-deleted"],
-    queryFn:  getDeletedCategories,
-    enabled:  open && tab === "trash",
+    queryKey: ["categories-deleted", activeLocationId],
+    queryFn:  () => getDeletedCategories(activeLocationId),
+    enabled:  open && tab === "trash" && Boolean(activeLocationId),
   });
 
   const { data: deletedMenuItems = [], isLoading: loadingDeletedItems } = useQuery({
-    queryKey: ["menu-deleted"],
-    queryFn:  getDeletedMenuItems,
-    enabled:  open && tab === "trash",
+    queryKey: ["menu-deleted", activeLocationId],
+    queryFn:  () => getDeletedMenuItems(activeLocationId),
+    enabled:  open && tab === "trash" && Boolean(activeLocationId),
   });
 
-  const { data: menu = [] } = useQuery(menuOptions());
+  const { data: menu = [] } = useQuery(menuOptions({ locationId: activeLocationId }));
 
   const counts = menu.reduce((acc, item) => {
     const name = item.category?.name;
@@ -89,11 +91,11 @@ export default function CategoriesManageModal({
     : sortedCategories;
 
   const createMutation = useMutation({
-    mutationFn: (name) => createCategory({ name }),
+    mutationFn: (name) => createCategory({ name }, activeLocationId),
     onSuccess: () => {
       setNewName("");
-      queryClient.invalidateQueries({ queryKey: ["categories"] });
-      queryClient.invalidateQueries({ queryKey: ["menu"] });
+      queryClient.invalidateQueries({ queryKey: ["categories", activeLocationId] });
+      queryClient.invalidateQueries({ queryKey: ["menu", activeLocationId] });
       toast.success("Category created");
     },
     onError: (err) => {
@@ -104,10 +106,10 @@ export default function CategoriesManageModal({
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id) => deleteCategory(id),
+    mutationFn: (id) => deleteCategory(id, activeLocationId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["categories"] });
-      queryClient.invalidateQueries({ queryKey: ["menu"] });
+      queryClient.invalidateQueries({ queryKey: ["categories", activeLocationId] });
+      queryClient.invalidateQueries({ queryKey: ["menu", activeLocationId] });
       toast.success("Category deleted");
     },
     onError: (err) => {
@@ -118,11 +120,11 @@ export default function CategoriesManageModal({
   });
 
   const restoreMutation = useMutation({
-    mutationFn: (id) => restoreCategory(id),
+    mutationFn: (id) => restoreCategory(id, activeLocationId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["categories"] });
-      queryClient.invalidateQueries({ queryKey: ["categories-deleted"] });
-      queryClient.invalidateQueries({ queryKey: ["menu"] });
+      queryClient.invalidateQueries({ queryKey: ["categories", activeLocationId] });
+      queryClient.invalidateQueries({ queryKey: ["categories-deleted", activeLocationId] });
+      queryClient.invalidateQueries({ queryKey: ["menu", activeLocationId] });
       toast.success("Category restored");
     },
     onError: (err) => {
@@ -133,10 +135,10 @@ export default function CategoriesManageModal({
   });
 
   const restoreItemMutation = useMutation({
-    mutationFn: (id) => restoreMenuItem(id),
+    mutationFn: (id) => restoreMenuItem(id, activeLocationId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["menu"] });
-      queryClient.invalidateQueries({ queryKey: ["menu-deleted"] });
+      queryClient.invalidateQueries({ queryKey: ["menu", activeLocationId] });
+      queryClient.invalidateQueries({ queryKey: ["menu-deleted", activeLocationId] });
       toast.success("Menu item restored");
     },
     onError: (err) => {

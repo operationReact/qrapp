@@ -39,6 +39,21 @@ public class AutoSuggestionService {
     }
 
     @Transactional(readOnly = true)
+    public List<AutoSuggestionResponse> getAll(Long locationId) {
+        return toResponseList(suggRepo.findAllWithItemsByLocation(locationId));
+    }
+
+    @Transactional(readOnly = true)
+    public List<AutoSuggestionResponse> getPending(Long locationId) {
+        return toResponseList(suggRepo.findByStatusAndLocation(SuggestionStatus.PENDING, locationId));
+    }
+
+    @Transactional(readOnly = true)
+    public long countPending(Long locationId) {
+        return suggRepo.countByStatusAndLocation(SuggestionStatus.PENDING, locationId);
+    }
+
+    @Transactional(readOnly = true)
     public long countPending() {
         return suggRepo.countByStatus(SuggestionStatus.PENDING);
     }
@@ -46,7 +61,7 @@ public class AutoSuggestionService {
     // ── Review ────────────────────────────────────────────────────────────────
 
     @Transactional
-    public AutoSuggestionResponse review(Long id, String action, String actor) {
+    AutoSuggestionResponse review(Long id, String action, String actor) {
         AutoSuggestion s = suggRepo.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Suggestion not found: " + id));
 
@@ -65,7 +80,21 @@ public class AutoSuggestionService {
     }
 
     @Transactional
-    public void bulkReview(BulkReviewRequest req, String actor) {
+    public AutoSuggestionResponse review(Long id, String action, String actor, Long locationId) {
+        AutoSuggestion s = suggRepo.findByIdAndLocation(id, locationId)
+                .orElseThrow(() -> new IllegalArgumentException("Suggestion not found: " + id));
+        SuggestionStatus newStatus = "ACCEPT".equalsIgnoreCase(action)
+                ? SuggestionStatus.ACCEPTED : SuggestionStatus.REJECTED;
+        s.setStatus(newStatus);
+        s.setReviewedBy(actor);
+        s.setReviewedAt(Instant.now());
+        AutoSuggestion saved = suggRepo.save(s);
+        if (newStatus == SuggestionStatus.ACCEPTED) promoteToManual(s, actor);
+        return toResponse(saved);
+    }
+
+    @Transactional
+    void bulkReview(BulkReviewRequest req, String actor) {
         SuggestionStatus newStatus = "ACCEPT".equalsIgnoreCase(req.getAction())
                 ? SuggestionStatus.ACCEPTED : SuggestionStatus.REJECTED;
 
@@ -77,6 +106,24 @@ public class AutoSuggestionService {
             if (newStatus == SuggestionStatus.ACCEPTED) {
                 promoteToManual(s, actor);
             }
+
+        });
+        suggRepo.saveAll(suggestions);
+    }
+
+    @Transactional
+    public void bulkReview(BulkReviewRequest req, String actor, Long locationId) {
+        List<AutoSuggestion> suggestions = suggRepo.findAllByIdAndLocation(req.getIds(), locationId);
+        if (suggestions.size() != req.getIds().stream().distinct().count()) {
+            throw new IllegalArgumentException("One or more suggestions are outside the requested location");
+        }
+        SuggestionStatus newStatus = "ACCEPT".equalsIgnoreCase(req.getAction())
+                ? SuggestionStatus.ACCEPTED : SuggestionStatus.REJECTED;
+        suggestions.forEach(s -> {
+            s.setStatus(newStatus);
+            s.setReviewedBy(actor);
+            s.setReviewedAt(Instant.now());
+            if (newStatus == SuggestionStatus.ACCEPTED) promoteToManual(s, actor);
         });
         suggRepo.saveAll(suggestions);
     }
@@ -118,4 +165,3 @@ public class AutoSuggestionService {
                 .build();
     }
 }
-

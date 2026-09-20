@@ -7,20 +7,17 @@ import java.util.List;
 import java.util.Optional;
 
 public interface CategoryRepository extends JpaRepository<Category, Long> {
-    Optional<Category> findByName(String name);
-
-    /** All non-deleted categories. */
-    List<Category> findByIsDeletedFalse();
+    List<Category> findByLocationIdAndIsDeletedFalse(Long locationId);
 
     /** All soft-deleted categories (for the admin trash view). */
-    List<Category> findByIsDeletedTrue();
+    List<Category> findByLocationIdAndIsDeletedTrue(Long locationId);
 
     /** Find a non-deleted category by ID. */
-    Optional<Category> findByIdAndIsDeletedFalse(Long id);
+    Optional<Category> findByIdAndLocationIdAndIsDeletedFalse(Long id, Long locationId);
 
     /** Find a soft-deleted category by ID (for restore). */
-    Optional<Category> findByIdAndIsDeletedTrue(Long id);
+    Optional<Category> findByIdAndLocationIdAndIsDeletedTrue(Long id, Long locationId);
 
     /** Find a non-deleted category by name. */
-    Optional<Category> findByNameAndIsDeletedFalse(String name);
+    Optional<Category> findByLocationIdAndNameAndIsDeletedFalse(Long locationId, String name);
 }

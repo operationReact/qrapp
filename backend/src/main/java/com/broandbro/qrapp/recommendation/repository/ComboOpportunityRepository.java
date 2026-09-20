@@ -16,8 +16,53 @@ public interface ComboOpportunityRepository extends JpaRepository<ComboOpportuni
     @Query("SELECT o FROM ComboOpportunity o ORDER BY o.qualityScore DESC, o.createdAt DESC")
     List<ComboOpportunity> findAllOrdered();
 
+    @Query("""
+           SELECT DISTINCT o FROM ComboOpportunity o
+           JOIN FETCH o.items oi
+           JOIN FETCH oi.menuItem mi
+           WHERE mi.location.id = :locationId
+             AND NOT EXISTS (
+                 SELECT 1 FROM ComboOpportunityItem other
+                 WHERE other.opportunity = o
+                   AND other.menuItem.location.id <> :locationId
+             )
+           ORDER BY o.qualityScore DESC, o.createdAt DESC
+           """)
+    List<ComboOpportunity> findAllOrderedByLocation(@Param("locationId") Long locationId);
+
     /** Opportunities filtered by status. */
     List<ComboOpportunity> findByStatusOrderByQualityScoreDescCreatedAtDesc(ComboOpportunityStatus status);
+
+    @Query("""
+           SELECT DISTINCT o FROM ComboOpportunity o
+           JOIN FETCH o.items oi
+           JOIN FETCH oi.menuItem mi
+           WHERE o.status = :status
+             AND mi.location.id = :locationId
+             AND NOT EXISTS (
+                 SELECT 1 FROM ComboOpportunityItem other
+                 WHERE other.opportunity = o
+                   AND other.menuItem.location.id <> :locationId
+             )
+           ORDER BY o.qualityScore DESC, o.createdAt DESC
+           """)
+    List<ComboOpportunity> findByStatusAndLocation(
+            @Param("status") ComboOpportunityStatus status, @Param("locationId") Long locationId);
+
+    @Query("""
+           SELECT DISTINCT o FROM ComboOpportunity o
+           JOIN FETCH o.items oi
+           JOIN FETCH oi.menuItem mi
+           WHERE o.id = :id
+             AND mi.location.id = :locationId
+             AND NOT EXISTS (
+                 SELECT 1 FROM ComboOpportunityItem other
+                 WHERE other.opportunity = o
+                   AND other.menuItem.location.id <> :locationId
+             )
+           """)
+    java.util.Optional<ComboOpportunity> findByIdAndLocation(
+            @Param("id") Long id, @Param("locationId") Long locationId);
 
     /**
      * Find pairs from co-occurrence stats that do NOT yet have a non-rejected opportunity,
@@ -66,6 +111,8 @@ public interface ComboOpportunityRepository extends JpaRepository<ComboOpportuni
            JOIN menu_item mia ON mia.id = cs.item_a_id
            JOIN menu_item mib ON mib.id = cs.item_b_id
            WHERE cs.co_count >= :minCoCount
+             AND mia.location_id = :locationId
+             AND mib.location_id = :locationId
              AND NOT EXISTS (
                  SELECT 1 FROM combo_items ci1
                  JOIN combo_items ci2 ON ci1.combo_id = ci2.combo_id
@@ -87,6 +134,6 @@ public interface ComboOpportunityRepository extends JpaRepository<ComboOpportuni
            """, nativeQuery = true)
     List<Object[]> findMissedPairs(
             @Param("minCoCount") int minCoCount,
-            @Param("limit")      int limit);
+            @Param("limit")      int limit,
+            @Param("locationId")  Long locationId);
 }
-

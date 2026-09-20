@@ -30,22 +30,36 @@ public class CategoryPairingService {
     }
 
     @Transactional(readOnly = true)
+    public List<CategoryPairingResponse> getAll(Long locationId) {
+        return toResponseList(pairingRepo.findAllByLocation(locationId));
+    }
+
+    @Transactional(readOnly = true)
     public List<CategoryPairingResponse> getActive() {
         return toResponseList(pairingRepo.findByIsActiveTrueOrderByDisplayOrderAsc());
+    }
+
+    @Transactional(readOnly = true)
+    public List<CategoryPairingResponse> getActive(Long locationId) {
+        return toResponseList(pairingRepo.findActiveByLocation(locationId));
     }
 
     // ── Mutation ──────────────────────────────────────────────────────────────
 
     @Transactional
-    public CategoryPairingResponse create(CategoryPairingRequest req, String actor) {
+    CategoryPairingResponse create(CategoryPairingRequest req, String actor) {
         if (pairingRepo.existsBySourceCategoryIdAndTargetCategoryId(
                 req.getSourceCategoryId(), req.getTargetCategoryId())) {
             throw new IllegalStateException("Category pairing already exists");
         }
+
+        var source = categoryRepo.findById(req.getSourceCategoryId())
+                .orElseThrow(() -> new IllegalArgumentException("Source category not found"));
+        Long locationId = source.getLocation().getId();
         CategoryPairingRule rule = CategoryPairingRule.builder()
-                .sourceCategory(categoryRepo.findById(req.getSourceCategoryId())
-                        .orElseThrow(() -> new IllegalArgumentException("Source category not found")))
-                .targetCategory(categoryRepo.findById(req.getTargetCategoryId())
+                .sourceCategory(source)
+                .targetCategory(categoryRepo.findByIdAndLocationIdAndIsDeletedFalse(
+                        req.getTargetCategoryId(), locationId)
                         .orElseThrow(() -> new IllegalArgumentException("Target category not found")))
                 .displayOrder(req.getDisplayOrder() != null ? req.getDisplayOrder() : 0)
                 .isActive(true)
@@ -55,13 +69,41 @@ public class CategoryPairingService {
     }
 
     @Transactional
-    public void delete(Long id) {
+    public CategoryPairingResponse create(CategoryPairingRequest req, String actor, Long locationId) {
+        CategoryPairingRule rule = CategoryPairingRule.builder()
+                .sourceCategory(categoryRepo.findByIdAndLocationIdAndIsDeletedFalse(
+                        req.getSourceCategoryId(), locationId)
+                        .orElseThrow(() -> new IllegalArgumentException("Source category not found")))
+                .targetCategory(categoryRepo.findByIdAndLocationIdAndIsDeletedFalse(
+                        req.getTargetCategoryId(), locationId)
+                        .orElseThrow(() -> new IllegalArgumentException("Target category not found")))
+                .displayOrder(req.getDisplayOrder() != null ? req.getDisplayOrder() : 0)
+                .isActive(true).createdBy(actor).build();
+        return toResponse(pairingRepo.save(rule));
+    }
+
+    @Transactional
+    void delete(Long id) {
         pairingRepo.deleteById(id);
     }
 
     @Transactional
-    public CategoryPairingResponse toggle(Long id) {
+    public void delete(Long id, Long locationId) {
+        pairingRepo.delete(pairingRepo.findByIdAndLocation(id, locationId)
+                .orElseThrow(() -> new IllegalArgumentException("Category pairing not found: " + id)));
+    }
+
+    @Transactional
+    CategoryPairingResponse toggle(Long id) {
         CategoryPairingRule rule = pairingRepo.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Category pairing not found: " + id));
+        rule.setIsActive(!rule.getIsActive());
+        return toResponse(pairingRepo.save(rule));
+    }
+
+    @Transactional
+    public CategoryPairingResponse toggle(Long id, Long locationId) {
+        CategoryPairingRule rule = pairingRepo.findByIdAndLocation(id, locationId)
                 .orElseThrow(() -> new IllegalArgumentException("Category pairing not found: " + id));
         rule.setIsActive(!rule.getIsActive());
         return toResponse(pairingRepo.save(rule));
@@ -86,4 +128,3 @@ public class CategoryPairingService {
                 .build();
     }
 }
-

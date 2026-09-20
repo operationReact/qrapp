@@ -17,6 +17,7 @@ import {
   XCircleIcon,
 } from "@phosphor-icons/react";
 import { GripVertical, Plus, Search, Loader2 } from "lucide-react";
+import { useLocation as useActiveLocation } from "@/context/LocationContext";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -250,17 +251,18 @@ function recsReducer(state, action) {
  */
 export default function ItemRecommendationsSection({ itemId }) {
   const qc = useQueryClient();
+  const { activeLocationId } = useActiveLocation();
 
   const { data: serverRecs, isLoading } = useQuery({
-    queryKey: ["item-recs", itemId],
-    queryFn:  () => fetchRecommendationsForItem(itemId),
-    enabled:  !!itemId,
+    queryKey: ["item-recs", activeLocationId, itemId],
+    queryFn:  () => fetchRecommendationsForItem(itemId, activeLocationId),
+    enabled:  !!itemId && !!activeLocationId,
     staleTime: 1000 * 30,
   });
 
   const { data: menuItems = [] } = useQuery({
-    queryKey: ["menu", "rec-picker"],
-    queryFn:  () => apiClient.get("/menu").then((r) => r.data),
+    queryKey: ["menu", "rec-picker", JSON.parse(localStorage.getItem("active-location") || "null")?.id],
+    queryFn:  () => apiClient.get("/menu", { params: { locationId: JSON.parse(localStorage.getItem("active-location") || "null")?.id } }).then((r) => r.data),
     staleTime: 1000 * 60 * 5,
   });
 
@@ -444,4 +446,3 @@ export default function ItemRecommendationsSection({ itemId }) {
 ItemRecommendationsSection.propTypes = {
   itemId: PropTypes.number.isRequired,
 };
-

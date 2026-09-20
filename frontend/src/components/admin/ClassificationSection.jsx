@@ -19,6 +19,7 @@ import {
   XCircleIcon,
 } from "@phosphor-icons/react";
 import { Loader2, ChevronDown } from "lucide-react";
+import { useLocation as useActiveLocation } from "@/context/LocationContext";
 import {
   Select,
   SelectContent,
@@ -178,6 +179,7 @@ function classReducer(state, action) {
 }
 
 export default function ClassificationSection({ itemId, onChange, showPairings = true }) {
+  const { activeLocationId } = useActiveLocation();
   const { data: catalogue, isLoading: catalogueLoading } = useQuery({
     queryKey: ["classification-catalogue"],
     queryFn: fetchClassificationCatalogue,
@@ -185,9 +187,9 @@ export default function ClassificationSection({ itemId, onChange, showPairings =
   });
 
   const { data: existing, isLoading: existingLoading } = useQuery({
-    queryKey: ["item-classification", itemId],
-    queryFn: () => fetchItemClassification(itemId),
-    enabled: !!itemId,
+    queryKey: ["item-classification", activeLocationId, itemId],
+    queryFn: () => fetchItemClassification(itemId, activeLocationId),
+    enabled: !!itemId && !!activeLocationId,
     staleTime: 1000 * 60 * 2,
   });
 
@@ -203,7 +205,7 @@ export default function ClassificationSection({ itemId, onChange, showPairings =
         comboRoleId:    state.comboRoleId ?? null,
         mealTypeIds:    state.mealTypes.map((mt) => mt.id),
         cuisineTypeIds: state.cuisineTypes.map((ct) => ct.id),
-      }),
+      }, activeLocationId),
     onSuccess: (data) => {
       toast.success("Classification saved");
       dispatch({ type: "SAVED" });
@@ -346,4 +348,3 @@ ClassificationSection.propTypes = {
   onChange:     PropTypes.func,
   showPairings: PropTypes.bool,
 };
-

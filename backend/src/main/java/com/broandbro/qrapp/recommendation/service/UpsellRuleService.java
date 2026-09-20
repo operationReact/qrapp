@@ -49,16 +49,27 @@ public class UpsellRuleService {
         return toResponseList(ruleRepo.findAllWithDetails());
     }
 
+    @Transactional(readOnly = true)
+    public List<UpsellRuleResponse> getAllIncludingInactive(Long locationId) {
+        return toResponseList(ruleRepo.findAllWithDetailsByLocation(locationId));
+    }
+
     // ── Mutation ──────────────────────────────────────────────────────────────
 
     @Transactional
-    public UpsellRuleResponse create(UpsellRuleRequest req, String actor) {
+    UpsellRuleResponse create(UpsellRuleRequest req, String actor) {
         UpsellRule rule = buildRule(req, null, actor);
         return toResponse(ruleRepo.save(rule));
     }
 
     @Transactional
-    public UpsellRuleResponse update(Long id, UpsellRuleRequest req, String actor) {
+    public UpsellRuleResponse create(UpsellRuleRequest req, String actor, Long locationId) {
+        UpsellRule rule = buildRule(req, null, actor, locationId);
+        return toResponse(ruleRepo.save(rule));
+    }
+
+    @Transactional
+    UpsellRuleResponse update(Long id, UpsellRuleRequest req, String actor) {
         UpsellRule existing = ruleRepo.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Upsell rule not found: " + id));
         existing.getTargets().clear();
@@ -67,13 +78,36 @@ public class UpsellRuleService {
     }
 
     @Transactional
-    public void delete(Long id) {
+    public UpsellRuleResponse update(Long id, UpsellRuleRequest req, String actor, Long locationId) {
+        UpsellRule existing = ruleRepo.findByIdAndLocation(id, locationId)
+                .orElseThrow(() -> new IllegalArgumentException("Upsell rule not found: " + id));
+        existing.getTargets().clear();
+        return toResponse(ruleRepo.save(buildRule(req, existing, actor, locationId)));
+    }
+
+    @Transactional
+    void delete(Long id) {
         ruleRepo.deleteById(id);
     }
 
     @Transactional
-    public UpsellRuleResponse toggle(Long id, String actor) {
+    public void delete(Long id, Long locationId) {
+        ruleRepo.delete(ruleRepo.findByIdAndLocation(id, locationId)
+                .orElseThrow(() -> new IllegalArgumentException("Upsell rule not found: " + id)));
+    }
+
+    @Transactional
+    UpsellRuleResponse toggle(Long id, String actor) {
         UpsellRule rule = ruleRepo.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Upsell rule not found: " + id));
+        rule.setIsActive(!rule.getIsActive());
+        rule.setUpdatedBy(actor);
+        return toResponse(ruleRepo.save(rule));
+    }
+
+    @Transactional
+    public UpsellRuleResponse toggle(Long id, String actor, Long locationId) {
+        UpsellRule rule = ruleRepo.findByIdAndLocation(id, locationId)
                 .orElseThrow(() -> new IllegalArgumentException("Upsell rule not found: " + id));
         rule.setIsActive(!rule.getIsActive());
         rule.setUpdatedBy(actor);
@@ -83,6 +117,11 @@ public class UpsellRuleService {
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private UpsellRule buildRule(UpsellRuleRequest req, UpsellRule existing, String actor) {
+        return buildRule(req, existing, actor, null);
+    }
+
+    private UpsellRule buildRule(UpsellRuleRequest req, UpsellRule existing, String actor,
+                                 Long requestedLocationId) {
         UpsellRule rule = existing != null ? existing : new UpsellRule();
         rule.setName(req.getName());
         rule.setTriggerType(TriggerType.valueOf(req.getTriggerType()));
@@ -92,6 +131,8 @@ public class UpsellRuleService {
         rule.setDisplayOrder(req.getDisplayOrder() != null ? req.getDisplayOrder() : 0);
         rule.setUpdatedBy(actor);
         if (existing == null) rule.setCreatedBy(actor);
+        Long locationId = null;
+        if (requestedLocationId != null) locationId = requestedLocationId;
 
         // Set trigger FK
         rule.setTriggerItem(null);
@@ -100,14 +141,21 @@ public class UpsellRuleService {
         switch (rule.getTriggerType()) {
             case ITEM_IN_CART -> {
                 if (req.getTriggerItemId() != null) {
-                    rule.setTriggerItem(menuRepo.findById(req.getTriggerItemId())
+                    rule.setTriggerItem((locationId == null
+                            ? menuRepo.findById(req.getTriggerItemId())
+                            : menuRepo.findByIdAndLocationId(req.getTriggerItemId(), locationId))
                             .orElseThrow(() -> new IllegalArgumentException("Trigger item not found")));
+                    locationId = rule.getTriggerItem().getLocation().getId();
                 }
             }
             case CATEGORY_IN_CART -> {
                 if (req.getTriggerCategoryId() != null) {
-                    rule.setTriggerCategory(categoryRepo.findById(req.getTriggerCategoryId())
+                    rule.setTriggerCategory((locationId == null
+                            ? categoryRepo.findById(req.getTriggerCategoryId())
+                            : categoryRepo.findByIdAndLocationIdAndIsDeletedFalse(
+                                    req.getTriggerCategoryId(), locationId))
                             .orElseThrow(() -> new IllegalArgumentException("Trigger category not found")));
+                    locationId = rule.getTriggerCategory().getLocation().getId();
                 }
             }
             case CART_VALUE_EXCEEDS -> rule.setMinCartValue(req.getMinCartValue());
@@ -116,7 +164,23 @@ public class UpsellRuleService {
         // Set targets
         if (rule.getTargets() == null) rule.setTargets(new ArrayList<>());
         if (req.getTargetItemIds() != null) {
-            List<MenuItem> targetItems = menuRepo.findAllById(req.getTargetItemIds());
+            if (locationId == null && !req.getTargetItemIds().isEmpty()) {
+                locationId = menuRepo.findById(req.getTargetItemIds().get(0))
+                        .orElseThrow(() -> new IllegalArgumentException("Target item not found"))
+                        .getLocation().getId();
+            }
+            if (locationId == null) {
+                throw new IllegalArgumentException("Location context is required for upsell rule");
+            }
+            if (requestedLocationId != null && !requestedLocationId.equals(locationId)) {
+                throw new IllegalArgumentException("Rule location mismatch");
+            }
+            final Long ruleLocationId = locationId;
+            List<MenuItem> targetItems = req.getTargetItemIds().stream()
+                    .map(id -> menuRepo.findByIdAndLocationId(id, ruleLocationId)
+                            .orElseThrow(() -> new IllegalArgumentException(
+                                    "Target item is outside the rule location: " + id)))
+                    .toList();
             for (int i = 0; i < targetItems.size(); i++) {
                 UpsellRuleTarget t = new UpsellRuleTarget();
                 t.setRule(rule);
@@ -181,4 +245,3 @@ public class UpsellRuleService {
                         (a, b) -> a));
     }
 }
-

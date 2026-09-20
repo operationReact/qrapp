@@ -22,12 +22,23 @@ export function authorizedLocationsOptions(enabled = true) {
   };
 }
 
+export function publicLocationsOptions(enabled = true) {
+  return {
+    queryKey: ["locations", "public"],
+    queryFn: async () => (await apiClient.get("/api/locations/public")).data || [],
+    enabled,
+  };
+}
+
 export function LocationProvider({ children }) {
   const { user } = useAuth();
-  const enabled = Boolean(user?.token);
-  const locationsQuery = useQuery(authorizedLocationsOptions(enabled));
+  const authorizedQuery = useQuery(authorizedLocationsOptions(Boolean(user?.token)));
+  const publicQuery = useQuery(publicLocationsOptions(!user?.token));
   const [storedLocation, setStoredLocation] = useState(readActiveLocation);
-  const availableLocations = useMemo(() => locationsQuery.data || [], [locationsQuery.data]);
+  const availableLocations = useMemo(
+    () => (user?.token ? authorizedQuery.data : publicQuery.data) || [],
+    [authorizedQuery.data, publicQuery.data, user?.token],
+  );
   const defaultLocation = user?.defaultLocation || user?.info?.defaultLocation;
   const activeLocation = availableLocations.find((item) => String(item.id) === String(storedLocation?.id))
     || availableLocations.find((item) => String(item.id) === String(defaultLocation?.id))
@@ -40,6 +51,7 @@ export function LocationProvider({ children }) {
   }, [activeLocation]);
 
   useEffect(() => {
+    const locationsQuery = user?.token ? authorizedQuery : publicQuery;
     if (!locationsQuery.isSuccess) return;
     if (storedLocation && !availableLocations.some((item) => String(item.id) === String(storedLocation.id))) {
       const timer = window.setTimeout(() => setStoredLocation(null), 0);
@@ -48,7 +60,8 @@ export function LocationProvider({ children }) {
       const timer = window.setTimeout(() => setStoredLocation(activeLocation), 0);
       return () => window.clearTimeout(timer);
     }
-  }, [activeLocation, availableLocations, locationsQuery.isSuccess, storedLocation]);
+  }, [activeLocation, availableLocations, authorizedQuery.isSuccess, publicQuery.isSuccess,
+    user?.token, storedLocation]);
 
   const setActiveLocation = useCallback((location) => {
     const next = location && availableLocations.find((item) => String(item.id) === String(location.id));
@@ -57,9 +70,12 @@ export function LocationProvider({ children }) {
   const value = useMemo(() => ({
     activeLocation, activeLocationId: activeLocation?.id ?? null, availableLocations,
     setActiveLocation, locations: availableLocations, selectLocation: setActiveLocation,
-    isLoading: locationsQuery.isLoading, error: locationsQuery.error,
-    refetch: locationsQuery.refetch,
-  }), [activeLocation, availableLocations, setActiveLocation, locationsQuery.isLoading, locationsQuery.error, locationsQuery.refetch]);
+    isLoading: authorizedQuery.isLoading || publicQuery.isLoading,
+    error: authorizedQuery.error || publicQuery.error,
+    refetch: user?.token ? authorizedQuery.refetch : publicQuery.refetch,
+  }), [activeLocation, availableLocations, setActiveLocation, authorizedQuery.isLoading,
+    publicQuery.isLoading, authorizedQuery.error, publicQuery.error, user?.token,
+    authorizedQuery.refetch, publicQuery.refetch]);
   return <LocationContext.Provider value={value}>{children}</LocationContext.Provider>;
 }
 

@@ -88,6 +88,11 @@ public class RecommendationEngineService {
     public CartRecommendationResponse getCartSuggestions(CartRecommendationRequest req) {
         List<Long> cartItemIds = req.getItemIds()     != null ? req.getItemIds()     : List.of();
         List<Long> cartCatIds  = req.getCategoryIds() != null ? req.getCategoryIds() : List.of();
+        Long locationId = req.getLocationId();
+        if (locationId == null && !cartItemIds.isEmpty()) {
+            locationId = menuRepo.findById(cartItemIds.get(0)).map(item -> item.getLocation().getId()).orElse(null);
+        }
+        final Long resolvedLocationId = locationId;
         BigDecimal cartTotal   = req.getCartTotal()   != null ? req.getCartTotal()   : BigDecimal.ZERO;
         int        maxResults  = req.getMaxResults() > 0      ? req.getMaxResults()  : DEFAULT_MAX;
         int        poolSize    = maxResults * POOL_MULTIPLIER;
@@ -149,7 +154,8 @@ public class RecommendationEngineService {
         if (pool.size() < poolSize && !cartCatIds.isEmpty()) {
             for (CategoryPairingRule p : catPairingRepo.findByCategoryIds(cartCatIds)) {
                 Long targetCatId = p.getTargetCategory().getId();
-                for (MenuItem item : menuRepo.findByFilters(null, targetCatId, null, PageRequest.of(0, poolSize))) {
+                if (resolvedLocationId == null) continue;
+                for (MenuItem item : menuRepo.findByFilters(resolvedLocationId, null, targetCatId, null, PageRequest.of(0, poolSize))) {
                     if (!cartItemSet.contains(item.getId()) && !pool.containsKey(item.getId())) {
                         pool.put(item.getId(), new ScoredCandidate(
                                 buildSuggestion(item, RecommendationSource.CATEGORY, null, null),
@@ -168,7 +174,8 @@ public class RecommendationEngineService {
             for (TopMenuItemProjection top : analyticsRepo.findTopItemsByQty(
                     today.minusDays(30), today, PageRequest.of(0, poolSize + cartItemSet.size()))) {
                 if (!cartItemSet.contains(top.getMenuItemId()) && !pool.containsKey(top.getMenuItemId())) {
-                    menuRepo.findById(top.getMenuItemId()).ifPresent(item ->
+                    if (resolvedLocationId == null) continue;
+                    menuRepo.findByIdAndLocationId(top.getMenuItemId(), resolvedLocationId).ifPresent(item ->
                             pool.put(item.getId(), new ScoredCandidate(
                                     buildSuggestion(item, RecommendationSource.BEST_SELLER, null, null),
                                     TIER_BEST_SELLER)));
@@ -179,7 +186,7 @@ public class RecommendationEngineService {
         }
 
         // ── Classification scoring layer ──────────────────────────────────────
-        applyClassificationScoring(cartItemIds, pool);
+        applyClassificationScoring(cartItemIds, pool, resolvedLocationId);
 
         // ── Sort by finalScore desc, enrich with live prices, trim to maxResults ──
         List<Long> rankedIds = pool.entrySet().stream()
@@ -213,7 +220,8 @@ public class RecommendationEngineService {
      * ordering is preserved unchanged.
      */
     private void applyClassificationScoring(List<Long> cartItemIds,
-                                             LinkedHashMap<Long, ScoredCandidate> pool) {
+                                             LinkedHashMap<Long, ScoredCandidate> pool,
+                                             Long locationId) {
         if (pool.isEmpty()) return;
 
         // Collect all IDs that need classification data in one batch query
@@ -223,7 +231,7 @@ public class RecommendationEngineService {
 
         Map<Long, ItemClassificationResponse> classifs;
         try {
-            classifs = classificationSvc.getItemClassificationBatch(allIds);
+            classifs = classificationSvc.getItemClassificationBatch(allIds, locationId);
         } catch (Exception ex) {
             log.warn("[RecEngine] Classification batch load failed — skipping scoring: {}", ex.getMessage());
             return;
@@ -366,4 +374,3 @@ public class RecommendationEngineService {
                         (a, b) -> a));
     }
 }
-

@@ -4,17 +4,17 @@ import {
   getCategoryMenuItems,
 } from "@/services/category-service";
 
-export const categoryOptions = (categoryId) =>
+export const categoryOptions = (categoryId, locationId) =>
   queryOptions({
-    queryKey: ["category", categoryId],
-    queryFn: () => getCategoryById(categoryId),
-    enabled: Boolean(categoryId),
+    queryKey: ["category", locationId, categoryId],
+    queryFn: () => getCategoryById(categoryId, locationId),
+    enabled: Boolean(categoryId && locationId),
   });
 
-export const categoryMenuOptions = (categoryId) =>
+export const categoryMenuOptions = (categoryId, locationId) =>
   queryOptions({
-    queryKey: ["category-menu", categoryId],
-    queryFn: () => getCategoryMenuItems(categoryId),
-    enabled: Boolean(categoryId),
+    queryKey: ["category-menu", locationId, categoryId],
+    queryFn: () => getCategoryMenuItems(categoryId, locationId),
+    enabled: Boolean(categoryId && locationId),
     placeholderData: [],
   });

@@ -15,6 +15,8 @@ import {
 import { usePreferences } from "@/context/PreferencesContext";
 import MobileMenu from "../components/shared/MobileMenu";
 import { useLocation } from "@tanstack/react-router";
+import { useLocation as useActiveLocation } from "@/context/LocationContext";
+import { LocationSelector } from "@/components/LocationSelector";
 import DealsSection from "@/components/DealsSection";
 import React from "react";
 import { BowlFoodIcon, CaretRightIcon } from "@phosphor-icons/react";
@@ -44,6 +46,7 @@ export const Route = createFileRoute("/")({
 function MenuPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const { hash } = useLocation();
+  const { activeLocationId } = useActiveLocation();
 
   const category = decodeURIComponent(hash) || "All";
 
@@ -59,9 +62,9 @@ function MenuPage() {
     isLoading: loading,
     isError: offline,
     refetch: fetchMenu,
-  } = useQuery(menuOptions(opts));
+  } = useQuery(menuOptions({ ...opts, locationId: activeLocationId }));
 
-  const { data: categoriesData } = useQuery(categoriesOptions);
+  const { data: categoriesData } = useQuery(categoriesOptions(activeLocationId));
 
   const categories = [...new Set((categoriesData || []).map((c) => c.name))];
 
@@ -136,6 +139,7 @@ function MenuPage() {
       <div className="container-premium flex flex-col gap-2 py-1.5 md:gap-2.5 md:py-2">
         <div className="flex gap-3 w-full">
           <SearchBar onSearch={setSearchQuery} />
+          <LocationSelector className="max-w-[220px]" />
         </div>
 
         <div className="lg:hidden">

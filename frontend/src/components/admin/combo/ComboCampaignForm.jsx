@@ -137,7 +137,7 @@ export default function ComboCampaignForm({
     initialData?.eligibleCategoryIds ?? [],
   );
 
-  const { data: categories = [] } = useQuery(categoriesOptions);
+  const { data: categories = [] } = useQuery(categoriesOptions());
 
   const handleTierChange = (idx, key, value) => {
     setTiers((prev) =>
