@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "../ui/input-group";
 import { useDebounce } from "@/hooks/useDebounce";
 
-export default function SearchBar({ onSearch = () => { }, autoFocus = false }) {
+export default function SearchBar({ onSearch = () => { }, autoFocus = false, home = false }) {
   const [value, setValue] = useState("");
   const inputRef = useRef();
   const searchQuery = useDebounce(value, 300);
@@ -15,16 +15,16 @@ export default function SearchBar({ onSearch = () => { }, autoFocus = false }) {
   }, [searchQuery, onSearch]);
 
   return (
-    <InputGroup className="h-10 rounded-xl border-border bg-card focus-within:border-primary! focus-within:ring-1! focus-within:ring-primary! md:h-10 md:rounded-xl">
+    <InputGroup className={`${home ? "h-12 rounded-2xl shadow-[0_2px_10px_rgba(42,35,30,0.04)] md:h-11 md:rounded-xl md:shadow-none" : "h-10 rounded-xl md:h-10"} min-w-0 border-border/80 bg-card focus-within:border-primary! focus-within:ring-1! focus-within:ring-primary!`}>
       <InputGroupAddon className="pl-2.5 pr-1.5">
-        <Search className="size-4 text-gray-400" />
+        <Search className="size-[18px] text-muted-foreground" />
       </InputGroupAddon>
 
       <InputGroupInput
         ref={inputRef}
         value={value}
         onChange={(e) => setValue(e.target.value)}
-        placeholder="Search dishes, meals, snacks..."
+        placeholder="Search for dishes, meals, cuisines..."
         autoFocus={autoFocus}
         enterKeyHint="search"
         autoCapitalize="none"
@@ -43,10 +43,14 @@ export default function SearchBar({ onSearch = () => { }, autoFocus = false }) {
           <X className="size-4 text-gray-500" />
         </Button>
       )}
+      <span className="mr-3 grid size-7 shrink-0 place-items-center rounded-full text-muted-foreground" aria-hidden="true">
+        <SlidersHorizontal className="size-[17px]" />
+      </span>
     </InputGroup>
   );
 }
 
 SearchBar.propTypes = {
   onSearch: PropTypes.func,
+  home: PropTypes.bool,
 };

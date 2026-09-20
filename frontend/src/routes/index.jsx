@@ -136,10 +136,16 @@ function MenuPage() {
         </div>
       )}
 
-      <div className="container-premium flex flex-col gap-2 py-1.5 md:gap-2.5 md:py-2">
-        <div className="flex gap-3 w-full">
-          <SearchBar onSearch={setSearchQuery} />
-          <LocationSelector className="max-w-[220px]" />
+      <div className="container-premium home-controls flex flex-col gap-2.5 py-2 md:gap-2.5 md:py-2">
+        <div className="rounded-[34px] bg-[#fff0f3] p-2.5 sm:rounded-3xl md:bg-transparent md:p-0">
+          <div className="grid w-full grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)] gap-2 sm:flex">
+            <LocationSelector home className="order-first w-full sm:max-w-[260px]" />
+            <SearchBar home onSearch={setSearchQuery} />
+          </div>
+        </div>
+
+        <div className="container-premium -mx-[0.875rem] w-auto px-0 md:mx-0 md:w-auto md:px-0">
+          <CategoryTabs categories={categories} active={category} />
         </div>
 
         <div className="lg:hidden">
@@ -150,10 +156,6 @@ function MenuPage() {
         </div>
 
         <DealsSection />
-      </div>
-
-      <div className="container-premium mt-1 md:mt-2">
-        <CategoryTabs categories={categories} active={category} />
       </div>
 
       <main className="container-premium py-2.5 md:py-4 lg:py-5">

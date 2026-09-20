@@ -30,8 +30,9 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useAuth } from "@/context/AuthContext";
 import { useCart } from "@/context/CartContext";
+import PropTypes from "prop-types";
 
-export default function Navbar() {
+export default function Navbar({ homeHeader = false }) {
   const { cart, openDrawer, closeDrawer } = useCart();
   const { user, setUser, isAdmin } = useAuth();
   const navigate = useNavigate();
@@ -95,12 +96,22 @@ export default function Navbar() {
     <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur">
       <div className="container-premium flex items-center justify-between gap-2 py-2 md:gap-3 md:py-3 lg:hidden">
         <Link to="/" className="flex min-w-0 items-center gap-2.5">
-          <img src="/bro-logo.png" alt="BRO & BRO" className="size-10 rounded-xl object-cover shadow-sm md:size-11 md:rounded-2xl" />
+          <img
+            src="/bro-logo.png"
+            alt="BRO & BRO"
+            className={homeHeader
+              ? "size-[72px] rounded-none object-contain md:size-20"
+              : "size-10 rounded-xl object-cover shadow-sm md:size-11 md:rounded-2xl"}
+          />
           <div className="min-w-0">
-            <p className="truncate text-[15px] font-bold leading-5 text-foreground">
+            <p className={homeHeader
+              ? "truncate text-[21px] font-extrabold leading-6 tracking-tight text-foreground"
+              : "truncate text-[15px] font-bold leading-5 text-foreground"}>
               BRO &amp; BRO
             </p>
-            <p className="truncate text-xs text-muted-foreground">
+            <p className={homeHeader
+              ? "truncate text-[16px] font-medium leading-5 text-muted-foreground"
+              : "truncate text-xs text-muted-foreground"}>
               Food Court
             </p>
           </div>
@@ -117,7 +128,7 @@ export default function Navbar() {
               }
             }}
             aria-label="Open cart"
-            className="relative inline-flex size-9 items-center justify-center rounded-full border border-border bg-card shadow-sm md:size-10"
+            className={`relative inline-flex items-center justify-center rounded-full border border-border bg-card shadow-sm ${homeHeader ? "size-12" : "size-9 md:size-10"}`}
           >
             <ShoppingCartSimpleIcon weight="duotone" className="size-5" />
             {cart.length > 0 && (
@@ -131,9 +142,9 @@ export default function Navbar() {
             <Link
               to="/profile"
               aria-label="Open account"
-              className="inline-flex size-9 items-center justify-center overflow-hidden rounded-full border border-border bg-card shadow-sm md:size-10"
+              className={`inline-flex items-center justify-center overflow-hidden rounded-full border border-border bg-card shadow-sm ${homeHeader ? "size-12" : "size-9 md:size-10"}`}
             >
-              <Avatar className="size-9 md:size-10">
+              <Avatar className={homeHeader ? "size-12" : "size-9 md:size-10"}>
                 <AvatarFallback className="text-[13px] text-primary">
                   {initials}
                 </AvatarFallback>
@@ -143,7 +154,7 @@ export default function Navbar() {
             <Link
               to="/login"
               aria-label="Login"
-              className="inline-flex size-9 items-center justify-center rounded-full border border-border bg-card shadow-sm md:size-10"
+              className={`inline-flex items-center justify-center rounded-full border border-border bg-card shadow-sm ${homeHeader ? "size-12" : "size-9 md:size-10"}`}
             >
               <UserCircleIcon weight="duotone" className="size-5 text-muted-foreground md:size-6" />
             </Link>
@@ -311,3 +322,7 @@ export default function Navbar() {
     </header>
   );
 }
+
+Navbar.propTypes = {
+  homeHeader: PropTypes.bool,
+};
