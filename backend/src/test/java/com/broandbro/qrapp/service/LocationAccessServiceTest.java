@@ -71,6 +71,16 @@ class LocationAccessServiceTest {
     }
 
     @Test
+    void customerUsesDefaultLocationForFeedAccess() {
+        Location location = Location.builder().id(6L).active(true).code("PRAGATI_NAGAR").build();
+        User user = User.builder().id(8L).role(UserRole.CUSTOMER).defaultLocation(location).build();
+        when(locations.findById(6L)).thenReturn(java.util.Optional.of(location));
+
+        assertTrue(service.canAccessLocation(user, 6L));
+        assertEquals(List.of(location), service.getAccessibleLocations(user));
+    }
+
+    @Test
     void inactiveAndInvalidLocationsAreDeniedEvenForAdmin() {
         User user = User.builder().id(2L).role(UserRole.ADMIN).build();
         when(locations.findById(3L)).thenReturn(java.util.Optional.of(

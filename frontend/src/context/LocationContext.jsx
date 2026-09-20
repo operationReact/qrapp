@@ -42,6 +42,7 @@ export function LocationProvider({ children }) {
   const defaultLocation = user?.defaultLocation || user?.info?.defaultLocation;
   const activeLocation = availableLocations.find((item) => String(item.id) === String(storedLocation?.id))
     || availableLocations.find((item) => String(item.id) === String(defaultLocation?.id))
+    || availableLocations.find((item) => item.code === "PRAGATI_NAGAR")
     || availableLocations[0]
     || null;
 

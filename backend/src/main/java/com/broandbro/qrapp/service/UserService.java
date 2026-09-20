@@ -54,10 +54,7 @@ public class UserService {
                 .password(passwordEncoder.encode(req.getPassword()))
                 .name(req.getName())
                 .build();
-        if (req.getDefaultLocationId() != null) {
-            u.setDefaultLocation(locationRepository.findById(req.getDefaultLocationId())
-                    .orElseThrow(() -> new IllegalArgumentException("location_not_found")));
-        }
+        u.setDefaultLocation(resolveDefaultLocation(req.getDefaultLocationId()));
         u = userRepository.save(u);
         if (u.getDefaultLocation() != null) {
             userLocationAccessRepository.save(UserLocationAccess.builder()
@@ -109,11 +106,7 @@ public class UserService {
                 .password(passwordHash)
                 .name(name)
                 .build();
-        if (defaultLocationId != null) {
-            user.setDefaultLocation(locationRepository.findById(defaultLocationId)
-                    .filter(location -> Boolean.TRUE.equals(location.getActive()))
-                    .orElseThrow(() -> new IllegalArgumentException("location_not_found")));
-        }
+        user.setDefaultLocation(resolveDefaultLocation(defaultLocationId));
         user = userRepository.save(user);
         if (user.getDefaultLocation() != null) {
             userLocationAccessRepository.save(UserLocationAccess.builder()
@@ -135,6 +128,17 @@ public class UserService {
         userRepository.save(user);
         cacheUser(user);
         return token;
+    }
+
+    private com.broandbro.qrapp.entity.Location resolveDefaultLocation(Long requestedLocationId) {
+        if (requestedLocationId != null) {
+            return locationRepository.findById(requestedLocationId)
+                    .filter(location -> Boolean.TRUE.equals(location.getActive()))
+                    .orElseThrow(() -> new IllegalArgumentException("location_not_found"));
+        }
+        return locationRepository.findByCode("PRAGATI_NAGAR")
+                .filter(location -> Boolean.TRUE.equals(location.getActive()))
+                .orElseThrow(() -> new IllegalStateException("default_location_not_configured"));
     }
 
     public Optional<User> findByPhone(String phone) {

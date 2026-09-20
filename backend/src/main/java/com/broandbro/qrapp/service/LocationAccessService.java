@@ -19,7 +19,8 @@ public class LocationAccessService {
         if (location == null || !Boolean.TRUE.equals(location.getActive())) return false;
         if (hasGlobalAccess(user)) return true;
         if (user.getRole() != UserRole.MANAGER && user.getRole() != UserRole.KITCHEN_STAFF) {
-            return false;
+            return user.getDefaultLocation() != null
+                    && locationId.equals(user.getDefaultLocation().getId());
         }
         return accessRepository.findByUserIdAndLocationId(user.getId(), locationId)
                 .filter(a -> Boolean.TRUE.equals(a.getActive())
@@ -41,7 +42,14 @@ public class LocationAccessService {
             return locationRepository.findByActiveTrueOrderByNameAsc();
         }
         if (user.getRole() != UserRole.MANAGER && user.getRole() != UserRole.KITCHEN_STAFF) {
-            return List.of();
+            Location defaultLocation = user.getDefaultLocation();
+            if (defaultLocation != null && Boolean.TRUE.equals(defaultLocation.getActive())) {
+                return List.of(defaultLocation);
+            }
+            return locationRepository.findByCode("PRAGATI_NAGAR")
+                    .filter(location -> Boolean.TRUE.equals(location.getActive()))
+                    .map(List::of)
+                    .orElse(List.of());
         }
         return accessRepository.findByUserIdAndActiveTrueAndLocationActiveTrueOrderByLocationNameAsc(user.getId())
                 .stream().map(UserLocationAccess::getLocation).toList();
