@@ -1,6 +1,8 @@
 import PropTypes from "prop-types";
+import { useState } from "react";
 import { buttonVariants } from "./ui/button";
 import { cn } from "@/lib/utils";
+
 const CATEGORY_EMOJIS = {
   breakfast: "🍳",
   lunch: "🍱",
@@ -11,10 +13,43 @@ const CATEGORY_EMOJIS = {
   dessert: "🍰",
 };
 
-const getCategoryEmoji = (cat) => {
+const CATEGORY_IMAGES = {
+  all: "/category-icons/all.svg",
+  breakfast: "/category-icons/breakfast.svg",
+  lunch: "/category-icons/lunch.svg",
+  sandwich: "/category-icons/sandwich.svg",
+  snacks: "/category-icons/snacks.svg",
+  dinner: "/category-icons/dinner.svg",
+  beverage: "/category-icons/beverage.svg",
+  dessert: "/category-icons/dessert.svg",
+};
+
+const getCategoryKey = (cat) => {
   const name = cat.toLowerCase();
-  if (name === "all") return "🍴";
-  return Object.entries(CATEGORY_EMOJIS).find(([key]) => name.includes(key))?.[1] || "🍽️";
+  if (name === "all") return "all";
+  return Object.keys(CATEGORY_IMAGES).find((key) => name.includes(key)) || "all";
+};
+
+const getCategoryEmoji = (cat) => CATEGORY_EMOJIS[getCategoryKey(cat)] || "🍽️";
+
+function CategoryImage({ category }) {
+  const [failed, setFailed] = useState(false);
+  const src = CATEGORY_IMAGES[getCategoryKey(category)];
+
+  if (failed) {
+    return <span aria-hidden="true">{getCategoryEmoji(category)}</span>;
+  }
+
+  return (
+    <img
+      src={src}
+      alt=""
+      loading="lazy"
+      decoding="async"
+      onError={() => setFailed(true)}
+      className="size-10 object-contain"
+    />
+  );
 };
 
 const getCategoryLabel = (cat) => {
@@ -54,7 +89,7 @@ export default function CategoryTabs({ categories, active }) {
               "grid size-14 place-items-center rounded-[20px] bg-[#f4f7fb] text-[29px] shadow-[0_5px_14px_rgba(41,47,67,0.05)] transition-colors md:hidden",
               active === cat && "bg-primary text-white shadow-[0_7px_16px_rgba(241,32,70,0.22)]",
             )}>
-              <span aria-hidden="true">{getCategoryEmoji(cat)}</span>
+              <CategoryImage category={cat} />
             </span>
             <span className="whitespace-nowrap">{getCategoryLabel(cat)}</span>
           </a>
