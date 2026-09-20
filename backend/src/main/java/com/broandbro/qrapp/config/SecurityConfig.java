@@ -17,6 +17,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
+import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -155,7 +156,10 @@ public class SecurityConfig {
                         .hasAnyRole("ADMIN", "SUPERUSER")
 
                         .requestMatchers("/api/admin/**")
-                        .hasAnyRole("ADMIN", "SUPERUSER")
+                        .hasAnyRole("ADMIN", "SUPERUSER", "SUPER_ADMIN")
+
+                        .requestMatchers(HttpMethod.GET, "/api/locations/public").permitAll()
+                        .requestMatchers("/api/locations/**").authenticated()
 
                         // All analytics endpoints — admin only
                         .requestMatchers("/api/v1/analytics/**")
@@ -179,6 +183,8 @@ public class SecurityConfig {
                         .anyRequest()
                         .authenticated()
                 )
+                .exceptionHandling(exceptions -> exceptions
+                        .authenticationEntryPoint(new HttpStatusEntryPoint(org.springframework.http.HttpStatus.UNAUTHORIZED)))
 
                 .addFilterBefore(
                         tokenAuthFilter,

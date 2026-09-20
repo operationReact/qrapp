@@ -12,6 +12,7 @@ import com.broandbro.qrapp.otp.PhoneNumberNormalizer;
 import com.broandbro.qrapp.repository.PasswordResetAuthorizationRepository;
 import com.broandbro.qrapp.repository.UserRepository;
 import com.broandbro.qrapp.repository.WhatsAppOtpRepository;
+import com.broandbro.qrapp.repository.LocationRepository;
 import com.broandbro.qrapp.whatsapp.WhatsAppCloudApiClient;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,7 +28,6 @@ import java.time.temporal.ChronoUnit;
 import java.util.Base64;
 
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class WhatsAppOtpService {
     private final WhatsAppOtpRepository otpRepository;
@@ -37,15 +37,45 @@ public class WhatsAppOtpService {
     private final WhatsAppCloudApiClient whatsAppClient;
     private final WhatsAppOtpProperties properties;
     private final UserService userService;
+    private final LocationRepository locationRepository;
     private final SecureRandom secureRandom = new SecureRandom();
 
+    public WhatsAppOtpService(WhatsAppOtpRepository otpRepository,
+                              PasswordResetAuthorizationRepository resetAuthorizationRepository,
+                              UserRepository userRepository, PasswordEncoder passwordEncoder,
+                              WhatsAppCloudApiClient whatsAppClient, WhatsAppOtpProperties properties,
+                              UserService userService) {
+        this(otpRepository, resetAuthorizationRepository, userRepository, passwordEncoder,
+                whatsAppClient, properties, userService, null);
+    }
+
+    public WhatsAppOtpService(WhatsAppOtpRepository otpRepository,
+                              PasswordResetAuthorizationRepository resetAuthorizationRepository,
+                              UserRepository userRepository, PasswordEncoder passwordEncoder,
+                              WhatsAppCloudApiClient whatsAppClient, WhatsAppOtpProperties properties,
+                              UserService userService, LocationRepository locationRepository) {
+        this.otpRepository = otpRepository;
+        this.resetAuthorizationRepository = resetAuthorizationRepository;
+        this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
+        this.whatsAppClient = whatsAppClient;
+        this.properties = properties;
+        this.userService = userService;
+        this.locationRepository = locationRepository;
+    }
+
     public void requestRegistrationOtp(String rawPhone, String name, String password) {
+        requestRegistrationOtp(rawPhone, name, password, null);
+    }
+
+    public void requestRegistrationOtp(String rawPhone, String name, String password, Long defaultLocationId) {
         String phone = PhoneNumberNormalizer.normalize(rawPhone);
         if (userRepository.findByPhone(phone).isPresent()) {
             throw new OtpException("phone_taken");
         }
+        validateLocation(defaultLocationId);
         String passwordHash = passwordEncoder.encode(password);
-        requestOtp(phone, OtpPurpose.REGISTRATION, name, passwordHash);
+        requestOtp(phone, OtpPurpose.REGISTRATION, name, passwordHash, defaultLocationId);
     }
 
     public void requestPasswordResetOtp(String rawPhone) {
@@ -55,10 +85,11 @@ public class WhatsAppOtpService {
                     PhoneNumberNormalizer.mask(phone));
             return;
         }
-        requestOtp(phone, OtpPurpose.PASSWORD_RESET, null, null);
+        requestOtp(phone, OtpPurpose.PASSWORD_RESET, null, null, null);
     }
 
-    private void requestOtp(String phone, OtpPurpose purpose, String name, String passwordHash) {
+    private void requestOtp(String phone, OtpPurpose purpose, String name, String passwordHash,
+                            Long defaultLocationId) {
         Instant now = Instant.now();
         WhatsAppOtpProperties.Otp limits = properties.getOtp();
         if (otpRepository.countByPhoneNumberAndCreatedAtAfter(phone, now.minus(1, ChronoUnit.HOURS))
@@ -82,6 +113,7 @@ public class WhatsAppOtpService {
                 .otpHash(passwordEncoder.encode(otp))
                 .registrationName(name)
                 .registrationPasswordHash(passwordHash)
+                .registrationDefaultLocationId(defaultLocationId)
                 .expiresAt(now.plus(limits.getExpiryMinutes(), ChronoUnit.MINUTES))
                 .attemptCount(0)
                 .status(OtpStatus.ACTIVE)
@@ -107,7 +139,12 @@ public class WhatsAppOtpService {
         if (otp.getRegistrationPasswordHash() == null) {
             throw new OtpException("invalid_otp");
         }
-        return userService.registerVerified(phone, otp.getRegistrationName(), otp.getRegistrationPasswordHash());
+        validateLocation(otp.getRegistrationDefaultLocationId());
+        if (otp.getRegistrationDefaultLocationId() == null) {
+            return userService.registerVerified(phone, otp.getRegistrationName(), otp.getRegistrationPasswordHash());
+        }
+        return userService.registerVerified(phone, otp.getRegistrationName(), otp.getRegistrationPasswordHash(),
+                otp.getRegistrationDefaultLocationId());
     }
 
     @Transactional
@@ -198,6 +235,14 @@ public class WhatsAppOtpService {
             return result.toString();
         } catch (Exception ex) {
             throw new IllegalStateException("Unable to process reset authorization", ex);
+        }
+    }
+
+    private void validateLocation(Long locationId) {
+        if (locationId != null && (locationRepository == null
+                || locationRepository.findById(locationId)
+                .filter(location -> Boolean.TRUE.equals(location.getActive())).isEmpty())) {
+            throw new OtpException("location_not_found");
         }
     }
 }

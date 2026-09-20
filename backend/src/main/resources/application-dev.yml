@@ -108,6 +108,9 @@ openai:
 
 # ── AWS Parameter Store Settings ────────────────────────────────────────────
 app:
+  dev:
+    seed:
+      super-admin-password: "${DEV_SUPER_ADMIN_PASSWORD:Iamgreat@2025}"
   parameter-store:
     auto-create: false
     environment: dev

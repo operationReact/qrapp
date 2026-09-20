@@ -2,12 +2,14 @@ package com.broandbro.qrapp.service;
 
 import com.broandbro.qrapp.config.WhatsAppOtpProperties;
 import com.broandbro.qrapp.entity.WhatsAppOtp;
+import com.broandbro.qrapp.entity.Location;
 import com.broandbro.qrapp.exception.OtpException;
 import com.broandbro.qrapp.otp.OtpPurpose;
 import com.broandbro.qrapp.otp.OtpStatus;
 import com.broandbro.qrapp.repository.PasswordResetAuthorizationRepository;
 import com.broandbro.qrapp.repository.UserRepository;
 import com.broandbro.qrapp.repository.WhatsAppOtpRepository;
+import com.broandbro.qrapp.repository.LocationRepository;
 import com.broandbro.qrapp.whatsapp.WhatsAppCloudApiClient;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -32,6 +34,7 @@ class WhatsAppOtpServiceTest {
     @Mock UserRepository userRepository;
     @Mock WhatsAppCloudApiClient whatsAppClient;
     @Mock UserService userService;
+    @Mock LocationRepository locationRepository;
     @Captor ArgumentCaptor<String> otpCaptor;
 
     private final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
@@ -47,7 +50,7 @@ class WhatsAppOtpServiceTest {
         properties.getOtp().setResendCooldownSeconds(60);
         properties.getOtp().setMaxRequestsPerHour(5);
         service = new WhatsAppOtpService(otpRepository, resetRepository, userRepository,
-                passwordEncoder, whatsAppClient, properties, userService);
+                passwordEncoder, whatsAppClient, properties, userService, locationRepository);
         lenient().when(otpRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
         lenient().when(userRepository.findByPhone(anyString())).thenReturn(Optional.empty());
     }
@@ -143,6 +146,35 @@ class WhatsAppOtpServiceTest {
         assertThat(record.getStatus()).isEqualTo(OtpStatus.VERIFIED);
         assertThat(record.getConsumedAt()).isNotNull();
         verify(userService).registerVerified("+919876543210", "A", record.getRegistrationPasswordHash());
+    }
+
+    @Test
+    void registrationOtpCarriesValidDefaultLocationThroughVerification() {
+        Location location = Location.builder().id(8L).active(true).build();
+        when(locationRepository.findById(8L)).thenReturn(Optional.of(location));
+        service.requestRegistrationOtp("+919876543210", "A", "password", 8L);
+        ArgumentCaptor<WhatsAppOtp> capture = ArgumentCaptor.forClass(WhatsAppOtp.class);
+        verify(otpRepository).save(capture.capture());
+        assertThat(capture.getValue().getRegistrationDefaultLocationId()).isEqualTo(8L);
+
+        WhatsAppOtp record = activeOtp(OtpPurpose.REGISTRATION, "123456");
+        record.setRegistrationDefaultLocationId(8L);
+        when(otpRepository.findFirstByPhoneNumberAndPurposeAndStatusOrderByCreatedAtDesc(
+                anyString(), eq(OtpPurpose.REGISTRATION), eq(OtpStatus.ACTIVE))).thenReturn(Optional.of(record));
+        when(userService.registerVerified(anyString(), any(), anyString(), eq(8L))).thenReturn(null);
+        service.verifyRegistrationOtp("+919876543210", "123456");
+        verify(userService).registerVerified("+919876543210", "A", record.getRegistrationPasswordHash(), 8L);
+    }
+
+    @Test
+    void inactiveOrInvalidDefaultLocationIsRejectedBeforeOtpDelivery() {
+        when(locationRepository.findById(8L)).thenReturn(Optional.of(Location.builder().id(8L).active(false).build()));
+        assertThatThrownBy(() -> service.requestRegistrationOtp("+919876543210", "A", "password", 8L))
+                .hasMessage("location_not_found");
+        when(locationRepository.findById(9L)).thenReturn(Optional.empty());
+        assertThatThrownBy(() -> service.requestRegistrationOtp("+919876543210", "A", "password", 9L))
+                .hasMessage("location_not_found");
+        verifyNoInteractions(whatsAppClient);
     }
 
     private WhatsAppOtp activeOtp(OtpPurpose purpose, String plainOtp) {

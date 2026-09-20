@@ -1,0 +1,32 @@
+import { apiClient } from "@/services";
+
+const list = (path, key, params) => ({
+  queryKey: ["admin", key, params || {}],
+  queryFn: async () => {
+    const response = await apiClient.get(path, { params });
+    const body = response.data;
+    return Array.isArray(body) ? body : (body?.content || body?.data || body?.items || []);
+  },
+});
+
+export const adminUsersOptions = (params) => list("/admin/users", "users", params);
+export const adminLocationsOptions = (params) => list("/admin/locations", "locations", params);
+export const userLocationsOptions = (userId, enabled = true) => ({
+  queryKey: ["admin", "users", userId, "locations"],
+  enabled: Boolean(userId) && enabled,
+  queryFn: async () => {
+    const response = await apiClient.get(`/admin/users/${userId}/locations`);
+    const body = response.data;
+    return Array.isArray(body) ? body : (body?.content || body?.data || body?.locations || []);
+  },
+});
+
+export async function createManagementResource(path, payload) { return (await apiClient.post(path, payload)).data; }
+export async function updateManagementResource(path, id, payload) { return (await apiClient.patch(`${path}/${id}`, payload)).data; }
+export async function updateUserRole(id, payload) { return (await apiClient.put(`/admin/users/${id}/role`, payload)).data; }
+export async function grantUserLocation(userId, locationId) {
+  return (await apiClient.put(`/admin/users/${userId}/locations/${locationId}`, { active: true })).data;
+}
+export async function revokeUserLocation(userId, locationId) {
+  return (await apiClient.delete(`/admin/users/${userId}/locations/${locationId}`)).data;
+}

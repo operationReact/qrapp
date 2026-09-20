@@ -9,4 +9,7 @@ public class UserResponse {
     private String name;
     private Boolean isAdmin;
     private Boolean isSuperUser;
+    private String role;
+    private LocationResponse defaultLocation;
+    private java.util.List<LocationResponse> locations;
 }

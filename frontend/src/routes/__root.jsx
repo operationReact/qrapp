@@ -17,6 +17,8 @@ import PropTypes from "prop-types";
 import SiteFooter from "../components/shared/SiteFooter";
 import { HeadContent } from "@tanstack/react-router";
 import { useAuth } from "../context/AuthContext";
+import { LocationProvider } from "../context/LocationContext";
+import { canAccessAdmin } from "@/lib/roles";
 
 function SafeAreaWrapper({ children }) {
   const { cart } = useCart();
@@ -32,14 +34,14 @@ SafeAreaWrapper.propTypes = {
 };
 
 function AuthenticatedRoot() {
-  const { authInitialized, user, isAdmin, isSuperUser } = useAuth();
+  const { authInitialized, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const isPublicEntry =
     location.pathname === "/" ||
     location.pathname === "/home" ||
     location.pathname === "/login";
-  const targetPath = isAdmin || isSuperUser ? "/admin" : "/";
+  const targetPath = canAccessAdmin(user) ? "/admin" : "/";
   const isAdminRoute = location.pathname === "/admin" || location.pathname.startsWith("/admin/");
 
   useEffect(() => {
@@ -94,7 +96,7 @@ function RootComponent() {
     <TooltipProvider>
       <CartProvider>
         <AuthProvider>
-          <AuthenticatedRoot />
+          <LocationProvider><AuthenticatedRoot /></LocationProvider>
         </AuthProvider>
       </CartProvider>
     </TooltipProvider>
