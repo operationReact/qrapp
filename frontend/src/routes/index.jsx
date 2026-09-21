@@ -16,7 +16,6 @@ import { usePreferences } from "@/context/PreferencesContext";
 import MobileMenu from "../components/shared/MobileMenu";
 import { useLocation } from "@tanstack/react-router";
 import { useLocation as useActiveLocation } from "@/context/LocationContext";
-import { LocationSelector } from "@/components/LocationSelector";
 import DealsSection from "@/components/DealsSection";
 import React from "react";
 import { BowlFoodIcon, CaretRightIcon } from "@phosphor-icons/react";
@@ -138,18 +137,15 @@ function MenuPage() {
       )}
 
       <div className="container-premium home-controls flex flex-col gap-2.5 py-2 md:gap-2.5 md:py-2">
-        <div className="rounded-[34px] bg-[#fff0f3] p-2.5 sm:rounded-3xl md:bg-transparent md:p-0">
-          <div className="grid w-full grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)] gap-2 sm:flex">
-            <LocationSelector home className="order-first w-full sm:max-w-[260px]" />
-            <SearchBar
-              home
-              onSearch={setSearchQuery}
-              onFilterClick={() => {
-                filterRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-                filterRef.current?.querySelector("button")?.focus();
-              }}
-            />
-          </div>
+        <div className="w-full">
+          <SearchBar
+            home
+            onSearch={setSearchQuery}
+            onFilterClick={() => {
+              filterRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+              filterRef.current?.querySelector("button")?.focus();
+            }}
+          />
         </div>
 
         <div className="container-premium -mx-[0.875rem] w-auto px-0 md:mx-0 md:w-auto md:px-0">

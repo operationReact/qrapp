@@ -71,7 +71,7 @@ export default function CategoryTabs({ categories, active }) {
 
   return (
     <div className="no-scrollbar overflow-x-auto">
-      <div className="flex min-w-max items-start gap-2 pb-1">
+      <div className="flex min-w-max items-start gap-1 pb-0.5">
         {allCategories.map((cat) => (
           <a
             href={`/#${cat}`}
@@ -80,7 +80,7 @@ export default function CategoryTabs({ categories, active }) {
               size: "sm",
               variant: "ghost",
               className: cn(
-                "group h-auto min-w-[58px] flex-col gap-1.5 rounded-2xl px-0.5 py-1 text-[14px] font-semibold shadow-none hover:bg-transparent md:h-9 md:min-w-fit md:flex-row md:gap-1.5 md:rounded-full md:px-3.5 md:py-2 md:text-xs",
+                "group h-auto w-[72px] min-w-[72px] flex-col gap-1 rounded-2xl px-0 py-0.5 text-[14px] font-semibold shadow-none hover:bg-transparent md:h-9 md:w-auto md:min-w-fit md:flex-row md:gap-1.5 md:rounded-full md:px-3.5 md:py-2 md:text-xs",
                 active === cat ? "text-primary" : "text-foreground",
               ),
             })}
