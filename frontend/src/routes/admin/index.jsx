@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useSidebar } from "@/components/ui/sidebar";
 import { useAuth } from "@/context/AuthContext";
+import { LocationSelector } from "@/components/LocationSelector";
 import { useAdminDashboard } from "@/context/AdminDashboardContext";
 import {
   dailySalesRangeOptions,
@@ -162,7 +163,8 @@ function DashboardHeader({ rangeKey, onRangeChange, ownerName, notifications }) 
             </p>
           </div>
 
-          <div className="flex shrink-0 items-center gap-2">
+          <div className="flex min-w-0 shrink-0 items-center gap-2">
+            <LocationSelector className="max-w-[180px]" />
             <label className="sr-only" htmlFor="dashboard-range">Dashboard date range</label>
             <div className="relative">
               <select

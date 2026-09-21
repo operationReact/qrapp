@@ -22,6 +22,11 @@ public class MenuItem {
     @JoinColumn(name = "category_id")
     private Category category;
 
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "location_id", nullable = false)
+    @JsonIgnore
+    private Location location;
+
     // Make recommended nullable to avoid forcing a NOT NULL schema change that may time out
     private Boolean recommended;
 
@@ -39,11 +44,11 @@ public class MenuItem {
     private Boolean isVeg;
 
     /**
-     * Optional relation to Shop. Null means in-house item.
+     * Optional relation to Vendor. Null means in-house item.
      */
     @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "shop_id")
-    private Shop shop;
+    @JoinColumn(name = "vendor_id")
+    private Vendor vendor;
 
     /**
      * How this item is fulfilled – drives procurement and pricing logic.

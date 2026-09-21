@@ -4,7 +4,9 @@ import { Button } from "./ui/button";
 import { Cart } from "@boxicons/react";
 import { useAuth } from "@/context/AuthContext";
 import { useByocDiscount } from "@/hooks/useByocDiscount";
+import { useScrollVisibility } from "@/hooks/useScrollVisibility";
 import ComboProgressBanner from "@/components/ComboProgressBanner";
+import { cn } from "@/lib/utils";
 
 const pluralRules = new Intl.PluralRules("en-US");
 
@@ -26,6 +28,7 @@ export default function StickyCartBar() {
   const navigate = useNavigate();
   const location = useLocation();
   const { isAdmin } = useAuth();
+  const visible = useScrollVisibility();
 
   const totalItems = cart.reduce((s, i) => s + (i.quantity || 0), 0);
   const totalPrice = getTotal();
@@ -52,16 +55,21 @@ export default function StickyCartBar() {
   if (totalItems === 0) return null;
 
   return (
-    <div className="fixed inset-x-0 bottom-[calc(var(--app-mobile-menu-height)+env(safe-area-inset-bottom)+0.375rem)] z-39 pointer-events-auto px-2 lg:bottom-2.5 lg:px-2.5">
+    <div
+      className={cn(
+        "fixed inset-x-0 bottom-[calc(var(--app-mobile-menu-height)+env(safe-area-inset-bottom)+0.5rem)] z-[45] pointer-events-auto px-2 transition-transform duration-300 ease-out will-change-transform lg:bottom-2.5 lg:px-2.5",
+        visible ? "translate-y-0" : "translate-y-[150%]",
+      )}
+    >
       {/* BYOC compact nudge strip — shown above the bar when progress exists */}
       {primaryByoc && primaryByoc.nextTier && (
-        <div className="mx-auto flex max-w-md items-center justify-center rounded-t-xl border border-b-0 border-emerald-200 bg-emerald-50 px-3 py-1 md:rounded-t-2xl md:px-4 md:py-1.5 lg:max-w-1/2">
+        <div className="mx-auto flex max-w-md items-center justify-center rounded-t-lg border border-b-0 border-emerald-200 bg-emerald-50 px-2.5 py-0.5 md:rounded-t-xl md:px-3 md:py-1 lg:max-w-1/2">
           <ComboProgressBanner campaign={primaryByoc} compact />
         </div>
       )}
-      <div className="mx-auto max-w-md rounded-xl border border-border bg-card/95 backdrop-blur-sm shadow-lg md:rounded-2xl lg:max-w-1/2 lg:rounded-xl lg:border-b pb-[env(safe-area-inset-bottom)]">
+      <div className="mx-auto max-w-md rounded-xl border border-border bg-card/95 backdrop-blur-sm shadow-lg md:rounded-2xl lg:max-w-1/2 lg:rounded-xl lg:border-b pb-[calc(env(safe-area-inset-bottom)*0.5)]">
         <div className="w-full px-3 md:px-4">
-          <div className="flex min-h-12 items-center py-1.5 md:min-h-16 md:py-2 lg:min-h-[72px] lg:py-3">
+          <div className="flex min-h-11 items-center py-1 md:min-h-14 md:py-1.5 lg:min-h-[68px] lg:py-2">
             <div className="flex w-full items-center justify-between gap-3">
               <div className="flex min-w-0 items-center gap-3">
                 <div className="hidden lg:flex size-10 relative bg-primary-foreground/50 flex-none items-center justify-center rounded-full text-base font-semibold text-primary">
@@ -71,17 +79,17 @@ export default function StickyCartBar() {
                   </span>
                 </div>
                 <div className="min-w-0 flex flex-col gap-0.5">
-                  <div className="text-[11px] font-medium tracking-wide text-muted-foreground md:text-xs">
+                  <div className="text-[10px] font-medium tracking-wide text-muted-foreground md:text-xs">
                     <span>{pluralOf(totalItems)}</span> in cart
                   </div>
-                  <div className="truncate text-[15px] font-semibold md:text-base lg:text-lg">
+                  <div className="truncate text-[14px] font-semibold md:text-base lg:text-lg">
                     ₹{totalPrice.toFixed(2)}{" "}
                   </div>
                 </div>
               </div>
 
               <Button
-                className="h-9 rounded-lg px-3 text-[13px] font-semibold md:h-11 md:rounded-full md:px-4 md:text-sm"
+                className="h-8 rounded-full px-3 text-[12px] font-semibold touch-manipulation md:h-10 md:px-4 md:text-sm"
                 onClick={handleViewCart}
                 aria-label="View cart"
               >

@@ -17,7 +17,7 @@ import java.time.Instant;
  * <p>Maps to the {@code rec_interaction} table created by V56.
  *
  * <h3>Multi-Vendor Isolation</h3>
- * {@link #restaurantId} mirrors {@code menu_item.shop_id} for the source item.
+ * {@link #restaurantId} identifies the restaurant location for the source item.
  * All analytics queries MUST include a {@code WHERE restaurant_id = ?} predicate
  * so Restaurant A can never see Restaurant B's data.
  *
@@ -51,8 +51,7 @@ public class RecommendationInteraction {
     private Long id;
 
     /**
-     * The restaurant (shop) this interaction belongs to.
-     * Matches {@code menu_item.shop_id} of the source item.
+     * The restaurant location this interaction belongs to.
      * Stored explicitly for fast, tenant-isolated queries.
      */
     @Column(name = "restaurant_id", nullable = false)
@@ -119,4 +118,3 @@ public class RecommendationInteraction {
     @Column(name = "pairing_role", length = 20)
     private String pairingRole;
 }
-

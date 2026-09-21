@@ -30,6 +30,27 @@ public interface CategoryPairingRuleRepository extends JpaRepository<CategoryPai
 
     @Query("""
            SELECT cp FROM CategoryPairingRule cp
+           JOIN FETCH cp.sourceCategory sc
+           JOIN FETCH cp.targetCategory tc
+           WHERE sc.location.id = :locationId
+             AND tc.location.id = :locationId
+           ORDER BY cp.displayOrder ASC
+           """)
+    List<CategoryPairingRule> findAllByLocation(@Param("locationId") Long locationId);
+
+    @Query("""
+           SELECT cp FROM CategoryPairingRule cp
+           JOIN FETCH cp.sourceCategory sc
+           JOIN FETCH cp.targetCategory tc
+           WHERE cp.isActive = TRUE
+             AND sc.location.id = :locationId
+             AND tc.location.id = :locationId
+           ORDER BY cp.displayOrder ASC
+           """)
+    List<CategoryPairingRule> findActiveByLocation(@Param("locationId") Long locationId);
+
+    @Query("""
+           SELECT cp FROM CategoryPairingRule cp
            JOIN FETCH cp.sourceCategory
            JOIN FETCH cp.targetCategory
            WHERE cp.sourceCategory.id = :sourceCategoryId AND cp.isActive = TRUE
@@ -47,4 +68,15 @@ public interface CategoryPairingRuleRepository extends JpaRepository<CategoryPai
     List<CategoryPairingRule> findByCategoryIds(@Param("categoryIds") List<Long> categoryIds);
 
     boolean existsBySourceCategoryIdAndTargetCategoryId(Long sourceId, Long targetId);
+
+    @Query("""
+           SELECT cp FROM CategoryPairingRule cp
+           JOIN FETCH cp.sourceCategory sc
+           JOIN FETCH cp.targetCategory tc
+           WHERE cp.id = :id
+             AND sc.location.id = :locationId
+             AND tc.location.id = :locationId
+           """)
+    java.util.Optional<CategoryPairingRule> findByIdAndLocation(
+            @Param("id") Long id, @Param("locationId") Long locationId);
 }

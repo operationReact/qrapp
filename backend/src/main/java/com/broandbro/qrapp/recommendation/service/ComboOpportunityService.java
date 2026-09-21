@@ -58,6 +58,12 @@ public class ComboOpportunityService {
     }
 
     @Transactional(readOnly = true)
+    public List<ComboOpportunityResponse> listAll(Long locationId) {
+        return opportunityRepo.findAllOrderedByLocation(locationId).stream()
+                .map(this::toResponse).collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
     public List<ComboOpportunityResponse> listByStatus(String statusStr) {
         ComboOpportunityStatus status = ComboOpportunityStatus.valueOf(statusStr.toUpperCase());
         return opportunityRepo.findByStatusOrderByQualityScoreDescCreatedAtDesc(status)
@@ -67,8 +73,24 @@ public class ComboOpportunityService {
     }
 
     @Transactional(readOnly = true)
+    public List<ComboOpportunityResponse> listByStatus(String statusStr, Long locationId) {
+        ComboOpportunityStatus status = ComboOpportunityStatus.valueOf(statusStr.toUpperCase());
+        return opportunityRepo.findByStatusAndLocation(status, locationId).stream()
+                .map(this::toResponse).collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
     public List<MissedOpportunityResponse> listMissed() {
-        List<Object[]> rows = opportunityRepo.findMissedPairs(MIN_CO_COUNT_FOR_MISSED, MAX_MISSED);
+        return listMissed(null);
+    }
+
+    @Transactional(readOnly = true)
+    public List<MissedOpportunityResponse> listMissed(Long locationId) {
+        if (locationId == null) {
+            throw new IllegalArgumentException("Location context is required");
+        }
+        List<Object[]> rows = opportunityRepo.findMissedPairs(
+                MIN_CO_COUNT_FOR_MISSED, MAX_MISSED, locationId);
         List<MissedOpportunityResponse> result = new ArrayList<>();
         long syntheticId = 1L;
         for (Object[] row : rows) {
@@ -109,7 +131,7 @@ public class ComboOpportunityService {
     // ── Review ─────────────────────────────────────────────────────────────────
 
     @Transactional
-    public ComboOpportunityResponse review(Long id, String action, String actor) {
+    ComboOpportunityResponse review(Long id, String action, String actor) {
         ComboOpportunity opp = opportunityRepo.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Opportunity not found: " + id));
 
@@ -126,18 +148,46 @@ public class ComboOpportunityService {
         return toResponse(opportunityRepo.save(opp));
     }
 
+    @Transactional
+    public ComboOpportunityResponse review(Long id, String action, String actor, Long locationId) {
+        ComboOpportunity opp = opportunityRepo.findByIdAndLocation(id, locationId)
+                .orElseThrow(() -> new IllegalArgumentException("Opportunity not found: " + id));
+        ComboOpportunityStatus newStatus = switch (action.toUpperCase()) {
+            case "APPROVE" -> ComboOpportunityStatus.APPROVED;
+            case "REJECT" -> ComboOpportunityStatus.REJECTED;
+            default -> throw new IllegalArgumentException("Unknown action: " + action);
+        };
+        opp.setStatus(newStatus);
+        opp.setReviewedBy(actor);
+        opp.setReviewedAt(Instant.now());
+        return toResponse(opportunityRepo.save(opp));
+    }
+
     // ── Edit ───────────────────────────────────────────────────────────────────
 
     @Transactional
-    public ComboOpportunityResponse update(Long id, UpdateOpportunityRequest req, String actor) {
+    ComboOpportunityResponse update(Long id, UpdateOpportunityRequest req, String actor) {
         ComboOpportunity opp = opportunityRepo.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Opportunity not found: " + id));
+        return updateExistingOpportunity(opp, req, actor, null);
+    }
 
-        log.info("[ComboOpportunityService] Updating opportunity {} by {}", id, actor);
+    @Transactional
+    public ComboOpportunityResponse update(Long id, UpdateOpportunityRequest req,
+                                           String actor, Long locationId) {
+        ComboOpportunity opp = opportunityRepo.findByIdAndLocation(id, locationId)
+                .orElseThrow(() -> new IllegalArgumentException("Opportunity not found: " + id));
+        return updateExistingOpportunity(opp, req, actor, locationId);
+    }
+
+    private ComboOpportunityResponse updateExistingOpportunity(
+            ComboOpportunity opp, UpdateOpportunityRequest req, String actor, Long requestedLocationId) {
+        log.info("[ComboOpportunityService] Updating opportunity {} by {}", opp.getId(), actor);
 
         if (req.getComboName() != null && !req.getComboName().isBlank()) {
             opp.setComboName(req.getComboName().trim());
         }
+
         if (req.getSuggestedPrice() != null && req.getSuggestedPrice().compareTo(BigDecimal.ZERO) > 0) {
             opp.setSuggestedPrice(req.getSuggestedPrice());
             // Recompute profit
@@ -152,12 +202,24 @@ public class ComboOpportunityService {
             }
         }
         if (req.getItems() != null && !req.getItems().isEmpty()) {
+            Long opportunityLocationId = requestedLocationId != null ? requestedLocationId
+                    : opp.getItems().isEmpty()
+                    ? null
+                    : opp.getItems().get(0).getMenuItem().getLocation().getId();
             opp.getItems().clear();
             int order = 0;
             for (UpdateOpportunityItemDto dto : req.getItems()) {
-                MenuItem mi = menuRepo.findById(dto.getMenuItemId())
+                MenuItem mi = (opportunityLocationId == null
+                        ? menuRepo.findById(dto.getMenuItemId())
+                        : menuRepo.findByIdAndLocationId(dto.getMenuItemId(), opportunityLocationId))
                         .orElseThrow(() -> new IllegalArgumentException(
                                 "MenuItem not found: " + dto.getMenuItemId()));
+                if (opportunityLocationId != null && !opportunityLocationId.equals(mi.getLocation().getId())) {
+                    throw new IllegalArgumentException("Combo items must belong to one location");
+                }
+                if (opportunityLocationId == null) {
+                    opportunityLocationId = mi.getLocation().getId();
+                }
                 ComboOpportunityItem slot = ComboOpportunityItem.builder()
                         .opportunity(opp)
                         .menuItem(mi)
@@ -211,7 +273,9 @@ public class ComboOpportunityService {
 
     private int generateOpportunity(Long itemAId, Long itemBId, int coCount, double rawConfidence) {
         MenuItem itemA = menuRepo.findById(itemAId).orElse(null);
-        MenuItem itemB = menuRepo.findById(itemBId).orElse(null);
+        Long locationId = itemA != null ? itemA.getLocation().getId() : null;
+        MenuItem itemB = locationId == null ? null
+                : menuRepo.findByIdAndLocationId(itemBId, locationId).orElse(null);
         if (itemA == null || itemB == null) return 0;
 
         BigDecimal priceA = pricingService.getCurrentSellingPrice(itemAId);
@@ -302,7 +366,7 @@ public class ComboOpportunityService {
     private List<MenuItem> findAlternatives(MenuItem primary, MenuItem exclude) {
         if (primary.getCategory() == null) return List.of();
         List<MenuItem> same = menuRepo.findByFilters(
-                null, primary.getCategory().getId(), null,
+                primary.getLocation().getId(), null, primary.getCategory().getId(), null,
                 PageRequest.of(0, MAX_ALTERNATIVES_PER_SLOT + 2));
         return same.stream()
                 .filter(m -> !m.getId().equals(primary.getId())
@@ -433,4 +497,3 @@ public class ComboOpportunityService {
         }
     }
 }
-

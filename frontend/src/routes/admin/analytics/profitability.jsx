@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
+import { useLocation as useActiveLocation } from "@/context/LocationContext";
 import {
   TrendingUp,
   TrendingDown,
@@ -127,6 +128,7 @@ function InsightGroup({ title, subtitle, icon, badgeClass, insights, defaultOpen
 
 // ── Pricing-opportunity group ────────────────────────────────────────────────
 function PricingOpportunityGroup({ insights, onPriceSaved }) {
+  const { activeLocationId } = useActiveLocation();
   const [open, setOpen] = useState(true);
   const [priceValues, setPriceValues] = useState({});
   const [saving, setSaving]           = useState(null);
@@ -138,7 +140,7 @@ function PricingOpportunityGroup({ insights, onPriceSaved }) {
     if (!raw || isNaN(val) || val <= 0) return;
     setSaving(itemId);
     try {
-      await updateItemSellingPrice(itemId, val);
+      await updateItemSellingPrice(itemId, val, activeLocationId);
       setSavedIds((prev) => ({ ...prev, [itemId]: true }));
       setTimeout(() => {
         setSavedIds((prev) => { const n = { ...prev }; delete n[itemId]; return n; });

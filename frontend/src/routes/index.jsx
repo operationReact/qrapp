@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { menuOptions, categoriesOptions } from "@/query/options/menu";
 import Navbar from "../components/shared/Navbar";
@@ -15,6 +15,7 @@ import {
 import { usePreferences } from "@/context/PreferencesContext";
 import MobileMenu from "../components/shared/MobileMenu";
 import { useLocation } from "@tanstack/react-router";
+import { useLocation as useActiveLocation } from "@/context/LocationContext";
 import DealsSection from "@/components/DealsSection";
 import React from "react";
 import { BowlFoodIcon, CaretRightIcon } from "@phosphor-icons/react";
@@ -44,11 +45,15 @@ export const Route = createFileRoute("/")({
 function MenuPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const { hash } = useLocation();
+  const { activeLocationId } = useActiveLocation();
 
   const category = decodeURIComponent(hash) || "All";
 
   const { preferences, setPreferences } = usePreferences();
   const vegFilter = preferences.segmentedFilter;
+  const handleSegmentedFilterChange = (value) => {
+    setPreferences({ segmentedFilter: value });
+  };
 
   const opts = {};
   if (vegFilter === "veg") opts.isVeg = true;
@@ -59,11 +64,20 @@ function MenuPage() {
     isLoading: loading,
     isError: offline,
     refetch: fetchMenu,
-  } = useQuery(menuOptions(opts));
+  } = useQuery(menuOptions({ ...opts, locationId: activeLocationId }));
 
-  const { data: categoriesData } = useQuery(categoriesOptions);
+  const { data: categoriesData } = useQuery(categoriesOptions(activeLocationId));
 
-  const categories = [...new Set((categoriesData || []).map((c) => c.name))];
+  const categories = useMemo(() => {
+    const unique = new Map();
+    for (const categoryItem of categoriesData || []) {
+      const name = (categoryItem?.name || "").trim();
+      if (!name) continue;
+      const key = name.toLowerCase();
+      if (!unique.has(key)) unique.set(key, categoryItem);
+    }
+    return Array.from(unique.values());
+  }, [categoriesData]);
 
   const menuItems = menu || [];
 
@@ -110,7 +124,7 @@ function MenuPage() {
 
   return (
     <div className="page-shell bg-background pb-mobile-nav! lg:pb-[initial]!">
-      <Navbar />
+      <Navbar homeHeader />
       <MobileMenu />
       {/* Backend offline banner (non-technical user friendly) */}
       {offline && (
@@ -133,26 +147,29 @@ function MenuPage() {
         </div>
       )}
 
-      <div className="container-premium flex flex-col gap-2 py-1.5 md:gap-2.5 md:py-2">
-        <div className="flex gap-3 w-full">
-          <SearchBar onSearch={setSearchQuery} />
+      <div className="container-premium home-controls flex flex-col gap-2 py-1.5 md:gap-2 md:py-2">
+        <div className="flex w-full items-center gap-2">
+          <div className="min-w-0 flex-1">
+            <SearchBar
+              home
+              onSearch={setSearchQuery}
+            />
+          </div>
+          <SegmentedFilter
+            compact
+            value={vegFilter}
+            onChange={handleSegmentedFilterChange}
+          />
         </div>
 
-        <div className="lg:hidden">
-          <SegmentedFilter
-            value={vegFilter}
-            onChange={(value) => setPreferences({ segmentedFilter: value })}
-          />
+        <div className="container-premium -mx-[0.875rem] w-auto px-0 md:mx-0 md:w-auto md:px-0">
+          <CategoryTabs categories={categories} active={category} />
         </div>
 
         <DealsSection />
       </div>
 
-      <div className="container-premium mt-1 md:mt-2">
-        <CategoryTabs categories={categories} active={category} />
-      </div>
-
-      <main className="container-premium py-2.5 md:py-4 lg:py-5">
+      <main className="container-premium py-2 md:py-4 lg:py-5">
         <div className="page-stack gap-2!">
           {/* HEADER */}
           <div className="space-y-2 sr-only">
@@ -193,12 +210,12 @@ function MenuPage() {
             <section
               key={catName}
               id={encodeURIComponent(catName)}
-              className="flex flex-col gap-1 scroll-mt-4 rounded-lg py-1.5 md:gap-2 md:py-2"
+              className="flex flex-col gap-1 scroll-mt-4 rounded-lg py-1 md:gap-2 md:py-2"
             >
               {/* Compact single-line category header */}
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-baseline gap-2 min-w-0">
-                  <h2 className="truncate text-xl font-bold leading-snug md:text-md">
+                  <h2 className="truncate text-lg font-bold leading-snug md:text-md">
                     {catName}
                   </h2>
                   <span className="shrink-0 text-[13px] text-zinc-600 md:text-xs">
@@ -225,7 +242,7 @@ function MenuPage() {
                   {items.map((item) => (
                     <CarouselItem
                       key={item.id}
-                      className="basis-[34%] pl-2 min-[380px]:basis-[31%]"
+                      className="basis-[33%] pl-2 min-[380px]:basis-[30%]"
                     >
                       <MenuItemCard item={item} compact />
                     </CarouselItem>

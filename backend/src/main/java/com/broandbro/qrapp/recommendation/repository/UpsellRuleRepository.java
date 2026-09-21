@@ -34,6 +34,43 @@ public interface UpsellRuleRepository extends JpaRepository<UpsellRule, Long> {
 
     @Query("""
            SELECT DISTINCT r FROM UpsellRule r
+           LEFT JOIN FETCH r.targets t
+           LEFT JOIN FETCH t.item ti
+           LEFT JOIN FETCH r.triggerItem triggerItem
+           LEFT JOIN FETCH r.triggerCategory triggerCategory
+           WHERE r.id = :id
+             AND (triggerItem.location.id = :locationId
+                  OR triggerCategory.location.id = :locationId
+                  OR r.triggerType = 'CART_VALUE_EXCEEDS')
+             AND NOT EXISTS (
+                 SELECT 1 FROM UpsellRuleTarget otherTarget
+                 WHERE otherTarget.rule = r
+                   AND otherTarget.item.location.id <> :locationId
+             )
+           """)
+    java.util.Optional<UpsellRule> findByIdAndLocation(
+            @Param("id") Long id, @Param("locationId") Long locationId);
+
+    @Query("""
+           SELECT DISTINCT r FROM UpsellRule r
+           LEFT JOIN FETCH r.targets t
+           LEFT JOIN FETCH t.item ti
+           LEFT JOIN FETCH r.triggerItem triggerItem
+           LEFT JOIN FETCH r.triggerCategory triggerCategory
+           WHERE (triggerItem.location.id = :locationId
+                  OR triggerCategory.location.id = :locationId
+                  OR r.triggerType = 'CART_VALUE_EXCEEDS')
+             AND NOT EXISTS (
+                 SELECT 1 FROM UpsellRuleTarget otherTarget
+                 WHERE otherTarget.rule = r
+                   AND otherTarget.item.location.id <> :locationId
+             )
+           ORDER BY r.displayOrder ASC
+           """)
+    List<UpsellRule> findAllWithDetailsByLocation(@Param("locationId") Long locationId);
+
+    @Query("""
+           SELECT DISTINCT r FROM UpsellRule r
            JOIN FETCH r.targets t
            JOIN FETCH t.item
            WHERE r.isActive = TRUE

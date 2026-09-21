@@ -20,7 +20,8 @@ function DrawerTrigger({
 function DrawerPortal({
   ...props
 }) {
-  return <DrawerPrimitive.Portal data-slot="drawer-portal" {...props} />;
+  const container = typeof document === "undefined" ? undefined : document.body;
+  return <DrawerPrimitive.Portal container={container} data-slot="drawer-portal" {...props} />;
 }
 
 function DrawerClose({

@@ -17,6 +17,7 @@ import { RefreshCcw } from "@boxicons/react";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import Navbar from "@/components/shared/Navbar";
+import { useLocation as useActiveLocation } from "@/context/LocationContext";
 
 export const Route = createFileRoute("/search")({
   component: SearchPage,
@@ -24,6 +25,7 @@ export const Route = createFileRoute("/search")({
 
 function SearchPage() {
   const [query, setQuery] = useState("");
+  const { activeLocationId } = useActiveLocation();
 
   const {
     preferences: { segmentedFilter: vegFilter },
@@ -35,14 +37,15 @@ function SearchPage() {
     opts.isVeg = vegFilter === "veg" ? true : false;
   }
 
-  const { data: results, isError: error, refetch: fetchMenu } = useQuery(menuOptions(opts));
+  const { data: results, isError: error, refetch: fetchMenu } =
+    useQuery(menuOptions({ ...opts, locationId: activeLocationId }));
 
   const {
     data: categories,
     isLoading: catLoading,
     isError: catError,
     refetch: refetchCats,
-  } = useQuery(categoriesOptions);
+  } = useQuery(categoriesOptions(activeLocationId));
 
   const menuItems = results || [];
   const filteredResults = menuItems.filter((menuItem) => {

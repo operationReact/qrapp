@@ -11,8 +11,9 @@ public interface MenuItemImageRepository extends JpaRepository<MenuItemImage, Lo
 
     Optional<MenuItemImage> findByMenuItemId(Long menuItemId);
 
+    Optional<MenuItemImage> findByIdAndMenuItemLocationId(Long id, Long locationId);
+
     boolean existsByMenuItemId(Long menuItemId);
 
     void deleteByMenuItemId(Long menuItemId);
 }
-

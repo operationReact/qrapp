@@ -11,6 +11,7 @@ import EditComboOpportunityDrawer from "@/components/admin/combo/EditComboOpport
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { useLocation as useActiveLocation } from "@/context/LocationContext";
 import {
   SparkleIcon,
   CheckIcon,
@@ -341,9 +342,14 @@ function AdminComboOpportunitiesPage() {
   const [tab, setTab] = useState("PENDING_REVIEW");
   const [editTarget, setEditTarget] = useState(null);
   const [analysisRunning, setAnalysisRunning] = useState(false);
+  const { activeLocationId } = useActiveLocation();
 
-  const { data: opportunities = [], isLoading } = useQuery(comboOpportunitiesOptions());
-  const { data: missed = [], isLoading: missedLoading } = useQuery(missedOpportunitiesOptions);
+  const { data: opportunities = [], isLoading } = useQuery(
+    comboOpportunitiesOptions({ locationId: activeLocationId }),
+  );
+  const { data: missed = [], isLoading: missedLoading } = useQuery(
+    missedOpportunitiesOptions(activeLocationId),
+  );
 
   const reviewMutation = useMutation({
     mutationFn: ({ id, action }) => reviewComboOpportunity(id, action),
@@ -554,4 +560,3 @@ function AdminComboOpportunitiesPage() {
     </>
   );
 }
-

@@ -8,7 +8,7 @@ import java.time.Instant;
  */
 public record VendorCostHistoryResponse(
         Long   id,
-        Long   shopId,
+        Long   vendorId,
         BigDecimal costPrice,
         Instant effectiveFrom,
         Instant effectiveTo,

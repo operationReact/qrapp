@@ -10,4 +10,5 @@ public class RegistrationOtpRequest {
     @NotBlank
     private String password;
     private String name;
+    private Long defaultLocationId;
 }

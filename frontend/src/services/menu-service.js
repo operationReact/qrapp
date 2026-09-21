@@ -7,73 +7,76 @@ export const getMenu = (opts = {}) => {
   if (typeof opts.recommended === "boolean")
     params.recommended = opts.recommended;
   if (typeof opts.available === "boolean") params.available = opts.available;
+  params.locationId = opts.locationId;
   return apiClient.get("/menu", { params }).then((r) => r.data);
 };
 
-export const getRecommendedMenu = ({ limit = 6 } = {}) => {
+export const getRecommendedMenu = ({ locationId, limit = 6 } = {}) => {
   const safeLimit = Number.isFinite(limit)
     ? Math.max(1, Math.min(50, Number(limit)))
     : 6;
   return apiClient
-    .get("/menu/recommended", { params: { limit: safeLimit } })
+    .get("/menu/recommended", { params: { locationId, limit: safeLimit } })
     .then((r) => r.data);
 };
 
-export const getCategories = () =>
-  apiClient.get("/categories").then((r) => r.data);
+export const getCategories = (locationId) =>
+  apiClient.get("/categories", { params: { locationId } }).then((r) => r.data);
 
-export const createMenuItem = (data) => {
+export const createMenuItem = (data, locationId) => {
+  const params = { locationId };
   if (data instanceof FormData) {
-    return apiClient.post("/menu", data).then((r) => r.data);
+    return apiClient.post("/menu", data, { params }).then((r) => r.data);
   }
-  return apiClient.post("/menu", data).then((r) => r.data);
+  return apiClient.post("/menu", data, { params }).then((r) => r.data);
 };
 
-export const updateMenuItem = (id, data) => {
+export const updateMenuItem = (id, data, locationId) => {
+  const params = { locationId };
   if (data instanceof FormData) {
-    return apiClient.put(`/menu/${id}`, data).then((r) => r.data);
+    return apiClient.put(`/menu/${id}`, data, { params }).then((r) => r.data);
   }
-  return apiClient.put(`/menu/${id}`, data).then((r) => r.data);
+  return apiClient.put(`/menu/${id}`, data, { params }).then((r) => r.data);
 };
 
-export const deleteMenuItem = (id) =>
-  apiClient.delete(`/menu/${id}`).then((r) => r.data);
+export const deleteMenuItem = (id, locationId) =>
+  apiClient.delete(`/menu/${id}`, { params: { locationId } }).then((r) => r.data);
 
-export const getDeletedMenuItems = () =>
-  apiClient.get("/admin/menu/deleted").then((r) => r.data);
+export const getDeletedMenuItems = (locationId) =>
+  apiClient.get("/admin/menu/deleted", { params: { locationId } }).then((r) => r.data);
 
-export const restoreMenuItem = (id) =>
-  apiClient.patch(`/admin/menu/${id}/restore`).then((r) => r.data);
+export const restoreMenuItem = (id, locationId) =>
+  apiClient.patch(`/admin/menu/${id}/restore`, null, { params: { locationId } }).then((r) => r.data);
 
-export const bulkMenuValidate = (file) => {
+export const bulkMenuValidate = (file, locationId) => {
   const form = new FormData();
   form.append("file", file);
-  return apiClient.post("/admin/menu/bulk-upload/validate", form).then((r) => r.data);
+  return apiClient.post("/admin/menu/bulk-upload/validate", form, { params: { locationId } }).then((r) => r.data);
 };
 
-export const bulkMenuCommit = (rows, uploadMode = "UPSERT") =>
-  apiClient.post("/admin/menu/bulk-upload/commit", { rows, uploadMode }).then((r) => r.data);
+export const bulkMenuCommit = (rows, uploadMode = "UPSERT", locationId) =>
+  apiClient.post("/admin/menu/bulk-upload/commit", { rows, uploadMode, locationId }).then((r) => r.data);
 
 export const bulkMenuDownloadTemplate = () =>
   apiClient.get("/admin/menu/bulk-upload/template", { responseType: "blob" }).then((r) => r.data);
 
 // AI image generation
-export const generateAiImageOptions = (menuItemId, count = 3, additionalPrompt = null, previousGeneratedUrls = []) =>
+export const generateAiImageOptions = (menuItemId, count = 3, additionalPrompt = null, previousGeneratedUrls = [], locationId) =>
   apiClient.post(`/admin/menu-items/${menuItemId}/generate-image-options`, {
     count,
     ...(additionalPrompt?.trim() && { additionalPrompt: additionalPrompt.trim() }),
     ...(previousGeneratedUrls?.length > 0 && { previousGeneratedUrls }),
-  }).then((r) => r.data);
+  }, { params: { locationId } }).then((r) => r.data);
 
-export const applyGeneratedImage = (menuItemId, imageUrl, allGeneratedUrls = []) =>
-  apiClient.post(`/admin/menu-items/${menuItemId}/apply-generated-image`, { imageUrl, allGeneratedUrls }).then((r) => r.data);
+export const applyGeneratedImage = (menuItemId, imageUrl, allGeneratedUrls = [], locationId) =>
+  apiClient.post(`/admin/menu-items/${menuItemId}/apply-generated-image`, { imageUrl, allGeneratedUrls }, { params: { locationId } }).then((r) => r.data);
 
 /**
  * Bulk-update estimated costs for multiple menu items.
  * @param {Array<{id: number, estimatedCost: number|null}>} updates
  */
-export const bulkUpdateEstimatedCosts = (updates) =>
-  apiClient.post("/admin/menu/bulk-estimated-cost", updates).then((r) => r.data);
+export const bulkUpdateEstimatedCosts = (updates, locationId) =>
+  apiClient.post("/admin/menu/bulk-estimated-cost", updates, { params: { locationId } }).then((r) => r.data);
 
 /**
  * Quick partial update for a menu item (available / recommended / isVeg).
@@ -81,8 +84,8 @@ export const bulkUpdateEstimatedCosts = (updates) =>
  * @param {number|string} id
  * @param {Partial<{available: boolean, recommended: boolean, isVeg: boolean}>} patch
  */
-export const patchMenuItemQuick = (id, patch) =>
-  apiClient.put(`/menu/${id}`, patch, { headers: { "Content-Type": "application/json" } }).then((r) => r.data);
+export const patchMenuItemQuick = (id, patch, locationId) =>
+  apiClient.put(`/menu/${id}`, patch, { params: { locationId }, headers: { "Content-Type": "application/json" } }).then((r) => r.data);
 
 /**
  * Set or clear the estimated cost for a menu item.
@@ -90,6 +93,5 @@ export const patchMenuItemQuick = (id, patch) =>
  * @param {number|string} id
  * @param {number|null} estimatedCost  – pass null to clear
  */
-export const setItemCost = (id, estimatedCost) =>
-  apiClient.patch(`/menu/${id}/estimated-cost`, { estimatedCost }).then((r) => r.data);
-
+export const setItemCost = (id, estimatedCost, locationId) =>
+  apiClient.patch(`/menu/${id}/estimated-cost`, { estimatedCost }, { params: { locationId } }).then((r) => r.data);

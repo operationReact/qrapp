@@ -13,6 +13,8 @@ public class BulkMenuCommitRequest {
     /** INSERT_ONLY | UPDATE_ONLY | UPSERT */
     private String uploadMode = "INSERT_ONLY";
 
+    private Long locationId;
+
     /**
      * When true, categories that do not already exist will be auto-created.
      * When false, unknown categories are treated as validation failures.
@@ -22,4 +24,3 @@ public class BulkMenuCommitRequest {
     /** The validated row list as returned by /validate */
     private List<BulkMenuRowDto> rows;
 }
-

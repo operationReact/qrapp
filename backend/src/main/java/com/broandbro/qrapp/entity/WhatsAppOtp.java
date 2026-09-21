@@ -38,6 +38,9 @@ public class WhatsAppOtp {
     @Column(name = "registration_password_hash")
     private String registrationPasswordHash;
 
+    @Column(name = "registration_default_location_id")
+    private Long registrationDefaultLocationId;
+
     @Column(name = "expires_at", nullable = false)
     private Instant expiresAt;
 

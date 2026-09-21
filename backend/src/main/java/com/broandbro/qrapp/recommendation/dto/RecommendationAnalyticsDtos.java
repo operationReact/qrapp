@@ -27,7 +27,7 @@ public class RecommendationAnalyticsDtos {
     public static class TrackInteractionRequest {
 
         /**
-         * The restaurant (shop) the customer is ordering from.
+         * The restaurant location the customer is ordering from.
          * Used for multi-vendor data isolation.
          */
         private Long restaurantId;
@@ -209,4 +209,3 @@ public class RecommendationAnalyticsDtos {
         private String message;
     }
 }
-

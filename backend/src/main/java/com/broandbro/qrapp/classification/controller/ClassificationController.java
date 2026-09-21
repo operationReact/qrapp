@@ -80,8 +80,9 @@ public class ClassificationController {
      * Returns the full 3-dimension classification for a specific menu item.
      */
     @GetMapping("/items/{id}")
-    public ResponseEntity<ItemClassificationResponse> getItemClassification(@PathVariable Long id) {
-        return ResponseEntity.ok(classificationService.getItemClassification(id));
+    public ResponseEntity<ItemClassificationResponse> getItemClassification(
+            @PathVariable Long id, @RequestParam Long locationId) {
+        return ResponseEntity.ok(classificationService.getItemClassification(id, locationId));
     }
 
     /**
@@ -94,8 +95,8 @@ public class ClassificationController {
     @PatchMapping("/items/{id}")
     public ResponseEntity<ItemClassificationResponse> updateItemClassification(
             @PathVariable Long id,
+            @RequestParam Long locationId,
             @RequestBody UpdateItemClassificationRequest request) {
-        return ResponseEntity.ok(classificationService.updateItemClassification(id, request));
+        return ResponseEntity.ok(classificationService.updateItemClassification(id, locationId, request));
     }
 }
-

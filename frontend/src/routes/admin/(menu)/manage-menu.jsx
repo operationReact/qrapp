@@ -27,6 +27,7 @@ import { X, Wand2, Check, Loader2 } from "lucide-react";
 import AdminHeader from "@/components/admin/AdminHeader";
 import ClassificationSection from "@/components/admin/ClassificationSection";
 import { cn } from "@/lib/utils";
+import { useLocation as useActiveLocation } from "@/context/LocationContext";
 
 export const Route = createFileRoute("/admin/(menu)/manage-menu")({
   component: AdminCreateMenuPage,
@@ -53,6 +54,7 @@ function AdminCreateMenuPage() {
   const location = useLocation();
   const navigate  = useNavigate();
   const { isAdmin, isSuperUser } = useAuth();
+  const { activeLocationId } = useActiveLocation();
 
   const [form, setForm] = useState(EMPTY_FORM);
   const [imageFile, setImageFile] = useState(null);
@@ -87,13 +89,14 @@ function AdminCreateMenuPage() {
 
   // ── Categories ────────────────────────────────────────────────────────────
   const { data: allCategories = [] } = useQuery({
-    queryKey: ["categories"],
-    queryFn: () => apiClient.get("/categories").then((r) => r.data),
+    queryKey: ["categories", activeLocationId],
+    queryFn: () => apiClient.get("/categories", { params: { locationId: activeLocationId } }).then((r) => r.data),
+    enabled: Boolean(activeLocationId),
     staleTime: 1000 * 60 * 5,
   });
   const createCategoryMutation = useMutation({
-    mutationFn: (name) => apiClient.post("/categories", { name }).then((r) => r.data),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["categories"] }),
+    mutationFn: (name) => apiClient.post("/categories", { name }, { params: { locationId: activeLocationId } }).then((r) => r.data),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["categories", activeLocationId] }),
   });
 
   // ── Field change handlers ─────────────────────────────────────────────────
@@ -185,13 +188,13 @@ function AdminCreateMenuPage() {
 
   // ── Create mutation (normal flow) ─────────────────────────────────────────
   const createMutation = useMutation({
-    mutationFn: (payload) => createMenuItem(payload),
+    mutationFn: (payload) => createMenuItem(payload, activeLocationId),
     onSuccess: (data) => {
       const newId = data?.id;
       if (newId) setClassifyItemId(newId); // set BEFORE resetForm so the page never flashes empty
       setShowClassification(false);        // always start with the prompt, not expanded
       resetForm();
-      queryClient.invalidateQueries({ queryKey: ["menu"] });
+      queryClient.invalidateQueries({ queryKey: ["menu", activeLocationId] });
     },
     onError: (err) => {
       setError(err?.response?.data?.message || err?.response?.data || "Failed to create menu item");
@@ -227,15 +230,15 @@ function AdminCreateMenuPage() {
       // First time: auto-save the item before generating
       if (!itemId) {
         setAiPhase("creating");
-        const saved = await createMenuItem(buildPayload(false)); // no image — let AI handle it
+        const saved = await createMenuItem(buildPayload(false), activeLocationId); // no image — let AI handle it
         itemId = saved.id;
         setCreatedItemId(itemId);
-        queryClient.invalidateQueries({ queryKey: ["menu"] });
+        queryClient.invalidateQueries({ queryKey: ["menu", activeLocationId] });
       }
 
       setAiPhase("generating");
       const prevUrls = isRetry ? aiImageOptions : [];
-      const result = await generateAiImageOptions(itemId, 1, additionalPrompt || null, prevUrls);
+      const result = await generateAiImageOptions(itemId, 1, additionalPrompt || null, prevUrls, activeLocationId);
       setAiImageOptions(result.imageUrls || []);
       setSelectedAiImage(null);
       setAiPhase("options");
@@ -262,13 +265,13 @@ function AdminCreateMenuPage() {
     setAiPhase("applying");
     try {
       if (selectedAiImage) {
-        await applyGeneratedImage(createdItemId, selectedAiImage, aiImageOptions);
+        await applyGeneratedImage(createdItemId, selectedAiImage, aiImageOptions, activeLocationId);
       }
       const finishedId = createdItemId;
       if (finishedId) setClassifyItemId(finishedId); // set BEFORE resetForm
       setShowClassification(false);
       resetForm();
-      queryClient.invalidateQueries({ queryKey: ["menu"] });
+      queryClient.invalidateQueries({ queryKey: ["menu", activeLocationId] });
     } catch {
       setAiError("Failed to apply selected image (non-critical). Item was still saved.");
       setAiPhase("options");

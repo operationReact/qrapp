@@ -77,6 +77,24 @@ public class ItemPairingService {
                 .build();
     }
 
+    public ItemPairingsGroupedResponse getPairings(Long sourceItemId, Long locationId) {
+        MenuItem source = menuRepo.findByIdAndLocationId(sourceItemId, locationId)
+                .orElseThrow(() -> new NoSuchElementException("MenuItem not found: " + sourceItemId));
+        List<ItemPairing> pairings = pairingRepo.findActiveBySourceItemIdAndLocation(sourceItemId, locationId);
+        List<Long> targetIds = pairings.stream().map(ip -> ip.getTargetItem().getId()).toList();
+        Map<Long, BigDecimal> prices = pricingService.getCurrentSellingPrices(targetIds);
+        Map<PairingRole, List<ItemPairingResponse>> grouped = pairings.stream()
+                .map(ip -> toResponse(ip, prices))
+                .collect(Collectors.groupingBy(r -> PairingRole.valueOf(r.getPairingRole())));
+        return ItemPairingsGroupedResponse.builder()
+                .sourceItemId(source.getId()).sourceItemName(source.getName())
+                .drinks(grouped.getOrDefault(PairingRole.DRINK, List.of()))
+                .sides(grouped.getOrDefault(PairingRole.SIDE, List.of()))
+                .desserts(grouped.getOrDefault(PairingRole.DESSERT, List.of()))
+                .addons(grouped.getOrDefault(PairingRole.ADDON, List.of()))
+                .totalCount(pairings.size()).build();
+    }
+
     /**
      * Returns ALL pairings (active + inactive) for a source item as a flat list,
      * sorted by priority descending. Used by admin management screens.
@@ -86,6 +104,15 @@ public class ItemPairingService {
         List<ItemPairing> pairings = pairingRepo.findAllBySourceItemId(sourceItemId);
         List<Long> targetIds = pairings.stream().map(ip -> ip.getTargetItem().getId()).toList();
         Map<Long, BigDecimal> prices = pricingService.getCurrentSellingPrices(targetIds);
+        return pairings.stream().map(ip -> toResponse(ip, prices)).toList();
+    }
+
+    public List<ItemPairingResponse> getPairingsList(Long sourceItemId, Long locationId) {
+        menuRepo.findByIdAndLocationId(sourceItemId, locationId)
+                .orElseThrow(() -> new NoSuchElementException("MenuItem not found: " + sourceItemId));
+        List<ItemPairing> pairings = pairingRepo.findAllBySourceItemIdAndLocation(sourceItemId, locationId);
+        Map<Long, BigDecimal> prices = pricingService.getCurrentSellingPrices(
+                pairings.stream().map(ip -> ip.getTargetItem().getId()).toList());
         return pairings.stream().map(ip -> toResponse(ip, prices)).toList();
     }
 
@@ -103,13 +130,17 @@ public class ItemPairingService {
      * @throws IllegalStateException    if the role group already has MAX_PAIRINGS_PER_ROLE active pairings
      */
     @Transactional
-    public ItemPairingResponse addPairing(AddPairingRequest req, String createdBy) {
+    ItemPairingResponse addPairing(AddPairingRequest req, String createdBy) {
         MenuItem source = requireItem(req.getSourceItemId());
-        MenuItem target = requireItem(req.getTargetItemId());
+        MenuItem target = menuRepo.findByIdAndLocationId(
+                        req.getTargetItemId(), source.getLocation().getId())
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Target item is outside the source item's location"));
 
         if (source.getId().equals(target.getId())) {
             throw new IllegalArgumentException("An item cannot be paired with itself");
         }
+
         if (pairingRepo.existsBySourceItemIdAndTargetItemId(source.getId(), target.getId())) {
             throw new IllegalStateException(
                     "A pairing from item " + source.getId() + " to item " + target.getId() + " already exists");
@@ -144,17 +175,47 @@ public class ItemPairingService {
         return toResponse(saved, Map.of(target.getId(), targetPrice));
     }
 
+    @Transactional
+    public ItemPairingResponse addPairing(AddPairingRequest req, String createdBy, Long locationId) {
+        MenuItem source = menuRepo.findByIdAndLocationId(req.getSourceItemId(), locationId)
+                .orElseThrow(() -> new IllegalArgumentException("Source item not found"));
+        MenuItem target = menuRepo.findByIdAndLocationId(req.getTargetItemId(), locationId)
+                .orElseThrow(() -> new IllegalArgumentException("Target item is outside the source item's location"));
+        if (source.getId().equals(target.getId())) {
+            throw new IllegalArgumentException("An item cannot be paired with itself");
+        }
+        PairingRole role = parsePairingRole(req.getPairingRole());
+        if (pairingRepo.existsBySourceItemIdAndTargetItemId(source.getId(), target.getId())) {
+            throw new IllegalStateException("A pairing already exists");
+        }
+        if (pairingRepo.countActiveBySourceItemIdAndRole(source.getId(), role) >= MAX_PAIRINGS_PER_ROLE) {
+            throw new IllegalStateException("Maximum of " + MAX_PAIRINGS_PER_ROLE + " pairings allowed per group");
+        }
+        ItemPairing saved = pairingRepo.save(ItemPairing.builder()
+                .sourceItem(source).targetItem(target).pairingRole(role)
+                .priority(req.getPriority() != null ? req.getPriority() : 0)
+                .isActive(true).createdBy(createdBy).build());
+        return toResponse(saved, Map.of(target.getId(),
+                pricingService.getCurrentSellingPrice(target.getId())));
+    }
+
     /**
      * Permanently removes a pairing by its ID.
      *
      * @throws NoSuchElementException if the pairing does not exist
      */
     @Transactional
-    public void removePairing(Long pairingId) {
+    void removePairing(Long pairingId) {
         ItemPairing pairing = requirePairing(pairingId);
         log.info("[ItemPairing] Removed pairing id={} (source={} → target={})",
                 pairingId, pairing.getSourceItem().getId(), pairing.getTargetItem().getId());
         pairingRepo.delete(pairing);
+    }
+
+    @Transactional
+    public void removePairing(Long pairingId, Long locationId) {
+        pairingRepo.delete(pairingRepo.findByIdAndLocation(pairingId, locationId)
+                .orElseThrow(() -> new NoSuchElementException("ItemPairing not found: " + pairingId)));
     }
 
     /**
@@ -164,12 +225,22 @@ public class ItemPairingService {
      * @throws NoSuchElementException if the pairing does not exist
      */
     @Transactional
-    public ItemPairingResponse updatePriority(Long pairingId, int newPriority) {
+    ItemPairingResponse updatePriority(Long pairingId, int newPriority) {
         ItemPairing pairing = requirePairing(pairingId);
         int old = pairing.getPriority();
         pairing.setPriority(newPriority);
         ItemPairing saved = pairingRepo.save(pairing);
         log.info("[ItemPairing] Updated priority id={} {} → {}", pairingId, old, newPriority);
+        BigDecimal price = pricingService.getCurrentSellingPrice(saved.getTargetItem().getId());
+        return toResponse(saved, Map.of(saved.getTargetItem().getId(), price));
+    }
+
+    @Transactional
+    public ItemPairingResponse updatePriority(Long pairingId, int newPriority, Long locationId) {
+        ItemPairing pairing = pairingRepo.findByIdAndLocation(pairingId, locationId)
+                .orElseThrow(() -> new NoSuchElementException("ItemPairing not found: " + pairingId));
+        pairing.setPriority(newPriority);
+        ItemPairing saved = pairingRepo.save(pairing);
         BigDecimal price = pricingService.getCurrentSellingPrice(saved.getTargetItem().getId());
         return toResponse(saved, Map.of(saved.getTargetItem().getId(), price));
     }
@@ -180,11 +251,21 @@ public class ItemPairingService {
      * @throws NoSuchElementException if the pairing does not exist
      */
     @Transactional
-    public ItemPairingResponse togglePairing(Long pairingId) {
+    ItemPairingResponse togglePairing(Long pairingId) {
         ItemPairing pairing = requirePairing(pairingId);
         pairing.setIsActive(!pairing.getIsActive());
         ItemPairing saved = pairingRepo.save(pairing);
         log.info("[ItemPairing] Toggled id={} → isActive={}", pairingId, saved.getIsActive());
+        BigDecimal price = pricingService.getCurrentSellingPrice(saved.getTargetItem().getId());
+        return toResponse(saved, Map.of(saved.getTargetItem().getId(), price));
+    }
+
+    @Transactional
+    public ItemPairingResponse togglePairing(Long pairingId, Long locationId) {
+        ItemPairing pairing = pairingRepo.findByIdAndLocation(pairingId, locationId)
+                .orElseThrow(() -> new NoSuchElementException("ItemPairing not found: " + pairingId));
+        pairing.setIsActive(!pairing.getIsActive());
+        ItemPairing saved = pairingRepo.save(pairing);
         BigDecimal price = pricingService.getCurrentSellingPrice(saved.getTargetItem().getId());
         return toResponse(saved, Map.of(saved.getTargetItem().getId(), price));
     }
@@ -231,4 +312,3 @@ public class ItemPairingService {
                 .build();
     }
 }
-

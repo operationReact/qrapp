@@ -27,6 +27,7 @@ import {
   InputGroupInput,
 } from "../ui/input-group";
 import { ButtonGroup } from "../ui/button-group";
+import { useLocation as useActiveLocation } from "@/context/LocationContext";
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -41,6 +42,7 @@ function calcMargin(price, cost) {
 
 export default function BulkCostEditSheet({ open, onOpenChange, items = [] }) {
   const queryClient = useQueryClient();
+  const { activeLocationId } = useActiveLocation();
 
   // localCosts: { [itemId]: string } — tracks edited values in this session
   const [localCosts, setLocalCosts] = useState({});
@@ -58,12 +60,12 @@ export default function BulkCostEditSheet({ open, onOpenChange, items = [] }) {
   };
 
   const saveMutation = useMutation({
-    mutationFn: (updates) => bulkUpdateEstimatedCosts(updates),
+    mutationFn: (updates) => bulkUpdateEstimatedCosts(updates, activeLocationId),
     onSuccess: (data) => {
       toast.success(`Costs updated`, {
         description: `${data.updated} item${data.updated !== 1 ? "s" : ""} updated.`,
       });
-      queryClient.invalidateQueries({ queryKey: ["menu"] });
+      queryClient.invalidateQueries({ queryKey: ["menu", activeLocationId] });
       handleOpenChange(false);
     },
     onError: () => {

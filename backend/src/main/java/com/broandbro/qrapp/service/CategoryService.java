@@ -1,7 +1,10 @@
 package com.broandbro.qrapp.service;
 
 import com.broandbro.qrapp.entity.Category;
+import com.broandbro.qrapp.entity.Location;
+import com.broandbro.qrapp.entity.User;
 import com.broandbro.qrapp.repository.CategoryRepository;
+import com.broandbro.qrapp.repository.LocationRepository;
 import com.broandbro.qrapp.repository.MenuRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -16,25 +19,33 @@ public class CategoryService {
 
     private final CategoryRepository categoryRepository;
     private final MenuRepository     menuRepository;
+    private final LocationRepository locationRepository;
+    private final LocationAccessService locationAccessService;
 
-    public List<Category> getAllCategories() {
-        return categoryRepository.findByIsDeletedFalse();
+    public List<Category> getAllCategories(Long locationId) {
+        requireActiveLocation(locationId);
+        return categoryRepository.findByLocationIdAndIsDeletedFalse(locationId);
     }
 
-    public Optional<Category> getCategoryById(Long id) {
-        return categoryRepository.findByIdAndIsDeletedFalse(id);
+    public Optional<Category> getCategoryById(Long locationId, Long id) {
+        requireActiveLocation(locationId);
+        return categoryRepository.findByIdAndLocationIdAndIsDeletedFalse(id, locationId);
     }
 
-    public Optional<Category> getCategoryByName(String name) {
-        return categoryRepository.findByNameAndIsDeletedFalse(name);
+    public Optional<Category> getCategoryByName(Long locationId, String name) {
+        requireActiveLocation(locationId);
+        return categoryRepository.findByLocationIdAndNameAndIsDeletedFalse(locationId, name);
     }
 
-    public Category createCategory(Category category) {
+    public Category createCategory(Long locationId, Category category, User user) {
+        Location location = requireManagementLocation(locationId, user);
+        category.setLocation(location);
         return categoryRepository.save(category);
     }
 
-    public Category updateCategory(Long id, Category category) {
-        return categoryRepository.findByIdAndIsDeletedFalse(id)
+    public Category updateCategory(Long locationId, Long id, Category category, User user) {
+        requireManagementLocation(locationId, user);
+        return categoryRepository.findByIdAndLocationIdAndIsDeletedFalse(id, locationId)
                 .map(existing -> {
                     if (category.getName() != null) existing.setName(category.getName());
                     if (category.getDescription() != null) existing.setDescription(category.getDescription());
@@ -44,12 +55,13 @@ public class CategoryService {
     }
 
     @Transactional
-    public void deleteCategory(Long id) {
-        Category category = categoryRepository.findByIdAndIsDeletedFalse(id)
+    public void deleteCategory(Long locationId, Long id, User user) {
+        requireManagementLocation(locationId, user);
+        Category category = categoryRepository.findByIdAndLocationIdAndIsDeletedFalse(id, locationId)
                 .orElseThrow(() -> new RuntimeException("Category not found: " + id));
 
         // Cascade soft-delete — load once, mark all, save in one batch
-        var items = menuRepository.findByCategoryId(id);
+        var items = menuRepository.findByCategoryId(locationId, id);
         items.forEach(item -> item.setIsDeleted(true));
         menuRepository.saveAll(items);
 
@@ -57,13 +69,15 @@ public class CategoryService {
         categoryRepository.save(category);
     }
 
-    public List<Category> getDeletedCategories() {
-        return categoryRepository.findByIsDeletedTrue();
+    public List<Category> getDeletedCategories(Long locationId, User user) {
+        requireManagementLocation(locationId, user);
+        return categoryRepository.findByLocationIdAndIsDeletedTrue(locationId);
     }
 
     @Transactional
-    public void restoreCategory(Long id) {
-        Category category = categoryRepository.findByIdAndIsDeletedTrue(id)
+    public void restoreCategory(Long locationId, Long id, User user) {
+        requireManagementLocation(locationId, user);
+        Category category = categoryRepository.findByIdAndLocationIdAndIsDeletedTrue(id, locationId)
                 .orElseThrow(() -> new RuntimeException("Deleted category not found: " + id));
 
         // Restore the category
@@ -71,8 +85,20 @@ public class CategoryService {
         categoryRepository.save(category);
 
         // Restore menu items that were cascade-deleted with this category
-        var items = menuRepository.findByCategoryIdAndIsDeletedTrue(id);
+        var items = menuRepository.findByLocationIdAndCategoryIdAndIsDeletedTrue(locationId, id);
         items.forEach(item -> item.setIsDeleted(false));
         menuRepository.saveAll(items);
+    }
+
+    private Location requireActiveLocation(Long locationId) {
+        return locationRepository.findById(locationId)
+                .filter(location -> Boolean.TRUE.equals(location.getActive()))
+                .orElseThrow(() -> new IllegalArgumentException("location_not_found_or_inactive"));
+    }
+
+    private Location requireManagementLocation(Long locationId, User user) {
+        Location location = requireActiveLocation(locationId);
+        locationAccessService.requireLocationAccess(user, locationId);
+        return location;
     }
 }

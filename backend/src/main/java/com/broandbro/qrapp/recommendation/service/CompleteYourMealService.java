@@ -105,6 +105,10 @@ public class CompleteYourMealService {
 
         Map<PairingRole, ItemPairing> topByRole = new EnumMap<>(PairingRole.class);
         for (ItemPairing p : pairings) {
+            if (!primary.getLocation().getId().equals(
+                    p.getTargetItem().getLocation().getId())) {
+                continue;
+            }
             Long targetId = p.getTargetItem().getId();
             if (!excludeIds.contains(targetId)) {
                 // putIfAbsent → keeps the highest-priority entry (list is already DESC)
@@ -273,4 +277,3 @@ public class CompleteYourMealService {
                 .build();
     }
 }
-

@@ -33,6 +33,15 @@ public class User {
     @Column(nullable = false)
     private Boolean isSuperUser = false; // Super user flag - only super users can create coupons
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 30)
+    @Builder.Default
+    private UserRole role = UserRole.CUSTOMER;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "default_location_id")
+    private Location defaultLocation;
+
     private Instant createdAt;
 
     @PrePersist
@@ -40,5 +49,7 @@ public class User {
         if (createdAt == null) createdAt = Instant.now();
         if (isAdmin == null) isAdmin = false;
         if (isSuperUser == null) isSuperUser = false;
+        if (role == null) role = isSuperUser ? UserRole.SUPER_ADMIN
+                : (isAdmin ? UserRole.ADMIN : UserRole.CUSTOMER);
     }
 }

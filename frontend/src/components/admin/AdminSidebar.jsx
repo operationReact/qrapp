@@ -13,33 +13,14 @@ import { useAdminDashboard } from "@/context/AdminDashboardContext";
 import { Link, useNavigate, useLocation } from "@tanstack/react-router";
 import { Button } from "../ui/button";
 import {
-  BowlFoodIcon,
-  QueueIcon,
   SignOutIcon,
-  SquaresFourIcon,
-  UsersThreeIcon,
-  ChartLineUpIcon,
-  ChartBarIcon,
-  ShoppingCartSimpleIcon,
-  ForkKnifeIcon,
-  UserCircleIcon,
-  TicketIcon,
-  StarIcon,
-  CubeIcon,
-  TrophyIcon,
-  CalendarCheckIcon,
-  SlidersIcon,
-  LightningIcon,
-  ArrowsOutSimpleIcon,
-  MagicWandIcon,
-  ListPlusIcon,
-  SparkleIcon,
-  CurrencyInrIcon,
   TerminalWindowIcon,
   ArrowsClockwiseIcon,
 } from "@phosphor-icons/react";
 import { useAuth } from "@/context/AuthContext";
 import { cn } from "@/lib/utils";
+import { hasRole } from "@/lib/roles";
+import { ADMIN_NAVIGATION } from "@/lib/adminNavigation";
 
 // Helper: generates consistent SidebarMenuButton props
 function NavItem({ to, label, icon, pathname }) {
@@ -67,7 +48,7 @@ function NavItem({ to, label, icon, pathname }) {
 }
 
 export function AdminSidebar() {
-  const { setUser: setAdmin } = useAuth();
+  const { setUser: setAdmin, user } = useAuth();
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const { refreshing, loadData, dashboard } = useAdminDashboard();
@@ -96,105 +77,14 @@ export function AdminSidebar() {
       </SidebarHeader>
 
       <SidebarContent className="gap-1 px-3 py-4">
-
-        {/* Dashboard */}
-        <SidebarGroup className="p-0 pb-3">
-          <SidebarMenu>
-            <NavItem to="/admin" label="Dashboard" icon={SquaresFourIcon} pathname={pathname === "/admin" || pathname === "/admin/" ? "/admin" : ""} />
-          </SidebarMenu>
-        </SidebarGroup>
-
-        {/* Menu */}
-        <SidebarGroup className="border-t border-zinc-200/60 p-0 pt-3 group-data-[collapsible=icon]:hidden">
-          <SidebarGroupLabel className="mb-1 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-zinc-400">
-            Menu
-          </SidebarGroupLabel>
-          <SidebarMenu>
-            <NavItem to="/admin/menu" label="Menu Items" icon={BowlFoodIcon} pathname={pathname} />
-            <NavItem to="/admin/combos" label="Combos" icon={CubeIcon} pathname={pathname} />
-            <NavItem to="/admin/combo-campaigns" label="BYOC Campaigns" icon={SparkleIcon} pathname={pathname} />
-            <NavItem to="/admin/classification" label="Recommendation Setup" icon={ForkKnifeIcon} pathname={pathname} />
-          </SidebarMenu>
-        </SidebarGroup>
-
-        {/* Orders */}
-        <SidebarGroup className="p-0 group-data-[collapsible=icon]:hidden">
-          <SidebarGroupLabel className="mb-1 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-zinc-400">
-            Orders
-            {alertCount > 0 && (
-              <span className="ml-auto inline-flex items-center justify-center size-4 rounded-full bg-red-500 text-white text-[9px] font-bold">
-                {alertCount > 9 ? "9+" : alertCount}
-              </span>
-            )}
-          </SidebarGroupLabel>
-          <SidebarMenu>
-            <NavItem to="/admin/kitchen-queue" label="Kitchen Queue" icon={QueueIcon} pathname={pathname} />
-            <NavItem to="/admin/party-orders" label="Party Orders" icon={UsersThreeIcon} pathname={pathname} />
-            <NavItem to="/admin/pre-orders" label="Pre-Orders" icon={CalendarCheckIcon} pathname={pathname} />
-          </SidebarMenu>
-        </SidebarGroup>
-
-        {/* Offers */}
-        <SidebarGroup className="p-0 group-data-[collapsible=icon]:hidden">
-          <SidebarGroupLabel className="mb-1 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-zinc-400">
-            Offers
-          </SidebarGroupLabel>
-          <SidebarMenu>
-            <NavItem to="/admin/promotions" label="Promotions" icon={TicketIcon} pathname={pathname} />
-            <NavItem to="/admin/milestones" label="Milestones" icon={TrophyIcon} pathname={pathname} />
-          </SidebarMenu>
-        </SidebarGroup>
-
-        {/* Growth */}
-        <SidebarGroup className="p-0 group-data-[collapsible=icon]:hidden">
-          <SidebarGroupLabel className="mb-1 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-zinc-400">
-            Growth Tools
-          </SidebarGroupLabel>
-          <SidebarMenu>
-            {[
-              { to: "/admin/item-recommendations",  label: "Item Pairings",       icon: ListPlusIcon },
-              { to: "/admin/auto-suggestions",      label: "Auto Suggestions",    icon: MagicWandIcon },
-              { to: "/admin/upsell-rules",          label: "Upsell Rules",        icon: LightningIcon },
-              { to: "/admin/category-pairings",     label: "Category Pairings",   icon: ArrowsOutSimpleIcon },
-              { to: "/admin/combo-opportunities",   label: "Combo Opportunities", icon: SparkleIcon },
-              { to: "/admin/analytics/profitability", label: "Profitability",     icon: CurrencyInrIcon },
-            ].map(({ to, label, icon }) => (
-              <NavItem key={to} to={to} label={label} icon={icon} pathname={pathname} />
-            ))}
-          </SidebarMenu>
-        </SidebarGroup>
-
-        {/* Settings */}
-        <SidebarGroup className="p-0 group-data-[collapsible=icon]:hidden">
-          <SidebarGroupLabel className="mb-1 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-zinc-400">
-            System
-          </SidebarGroupLabel>
-          <SidebarMenu>
-            <NavItem to="/admin/global-controls" label="Settings" icon={SlidersIcon} pathname={pathname} />
-            <NavItem to="/admin/ops-center" label="Operations Center" icon={TerminalWindowIcon} pathname={pathname} />
-          </SidebarMenu>
-        </SidebarGroup>
-
-        {/* Analytics */}
-        <SidebarGroup className="p-0 group-data-[collapsible=icon]:hidden">
-          <SidebarGroupLabel className="text-[10px] uppercase tracking-widest font-semibold text-zinc-400 px-2 py-1.5 mb-0.5">
-            Analytics
-          </SidebarGroupLabel>
-          <SidebarMenu>
-            {[
-              { to: "/admin/analytics",              label: "Overview",         icon: ChartLineUpIcon },
-              { to: "/admin/analytics/sales",        label: "Sales",            icon: ChartBarIcon },
-              { to: "/admin/analytics/orders",       label: "Orders",           icon: ShoppingCartSimpleIcon },
-              { to: "/admin/analytics/menu",         label: "Menu",             icon: ForkKnifeIcon },
-              { to: "/admin/analytics/users",        label: "Users",            icon: UserCircleIcon },
-              { to: "/admin/analytics/coupons",      label: "Promotions",       icon: TicketIcon },
-              { to: "/admin/analytics/recommendations", label: "Recommendations", icon: StarIcon },
-            ].map(({ to, label, icon }) => (
-              <NavItem key={to} to={to} label={label} icon={icon} pathname={pathname} />
-            ))}
-          </SidebarMenu>
-        </SidebarGroup>
-
+        {ADMIN_NAVIGATION.map(({ section, items }) => {
+          const visibleItems = items.filter((item) => hasRole(user, item.roles));
+          if (!visibleItems.length) return null;
+          return <SidebarGroup key={section} className="border-b border-zinc-200/60 p-0 pb-3">
+            <SidebarGroupLabel className="mb-1 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-zinc-400">{section}{section === "Operations" && alertCount > 0 && <span className="ml-auto">{alertCount > 9 ? "9+" : alertCount}</span>}</SidebarGroupLabel>
+            <SidebarMenu>{visibleItems.map(({ to, label, icon }) => <NavItem key={to} to={to} label={label} icon={icon || TerminalWindowIcon} pathname={pathname === "/admin" && to === "/admin" ? "/admin" : pathname} />)}</SidebarMenu>
+          </SidebarGroup>;
+        })}
       </SidebarContent>
 
       <SidebarFooter className="border-t border-sidebar-border/60 px-3 py-4">

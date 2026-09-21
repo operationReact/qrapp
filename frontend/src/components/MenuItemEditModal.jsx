@@ -27,6 +27,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import ClassificationSection from "@/components/admin/ClassificationSection";
+import { useLocation as useActiveLocation } from "@/context/LocationContext";
 
 export default function MenuItemEditModal({
   item,
@@ -34,6 +35,7 @@ export default function MenuItemEditModal({
   onSuccess,
   onPreviewChange,
 }) {
+  const { activeLocationId } = useActiveLocation();
   const previewRef = useRef(null);
   const imageFieldRef = useRef(null);
   const formRef = useRef(null); // always points to latest form — prevents stale closure in mutationFn
@@ -89,14 +91,15 @@ export default function MenuItemEditModal({
   });
 
   const { data: allCategories = [] } = useQuery({
-    queryKey: ["categories"],
-    queryFn: () => apiClient.get("/categories").then((r) => r.data),
+    queryKey: ["categories", activeLocationId],
+    queryFn: () => apiClient.get("/categories", { params: { locationId: activeLocationId } }).then((r) => r.data),
+    enabled: Boolean(activeLocationId),
     staleTime: 1000 * 60 * 5,
   });
 
   const createCategoryMutation = useMutation({
-    mutationFn: (name) => apiClient.post("/categories", { name }).then((r) => r.data),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["categories"] }),
+    mutationFn: (name) => apiClient.post("/categories", { name }, { params: { locationId: activeLocationId } }).then((r) => r.data),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["categories", activeLocationId] }),
   });
 
   const generateAiOptionsMutation = useMutation({
@@ -105,7 +108,8 @@ export default function MenuItemEditModal({
         item.id,
         1,
         additionalPrompt || null,
-        isRetry ? aiImageOptions : []
+        isRetry ? aiImageOptions : [],
+        activeLocationId
       ),
     onSuccess: (data) => {
       setAiImageOptions(data.imageUrls || []);
@@ -117,7 +121,7 @@ export default function MenuItemEditModal({
 
   const applyAiImageMutation = useMutation({
     mutationFn: ({ selectedUrl, unselectedUrls }) =>
-      applyGeneratedImage(item.id, selectedUrl, unselectedUrls),
+      applyGeneratedImage(item.id, selectedUrl, unselectedUrls, activeLocationId),
     onError: () => setAiError("Failed to clean up unselected images (non-critical)."),
   });
 
@@ -264,7 +268,7 @@ export default function MenuItemEditModal({
         if (f.tagId != null) fd.append("tagId", String(f.tagId));
         fd.append("isVeg", String(!!f.isVeg));
         fd.append("image", f.imageFile);
-        return updateMenuItem(item.id, fd);
+        return updateMenuItem(item.id, fd, activeLocationId);
       }
       const payload = {
         name: f.name.trim(),
@@ -288,7 +292,7 @@ export default function MenuItemEditModal({
         selectedAiImage,
         item_imageUrl: item.imageUrl,
       });
-      return updateMenuItem(item.id, payload);
+      return updateMenuItem(item.id, payload, activeLocationId);
     },
     onSuccess: async (data) => {
       // Apply selected AI image (sets aiGeneratedImage flag, status, and deletes unselected S3 files)
@@ -302,7 +306,7 @@ export default function MenuItemEditModal({
       }
       onSuccess(data);
       onClose?.();
-      queryClient.invalidateQueries({ queryKey: ['menu'] });
+      queryClient.invalidateQueries({ queryKey: ['menu', activeLocationId] });
     },
     onError: (err) => {
       console.error(err);

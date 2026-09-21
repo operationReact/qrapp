@@ -6,11 +6,11 @@ import com.broandbro.qrapp.dto.pricing.VendorCostHistoryResponse;
 import com.broandbro.qrapp.dto.pricing.VendorCostSetRequest;
 import com.broandbro.qrapp.entity.MenuItem;
 import com.broandbro.qrapp.entity.MenuItemSellingPriceHistory;
-import com.broandbro.qrapp.entity.Shop;
+import com.broandbro.qrapp.entity.Vendor;
 import com.broandbro.qrapp.entity.VendorMenuItemCostHistory;
 import com.broandbro.qrapp.repository.MenuItemSellingPriceHistoryRepository;
 import com.broandbro.qrapp.repository.MenuRepository;
-import com.broandbro.qrapp.repository.ShopRepository;
+import com.broandbro.qrapp.repository.VendorRepository;
 import com.broandbro.qrapp.repository.VendorMenuItemCostHistoryRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -31,7 +31,7 @@ import java.util.stream.Collectors;
  * <p>Responsibilities:
  * <ol>
  *   <li>Resolve the active selling price for a menu item.</li>
- *   <li>Resolve the active procurement cost for a (shop, menuItem) pair.</li>
+ *   <li>Resolve the active procurement cost for a (vendor, menuItem) pair.</li>
  *   <li>Set / update selling prices (closes old record, opens new one).</li>
  *   <li>Set / update vendor procurement costs.</li>
  *   <li>Expose full price histories for analytics / admin UIs.</li>
@@ -49,7 +49,7 @@ public class PricingService {
     private final MenuItemSellingPriceHistoryRepository sellingPriceRepo;
     private final VendorMenuItemCostHistoryRepository   vendorCostRepo;
     private final MenuRepository    menuRepository;
-    private final ShopRepository    shopRepository;
+    private final VendorRepository    vendorRepository;
 
     /**
      * Returns a map of menuItemId → current selling price for all supplied IDs.
@@ -102,14 +102,14 @@ public class PricingService {
     // =========================================================================
 
     /**
-     * Returns the current active procurement cost for the given (shop, menuItem) pair.
+     * Returns the current active procurement cost for the given (vendor, menuItem) pair.
      *
-     * @param shopId     ID of the vendor/shop
+     * @param vendorId     ID of the vendor
      * @param menuItemId ID of the menu item
      * @return the cost price, or empty if no active vendor cost exists
      */
-    public Optional<BigDecimal> getCurrentVendorCost(Long shopId, Long menuItemId) {
-        return vendorCostRepo.findCurrentActive(shopId, menuItemId)
+    public Optional<BigDecimal> getCurrentVendorCost(Long vendorId, Long menuItemId) {
+        return vendorCostRepo.findCurrentActive(vendorId, menuItemId)
                 .map(VendorMenuItemCostHistory::getCostPrice);
     }
 
@@ -132,14 +132,14 @@ public class PricingService {
      * Creates a financial snapshot for a single order line item.
      *
      * @param menuItemId ID of the ordered item
-     * @param shopId     supplying vendor ID (null for SELF_PREPARED)
+     * @param vendorId     supplying vendor ID (null for SELF_PREPARED)
      * @param quantity   number of units
      * @return a snapshot record (not persisted – caller persists via OrderItem entity)
      */
-    public OrderItemSnapshot createSnapshot(Long menuItemId, Long shopId, int quantity) {
+    public OrderItemSnapshot createSnapshot(Long menuItemId, Long vendorId, int quantity) {
         BigDecimal sellingPrice = getCurrentSellingPrice(menuItemId);
-        BigDecimal costPrice    = shopId != null
-                ? getCurrentVendorCost(shopId, menuItemId).orElse(null)
+        BigDecimal costPrice    = vendorId != null
+                ? getCurrentVendorCost(vendorId, menuItemId).orElse(null)
                 : null;
         BigDecimal profit    = (costPrice != null) ? sellingPrice.subtract(costPrice) : null;
         BigDecimal lineTotal = sellingPrice.multiply(BigDecimal.valueOf(quantity));
@@ -213,26 +213,26 @@ public class PricingService {
     // =========================================================================
 
     /**
-     * Sets a new procurement cost for a (shop, menuItem) pair.
+     * Sets a new procurement cost for a (vendor, menuItem) pair.
      */
     @Transactional
     public VendorMenuItemCostHistory setVendorCost(VendorCostSetRequest request) {
         MenuItem item = menuRepository.findById(request.menuItemId())
                 .orElseThrow(() -> new IllegalArgumentException(
                         "MenuItem not found: " + request.menuItemId()));
-        Shop shop = shopRepository.findById(request.shopId())
+        Vendor vendor = vendorRepository.findById(request.vendorId())
                 .orElseThrow(() -> new IllegalArgumentException(
-                        "Shop not found: " + request.shopId()));
+                        "Vendor not found: " + request.vendorId()));
 
         Instant effectiveFrom = request.effectiveFrom() != null
                 ? request.effectiveFrom()
                 : Instant.now();
 
         // Close existing open cost records for this vendor/item pair
-        vendorCostRepo.closeActiveCosts(request.shopId(), request.menuItemId(), effectiveFrom);
+        vendorCostRepo.closeActiveCosts(request.vendorId(), request.menuItemId(), effectiveFrom);
 
         VendorMenuItemCostHistory history = VendorMenuItemCostHistory.builder()
-                .shop(shop)
+                .vendor(vendor)
                 .menuItem(item)
                 .costPrice(request.costPrice())
                 .effectiveFrom(effectiveFrom)
@@ -240,20 +240,20 @@ public class PricingService {
                 .build();
 
         VendorMenuItemCostHistory saved = vendorCostRepo.save(history);
-        log.info("New vendor cost {} set for shopId={} menuItemId={} from {}",
-                request.costPrice(), request.shopId(), request.menuItemId(), effectiveFrom);
+        log.info("New vendor cost {} set for vendorId={} menuItemId={} from {}",
+                request.costPrice(), request.vendorId(), request.menuItemId(), effectiveFrom);
         return saved;
     }
 
     /**
-     * Returns the full cost history for a (shop, menuItem) pair (most recent first).
+     * Returns the full cost history for a (vendor, menuItem) pair (most recent first).
      */
-    public List<VendorCostHistoryResponse> getVendorCostHistory(Long shopId, Long menuItemId) {
-        return vendorCostRepo.findAllByShopAndItem(shopId, menuItemId)
+    public List<VendorCostHistoryResponse> getVendorCostHistory(Long vendorId, Long menuItemId) {
+        return vendorCostRepo.findAllByVendorAndItem(vendorId, menuItemId)
                 .stream()
                 .map(h -> new VendorCostHistoryResponse(
                         h.getId(),
-                        h.getShop().getId(),
+                        h.getVendor().getId(),
                         h.getCostPrice(),
                         h.getEffectiveFrom(),
                         h.getEffectiveTo(),
@@ -270,7 +270,7 @@ public class PricingService {
                 .stream()
                 .map(h -> new VendorCostHistoryResponse(
                         h.getId(),
-                        h.getShop().getId(),
+                        h.getVendor().getId(),
                         h.getCostPrice(),
                         h.getEffectiveFrom(),
                         h.getEffectiveTo(),
@@ -278,4 +278,3 @@ public class PricingService {
                 .collect(Collectors.toList());
     }
 }
-

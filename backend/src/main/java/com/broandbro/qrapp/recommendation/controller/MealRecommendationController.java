@@ -72,11 +72,10 @@ public class MealRecommendationController {
 
     @GetMapping("/api/admin/meal-roles/items")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_USER')")
-    public ResponseEntity<List<ItemRoleView>> getItemsWithRoles() {
+    public ResponseEntity<List<ItemRoleView>> getItemsWithRoles(@RequestParam Long locationId) {
 
         // Load all non-deleted menu items lightweight
-        List<ItemRoleView> all = menuRepo.findAll().stream()
-                .filter(item -> !Boolean.TRUE.equals(item.getIsDeleted()))
+        List<ItemRoleView> all = menuRepo.findByLocationIdAndIsDeletedFalse(locationId).stream()
                 .map(item -> ItemRoleView.builder()
                         .itemId(item.getId())
                         .itemName(item.getName())
@@ -115,9 +114,10 @@ public class MealRecommendationController {
     @Transactional
     public ResponseEntity<Void> assignRole(
             @PathVariable Long itemId,
-            @PathVariable Long roleId) {
+            @PathVariable Long roleId,
+            @RequestParam Long locationId) {
 
-        menuRepo.findById(itemId)
+        menuRepo.findByIdAndLocationId(itemId, locationId)
                 .orElseThrow(() -> new NoSuchElementException("MenuItem not found: " + itemId));
         comboRoleRepo.findById(roleId)
                 .orElseThrow(() -> new NoSuchElementException("ComboRole not found: " + roleId));
@@ -140,9 +140,11 @@ public class MealRecommendationController {
     @DeleteMapping("/api/admin/meal-roles/items/{itemId}/role")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_USER')")
     @Transactional
-    public ResponseEntity<Void> clearRole(@PathVariable Long itemId) {
+    public ResponseEntity<Void> clearRole(
+            @PathVariable Long itemId, @RequestParam Long locationId) {
+        menuRepo.findByIdAndLocationId(itemId, locationId)
+                .orElseThrow(() -> new NoSuchElementException("MenuItem not found: " + itemId));
         itemComboRoleRepo.deleteByItemId(itemId);
         return ResponseEntity.ok().build();
     }
 }
-

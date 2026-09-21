@@ -18,6 +18,7 @@ import {
   CheckIcon, XIcon, PlayIcon, CheckSquareIcon, MagicWandIcon,
 } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
+import { useLocation as useActiveLocation } from "@/context/LocationContext";
 
 export const Route = createFileRoute("/admin/(growth)/auto-suggestions")({
   component: AdminAutoSuggestionsPage,
@@ -111,8 +112,9 @@ function AdminAutoSuggestionsPage() {
   const [statusFilter, setStatusFilter] = useState("PENDING");
   const [selected, setSelected] = useState(new Set());
   const [schedulerRunning, setSchedulerRunning] = useState(false);
+  const { activeLocationId } = useActiveLocation();
 
-  const { data: suggestions = [], isLoading } = useQuery(autoSuggestionsOptions);
+  const { data: suggestions = [], isLoading } = useQuery(autoSuggestionsOptions(activeLocationId));
 
   const reviewMutation = useMutation({
     mutationFn: ({ id, action }) => reviewSuggestion(id, action),

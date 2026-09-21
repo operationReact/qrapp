@@ -341,7 +341,7 @@ export default function DealsSection() {
   const [byocOpen, setByocOpen] = useState(false);
 
   return (
-    <div className="mt-2">
+    <div className="mt-1.5">
       <CombosDrawer open={combosOpen} onOpenChange={setCombosOpen} />
       <BuildYourOwnComboDrawer open={byocOpen} onOpenChange={setByocOpen} />
 
@@ -352,7 +352,7 @@ export default function DealsSection() {
         onMouseLeave={plugin.reset}
       >
         {/* Section label — no arrow buttons */}
-        <h2 className="mb-2.5 text-[15px] font-bold">Featured for you</h2>
+        <h2 className="mb-2 text-[14px] font-bold">Featured for you</h2>
 
         <CarouselContent className="-ml-3">
           {DISCOVERY_CARDS.map((deal) => (
@@ -360,7 +360,7 @@ export default function DealsSection() {
               key={deal.id}
               // Mobile: fixed compact width so next card peeks (~1.3 visible)
               // Desktop: responsive column fractions
-              className="pl-3 basis-[260px] md:basis-full lg:basis-1/3"
+              className="pl-3 basis-[244px] md:basis-full lg:basis-1/3"
             >
               {deal.type === "party" ? (
                 <PartyOrderCard deal={deal} />

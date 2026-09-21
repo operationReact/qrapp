@@ -17,6 +17,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import com.broandbro.qrapp.entity.UserRole;
 
 @Slf4j
 @Component
@@ -44,6 +45,8 @@ public class TokenAuthFilter extends OncePerRequestFilter {
                 if (u.getIsSuperUser()) {
                     authorities.add(new SimpleGrantedAuthority("ROLE_SUPERUSER"));
                 }
+                UserRole role = u.getRole();
+                if (role != null) authorities.add(new SimpleGrantedAuthority("ROLE_" + role.name()));
                 var auth = new UsernamePasswordAuthenticationToken(u.getPhone(), null, authorities);
                 SecurityContextHolder.getContext().setAuthentication(auth);
                 log.info("Authentication set in SecurityContext for user: {} with roles: {}", u.getPhone(), authorities);
@@ -57,4 +60,3 @@ public class TokenAuthFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 }
-

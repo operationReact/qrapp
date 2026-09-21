@@ -33,6 +33,7 @@ public class UserAuthController {
     private final UserService userService;
     private final MilestoneCouponService milestoneCouponService;
     private final WhatsAppOtpService whatsAppOtpService;
+    private final com.broandbro.qrapp.service.LocationAccessService locationAccessService;
 
     private static final String GENERIC_RESET_MESSAGE =
             "If the account is eligible, a verification code has been sent to your WhatsApp.";
@@ -40,7 +41,8 @@ public class UserAuthController {
     @PostMapping("/register/request-otp")
     public ResponseEntity<?> requestRegistrationOtp(@Valid @RequestBody RegistrationOtpRequest req) {
         try {
-            whatsAppOtpService.requestRegistrationOtp(req.getPhoneNumber(), req.getName(), req.getPassword());
+            whatsAppOtpService.requestRegistrationOtp(req.getPhoneNumber(), req.getName(), req.getPassword(),
+                    req.getDefaultLocationId());
             return ResponseEntity.ok(new OtpResponse(true,
                     "A verification code has been sent to your WhatsApp."));
         } catch (OtpException ex) {
@@ -127,6 +129,13 @@ public class UserAuthController {
         r.setName(currentUser.getName());
         r.setIsAdmin(currentUser.getIsAdmin());
         r.setIsSuperUser(currentUser.getIsSuperUser());
+        r.setRole(currentUser.getRole() != null ? currentUser.getRole().name()
+                : Boolean.TRUE.equals(currentUser.getIsSuperUser()) ? "SUPER_ADMIN"
+                : Boolean.TRUE.equals(currentUser.getIsAdmin()) ? "ADMIN" : "CUSTOMER");
+        r.setDefaultLocation(currentUser.getDefaultLocation() == null ? null :
+                com.broandbro.qrapp.dto.LocationResponse.from(currentUser.getDefaultLocation()));
+        r.setLocations(locationAccessService.getAccessibleLocations(currentUser).stream()
+                .map(com.broandbro.qrapp.dto.LocationResponse::from).toList());
         return ResponseEntity.ok(r);
     }
 

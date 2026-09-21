@@ -243,8 +243,11 @@ public class MenuItemImageGenerationService {
         }
 
         // Direct SQL UPDATE — bypasses Hibernate entity cache / lazy-proxy issues
+        MenuItem item = menuRepository.findById(menuItemId)
+                .orElseThrow(() -> new IllegalArgumentException("MenuItem not found: " + menuItemId));
         int updated = menuRepository.applyAiImageUrl(
-                menuItemId, selectedUrl, ImageGenerationStatus.COMPLETED, Instant.now());
+                menuItemId, item.getLocation().getId(), selectedUrl,
+                ImageGenerationStatus.COMPLETED, Instant.now());
 
         if (updated == 0) {
             throw new IllegalStateException("applyAiImageUrl updated 0 rows for menuItemId=" + menuItemId);
@@ -284,4 +287,3 @@ public class MenuItemImageGenerationService {
         return s.length() > maxLen ? s.substring(0, maxLen) : s;
     }
 }
-

@@ -45,10 +45,10 @@ public class MenuItemImageService {
     // -------------------------------------------------------------------------
 
     @Transactional
-    public ImageUploadResponse uploadOrReplaceImage(Long menuItemId, MultipartFile file) {
+    public ImageUploadResponse uploadOrReplaceImage(Long menuItemId, Long locationId, MultipartFile file) {
         validateFile(file);
 
-        MenuItem menuItem = menuRepository.findById(menuItemId)
+        MenuItem menuItem = menuRepository.findByIdAndLocationId(menuItemId, locationId)
                 .orElseThrow(() -> new MenuItemNotFoundException(menuItemId));
 
         boolean replacing = imageRepository.existsByMenuItemId(menuItemId);
@@ -106,6 +106,12 @@ public class MenuItemImageService {
     // Get image bytes (for serving)
     // -------------------------------------------------------------------------
 
+    /**
+     * Public immutable asset retrieval intentionally remains ID-based. The image
+     * owns its MenuItem through the database relationship, and the URL is already
+     * embedded in public menu responses; location authorization belongs to the
+     * location-scoped menu endpoint, not to the CDN-like image resource.
+     */
     @Transactional(readOnly = true)
     public MenuItemImage getImage(Long imageId) {
         return imageRepository.findById(imageId)
@@ -141,11 +147,10 @@ public class MenuItemImageService {
     // -------------------------------------------------------------------------
 
     @Transactional
-    public void deleteImage(Long imageId) {
-        if (!imageRepository.existsById(imageId)) {
-            throw new ImageNotFoundException(imageId);
-        }
-        imageRepository.deleteById(imageId);
+    public void deleteImage(Long imageId, Long locationId) {
+        MenuItemImage image = imageRepository.findByIdAndMenuItemLocationId(imageId, locationId)
+                .orElseThrow(() -> new ImageNotFoundException(imageId));
+        imageRepository.delete(image);
         log.info("Deleted image id={}", imageId);
     }
 
@@ -218,4 +223,3 @@ public class MenuItemImageService {
                 .build();
     }
 }
-

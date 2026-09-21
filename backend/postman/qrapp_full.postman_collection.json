@@ -917,7 +917,7 @@
           "request": {
             "method": "GET",
             "header": [{ "key": "Authorization", "value": "Basic {{adminAuth}}" }],
-            "url": { "raw": "{{baseUrl}}/api/pricing/shops/1/menu-items/1/cost-history", "host": ["{{baseUrl}}"], "path": ["api", "pricing", "shops", "1", "menu-items", "1", "cost-history"] }
+            "url": { "raw": "{{baseUrl}}/api/pricing/vendors/1/menu-items/1/cost-history", "host": ["{{baseUrl}}"], "path": ["api", "pricing", "vendors", "1", "menu-items", "1", "cost-history"] }
           },
           "response": []
         },
@@ -931,7 +931,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"shopId\": 1,\n  \"menuItemId\": 1,\n  \"cost\": 120.00,\n  \"effectiveFrom\": \"2026-05-25T00:00:00\"\n}",
+              "raw": "{\n  \"vendorId\": 1,\n  \"menuItemId\": 1,\n  \"cost\": 120.00,\n  \"effectiveFrom\": \"2026-05-25T00:00:00\"\n}",
               "options": { "raw": { "language": "json" } }
             },
             "url": { "raw": "{{baseUrl}}/api/pricing/vendor-costs/set", "host": ["{{baseUrl}}"], "path": ["api", "pricing", "vendor-costs", "set"] }
@@ -941,10 +941,10 @@
       ]
     },
     {
-      "name": "Shops",
+      "name": "Vendors",
       "item": [
         {
-          "name": "Create Shop",
+          "name": "Create Vendor",
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
@@ -953,49 +953,49 @@
               "raw": "{\n  \"name\": \"Green Farms\",\n  \"contactPhone\": \"9876543210\",\n  \"address\": \"123 Market Street\"\n}",
               "options": { "raw": { "language": "json" } }
             },
-            "url": { "raw": "{{baseUrl}}/api/v1/shops", "host": ["{{baseUrl}}"], "path": ["api", "v1", "shops"] }
+            "url": { "raw": "{{baseUrl}}/api/v1/vendors", "host": ["{{baseUrl}}"], "path": ["api", "v1", "vendors"] }
           },
           "response": []
         },
         {
-          "name": "Get Shop by ID",
+          "name": "Get Vendor by ID",
           "request": {
             "method": "GET",
             "header": [],
-            "url": { "raw": "{{baseUrl}}/api/v1/shops/1", "host": ["{{baseUrl}}"], "path": ["api", "v1", "shops", "1"] }
+            "url": { "raw": "{{baseUrl}}/api/v1/vendors/1", "host": ["{{baseUrl}}"], "path": ["api", "v1", "vendors", "1"] }
           },
           "response": []
         }
       ]
     },
     {
-      "name": "Shop Orders",
+      "name": "Vendor Orders",
       "item": [
         {
-          "name": "Create Shop Order",
+          "name": "Create Vendor Order",
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"shopId\": 1,\n  \"items\": [\n    { \"menuItemId\": 1, \"quantity\": 10 }\n  ],\n  \"notes\": \"Urgent order\"\n}",
+              "raw": "{\n  \"vendorId\": 1,\n  \"items\": [\n    { \"menuItemId\": 1, \"quantity\": 10 }\n  ],\n  \"notes\": \"Urgent order\"\n}",
               "options": { "raw": { "language": "json" } }
             },
-            "url": { "raw": "{{baseUrl}}/api/v1/shop-orders", "host": ["{{baseUrl}}"], "path": ["api", "v1", "shop-orders"] }
+            "url": { "raw": "{{baseUrl}}/api/v1/vendor-orders", "host": ["{{baseUrl}}"], "path": ["api", "v1", "vendor-orders"] }
           },
           "response": []
         },
         {
-          "name": "Get Shop Order by ID",
+          "name": "Get Vendor Order by ID",
           "request": {
             "method": "GET",
             "header": [],
-            "url": { "raw": "{{baseUrl}}/api/v1/shop-orders/1", "host": ["{{baseUrl}}"], "path": ["api", "v1", "shop-orders", "1"] }
+            "url": { "raw": "{{baseUrl}}/api/v1/vendor-orders/1", "host": ["{{baseUrl}}"], "path": ["api", "v1", "vendor-orders", "1"] }
           },
           "response": []
         },
         {
-          "name": "Update Shop Order Status",
+          "name": "Update Vendor Order Status",
           "request": {
             "method": "PATCH",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
@@ -1004,7 +1004,7 @@
               "raw": "{\n  \"status\": \"DELIVERED\"\n}",
               "options": { "raw": { "language": "json" } }
             },
-            "url": { "raw": "{{baseUrl}}/api/v1/shop-orders/1/status", "host": ["{{baseUrl}}"], "path": ["api", "v1", "shop-orders", "1", "status"] }
+            "url": { "raw": "{{baseUrl}}/api/v1/vendor-orders/1/status", "host": ["{{baseUrl}}"], "path": ["api", "v1", "vendor-orders", "1", "status"] }
           },
           "response": []
         }

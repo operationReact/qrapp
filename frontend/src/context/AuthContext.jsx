@@ -1,5 +1,6 @@
 import { setUserAuth } from "@/services";
 import { getCurrentUser } from "@/services/auth-service";
+import { canAccessAdmin } from "@/lib/roles";
 import PropTypes from "prop-types";
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 
@@ -22,7 +23,7 @@ export const AuthProvider = ({ children }) => {
     () => !user?.token,
   );
 
-  const isAdmin = !!user?.isAdmin;
+  const isAdmin = canAccessAdmin(user);
   const isSuperUser = !!user?.isSuperUser;
 
   const setUser = useCallback((nextUser) => {

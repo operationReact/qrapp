@@ -8,6 +8,10 @@ import com.broandbro.qrapp.entity.User;
 import com.broandbro.qrapp.entity.Wallet;
 import com.broandbro.qrapp.repository.UserRepository;
 import com.broandbro.qrapp.repository.WalletRepository;
+import com.broandbro.qrapp.repository.LocationRepository;
+import com.broandbro.qrapp.repository.UserLocationAccessRepository;
+import com.broandbro.qrapp.entity.UserLocationAccess;
+import com.broandbro.qrapp.entity.UserRole;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -28,6 +32,8 @@ public class UserService {
     private final UserRepository userRepository;
     private final WalletRepository walletRepository;
     private final PasswordEncoder passwordEncoder;
+    private final LocationRepository locationRepository;
+    private final UserLocationAccessRepository userLocationAccessRepository;
     private final SecureRandom random = new SecureRandom();
 
     // simple token->user cache to reduce DB lookups from TokenAuthFilter
@@ -48,7 +54,12 @@ public class UserService {
                 .password(passwordEncoder.encode(req.getPassword()))
                 .name(req.getName())
                 .build();
+        u.setDefaultLocation(resolveDefaultLocation(req.getDefaultLocationId()));
         u = userRepository.save(u);
+        if (u.getDefaultLocation() != null) {
+            userLocationAccessRepository.save(UserLocationAccess.builder()
+                    .user(u).location(u.getDefaultLocation()).active(true).build());
+        }
 
         // Create wallet for new user
         Wallet wallet = Wallet.builder()
@@ -82,14 +93,25 @@ public class UserService {
 
     @Transactional
     public LoginResponse registerVerified(String phone, String name, String passwordHash) {
+        return registerVerified(phone, name, passwordHash, null);
+    }
+
+    @Transactional
+    public LoginResponse registerVerified(String phone, String name, String passwordHash, Long defaultLocationId) {
         if (userRepository.findByPhone(phone).isPresent()) {
             throw new IllegalArgumentException("phone_taken");
         }
-        User user = userRepository.save(User.builder()
+        User user = User.builder()
                 .phone(phone)
                 .password(passwordHash)
                 .name(name)
-                .build());
+                .build();
+        user.setDefaultLocation(resolveDefaultLocation(defaultLocationId));
+        user = userRepository.save(user);
+        if (user.getDefaultLocation() != null) {
+            userLocationAccessRepository.save(UserLocationAccess.builder()
+                    .user(user).location(user.getDefaultLocation()).active(true).build());
+        }
         walletRepository.save(Wallet.builder().user(user).balance(0L).build());
         String token = generateToken(user);
         LoginResponse response = new LoginResponse();
@@ -106,6 +128,17 @@ public class UserService {
         userRepository.save(user);
         cacheUser(user);
         return token;
+    }
+
+    private com.broandbro.qrapp.entity.Location resolveDefaultLocation(Long requestedLocationId) {
+        if (requestedLocationId != null) {
+            return locationRepository.findById(requestedLocationId)
+                    .filter(location -> Boolean.TRUE.equals(location.getActive()))
+                    .orElseThrow(() -> new IllegalArgumentException("location_not_found"));
+        }
+        return locationRepository.findByCode("PRAGATI_NAGAR")
+                .filter(location -> Boolean.TRUE.equals(location.getActive()))
+                .orElseThrow(() -> new IllegalStateException("default_location_not_configured"));
     }
 
     public Optional<User> findByPhone(String phone) {
@@ -188,6 +221,16 @@ public class UserService {
         r.setName(u.getName());
         r.setIsAdmin(u.getIsAdmin());
         r.setIsSuperUser(u.getIsSuperUser());
+        r.setRole(effectiveRole(u).name());
+        r.setDefaultLocation(u.getDefaultLocation() == null ? null :
+                com.broandbro.qrapp.dto.LocationResponse.from(u.getDefaultLocation()));
         return r;
+    }
+
+    private UserRole effectiveRole(User u) {
+        if (u.getRole() != null) return u.getRole();
+        if (Boolean.TRUE.equals(u.getIsSuperUser())) return UserRole.SUPER_ADMIN;
+        if (Boolean.TRUE.equals(u.getIsAdmin())) return UserRole.ADMIN;
+        return UserRole.CUSTOMER;
     }
 }

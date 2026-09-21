@@ -86,8 +86,8 @@ function ClassificationManagementPage() {
   const [selectedItem, setSelectedItem] = useState(null);
 
   const { data: items = [], isLoading } = useQuery({
-    queryKey: ["menu", "admin-classify"],
-    queryFn: () => apiClient.get("/menu").then((r) => r.data),
+    queryKey: ["menu", "admin-classify", JSON.parse(localStorage.getItem("active-location") || "null")?.id],
+    queryFn: () => apiClient.get("/menu", { params: { locationId: JSON.parse(localStorage.getItem("active-location") || "null")?.id } }).then((r) => r.data),
     staleTime: 1000 * 60 * 2,
   });
 
@@ -256,4 +256,3 @@ function ClassificationManagementPage() {
 export const Route = createFileRoute("/admin/(menu)/classification")({
   component: ClassificationManagementPage,
 });
-

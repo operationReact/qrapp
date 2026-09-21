@@ -9,6 +9,8 @@ import { AdminDashboardProvider, useAdminDashboard } from "@/context/AdminDashbo
 import { Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SidebarIcon } from "@phosphor-icons/react";
+import { RoleGuard } from "@/components/RoleGuard";
+import { CAN_ACCESS_ADMIN } from "@/lib/roles";
 
 export const Route = createFileRoute("/admin")({
   component: AdminLayout,
@@ -62,6 +64,7 @@ function AdminLayout() {
   const isDashboard = pathname === "/admin" || pathname === "/admin/";
 
   return (
+    <RoleGuard roles={CAN_ACCESS_ADMIN}>
     <AdminDashboardProvider>
       <SidebarProvider>
         <AdminSidebar />
@@ -73,5 +76,6 @@ function AdminLayout() {
         </SidebarInset>
       </SidebarProvider>
     </AdminDashboardProvider>
+    </RoleGuard>
   );
 }

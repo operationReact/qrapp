@@ -37,7 +37,11 @@ import { Route as AdminOpsCenterRouteImport } from './routes/admin/ops-center'
 import { Route as authRegisterRouteImport } from './routes/(auth)/register'
 import { Route as authLoginRouteImport } from './routes/(auth)/login'
 import { Route as authForgetPasswordRouteImport } from './routes/(auth)/forget-password'
+import { Route as AdminControlCenterIndexRouteImport } from './routes/admin/control-center/index'
 import { Route as AdminAnalyticsIndexRouteImport } from './routes/admin/analytics/index'
+import { Route as AdminControlCenterUsersRouteImport } from './routes/admin/control-center/users'
+import { Route as AdminControlCenterLocationsRouteImport } from './routes/admin/control-center/locations'
+import { Route as AdminControlCenterAccessRouteImport } from './routes/admin/control-center/access'
 import { Route as AdminAnalyticsUsersRouteImport } from './routes/admin/analytics/users'
 import { Route as AdminAnalyticsSalesRouteImport } from './routes/admin/analytics/sales'
 import { Route as AdminAnalyticsRecommendationsRouteImport } from './routes/admin/analytics/recommendations'
@@ -212,11 +216,33 @@ const authForgetPasswordRoute = authForgetPasswordRouteImport.update({
   path: '/forget-password',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminControlCenterIndexRoute = AdminControlCenterIndexRouteImport.update({
+  id: '/control-center/',
+  path: '/control-center/',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminAnalyticsIndexRoute = AdminAnalyticsIndexRouteImport.update({
   id: '/analytics/',
   path: '/analytics/',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminControlCenterUsersRoute = AdminControlCenterUsersRouteImport.update({
+  id: '/control-center/users',
+  path: '/control-center/users',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminControlCenterLocationsRoute =
+  AdminControlCenterLocationsRouteImport.update({
+    id: '/control-center/locations',
+    path: '/control-center/locations',
+    getParentRoute: () => AdminRoute,
+  } as any)
+const AdminControlCenterAccessRoute =
+  AdminControlCenterAccessRouteImport.update({
+    id: '/control-center/access',
+    path: '/control-center/access',
+    getParentRoute: () => AdminRoute,
+  } as any)
 const AdminAnalyticsUsersRoute = AdminAnalyticsUsersRouteImport.update({
   id: '/analytics/users',
   path: '/analytics/users',
@@ -447,7 +473,11 @@ export interface FileRoutesByFullPath {
   '/admin/analytics/recommendations': typeof AdminAnalyticsRecommendationsRoute
   '/admin/analytics/sales': typeof AdminAnalyticsSalesRoute
   '/admin/analytics/users': typeof AdminAnalyticsUsersRoute
+  '/admin/control-center/access': typeof AdminControlCenterAccessRoute
+  '/admin/control-center/locations': typeof AdminControlCenterLocationsRoute
+  '/admin/control-center/users': typeof AdminControlCenterUsersRoute
   '/admin/analytics/': typeof AdminAnalyticsIndexRoute
+  '/admin/control-center/': typeof AdminControlCenterIndexRoute
   '/admin/combos/create': typeof AdminmenuCombosCreateRoute
   '/admin/combos/edit': typeof AdminmenuCombosEditRoute
   '/admin/combo-campaigns/': typeof AdminmenuComboCampaignsIndexRoute
@@ -509,7 +539,11 @@ export interface FileRoutesByTo {
   '/admin/analytics/recommendations': typeof AdminAnalyticsRecommendationsRoute
   '/admin/analytics/sales': typeof AdminAnalyticsSalesRoute
   '/admin/analytics/users': typeof AdminAnalyticsUsersRoute
+  '/admin/control-center/access': typeof AdminControlCenterAccessRoute
+  '/admin/control-center/locations': typeof AdminControlCenterLocationsRoute
+  '/admin/control-center/users': typeof AdminControlCenterUsersRoute
   '/admin/analytics': typeof AdminAnalyticsIndexRoute
+  '/admin/control-center': typeof AdminControlCenterIndexRoute
   '/admin/combos/create': typeof AdminmenuCombosCreateRoute
   '/admin/combos/edit': typeof AdminmenuCombosEditRoute
   '/admin/combo-campaigns': typeof AdminmenuComboCampaignsIndexRoute
@@ -573,7 +607,11 @@ export interface FileRoutesById {
   '/admin/analytics/recommendations': typeof AdminAnalyticsRecommendationsRoute
   '/admin/analytics/sales': typeof AdminAnalyticsSalesRoute
   '/admin/analytics/users': typeof AdminAnalyticsUsersRoute
+  '/admin/control-center/access': typeof AdminControlCenterAccessRoute
+  '/admin/control-center/locations': typeof AdminControlCenterLocationsRoute
+  '/admin/control-center/users': typeof AdminControlCenterUsersRoute
   '/admin/analytics/': typeof AdminAnalyticsIndexRoute
+  '/admin/control-center/': typeof AdminControlCenterIndexRoute
   '/admin/(menu)/combos/create': typeof AdminmenuCombosCreateRoute
   '/admin/(menu)/combos/edit': typeof AdminmenuCombosEditRoute
   '/admin/(menu)/combo-campaigns/': typeof AdminmenuComboCampaignsIndexRoute
@@ -638,7 +676,11 @@ export interface FileRouteTypes {
     | '/admin/analytics/recommendations'
     | '/admin/analytics/sales'
     | '/admin/analytics/users'
+    | '/admin/control-center/access'
+    | '/admin/control-center/locations'
+    | '/admin/control-center/users'
     | '/admin/analytics/'
+    | '/admin/control-center/'
     | '/admin/combos/create'
     | '/admin/combos/edit'
     | '/admin/combo-campaigns/'
@@ -700,7 +742,11 @@ export interface FileRouteTypes {
     | '/admin/analytics/recommendations'
     | '/admin/analytics/sales'
     | '/admin/analytics/users'
+    | '/admin/control-center/access'
+    | '/admin/control-center/locations'
+    | '/admin/control-center/users'
     | '/admin/analytics'
+    | '/admin/control-center'
     | '/admin/combos/create'
     | '/admin/combos/edit'
     | '/admin/combo-campaigns'
@@ -763,7 +809,11 @@ export interface FileRouteTypes {
     | '/admin/analytics/recommendations'
     | '/admin/analytics/sales'
     | '/admin/analytics/users'
+    | '/admin/control-center/access'
+    | '/admin/control-center/locations'
+    | '/admin/control-center/users'
     | '/admin/analytics/'
+    | '/admin/control-center/'
     | '/admin/(menu)/combos/create'
     | '/admin/(menu)/combos/edit'
     | '/admin/(menu)/combo-campaigns/'
@@ -997,11 +1047,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof authForgetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/control-center/': {
+      id: '/admin/control-center/'
+      path: '/control-center'
+      fullPath: '/admin/control-center/'
+      preLoaderRoute: typeof AdminControlCenterIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/analytics/': {
       id: '/admin/analytics/'
       path: '/analytics'
       fullPath: '/admin/analytics/'
       preLoaderRoute: typeof AdminAnalyticsIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/control-center/users': {
+      id: '/admin/control-center/users'
+      path: '/control-center/users'
+      fullPath: '/admin/control-center/users'
+      preLoaderRoute: typeof AdminControlCenterUsersRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/control-center/locations': {
+      id: '/admin/control-center/locations'
+      path: '/control-center/locations'
+      fullPath: '/admin/control-center/locations'
+      preLoaderRoute: typeof AdminControlCenterLocationsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/control-center/access': {
+      id: '/admin/control-center/access'
+      path: '/control-center/access'
+      fullPath: '/admin/control-center/access'
+      preLoaderRoute: typeof AdminControlCenterAccessRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/analytics/users': {
@@ -1262,7 +1340,11 @@ interface AdminRouteChildren {
   AdminAnalyticsRecommendationsRoute: typeof AdminAnalyticsRecommendationsRoute
   AdminAnalyticsSalesRoute: typeof AdminAnalyticsSalesRoute
   AdminAnalyticsUsersRoute: typeof AdminAnalyticsUsersRoute
+  AdminControlCenterAccessRoute: typeof AdminControlCenterAccessRoute
+  AdminControlCenterLocationsRoute: typeof AdminControlCenterLocationsRoute
+  AdminControlCenterUsersRoute: typeof AdminControlCenterUsersRoute
   AdminAnalyticsIndexRoute: typeof AdminAnalyticsIndexRoute
+  AdminControlCenterIndexRoute: typeof AdminControlCenterIndexRoute
   AdminmenuCombosCreateRoute: typeof AdminmenuCombosCreateRoute
   AdminmenuCombosEditRoute: typeof AdminmenuCombosEditRoute
   AdminmenuComboCampaignsIndexRoute: typeof AdminmenuComboCampaignsIndexRoute
@@ -1300,7 +1382,11 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminAnalyticsRecommendationsRoute: AdminAnalyticsRecommendationsRoute,
   AdminAnalyticsSalesRoute: AdminAnalyticsSalesRoute,
   AdminAnalyticsUsersRoute: AdminAnalyticsUsersRoute,
+  AdminControlCenterAccessRoute: AdminControlCenterAccessRoute,
+  AdminControlCenterLocationsRoute: AdminControlCenterLocationsRoute,
+  AdminControlCenterUsersRoute: AdminControlCenterUsersRoute,
   AdminAnalyticsIndexRoute: AdminAnalyticsIndexRoute,
+  AdminControlCenterIndexRoute: AdminControlCenterIndexRoute,
   AdminmenuCombosCreateRoute: AdminmenuCombosCreateRoute,
   AdminmenuCombosEditRoute: AdminmenuCombosEditRoute,
   AdminmenuComboCampaignsIndexRoute: AdminmenuComboCampaignsIndexRoute,

@@ -44,7 +44,7 @@ public class MenuItemResponse {
 
     private Category category;
     private Tag tag;
-    private Long shopId;
+    private Long vendorId;
     private FulfillmentType fulfillmentType;
     private InventoryMode inventoryMode;
     private Boolean isHidden;

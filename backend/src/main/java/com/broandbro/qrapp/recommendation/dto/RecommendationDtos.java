@@ -137,6 +137,7 @@ public class RecommendationDtos {
     public static class CartRecommendationRequest {
         private List<Long> itemIds;
         private List<Long> categoryIds;
+        private Long locationId;
         private BigDecimal cartTotal = BigDecimal.ZERO;
         private int maxResults = 8;
     }
@@ -160,4 +161,3 @@ public class RecommendationDtos {
         private String resolvedBy;   // which priority level resolved it
     }
 }
-

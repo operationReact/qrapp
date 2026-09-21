@@ -61,7 +61,7 @@ function ScopePicker({ scopeType, scopeId, onChange }) {
   const [open, setOpen] = useState(false);
 
   const { data: categories = [] } = useQuery({
-    ...categoriesOptions,
+    ...categoriesOptions(),
     enabled: scopeType === "CATEGORY",
   });
 

@@ -1,10 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useNavigate, useSearch } from "@tanstack/react-router";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 
 import { requestRegistrationOTP, verifyRegistrationOTP } from "@/services/auth-service";
-import { setUserAuth } from "@/services";
+import { apiClient, setUserAuth } from "@/services";
 import { Link } from "@tanstack/react-router";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Field, FieldContent, FieldLabel } from "@/components/ui/field";
@@ -24,10 +24,28 @@ export const Route = createFileRoute("/(auth)/register")({
     const [phone, setPhone] = useState("");
     const [name, setName] = useState("");
     const [password, setPassword] = useState("");
+    const [defaultLocationId, setDefaultLocationId] = useState("");
     const [error, setError] = useState(null);
+    const locationsQuery = useQuery({
+      queryKey: ["locations", "registration-selectable"],
+      queryFn: async () => {
+        const response = await apiClient.get("/locations/public");
+        const body = response.data;
+        const locations = Array.isArray(body)
+          ? body
+          : (body?.content || body?.data || body?.locations || []);
+        return locations.filter((location) => location.active !== false && location.isActive !== false);
+      },
+      retry: 1,
+    });
 
     const otpMutation = useMutation({
-      mutationFn: () => requestRegistrationOTP({ name, phone, password }),
+      mutationFn: () => requestRegistrationOTP({
+        name,
+        phone,
+        password,
+        ...(defaultLocationId ? { defaultLocationId } : {}),
+      }),
       onSuccess: () => {
         navigate({ to: "/register", search: { verify: true } });
       },
@@ -84,6 +102,39 @@ export const Route = createFileRoute("/(auth)/register")({
                 {error}
               </div>
             )}
+            <Field>
+              <FieldLabel>Preferred Location <span className="font-normal text-muted-foreground">(optional)</span></FieldLabel>
+              <FieldContent>
+                {locationsQuery.isLoading && (
+                  <div className="min-h-12 animate-pulse rounded-xl border bg-muted" aria-label="Loading locations" />
+                )}
+                {locationsQuery.isError && (
+                  <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-3 text-sm text-amber-800">
+                    Locations are temporarily unavailable. You can continue without selecting one.
+                  </p>
+                )}
+                {locationsQuery.isSuccess && !locationsQuery.data.length && (
+                  <p className="rounded-xl border border-muted px-3 py-3 text-sm text-muted-foreground">
+                    No locations are currently available.
+                  </p>
+                )}
+                {locationsQuery.isSuccess && locationsQuery.data.length > 0 && (
+                  <select
+                    value={defaultLocationId}
+                    onChange={(event) => setDefaultLocationId(event.target.value)}
+                    className="min-h-12 w-full rounded-xl border border-input bg-background px-3 text-base outline-none focus:ring-2 focus:ring-ring"
+                    aria-label="Preferred Location"
+                  >
+                    <option value="">Choose a location</option>
+                    {locationsQuery.data.map((location) => (
+                      <option key={location.id} value={location.id}>
+                        {location.name || location.title || `Location ${location.id}`}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </FieldContent>
+            </Field>
             <form onSubmit={handleGenerateOTP} className="space-y-4">
               <Field>
                 <FieldLabel>Name</FieldLabel>

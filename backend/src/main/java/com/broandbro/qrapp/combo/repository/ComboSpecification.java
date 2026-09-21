@@ -1,10 +1,12 @@
 package com.broandbro.qrapp.combo.repository;
 
 import com.broandbro.qrapp.combo.entity.Combo;
+import com.broandbro.qrapp.combo.entity.ComboItem;
 import com.broandbro.qrapp.enums.ComboStatus;
 import com.broandbro.qrapp.enums.ComboType;
 import com.broandbro.qrapp.enums.TimeSlot;
 import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.JoinType;
 import org.springframework.data.jpa.domain.Specification;
 
 import java.util.ArrayList;
@@ -54,5 +56,27 @@ public final class ComboSpecification {
             return cb.and(predicates.toArray(new Predicate[0]));
         };
     }
-}
 
+    public static Specification<Combo> buildFilter(
+            String search, Long categoryId, Boolean isActive,
+            Boolean isFeatured, Boolean isPreorder, TimeSlot timeSlot,
+            Long locationId) {
+        Specification<Combo> base = buildFilter(
+                search, categoryId, isActive, isFeatured, isPreorder, timeSlot);
+        return base.and((root, query, cb) -> {
+            query.distinct(true);
+            var itemJoin = root.join("items", JoinType.INNER)
+                    .join("menuItem", JoinType.INNER);
+            Predicate sameLocation = cb.equal(
+                    itemJoin.get("location").get("id"), locationId);
+            var otherItem = query.subquery(ComboItem.class);
+            var otherRoot = otherItem.from(ComboItem.class);
+            var otherMenu = otherRoot.join("menuItem", JoinType.INNER);
+            otherItem.select(otherRoot);
+            otherItem.where(
+                    cb.equal(otherRoot.get("combo"), root),
+                    cb.notEqual(otherMenu.get("location").get("id"), locationId));
+            return cb.and(sameLocation, cb.not(cb.exists(otherItem)));
+        });
+    }
+}

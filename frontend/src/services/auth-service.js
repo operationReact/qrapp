@@ -15,11 +15,12 @@ export const updateCurrentUser = (data) =>
 export const registerUser = (data) =>
   apiClient.post("/auth/register", data).then((r) => r.data);
 
-export const requestRegistrationOTP = ({ phone, password, name }) =>
+export const requestRegistrationOTP = ({ phone, password, name, defaultLocationId }) =>
   apiClient.post("/auth/register/request-otp", {
     phoneNumber: phone,
     password,
     name,
+    ...(defaultLocationId != null ? { defaultLocationId } : {}),
   }).then((r) => r.data);
 
 export const verifyRegistrationOTP = ({ phone, otp }) =>

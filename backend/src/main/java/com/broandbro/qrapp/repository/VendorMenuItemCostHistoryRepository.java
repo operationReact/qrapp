@@ -16,34 +16,34 @@ public interface VendorMenuItemCostHistoryRepository
         extends JpaRepository<VendorMenuItemCostHistory, Long> {
 
     /**
-     * Returns the active procurement cost for a given (shop, menuItem) pair at the specified instant.
+     * Returns the active procurement cost for a given (vendor, menuItem) pair at the specified instant.
      */
     @Query("""
         SELECT h FROM VendorMenuItemCostHistory h
-        WHERE h.shop.id     = :shopId
+        WHERE h.vendor.id     = :vendorId
           AND h.menuItem.id = :menuItemId
           AND h.effectiveFrom <= :instant
           AND (h.effectiveTo IS NULL OR h.effectiveTo > :instant)
         ORDER BY h.effectiveFrom DESC
         """)
     Optional<VendorMenuItemCostHistory> findActiveAt(
-            @Param("shopId")     Long shopId,
+            @Param("vendorId")     Long vendorId,
             @Param("menuItemId") Long menuItemId,
             @Param("instant")    Instant instant);
 
     /** Returns current active cost (at now). */
-    default Optional<VendorMenuItemCostHistory> findCurrentActive(Long shopId, Long menuItemId) {
-        return findActiveAt(shopId, menuItemId, Instant.now());
+    default Optional<VendorMenuItemCostHistory> findCurrentActive(Long vendorId, Long menuItemId) {
+        return findActiveAt(vendorId, menuItemId, Instant.now());
     }
 
-    /** All cost records for a given (shop, menuItem) pair, most recent first. */
+    /** All cost records for a given (vendor, menuItem) pair, most recent first. */
     @Query("""
         SELECT h FROM VendorMenuItemCostHistory h
-        WHERE h.shop.id = :shopId AND h.menuItem.id = :menuItemId
+        WHERE h.vendor.id = :vendorId AND h.menuItem.id = :menuItemId
         ORDER BY h.effectiveFrom DESC
         """)
-    List<VendorMenuItemCostHistory> findAllByShopAndItem(
-            @Param("shopId") Long shopId, @Param("menuItemId") Long menuItemId);
+    List<VendorMenuItemCostHistory> findAllByVendorAndItem(
+            @Param("vendorId") Long vendorId, @Param("menuItemId") Long menuItemId);
 
     /** All active vendor costs for a menu item across all vendors – for price comparison. */
     @Query("""
@@ -57,17 +57,17 @@ public interface VendorMenuItemCostHistoryRepository
             @Param("menuItemId") Long menuItemId,
             @Param("instant")    Instant instant);
 
-    /** Close open cost records for a (shop, menuItem) pair before inserting a new cost. */
+    /** Close open cost records for a (vendor, menuItem) pair before inserting a new cost. */
     @Modifying
     @Query("""
         UPDATE VendorMenuItemCostHistory h
         SET h.effectiveTo = :closedAt
-        WHERE h.shop.id = :shopId
+        WHERE h.vendor.id = :vendorId
           AND h.menuItem.id = :menuItemId
           AND h.effectiveTo IS NULL
         """)
     void closeActiveCosts(
-            @Param("shopId")     Long shopId,
+            @Param("vendorId")     Long vendorId,
             @Param("menuItemId") Long menuItemId,
             @Param("closedAt")   Instant closedAt);
 }

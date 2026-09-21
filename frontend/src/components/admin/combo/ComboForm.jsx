@@ -135,7 +135,7 @@ export default function ComboForm({ comboId }) {
     ...menuOptions({ all: true }),
     enabled: true,
   });
-  const { data: categories } = useQuery(categoriesOptions);
+  const { data: categories } = useQuery(categoriesOptions());
   const { data: sigProductsData, isLoading: sigLoading } = useQuery(
     signatureProductListOptions({
       isComboAttachable: true,

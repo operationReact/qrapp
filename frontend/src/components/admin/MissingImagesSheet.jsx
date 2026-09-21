@@ -37,6 +37,7 @@ import {
   RefreshCw,
   ImageOff,
 } from "lucide-react";
+import { useLocation as useActiveLocation } from "@/context/LocationContext";
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
@@ -49,6 +50,7 @@ function computeSrc(url) {
 // ─── Per-item card ─────────────────────────────────────────────────────────────
 
 function ItemCard({ item, onSaved }) {
+  const { activeLocationId } = useActiveLocation();
   const queryClient = useQueryClient();
   const fileInputRef = useRef(null);
 
@@ -71,9 +73,9 @@ function ItemCard({ item, onSaved }) {
 
   // ── save via file / url ──
   const saveMutation = useMutation({
-    mutationFn: ({ itemId, payload }) => updateMenuItem(itemId, payload),
+    mutationFn: ({ itemId, payload }) => updateMenuItem(itemId, payload, activeLocationId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["menu"] });
+      queryClient.invalidateQueries({ queryKey: ["menu", activeLocationId] });
       toast.success(`Image saved for "${item.name}"`);
       setSavedLocally(true);
       onSaved(item.id);
@@ -91,7 +93,8 @@ function ItemCard({ item, onSaved }) {
         item.id,
         1,
         additionalPrompt || null,
-        isRetry ? aiOptions : []
+        isRetry ? aiOptions : [],
+        activeLocationId
       ),
     onSuccess: (data) => {
       setAiOptions(data.imageUrls || []);
@@ -103,17 +106,17 @@ function ItemCard({ item, onSaved }) {
   const saveAiMutation = useMutation({
     mutationFn: async () => {
       if (!selectedAiUrl) throw new Error("No image selected");
-      await updateMenuItem(item.id, { imageUrl: selectedAiUrl });
+      await updateMenuItem(item.id, { imageUrl: selectedAiUrl }, activeLocationId);
       const unselected = aiOptions.filter((u) => u !== selectedAiUrl);
       try {
-        await applyGeneratedImage(item.id, selectedAiUrl, unselected);
+        await applyGeneratedImage(item.id, selectedAiUrl, unselected, activeLocationId);
       } catch {
         // non-critical
       }
       return selectedAiUrl;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["menu"] });
+      queryClient.invalidateQueries({ queryKey: ["menu", activeLocationId] });
       toast.success(`AI image saved for "${item.name}"`);
       setSavedLocally(true);
       onSaved(item.id);
@@ -607,4 +610,3 @@ MissingImagesSheet.propTypes = {
   onOpenChange: PropTypes.func.isRequired,
   items: PropTypes.array,
 };
-

@@ -35,14 +35,15 @@ public class TagController {
     }
 
     @GetMapping("/{id}/items")
-    public ResponseEntity<List<MenuItem>> getMenuItemsByTag(@PathVariable Long id) {
+    public ResponseEntity<List<MenuItem>> getMenuItemsByTag(
+            @PathVariable Long id, @RequestParam Long locationId) {
         // Verify tag exists
         if (!tagService.getTagById(id).isPresent()) {
             return ResponseEntity.notFound().build();
         }
 
         // Get all menu items for this tag
-        List<MenuItem> items = menuRepository.findByTagId(id);
+        List<MenuItem> items = menuRepository.findByTagId(locationId, id);
         return ResponseEntity.ok(items);
     }
 
@@ -78,4 +79,3 @@ public class TagController {
         return ResponseEntity.noContent().build();
     }
 }
-
