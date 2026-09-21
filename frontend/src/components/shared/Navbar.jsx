@@ -96,22 +96,22 @@ export default function Navbar({ homeHeader = false }) {
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur">
       <div className={`container-premium flex items-center justify-between gap-1 py-2 md:gap-3 md:py-3 lg:hidden ${homeHeader ? "home-navbar" : ""}`}>
-        <Link to="/" className={`flex min-w-0 items-center gap-2.5 ${homeHeader ? "max-w-[130px] shrink" : ""}`}>
+        <Link to="/" className={`flex min-w-0 items-center gap-2 ${homeHeader ? "max-w-[156px] shrink" : ""}`}>
           <img
             src="/bro-logo.png"
             alt="BRO & BRO"
             className={homeHeader
-              ? "size-16 rounded-none object-contain md:size-20"
+              ? "h-[52px] w-[52px] rounded-none object-contain md:size-20"
               : "size-10 rounded-xl object-cover shadow-sm md:size-11 md:rounded-2xl"}
           />
           <div className="min-w-0">
             <p className={homeHeader
-              ? "truncate text-[18px] font-extrabold leading-5 tracking-tight text-foreground"
+              ? "truncate text-[16px] font-extrabold leading-[1.1] tracking-tight text-foreground"
               : "truncate text-[15px] font-bold leading-5 text-foreground"}>
               BRO &amp; BRO
             </p>
             <p className={homeHeader
-              ? "truncate text-[14px] font-medium leading-5 text-muted-foreground"
+              ? "truncate text-[12px] font-medium leading-4 text-muted-foreground"
               : "truncate text-xs text-muted-foreground"}>
               Food Court
             </p>

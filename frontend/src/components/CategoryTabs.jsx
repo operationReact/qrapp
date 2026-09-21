@@ -71,7 +71,7 @@ export default function CategoryTabs({ categories, active }) {
 
   return (
     <div className="no-scrollbar overflow-x-auto">
-      <div className="flex min-w-max items-start gap-1 pb-0">
+      <div className="flex min-w-max items-start gap-1 pb-0 [touch-action:pan-x]">
         {allCategories.map((cat) => (
           <a
             href={`/#${cat}`}
@@ -80,7 +80,7 @@ export default function CategoryTabs({ categories, active }) {
               size: "sm",
               variant: "ghost",
               className: cn(
-                "group h-auto w-[74px] min-w-[74px] flex-col gap-0.5 rounded-2xl px-0 py-0 text-[14px] font-semibold leading-4 shadow-none hover:bg-transparent md:h-9 md:w-auto md:min-w-fit md:flex-row md:gap-1.5 md:rounded-full md:px-3.5 md:py-2 md:text-xs",
+                "group h-auto w-[78px] min-w-[78px] flex-col gap-0.5 rounded-2xl px-0 py-0 text-[14px] font-semibold leading-4 shadow-none hover:bg-transparent md:h-9 md:w-auto md:min-w-fit md:flex-row md:gap-1.5 md:rounded-full md:px-3.5 md:py-2 md:text-xs",
                 active === cat ? "text-primary" : "text-foreground",
               ),
             })}
@@ -91,7 +91,9 @@ export default function CategoryTabs({ categories, active }) {
             )}>
               <CategoryImage category={cat} />
             </span>
-            <span className="whitespace-nowrap">{getCategoryLabel(cat)}</span>
+            <span className="h-8 max-w-[74px] overflow-hidden text-center text-[14px] leading-4 whitespace-normal [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">
+              {getCategoryLabel(cat)}
+            </span>
           </a>
         ))}
       </div>
