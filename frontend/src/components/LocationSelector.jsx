@@ -4,9 +4,14 @@ import { Button } from "@/components/ui/button";
 
 export function LocationSelector({ className = "", home = false, header = false }) {
   const { activeLocation, availableLocations, setActiveLocation, isLoading, error, refetch } = useLocation();
-  if (error) return <Button variant="outline" size="lg" className={`min-h-11 ${className}`} onClick={() => refetch()}><RefreshCw className="size-4" /> Retry location</Button>;
-  if (isLoading) return <div className={`h-11 w-44 animate-pulse rounded-xl bg-zinc-100 ${className}`} aria-label="Loading locations" />;
-  if (!availableLocations.length) return null;
+  if (error) return <Button variant={header ? "ghost" : "outline"} size="lg" className={`${header ? "min-h-10 rounded-full bg-[#fff0f3] px-3 text-[12px]" : "min-h-11"} ${className}`} onClick={() => refetch()}><RefreshCw className="size-4" /> Retry</Button>;
+  if (isLoading) return <div className={`${header ? "h-10 w-[112px] rounded-full" : "h-11 w-44 rounded-xl"} animate-pulse bg-zinc-100 ${className}`} aria-label="Loading locations" />;
+  if (!availableLocations.length) return (
+    <button type="button" onClick={() => refetch()} className={`relative flex min-h-10 min-w-0 items-center gap-2 rounded-full bg-[#fff0f3] px-3 text-[12px] font-bold text-foreground ${className}`}>
+      <MapPin className="size-4 shrink-0 text-primary" aria-hidden="true" />
+      <span className="truncate">Location</span>
+    </button>
+  );
   const locationName = activeLocation?.name || activeLocation?.title || "Location";
   const locationAddress = activeLocation?.address || activeLocation?.addressLine || "";
   return (

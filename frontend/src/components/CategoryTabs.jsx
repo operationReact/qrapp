@@ -71,7 +71,7 @@ export default function CategoryTabs({ categories, active }) {
 
   return (
     <div className="no-scrollbar overflow-x-auto">
-      <div className="flex min-w-max items-start gap-1 pb-0.5">
+      <div className="flex min-w-max items-start gap-1 pb-0">
         {allCategories.map((cat) => (
           <a
             href={`/#${cat}`}
@@ -80,13 +80,13 @@ export default function CategoryTabs({ categories, active }) {
               size: "sm",
               variant: "ghost",
               className: cn(
-                "group h-auto w-[72px] min-w-[72px] flex-col gap-1 rounded-2xl px-0 py-0.5 text-[14px] font-semibold shadow-none hover:bg-transparent md:h-9 md:w-auto md:min-w-fit md:flex-row md:gap-1.5 md:rounded-full md:px-3.5 md:py-2 md:text-xs",
+                "group h-auto w-[74px] min-w-[74px] flex-col gap-0.5 rounded-2xl px-0 py-0 text-[14px] font-semibold leading-4 shadow-none hover:bg-transparent md:h-9 md:w-auto md:min-w-fit md:flex-row md:gap-1.5 md:rounded-full md:px-3.5 md:py-2 md:text-xs",
                 active === cat ? "text-primary" : "text-foreground",
               ),
             })}
           >
             <span className={cn(
-              "grid size-14 place-items-center rounded-[20px] bg-[#f4f7fb] text-[29px] shadow-[0_5px_14px_rgba(41,47,67,0.05)] transition-colors md:hidden",
+              "grid h-[54px] w-[54px] place-items-center rounded-[18px] bg-[#f4f7fb] text-[29px] shadow-[0_5px_14px_rgba(41,47,67,0.05)] transition-colors md:hidden",
               active === cat && "bg-primary text-white shadow-[0_7px_16px_rgba(241,32,70,0.22)]",
             )}>
               <CategoryImage category={cat} />

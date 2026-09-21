@@ -113,7 +113,7 @@ function MenuPage() {
 
   return (
     <div className="page-shell bg-background pb-mobile-nav! lg:pb-[initial]!">
-      <Navbar />
+      <Navbar homeHeader />
       <MobileMenu />
       {/* Backend offline banner (non-technical user friendly) */}
       {offline && (
