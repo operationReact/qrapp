@@ -4,7 +4,9 @@ import { Button } from "./ui/button";
 import { Cart } from "@boxicons/react";
 import { useAuth } from "@/context/AuthContext";
 import { useByocDiscount } from "@/hooks/useByocDiscount";
+import { useScrollVisibility } from "@/hooks/useScrollVisibility";
 import ComboProgressBanner from "@/components/ComboProgressBanner";
+import { cn } from "@/lib/utils";
 
 const pluralRules = new Intl.PluralRules("en-US");
 
@@ -26,6 +28,7 @@ export default function StickyCartBar() {
   const navigate = useNavigate();
   const location = useLocation();
   const { isAdmin } = useAuth();
+  const visible = useScrollVisibility();
 
   const totalItems = cart.reduce((s, i) => s + (i.quantity || 0), 0);
   const totalPrice = getTotal();
@@ -52,7 +55,12 @@ export default function StickyCartBar() {
   if (totalItems === 0) return null;
 
   return (
-    <div className="fixed inset-x-0 bottom-[calc(var(--app-mobile-menu-height)+env(safe-area-inset-bottom)+0.5rem)] z-[45] pointer-events-auto px-2 lg:bottom-2.5 lg:px-2.5">
+    <div
+      className={cn(
+        "fixed inset-x-0 bottom-[calc(var(--app-mobile-menu-height)+env(safe-area-inset-bottom)+0.5rem)] z-[45] pointer-events-auto px-2 transition-transform duration-300 ease-out will-change-transform lg:bottom-2.5 lg:px-2.5",
+        visible ? "translate-y-0" : "translate-y-[150%]",
+      )}
+    >
       {/* BYOC compact nudge strip — shown above the bar when progress exists */}
       {primaryByoc && primaryByoc.nextTier && (
         <div className="mx-auto flex max-w-md items-center justify-center rounded-t-lg border border-b-0 border-emerald-200 bg-emerald-50 px-2.5 py-0.5 md:rounded-t-xl md:px-3 md:py-1 lg:max-w-1/2">
@@ -81,7 +89,7 @@ export default function StickyCartBar() {
               </div>
 
               <Button
-                className="h-8 rounded-full px-3 text-[12px] font-semibold md:h-10 md:px-4 md:text-sm"
+                className="h-8 rounded-full px-3 text-[12px] font-semibold touch-manipulation md:h-10 md:px-4 md:text-sm"
                 onClick={handleViewCart}
                 aria-label="View cart"
               >

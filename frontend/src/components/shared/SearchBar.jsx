@@ -47,7 +47,7 @@ export default function SearchBar({ onSearch = () => { }, onFilterClick, autoFoc
         type="button"
         aria-label="Open menu filters"
         onClick={onFilterClick}
-        className="mr-2 grid size-7 shrink-0 place-items-center rounded-full border border-border/70 text-muted-foreground/90 transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+        className="touch-manipulation mr-2 grid size-7 shrink-0 place-items-center rounded-full border border-border/70 text-muted-foreground/90 transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
       >
         <SlidersHorizontal className="size-[15px]" />
       </button>

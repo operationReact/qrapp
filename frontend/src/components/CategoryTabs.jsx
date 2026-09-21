@@ -44,7 +44,7 @@ export default function CategoryTabs({ categories, active }) {
               size: "sm",
               variant: "ghost",
               className: cn(
-                "group h-auto w-[74px] min-w-[74px] flex-col gap-0.5 rounded-2xl px-0 py-0 text-[13px] font-semibold leading-4 shadow-none hover:bg-transparent md:h-9 md:w-auto md:min-w-fit md:flex-row md:gap-1.5 md:rounded-full md:px-3.5 md:py-2 md:text-xs",
+                "group h-auto w-[74px] min-w-[74px] flex-col gap-0.5 rounded-2xl px-0 py-0 text-[13px] font-semibold leading-4 shadow-none touch-manipulation hover:bg-transparent md:h-9 md:w-auto md:min-w-fit md:flex-row md:gap-1.5 md:rounded-full md:px-3.5 md:py-2 md:text-xs",
                 active === catName ? "text-primary" : "text-foreground",
               ),
             })}

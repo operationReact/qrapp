@@ -52,6 +52,9 @@ function MenuPage() {
 
   const { preferences, setPreferences } = usePreferences();
   const vegFilter = preferences.segmentedFilter;
+  const handleSegmentedFilterChange = (value) => {
+    setPreferences({ segmentedFilter: value });
+  };
 
   const opts = {};
   if (vegFilter === "veg") opts.isVeg = true;
@@ -146,26 +149,26 @@ function MenuPage() {
       )}
 
       <div className="container-premium home-controls flex flex-col gap-2 py-1.5 md:gap-2 md:py-2">
-        <div className="w-full">
-          <SearchBar
-            home
-            onSearch={setSearchQuery}
-            onFilterClick={() => {
-              filterRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-              filterRef.current?.querySelector("button")?.focus();
-            }}
+        <div ref={filterRef} className="flex w-full items-center gap-2 scroll-mt-4">
+          <div className="min-w-0 flex-1">
+            <SearchBar
+              home
+              onSearch={setSearchQuery}
+              onFilterClick={() => {
+                filterRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+                filterRef.current?.querySelector("[role='tab']")?.focus();
+              }}
+            />
+          </div>
+          <SegmentedFilter
+            compact
+            value={vegFilter}
+            onChange={handleSegmentedFilterChange}
           />
         </div>
 
         <div className="container-premium -mx-[0.875rem] w-auto px-0 md:mx-0 md:w-auto md:px-0">
           <CategoryTabs categories={categories} active={category} />
-        </div>
-
-        <div ref={filterRef} className="lg:hidden scroll-mt-4">
-          <SegmentedFilter
-            value={vegFilter}
-            onChange={(value) => setPreferences({ segmentedFilter: value })}
-          />
         </div>
 
         <DealsSection />

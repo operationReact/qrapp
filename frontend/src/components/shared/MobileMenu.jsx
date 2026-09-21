@@ -14,6 +14,7 @@ import {
 } from "../ui/drawer";
 import { Separator } from "../ui/separator";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useScrollVisibility } from "@/hooks/useScrollVisibility";
 import {
   BowlFoodIcon,
   CompassIcon,
@@ -183,13 +184,19 @@ export default function MobileMenu() {
   const isMobile = useIsMobile();
   const { user } = useAuth();
   const { cart, openDrawer, closeDrawer } = useCart();
+  const visible = useScrollVisibility();
 
   const shouldOpenCartDrawer = location.pathname !== "/cart";
 
   if (!isMobile) return null;
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 mx-auto flex min-h-[60px] w-full max-w-md isolate items-end justify-between border-x border-t border-border bg-card px-2 pb-[calc(0.3rem+var(--app-safe-bottom))] pt-1 shadow-[0_8px_28px_rgba(0,0,0,0.05)] md:min-h-0 md:py-3">
+    <nav
+      className={cn(
+        "fixed inset-x-0 bottom-0 z-40 mx-auto flex min-h-[60px] w-full max-w-md isolate items-end justify-between border-x border-t border-border bg-card px-2 pb-[calc(0.3rem+var(--app-safe-bottom))] pt-1 shadow-[0_8px_28px_rgba(0,0,0,0.05)] transition-transform duration-300 ease-out will-change-transform md:min-h-0 md:py-3",
+        visible ? "translate-y-0" : "translate-y-full",
+      )}
+    >
       {items.slice(0, -2).map((item) => {
         const isActive = location.pathname === item.path;
         return (
@@ -197,7 +204,7 @@ export default function MobileMenu() {
             key={item.key}
             to={item.path}
             className={cn(
-              `grid place-items-center transition-transform flex-1 focus:outline-none after:absolute after:scale-y-0 after:top-0 after:w-12 after:h-0.5 after:rounded-b-xl after:bg-primary`,
+              `touch-manipulation grid place-items-center transition-transform flex-1 focus:outline-none after:absolute after:scale-y-0 after:top-0 after:w-12 after:h-0.5 after:rounded-b-xl after:bg-primary`,
               isActive && "after:scale-y-100",
             )}
             aria-label={item.label}
@@ -224,7 +231,7 @@ export default function MobileMenu() {
           }
         }}
         className={cn(
-          `grid place-items-center transition-transform flex-1 focus:outline-none after:absolute after:scale-y-0 after:top-0 after:w-12 after:h-0.5 after:rounded-b-xl after:bg-primary`,
+          `touch-manipulation grid place-items-center transition-transform flex-1 focus:outline-none after:absolute after:scale-y-0 after:top-0 after:w-12 after:h-0.5 after:rounded-b-xl after:bg-primary`,
           location.pathname === "/cart" && "after:scale-y-100",
         )}
         aria-label={"Cart"}
@@ -251,7 +258,7 @@ export default function MobileMenu() {
         <DrawerTrigger asChild>
           <button
             className={cn(
-              `grid place-items-center transition-transform flex-1 focus:outline-none after:absolute after:scale-y-0 after:top-0 after:w-12 after:h-0.5 after:rounded-b-xl after:bg-primary`,
+              `touch-manipulation grid place-items-center transition-transform flex-1 focus:outline-none after:absolute after:scale-y-0 after:top-0 after:w-12 after:h-0.5 after:rounded-b-xl after:bg-primary`,
               location.pathname === "/profile" && "after:scale-y-100",
             )}
             aria-label="Account"
