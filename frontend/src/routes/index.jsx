@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { menuOptions, categoriesOptions } from "@/query/options/menu";
 import Navbar from "../components/shared/Navbar";
@@ -66,7 +66,16 @@ function MenuPage() {
 
   const { data: categoriesData } = useQuery(categoriesOptions(activeLocationId));
 
-  const categories = [...new Set((categoriesData || []).map((c) => c.name))];
+  const categories = useMemo(() => {
+    const unique = new Map();
+    for (const categoryItem of categoriesData || []) {
+      const name = (categoryItem?.name || "").trim();
+      if (!name) continue;
+      const key = name.toLowerCase();
+      if (!unique.has(key)) unique.set(key, categoryItem);
+    }
+    return Array.from(unique.values());
+  }, [categoriesData]);
 
   const menuItems = menu || [];
 
