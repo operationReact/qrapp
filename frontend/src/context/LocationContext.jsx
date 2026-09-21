@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "@/services";
 import { useAuth } from "./AuthContext";
+import { canAccessAdmin } from "@/lib/roles";
 
 const STORAGE_KEY = "active-location";
 const LocationContext = createContext(null);
@@ -32,12 +33,20 @@ export function publicLocationsOptions(enabled = true) {
 
 export function LocationProvider({ children }) {
   const { user } = useAuth();
-  const authorizedQuery = useQuery(authorizedLocationsOptions(Boolean(user?.token)));
-  const publicQuery = useQuery(publicLocationsOptions(!user?.token));
+  const isAdmin = canAccessAdmin(user);
+  const usePublicLocations = !isAdmin;
+  const authorizedQuery = useQuery(
+    authorizedLocationsOptions(Boolean(user?.token) && isAdmin),
+  );
+  const publicQuery = useQuery(publicLocationsOptions(usePublicLocations));
+  const locationQuery = usePublicLocations ? publicQuery : authorizedQuery;
+  const locationQuerySuccess = usePublicLocations
+    ? publicQuery.isSuccess
+    : authorizedQuery.isSuccess;
   const [storedLocation, setStoredLocation] = useState(readActiveLocation);
   const availableLocations = useMemo(
-    () => (user?.token ? authorizedQuery.data : publicQuery.data) || [],
-    [authorizedQuery.data, publicQuery.data, user?.token],
+    () => (usePublicLocations ? publicQuery.data : authorizedQuery.data) || [],
+    [authorizedQuery.data, publicQuery.data, usePublicLocations],
   );
   const defaultLocation = user?.defaultLocation || user?.info?.defaultLocation;
   const activeLocation = availableLocations.find((item) => String(item.id) === String(storedLocation?.id))
@@ -52,8 +61,7 @@ export function LocationProvider({ children }) {
   }, [activeLocation]);
 
   useEffect(() => {
-    const locationsQuery = user?.token ? authorizedQuery : publicQuery;
-    if (!locationsQuery.isSuccess) return;
+    if (!locationQuerySuccess) return;
     if (storedLocation && !availableLocations.some((item) => String(item.id) === String(storedLocation.id))) {
       const timer = window.setTimeout(() => setStoredLocation(null), 0);
       return () => window.clearTimeout(timer);
@@ -61,8 +69,7 @@ export function LocationProvider({ children }) {
       const timer = window.setTimeout(() => setStoredLocation(activeLocation), 0);
       return () => window.clearTimeout(timer);
     }
-  }, [activeLocation, availableLocations, authorizedQuery.isSuccess, publicQuery.isSuccess,
-    user?.token, storedLocation]);
+  }, [activeLocation, availableLocations, locationQuerySuccess, storedLocation]);
 
   const setActiveLocation = useCallback((location) => {
     const next = location && availableLocations.find((item) => String(item.id) === String(location.id));
@@ -71,12 +78,11 @@ export function LocationProvider({ children }) {
   const value = useMemo(() => ({
     activeLocation, activeLocationId: activeLocation?.id ?? null, availableLocations,
     setActiveLocation, locations: availableLocations, selectLocation: setActiveLocation,
-    isLoading: authorizedQuery.isLoading || publicQuery.isLoading,
-    error: authorizedQuery.error || publicQuery.error,
-    refetch: user?.token ? authorizedQuery.refetch : publicQuery.refetch,
-  }), [activeLocation, availableLocations, setActiveLocation, authorizedQuery.isLoading,
-    publicQuery.isLoading, authorizedQuery.error, publicQuery.error, user?.token,
-    authorizedQuery.refetch, publicQuery.refetch]);
+    isLoading: locationQuery.isLoading,
+    error: locationQuery.error,
+    refetch: locationQuery.refetch,
+  }), [activeLocation, availableLocations, setActiveLocation,
+    locationQuery.isLoading, locationQuery.error, locationQuery.refetch]);
   return <LocationContext.Provider value={value}>{children}</LocationContext.Provider>;
 }
 
