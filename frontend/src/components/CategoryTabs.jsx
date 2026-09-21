@@ -37,7 +37,7 @@ function CategoryImage({ category }) {
   const src = CATEGORY_IMAGES[getCategoryKey(category)];
 
   if (failed) {
-    return <span aria-hidden="true">{getCategoryEmoji(category)}</span>;
+    return <span className="text-[23px]" aria-hidden="true">{getCategoryEmoji(category)}</span>;
   }
 
   return (
@@ -47,7 +47,7 @@ function CategoryImage({ category }) {
       loading="lazy"
       decoding="async"
       onError={() => setFailed(true)}
-      className="size-10 object-contain"
+      className="size-8 object-contain"
     />
   );
 };

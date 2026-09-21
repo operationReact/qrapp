@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { menuOptions, categoriesOptions } from "@/query/options/menu";
 import Navbar from "../components/shared/Navbar";
@@ -45,6 +45,7 @@ export const Route = createFileRoute("/")({
 
 function MenuPage() {
   const [searchQuery, setSearchQuery] = useState("");
+  const filterRef = useRef(null);
   const { hash } = useLocation();
   const { activeLocationId } = useActiveLocation();
 
@@ -140,7 +141,14 @@ function MenuPage() {
         <div className="rounded-[34px] bg-[#fff0f3] p-2.5 sm:rounded-3xl md:bg-transparent md:p-0">
           <div className="grid w-full grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)] gap-2 sm:flex">
             <LocationSelector home className="order-first w-full sm:max-w-[260px]" />
-            <SearchBar home onSearch={setSearchQuery} />
+            <SearchBar
+              home
+              onSearch={setSearchQuery}
+              onFilterClick={() => {
+                filterRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+                filterRef.current?.querySelector("button")?.focus();
+              }}
+            />
           </div>
         </div>
 
@@ -148,7 +156,7 @@ function MenuPage() {
           <CategoryTabs categories={categories} active={category} />
         </div>
 
-        <div className="lg:hidden">
+        <div ref={filterRef} className="lg:hidden scroll-mt-4">
           <SegmentedFilter
             value={vegFilter}
             onChange={(value) => setPreferences({ segmentedFilter: value })}

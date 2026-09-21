@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "../ui/input-group";
 import { useDebounce } from "@/hooks/useDebounce";
 
-export default function SearchBar({ onSearch = () => { }, autoFocus = false, home = false }) {
+export default function SearchBar({ onSearch = () => { }, onFilterClick, autoFocus = false, home = false }) {
   const [value, setValue] = useState("");
   const inputRef = useRef();
   const searchQuery = useDebounce(value, 300);
@@ -43,14 +43,20 @@ export default function SearchBar({ onSearch = () => { }, autoFocus = false, hom
           <X className="size-4 text-gray-500" />
         </Button>
       )}
-      <span className="mr-3 grid size-7 shrink-0 place-items-center rounded-full text-muted-foreground" aria-hidden="true">
+      <button
+        type="button"
+        aria-label="Open menu filters"
+        onClick={onFilterClick}
+        className="mr-2 grid size-8 shrink-0 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+      >
         <SlidersHorizontal className="size-[17px]" />
-      </span>
+      </button>
     </InputGroup>
   );
 }
 
 SearchBar.propTypes = {
   onSearch: PropTypes.func,
+  onFilterClick: PropTypes.func,
   home: PropTypes.bool,
 };
