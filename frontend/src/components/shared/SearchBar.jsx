@@ -24,7 +24,7 @@ export default function SearchBar({ onSearch = () => { }, autoFocus = false, hom
         ref={inputRef}
         value={value}
         onChange={(e) => setValue(e.target.value)}
-        placeholder="Search for dishes, meals, cuisines..."
+        placeholder="Search for dishes"
         autoFocus={autoFocus}
         enterKeyHint="search"
         autoCapitalize="none"
