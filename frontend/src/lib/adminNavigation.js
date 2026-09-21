@@ -2,12 +2,15 @@ import {
   BowlFoodIcon, CalendarCheckIcon, ChartBarIcon, ChartLineUpIcon, CubeIcon,
   ForkKnifeIcon, KeyIcon, LightningIcon, ListPlusIcon, MagicWandIcon,
   QueueIcon, ShieldCheckIcon, SlidersIcon, SparkleIcon, TerminalWindowIcon,
-  TicketIcon, TrophyIcon, UsersThreeIcon, UserCircleIcon, ShoppingCartSimpleIcon,
+  TicketIcon, TrophyIcon, UsersThreeIcon, UserCircleIcon, ShoppingCartSimpleIcon, BuildingOfficeIcon,
 } from "@phosphor-icons/react";
 import { ROLE } from "./roles";
 
 export const ADMIN_NAVIGATION = [
-  { section: "Control", items: [{ to: "/admin/control-center", label: "Control Center", icon: ShieldCheckIcon, roles: [ROLE.SUPER_ADMIN] }] },
+  { section: "Control", items: [
+    { to: "/admin/control-center", label: "Control Center", icon: ShieldCheckIcon, roles: [ROLE.SUPER_ADMIN] },
+    { to: "/admin/customer-companies", label: "Customer Companies", icon: BuildingOfficeIcon, roles: [ROLE.SUPER_ADMIN] },
+  ] },
   { section: "Workspace", items: [{ to: "/admin", label: "Dashboard", roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN, ROLE.MANAGER, ROLE.KITCHEN_STAFF] }] },
   { section: "Menu", items: [
     { to: "/admin/menu", label: "Menu Items", icon: BowlFoodIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN, ROLE.MANAGER] },

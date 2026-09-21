@@ -34,6 +34,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as CategoriesCategoryIdRouteImport } from './routes/categories.$categoryId'
 import { Route as AdminOpsCenterRouteImport } from './routes/admin/ops-center'
+import { Route as AdminCustomerCompaniesRouteImport } from './routes/admin/customer-companies'
 import { Route as authRegisterRouteImport } from './routes/(auth)/register'
 import { Route as authLoginRouteImport } from './routes/(auth)/login'
 import { Route as authForgetPasswordRouteImport } from './routes/(auth)/forget-password'
@@ -199,6 +200,11 @@ const CategoriesCategoryIdRoute = CategoriesCategoryIdRouteImport.update({
 const AdminOpsCenterRoute = AdminOpsCenterRouteImport.update({
   id: '/ops-center',
   path: '/ops-center',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminCustomerCompaniesRoute = AdminCustomerCompaniesRouteImport.update({
+  id: '/customer-companies',
+  path: '/customer-companies',
   getParentRoute: () => AdminRoute,
 } as any)
 const authRegisterRoute = authRegisterRouteImport.update({
@@ -442,6 +448,7 @@ export interface FileRoutesByFullPath {
   '/forget-password': typeof authForgetPasswordRoute
   '/login': typeof authLoginRoute
   '/register': typeof authRegisterRoute
+  '/admin/customer-companies': typeof AdminCustomerCompaniesRoute
   '/admin/ops-center': typeof AdminOpsCenterRoute
   '/categories/$categoryId': typeof CategoriesCategoryIdRoute
   '/admin/': typeof AdminIndexRoute
@@ -508,6 +515,7 @@ export interface FileRoutesByTo {
   '/forget-password': typeof authForgetPasswordRoute
   '/login': typeof authLoginRoute
   '/register': typeof authRegisterRoute
+  '/admin/customer-companies': typeof AdminCustomerCompaniesRoute
   '/admin/ops-center': typeof AdminOpsCenterRoute
   '/categories/$categoryId': typeof CategoriesCategoryIdRoute
   '/admin': typeof AdminIndexRoute
@@ -576,6 +584,7 @@ export interface FileRoutesById {
   '/(auth)/forget-password': typeof authForgetPasswordRoute
   '/(auth)/login': typeof authLoginRoute
   '/(auth)/register': typeof authRegisterRoute
+  '/admin/customer-companies': typeof AdminCustomerCompaniesRoute
   '/admin/ops-center': typeof AdminOpsCenterRoute
   '/categories/$categoryId': typeof CategoriesCategoryIdRoute
   '/admin/': typeof AdminIndexRoute
@@ -645,6 +654,7 @@ export interface FileRouteTypes {
     | '/forget-password'
     | '/login'
     | '/register'
+    | '/admin/customer-companies'
     | '/admin/ops-center'
     | '/categories/$categoryId'
     | '/admin/'
@@ -711,6 +721,7 @@ export interface FileRouteTypes {
     | '/forget-password'
     | '/login'
     | '/register'
+    | '/admin/customer-companies'
     | '/admin/ops-center'
     | '/categories/$categoryId'
     | '/admin'
@@ -778,6 +789,7 @@ export interface FileRouteTypes {
     | '/(auth)/forget-password'
     | '/(auth)/login'
     | '/(auth)/register'
+    | '/admin/customer-companies'
     | '/admin/ops-center'
     | '/categories/$categoryId'
     | '/admin/'
@@ -1024,6 +1036,13 @@ declare module '@tanstack/react-router' {
       path: '/ops-center'
       fullPath: '/admin/ops-center'
       preLoaderRoute: typeof AdminOpsCenterRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/customer-companies': {
+      id: '/admin/customer-companies'
+      path: '/customer-companies'
+      fullPath: '/admin/customer-companies'
+      preLoaderRoute: typeof AdminCustomerCompaniesRouteImport
       parentRoute: typeof AdminRoute
     }
     '/(auth)/register': {
@@ -1310,6 +1329,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AdminRouteChildren {
+  AdminCustomerCompaniesRoute: typeof AdminCustomerCompaniesRoute
   AdminOpsCenterRoute: typeof AdminOpsCenterRoute
   AdminIndexRoute: typeof AdminIndexRoute
   AdmincouponsCouponsRoute: typeof AdmincouponsCouponsRoute
@@ -1352,6 +1372,7 @@ interface AdminRouteChildren {
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
+  AdminCustomerCompaniesRoute: AdminCustomerCompaniesRoute,
   AdminOpsCenterRoute: AdminOpsCenterRoute,
   AdminIndexRoute: AdminIndexRoute,
   AdmincouponsCouponsRoute: AdmincouponsCouponsRoute,

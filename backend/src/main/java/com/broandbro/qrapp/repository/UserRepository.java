@@ -10,13 +10,14 @@ import java.util.List;
 import java.util.Optional;
 
 public interface UserRepository extends JpaRepository<User, Long> {
-    @EntityGraph(attributePaths = "defaultLocation")
+    @EntityGraph(attributePaths = {"defaultLocation", "customerCompany"})
     Optional<User> findByPhone(String phone);
 
     @Override
-    @EntityGraph(attributePaths = "defaultLocation")
+    @EntityGraph(attributePaths = {"defaultLocation", "customerCompany"})
     List<User> findAll();
 
+    @EntityGraph(attributePaths = {"defaultLocation", "customerCompany"})
     Optional<User> findByToken(String token);
 
     /** Returns a page of user IDs — used by {@code UserPreferenceScheduler} for batched rebuilds. */

@@ -42,6 +42,10 @@ public class User {
     @JoinColumn(name = "default_location_id")
     private Location defaultLocation;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "customer_company_id")
+    private CustomerCompany customerCompany;
+
     private Instant createdAt;
 
     @PrePersist

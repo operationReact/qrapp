@@ -7,12 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useLocation as useActiveLocation } from "@/context/LocationContext";
 import { ROLE } from "@/lib/roles";
-import { adminLocationsOptions, adminUsersOptions, createManagementResource, grantUserLocation, revokeUserLocation, updateUserRole, userLocationsOptions } from "@/query/options/management";
+import { adminCustomerCompaniesOptions, adminLocationsOptions, adminUsersOptions, assignCustomerCompany, createManagementResource, grantUserLocation, locationCustomerCompaniesOptions, removeCustomerCompany, revokeUserLocation, updateCustomerCompany, updateUserRole, userLocationsOptions } from "@/query/options/management";
 
 const links = [
   { to: "/admin/control-center", label: "Overview", icon: ShieldCheck },
   { to: "/admin/control-center/users", label: "Users", icon: Users },
   { to: "/admin/control-center/locations", label: "Locations", icon: Building2 },
+  { to: "/admin/customer-companies", label: "Customer Companies", icon: Building2 },
   { to: "/admin/control-center/access", label: "Access Management", icon: KeyRound },
 ];
 
@@ -48,6 +49,74 @@ export function ControlCenterLocations() {
   const { data = [], isLoading, error } = useQuery(adminLocationsOptions()); const { activeLocation } = useActiveLocation(); const [name, setName] = useState(""); const queryClient = useQueryClient();
   const mutation = useMutation({ mutationFn: () => createManagementResource("/api/admin/locations", { code: name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-"), name, active: true }), onSuccess: () => { setName(""); queryClient.invalidateQueries({ queryKey: ["admin", "locations"] }); } });
   return <Shell title="Locations" description="Create and review the locations available to administrators."><Card><CardHeader><CardTitle>Authorized locations</CardTitle></CardHeader><CardContent className="space-y-4"><form className="flex gap-2" onSubmit={(event) => { event.preventDefault(); if (name.trim()) mutation.mutate(); }}><Input className="min-h-11" required placeholder="New location name" value={name} onChange={(event) => setName(event.target.value)} /><Button className="min-h-11" disabled={mutation.isPending}>Add</Button></form><div className="rounded-xl bg-primary/5 p-3 text-sm text-primary">Active: <strong>{activeLocation?.name || "Not selected"}</strong></div>{isLoading ? <p className="text-sm text-zinc-500">Loading locations…</p> : <Items items={data} empty="No locations are configured." />}<ErrorState error={error || mutation.error} /></CardContent></Card></Shell>;
+}
+
+export function CustomerCompanies() {
+  const { data: companies = [], isLoading: companiesLoading, error: companiesError } = useQuery(adminCustomerCompaniesOptions());
+  const { data: locations = [], isLoading: locationsLoading, error: locationsError } = useQuery(adminLocationsOptions());
+  const [name, setName] = useState("");
+  const [selectedLocationId, setSelectedLocationId] = useState("");
+  const [editingId, setEditingId] = useState(null);
+  const [editingName, setEditingName] = useState("");
+  const [feedback, setFeedback] = useState(null);
+  const queryClient = useQueryClient();
+  const assignedQuery = useQuery(locationCustomerCompaniesOptions(selectedLocationId));
+  const assignedIds = new Set((assignedQuery.data || []).map((company) => String(company.id)));
+
+  const refresh = () => {
+    queryClient.invalidateQueries({ queryKey: ["admin", "customer-companies"] });
+    queryClient.invalidateQueries({ queryKey: ["admin", "locations", selectedLocationId, "customer-companies"] });
+  };
+  const createMutation = useMutation({
+    mutationFn: () => createManagementResource("/api/admin/customer-companies", { name: name.trim(), active: true }),
+    onSuccess: () => { setName(""); setFeedback({ type: "success", text: "Customer Company added." }); refresh(); },
+    onError: (error) => setFeedback({ type: "error", text: error.message || "Unable to add Customer Company." }),
+  });
+  const companyMutation = useMutation({
+    mutationFn: ({ company, name, active }) => updateCustomerCompany(company.id, { name, active }),
+    onSuccess: refresh,
+    onError: (error) => setFeedback({ type: "error", text: error.message || "Unable to update Customer Company." }),
+  });
+  const mappingMutation = useMutation({
+    mutationFn: ({ companyId, assigned }) => assigned
+      ? removeCustomerCompany(selectedLocationId, companyId)
+      : assignCustomerCompany(selectedLocationId, companyId),
+    onSuccess: refresh,
+    onError: (error) => setFeedback({ type: "error", text: error.message || "Unable to update the location assignment." }),
+  });
+
+  return <Shell title="Customer Companies" description="Manage active customer companies and their existing location associations.">
+    <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,0.8fr)]">
+      <Card><CardHeader><CardTitle>Add Customer Company</CardTitle></CardHeader><CardContent>
+        <form className="flex gap-2" onSubmit={(event) => { event.preventDefault(); if (name.trim()) createMutation.mutate(); }}>
+          <Input className="min-h-11" required placeholder="Customer Company name" value={name} onChange={(event) => setName(event.target.value)} />
+          <Button className="min-h-11" disabled={createMutation.isPending}>Add</Button>
+        </form>
+      </CardContent></Card>
+      <Card><CardHeader><CardTitle>Location</CardTitle></CardHeader><CardContent>
+        <select className="min-h-11 w-full rounded-lg border border-zinc-200 bg-white px-3 text-sm" value={selectedLocationId} onChange={(event) => setSelectedLocationId(event.target.value)}>
+          <option value="">Select a location</option>
+          {locations.map((location) => <option key={location.id} value={location.id}>{location.name}</option>)}
+        </select>
+        {selectedLocationId && <p className="mt-2 text-xs text-zinc-500">{assignedQuery.isLoading ? "Loading assignments…" : `${assignedIds.size} assigned`}</p>}
+      </CardContent></Card>
+    </div>
+    <Card><CardHeader><CardTitle>Customer Companies</CardTitle></CardHeader><CardContent className="space-y-2">
+      {(companiesLoading || locationsLoading) && <p className="text-sm text-zinc-500">Loading…</p>}
+      {companies.map((company) => <div key={company.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-zinc-200 p-3">
+        <div><p className="font-semibold">{company.name}</p><p className="text-xs text-zinc-500">{company.active ? "Active" : "Inactive"}</p></div>
+        <div className="flex items-center gap-2">
+          {selectedLocationId && <Button variant="outline" size="sm" disabled={!company.active || mappingMutation.isPending} onClick={() => mappingMutation.mutate({ companyId: company.id, assigned: assignedIds.has(String(company.id)) })}>{assignedIds.has(String(company.id)) ? "Remove from Location" : "Assign to Location"}</Button>}
+          {editingId === company.id ? <Button size="sm" disabled={companyMutation.isPending} onClick={() => { if (editingName.trim()) companyMutation.mutate({ company, name: editingName.trim(), active: company.active }); setEditingId(null); }}>Save</Button> : <Button variant="outline" size="sm" onClick={() => { setEditingId(company.id); setEditingName(company.name); }}>Edit</Button>}
+          <Button variant="outline" size="sm" disabled={companyMutation.isPending} onClick={() => companyMutation.mutate({ company, name: company.name, active: !company.active })}>{company.active ? "Deactivate" : "Activate"}</Button>
+        </div>
+        {editingId === company.id && <Input className="min-h-9 w-full" value={editingName} onChange={(event) => setEditingName(event.target.value)} aria-label={`Edit ${company.name}`} />}
+      </div>)}
+      {!companies.length && !companiesLoading && <p className="py-6 text-sm text-zinc-500">No Customer Companies found.</p>}
+      <ErrorState error={companiesError || locationsError || assignedQuery.error || createMutation.error || companyMutation.error || mappingMutation.error} />
+      {feedback && <p role="status" className={feedback.type === "error" ? "text-sm text-red-700" : "text-sm text-emerald-700"}>{feedback.text}</p>}
+    </CardContent></Card>
+  </Shell>;
 }
 
 export function ControlCenterAccess() {

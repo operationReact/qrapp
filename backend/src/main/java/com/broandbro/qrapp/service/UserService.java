@@ -34,6 +34,7 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final LocationRepository locationRepository;
     private final UserLocationAccessRepository userLocationAccessRepository;
+    private final CustomerCompanyService customerCompanyService;
     private final SecureRandom random = new SecureRandom();
 
     // simple token->user cache to reduce DB lookups from TokenAuthFilter
@@ -49,12 +50,17 @@ public class UserService {
         if (userRepository.findByPhone(req.getPhone()).isPresent()) {
             throw new IllegalArgumentException("phone_taken");
         }
+        if (req.getCustomerCompanyId() == null) {
+            throw new IllegalArgumentException("customer_company_required");
+        }
         User u = User.builder()
                 .phone(req.getPhone())
                 .password(passwordEncoder.encode(req.getPassword()))
                 .name(req.getName())
                 .build();
         u.setDefaultLocation(resolveDefaultLocation(req.getDefaultLocationId()));
+        u.setCustomerCompany(customerCompanyService.validateRegistration(
+                       u.getDefaultLocation().getId(), req.getCustomerCompanyId()));
         u = userRepository.save(u);
         if (u.getDefaultLocation() != null) {
             userLocationAccessRepository.save(UserLocationAccess.builder()
@@ -112,6 +118,31 @@ public class UserService {
             userLocationAccessRepository.save(UserLocationAccess.builder()
                     .user(user).location(user.getDefaultLocation()).active(true).build());
         }
+        walletRepository.save(Wallet.builder().user(user).balance(0L).build());
+        String token = generateToken(user);
+        LoginResponse response = new LoginResponse();
+        response.setToken(token);
+        response.setUser(toResponse(user));
+        return response;
+    }
+
+    @Transactional
+    public LoginResponse registerVerified(String phone, String name, String passwordHash,
+                                          Long defaultLocationId, Long customerCompanyId) {
+        if (userRepository.findByPhone(phone).isPresent()) {
+            throw new IllegalArgumentException("phone_taken");
+        }
+        User user = User.builder()
+                .phone(phone)
+                .password(passwordHash)
+                .name(name)
+                .build();
+        user.setDefaultLocation(resolveDefaultLocation(defaultLocationId));
+        user.setCustomerCompany(customerCompanyService.validateRegistration(
+                user.getDefaultLocation().getId(), customerCompanyId));
+        user = userRepository.save(user);
+        userLocationAccessRepository.save(UserLocationAccess.builder()
+                .user(user).location(user.getDefaultLocation()).active(true).build());
         walletRepository.save(Wallet.builder().user(user).balance(0L).build());
         String token = generateToken(user);
         LoginResponse response = new LoginResponse();
@@ -224,6 +255,8 @@ public class UserService {
         r.setRole(effectiveRole(u).name());
         r.setDefaultLocation(u.getDefaultLocation() == null ? null :
                 com.broandbro.qrapp.dto.LocationResponse.from(u.getDefaultLocation()));
+        r.setCustomerCompany(u.getCustomerCompany() == null ? null :
+                com.broandbro.qrapp.dto.CustomerCompanyResponse.from(u.getCustomerCompany()));
         return r;
     }
 
