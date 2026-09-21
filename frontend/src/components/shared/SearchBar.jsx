@@ -1,11 +1,11 @@
-import { Search, X, SlidersHorizontal } from "lucide-react";
+import { Search, X } from "lucide-react";
 import PropTypes from "prop-types";
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "../ui/input-group";
 import { useDebounce } from "@/hooks/useDebounce";
 
-export default function SearchBar({ onSearch = () => { }, onFilterClick, autoFocus = false, home = false }) {
+export default function SearchBar({ onSearch = () => { }, autoFocus = false, home = false }) {
   const [value, setValue] = useState("");
   const inputRef = useRef();
   const searchQuery = useDebounce(value, 300);
@@ -43,20 +43,11 @@ export default function SearchBar({ onSearch = () => { }, onFilterClick, autoFoc
           <X className="size-4 text-gray-500" />
         </Button>
       )}
-      <button
-        type="button"
-        aria-label="Open menu filters"
-        onClick={onFilterClick}
-        className="touch-manipulation mr-2 grid size-7 shrink-0 place-items-center rounded-full border border-border/70 text-muted-foreground/90 transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-      >
-        <SlidersHorizontal className="size-[15px]" />
-      </button>
     </InputGroup>
   );
 }
 
 SearchBar.propTypes = {
   onSearch: PropTypes.func,
-  onFilterClick: PropTypes.func,
   home: PropTypes.bool,
 };

@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { menuOptions, categoriesOptions } from "@/query/options/menu";
 import Navbar from "../components/shared/Navbar";
@@ -44,7 +44,6 @@ export const Route = createFileRoute("/")({
 
 function MenuPage() {
   const [searchQuery, setSearchQuery] = useState("");
-  const filterRef = useRef(null);
   const { hash } = useLocation();
   const { activeLocationId } = useActiveLocation();
 
@@ -149,15 +148,11 @@ function MenuPage() {
       )}
 
       <div className="container-premium home-controls flex flex-col gap-2 py-1.5 md:gap-2 md:py-2">
-        <div ref={filterRef} className="flex w-full items-center gap-2 scroll-mt-4">
+        <div className="flex w-full items-center gap-2">
           <div className="min-w-0 flex-1">
             <SearchBar
               home
               onSearch={setSearchQuery}
-              onFilterClick={() => {
-                filterRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-                filterRef.current?.querySelector("[role='tab']")?.focus();
-              }}
             />
           </div>
           <SegmentedFilter

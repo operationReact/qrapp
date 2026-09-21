@@ -97,7 +97,7 @@ export function LocationSelector({ className = "", home = false, header = false 
           <ChevronDown className="size-3.5 shrink-0 text-primary" aria-hidden="true" />
         </button>
       </DrawerTrigger>
-      <DrawerContent className="mx-auto w-full max-w-md rounded-t-2xl">
+      <DrawerContent className="mx-auto w-full max-w-md max-h-[min(80vh,80dvh)] overscroll-contain rounded-t-2xl pb-[env(safe-area-inset-bottom)] [touch-action:pan-y]">
         <DrawerHeader>
           <DrawerTitle>Select location</DrawerTitle>
           <DrawerDescription>Choose where you want to browse the menu.</DrawerDescription>
