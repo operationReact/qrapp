@@ -189,7 +189,7 @@ export default function MobileMenu() {
   if (!isMobile) return null;
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 mx-auto flex min-h-[64px] w-full max-w-md isolate items-end justify-between border-x border-t border-border bg-card px-2 pb-[calc(0.375rem+var(--app-safe-bottom))] pt-1.5 shadow-[0_8px_38px_rgba(0,0,0,0.06)] md:min-h-0 md:py-3">
+    <nav className="fixed inset-x-0 bottom-0 z-40 mx-auto flex min-h-[60px] w-full max-w-md isolate items-end justify-between border-x border-t border-border bg-card px-2 pb-[calc(0.3rem+var(--app-safe-bottom))] pt-1 shadow-[0_8px_28px_rgba(0,0,0,0.05)] md:min-h-0 md:py-3">
       {items.slice(0, -2).map((item) => {
         const isActive = location.pathname === item.path;
         return (
@@ -204,10 +204,10 @@ export default function MobileMenu() {
           >
             <item.icon
               weight={isActive ? "fill" : undefined}
-              className={`size-5 mb-0.5 transition-all md:size-6 ${isActive ? "text-primary scale-105 md:scale-110" : "text-zinc-400"}`}
+              className={`size-[18px] mb-0.5 transition-all md:size-6 ${isActive ? "text-primary scale-105 md:scale-110" : "text-zinc-400"}`}
             />
             <span
-              className={`h-full overflow-y-clip text-[10px] font-semibold ${isActive ? "text-primary" : "text-zinc-400"}`}
+              className={`h-full overflow-y-clip text-[10px] font-medium ${isActive ? "text-primary" : "text-zinc-400"}`}
             >
               {item.label}
             </span>
@@ -232,16 +232,16 @@ export default function MobileMenu() {
         <span className="relative">
           <ShoppingCartSimpleIcon
             weight={location.pathname === "/cart" ? "fill" : undefined}
-            className={`size-5 mb-0.5 transition-all md:size-6 ${location.pathname === "/cart" ? "text-primary scale-105 md:scale-110" : "text-zinc-400"}`}
+            className={`size-[18px] mb-0.5 transition-all md:size-6 ${location.pathname === "/cart" ? "text-primary scale-105 md:scale-110" : "text-zinc-400"}`}
           />
           {cart.length > 0 && (
-            <span className="absolute will-change-transform origin-center -right-1 -top-1 align-middle h-4 min-w-[1rem] animate-in-scaled rounded-full grid place-items-center text-center text-[12px] font-semibold bg-primary text-secondary">
+            <span className="absolute will-change-transform origin-center -right-1 -top-1 align-middle h-4 min-w-[1rem] animate-in-scaled rounded-full grid place-items-center text-center text-[11px] font-semibold bg-primary text-secondary">
               {cart.length}
             </span>
           )}
         </span>
         <span
-          className={`h-full overflow-y-clip text-[10px] font-semibold ${location.pathname === "/cart" ? "text-primary" : "text-zinc-400"}`}
+          className={`h-full overflow-y-clip text-[10px] font-medium ${location.pathname === "/cart" ? "text-primary" : "text-zinc-400"}`}
         >
           Cart
         </span>
@@ -259,7 +259,7 @@ export default function MobileMenu() {
           >
             <UserCircleIcon
               weight="fill"
-              className={`size-5 mb-0.5 transition-all md:size-6 ${location.pathname === "/profile" ? "text-primary scale-105 md:scale-110" : "text-zinc-400"}`}
+              className={`size-[18px] mb-0.5 transition-all md:size-6 ${location.pathname === "/profile" ? "text-primary scale-105 md:scale-110" : "text-zinc-400"}`}
             />
             <span
               className={`text-[10px] font-medium ${location.pathname === "/profile" ? "text-primary" : "text-zinc-400"}`}

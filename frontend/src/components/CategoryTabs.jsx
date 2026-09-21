@@ -18,7 +18,7 @@ function CategoryImage({ category }) {
       loading="lazy"
       decoding="async"
       onError={() => setFailed(true)}
-      className="size-8"
+      className="size-[30px]"
     />
   );
 }
@@ -33,7 +33,7 @@ export default function CategoryTabs({ categories, active }) {
 
   return (
     <div className="no-scrollbar overflow-x-auto">
-      <div className="flex min-w-max items-start gap-1 pb-0 [touch-action:pan-x]">
+      <div className="flex min-w-max items-start gap-0.5 pb-0 [touch-action:pan-x]">
         {allCategories.map((category) => {
           const catName = getCategoryName(category);
           return (
@@ -44,18 +44,18 @@ export default function CategoryTabs({ categories, active }) {
               size: "sm",
               variant: "ghost",
               className: cn(
-                "group h-auto w-[78px] min-w-[78px] flex-col gap-0.5 rounded-2xl px-0 py-0 text-[14px] font-semibold leading-4 shadow-none hover:bg-transparent md:h-9 md:w-auto md:min-w-fit md:flex-row md:gap-1.5 md:rounded-full md:px-3.5 md:py-2 md:text-xs",
+                "group h-auto w-[74px] min-w-[74px] flex-col gap-0.5 rounded-2xl px-0 py-0 text-[13px] font-semibold leading-4 shadow-none hover:bg-transparent md:h-9 md:w-auto md:min-w-fit md:flex-row md:gap-1.5 md:rounded-full md:px-3.5 md:py-2 md:text-xs",
                 active === catName ? "text-primary" : "text-foreground",
               ),
             })}
           >
             <span className={cn(
-              "grid h-[54px] w-[54px] place-items-center rounded-[18px] bg-[#f4f7fb] text-[29px] shadow-[0_5px_14px_rgba(41,47,67,0.05)] transition-colors md:hidden",
+              "grid h-[50px] w-[50px] place-items-center rounded-[16px] bg-[#f4f7fb] text-[29px] shadow-[0_4px_10px_rgba(41,47,67,0.05)] transition-colors md:hidden",
               active === catName && "bg-primary text-primary-foreground shadow-[0_7px_16px_rgba(241,32,70,0.22)]",
             )}>
               <CategoryImage category={category} />
             </span>
-            <span className="h-8 max-w-[74px] overflow-hidden text-center text-[14px] leading-4 whitespace-normal [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">
+            <span className="h-7 max-w-[72px] overflow-hidden text-center text-[12px] leading-[14px] whitespace-normal [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">
               {catName}
             </span>
           </a>

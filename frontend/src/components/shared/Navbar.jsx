@@ -95,30 +95,30 @@ export default function Navbar({ homeHeader = false }) {
 
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur">
-      <div className={`container-premium flex items-center justify-between gap-1 py-2 md:gap-3 md:py-3 lg:hidden ${homeHeader ? "home-navbar" : ""}`}>
-        <Link to="/" className={`flex min-w-0 items-center gap-2 ${homeHeader ? "max-w-[156px] shrink" : ""}`}>
+      <div className={`container-premium flex items-center justify-between gap-1 py-1.5 md:gap-3 md:py-3 lg:hidden ${homeHeader ? "home-navbar" : ""}`}>
+        <Link to="/" className={`flex min-w-0 items-center gap-1.5 ${homeHeader ? "max-w-[148px] shrink" : ""}`}>
           <img
             src="/bro-logo.png"
             alt="BRO & BRO"
             className={homeHeader
-              ? "h-[52px] w-[52px] rounded-none object-contain md:size-20"
+              ? "h-[48px] w-[48px] rounded-none object-contain md:size-20"
               : "size-10 rounded-xl object-cover shadow-sm md:size-11 md:rounded-2xl"}
           />
           <div className="min-w-0">
             <p className={homeHeader
-              ? "truncate text-[16px] font-extrabold leading-[1.1] tracking-tight text-foreground"
+              ? "truncate text-[15px] font-extrabold leading-[1.08] tracking-tight text-foreground"
               : "truncate text-[15px] font-bold leading-5 text-foreground"}>
               BRO &amp; BRO
             </p>
             <p className={homeHeader
-              ? "truncate text-[12px] font-medium leading-4 text-muted-foreground"
+              ? "truncate text-[11px] font-medium leading-3.5 text-muted-foreground"
               : "truncate text-xs text-muted-foreground"}>
               Food Court
             </p>
           </div>
         </Link>
 
-        <div className={`flex min-w-0 items-center gap-1.5 md:gap-2 ${homeHeader ? "flex-1 justify-end" : ""}`}>
+        <div className={`flex min-w-0 items-center gap-1 md:gap-2 ${homeHeader ? "flex-1 justify-end" : ""}`}>
           {homeHeader && <LocationSelector header className="shrink" />}
           <button
             onClick={() => {
@@ -130,7 +130,7 @@ export default function Navbar({ homeHeader = false }) {
               }
             }}
             aria-label="Open cart"
-            className={`relative inline-flex items-center justify-center rounded-full border border-border bg-card shadow-sm ${homeHeader ? "size-10" : "size-9 md:size-10"}`}
+            className={`relative inline-flex items-center justify-center rounded-full border border-border bg-card shadow-sm ${homeHeader ? "h-[38px] w-[38px]" : "size-9 md:size-10"}`}
           >
             <ShoppingCartSimpleIcon weight="duotone" className="size-5" />
             {cart.length > 0 && (
@@ -144,9 +144,9 @@ export default function Navbar({ homeHeader = false }) {
             <Link
               to="/profile"
               aria-label="Open account"
-              className={`inline-flex items-center justify-center overflow-hidden rounded-full border border-border bg-card shadow-sm ${homeHeader ? "size-10" : "size-9 md:size-10"}`}
+              className={`inline-flex items-center justify-center overflow-hidden rounded-full border border-border bg-card shadow-sm ${homeHeader ? "h-[38px] w-[38px]" : "size-9 md:size-10"}`}
             >
-              <Avatar className={homeHeader ? "size-10" : "size-9 md:size-10"}>
+              <Avatar className={homeHeader ? "h-[38px] w-[38px]" : "size-9 md:size-10"}>
                 <AvatarFallback className="text-[13px] text-primary">
                   {initials}
                 </AvatarFallback>
@@ -156,7 +156,7 @@ export default function Navbar({ homeHeader = false }) {
             <Link
               to="/login"
               aria-label="Login"
-              className={`inline-flex items-center justify-center rounded-full border border-border bg-card shadow-sm ${homeHeader ? "size-10" : "size-9 md:size-10"}`}
+              className={`inline-flex items-center justify-center rounded-full border border-border bg-card shadow-sm ${homeHeader ? "h-[38px] w-[38px]" : "size-9 md:size-10"}`}
             >
               <UserCircleIcon weight="duotone" className="size-5 text-muted-foreground md:size-6" />
             </Link>

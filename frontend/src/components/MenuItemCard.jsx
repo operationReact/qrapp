@@ -151,10 +151,10 @@ export default function MenuItemCard({
         </div>
 
         {/* Details */}
-        <div className="space-y-1.5 p-2 md:space-y-2 md:p-3">
+        <div className="space-y-1 p-2 md:space-y-2 md:p-3">
           <h3
             className={cn(
-              "line-clamp-2 min-h-9 text-pretty text-[14px] font-semibold leading-[18px] md:min-h-0 md:text-[15px] md:leading-5 lg:min-h-10 lg:text-[17px]",
+              "line-clamp-2 min-h-8 text-pretty text-[13px] font-semibold leading-[17px] md:min-h-0 md:text-[15px] md:leading-5 lg:min-h-10 lg:text-[17px]",
               isUnavailable && "text-muted-foreground",
             )}
           >
@@ -169,7 +169,7 @@ export default function MenuItemCard({
           >
             <span
               className={cn(
-                "font-semibold text-[15px] leading-5 lg:text-base",
+                "font-semibold text-[14px] leading-5 lg:text-base",
                 isUnavailable &&
                   "text-muted-foreground line-through decoration-muted-foreground/60",
               )}

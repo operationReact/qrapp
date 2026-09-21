@@ -19,7 +19,7 @@ export function LocationSelector({ className = "", home = false, header = false 
       <Button
         variant={header ? "ghost" : "outline"}
         size="lg"
-        className={`${header ? "min-h-10 rounded-full bg-[#fff0f3] px-3 text-[12px]" : "min-h-11"} ${className}`}
+        className={`${header ? "min-h-9 rounded-full bg-[#fff0f3] px-3 text-[12px]" : "min-h-11"} ${className}`}
         onClick={() => refetch()}
       >
         <RefreshCw className="size-4" /> Retry
@@ -30,7 +30,7 @@ export function LocationSelector({ className = "", home = false, header = false 
   if (isLoading) {
     return (
       <div
-        className={`${header ? "h-10 w-[112px] rounded-full" : "h-11 w-44 rounded-xl"} animate-pulse bg-zinc-100 ${className}`}
+        className={`${header ? "h-9 w-[120px] rounded-full" : "h-11 w-44 rounded-xl"} animate-pulse bg-zinc-100 ${className}`}
         aria-label="Loading locations"
       />
     );
@@ -56,19 +56,19 @@ export function LocationSelector({ className = "", home = false, header = false 
   const trigger = (
     <button
       type="button"
-      className={`relative flex min-w-0 items-center gap-2.5 border border-border/80 bg-card px-3 text-left ${header ? "min-h-10 max-w-[118px] rounded-full border-transparent bg-[#fff0f3] px-3" : home ? "min-h-12 rounded-2xl shadow-[0_2px_10px_rgba(42,35,30,0.04)]" : "min-h-11 rounded-xl"} ${className}`}
+      className={`relative flex min-w-0 items-center gap-2 border border-border/80 bg-card px-3 text-left ${header ? "min-h-9 max-w-[132px] rounded-full border-transparent bg-[#fff0f3] px-3" : home ? "min-h-12 rounded-2xl shadow-[0_2px_10px_rgba(42,35,30,0.04)]" : "min-h-11 rounded-xl"} ${className}`}
       onClick={() => canSwitch && setOpen(true)}
       aria-label="Open location selector"
       disabled={!canSwitch}
     >
-      <MapPin className="size-[19px] shrink-0 text-primary" aria-hidden="true" />
+      <MapPin className="size-[17px] shrink-0 text-primary" aria-hidden="true" />
       <span className="min-w-0 flex-1 leading-tight">
         {!header && (
           <span className="block text-[10px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
             Delivering to
           </span>
         )}
-        <span className={`block truncate font-bold text-foreground ${header ? "text-[12px]" : "text-[13px]"}`}>
+        <span className={`block truncate font-bold text-foreground ${header ? "text-[11px]" : "text-[13px]"}`}>
           {locationName}
           {!header && locationAddress ? `, ${locationAddress}` : ""}
         </span>
@@ -115,4 +115,3 @@ export function LocationSelector({ className = "", home = false, header = false 
     </>
   );
 }
-

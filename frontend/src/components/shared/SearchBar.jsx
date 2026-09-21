@@ -15,7 +15,7 @@ export default function SearchBar({ onSearch = () => { }, onFilterClick, autoFoc
   }, [searchQuery, onSearch]);
 
   return (
-    <InputGroup className={`${home ? "h-12 rounded-2xl shadow-[0_2px_10px_rgba(42,35,30,0.04)] md:h-11 md:rounded-xl md:shadow-none" : "h-10 rounded-xl md:h-10"} min-w-0 border-border/80 bg-card focus-within:border-primary! focus-within:ring-1! focus-within:ring-primary!`}>
+    <InputGroup className={`${home ? "h-11 rounded-2xl shadow-[0_2px_10px_rgba(42,35,30,0.04)] md:h-11 md:rounded-xl md:shadow-none" : "h-10 rounded-xl md:h-10"} min-w-0 border-border/80 bg-card focus-within:border-primary! focus-within:ring-1! focus-within:ring-primary!`}>
       <InputGroupAddon className="pl-2.5 pr-1.5">
         <Search className="size-[18px] text-muted-foreground" />
       </InputGroupAddon>
@@ -47,9 +47,9 @@ export default function SearchBar({ onSearch = () => { }, onFilterClick, autoFoc
         type="button"
         aria-label="Open menu filters"
         onClick={onFilterClick}
-        className="mr-2 grid size-8 shrink-0 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+        className="mr-2 grid size-7 shrink-0 place-items-center rounded-full border border-border/70 text-muted-foreground/90 transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
       >
-        <SlidersHorizontal className="size-[17px]" />
+        <SlidersHorizontal className="size-[15px]" />
       </button>
     </InputGroup>
   );

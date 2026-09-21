@@ -11,7 +11,7 @@ export default function SegmentedFilter({ value, onChange }) {
                     role="tab"
                     aria-selected={value === opt}
                     onClick={() => onChange(opt)}
-                    className={`min-h-9 flex-1 rounded-lg px-2 py-1 text-[13px] font-semibold capitalize transition-all focus:outline-none focus:ring-2 focus:ring-red-300 focus:ring-offset-2 sm:flex-none md:min-h-11 md:rounded-full md:px-3 md:py-2 md:text-sm ${
+                    className={`min-h-[34px] flex-1 rounded-lg px-2 py-1 text-[12px] font-semibold capitalize transition-all focus:outline-none focus:ring-2 focus:ring-red-300 focus:ring-offset-2 sm:flex-none md:min-h-10 md:rounded-full md:px-3 md:py-1.5 md:text-sm ${
                         value === opt
                             ? "bg-primary text-primary-foreground shadow-sm"
                             : "text-muted-foreground hover:bg-muted"

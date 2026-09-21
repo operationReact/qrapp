@@ -145,7 +145,7 @@ function MenuPage() {
         </div>
       )}
 
-      <div className="container-premium home-controls flex flex-col gap-2.5 py-2 md:gap-2.5 md:py-2">
+      <div className="container-premium home-controls flex flex-col gap-2 py-1.5 md:gap-2 md:py-2">
         <div className="w-full">
           <SearchBar
             home
@@ -171,7 +171,7 @@ function MenuPage() {
         <DealsSection />
       </div>
 
-      <main className="container-premium py-2.5 md:py-4 lg:py-5">
+      <main className="container-premium py-2 md:py-4 lg:py-5">
         <div className="page-stack gap-2!">
           {/* HEADER */}
           <div className="space-y-2 sr-only">
@@ -212,12 +212,12 @@ function MenuPage() {
             <section
               key={catName}
               id={encodeURIComponent(catName)}
-              className="flex flex-col gap-1 scroll-mt-4 rounded-lg py-1.5 md:gap-2 md:py-2"
+              className="flex flex-col gap-1 scroll-mt-4 rounded-lg py-1 md:gap-2 md:py-2"
             >
               {/* Compact single-line category header */}
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-baseline gap-2 min-w-0">
-                  <h2 className="truncate text-xl font-bold leading-snug md:text-md">
+                  <h2 className="truncate text-lg font-bold leading-snug md:text-md">
                     {catName}
                   </h2>
                   <span className="shrink-0 text-[13px] text-zinc-600 md:text-xs">
@@ -244,7 +244,7 @@ function MenuPage() {
                   {items.map((item) => (
                     <CarouselItem
                       key={item.id}
-                      className="basis-[34%] pl-2 min-[380px]:basis-[31%]"
+                      className="basis-[33%] pl-2 min-[380px]:basis-[30%]"
                     >
                       <MenuItemCard item={item} compact />
                     </CarouselItem>

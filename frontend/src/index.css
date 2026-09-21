@@ -150,7 +150,7 @@
     "Instrument Sans", system-ui, -apple-system, "Segoe UI", Roboto,
     "Helvetica Neue", Arial;
   --app-header-height: 96;
-  --app-mobile-menu-height: 64px;
+  --app-mobile-menu-height: 60px;
   --app-safe-bottom: env(safe-area-inset-bottom, 0px);
 
   --color-brand-50: "#fff1f2";
