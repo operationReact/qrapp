@@ -51,30 +51,8 @@ export function LocationSelector({ className = "", home = false, header = false 
   }
 
   const locationName = activeLocation?.name || activeLocation?.title || "Location";
-  const canSwitch = availableLocations.length > 1;
 
   const triggerClass = `touch-manipulation relative flex min-w-0 items-center gap-2 border border-border/80 bg-card px-3 text-left ${header ? "min-h-11 w-full rounded-xl shadow-sm" : home ? "min-h-12 rounded-2xl shadow-[0_2px_10px_rgba(42,35,30,0.04)]" : "min-h-11 rounded-xl"} ${className}`;
-
-  if (!canSwitch) {
-    return (
-      <button
-        type="button"
-        className={triggerClass}
-        onClick={() => refetch()}
-        aria-label="Refresh locations"
-      >
-        <MapPin className="size-[17px] shrink-0 text-primary" aria-hidden="true" />
-        <span className="min-w-0 flex-1 leading-tight">
-          <span className={`block font-semibold uppercase tracking-[0.06em] text-muted-foreground ${header ? "text-[9px]" : "text-[10px]"}`}>
-            {header ? "Deliver to" : "Delivering to"}
-          </span>
-          <span className={`block truncate font-bold text-foreground ${header ? "text-[13px]" : "text-[13px]"}`}>
-            {locationName}
-          </span>
-        </span>
-      </button>
-    );
-  }
 
   return (
     <Drawer open={open} onOpenChange={setOpen}>
