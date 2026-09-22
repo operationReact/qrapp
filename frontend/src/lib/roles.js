@@ -24,6 +24,12 @@ export function hasRole(user, roles) {
 export function canManageUsers(user) { return hasRole(user, [ROLE.SUPER_ADMIN]); }
 export function canManageLocations(user) { return hasRole(user, [ROLE.SUPER_ADMIN]); }
 
+/**
+ * Only SUPER_ADMIN may select the aggregate "All Locations" scope. ADMIN,
+ * MANAGER and KITCHEN_STAFF are always confined to a single location.
+ */
+export function canSelectAllLocations(user) { return hasRole(user, [ROLE.SUPER_ADMIN]); }
+
 export function canAccessAdmin(user) {
   return Boolean(user?.isAdmin || user?.isSuperUser || hasRole(user, CAN_ACCESS_ADMIN));
 }

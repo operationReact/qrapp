@@ -1,8 +1,11 @@
 package com.broandbro.qrapp.controller;
 
 import com.broandbro.qrapp.dto.*;
+import com.broandbro.qrapp.entity.User;
 import com.broandbro.qrapp.enums.InventoryMode;
 import com.broandbro.qrapp.service.InventoryService;
+import com.broandbro.qrapp.service.LocationAccessService;
+import com.broandbro.qrapp.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -11,10 +14,14 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.Optional;
 
 /**
  * Admin-only REST controller for the Inventory Management screen.
@@ -50,10 +57,12 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 @Validated
 @Slf4j
-@PreAuthorize("hasAnyRole('ADMIN', 'SUPERUSER')")
+@PreAuthorize("hasAnyRole('ADMIN', 'SUPERUSER', 'SUPER_ADMIN', 'MANAGER')")
 public class AdminInventoryController {
 
     private final InventoryService inventoryService;
+    private final LocationAccessService locationAccessService;
+    private final UserService userService;
 
     // =========================================================================
     // GET /admin/inventory/items
@@ -80,9 +89,15 @@ public class AdminInventoryController {
             @RequestParam(required = false)                        Boolean       isHidden,
             @RequestParam(required = false, defaultValue = "false") boolean      inStockOnly,
             @RequestParam(required = false, defaultValue = "false") boolean      lowStockOnly,
+            @RequestParam(required = false)                        Long          locationId,
             @RequestParam(defaultValue = "0")                      int           page,
             @RequestParam(defaultValue = "20")                     int           size,
-            @RequestParam(defaultValue = "quantity,asc")         String        sort) {
+            @RequestParam(defaultValue = "quantity,asc")         String        sort,
+            Authentication authentication) {
+
+        User user = requireUser(authentication);
+        locationAccessService.requireNonKitchenAdmin(user);
+        Optional<List<Long>> scope = locationAccessService.resolveDashboardLocationScope(user, locationId);
 
         InventoryItemFilter filter = new InventoryItemFilter();
         filter.setSearch(search);
@@ -92,7 +107,7 @@ public class AdminInventoryController {
         filter.setLowStockOnly(lowStockOnly);
 
         Pageable pageable = buildPageable(page, size, sort);
-        return ResponseEntity.ok(inventoryService.getInventoryItems(filter, pageable));
+        return ResponseEntity.ok(inventoryService.getInventoryItems(filter, pageable, scope));
     }
 
     // =========================================================================
@@ -127,6 +142,9 @@ public class AdminInventoryController {
             @Valid @RequestBody AdminInventoryUpdateRequest request,
             Authentication authentication) {
 
+        User user = requireUser(authentication);
+        requireMenuItemLocationAccess(user, menuItemId);
+
         String changedBy = extractUsername(authentication);
         log.info("Admin [{}] updating inventory item={} request={}", changedBy, menuItemId, request);
 
@@ -146,7 +164,11 @@ public class AdminInventoryController {
     public ResponseEntity<Page<InventoryAuditResponse>> getAuditTrail(
             @PathVariable Long menuItemId,
             @RequestParam(defaultValue = "0")  int page,
-            @RequestParam(defaultValue = "20") int size) {
+            @RequestParam(defaultValue = "20") int size,
+            Authentication authentication) {
+
+        User user = requireUser(authentication);
+        requireMenuItemLocationAccess(user, menuItemId);
 
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
         return ResponseEntity.ok(inventoryService.getInventoryAuditTrail(menuItemId, pageable));
@@ -161,6 +183,21 @@ public class AdminInventoryController {
             return authentication.getName();
         }
         return "system";
+    }
+
+    private User requireUser(Authentication authentication) {
+        if (authentication == null || authentication.getName() == null) {
+            throw new AccessDeniedException("authentication_required");
+        }
+        return userService.findByPhone(authentication.getName())
+                .orElseThrow(() -> new AccessDeniedException("authentication_required"));
+    }
+
+    /** Ensures the caller may manage the location that owns the given menu item. */
+    private void requireMenuItemLocationAccess(User user, Long menuItemId) {
+        locationAccessService.requireNonKitchenAdmin(user);
+        Long locationId = inventoryService.getMenuItemLocationId(menuItemId);
+        locationAccessService.requireLocationAccess(user, locationId);
     }
 
     private Pageable buildPageable(int page, int size, String sort) {

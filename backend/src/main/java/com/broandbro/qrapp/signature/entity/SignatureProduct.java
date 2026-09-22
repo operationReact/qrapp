@@ -1,5 +1,6 @@
 package com.broandbro.qrapp.signature.entity;
 
+import com.broandbro.qrapp.entity.Location;
 import com.broandbro.qrapp.enums.SignatureProductCategory;
 import jakarta.persistence.*;
 import lombok.*;
@@ -17,6 +18,16 @@ public class SignatureProduct {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    /**
+     * Location that owns this signature product. Every product is scoped to exactly
+     * one location so the admin catalogue can be filtered per location while
+     * SUPER_ADMIN retains the cross-location view. Application code always sets it
+     * for newly created products.
+     */
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "location_id", nullable = false)
+    private Location location;
 
     @Column(name = "product_name", nullable = false, length = 150)
     private String productName;

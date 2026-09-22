@@ -165,7 +165,7 @@ function DashboardHeader({ rangeKey, onRangeChange, ownerName, notifications }) 
           </div>
 
           <div className="flex min-w-0 shrink-0 items-center gap-2">
-            <LocationSelector className="max-w-[180px]" />
+            <LocationSelector className="max-w-[180px]" allowAllLocations />
             <label className="sr-only" htmlFor="dashboard-range">Dashboard date range</label>
             <div className="relative">
               <select
@@ -307,7 +307,7 @@ function AdminDashboardPage() {
   const activityQuery = useQuery({ ...orderHeatmapOptions(params, activeLocationId), enabled: canViewAdmin });
   const customerQuery = useQuery({ ...userPreferencesOptions({}, activeLocationId), enabled: canViewAdmin });
   const repeatQuery = useQuery({ ...repeatRateOptions(activeLocationId), enabled: canViewAdmin });
-  const inventoryQuery = useQuery({ ...inventoryAlertsOptions(6), enabled: canViewAdmin });
+  const inventoryQuery = useQuery({ ...inventoryAlertsOptions(6, activeLocationId), enabled: canViewAdmin });
 
   const ownerName = user?.info?.name?.split(" ")[0] ?? "";
   const live = dashboard ?? {};

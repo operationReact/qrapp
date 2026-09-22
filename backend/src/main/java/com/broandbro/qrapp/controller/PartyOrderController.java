@@ -1,7 +1,10 @@
 package com.broandbro.qrapp.controller;
 
 import com.broandbro.qrapp.dto.partyorder.*;
+import com.broandbro.qrapp.entity.User;
+import com.broandbro.qrapp.service.LocationAccessService;
 import com.broandbro.qrapp.service.PartyOrderService;
+import com.broandbro.qrapp.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -11,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * User-facing Party Order endpoints.
@@ -26,6 +30,8 @@ import java.util.List;
 public class PartyOrderController {
 
     private final PartyOrderService partyOrderService;
+    private final LocationAccessService locationAccessService;
+    private final UserService userService;
 
     // ── Create ────────────────────────────────────────────────────────────────
 
@@ -192,6 +198,7 @@ public class PartyOrderController {
     public ResponseEntity<PartyOrderResponse> submitEstimateAlias(
             @PathVariable Long id,
             @Valid @RequestBody PartyOrderEstimateRequest req,
+            @RequestParam(required = false) Long locationId,
             Authentication authentication
     ) {
         // This path is intentionally for admin use; reject non-admins
@@ -201,7 +208,8 @@ public class PartyOrderController {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Admin access required");
         }
         String adminName = authentication.getName();
-        return ResponseEntity.ok(partyOrderService.submitEstimate(id, req, adminName));
+        return ResponseEntity.ok(partyOrderService.submitEstimate(id, req, adminName,
+                resolveAdminScope(authentication, locationId)));
     }
 
     // ── Helper ────────────────────────────────────────────────────────────────
@@ -214,6 +222,7 @@ public class PartyOrderController {
     public ResponseEntity<PartyOrderResponse> updateStatus(
             @PathVariable Long id,
             @Valid @RequestBody PartyOrderStatusUpdateRequest req,
+            @RequestParam(required = false) Long locationId,
             Authentication authentication
     ) {
         if (authentication == null
@@ -222,10 +231,19 @@ public class PartyOrderController {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Admin access required");
         }
         String adminName = authentication.getName();
-        return ResponseEntity.ok(partyOrderService.updateStatus(id, req, adminName));
+        return ResponseEntity.ok(partyOrderService.updateStatus(id, req, adminName,
+                resolveAdminScope(authentication, locationId)));
     }
 
     // ── Helper ────────────────────────────────────────────────────────────────
+
+    /** Resolves the admin caller's dashboard location scope for the alias endpoints. */
+    private Optional<List<Long>> resolveAdminScope(Authentication auth, Long locationId) {
+        User user = userService.findByPhone(auth.getName())
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.UNAUTHORIZED, "Authentication required"));
+        return locationAccessService.resolveDashboardLocationScope(user, locationId);
+    }
 
     private String requirePhone(Authentication auth) {
         if (auth == null || auth.getName() == null) {

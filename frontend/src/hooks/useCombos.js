@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient, useIsMutating } from '@tanstack/react-query'
+import { useLocation as useActiveLocation } from '@/context/LocationContext'
 import {
   createCombo,
   updateCombo,
@@ -16,8 +17,10 @@ function useQueryWrapper(options) {
   return { data, loading: isLoading, error, refetch }
 }
 
-export const useComboSummary = () =>
-  useQueryWrapper(comboSummaryOptions)
+export const useComboSummary = () => {
+  const { activeLocationId } = useActiveLocation()
+  return useQueryWrapper(comboSummaryOptions(activeLocationId))
+}
 
 export function useComboList(params) {
   return useQueryWrapper(comboListOptions(params))

@@ -8,8 +8,12 @@ export const getPublicCombos = () =>
   apiClient.get("/api/combos").then((r) => r.data);
 
 // ── Analytics ──────────────────────────────────────────────────────────────
-export const getComboAnalyticsSummary = () =>
-  apiClient.get("/api/admin/combos/analytics/summary").then((r) => r.data);
+export const getComboAnalyticsSummary = (locationId = getActiveLocationId()) =>
+  apiClient
+    .get("/api/admin/combos/analytics/summary", {
+      params: locationId != null ? { locationId } : {},
+    })
+    .then((r) => r.data);
 
 // ── Signature Products (combo-attachable) ──────────────────────────────────
 export const listSignatureProducts = (params = {}) =>
@@ -47,7 +51,11 @@ export const deleteCombo = (id, locationId = getActiveLocationId()) =>
 
 /** List AI-generated combo opportunities, optionally filtered by status. */
 export const listComboOpportunities = (params = {}) =>
-  apiClient.get("/api/admin/growth/combo-opportunities", { params }).then((r) => r.data);
+  apiClient
+    .get("/api/admin/growth/combo-opportunities", {
+      params: { ...params, locationId: params.locationId || getActiveLocationId() },
+    })
+    .then((r) => r.data);
 
 /**
  * Approve or reject an opportunity.

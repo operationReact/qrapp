@@ -314,7 +314,11 @@ public class GrowthAdminController {
      */
     @GetMapping("/rec-analytics")
     public ResponseEntity<RecommendationAnalyticsDashboard> getRecommendationAnalytics(
-            @RequestParam Long restaurantId) {
+            @RequestParam Long restaurantId, Authentication auth) {
+        // Enforce that the caller may access the requested restaurant/location before
+        // exposing its pairing analytics (defense-in-depth, consistent with the other
+        // growth endpoints which all validate location access).
+        requireLocation(restaurantId, auth);
         return ResponseEntity.ok(interactionService.getAnalytics(restaurantId));
     }
 

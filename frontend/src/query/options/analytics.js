@@ -1,4 +1,5 @@
 import { queryOptions } from "@tanstack/react-query";
+import { activeLocationScopeId } from "@/lib/allLocations";
 import {
   fetchOverviewKpis,
   fetchDailySales,
@@ -28,7 +29,7 @@ import {
 } from "../../services/analyticsService";
 
 const storedLocationId = () => {
-  try { return JSON.parse(localStorage.getItem("active-location") || "null")?.id ?? null; } catch { return null; }
+  try { return activeLocationScopeId(JSON.parse(localStorage.getItem("active-location") || "null")); } catch { return null; }
 };
 
 const scopedAnalyticsParams = (params = {}, activeLocationId) => {

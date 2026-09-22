@@ -4,6 +4,7 @@ import com.broandbro.qrapp.dto.partyorder.*;
 import com.broandbro.qrapp.enums.PartyOrderStatus;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface PartyOrderService {
 
@@ -42,25 +43,33 @@ public interface PartyOrderService {
     PartyOrderResponse cancelMyOrder(Long orderId, String phone);
 
     // ── Admin operations ───────────────────────────────────────────────────
+    //
+    // The {@code locationScope} argument is the dashboard location scope resolved
+    // by {@link com.broandbro.qrapp.service.LocationAccessService#resolveDashboardLocationScope}:
+    //   - {@link Optional#empty()}  => SUPER_ADMIN "All Locations" (no filter)
+    //   - a present list            => restrict to exactly those location IDs
+    //                                  (an empty list means "can see nothing").
 
-    /** Return all party orders (admin view with full PII). */
-    List<PartyOrderResponse> getAllPartyOrders();
+    /** Return all party orders (admin view with full PII), restricted to the scope. */
+    List<PartyOrderResponse> getAllPartyOrders(Optional<List<Long>> locationScope);
 
-    /** Filter by status. */
-    List<PartyOrderResponse> getPartyOrdersByStatus(PartyOrderStatus status);
+    /** Filter by status, restricted to the scope. */
+    List<PartyOrderResponse> getPartyOrdersByStatus(PartyOrderStatus status, Optional<List<Long>> locationScope);
 
-    /** Get any party order by id (admin). */
-    PartyOrderResponse getPartyOrderById(Long orderId);
+    /** Get any party order by id (admin); throws 403 if outside the scope. */
+    PartyOrderResponse getPartyOrderById(Long orderId, Optional<List<Long>> locationScope);
 
     /**
      * Admin submits an estimate — transitions PENDING_ESTIMATE → ESTIMATE_SENT.
      * Throws 409 if the order is not in PENDING_ESTIMATE state.
     /** Admin submits an estimate — transitions PENDING_ESTIMATE → ESTIMATE_SENT. */
-    PartyOrderResponse submitEstimate(Long orderId, PartyOrderEstimateRequest req, String adminName);
+    PartyOrderResponse submitEstimate(Long orderId, PartyOrderEstimateRequest req, String adminName,
+                                      Optional<List<Long>> locationScope);
 
     /** Admin marks event as delivered — CONFIRMED → DELIVERED. Computes remaining balance. */
-    PartyOrderResponse markDelivered(Long orderId, String adminName);
+    PartyOrderResponse markDelivered(Long orderId, String adminName, Optional<List<Long>> locationScope);
 
     /** Admin can force any valid status transition. */
-    PartyOrderResponse updateStatus(Long orderId, PartyOrderStatusUpdateRequest req, String adminName);
+    PartyOrderResponse updateStatus(Long orderId, PartyOrderStatusUpdateRequest req, String adminName,
+                                    Optional<List<Long>> locationScope);
 }

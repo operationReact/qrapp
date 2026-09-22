@@ -9,6 +9,7 @@ import {
   togglePromotionStatus,
 } from "@/services/promotion-service";
 import { promotionsOptions } from "@/query/options/promotions";
+import { useLocation as useActiveLocation } from "@/context/LocationContext";
 import PromotionForm from "@/components/admin/PromotionForm";
 import {
   Table,
@@ -170,6 +171,7 @@ function PromoCard({ promo, onEdit, onDelete, onToggle }) {
 function AdminPromotionsPage() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { activeLocationId } = useActiveLocation();
   const { setUser: setAdmin } = useAuth();
   const queryClient = useQueryClient();
 
@@ -180,7 +182,7 @@ function AdminPromotionsPage() {
   const [selected, setSelected] = useState(null);
   const [statusFilter, setStatusFilter] = useState("All");
 
-  const { data: promotions = [], isLoading, error } = useQuery(promotionsOptions);
+  const { data: promotions = [], isLoading, error } = useQuery(promotionsOptions(activeLocationId));
 
   useEffect(() => {
     if (error && (error?.response?.status === 401 || error?.response?.status === 403)) {

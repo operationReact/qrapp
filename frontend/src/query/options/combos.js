@@ -9,17 +9,28 @@ import {
   listMissedOpportunities,
 } from "../../services/comboService";
 
+const storedLocationId = () => {
+  try {
+    return JSON.parse(localStorage.getItem("active-location") || "null")?.id ?? null;
+  } catch {
+    return null;
+  }
+};
+
 export const publicCombosOptions = queryOptions({
   queryKey: ["combos", "public"],
   queryFn: getPublicCombos,
   staleTime: 1000 * 60 * 5,
 });
 
-export const comboSummaryOptions = queryOptions({
-  queryKey: ["combos", "summary"],
-  queryFn: getComboAnalyticsSummary,
-  staleTime: 1000 * 60 * 2,
-});
+export const comboSummaryOptions = (activeLocationId) => {
+  const locationId = activeLocationId !== undefined ? activeLocationId : storedLocationId();
+  return queryOptions({
+    queryKey: ["combos", "summary", locationId ?? null],
+    queryFn: () => getComboAnalyticsSummary(locationId ?? undefined),
+    staleTime: 1000 * 60 * 2,
+  });
+};
 
 export const comboListOptions = (params = {}) =>
   queryOptions({

@@ -23,6 +23,17 @@ public class PartyOrder {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    /**
+     * Location that owns this party order. Scoped so the admin party-order surface
+     * can be filtered per location while SUPER_ADMIN retains the cross-location
+     * view. Kept optional at the mapping level to preserve legacy rows; application
+     * code sets it for freshly created orders (derived from the requesting user's
+     * default location).
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "location_id")
+    private Location location;
+
     // ── User details ────────────────────────────────────────────────────────
     @Column(name = "user_id")
     private Long userId;

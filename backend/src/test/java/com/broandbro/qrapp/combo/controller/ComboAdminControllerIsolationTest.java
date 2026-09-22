@@ -13,6 +13,8 @@ import org.springframework.security.core.Authentication;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 class ComboAdminControllerIsolationTest {
@@ -42,6 +44,24 @@ class ComboAdminControllerIsolationTest {
                 org.springframework.data.domain.PageRequest.of(0, 20), 2L);
     }
 
+    @Test
+    void analyticsSummaryResolvesScopeAndDelegates() {
+        ComboService combos = mock(ComboService.class);
+        LocationRepository locations = mock(LocationRepository.class);
+        UserService users = mock(UserService.class);
+        var resolver = mock(com.broandbro.qrapp.analytics.support.AnalyticsScopeResolver.class);
+        var scope = com.broandbro.qrapp.analytics.support.AnalyticsLocationScope
+                .from(Optional.of(java.util.List.of(2L)));
+        when(resolver.resolve(any(), eq(2L))).thenReturn(scope);
+        ComboAdminController controller =
+                new ComboAdminController(combos, locations, mock(LocationAccessService.class), users, resolver);
+
+        controller.analyticsSummary(2L, authentication());
+
+        verify(resolver).resolve(any(), eq(2L));
+        verify(combos).getAnalyticsSummary(scope);
+    }
+
     private static ComboAdminController controller(ComboService combos) {
         LocationRepository locations = mock(LocationRepository.class);
         when(locations.findById(2L)).thenReturn(Optional.of(
@@ -50,7 +70,8 @@ class ComboAdminControllerIsolationTest {
         UserService users = mock(UserService.class);
         when(users.findByPhone("admin")).thenReturn(Optional.of(User.builder().build()));
         return new ComboAdminController(combos, locations,
-                mock(LocationAccessService.class), users);
+                mock(LocationAccessService.class), users,
+                mock(com.broandbro.qrapp.analytics.support.AnalyticsScopeResolver.class));
     }
 
     private static Authentication authentication() {

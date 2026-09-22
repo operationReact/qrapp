@@ -4,9 +4,10 @@ import {
   getCategories,
   getRecommendedMenu,
 } from "../../services/menu-service";
+import { activeLocationScopeId } from "@/lib/allLocations";
 
 const storedLocationId = () => {
-  try { return JSON.parse(localStorage.getItem("active-location") || "null")?.id ?? null; } catch { return null; }
+  try { return activeLocationScopeId(JSON.parse(localStorage.getItem("active-location") || "null")); } catch { return null; }
 };
 
 export const menuOptions = (opts = {}) => {

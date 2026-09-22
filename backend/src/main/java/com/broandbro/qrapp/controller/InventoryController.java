@@ -1,14 +1,18 @@
 package com.broandbro.qrapp.controller;
 
 import com.broandbro.qrapp.dto.*;
+import com.broandbro.qrapp.entity.User;
 import com.broandbro.qrapp.exception.InsufficientInventoryException;
 import com.broandbro.qrapp.service.InventoryService;
+import com.broandbro.qrapp.service.LocationAccessService;
+import com.broandbro.qrapp.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.validation.annotation.Validated;
@@ -16,6 +20,7 @@ import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * REST API for inventory management.
@@ -33,6 +38,8 @@ import java.util.List;
 public class InventoryController {
 
     private final InventoryService inventoryService;
+    private final LocationAccessService locationAccessService;
+    private final UserService userService;
 
     // ============================================================================
     // CUSTOMER ENDPOINTS (PUBLIC)
@@ -232,10 +239,13 @@ public class InventoryController {
      * GET /api/v1/inventory/low-stock
      */
     @GetMapping("/low-stock")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> getLowStockItems(Pageable pageable) {
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN', 'MANAGER')")
+    public ResponseEntity<?> getLowStockItems(@RequestParam(required = false) Long locationId,
+                                              Authentication authentication,
+                                              Pageable pageable) {
         try {
-            var items = inventoryService.getLowStockItems(pageable);
+            Optional<List<Long>> scope = resolveAdminScope(authentication, locationId);
+            var items = inventoryService.getLowStockItems(pageable, scope);
             return ResponseEntity.ok(items);
         } catch (Exception e) {
             log.error("Error fetching low stock items", e);
@@ -251,10 +261,13 @@ public class InventoryController {
      * GET /api/v1/inventory/out-of-stock
      */
     @GetMapping("/out-of-stock")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> getOutOfStockItems(Pageable pageable) {
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN', 'MANAGER')")
+    public ResponseEntity<?> getOutOfStockItems(@RequestParam(required = false) Long locationId,
+                                                Authentication authentication,
+                                                Pageable pageable) {
         try {
-            var items = inventoryService.getOutOfStockItems(pageable);
+            Optional<List<Long>> scope = resolveAdminScope(authentication, locationId);
+            var items = inventoryService.getOutOfStockItems(pageable, scope);
             return ResponseEntity.ok(items);
         } catch (Exception e) {
             log.error("Error fetching out of stock items", e);
@@ -270,11 +283,16 @@ public class InventoryController {
      * GET /api/v1/inventory/items/{menuItemId}/audit
      */
     @GetMapping("/items/{menuItemId}/audit")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> getAuditTrail(@PathVariable Long menuItemId, Pageable pageable) {
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN', 'MANAGER')")
+    public ResponseEntity<?> getAuditTrail(@PathVariable Long menuItemId,
+                                           Authentication authentication,
+                                           Pageable pageable) {
         try {
+            requireMenuItemLocationAccess(authentication, menuItemId);
             var audit = inventoryService.getInventoryAuditTrail(menuItemId, pageable);
             return ResponseEntity.ok(audit);
+        } catch (AccessDeniedException e) {
+            throw e;
         } catch (Exception e) {
             log.error("Error fetching audit trail", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
@@ -289,10 +307,13 @@ public class InventoryController {
      * GET /api/v1/inventory/audit/recent
      */
     @GetMapping("/audit/recent")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> getRecentChanges(Pageable pageable) {
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN', 'MANAGER')")
+    public ResponseEntity<?> getRecentChanges(@RequestParam(required = false) Long locationId,
+                                              Authentication authentication,
+                                              Pageable pageable) {
         try {
-            var changes = inventoryService.getRecentInventoryChanges(pageable);
+            Optional<List<Long>> scope = resolveAdminScope(authentication, locationId);
+            var changes = inventoryService.getRecentInventoryChanges(pageable, scope);
             return ResponseEntity.ok(changes);
         } catch (Exception e) {
             log.error("Error fetching recent changes", e);
@@ -308,9 +329,11 @@ public class InventoryController {
      * GET /api/v1/inventory/items/{menuItemId}/status
      */
     @GetMapping("/items/{menuItemId}/status")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> getInventoryStatus(@PathVariable Long menuItemId) {
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN', 'MANAGER')")
+    public ResponseEntity<?> getInventoryStatus(@PathVariable Long menuItemId,
+                                                Authentication authentication) {
         try {
+            requireMenuItemLocationAccess(authentication, menuItemId);
             var status = inventoryService.getInventoryStatus(menuItemId);
             return ResponseEntity.ok(status);
         } catch (IllegalArgumentException e) {
@@ -335,6 +358,29 @@ public class InventoryController {
         // In your actual system, extract user ID from authentication
         // This is a placeholder - adjust based on your auth implementation
         return 1L; // TODO: Extract from security context
+    }
+
+    private User requireUser(Authentication authentication) {
+        if (authentication == null || authentication.getName() == null) {
+            throw new AccessDeniedException("authentication_required");
+        }
+        return userService.findByPhone(authentication.getName())
+                .orElseThrow(() -> new AccessDeniedException("authentication_required"));
+    }
+
+    /** Resolves the caller's dashboard location scope for admin inventory reads. */
+    private Optional<List<Long>> resolveAdminScope(Authentication authentication, Long locationId) {
+        User user = requireUser(authentication);
+        locationAccessService.requireNonKitchenAdmin(user);
+        return locationAccessService.resolveDashboardLocationScope(user, locationId);
+    }
+
+    /** Ensures the caller may access the location that owns the given menu item. */
+    private void requireMenuItemLocationAccess(Authentication authentication, Long menuItemId) {
+        User user = requireUser(authentication);
+        locationAccessService.requireNonKitchenAdmin(user);
+        Long locationId = inventoryService.getMenuItemLocationId(menuItemId);
+        locationAccessService.requireLocationAccess(user, locationId);
     }
 
     // For Java 17+ Map convenience

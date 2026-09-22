@@ -1,6 +1,7 @@
 package com.broandbro.qrapp.combo.service;
 
 import com.broandbro.qrapp.combo.dto.*;
+import com.broandbro.qrapp.analytics.support.AnalyticsLocationScope;
 import com.broandbro.qrapp.combo.entity.*;
 import com.broandbro.qrapp.combo.exception.ComboNotFoundException;
 import com.broandbro.qrapp.combo.exception.ComboValidationException;
@@ -188,15 +189,27 @@ public class ComboServiceImpl implements ComboService {
     // ── Analytics ──────────────────────────────────────────────────────────────
 
     @Override
-    public ComboAnalyticsSummaryResponse getAnalyticsSummary() {
+    public ComboAnalyticsSummaryResponse getAnalyticsSummary(AnalyticsLocationScope scope) {
+        // Restricted user with access to no location: return an all-zero summary
+        // without touching the database.
+        if (!scope.visible()) {
+            return new ComboAnalyticsSummaryResponse(
+                    0L, 0L, 0L, 0L, 0L,
+                    BigDecimal.ZERO, BigDecimal.ZERO, 0L,
+                    List.of());
+        }
+
         LocalDate from = LocalDate.now().minusDays(29);
         LocalDate to   = LocalDate.now();
 
-        BigDecimal revenue  = nullSafe(analyticsRepo.sumRevenueBetween(from, to));
-        BigDecimal savings  = nullSafe(analyticsRepo.sumSavingsBetween(from, to));
-        Long orders         = nullSafeLong(analyticsRepo.sumOrdersBetween(from, to));
+        boolean allLocations = scope.allLocations();
+        List<Long> locationIds = scope.locationIds();
 
-        List<Object[]> top  = analyticsRepo.findTopCombos(from, to, PageRequest.of(0, 5));
+        BigDecimal revenue = nullSafe(analyticsRepo.sumRevenueBetween(from, to, allLocations, locationIds));
+        BigDecimal savings = nullSafe(analyticsRepo.sumSavingsBetween(from, to, allLocations, locationIds));
+        Long orders        = nullSafeLong(analyticsRepo.sumOrdersBetween(from, to, allLocations, locationIds));
+
+        List<Object[]> top = analyticsRepo.findTopCombos(from, to, allLocations, locationIds, PageRequest.of(0, 5));
         List<ComboAnalyticsSummaryResponse.TopComboEntry> topEntries = top.stream()
                 .map(r -> new ComboAnalyticsSummaryResponse.TopComboEntry(
                         (Long) r[0], (String) r[1],
@@ -204,12 +217,14 @@ public class ComboServiceImpl implements ComboService {
                         (BigDecimal) r[3], (BigDecimal) r[4]))
                 .collect(Collectors.toList());
 
+        ComboRepository.ComboCountProjection counts = comboRepo.countMetricsInScope(allLocations, locationIds);
+
         return new ComboAnalyticsSummaryResponse(
-                comboRepo.countByDeletedAtIsNull(),
-                comboRepo.countByStatusAndDeletedAtIsNull(ComboStatus.ACTIVE),
-                comboRepo.countByIsFeaturedTrueAndDeletedAtIsNull(),
-                comboRepo.countByIsPreorderEligibleTrueAndDeletedAtIsNull(),
-                comboRepo.countByIsSignatureComboTrueAndDeletedAtIsNull(),
+                nullSafeLong(counts.getTotalCombos()),
+                nullSafeLong(counts.getActiveCombos()),
+                nullSafeLong(counts.getFeaturedCombos()),
+                nullSafeLong(counts.getPreorderCombos()),
+                nullSafeLong(counts.getSignatureCombos()),
                 revenue, savings, orders,
                 topEntries
         );

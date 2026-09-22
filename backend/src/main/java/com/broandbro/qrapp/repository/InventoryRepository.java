@@ -67,6 +67,24 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
     List<Inventory> findLowStockItems();
 
     /**
+     * Location-scoped low stock items.
+     *
+     * <p>Follows the dashboard scope contract used across the admin surfaces:
+     * {@code allLocations = true} disables the location filter (SUPER_ADMIN /
+     * "All Locations"); otherwise items are restricted to {@code locationIds}
+     * (via the owning MenuItem's location). {@code locationIds} must never be
+     * empty (use a sentinel such as {@code -1}) so the {@code IN} clause parses.</p>
+     */
+    @Query("""
+        SELECT i FROM Inventory i 
+        WHERE i.availableQuantity <= i.lowStockThreshold
+        AND (:allLocations = TRUE OR i.menuItem.location.id IN :locationIds)
+        ORDER BY i.availableQuantity ASC
+        """)
+    List<Inventory> findLowStockItems(@Param("allLocations") boolean allLocations,
+                                      @Param("locationIds") List<Long> locationIds);
+
+    /**
      * Find all out of stock items.
      *
      * Out of stock = available quantity <= 0
@@ -78,6 +96,18 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
         WHERE i.availableQuantity <= 0
         """)
     List<Inventory> findOutOfStockItems();
+
+    /**
+     * Location-scoped out of stock items. See {@link #findLowStockItems(boolean, List)}
+     * for the scope contract.
+     */
+    @Query("""
+        SELECT i FROM Inventory i 
+        WHERE i.availableQuantity <= 0
+        AND (:allLocations = TRUE OR i.menuItem.location.id IN :locationIds)
+        """)
+    List<Inventory> findOutOfStockItems(@Param("allLocations") boolean allLocations,
+                                        @Param("locationIds") List<Long> locationIds);
 
     /**
      * Find inventories by menu item IDs.
@@ -129,6 +159,7 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
         AND (:isHidden      IS NULL OR m.isHidden           = :isHidden)
         AND (:inStockOnly   = false  OR i.availableQuantity > 0)
         AND (:lowStockOnly  = false  OR i.availableQuantity <= i.lowStockThreshold)
+        AND (:allLocations  = TRUE   OR m.location.id IN :locationIds)
         """)
     Page<Inventory> findLimitedItemsWithFilters(
             @Param("inventoryMode") InventoryMode inventoryMode,
@@ -136,5 +167,7 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
             @Param("isHidden")      Boolean       isHidden,
             @Param("inStockOnly")   boolean       inStockOnly,
             @Param("lowStockOnly")  boolean       lowStockOnly,
+            @Param("allLocations")  boolean       allLocations,
+            @Param("locationIds")   List<Long>    locationIds,
             Pageable pageable);
 }

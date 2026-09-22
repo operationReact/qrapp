@@ -12,7 +12,8 @@ import java.time.LocalDate;
 @Entity
 @Table(name = "combo_analytics_daily",
        uniqueConstraints = @UniqueConstraint(
-           name = "uq_combo_analytics_date", columnNames = {"combo_id", "business_date"}))
+           name = "uq_combo_analytics_date_location",
+           columnNames = {"combo_id", "business_date", "location_id"}))
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class ComboAnalyticsDaily {
 
@@ -23,6 +24,10 @@ public class ComboAnalyticsDaily {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "combo_id", nullable = false)
     private Combo combo;
+
+    /** Owning location (the combo's menu-item location). Snapshots are per (combo, date, location). */
+    @Column(name = "location_id", nullable = false)
+    private Long locationId;
 
     @Column(name = "business_date", nullable = false)
     private LocalDate businessDate;

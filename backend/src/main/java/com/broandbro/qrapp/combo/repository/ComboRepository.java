@@ -42,4 +42,35 @@ public interface ComboRepository extends JpaRepository<Combo, Long>, JpaSpecific
     long countByIsPreorderEligibleTrueAndDeletedAtIsNull();
     long countByIsSignatureComboTrueAndDeletedAtIsNull();
     long countByDeletedAtIsNull();
+
+    /**
+     * Location-scoped combo counts for the analytics summary.
+     *
+     * <p>A combo is attributed to a location through its menu items
+     * ({@code combo_items -> menu_item.location_id}); by construction all of a
+     * combo's items share one location. The shared
+     * {@code (:allLocations = TRUE OR mi.location.id IN :locationIds)} guard keeps
+     * the SUPER_ADMIN "All Locations" view intact while restricting ADMIN /
+     * MANAGER to their assigned locations.</p>
+     */
+    @Query("""
+           SELECT COUNT(DISTINCT c.id) AS totalCombos,
+                  COUNT(DISTINCT CASE WHEN c.status = com.broandbro.qrapp.enums.ComboStatus.ACTIVE THEN c.id END) AS activeCombos,
+                  COUNT(DISTINCT CASE WHEN c.isFeatured = true THEN c.id END) AS featuredCombos,
+                  COUNT(DISTINCT CASE WHEN c.isPreorderEligible = true THEN c.id END) AS preorderCombos,
+                  COUNT(DISTINCT CASE WHEN c.isSignatureCombo = true THEN c.id END) AS signatureCombos
+           FROM Combo c JOIN c.items ci JOIN ci.menuItem mi
+           WHERE c.deletedAt IS NULL
+             AND (:allLocations = TRUE OR mi.location.id IN :locationIds)
+           """)
+    ComboCountProjection countMetricsInScope(@Param("allLocations") boolean allLocations,
+                                             @Param("locationIds") List<Long> locationIds);
+
+    interface ComboCountProjection {
+        Long getTotalCombos();
+        Long getActiveCombos();
+        Long getFeaturedCombos();
+        Long getPreorderCombos();
+        Long getSignatureCombos();
+    }
 }

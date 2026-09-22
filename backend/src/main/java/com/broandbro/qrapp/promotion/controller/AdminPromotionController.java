@@ -3,16 +3,21 @@ package com.broandbro.qrapp.promotion.controller;
 import com.broandbro.qrapp.promotion.dto.CreatePromotionRequest;
 import com.broandbro.qrapp.promotion.dto.PromotionResponse;
 import com.broandbro.qrapp.promotion.service.AdminPromotionService;
+import com.broandbro.qrapp.entity.User;
+import com.broandbro.qrapp.service.LocationAccessService;
+import com.broandbro.qrapp.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * Admin Promotion API — requires ROLE_ADMIN.
@@ -31,10 +36,17 @@ import java.util.Map;
 public class AdminPromotionController {
 
     private final AdminPromotionService adminService;
+    private final LocationAccessService locationAccessService;
+    private final UserService userService;
 
     @GetMapping
-    public ResponseEntity<List<PromotionResponse>> getAllPromotions() {
-        return ResponseEntity.ok(adminService.getAllPromotions());
+    public ResponseEntity<List<PromotionResponse>> getAllPromotions(
+            @RequestParam(required = false) Long locationId,
+            Authentication authentication) {
+        User user = requireUser(authentication);
+        locationAccessService.requireNonKitchenAdmin(user);
+        Optional<List<Long>> scope = locationAccessService.resolveDashboardLocationScope(user, locationId);
+        return ResponseEntity.ok(adminService.getAllPromotions(scope));
     }
 
     @GetMapping("/{id}")
@@ -92,6 +104,14 @@ public class AdminPromotionController {
         } catch (IllegalArgumentException e) {
             return ResponseEntity.notFound().build();
         }
+    }
+
+    private User requireUser(Authentication authentication) {
+        if (authentication == null || authentication.getName() == null) {
+            throw new AccessDeniedException("authentication_required");
+        }
+        return userService.findByPhone(authentication.getName())
+                .orElseThrow(() -> new AccessDeniedException("authentication_required"));
     }
 }
 
