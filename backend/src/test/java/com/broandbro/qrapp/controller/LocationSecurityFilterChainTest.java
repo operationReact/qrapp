@@ -74,6 +74,22 @@ class LocationSecurityFilterChainTest {
     }
 
     @Test
+    void superAdminCanCreateLocation() throws Exception {
+        Location created = Location.builder().id(3L).code("new-location").name("New Location")
+                .active(true).build();
+        when(locations.findByCode("new-location")).thenReturn(Optional.empty());
+        when(locations.save(any(Location.class))).thenReturn(created);
+
+        mvc.perform(post("/api/admin/locations")
+                        .header("Authorization", bearer("super-token"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"code":"new-location","name":"New Location","address":"Somewhere","active":true}
+                                """))
+                .andExpect(status().isCreated());
+    }
+
+    @Test
     void superAdminAndAdminCanAccessBothLocations() throws Exception {
         for (String token : new String[]{"super-token", "admin-token"}) {
             mvc.perform(get("/api/locations/1/authorized").header("Authorization", bearer(token)))

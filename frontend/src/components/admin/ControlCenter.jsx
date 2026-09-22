@@ -13,16 +13,20 @@ const links = [
   { to: "/admin/control-center", label: "Overview", icon: ShieldCheck },
   { to: "/admin/control-center/users", label: "Users", icon: Users },
   { to: "/admin/control-center/locations", label: "Locations", icon: Building2 },
-  { to: "/admin/customer-companies", label: "Customer Companies", icon: Building2 },
+  { to: "/admin/control-center/customer-companies", label: "Customer Companies", icon: Building2 },
   { to: "/admin/control-center/access", label: "Access Management", icon: KeyRound },
 ];
 
 function Shell({ title, description, children }) {
   const { pathname } = useLocation();
-  return <main className="mx-auto w-full max-w-6xl space-y-5 p-4 sm:p-6">
-    <div><p className="text-[10px] font-bold uppercase tracking-[.16em] text-primary">Super Admin Control Center</p><h1 className="mt-1 text-2xl font-bold tracking-tight text-zinc-950">{title}</h1><p className="mt-1 text-sm text-zinc-500">{description}</p></div>
-    <nav className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap" aria-label="Control center">
-      {links.map(({ to, label }) => <Link key={to} to={to} className={`flex min-h-11 items-center gap-2 rounded-xl border px-3 text-sm font-semibold ${pathname === to ? "border-primary/30 bg-primary/10 text-primary" : "border-zinc-200 bg-white text-zinc-600"}`}>{label}</Link>)}
+  return <main className="mx-auto w-full max-w-7xl space-y-6 p-4 sm:p-6 lg:p-8">
+    <div className="rounded-3xl bg-zinc-950 px-5 py-6 text-white shadow-xl sm:px-8">
+      <p className="text-[10px] font-bold uppercase tracking-[.2em] text-amber-300">Super Admin Workspace</p>
+      <h1 className="mt-2 text-2xl font-bold tracking-tight sm:text-3xl">{title}</h1>
+      <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-300">{description}</p>
+    </div>
+    <nav className="grid grid-cols-2 gap-2 rounded-2xl border border-zinc-200 bg-white p-2 shadow-sm sm:grid-cols-5" aria-label="Super Admin control center">
+      {links.map(({ to, label }) => <Link key={to} to={to} className={`flex min-h-11 items-center justify-center rounded-xl px-3 text-center text-sm font-semibold transition ${pathname === to ? "bg-zinc-950 text-white shadow-sm" : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-950"}`}>{label}</Link>)}
     </nav>
     {children}
   </main>;
@@ -37,7 +41,15 @@ function Items({ items, empty = "No records found." }) {
 export function ControlCenterOverview() {
   const { data: users = [] } = useQuery(adminUsersOptions());
   const { data: locations = [] } = useQuery(adminLocationsOptions());
-  return <Shell title="Overview" description="A compact view of platform access and operating locations."><div className="grid gap-4 sm:grid-cols-2"><Link to="/admin/control-center/users"><Card className="transition hover:ring-primary/40"><CardHeader><CardTitle className="flex justify-between"><Users /> Users</CardTitle></CardHeader><CardContent><p className="text-3xl font-bold">{users.length}</p><p className="mt-1 text-sm text-zinc-500">Manage administrator access <ArrowRight className="inline size-4" /></p></CardContent></Card></Link><Link to="/admin/control-center/locations"><Card className="transition hover:ring-primary/40"><CardHeader><CardTitle className="flex justify-between"><Building2 /> Locations</CardTitle></CardHeader><CardContent><p className="text-3xl font-bold">{locations.length}</p><p className="mt-1 text-sm text-zinc-500">Manage authorized locations <ArrowRight className="inline size-4" /></p></CardContent></Card></Link></div></Shell>;
+  const cards = [
+    { to: "/admin/control-center/users", title: "Users", count: users.length, icon: Users, text: "Manage administrator access" },
+    { to: "/admin/control-center/locations", title: "Locations", count: locations.length, icon: Building2, text: "Create and manage operating locations" },
+    { to: "/admin/control-center/customer-companies", title: "Customer Companies", count: "—", icon: Building2, text: "Manage companies and assignments" },
+    { to: "/admin/control-center/access", title: "Access Management", count: "—", icon: KeyRound, text: "Manage roles and location access" },
+  ];
+  return <Shell title="Control Center" description="One workspace for platform access, locations, and Customer Company operations.">
+    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{cards.map(({ to, title, count, icon: Icon, text }) => <Link key={to} to={to}><Card className="h-full border-zinc-200 transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-lg"><CardHeader><CardTitle className="flex items-center justify-between text-base"><span>{title}</span><Icon className="size-5 text-primary" /></CardTitle></CardHeader><CardContent><p className="text-3xl font-bold text-zinc-950">{count}</p><p className="mt-2 text-sm text-zinc-500">{text} <ArrowRight className="inline size-4" /></p></CardContent></Card></Link>)}</div>
+  </Shell>;
 }
 
 export function ControlCenterUsers() {
@@ -46,9 +58,35 @@ export function ControlCenterUsers() {
 }
 
 export function ControlCenterLocations() {
-  const { data = [], isLoading, error } = useQuery(adminLocationsOptions()); const { activeLocation } = useActiveLocation(); const [name, setName] = useState(""); const queryClient = useQueryClient();
-  const mutation = useMutation({ mutationFn: () => createManagementResource("/api/admin/locations", { code: name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-"), name, active: true }), onSuccess: () => { setName(""); queryClient.invalidateQueries({ queryKey: ["admin", "locations"] }); } });
-  return <Shell title="Locations" description="Create and review the locations available to administrators."><Card><CardHeader><CardTitle>Authorized locations</CardTitle></CardHeader><CardContent className="space-y-4"><form className="flex gap-2" onSubmit={(event) => { event.preventDefault(); if (name.trim()) mutation.mutate(); }}><Input className="min-h-11" required placeholder="New location name" value={name} onChange={(event) => setName(event.target.value)} /><Button className="min-h-11" disabled={mutation.isPending}>Add</Button></form><div className="rounded-xl bg-primary/5 p-3 text-sm text-primary">Active: <strong>{activeLocation?.name || "Not selected"}</strong></div>{isLoading ? <p className="text-sm text-zinc-500">Loading locations…</p> : <Items items={data} empty="No locations are configured." />}<ErrorState error={error || mutation.error} /></CardContent></Card></Shell>;
+  const { data = [], isLoading, error } = useQuery(adminLocationsOptions());
+  const { activeLocation } = useActiveLocation();
+  const [form, setForm] = useState({ name: "", code: "", address: "" });
+  const queryClient = useQueryClient();
+  const generatedCode = form.name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  const mutation = useMutation({
+    mutationFn: () => createManagementResource("/api/admin/locations", { ...form, name: form.name.trim(), code: (form.code.trim() || generatedCode), address: form.address.trim(), active: true }),
+    onSuccess: () => { setForm({ name: "", code: "", address: "" }); queryClient.invalidateQueries({ queryKey: ["admin", "locations"] }); },
+  });
+  const apiError = mutation.error?.response?.status === 409
+    ? "A location with this code already exists."
+    : mutation.error?.response?.status === 403
+      ? "Only a Super Admin can add locations."
+      : mutation.error?.response?.data?.message || mutation.error?.response?.data || mutation.error?.message;
+  return <Shell title="Locations" description="Create operating locations and make them available to registration, access management, and company assignments.">
+    <div className="grid gap-5 lg:grid-cols-[minmax(0,1.1fr)_minmax(18rem,.9fr)]">
+      <Card className="border-zinc-200 shadow-sm"><CardHeader><CardTitle>Add a location</CardTitle><p className="text-sm text-zinc-500">Use a unique code that remains stable for integrations.</p></CardHeader><CardContent>
+        <form className="grid gap-3 sm:grid-cols-2" onSubmit={(event) => { event.preventDefault(); if (form.name.trim() && (form.code.trim() || generatedCode)) mutation.mutate(); }}>
+          <Input className="min-h-11" required placeholder="Location name" value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value, code: current.code || event.target.value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") }))} />
+          <Input className="min-h-11" required placeholder="Location code" value={form.code} onChange={(event) => setForm((current) => ({ ...current, code: event.target.value }))} />
+          <Input className="min-h-11 sm:col-span-2" placeholder="Address (optional)" value={form.address} onChange={(event) => setForm((current) => ({ ...current, address: event.target.value }))} />
+          <Button className="min-h-11 sm:col-span-2" disabled={mutation.isPending}>{mutation.isPending ? "Adding location…" : "Add location"}</Button>
+        </form>
+        {apiError && <p className="mt-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{apiError}</p>}
+      </CardContent></Card>
+      <Card className="border-zinc-200 bg-primary/5 shadow-sm"><CardHeader><CardTitle>Current location</CardTitle></CardHeader><CardContent><p className="text-2xl font-bold text-zinc-950">{activeLocation?.name || "Not selected"}</p><p className="mt-2 text-sm text-zinc-600">Use the location selector to change the active operating context.</p></CardContent></Card>
+    </div>
+    <Card className="border-zinc-200 shadow-sm"><CardHeader><CardTitle>Configured locations</CardTitle></CardHeader><CardContent>{isLoading ? <p className="text-sm text-zinc-500">Loading locations…</p> : <Items items={data} empty="No locations are configured." />}<ErrorState error={error} /></CardContent></Card>
+  </Shell>;
 }
 
 export function CustomerCompanies() {
@@ -85,7 +123,7 @@ export function CustomerCompanies() {
     onError: (error) => setFeedback({ type: "error", text: error.message || "Unable to update the location assignment." }),
   });
 
-  return <Shell title="Customer Companies" description="Manage active customer companies and their existing location associations.">
+  return <Shell title="Customer Companies" description="Manage active companies and assign them to existing operating locations.">
     <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,0.8fr)]">
       <Card><CardHeader><CardTitle>Add Customer Company</CardTitle></CardHeader><CardContent>
         <form className="flex gap-2" onSubmit={(event) => { event.preventDefault(); if (name.trim()) createMutation.mutate(); }}>
