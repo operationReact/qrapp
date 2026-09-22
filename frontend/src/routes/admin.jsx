@@ -64,6 +64,10 @@ function AdminLayout() {
   const { user } = useAuth();
   // Dashboard has its own embedded premium header — skip the layout header there
   const isDashboard = pathname === "/admin" || pathname === "/admin/";
+  // Control Center renders its own compact 64px header (menu + title + bell)
+  // so it doesn't stack with this generic sub-page header.
+  const isControlCenter = pathname.startsWith("/admin/control-center");
+  const hideGenericHeader = isDashboard || isControlCenter;
 
   // KITCHEN_STAFF are confined to the Kitchen Queue — bounce them there.
   const kitchenOnly = isKitchenStaffOnly(user);
@@ -77,7 +81,7 @@ function AdminLayout() {
           <SidebarProvider>
             <AdminSidebar />
             <SidebarInset className="min-w-0 bg-[#f7f6f3]">
-              {!isDashboard && <SubPageHeader />}
+              {!hideGenericHeader && <SubPageHeader />}
               <div className="min-h-0 flex-1 flex flex-col">
                 <Outlet />
               </div>
