@@ -11,4 +11,5 @@ public class RegisterRequest {
     private String password;
     private String name;
     private Long defaultLocationId;
+    private Long customerCompanyId;
 }

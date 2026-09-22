@@ -11,6 +11,12 @@ const list = (path, key, params) => ({
 
 export const adminUsersOptions = (params) => list("/api/admin/users", "users", params);
 export const adminLocationsOptions = (params) => list("/api/admin/locations", "locations", params);
+export const adminCustomerCompaniesOptions = (params) => list("/api/admin/customer-companies", "customer-companies", params);
+export const locationCustomerCompaniesOptions = (locationId, enabled = true) => ({
+  queryKey: ["admin", "locations", locationId, "customer-companies"],
+  enabled: Boolean(locationId) && enabled,
+  queryFn: async () => (await apiClient.get(`/api/admin/locations/${locationId}/customer-companies`)).data,
+});
 export const userLocationsOptions = (userId, enabled = true) => ({
   queryKey: ["admin", "users", userId, "locations"],
   enabled: Boolean(userId) && enabled,
@@ -23,6 +29,13 @@ export const userLocationsOptions = (userId, enabled = true) => ({
 
 export async function createManagementResource(path, payload) { return (await apiClient.post(path, payload)).data; }
 export async function updateManagementResource(path, id, payload) { return (await apiClient.patch(`${path}/${id}`, payload)).data; }
+export async function updateCustomerCompany(id, payload) { return (await apiClient.put(`/api/admin/customer-companies/${id}`, payload)).data; }
+export async function assignCustomerCompany(locationId, companyId) {
+  return apiClient.put(`/api/admin/locations/${locationId}/customer-companies/${companyId}`);
+}
+export async function removeCustomerCompany(locationId, companyId) {
+  return apiClient.delete(`/api/admin/locations/${locationId}/customer-companies/${companyId}`);
+}
 export async function updateUserRole(id, payload) { return (await apiClient.put(`/api/admin/users/${id}/role`, payload)).data; }
 export async function grantUserLocation(userId, locationId) {
   return (await apiClient.put(`/api/admin/users/${userId}/locations/${locationId}`, { active: true })).data;

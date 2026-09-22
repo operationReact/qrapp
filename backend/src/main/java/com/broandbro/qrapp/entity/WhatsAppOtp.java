@@ -41,6 +41,9 @@ public class WhatsAppOtp {
     @Column(name = "registration_default_location_id")
     private Long registrationDefaultLocationId;
 
+    @Column(name = "registration_customer_company_id")
+    private Long registrationCustomerCompanyId;
+
     @Column(name = "expires_at", nullable = false)
     private Instant expiresAt;
 

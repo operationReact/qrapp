@@ -80,6 +80,18 @@ public class WhatsAppOtpService {
         requestOtp(phone, OtpPurpose.REGISTRATION, name, passwordHash, defaultLocationId);
     }
 
+    public void requestRegistrationOtp(String rawPhone, String name, String password,
+                                       Long defaultLocationId, Long customerCompanyId) {
+        String phone = PhoneNumberNormalizer.normalize(rawPhone);
+        if (userRepository.findByPhone(phone).isPresent()) {
+            throw new OtpException("phone_taken");
+        }
+        validateLocation(defaultLocationId);
+        if (customerCompanyId == null) throw new OtpException("customer_company_required");
+        String passwordHash = passwordEncoder.encode(password);
+        requestOtp(phone, OtpPurpose.REGISTRATION, name, passwordHash, defaultLocationId, customerCompanyId);
+    }
+
     public void requestPasswordResetOtp(String rawPhone) {
         String phone = PhoneNumberNormalizer.normalize(rawPhone);
         if (userRepository.findByPhone(phone).isEmpty()) {
@@ -92,6 +104,11 @@ public class WhatsAppOtpService {
 
     private void requestOtp(String phone, OtpPurpose purpose, String name, String passwordHash,
                             Long defaultLocationId) {
+        requestOtp(phone, purpose, name, passwordHash, defaultLocationId, null);
+    }
+
+    private void requestOtp(String phone, OtpPurpose purpose, String name, String passwordHash,
+                            Long defaultLocationId, Long customerCompanyId) {
         Instant now = Instant.now();
         WhatsAppOtpProperties.Otp limits = properties.getOtp();
         if (otpRepository.countByPhoneNumberAndCreatedAtAfter(phone, now.minus(1, ChronoUnit.HOURS))
@@ -116,6 +133,7 @@ public class WhatsAppOtpService {
                 .registrationName(name)
                 .registrationPasswordHash(passwordHash)
                 .registrationDefaultLocationId(defaultLocationId)
+                .registrationCustomerCompanyId(customerCompanyId)
                 .expiresAt(now.plus(limits.getExpiryMinutes(), ChronoUnit.MINUTES))
                 .attemptCount(0)
                 .status(OtpStatus.ACTIVE)
@@ -142,11 +160,15 @@ public class WhatsAppOtpService {
             throw new OtpException("invalid_otp");
         }
         validateLocation(otp.getRegistrationDefaultLocationId());
-        if (otp.getRegistrationDefaultLocationId() == null) {
-            return userService.registerVerified(phone, otp.getRegistrationName(), otp.getRegistrationPasswordHash());
+        if (otp.getRegistrationCustomerCompanyId() == null) {
+            if (otp.getRegistrationDefaultLocationId() == null) {
+                return userService.registerVerified(phone, otp.getRegistrationName(), otp.getRegistrationPasswordHash());
+            }
+            return userService.registerVerified(phone, otp.getRegistrationName(), otp.getRegistrationPasswordHash(),
+                    otp.getRegistrationDefaultLocationId());
         }
         return userService.registerVerified(phone, otp.getRegistrationName(), otp.getRegistrationPasswordHash(),
-                otp.getRegistrationDefaultLocationId());
+                otp.getRegistrationDefaultLocationId(), otp.getRegistrationCustomerCompanyId());
     }
 
     @Transactional
