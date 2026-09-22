@@ -162,6 +162,13 @@ public class SecurityConfig {
                         .requestMatchers("/admin/**")
                         .hasAnyRole("ADMIN", "SUPERUSER", "SUPER_ADMIN", "MANAGER")
 
+                        // Customer Company authorization is verified against the
+                        // current database user by CustomerCompanyController.
+                        .requestMatchers(
+                                "/api/admin/customer-companies/**",
+                                "/api/admin/locations/*/customer-companies/**"
+                        ).authenticated()
+
                         .requestMatchers("/api/admin/**")
                         .hasAnyRole("ADMIN", "SUPERUSER", "SUPER_ADMIN")
 

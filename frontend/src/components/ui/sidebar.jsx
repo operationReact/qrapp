@@ -26,7 +26,7 @@ import { SidebarIcon } from "@phosphor-icons/react"
 const SIDEBAR_COOKIE_NAME = "sidebar_state"
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
 const SIDEBAR_WIDTH = "16rem"
-const SIDEBAR_WIDTH_MOBILE = "18rem"
+const SIDEBAR_WIDTH_MOBILE = "min(89vw, 26rem)"
 const SIDEBAR_WIDTH_ICON = "3rem"
 const SIDEBAR_KEYBOARD_SHORTCUT = "b"
 
@@ -159,10 +159,19 @@ function Sidebar({
           data-sidebar="sidebar"
           data-slot="sidebar"
           data-mobile="true"
-          className="w-(--sidebar-width) bg-sidebar p-0 text-sidebar-foreground [&>button]:hidden"
+          className={cn(
+            // SheetContent's base styles include `data-[side=left]:w-3/4`, an
+            // attribute-selector rule whose specificity beats a plain
+            // `w-(--sidebar-width)` class. Re-declare the width under the same
+            // `data-[side=left]:` modifier so it wins the cascade, and back it
+            // with an inline `width` (highest specificity) as a hard guarantee.
+            "w-(--sidebar-width) data-[side=left]:w-(--sidebar-width) bg-sidebar p-0 text-sidebar-foreground [&>button]:hidden",
+            className,
+          )}
           style={
             {
-              "--sidebar-width": SIDEBAR_WIDTH_MOBILE
+              "--sidebar-width": SIDEBAR_WIDTH_MOBILE,
+              width: SIDEBAR_WIDTH_MOBILE,
             }
           }
           side={side}>

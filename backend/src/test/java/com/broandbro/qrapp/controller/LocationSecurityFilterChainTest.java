@@ -15,6 +15,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -72,6 +73,14 @@ class LocationSecurityFilterChainTest {
         mvc.perform(get("/api/locations/1/authorized")).andExpect(status().isUnauthorized());
         mvc.perform(get("/api/admin/users").header("Authorization", bearer("admin-token")))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void unauthenticatedUsersCanReadPublicLocations() throws Exception {
+        when(locations.findByActiveTrueOrderByNameAsc()).thenReturn(List.of(a, b));
+
+        mvc.perform(get("/api/locations/public"))
+                .andExpect(status().isOk());
     }
 
     @Test

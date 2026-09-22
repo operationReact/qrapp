@@ -125,6 +125,20 @@ export function CustomerCompanies() {
     onSuccess: refresh,
     onError: (error) => setFeedback({ type: "error", text: error.message || "Unable to update the location assignment." }),
   });
+  const toggleCompanyAssignment = (company) => {
+    if (!selectedLocationId) {
+      setFeedback({ type: "error", text: "Select a location before assigning a company." });
+      return;
+    }
+    if (!company.active) {
+      setFeedback({ type: "error", text: "Only active companies can be assigned to a location." });
+      return;
+    }
+    mappingMutation.mutate({
+      companyId: company.id,
+      assigned: assignedIds.has(String(company.id)),
+    });
+  };
 
   return <Shell title="Customer Companies" description="Manage active companies and assign them to existing operating locations.">
     <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,0.8fr)]">
@@ -147,7 +161,7 @@ export function CustomerCompanies() {
       {companies.map((company) => <div key={company.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-zinc-200 p-3">
         <div><p className="font-semibold">{company.name}</p><p className="text-xs text-zinc-500">{company.active ? "Active" : "Inactive"}</p></div>
         <div className="flex items-center gap-2">
-          {selectedLocationId && <Button variant="outline" size="sm" disabled={!company.active || mappingMutation.isPending} onClick={() => mappingMutation.mutate({ companyId: company.id, assigned: assignedIds.has(String(company.id)) })}>{assignedIds.has(String(company.id)) ? "Remove from Location" : "Assign to Location"}</Button>}
+          {selectedLocationId && <Button type="button" variant="outline" size="sm" disabled={mappingMutation.isPending} onClick={(event) => { event.preventDefault(); toggleCompanyAssignment(company); }}>{assignedIds.has(String(company.id)) ? "Remove from Location" : "Assign to Location"}</Button>}
           {editingId === company.id ? <Button size="sm" disabled={companyMutation.isPending} onClick={() => { if (editingName.trim()) companyMutation.mutate({ company, name: editingName.trim(), active: company.active }); setEditingId(null); }}>Save</Button> : <Button variant="outline" size="sm" onClick={() => { setEditingId(company.id); setEditingName(company.name); }}>Edit</Button>}
           <Button variant="outline" size="sm" disabled={companyMutation.isPending} onClick={() => companyMutation.mutate({ company, name: company.name, active: !company.active })}>{company.active ? "Deactivate" : "Activate"}</Button>
         </div>

@@ -31,7 +31,7 @@ export const Route = createFileRoute("/(auth)/register")({
     const locationsQuery = useQuery({
       queryKey: ["locations", "registration-selectable"],
       queryFn: async () => {
-        const response = await apiClient.get("/locations/public");
+        const response = await apiClient.get("/api/locations/public");
         const body = response.data;
         const locations = Array.isArray(body)
           ? body

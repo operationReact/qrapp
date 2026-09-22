@@ -27,14 +27,14 @@ public class CustomerCompanyController {
                 .map(CustomerCompanyResponse::from).toList();
     }
 
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPERUSER')")
+    @PreAuthorize("isAuthenticated()")
     @GetMapping("/api/admin/customer-companies")
     public List<CustomerCompanyResponse> companies(Authentication authentication) {
         authorize(authentication);
         return companyService.listAll().stream().map(CustomerCompanyResponse::from).toList();
     }
 
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPERUSER')")
+    @PreAuthorize("isAuthenticated()")
     @PostMapping("/api/admin/customer-companies")
     public ResponseEntity<CustomerCompanyResponse> create(@Valid @RequestBody CustomerCompanyRequest request,
                                                            Authentication authentication) {
@@ -43,7 +43,7 @@ public class CustomerCompanyController {
                 .body(CustomerCompanyResponse.from(companyService.create(request)));
     }
 
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPERUSER')")
+    @PreAuthorize("isAuthenticated()")
     @PutMapping("/api/admin/customer-companies/{id}")
     public CustomerCompanyResponse update(@PathVariable Long id,
                                           @Valid @RequestBody CustomerCompanyRequest request,
@@ -52,7 +52,7 @@ public class CustomerCompanyController {
         return CustomerCompanyResponse.from(companyService.update(id, request));
     }
 
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPERUSER')")
+    @PreAuthorize("isAuthenticated()")
     @GetMapping("/api/admin/locations/{locationId}/customer-companies")
     public List<CustomerCompanyResponse> locationCompanies(@PathVariable Long locationId,
                                                             Authentication authentication) {
@@ -60,7 +60,7 @@ public class CustomerCompanyController {
         return companyService.listForLocation(locationId).stream().map(CustomerCompanyResponse::from).toList();
     }
 
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPERUSER')")
+    @PreAuthorize("isAuthenticated()")
     @PutMapping("/api/admin/locations/{locationId}/customer-companies/{companyId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void assign(@PathVariable Long locationId, @PathVariable Long companyId,
@@ -69,7 +69,7 @@ public class CustomerCompanyController {
         companyService.assign(locationId, companyId);
     }
 
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN','SUPERUSER')")
+    @PreAuthorize("isAuthenticated()")
     @DeleteMapping("/api/admin/locations/{locationId}/customer-companies/{companyId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void remove(@PathVariable Long locationId, @PathVariable Long companyId,

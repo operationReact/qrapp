@@ -443,6 +443,24 @@ body {
   scrollbar-width: none;
 }
 
+/*
+ * Warm Pearl background for the mobile Admin Console drawer only.
+ * Scoped to [data-mobile="true"] (only set by the Sheet-based mobile
+ * Sidebar branch in components/ui/sidebar.jsx) combined with the
+ * admin-sidebar-shell hook class, so the desktop sidebar's flat
+ * bg-sidebar token is completely unaffected.
+ * Two extremely low-opacity radial glows (warm gold top-left, brand red
+ * bottom-right) over an ivory base add subtle depth without competing
+ * with navigation content.
+ */
+.admin-sidebar-shell[data-mobile="true"] {
+  background:
+    radial-gradient(circle at 8% 5%, rgba(184, 135, 70, 0.08), transparent 30%),
+    radial-gradient(circle at 92% 88%, rgba(229, 27, 35, 0.045), transparent 32%),
+    #fbf9f5;
+}
+
+
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
