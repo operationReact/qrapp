@@ -5,8 +5,8 @@ import lombok.Data;
 
 @Data
 public class LocationRequest {
-    @NotBlank private String code;
     @NotBlank private String name;
+    private String code;
     private String address;
     private Boolean active = true;
 }

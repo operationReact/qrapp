@@ -31,6 +31,7 @@ class LocationSecurityFilterChainTest {
     @MockBean LocationRepository locations;
     @MockBean UserLocationAccessRepository accesses;
     @MockBean UserRepository userRepository;
+    @MockBean com.broandbro.qrapp.service.LocationCodeService locationCodeService;
 
     private final Location a = Location.builder().id(1L).code("A").name("A").active(true).build();
     private final Location b = Location.builder().id(2L).code("B").name("B").active(true).build();
@@ -78,6 +79,7 @@ class LocationSecurityFilterChainTest {
         Location created = Location.builder().id(3L).code("new-location").name("New Location")
                 .active(true).build();
         when(locations.findByCode("new-location")).thenReturn(Optional.empty());
+        when(locationCodeService.generate("new-location", "New Location")).thenReturn("new-location");
         when(locations.save(any(Location.class))).thenReturn(created);
 
         mvc.perform(post("/api/admin/locations")
