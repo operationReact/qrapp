@@ -5,13 +5,16 @@ import com.broandbro.qrapp.combo.entity.ComboCampaign;
 import com.broandbro.qrapp.combo.entity.ComboCampaignEligibility;
 import com.broandbro.qrapp.combo.entity.ComboCampaignTier;
 import com.broandbro.qrapp.combo.repository.ComboCampaignRepository;
+import com.broandbro.qrapp.entity.Location;
 import com.broandbro.qrapp.enums.ComboStatus;
 import com.broandbro.qrapp.enums.DiscountType;
 import com.broandbro.qrapp.promotion.engine.CartContext;
 import com.broandbro.qrapp.promotion.engine.CartItemContext;
+import com.broandbro.qrapp.repository.LocationRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,13 +30,16 @@ import java.util.stream.Collectors;
 public class ComboCampaignService {
 
     private final ComboCampaignRepository campaignRepository;
+    private final LocationRepository locationRepository;
 
     // ── Admin CRUD ─────────────────────────────────────────────────────────────
 
     @Transactional
     public ComboCampaignResponse create(ComboCampaignCreateRequest req, String createdBy) {
+        Location location = requireLocation(req.locationId());
         ComboCampaign campaign = ComboCampaign.builder()
                 .name(req.name())
+                .location(location)
                 .description(req.description())
                 .status(ComboStatus.ACTIVE)
                 .isActive(true)
@@ -53,9 +59,11 @@ public class ComboCampaignService {
     }
 
     @Transactional
-    public ComboCampaignResponse update(Long id, ComboCampaignCreateRequest req, String updatedBy) {
-        ComboCampaign campaign = findActive(id);
+    public ComboCampaignResponse update(Long id, ComboCampaignCreateRequest req, String updatedBy,
+                                        Optional<List<Long>> locationScope) {
+        ComboCampaign campaign = findActiveInScope(id, locationScope);
         campaign.setName(req.name());
+        campaign.setLocation(requireLocation(req.locationId()));
         campaign.setDescription(req.description());
         campaign.setStartsAt(req.startsAt());
         campaign.setEndsAt(req.endsAt());
@@ -72,8 +80,9 @@ public class ComboCampaignService {
     }
 
     @Transactional
-    public ComboCampaignResponse setStatus(Long id, String status, String updatedBy) {
-        ComboCampaign campaign = findActive(id);
+    public ComboCampaignResponse setStatus(Long id, String status, String updatedBy,
+                                           Optional<List<Long>> locationScope) {
+        ComboCampaign campaign = findActiveInScope(id, locationScope);
         ComboStatus newStatus = ComboStatus.valueOf(status.toUpperCase());
         campaign.setStatus(newStatus);
         campaign.setIsActive(newStatus == ComboStatus.ACTIVE);
@@ -82,8 +91,8 @@ public class ComboCampaignService {
     }
 
     @Transactional
-    public void delete(Long id, String deletedBy) {
-        ComboCampaign campaign = findActive(id);
+    public void delete(Long id, String deletedBy, Optional<List<Long>> locationScope) {
+        ComboCampaign campaign = findActiveInScope(id, locationScope);
         campaign.setDeletedAt(Instant.now());
         campaign.setStatus(ComboStatus.DELETED);
         campaign.setIsActive(false);
@@ -92,13 +101,16 @@ public class ComboCampaignService {
     }
 
     @Transactional(readOnly = true)
-    public ComboCampaignResponse getById(Long id) {
-        return toResponse(findActive(id));
+    public ComboCampaignResponse getById(Long id, Optional<List<Long>> locationScope) {
+        return toResponse(findActiveInScope(id, locationScope));
     }
 
     @Transactional(readOnly = true)
-    public List<ComboCampaignResponse> listAll() {
-        return campaignRepository.findAllNonDeleted().stream()
+    public List<ComboCampaignResponse> listAll(Optional<List<Long>> locationScope) {
+        List<ComboCampaign> campaigns = isUnfiltered(locationScope)
+                ? campaignRepository.findAllNonDeleted()
+                : campaignRepository.findAllNonDeletedInScope(scopeIdsOrSentinel(locationScope));
+        return campaigns.stream()
                 .map(this::toResponse)
                 .toList();
     }
@@ -270,6 +282,42 @@ public class ComboCampaignService {
                 .orElseThrow(() -> new EntityNotFoundException("BYOC Campaign not found: " + id));
     }
 
+    // ── Location scope helpers ───────────────────────────────────────────────
+
+    private boolean isUnfiltered(Optional<List<Long>> locationScope) {
+        return locationScope == null || locationScope.isEmpty();
+    }
+
+    private List<Long> scopeIdsOrSentinel(Optional<List<Long>> locationScope) {
+        List<Long> ids = locationScope.get();
+        return ids.isEmpty() ? List.of(-1L) : ids;
+    }
+
+    /**
+     * Loads an active campaign and enforces the caller's location scope. An empty
+     * scope is the SUPER_ADMIN "All Locations" view (no restriction); a present list
+     * restricts to those location IDs (an empty list sees nothing). Distinguishes
+     * "not found" (404) from "exists but out of scope" (403).
+     */
+    private ComboCampaign findActiveInScope(Long id, Optional<List<Long>> locationScope) {
+        if (isUnfiltered(locationScope)) {
+            return findActive(id);
+        }
+        List<Long> ids = locationScope.get();
+        if (ids.isEmpty()) {
+            throw new AccessDeniedException("location_access_denied");
+        }
+        findActive(id); // 404 if it does not exist at all
+        return campaignRepository.findActiveByIdAndLocationIdIn(id, ids)
+                .orElseThrow(() -> new AccessDeniedException("location_access_denied"));
+    }
+
+    private Location requireLocation(Long locationId) {
+        return locationRepository.findById(locationId)
+                .filter(l -> Boolean.TRUE.equals(l.getActive()))
+                .orElseThrow(() -> new IllegalArgumentException("location_not_found_or_inactive"));
+    }
+
     private ComboCampaignTierResponse toTierResponse(ComboCampaignTier t) {
         return new ComboCampaignTierResponse(
                 t.getId(), t.getMinItems(), t.getDiscountType(),
@@ -287,7 +335,9 @@ public class ComboCampaignService {
                 .map(ComboCampaignEligibility::getMenuItemId)
                 .toList();
         return new ComboCampaignResponse(
-                c.getId(), c.getName(), c.getDescription(), c.getStatus(),
+                c.getId(), c.getName(),
+                c.getLocation() != null ? c.getLocation().getId() : null,
+                c.getDescription(), c.getStatus(),
                 c.getIsActive(), c.getStartsAt(), c.getEndsAt(), c.getDisplayPriority(),
                 c.getCreatedBy(), c.getCreatedAt(), c.getUpdatedAt(),
                 c.getTiers().stream().map(this::toTierResponse).toList(),
