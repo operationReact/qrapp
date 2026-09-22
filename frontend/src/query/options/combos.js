@@ -1,4 +1,5 @@
 import { queryOptions } from "@tanstack/react-query";
+import { getEffectiveLocationId } from "@/lib/activeLocationStore";
 import {
   getPublicCombos,
   getComboAnalyticsSummary,
@@ -10,11 +11,7 @@ import {
 } from "../../services/comboService";
 
 const storedLocationId = () => {
-  try {
-    return JSON.parse(localStorage.getItem("active-location") || "null")?.id ?? null;
-  } catch {
-    return null;
-  }
+  return getEffectiveLocationId();
 };
 
 export const publicCombosOptions = queryOptions({

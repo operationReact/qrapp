@@ -5,6 +5,7 @@ import { useAuth } from "./AuthContext";
 import { canAccessAdmin, canSelectAllLocations } from "@/lib/roles";
 import { ALL_LOCATIONS, activeLocationScopeId, isAllLocationsSelection } from "@/lib/allLocations";
 import { resolveSectionOverride } from "@/lib/sectionLocation";
+import { setEffectiveLocationId } from "@/lib/activeLocationStore";
 
 const STORAGE_KEY = "active-location";
 const LocationContext = createContext(null);
@@ -73,6 +74,10 @@ export function LocationProvider({ children }) {
   const activeLocationId = activeLocationScopeId(activeLocation);
 
   useEffect(() => {
+    setEffectiveLocationId(activeLocationId);
+  }, [activeLocationId]);
+
+  useEffect(() => {
     if (baseLocation) localStorage.setItem(STORAGE_KEY, JSON.stringify(baseLocation));
     else localStorage.removeItem(STORAGE_KEY);
   }, [baseLocation]);
@@ -98,17 +103,24 @@ export function LocationProvider({ children }) {
     setSectionOverride(null);
     if (allowAllLocations && isAllLocationsSelection(location)) {
       setStoredLocation(ALL_LOCATIONS);
+      setEffectiveLocationId(null);
       return;
     }
     const next = location && availableLocations.find((item) => String(item.id) === String(location.id));
     setStoredLocation(next || null);
+    setEffectiveLocationId(activeLocationScopeId(next));
   }, [allowAllLocations, availableLocations]);
   // Section-level selection: transient override, never persisted, and only
   // among assigned locations (never the "All Locations" sentinel).
   const setSectionLocation = useCallback((location) => {
-    setSectionOverride(resolveSectionOverride(location, availableLocations));
+    const next = resolveSectionOverride(location, availableLocations);
+    setSectionOverride(next);
+    setEffectiveLocationId(activeLocationScopeId(next));
   }, [availableLocations]);
-  const clearSectionLocation = useCallback(() => setSectionOverride(null), []);
+  const clearSectionLocation = useCallback(() => {
+    setSectionOverride(null);
+    setEffectiveLocationId(activeLocationScopeId(baseLocation));
+  }, [baseLocation]);
   const value = useMemo(() => ({
     activeLocation, activeLocationId, availableLocations,
     isAllLocations, canSelectAllLocations: allowAllLocations, allLocationsOption: ALL_LOCATIONS,

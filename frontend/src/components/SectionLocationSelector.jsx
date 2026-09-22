@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { ChevronDown, MapPin } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useLocation } from "@/context/LocationContext";
@@ -18,7 +19,17 @@ import {
  */
 export function SectionLocationSelector({ className = "", label = "Location" }) {
   const { user } = useAuth();
-  const { availableLocations, activeLocation, setSectionLocation } = useLocation();
+  const {
+    availableLocations,
+    activeLocation,
+    setSectionLocation,
+    clearSectionLocation,
+  } = useLocation();
+
+  useEffect(() => () => {
+    // Section overrides are transient and must not leak into another page.
+    clearSectionLocation();
+  }, [clearSectionLocation]);
 
   if (!canUseSectionLocationSelector(user)) return null;
 

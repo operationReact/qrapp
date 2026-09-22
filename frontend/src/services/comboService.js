@@ -1,7 +1,8 @@
 import { apiClient } from "./index";
+import { getEffectiveLocationId } from "@/lib/activeLocationStore";
 
 const getActiveLocationId = () =>
-  JSON.parse(localStorage.getItem("active-location") || "null")?.id;
+  getEffectiveLocationId();
 
 // ── Public (customer-facing) ───────────────────────────────────────────────
 export const getPublicCombos = () =>
