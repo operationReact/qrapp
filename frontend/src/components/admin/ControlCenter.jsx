@@ -65,7 +65,7 @@ export function ControlCenterLocations() {
   const { activeLocation } = useActiveLocation();
   const [form, setForm] = useState({ name: "", code: "", address: "" });
   const queryClient = useQueryClient();
-  const generatedCode = form.name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  const generatedCode = `LOC-${form.name.trim().toUpperCase().replace(/[^A-Z0-9]+/g, "-").replace(/^-|-$/g, "")}-001`;
   const mutation = useMutation({
     mutationFn: () => createManagementResource("/api/admin/locations", { ...form, name: form.name.trim(), code: (form.code.trim() || generatedCode), address: form.address.trim(), active: true }),
     onSuccess: () => { setForm({ name: "", code: "", address: "" }); queryClient.invalidateQueries({ queryKey: ["admin", "locations"] }); },
@@ -79,10 +79,10 @@ export function ControlCenterLocations() {
     <div className="grid gap-5 lg:grid-cols-[minmax(0,1.1fr)_minmax(18rem,.9fr)]">
       <Card className="border-zinc-200 shadow-sm"><CardHeader><CardTitle>Add a location</CardTitle><p className="text-sm text-zinc-500">Use a unique code that remains stable for integrations.</p></CardHeader><CardContent>
         <form className="grid gap-3 sm:grid-cols-2" onSubmit={(event) => { event.preventDefault(); if (form.name.trim() && (form.code.trim() || generatedCode)) mutation.mutate(); }}>
-          <Input className="min-h-11" required placeholder="Location name" value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value, code: current.code || event.target.value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") }))} />
+          <Input className="min-h-11" required placeholder="Location name" value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value, code: current.code || `LOC-${event.target.value.toUpperCase().replace(/[^A-Z0-9]+/g, "-").replace(/^-|-$/g, "")}-001` }))} />
           <Input className="min-h-11" required placeholder="Location code" value={form.code} onChange={(event) => setForm((current) => ({ ...current, code: event.target.value }))} />
           <Input className="min-h-11 sm:col-span-2" placeholder="Address (optional)" value={form.address} onChange={(event) => setForm((current) => ({ ...current, address: event.target.value }))} />
-          <Button className="min-h-11 sm:col-span-2" disabled={mutation.isPending}>{mutation.isPending ? "Adding location…" : "Add location"}</Button>
+          <Button type="submit" className="min-h-11 sm:col-span-2" disabled={mutation.isPending}>{mutation.isPending ? "Adding location…" : "Add location"}</Button>
         </form>
         {apiError && <p className="mt-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{apiError}</p>}
       </CardContent></Card>

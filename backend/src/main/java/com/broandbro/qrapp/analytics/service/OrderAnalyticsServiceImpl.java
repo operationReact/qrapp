@@ -6,6 +6,7 @@ import com.broandbro.qrapp.analytics.dto.PeakHourResponse;
 import com.broandbro.qrapp.analytics.projection.HourlyOrderSummaryProjection;
 import com.broandbro.qrapp.analytics.repository.HourlyOrderAnalyticsRepository;
 import com.broandbro.qrapp.analytics.scheduler.HourlyAnalyticsScheduler;
+import com.broandbro.qrapp.analytics.support.AnalyticsLocationScope;
 import com.broandbro.qrapp.time.BusinessTime;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -39,12 +40,16 @@ public class OrderAnalyticsServiceImpl implements OrderAnalyticsService {
     @Cacheable(
         cacheManager = "analyticsCacheManager",
         cacheNames   = AnalyticsCacheConfig.CACHE_HOURLY_ORDERS,
-        key           = "'daily:' + #date"
+        key           = "'daily:' + #date + ':' + #scope.allLocations() + ':' + #scope.locationIds()"
     )
-    public List<HourlyOrderResponse> getHourlyBreakdown(LocalDate date) {
+    public List<HourlyOrderResponse> getHourlyBreakdown(LocalDate date, AnalyticsLocationScope scope) {
         LocalDateTime now        = BusinessTime.now();
         LocalDate     today      = now.toLocalDate();
         int           currentHour = now.getHour();
+
+        if (!scope.visible()) {
+            return List.of();
+        }
 
         // Always refresh the current partial hour so very-recent orders appear immediately.
         // For past dates, also refresh hour 23 to close any open bucket.
@@ -55,12 +60,12 @@ public class OrderAnalyticsServiceImpl implements OrderAnalyticsService {
             }
         }
 
-        return hourlyRepo.findByOrderDateOrderByHourOfDayAsc(date)
+        return hourlyRepo.findHourlyBreakdownForDate(date, scope.allLocations(), scope.locationIds())
                 .stream()
-                .map(e -> new HourlyOrderResponse(
-                        e.getOrderDate(), e.getHourOfDay(), e.getDayOfWeek(),
-                        e.getOrderCount(), e.getCompletedCount(),
-                        e.getHourRevenue(), e.getAvgFulfilmentMinutes()))
+                .map(p -> new HourlyOrderResponse(
+                        date, p.getHourOfDay(), p.getDayOfWeek(),
+                        p.getTotalOrderCount(), p.getTotalCompletedCount(),
+                        nullSafe(p.getTotalRevenue()), p.getAvgFulfilmentMinutes()))
                 .collect(Collectors.toList());
     }
 
@@ -68,12 +73,15 @@ public class OrderAnalyticsServiceImpl implements OrderAnalyticsService {
     @Cacheable(
         cacheManager = "analyticsCacheManager",
         cacheNames   = AnalyticsCacheConfig.CACHE_HOURLY_ORDERS,
-        key           = "'range:' + #from + ':' + #to"
+        key           = "'range:' + #from + ':' + #to + ':' + #scope.allLocations() + ':' + #scope.locationIds()"
     )
-    public List<HourlyOrderResponse> getHourlyBreakdownRange(LocalDate from, LocalDate to) {
-        log.debug("[OrderService] getHourlyBreakdownRange from={} to={}", from, to);
+    public List<HourlyOrderResponse> getHourlyBreakdownRange(LocalDate from, LocalDate to, AnalyticsLocationScope scope) {
+        log.debug("[OrderService] getHourlyBreakdownRange from={} to={} scope={}", from, to, scope);
+        if (!scope.visible()) {
+            return List.of();
+        }
         refreshCurrentHourIfTodayInRange(to);
-        return hourlyRepo.findHeatmapByDateRange(from, to)
+        return hourlyRepo.findHeatmapByDateRange(from, to, scope.allLocations(), scope.locationIds())
                 .stream()
                 .map(p -> new HourlyOrderResponse(
                         null, p.getHourOfDay(), p.getDayOfWeek(),
@@ -86,12 +94,16 @@ public class OrderAnalyticsServiceImpl implements OrderAnalyticsService {
     @Cacheable(
         cacheManager = "analyticsCacheManager",
         cacheNames   = AnalyticsCacheConfig.CACHE_PEAK_HOURS,
-        key           = "'peaks:' + #from + ':' + #to"
+        key           = "'peaks:' + #from + ':' + #to + ':' + #scope.allLocations() + ':' + #scope.locationIds()"
     )
-    public List<PeakHourResponse> getPeakHours(LocalDate from, LocalDate to) {
-        log.debug("[OrderService] getPeakHours from={} to={}", from, to);
+    public List<PeakHourResponse> getPeakHours(LocalDate from, LocalDate to, AnalyticsLocationScope scope) {
+        log.debug("[OrderService] getPeakHours from={} to={} scope={}", from, to, scope);
+        if (!scope.visible()) {
+            return List.of();
+        }
         refreshCurrentHourIfTodayInRange(to);
-        List<HourlyOrderSummaryProjection> all = hourlyRepo.findHeatmapByDateRange(from, to);
+        List<HourlyOrderSummaryProjection> all =
+                hourlyRepo.findHeatmapByDateRange(from, to, scope.allLocations(), scope.locationIds());
 
         // Compute average order count across all hour buckets
         OptionalDouble avgOpt = all.stream()

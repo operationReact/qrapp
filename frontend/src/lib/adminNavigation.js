@@ -10,7 +10,7 @@ export const ADMIN_NAVIGATION = [
   { section: "Control", items: [
     { to: "/admin/control-center", label: "Control Center", icon: ShieldCheckIcon, roles: [ROLE.SUPER_ADMIN] },
   ] },
-  { section: "Workspace", items: [{ to: "/admin", label: "Dashboard", roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN, ROLE.MANAGER, ROLE.KITCHEN_STAFF] }] },
+  { section: "Workspace", items: [{ to: "/admin", label: "Dashboard", roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN, ROLE.MANAGER] }] },
   { section: "Menu", items: [
     { to: "/admin/menu", label: "Menu Items", icon: BowlFoodIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN, ROLE.MANAGER] },
     { to: "/admin/combos", label: "Combos", icon: CubeIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN] },

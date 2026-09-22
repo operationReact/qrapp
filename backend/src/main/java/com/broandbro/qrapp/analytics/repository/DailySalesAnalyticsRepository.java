@@ -38,34 +38,54 @@ public interface DailySalesAnalyticsRepository extends JpaRepository<DailySalesA
     // ── Date-range reads (projection — no full entity load) ───────────────────
 
     @Query("""
-           SELECT d.salesDate           AS salesDate,
-                  d.totalOrders         AS totalOrders,
-                  d.completedOrders     AS completedOrders,
-                  d.cancelledOrders     AS cancelledOrders,
-                  d.totalRevenue        AS totalRevenue,
-                  d.netRevenue          AS netRevenue,
-                  d.totalDiscount       AS totalDiscount,
-                  d.averageOrderValue   AS averageOrderValue,
-                  d.uniqueCustomers     AS uniqueCustomers,
-                  d.newCustomers        AS newCustomers,
-                  d.totalItemsSold      AS totalItemsSold
+           SELECT d.salesDate                       AS salesDate,
+                  CAST(SUM(d.totalOrders) AS integer)     AS totalOrders,
+                  CAST(SUM(d.completedOrders) AS integer) AS completedOrders,
+                  CAST(SUM(d.cancelledOrders) AS integer) AS cancelledOrders,
+                  SUM(d.totalRevenue)               AS totalRevenue,
+                  SUM(d.netRevenue)                 AS netRevenue,
+                  SUM(d.totalDiscount)              AS totalDiscount,
+                  CASE WHEN SUM(d.completedOrders) > 0
+                       THEN SUM(d.totalRevenue) / SUM(d.completedOrders)
+                       ELSE NULL END                AS averageOrderValue,
+                  CAST(SUM(d.uniqueCustomers) AS integer) AS uniqueCustomers,
+                  CAST(SUM(d.newCustomers) AS integer)    AS newCustomers,
+                  CAST(SUM(d.totalItemsSold) AS integer)  AS totalItemsSold
            FROM DailySalesAnalytics d
            WHERE d.salesDate BETWEEN :from AND :to
+             AND (:allLocations = TRUE OR d.locationId IN :locationIds)
+           GROUP BY d.salesDate
            ORDER BY d.salesDate ASC
            """)
     List<DailySalesSummaryProjection> findSummaryByDateRange(
             @Param("from") LocalDate from,
-            @Param("to") LocalDate to);
+            @Param("to") LocalDate to,
+            @Param("allLocations") boolean allLocations,
+            @Param("locationIds") List<Long> locationIds);
 
     @Query("""
            SELECT d FROM DailySalesAnalytics d
            WHERE d.salesDate BETWEEN :from AND :to
+             AND (:allLocations = TRUE OR d.locationId IN :locationIds)
            ORDER BY d.salesDate ASC
            """)
     Page<DailySalesAnalytics> findByDateRangePaged(
             @Param("from") LocalDate from,
             @Param("to") LocalDate to,
+            @Param("allLocations") boolean allLocations,
+            @Param("locationIds") List<Long> locationIds,
             Pageable pageable);
+
+    /** Number of snapshot rows for a single date within the location scope. */
+    @Query("""
+           SELECT COUNT(d) FROM DailySalesAnalytics d
+           WHERE d.salesDate = :date
+             AND (:allLocations = TRUE OR d.locationId IN :locationIds)
+           """)
+    long countByDateInScope(
+            @Param("date") LocalDate date,
+            @Param("allLocations") boolean allLocations,
+            @Param("locationIds") List<Long> locationIds);
 
     // ── Aggregate KPIs for a date range ───────────────────────────────────────
 
@@ -95,11 +115,14 @@ public interface DailySalesAnalyticsRepository extends JpaRepository<DailySalesA
                     ELSE NULL END               AS avgProfitMargin
            FROM analytics_daily_sales
            WHERE sales_date BETWEEN :from AND :to
+             AND (:allLocations = TRUE OR location_id IN (:locationIds))
            """,
            nativeQuery = true)
     DashboardKpiProjection aggregateKpiForRange(
             @Param("from") LocalDate from,
-            @Param("to") LocalDate to);
+            @Param("to") LocalDate to,
+            @Param("allLocations") boolean allLocations,
+            @Param("locationIds") List<Long> locationIds);
 
     // ── Scheduler UPSERT ──────────────────────────────────────────────────────
 
@@ -112,104 +135,106 @@ public interface DailySalesAnalyticsRepository extends JpaRepository<DailySalesA
     @Transactional
     @Query(value = """
            INSERT INTO analytics_daily_sales (
-               sales_date, total_orders, completed_orders, cancelled_orders,
+               sales_date, location_id, total_orders, completed_orders, cancelled_orders,
                total_revenue, net_revenue, total_discount, average_order_value,
                unique_customers, new_customers, total_items_sold,
                wallet_revenue, online_revenue, cod_revenue,
                total_estimated_cost, total_estimated_profit, avg_profit_margin,
                created_at, updated_at
            )
+           WITH pragati AS (
+               SELECT id FROM locations WHERE code = 'PRAGATI_NAGAR'
+           ),
+           order_item_agg AS (
+               SELECT oi.order_id AS order_id,
+                      SUM(oi.quantity) AS qty,
+                      SUM(oi.quantity * COALESCE(oi.cost_price_snapshot, mi.estimated_cost, 0)) AS cost
+               FROM order_item oi
+               JOIN menu_item mi ON mi.id = oi.item_id
+               GROUP BY oi.order_id
+           ),
+           new_customer AS (
+               SELECT phone
+               FROM orders
+               GROUP BY phone
+               HAVING MIN(created_at::date) = :targetDate
+           ),
+           base AS (
+               SELECT
+                   COALESCE(o.location_id, (SELECT id FROM pragati)) AS location_id,
+                   o.status              AS status,
+                   o.grand_total         AS grand_total,
+                   o.coupon_discount     AS coupon_discount,
+                   o.phone               AS phone,
+                   o.payment_method      AS payment_method,
+                   COALESCE(oia.qty, 0)  AS item_qty,
+                   COALESCE(oia.cost, 0) AS item_cost
+               FROM orders o
+               LEFT JOIN order_item_agg oia ON oia.order_id = o.id
+               WHERE o.created_at::date = :targetDate
+           )
            SELECT
                :targetDate,
+               b.location_id,
                COUNT(*)                                                       AS total_orders,
-               COUNT(*) FILTER (WHERE o.status = 'COMPLETED')                AS completed_orders,
-               COUNT(*) FILTER (WHERE o.status = 'CANCELLED')                AS cancelled_orders,
+               COUNT(*) FILTER (WHERE b.status = 'COMPLETED')                AS completed_orders,
+               COUNT(*) FILTER (WHERE b.status = 'CANCELLED')                AS cancelled_orders,
 
-               COALESCE(SUM(o.grand_total)
-                   FILTER (WHERE o.status = 'COMPLETED'), 0)                 AS total_revenue,
+               COALESCE(SUM(b.grand_total)
+                   FILTER (WHERE b.status = 'COMPLETED'), 0)                 AS total_revenue,
 
-               COALESCE(SUM(o.grand_total - COALESCE(o.coupon_discount, 0))
-                   FILTER (WHERE o.status = 'COMPLETED'), 0)                 AS net_revenue,
+               COALESCE(SUM(b.grand_total - COALESCE(b.coupon_discount, 0))
+                   FILTER (WHERE b.status = 'COMPLETED'), 0)                 AS net_revenue,
 
-               COALESCE(SUM(o.coupon_discount)
-                   FILTER (WHERE o.status = 'COMPLETED'), 0)                 AS total_discount,
+               COALESCE(SUM(b.coupon_discount)
+                   FILTER (WHERE b.status = 'COMPLETED'), 0)                 AS total_discount,
 
                CASE
-                   WHEN COUNT(*) FILTER (WHERE o.status = 'COMPLETED') = 0 THEN NULL
-                   ELSE SUM(o.grand_total)
-                        FILTER (WHERE o.status = 'COMPLETED')
-                        / COUNT(*) FILTER (WHERE o.status = 'COMPLETED')
+                   WHEN COUNT(*) FILTER (WHERE b.status = 'COMPLETED') = 0 THEN NULL
+                   ELSE SUM(b.grand_total)
+                        FILTER (WHERE b.status = 'COMPLETED')
+                        / COUNT(*) FILTER (WHERE b.status = 'COMPLETED')
                END                                                            AS average_order_value,
 
-               COUNT(DISTINCT o.phone)                                        AS unique_customers,
+               COUNT(DISTINCT b.phone)                                        AS unique_customers,
 
-               COUNT(DISTINCT o.phone) FILTER (WHERE o.phone IN (
-                   SELECT phone FROM orders
-                   GROUP BY phone
-                   HAVING MIN(created_at::date) = :targetDate
-               ))                                                             AS new_customers,
+               COUNT(DISTINCT b.phone) FILTER (
+                   WHERE b.phone IN (SELECT phone FROM new_customer)
+               )                                                              AS new_customers,
 
-               COALESCE((
-                   SELECT SUM(oi.quantity)
-                   FROM order_item oi
-                   JOIN orders o2 ON o2.id = oi.order_id
-                   WHERE o2.created_at::date = :targetDate
-                     AND o2.status = 'COMPLETED'
-               ), 0)                                                          AS total_items_sold,
+               COALESCE(SUM(b.item_qty) FILTER (WHERE b.status = 'COMPLETED'), 0) AS total_items_sold,
 
-               COALESCE(SUM(o.grand_total)
-                   FILTER (WHERE o.status = 'COMPLETED'
-                             AND o.payment_method = 'WALLET'), 0)            AS wallet_revenue,
+               COALESCE(SUM(b.grand_total)
+                   FILTER (WHERE b.status = 'COMPLETED'
+                             AND b.payment_method = 'WALLET'), 0)            AS wallet_revenue,
 
-               COALESCE(SUM(o.grand_total)
-                   FILTER (WHERE o.status = 'COMPLETED'
-                             AND o.payment_method = 'ONLINE'), 0)            AS online_revenue,
+               COALESCE(SUM(b.grand_total)
+                   FILTER (WHERE b.status = 'COMPLETED'
+                             AND b.payment_method = 'ONLINE'), 0)            AS online_revenue,
 
-               COALESCE(SUM(o.grand_total)
-                   FILTER (WHERE o.status = 'COMPLETED'
-                             AND o.payment_method = 'COD'), 0)               AS cod_revenue,
+               COALESCE(SUM(b.grand_total)
+                   FILTER (WHERE b.status = 'COMPLETED'
+                             AND b.payment_method = 'COD'), 0)               AS cod_revenue,
 
-               COALESCE((
-                   SELECT SUM(oi.quantity * COALESCE(oi.cost_price_snapshot, mi.estimated_cost, 0))
-                   FROM order_item oi
-                   JOIN menu_item mi ON mi.id = oi.item_id
-                   JOIN orders o2 ON o2.id = oi.order_id
-                   WHERE o2.created_at::date = :targetDate
-                     AND o2.status = 'COMPLETED'
-               ), 0)                                                          AS total_estimated_cost,
+               COALESCE(SUM(b.item_cost) FILTER (WHERE b.status = 'COMPLETED'), 0) AS total_estimated_cost,
 
-               COALESCE(SUM(o.grand_total)
-                   FILTER (WHERE o.status = 'COMPLETED'), 0) -
-               COALESCE((
-                   SELECT SUM(oi.quantity * COALESCE(oi.cost_price_snapshot, mi.estimated_cost, 0))
-                   FROM order_item oi
-                   JOIN menu_item mi ON mi.id = oi.item_id
-                   JOIN orders o2 ON o2.id = oi.order_id
-                   WHERE o2.created_at::date = :targetDate
-                     AND o2.status = 'COMPLETED'
-               ), 0)                                                          AS total_estimated_profit,
+               COALESCE(SUM(b.grand_total) FILTER (WHERE b.status = 'COMPLETED'), 0)
+                   - COALESCE(SUM(b.item_cost) FILTER (WHERE b.status = 'COMPLETED'), 0) AS total_estimated_profit,
 
                CASE
-                   WHEN COALESCE(SUM(o.grand_total)
-                            FILTER (WHERE o.status = 'COMPLETED'), 0) = 0 THEN NULL
+                   WHEN COALESCE(SUM(b.grand_total)
+                            FILTER (WHERE b.status = 'COMPLETED'), 0) = 0 THEN NULL
                    ELSE (
-                       COALESCE(SUM(o.grand_total) FILTER (WHERE o.status = 'COMPLETED'), 0) -
-                       COALESCE((
-                           SELECT SUM(oi.quantity * COALESCE(oi.cost_price_snapshot, mi.estimated_cost, 0))
-                           FROM order_item oi
-                           JOIN menu_item mi ON mi.id = oi.item_id
-                           JOIN orders o2 ON o2.id = oi.order_id
-                           WHERE o2.created_at::date = :targetDate
-                             AND o2.status = 'COMPLETED'
-                       ), 0)
-                   ) / COALESCE(SUM(o.grand_total) FILTER (WHERE o.status = 'COMPLETED'), 1) * 100
+                       COALESCE(SUM(b.grand_total) FILTER (WHERE b.status = 'COMPLETED'), 0)
+                       - COALESCE(SUM(b.item_cost) FILTER (WHERE b.status = 'COMPLETED'), 0)
+                   ) / COALESCE(SUM(b.grand_total) FILTER (WHERE b.status = 'COMPLETED'), 1) * 100
                END                                                            AS avg_profit_margin,
 
                NOW(), NOW()
-           FROM orders o
-           WHERE o.created_at::date = :targetDate
+           FROM base b
+           GROUP BY b.location_id
 
-           ON CONFLICT (sales_date) DO UPDATE SET
+           ON CONFLICT (sales_date, location_id) DO UPDATE SET
                total_orders             = EXCLUDED.total_orders,
                completed_orders         = EXCLUDED.completed_orders,
                cancelled_orders         = EXCLUDED.cancelled_orders,
@@ -235,15 +260,20 @@ public interface DailySalesAnalyticsRepository extends JpaRepository<DailySalesA
 
     /** Revenue trend as a list of (date, revenue) pairs — for line charts. */
     @Query("""
-           SELECT d.salesDate AS salesDate, d.netRevenue AS netRevenue,
-                  d.totalRevenue AS totalRevenue
+           SELECT d.salesDate AS salesDate,
+                  SUM(d.netRevenue) AS netRevenue,
+                  SUM(d.totalRevenue) AS totalRevenue
            FROM DailySalesAnalytics d
            WHERE d.salesDate BETWEEN :from AND :to
+             AND (:allLocations = TRUE OR d.locationId IN :locationIds)
+           GROUP BY d.salesDate
            ORDER BY d.salesDate ASC
            """)
     List<RevenueTrendProjection> findRevenueTrend(
             @Param("from") LocalDate from,
-            @Param("to") LocalDate to);
+            @Param("to") LocalDate to,
+            @Param("allLocations") boolean allLocations,
+            @Param("locationIds") List<Long> locationIds);
 
     // ── Inner projection interfaces ────────────────────────────────────────────
 

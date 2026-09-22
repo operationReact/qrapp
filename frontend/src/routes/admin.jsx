@@ -1,4 +1,4 @@
-import { createFileRoute, Outlet, useLocation } from "@tanstack/react-router";
+import { createFileRoute, Outlet, useLocation, Navigate } from "@tanstack/react-router";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
 import {
   SidebarInset,
@@ -10,7 +10,8 @@ import { Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SidebarIcon } from "@phosphor-icons/react";
 import { RoleGuard } from "@/components/RoleGuard";
-import { CAN_ACCESS_ADMIN } from "@/lib/roles";
+import { CAN_ACCESS_ADMIN, isKitchenStaffOnly } from "@/lib/roles";
+import { useAuth } from "@/context/AuthContext";
 
 export const Route = createFileRoute("/admin")({
   component: AdminLayout,
@@ -60,22 +61,30 @@ function SubPageHeader() {
 
 function AdminLayout() {
   const { pathname } = useLocation();
+  const { user } = useAuth();
   // Dashboard has its own embedded premium header — skip the layout header there
   const isDashboard = pathname === "/admin" || pathname === "/admin/";
 
+  // KITCHEN_STAFF are confined to the Kitchen Queue — bounce them there.
+  const kitchenOnly = isKitchenStaffOnly(user);
+
   return (
     <RoleGuard roles={CAN_ACCESS_ADMIN}>
-    <AdminDashboardProvider>
-      <SidebarProvider>
-        <AdminSidebar />
-        <SidebarInset className="min-w-0 bg-[#f7f6f3]">
-          {!isDashboard && <SubPageHeader />}
-          <div className="min-h-0 flex-1 flex flex-col">
-            <Outlet />
-          </div>
-        </SidebarInset>
-      </SidebarProvider>
-    </AdminDashboardProvider>
+      {kitchenOnly && !pathname.startsWith("/admin/kitchen-queue") ? (
+        <Navigate to="/admin/kitchen-queue" replace />
+      ) : (
+        <AdminDashboardProvider>
+          <SidebarProvider>
+            <AdminSidebar />
+            <SidebarInset className="min-w-0 bg-[#f7f6f3]">
+              {!isDashboard && <SubPageHeader />}
+              <div className="min-h-0 flex-1 flex flex-col">
+                <Outlet />
+              </div>
+            </SidebarInset>
+          </SidebarProvider>
+        </AdminDashboardProvider>
+      )}
     </RoleGuard>
   );
 }

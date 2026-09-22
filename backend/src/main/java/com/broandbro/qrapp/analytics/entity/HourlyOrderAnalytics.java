@@ -24,15 +24,16 @@ import java.time.LocalDateTime;
     name = "analytics_hourly_orders",
     uniqueConstraints = {
         @UniqueConstraint(
-            name = "uq_analytics_hourly_orders_date_hour",
-            columnNames = {"order_date", "hour_of_day"}
+            name = "uq_analytics_hourly_orders_date_hour_location",
+            columnNames = {"order_date", "hour_of_day", "location_id"}
         )
     },
     indexes = {
         @Index(name = "idx_aho_order_date",   columnList = "order_date DESC"),
         @Index(name = "idx_aho_hour_of_day",  columnList = "hour_of_day"),
         @Index(name = "idx_aho_date_hour",    columnList = "order_date, hour_of_day"),
-        @Index(name = "idx_aho_order_count",  columnList = "order_count DESC")
+        @Index(name = "idx_aho_order_count",  columnList = "order_count DESC"),
+        @Index(name = "idx_aho_location_date_hour", columnList = "location_id, order_date, hour_of_day")
     }
 )
 @Getter
@@ -49,6 +50,10 @@ public class HourlyOrderAnalytics {
     /** The calendar date for this hourly bucket. */
     @Column(name = "order_date", nullable = false)
     private LocalDate orderDate;
+
+    /** Owning location. Buckets are aggregated per (order_date, hour_of_day, location). */
+    @Column(name = "location_id", nullable = false)
+    private Long locationId;
 
     /**
      * Hour of day in 24h format (0–23).

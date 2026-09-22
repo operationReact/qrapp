@@ -89,4 +89,97 @@ class LocationAccessServiceTest {
         assertFalse(service.canAccessLocation(user, 3L));
         assertFalse(service.canAccessLocation(user, 404L));
     }
+
+    // ── Dashboard location scope resolution ───────────────────────────────────
+
+    @Test
+    void superAdminGetsAllLocationsWhenNoLocationRequested() {
+        User user = User.builder().id(1L).role(UserRole.SUPER_ADMIN).build();
+
+        java.util.Optional<List<Long>> scope = service.resolveDashboardLocationScope(user, null);
+
+        assertTrue(scope.isEmpty(), "empty Optional means All Locations (no filter)");
+        verifyNoInteractions(accesses);
+    }
+
+    @Test
+    void superAdminNarrowsToRequestedActiveLocation() {
+        User user = User.builder().id(1L).role(UserRole.SUPER_ADMIN).build();
+        when(locations.findById(5L)).thenReturn(java.util.Optional.of(
+                Location.builder().id(5L).active(true).build()));
+
+        java.util.Optional<List<Long>> scope = service.resolveDashboardLocationScope(user, 5L);
+
+        assertEquals(List.of(5L), scope.orElseThrow());
+    }
+
+    @Test
+    void superAdminRejectsInactiveRequestedLocation() {
+        User user = User.builder().id(1L).role(UserRole.SUPER_ADMIN).build();
+        when(locations.findById(5L)).thenReturn(java.util.Optional.of(
+                Location.builder().id(5L).active(false).build()));
+
+        assertThrows(AccessDeniedException.class, () -> service.resolveDashboardLocationScope(user, 5L));
+    }
+
+    @Test
+    void adminIsScopedToAccessibleLocationsWhenNoneRequested() {
+        Location loc = Location.builder().id(3L).active(true).build();
+        User user = User.builder().id(2L).role(UserRole.ADMIN).build();
+        when(locations.findByActiveTrueOrderByNameAsc()).thenReturn(List.of(loc));
+
+        java.util.Optional<List<Long>> scope = service.resolveDashboardLocationScope(user, null);
+
+        assertEquals(List.of(3L), scope.orElseThrow());
+    }
+
+    @Test
+    void adminMayViewAnyActiveLocationWhenRequested() {
+        User user = User.builder().id(2L).role(UserRole.ADMIN).build();
+        when(locations.findById(8L)).thenReturn(java.util.Optional.of(
+                Location.builder().id(8L).active(true).build()));
+
+        java.util.Optional<List<Long>> scope = service.resolveDashboardLocationScope(user, 8L);
+
+        assertEquals(List.of(8L), scope.orElseThrow());
+    }
+
+    @Test
+    void managerIsScopedToActiveAssignments() {
+        Location a = Location.builder().id(10L).active(true).build();
+        Location b = Location.builder().id(11L).active(true).build();
+        User user = User.builder().id(7L).role(UserRole.MANAGER).build();
+        when(accesses.findByUserIdAndActiveTrueAndLocationActiveTrueOrderByLocationNameAsc(7L))
+                .thenReturn(List.of(
+                        UserLocationAccess.builder().user(user).location(a).active(true).build(),
+                        UserLocationAccess.builder().user(user).location(b).active(true).build()));
+
+        java.util.Optional<List<Long>> scope = service.resolveDashboardLocationScope(user, null);
+
+        assertEquals(List.of(10L, 11L), scope.orElseThrow());
+    }
+
+    @Test
+    void managerRejectsUnassignedLocation() {
+        User user = User.builder().id(7L).role(UserRole.MANAGER).build();
+        when(locations.findById(999L)).thenReturn(java.util.Optional.of(
+                Location.builder().id(999L).active(true).build()));
+        when(accesses.findByUserIdAndLocationId(7L, 999L)).thenReturn(java.util.Optional.empty());
+
+        assertThrows(AccessDeniedException.class, () -> service.resolveDashboardLocationScope(user, 999L));
+    }
+
+    @Test
+    void kitchenStaffIsRestrictedToQueueOnly() {
+        User kitchen = User.builder().id(9L).role(UserRole.KITCHEN_STAFF).build();
+        User admin = User.builder().id(2L).role(UserRole.ADMIN).build();
+        User superAdmin = User.builder().id(1L).role(UserRole.SUPER_ADMIN).build();
+
+        assertTrue(service.isKitchenStaffOnly(kitchen));
+        assertFalse(service.isKitchenStaffOnly(admin));
+        assertFalse(service.isKitchenStaffOnly(superAdmin));
+
+        assertThrows(AccessDeniedException.class, () -> service.requireNonKitchenAdmin(kitchen));
+        assertDoesNotThrow(() -> service.requireNonKitchenAdmin(admin));
+    }
 }

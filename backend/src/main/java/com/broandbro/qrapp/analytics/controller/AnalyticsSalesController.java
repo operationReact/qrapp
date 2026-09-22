@@ -5,6 +5,8 @@ import com.broandbro.qrapp.analytics.dto.DailySalesResponse;
 import com.broandbro.qrapp.analytics.dto.DashboardSummaryResponse;
 import com.broandbro.qrapp.analytics.scheduler.DailySalesAggregationScheduler;
 import com.broandbro.qrapp.analytics.service.SalesAnalyticsService;
+import com.broandbro.qrapp.analytics.support.AnalyticsLocationScope;
+import com.broandbro.qrapp.analytics.support.AnalyticsScopeResolver;
 import com.broandbro.qrapp.time.BusinessTime;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -18,6 +20,7 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -40,12 +43,13 @@ import java.util.Optional;
 @RequestMapping("/api/v1/analytics/sales")
 @RequiredArgsConstructor
 @Validated
-@PreAuthorize("hasAnyRole('ADMIN', 'SUPERUSER')")
+@PreAuthorize("hasAnyRole('ADMIN', 'SUPERUSER', 'SUPER_ADMIN', 'MANAGER')")
 @Tag(name = "Analytics — Sales", description = "Daily & weekly sales KPI endpoints")
 public class AnalyticsSalesController {
 
     private final SalesAnalyticsService salesService;
     private final DailySalesAggregationScheduler dailySalesScheduler;
+    private final AnalyticsScopeResolver scopeResolver;
 
     // ── GET /api/v1/analytics/sales/daily ──────────────────────────────────────
 
@@ -63,15 +67,20 @@ public class AnalyticsSalesController {
             @Parameter(description = "End date (yyyy-MM-dd), inclusive")
             @RequestParam(required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
-            LocalDate to) {
+            LocalDate to,
+
+            @Parameter(description = "Restrict to a location. Omit for all accessible locations.")
+            @RequestParam(required = false) Long locationId,
+            Authentication authentication) {
 
         LocalDate resolvedTo   = to   != null ? to   : BusinessTime.today();
         LocalDate resolvedFrom = from != null ? from : resolvedTo.minusDays(1);
         validateRange(resolvedFrom, resolvedTo);
+        AnalyticsLocationScope scope = scopeResolver.resolve(authentication, locationId);
 
-        log.debug("[SalesController] GET /daily from={} to={}", resolvedFrom, resolvedTo);
+        log.debug("[SalesController] GET /daily from={} to={} locationId={}", resolvedFrom, resolvedTo, locationId);
         return ResponseEntity.ok(
-                ApiResponse.ok(salesService.getDailySeries(resolvedFrom, resolvedTo)));
+                ApiResponse.ok(salesService.getDailySeries(resolvedFrom, resolvedTo, scope)));
     }
 
     @GetMapping("/daily/paged")
@@ -79,14 +88,17 @@ public class AnalyticsSalesController {
     public ResponseEntity<ApiResponse<Page<DailySalesResponse>>> getDailySeriesPaged(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @RequestParam(required = false) Long locationId,
+            Authentication authentication,
             @PageableDefault(size = 30, sort = "salesDate") Pageable pageable) {
 
         LocalDate resolvedTo   = to   != null ? to   : BusinessTime.today();
         LocalDate resolvedFrom = from != null ? from : resolvedTo.minusDays(29);
         validateRange(resolvedFrom, resolvedTo);
+        AnalyticsLocationScope scope = scopeResolver.resolve(authentication, locationId);
 
         return ResponseEntity.ok(ApiResponse.ok(
-                salesService.getDailySeriesPaged(resolvedFrom, resolvedTo, pageable)));
+                salesService.getDailySeriesPaged(resolvedFrom, resolvedTo, scope, pageable)));
     }
 
     // ── GET /api/v1/analytics/sales/daily/previous ─────────────────────────────
@@ -101,12 +113,15 @@ public class AnalyticsSalesController {
     public ResponseEntity<ApiResponse<DailySalesResponse>> getPreviousDay(
             @Parameter(description = "Reference date (yyyy-MM-dd) — returns the day before this. Defaults to today.")
             @RequestParam(required = false)
-            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+            @RequestParam(required = false) Long locationId,
+            Authentication authentication) {
 
         LocalDate referenceDate = date != null ? date : BusinessTime.today();
-        log.debug("[SalesController] GET /daily/previous referenceDate={}", referenceDate);
+        AnalyticsLocationScope scope = scopeResolver.resolve(authentication, locationId);
+        log.debug("[SalesController] GET /daily/previous referenceDate={} locationId={}", referenceDate, locationId);
 
-        Optional<DailySalesResponse> result = salesService.findByPreviousDate(referenceDate);
+        Optional<DailySalesResponse> result = salesService.findByPreviousDate(referenceDate, scope);
         return result
                 .map(r -> ResponseEntity.ok(ApiResponse.ok(r)))
                 .orElseGet(() -> ResponseEntity.status(404)
@@ -120,17 +135,23 @@ public class AnalyticsSalesController {
         summary = "Last-7-days sales summary",
         description = "Aggregate KPI strip for the previous 7 calendar days."
     )
-    public ResponseEntity<ApiResponse<DashboardSummaryResponse>> getWeeklySummary() {
-        log.debug("[SalesController] GET /weekly");
-        return ResponseEntity.ok(ApiResponse.ok(salesService.getWeeklySummary()));
+    public ResponseEntity<ApiResponse<DashboardSummaryResponse>> getWeeklySummary(
+            @RequestParam(required = false) Long locationId,
+            Authentication authentication) {
+        log.debug("[SalesController] GET /weekly locationId={}", locationId);
+        AnalyticsLocationScope scope = scopeResolver.resolve(authentication, locationId);
+        return ResponseEntity.ok(ApiResponse.ok(salesService.getWeeklySummary(scope)));
     }
 
     // ── GET /api/v1/analytics/sales/monthly ────────────────────────────────────
 
     @GetMapping("/monthly")
     @Operation(summary = "Last-30-days sales summary")
-    public ResponseEntity<ApiResponse<DashboardSummaryResponse>> getMonthlySummary() {
-        return ResponseEntity.ok(ApiResponse.ok(salesService.getMonthlySummary()));
+    public ResponseEntity<ApiResponse<DashboardSummaryResponse>> getMonthlySummary(
+            @RequestParam(required = false) Long locationId,
+            Authentication authentication) {
+        AnalyticsLocationScope scope = scopeResolver.resolve(authentication, locationId);
+        return ResponseEntity.ok(ApiResponse.ok(salesService.getMonthlySummary(scope)));
     }
 
     // ── GET /api/v1/analytics/sales/summary ────────────────────────────────────
@@ -139,9 +160,12 @@ public class AnalyticsSalesController {
     @Operation(summary = "Custom date-range KPI summary")
     public ResponseEntity<ApiResponse<DashboardSummaryResponse>> getSummary(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @RequestParam(required = false) Long locationId,
+            Authentication authentication) {
         validateRange(from, to);
-        return ResponseEntity.ok(ApiResponse.ok(salesService.getDashboardSummary(from, to)));
+        AnalyticsLocationScope scope = scopeResolver.resolve(authentication, locationId);
+        return ResponseEntity.ok(ApiResponse.ok(salesService.getDashboardSummary(from, to, scope)));
     }
 
     // ── POST /api/v1/analytics/sales/backfill ──────────────────────────────────

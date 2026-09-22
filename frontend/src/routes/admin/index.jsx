@@ -8,6 +8,7 @@ import { useSidebar } from "@/components/ui/sidebar";
 import { useAuth } from "@/context/AuthContext";
 import { LocationSelector } from "@/components/LocationSelector";
 import { useAdminDashboard } from "@/context/AdminDashboardContext";
+import { useLocation as useActiveLocation } from "@/context/LocationContext";
 import {
   dailySalesRangeOptions,
   orderHeatmapOptions,
@@ -284,6 +285,7 @@ function OrderOutcomes({ summary }) {
 function AdminDashboardPage() {
   const { isAdmin, isSuperUser, user } = useAuth();
   const location = useLocation();
+  const { activeLocationId } = useActiveLocation();
   const canViewAdmin = isAdmin || isSuperUser;
   const {
     dashboard,
@@ -297,14 +299,14 @@ function AdminDashboardPage() {
   const params = useMemo(() => ({ from: range.from, to: range.to }), [range.from, range.to]);
   const previousParams = useMemo(() => ({ from: range.previousFrom, to: range.previousTo }), [range.previousFrom, range.previousTo]);
 
-  const summaryQuery = useQuery({ ...salesSummaryOptions(params), enabled: canViewAdmin });
-  const comparisonQuery = useQuery({ ...salesSummaryOptions(previousParams), enabled: canViewAdmin });
-  const dailyQuery = useQuery({ ...dailySalesRangeOptions(params), enabled: canViewAdmin });
-  const topItemsQuery = useQuery({ ...topSellingItemsOptions({ ...params, limit: 5 }), enabled: canViewAdmin });
-  const stallQuery = useQuery({ ...stallPerformanceOptions(params), enabled: canViewAdmin });
-  const activityQuery = useQuery({ ...orderHeatmapOptions(params), enabled: canViewAdmin });
-  const customerQuery = useQuery({ ...userPreferencesOptions({}), enabled: canViewAdmin });
-  const repeatQuery = useQuery({ ...repeatRateOptions, enabled: canViewAdmin });
+  const summaryQuery = useQuery({ ...salesSummaryOptions(params, activeLocationId), enabled: canViewAdmin });
+  const comparisonQuery = useQuery({ ...salesSummaryOptions(previousParams, activeLocationId), enabled: canViewAdmin });
+  const dailyQuery = useQuery({ ...dailySalesRangeOptions(params, activeLocationId), enabled: canViewAdmin });
+  const topItemsQuery = useQuery({ ...topSellingItemsOptions({ ...params, limit: 5 }, activeLocationId), enabled: canViewAdmin });
+  const stallQuery = useQuery({ ...stallPerformanceOptions(params, activeLocationId), enabled: canViewAdmin });
+  const activityQuery = useQuery({ ...orderHeatmapOptions(params, activeLocationId), enabled: canViewAdmin });
+  const customerQuery = useQuery({ ...userPreferencesOptions({}, activeLocationId), enabled: canViewAdmin });
+  const repeatQuery = useQuery({ ...repeatRateOptions(activeLocationId), enabled: canViewAdmin });
   const inventoryQuery = useQuery({ ...inventoryAlertsOptions(6), enabled: canViewAdmin });
 
   const ownerName = user?.info?.name?.split(" ")[0] ?? "";

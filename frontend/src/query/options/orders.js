@@ -26,18 +26,18 @@ export const adminOrdersOptions = (params = {}) =>
     staleTime: 1000 * 15,
   });
 
-export const adminOrderDashboardOptions = (liveLimit = 12) =>
+export const adminOrderDashboardOptions = (liveLimit = 12, locationId = null) =>
   queryOptions({
-    queryKey: ["orders", "admin", "dashboard", { liveLimit }],
-    queryFn: () => getAdminOrderDashboard({ liveLimit }),
+    queryKey: ["orders", "admin", "dashboard", { liveLimit, locationId }],
+    queryFn: () => getAdminOrderDashboard({ liveLimit, locationId }),
     staleTime: 1000 * 15,
     refetchInterval: 15000,
   });
 
-export const liveOrdersAdminOptions = (limit = 12) =>
+export const liveOrdersAdminOptions = (limit = 12, locationId = null) =>
   queryOptions({
-    queryKey: ["orders", "admin", "live", { limit }],
-    queryFn: () => getLiveOrdersAdmin({ limit }),
+    queryKey: ["orders", "admin", "live", { limit, locationId }],
+    queryFn: () => getLiveOrdersAdmin({ limit, locationId }),
     staleTime: 1000 * 15,
   });
 
@@ -56,10 +56,10 @@ export const adminPreOrdersOptions = (params = {}) =>
     staleTime: 1000 * 15,
   });
 
-export const adminPreOrderDashboardOptions = (upcomingLimit = 12) =>
+export const adminPreOrderDashboardOptions = (upcomingLimit = 12, locationId = null) =>
   queryOptions({
-    queryKey: ["pre-orders", "admin", "dashboard", { upcomingLimit }],
-    queryFn: () => getAdminPreOrderDashboard({ upcomingLimit }),
+    queryKey: ["pre-orders", "admin", "dashboard", { upcomingLimit, locationId }],
+    queryFn: () => getAdminPreOrderDashboard({ upcomingLimit, locationId }),
     staleTime: 1000 * 15,
   });
 

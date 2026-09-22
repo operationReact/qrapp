@@ -157,7 +157,7 @@ export const Route = createFileRoute("/(auth)/register")({
               </FieldContent>
             </Field>
             <Field>
-              <FieldLabel>Company <span className="text-red-600">*</span></FieldLabel>
+              <FieldLabel>  Company <span className="text-red-600">*</span></FieldLabel>
               <FieldContent>
                 {!defaultLocationId && <p className="rounded-xl border border-muted px-3 py-3 text-sm text-muted-foreground">Select a Location first.</p>}
                 {defaultLocationId && companiesQuery.isLoading && <div className="min-h-12 animate-pulse rounded-xl border bg-muted" aria-label="Loading customer companies" />}

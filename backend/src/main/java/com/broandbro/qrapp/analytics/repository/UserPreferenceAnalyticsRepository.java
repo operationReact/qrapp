@@ -107,28 +107,35 @@ public interface UserPreferenceAnalyticsRepository extends JpaRepository<UserPre
            JOIN orders o ON o.id = oi.order_id
            JOIN menu_item mi ON mi.id = oi.item_id
            WHERE o.status = 'COMPLETED'
+             AND (:allLocations = TRUE OR o.location_id IN (:locationIds))
            GROUP BY mi.name
            ORDER BY count DESC
            LIMIT :limit
            """, nativeQuery = true)
-    List<Object[]> findTopFavoriteItems(@Param("limit") int limit);
+    List<Object[]> findTopFavoriteItems(
+           @Param("limit") int limit,
+           @Param("allLocations") boolean allLocations,
+           @Param("locationIds") List<Long> locationIds);
 
     /** Order count grouped by time-of-day slot. */
     @Query(value = """
            SELECT
                CASE
-                   WHEN EXTRACT(HOUR FROM created_at) BETWEEN 5  AND 11 THEN 'Morning'
-                   WHEN EXTRACT(HOUR FROM created_at) BETWEEN 12 AND 16 THEN 'Afternoon'
-                   WHEN EXTRACT(HOUR FROM created_at) BETWEEN 17 AND 20 THEN 'Evening'
+                   WHEN EXTRACT(HOUR FROM o.created_at) BETWEEN 5  AND 11 THEN 'Morning'
+                   WHEN EXTRACT(HOUR FROM o.created_at) BETWEEN 12 AND 16 THEN 'Afternoon'
+                   WHEN EXTRACT(HOUR FROM o.created_at) BETWEEN 17 AND 20 THEN 'Evening'
                    ELSE 'Night'
                END AS slot,
                COUNT(*) AS count
-           FROM orders
-           WHERE status = 'COMPLETED'
+           FROM orders o
+           WHERE o.status = 'COMPLETED'
+             AND (:allLocations = TRUE OR o.location_id IN (:locationIds))
            GROUP BY slot
            ORDER BY count DESC
            """, nativeQuery = true)
-    List<Object[]> findOrderTimeDistribution();
+    List<Object[]> findOrderTimeDistribution(
+            @Param("allLocations") boolean allLocations,
+            @Param("locationIds") List<Long> locationIds);
 
     /** Top N users by order count — for the Most Active Users table. */
     @Query(value = """
@@ -142,16 +149,21 @@ public interface UserPreferenceAnalyticsRepository extends JpaRepository<UserPre
                 JOIN menu_item mi ON mi.id = oi2.item_id
                 JOIN orders o2 ON o2.id = oi2.order_id
                 WHERE o2.user_id = u.id AND o2.status = 'COMPLETED'
+                  AND (:allLocations = TRUE OR o2.location_id IN (:locationIds))
                 GROUP BY mi.name
                 ORDER BY SUM(oi2.quantity) DESC
                 LIMIT 1)                                                AS favoriteItem
            FROM users u
            JOIN orders o ON o.user_id = u.id AND o.status = 'COMPLETED'
+           WHERE (:allLocations = TRUE OR o.location_id IN (:locationIds))
            GROUP BY u.id, u.name
            ORDER BY orderCount DESC
            LIMIT :limit
            """, nativeQuery = true)
-    List<Object[]> findMostActiveUsers(@Param("limit") int limit);
+    List<Object[]> findMostActiveUsers(
+            @Param("limit") int limit,
+            @Param("allLocations") boolean allLocations,
+            @Param("locationIds") List<Long> locationIds);
 
     // ── Retention: repeat customer rate ──────────────────────────────────────
 
@@ -301,4 +313,3 @@ public interface UserPreferenceAnalyticsRepository extends JpaRepository<UserPre
            nativeQuery = true)
     void upsertUserSnapshot(@Param("userId") Long userId);
 }
-

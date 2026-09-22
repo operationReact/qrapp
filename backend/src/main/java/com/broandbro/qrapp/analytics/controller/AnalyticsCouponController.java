@@ -3,6 +3,8 @@ package com.broandbro.qrapp.analytics.controller;
 import com.broandbro.qrapp.analytics.dto.ApiResponse;
 import com.broandbro.qrapp.analytics.dto.CouponPerformanceResponse;
 import com.broandbro.qrapp.analytics.service.CouponAnalyticsService;
+import com.broandbro.qrapp.analytics.support.AnalyticsLocationScope;
+import com.broandbro.qrapp.analytics.support.AnalyticsScopeResolver;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -14,6 +16,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -34,11 +38,13 @@ import java.util.List;
 @RequestMapping("/api/v1/analytics/coupons")
 @RequiredArgsConstructor
 @Validated
+@PreAuthorize("hasAnyRole('ADMIN', 'SUPERUSER', 'SUPER_ADMIN', 'MANAGER')")
 @Tag(name = "Analytics — Coupons", description = "Coupon ROI, conversion and abuse-detection analytics")
 public class AnalyticsCouponController {
 
 
     private final CouponAnalyticsService couponService;
+    private final AnalyticsScopeResolver scopeResolver;
 
     // ── GET /api/v1/analytics/coupons/performance ─────────────────────────────
 
@@ -49,15 +55,19 @@ public class AnalyticsCouponController {
     )
     public ResponseEntity<ApiResponse<List<CouponPerformanceResponse>>> getPerformanceSummary(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @RequestParam(required = false) Long locationId,
+            Authentication authentication) {
 
         LocalDate resolvedTo   = to   != null ? to   : LocalDate.now();
         LocalDate resolvedFrom = from != null ? from : resolvedTo.minusDays(29);
         validateRange(resolvedFrom, resolvedTo);
 
-        log.debug("[CouponController] GET /performance from={} to={}", resolvedFrom, resolvedTo);
+        AnalyticsLocationScope scope = scopeResolver.resolve(authentication, locationId);
+        log.debug("[CouponController] GET /performance from={} to={} locationId={}",
+                resolvedFrom, resolvedTo, locationId);
         return ResponseEntity.ok(ApiResponse.ok(
-                couponService.getPerformanceSummary(resolvedFrom, resolvedTo)));
+                couponService.getPerformanceSummary(resolvedFrom, resolvedTo, scope)));
     }
 
     @GetMapping("/performance/paged")
@@ -67,14 +77,17 @@ public class AnalyticsCouponController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
             @Parameter(description = "Filter by coupon code (partial match)")
             @RequestParam(required = false) String couponCode,
+            @RequestParam(required = false) Long locationId,
+            Authentication authentication,
             @PageableDefault(size = 20) Pageable pageable) {
 
         LocalDate resolvedTo   = to   != null ? to   : LocalDate.now();
         LocalDate resolvedFrom = from != null ? from : resolvedTo.minusDays(29);
         validateRange(resolvedFrom, resolvedTo);
+        AnalyticsLocationScope scope = scopeResolver.resolve(authentication, locationId);
 
         return ResponseEntity.ok(ApiResponse.ok(
-                couponService.getPerformancePaged(resolvedFrom, resolvedTo, couponCode, pageable)));
+                couponService.getPerformancePaged(resolvedFrom, resolvedTo, couponCode, scope, pageable)));
     }
 
     // ── GET /api/v1/analytics/coupons/abuse ────────────────────────────────────
@@ -88,15 +101,19 @@ public class AnalyticsCouponController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
             @Parameter(description = "Minimum repeat redemption count to flag as abuse (default: 1)")
-            @RequestParam(defaultValue = "1") @Min(1) int threshold) {
+            @RequestParam(defaultValue = "1") @Min(1) int threshold,
+            @RequestParam(required = false) Long locationId,
+            Authentication authentication) {
 
         LocalDate resolvedTo   = to   != null ? to   : LocalDate.now();
         LocalDate resolvedFrom = from != null ? from : resolvedTo.minusDays(29);
         validateRange(resolvedFrom, resolvedTo);
 
-        log.debug("[CouponController] GET /abuse from={} to={} threshold={}", resolvedFrom, resolvedTo, threshold);
+        AnalyticsLocationScope scope = scopeResolver.resolve(authentication, locationId);
+        log.debug("[CouponController] GET /abuse from={} to={} threshold={} locationId={}",
+                resolvedFrom, resolvedTo, threshold, locationId);
         return ResponseEntity.ok(ApiResponse.ok(
-                couponService.getAbuseSignals(resolvedFrom, resolvedTo, threshold)));
+                couponService.getAbuseSignals(resolvedFrom, resolvedTo, threshold, scope)));
     }
 
     // ── Validation ─────────────────────────────────────────────────────────────
@@ -108,4 +125,3 @@ public class AnalyticsCouponController {
             throw new IllegalArgumentException("Date range must not exceed 365 days");
     }
 }
-

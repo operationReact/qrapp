@@ -8,6 +8,7 @@ import {
   adminPreOrderDashboardOptions,
 } from "@/query/options/orders";
 import { useAuth } from "@/context/AuthContext";
+import { useLocation as useActiveLocation } from "@/context/LocationContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -139,6 +140,7 @@ function PreOrdersPage() {
   const qc = useQueryClient();
   const location = useLocation();
   const { isAdmin, isSuperUser } = useAuth();
+  const { activeLocationId } = useActiveLocation();
   const [activeFilter, setActiveFilter] = useState("ALL");
   const [search, setSearch] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
@@ -146,8 +148,9 @@ function PreOrdersPage() {
   const params = useMemo(() => {
     const p = { size: 100 };
     if (search.trim()) p.query = search.trim();
+    if (activeLocationId != null) p.locationId = activeLocationId;
     return p;
-  }, [search]);
+  }, [search, activeLocationId]);
 
   const {
     data: preOrdersPage,
@@ -160,7 +163,7 @@ function PreOrdersPage() {
   });
 
   const { data: dashboard, isLoading: dashLoad } = useQuery(
-    adminPreOrderDashboardOptions(12),
+    adminPreOrderDashboardOptions(12, activeLocationId),
   );
 
   const refresh = useCallback(() => {

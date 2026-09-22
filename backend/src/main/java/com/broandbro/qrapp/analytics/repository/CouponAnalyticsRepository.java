@@ -48,12 +48,15 @@ public interface CouponAnalyticsRepository extends JpaRepository<CouponAnalytics
                   SUM(ca.repeatUserCount)          AS repeatUserCount
            FROM CouponAnalytics ca
            WHERE ca.snapshotDate BETWEEN :from AND :to
+             AND (:allLocations = TRUE OR ca.locationId IN :locationIds)
            GROUP BY ca.couponCode, ca.couponId
            ORDER BY SUM(ca.totalRevenueGenerated) DESC
            """)
     List<CouponPerformanceProjection> findPerformanceSummaryByDateRange(
             @Param("from") LocalDate from,
-            @Param("to") LocalDate to);
+            @Param("to") LocalDate to,
+            @Param("allLocations") boolean allLocations,
+            @Param("locationIds") List<Long> locationIds);
 
     /**
      * Paged coupon performance for admin table — supports searching by code.
@@ -73,6 +76,7 @@ public interface CouponAnalyticsRepository extends JpaRepository<CouponAnalytics
            FROM CouponAnalytics ca
            WHERE ca.snapshotDate BETWEEN :from AND :to
              AND (:couponCode IS NULL OR LOWER(ca.couponCode) LIKE LOWER(CONCAT('%', :couponCode, '%')))
+             AND (:allLocations = TRUE OR ca.locationId IN :locationIds)
            GROUP BY ca.couponCode, ca.couponId
            ORDER BY SUM(ca.totalRevenueGenerated) DESC
            """)
@@ -80,19 +84,36 @@ public interface CouponAnalyticsRepository extends JpaRepository<CouponAnalytics
             @Param("from") LocalDate from,
             @Param("to") LocalDate to,
             @Param("couponCode") String couponCode,
+            @Param("allLocations") boolean allLocations,
+            @Param("locationIds") List<Long> locationIds,
             Pageable pageable);
 
     /** Coupons with abuse signals (repeat_user_count > threshold) in a date range. */
     @Query("""
-           SELECT ca FROM CouponAnalytics ca
+           SELECT ca.couponCode                    AS couponCode,
+                  ca.couponId                      AS couponId,
+                  SUM(ca.totalRedemptions)         AS totalRedemptions,
+                  SUM(ca.successfulRedemptions)    AS successfulRedemptions,
+                  SUM(ca.cancelledRedemptions)     AS cancelledRedemptions,
+                  SUM(ca.uniqueUsers)              AS uniqueUsers,
+                  SUM(ca.totalDiscountGiven)       AS totalDiscountGiven,
+                  SUM(ca.totalRevenueGenerated)    AS totalRevenueGenerated,
+                  AVG(ca.avgOrderValue)            AS avgOrderValue,
+                  AVG(ca.discountCostRatio)        AS discountCostRatio,
+                  SUM(ca.repeatUserCount)          AS repeatUserCount
+           FROM CouponAnalytics ca
            WHERE ca.snapshotDate BETWEEN :from AND :to
-             AND ca.repeatUserCount > :threshold
-           ORDER BY ca.repeatUserCount DESC
+             AND (:allLocations = TRUE OR ca.locationId IN :locationIds)
+           GROUP BY ca.couponCode, ca.couponId
+           HAVING SUM(ca.repeatUserCount) > :threshold
+           ORDER BY SUM(ca.repeatUserCount) DESC
            """)
-    List<CouponAnalytics> findAbuseSignals(
+    List<CouponPerformanceProjection> findAbuseSignals(
             @Param("from") LocalDate from,
             @Param("to") LocalDate to,
-            @Param("threshold") int threshold);
+            @Param("threshold") int threshold,
+            @Param("allLocations") boolean allLocations,
+            @Param("locationIds") List<Long> locationIds);
 
     // ── Scheduler UPSERT ──────────────────────────────────────────────────────
 
@@ -109,61 +130,76 @@ public interface CouponAnalyticsRepository extends JpaRepository<CouponAnalytics
     @Transactional
     @Query(value = """
            INSERT INTO analytics_coupon (
-               coupon_id, coupon_code, snapshot_date,
+               coupon_id, coupon_code, snapshot_date, location_id,
                total_redemptions, successful_redemptions, cancelled_redemptions,
                unique_users, total_discount_given, total_revenue_generated,
                avg_order_value, discount_cost_ratio, repeat_user_count,
                created_at, updated_at
            )
+           WITH pragati AS (
+               SELECT id FROM locations WHERE code = 'PRAGATI_NAGAR'
+           ),
+           co AS (
+               SELECT o.id           AS id,
+                      o.user_id      AS user_id,
+                      o.status       AS status,
+                      o.grand_total  AS grand_total,
+                      o.coupon_discount AS coupon_discount,
+                      o.coupon_code  AS coupon_code,
+                      COALESCE(o.location_id, (SELECT id FROM pragati)) AS loc
+               FROM orders o
+               WHERE o.created_at::date = :targetDate
+                 AND o.coupon_code IS NOT NULL
+           )
            SELECT
                p.id                                                             AS coupon_id,
                p.code                                                           AS coupon_code,
                :targetDate,
+               co.loc                                                           AS location_id,
 
-               COUNT(o.id)                                                      AS total_redemptions,
-               COUNT(o.id) FILTER (WHERE o.status = 'COMPLETED')               AS successful_redemptions,
-               COUNT(o.id) FILTER (WHERE o.status = 'CANCELLED')               AS cancelled_redemptions,
-               COUNT(DISTINCT o.user_id)                                        AS unique_users,
+               COUNT(co.id)                                                     AS total_redemptions,
+               COUNT(co.id) FILTER (WHERE co.status = 'COMPLETED')             AS successful_redemptions,
+               COUNT(co.id) FILTER (WHERE co.status = 'CANCELLED')             AS cancelled_redemptions,
+               COUNT(DISTINCT co.user_id)                                       AS unique_users,
 
-               COALESCE(SUM(o.coupon_discount)
-                   FILTER (WHERE o.status = 'COMPLETED'), 0)                   AS total_discount_given,
+               COALESCE(SUM(co.coupon_discount)
+                   FILTER (WHERE co.status = 'COMPLETED'), 0)                  AS total_discount_given,
 
-               COALESCE(SUM(o.grand_total)
-                   FILTER (WHERE o.status = 'COMPLETED'), 0)                   AS total_revenue_generated,
+               COALESCE(SUM(co.grand_total)
+                   FILTER (WHERE co.status = 'COMPLETED'), 0)                  AS total_revenue_generated,
 
                CASE
-                   WHEN COUNT(o.id) FILTER (WHERE o.status = 'COMPLETED') = 0 THEN NULL
-                   ELSE SUM(o.grand_total) FILTER (WHERE o.status = 'COMPLETED')
-                        / COUNT(o.id)      FILTER (WHERE o.status = 'COMPLETED')
+                   WHEN COUNT(co.id) FILTER (WHERE co.status = 'COMPLETED') = 0 THEN NULL
+                   ELSE SUM(co.grand_total) FILTER (WHERE co.status = 'COMPLETED')
+                        / COUNT(co.id)      FILTER (WHERE co.status = 'COMPLETED')
                END                                                              AS avg_order_value,
 
                CASE
-                   WHEN SUM(o.grand_total) FILTER (WHERE o.status = 'COMPLETED') = 0 THEN NULL
+                   WHEN SUM(co.grand_total) FILTER (WHERE co.status = 'COMPLETED') = 0 THEN NULL
                    ELSE ROUND(
                        100.0
-                       * SUM(o.coupon_discount) FILTER (WHERE o.status = 'COMPLETED')
-                       / SUM(o.grand_total)     FILTER (WHERE o.status = 'COMPLETED'),
+                       * SUM(co.coupon_discount) FILTER (WHERE co.status = 'COMPLETED')
+                       / SUM(co.grand_total)     FILTER (WHERE co.status = 'COMPLETED'),
                    2)
                END                                                              AS discount_cost_ratio,
 
                (SELECT COUNT(*)
                 FROM (
-                    SELECT user_id
-                    FROM orders
-                    WHERE coupon_code = p.code
-                      AND created_at::date = :targetDate
-                    GROUP BY user_id
+                    SELECT ro.user_id
+                    FROM co ro
+                    WHERE ro.coupon_code = p.code
+                      AND ro.loc = co.loc
+                    GROUP BY ro.user_id
                     HAVING COUNT(*) > 1
                 ) abuse)                                                        AS repeat_user_count,
 
                NOW(), NOW()
            FROM promotion p
-           JOIN orders o ON o.coupon_code = p.code
-               AND o.created_at::date = :targetDate
+           JOIN co ON co.coupon_code = p.code
            WHERE p.code IS NOT NULL
-           GROUP BY p.id, p.code
+           GROUP BY p.id, p.code, co.loc
 
-           ON CONFLICT (coupon_code, snapshot_date) DO UPDATE SET
+           ON CONFLICT (coupon_code, snapshot_date, location_id) DO UPDATE SET
                total_redemptions       = EXCLUDED.total_redemptions,
                successful_redemptions  = EXCLUDED.successful_redemptions,
                cancelled_redemptions   = EXCLUDED.cancelled_redemptions,
@@ -178,4 +214,3 @@ public interface CouponAnalyticsRepository extends JpaRepository<CouponAnalytics
            nativeQuery = true)
     void upsertCouponSnapshot(@Param("targetDate") LocalDate targetDate);
 }
-

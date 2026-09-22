@@ -19,23 +19,23 @@ class LocationCodeServiceTest {
 
     @Test
     void generatesReadableSlugAndNumericCollisionSuffix() {
-        when(locationRepository.findByCode("mindspace-hi-tech")).thenReturn(Optional.of(Location.builder().build()));
-        when(locationRepository.findByCode("mindspace-hi-tech-2")).thenReturn(Optional.of(Location.builder().build()));
-        when(locationRepository.findByCode("mindspace-hi-tech-3")).thenReturn(Optional.empty());
+        when(locationRepository.findByCode("LOC-MINDSPACE-HI-TECH-001")).thenReturn(Optional.of(Location.builder().build()));
+        when(locationRepository.findByCode("LOC-MINDSPACE-HI-TECH-002")).thenReturn(Optional.of(Location.builder().build()));
+        when(locationRepository.findByCode("LOC-MINDSPACE-HI-TECH-003")).thenReturn(Optional.empty());
 
         String code = new LocationCodeService(locationRepository)
                 .generate(null, "Mindspace Hi-Tech");
 
-        assertThat(code).isEqualTo("mindspace-hi-tech-3");
+        assertThat(code).isEqualTo("LOC-MINDSPACE-HI-TECH-003");
     }
 
     @Test
     void usesExplicitCodeAsSlugBaseWhenProvided() {
-        when(locationRepository.findByCode("tower-a")).thenReturn(Optional.empty());
+        when(locationRepository.findByCode("LOC-TOWER-A-001")).thenReturn(Optional.empty());
 
         String code = new LocationCodeService(locationRepository)
                 .generate("Tower A", "Ignored Name");
 
-        assertThat(code).isEqualTo("tower-a");
+        assertThat(code).isEqualTo("LOC-TOWER-A-001");
     }
 }

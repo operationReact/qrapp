@@ -23,8 +23,8 @@ import java.time.LocalDateTime;
     name = "analytics_menu_item",
     uniqueConstraints = {
         @UniqueConstraint(
-            name = "uq_analytics_menu_item_date",
-            columnNames = {"menu_item_id", "snapshot_date"}
+            name = "uq_analytics_menu_item_date_location",
+            columnNames = {"menu_item_id", "snapshot_date", "location_id"}
         )
     },
     indexes = {
@@ -33,7 +33,8 @@ import java.time.LocalDateTime;
         @Index(name = "idx_ami_total_qty",       columnList = "total_qty_sold DESC"),
         @Index(name = "idx_ami_total_revenue",   columnList = "total_revenue DESC"),
         @Index(name = "idx_ami_category_id",     columnList = "category_id"),
-        @Index(name = "idx_ami_item_date",       columnList = "menu_item_id, snapshot_date")
+        @Index(name = "idx_ami_item_date",       columnList = "menu_item_id, snapshot_date"),
+        @Index(name = "idx_ami_location_date",   columnList = "location_id, snapshot_date DESC")
     }
 )
 @Getter
@@ -50,6 +51,10 @@ public class MenuItemAnalytics {
     /** FK to {@code menu_items.id}. Not a JPA association — avoids N+1 on analytics reads. */
     @Column(name = "menu_item_id", nullable = false)
     private Long menuItemId;
+
+    /** Owning location (the menu item's location). Snapshots are per (item, date, location). */
+    @Column(name = "location_id", nullable = false)
+    private Long locationId;
 
     /** Denormalised for read performance; updated on item rename. */
     @Column(name = "menu_item_name", nullable = false, length = 255)

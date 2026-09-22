@@ -152,6 +152,13 @@ public class SecurityConfig {
                                 "/menu"
                         ).hasAnyRole("ADMIN", "SUPERUSER", "SUPER_ADMIN", "MANAGER")
 
+                        // Kitchen Queue — the only admin surface KITCHEN_STAFF may reach.
+                        // These specific matchers must precede the generic /admin/** rule.
+                        .requestMatchers(HttpMethod.GET, "/admin/orders/live")
+                        .hasAnyRole("ADMIN", "SUPERUSER", "SUPER_ADMIN", "MANAGER", "KITCHEN_STAFF")
+                        .requestMatchers(HttpMethod.PATCH, "/admin/orders/*/status")
+                        .hasAnyRole("ADMIN", "SUPERUSER", "SUPER_ADMIN", "MANAGER", "KITCHEN_STAFF")
+
                         .requestMatchers("/admin/**")
                         .hasAnyRole("ADMIN", "SUPERUSER", "SUPER_ADMIN", "MANAGER")
 

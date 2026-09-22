@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -62,6 +63,72 @@ public class LocationAccessService {
     public void requireSuperAdmin(User user) {
         if (user == null || !isSuperAdmin(user)) {
             throw new AccessDeniedException("super_admin_required");
+        }
+    }
+
+    /**
+     * Resolves the set of location IDs an admin-console user may see across the
+     * order / dashboard / live-queue / pre-order surfaces.
+     *
+     * <p>Reuses the existing access primitives so behaviour stays consistent with
+     * menu/combo/pricing authorization:
+     * <ul>
+     *   <li>SUPER_ADMIN: all locations. When {@code requestedLocationId} is null the
+     *       result is {@link Optional#empty()} meaning "All Locations" (no filter);
+     *       otherwise it is narrowed to the requested (active) location.</li>
+     *   <li>ADMIN / MANAGER / KITCHEN_STAFF: bound to the locations they can access
+     *       ({@link #getAccessibleLocations}). A requested location is validated with
+     *       {@link #canAccessLocation}; with no explicit selection the scope is the
+     *       user's full accessible set. ADMIN keeps the system's existing broad
+     *       access; MANAGER/KITCHEN_STAFF are limited to their {@code user_location_access}
+     *       assignments.</li>
+     * </ul>
+     *
+     * @return {@link Optional#empty()} => no location filter (SUPER_ADMIN, all
+     *         locations); a present list => restrict to exactly those IDs (possibly
+     *         empty, meaning the user can see nothing).
+     * @throws AccessDeniedException when a user requests a location they cannot
+     *         access, or the requested location does not exist / is inactive.
+     */
+    public Optional<List<Long>> resolveDashboardLocationScope(User user, Long requestedLocationId) {
+        if (user == null) {
+            throw new AccessDeniedException("authentication_required");
+        }
+        if (isSuperAdmin(user)) {
+            if (requestedLocationId == null) {
+                return Optional.empty();
+            }
+            Location location = locationRepository.findById(requestedLocationId).orElse(null);
+            if (location == null || !Boolean.TRUE.equals(location.getActive())) {
+                throw new AccessDeniedException("location_not_found");
+            }
+            return Optional.of(List.of(requestedLocationId));
+        }
+        if (requestedLocationId != null) {
+            if (!canAccessLocation(user, requestedLocationId)) {
+                throw new AccessDeniedException("location_access_denied");
+            }
+            return Optional.of(List.of(requestedLocationId));
+        }
+        List<Long> ids = getAccessibleLocations(user).stream()
+                .map(Location::getId)
+                .filter(java.util.Objects::nonNull)
+                .distinct()
+                .toList();
+        return Optional.of(ids);
+    }
+
+    /** True when the user is limited to the Kitchen Queue only (KITCHEN_STAFF). */
+    public boolean isKitchenStaffOnly(User user) {
+        return user != null
+                && !isSuperAdmin(user)
+                && user.getRole() == UserRole.KITCHEN_STAFF;
+    }
+
+    /** Denies access to non-queue admin surfaces for KITCHEN_STAFF users. */
+    public void requireNonKitchenAdmin(User user) {
+        if (isKitchenStaffOnly(user)) {
+            throw new AccessDeniedException("kitchen_staff_queue_only");
         }
     }
 

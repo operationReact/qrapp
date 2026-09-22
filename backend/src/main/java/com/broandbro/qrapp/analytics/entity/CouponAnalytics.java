@@ -23,8 +23,8 @@ import java.time.LocalDateTime;
     name = "analytics_coupon",
     uniqueConstraints = {
         @UniqueConstraint(
-            name = "uq_analytics_coupon_code_date",
-            columnNames = {"coupon_code", "snapshot_date"}
+            name = "uq_analytics_coupon_code_date_location",
+            columnNames = {"coupon_code", "snapshot_date", "location_id"}
         )
     },
     indexes = {
@@ -33,7 +33,8 @@ import java.time.LocalDateTime;
         @Index(name = "idx_ac_coupon_id",         columnList = "coupon_id"),
         @Index(name = "idx_ac_total_redemptions", columnList = "total_redemptions DESC"),
         @Index(name = "idx_ac_total_discount",    columnList = "total_discount_given DESC"),
-        @Index(name = "idx_ac_code_date",         columnList = "coupon_code, snapshot_date")
+        @Index(name = "idx_ac_code_date",         columnList = "coupon_code, snapshot_date"),
+        @Index(name = "idx_ac_location_date",     columnList = "location_id, snapshot_date DESC")
     }
 )
 @Getter
@@ -54,6 +55,10 @@ public class CouponAnalytics {
     /** Denormalised coupon code — primary lookup key for analytics. */
     @Column(name = "coupon_code", nullable = false, length = 50)
     private String couponCode;
+
+    /** Location where the coupon was redeemed. Snapshots are per (code, date, location). */
+    @Column(name = "location_id", nullable = false)
+    private Long locationId;
 
     /** Date this snapshot covers. */
     @Column(name = "snapshot_date", nullable = false)

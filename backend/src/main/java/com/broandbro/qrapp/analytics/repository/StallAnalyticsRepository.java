@@ -32,11 +32,14 @@ public interface StallAnalyticsRepository extends JpaRepository<com.broandbro.qr
             WHERE o.status = 'COMPLETED'
               AND o.created_at >= :from
               AND o.created_at < :toExclusive
+              AND (:allLocations = TRUE OR o.location_id IN (:locationIds))
               AND s.is_active = TRUE
             GROUP BY s.id, s.vendor_name
             ORDER BY revenue DESC
             """, nativeQuery = true)
     List<StallPerformanceProjection> findPerformance(
             @Param("from") LocalDateTime from,
-            @Param("toExclusive") LocalDateTime toExclusive);
+            @Param("toExclusive") LocalDateTime toExclusive,
+            @Param("allLocations") boolean allLocations,
+            @Param("locationIds") List<Long> locationIds);
 }
