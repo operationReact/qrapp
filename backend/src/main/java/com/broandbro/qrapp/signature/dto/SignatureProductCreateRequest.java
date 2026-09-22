@@ -7,6 +7,9 @@ import java.math.BigDecimal;
 
 public record SignatureProductCreateRequest(
 
+        @NotNull
+        Long locationId,
+
         @NotBlank @Size(max = 150)
         String productName,
 
