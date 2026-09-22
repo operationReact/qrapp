@@ -226,11 +226,11 @@ export function AdminSidebar() {
       </SidebarHeader>
 
       <nav aria-label="Admin navigation" className="contents">
-        <SidebarContent className="gap-1 px-3 py-2 md:py-4">
+        <SidebarContent className="gap-0 px-3 py-2 md:py-4">
         {renderedNavigation.map(({ section, items }) => {
           const visibleItems = items.filter((item) => hasRole(user, item.roles));
           if (!visibleItems.length) return null;
-          return <SidebarGroup key={section} className="border-b border-[#e7ded2]/40 p-0 pt-3.5 pb-2 first:pt-0 last:border-0 last:pb-0">
+          return <SidebarGroup key={section} className="border-b border-[#e7ded2]/40 p-0 pt-3.5 pb-0 first:pt-0 last:border-0">
             <SidebarGroupLabel className="mb-1.5 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em] text-[#756e66]">{section === "Menu" ? "Menu Management" : section === "Offers" ? "Marketing" : section === "Analytics" ? "Reports" : section}{section === "Operations" && alertCount > 0 && <span className="ml-auto rounded-full bg-[#e51b23] px-1.5 text-[10px] leading-5 text-white">{alertCount > 9 ? "9+" : alertCount}</span>}</SidebarGroupLabel>
             <SidebarMenu className="gap-0.5">{visibleItems.map(({ to, label, icon }) => <NavItem key={to} to={to} label={label} icon={icon || TerminalWindowIcon} alertCount={alertCount} onNavigate={closeMobile} pathname={pathname === "/admin" && to === "/admin" ? "/admin" : pathname} />)}</SidebarMenu>
           </SidebarGroup>;
