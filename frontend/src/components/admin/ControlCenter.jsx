@@ -48,7 +48,10 @@ export function ControlCenterOverview() {
     { to: "/admin/control-center/access", title: "Access Management", count: "—", icon: KeyRound, text: "Manage roles and location access" },
   ];
   return <Shell title="Control Center" description="One workspace for platform access, locations, and Customer Company operations.">
-    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{cards.map(({ to, title, count, icon: Icon, text }) => <Link key={to} to={to}><Card className="h-full border-zinc-200 transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-lg"><CardHeader><CardTitle className="flex items-center justify-between text-base"><span>{title}</span><Icon className="size-5 text-primary" /></CardTitle></CardHeader><CardContent><p className="text-3xl font-bold text-zinc-950">{count}</p><p className="mt-2 text-sm text-zinc-500">{text} <ArrowRight className="inline size-4" /></p></CardContent></Card></Link>)}</div>
+    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{cards.map((card) => {
+      const CardIcon = card.icon;
+      return <Link key={card.to} to={card.to}><Card className="h-full border-zinc-200 transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-lg"><CardHeader><CardTitle className="flex items-center justify-between text-base"><span>{card.title}</span><CardIcon className="size-5 text-primary" /></CardTitle></CardHeader><CardContent><p className="text-3xl font-bold text-zinc-950">{card.count}</p><p className="mt-2 text-sm text-zinc-500">{card.text} <ArrowRight className="inline size-4" /></p></CardContent></Card></Link>;
+    })}</div>
   </Shell>;
 }
 
