@@ -1,5 +1,12 @@
+import { SectionLocationSelector } from "@/components/SectionLocationSelector";
+
 /**
  * AnalyticsPageHeader – consistent page header for all analytics pages.
+ *
+ * Renders a section-level location selector for regular ADMIN / MANAGER users
+ * (it self-hides for SUPER_ADMIN, KITCHEN_STAFF and single-location users), so
+ * every analytics page can be scoped to an assigned location without wiring the
+ * selector individually.
  */
 export default function AnalyticsPageHeader({ title, description, action }) {
   return (
@@ -12,7 +19,10 @@ export default function AnalyticsPageHeader({ title, description, action }) {
           <p className="text-xs sm:text-sm text-zinc-400 mt-0.5">{description}</p>
         )}
       </div>
-      {action && <div className="flex-shrink-0">{action}</div>}
+      <div className="flex flex-shrink-0 items-center gap-2">
+        <SectionLocationSelector />
+        {action}
+      </div>
     </div>
   );
 }

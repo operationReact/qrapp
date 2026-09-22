@@ -4,6 +4,7 @@ import { apiClient } from "@/services";
 import { useAuth } from "./AuthContext";
 import { canAccessAdmin, canSelectAllLocations } from "@/lib/roles";
 import { ALL_LOCATIONS, activeLocationScopeId, isAllLocationsSelection } from "@/lib/allLocations";
+import { resolveSectionOverride } from "@/lib/sectionLocation";
 
 const STORAGE_KEY = "active-location";
 const LocationContext = createContext(null);
@@ -46,26 +47,35 @@ export function LocationProvider({ children }) {
     ? publicQuery.isSuccess
     : authorizedQuery.isSuccess;
   const [storedLocation, setStoredLocation] = useState(readActiveLocation);
+  // Transient, section-level override. It changes the effective location
+  // locally and is intentionally NOT persisted to localStorage, so it never
+  // mutates the global (persisted) location context.
+  const [sectionOverride, setSectionOverride] = useState(null);
   const availableLocations = useMemo(
     () => (usePublicLocations ? publicQuery.data : authorizedQuery.data) || [],
     [authorizedQuery.data, publicQuery.data, usePublicLocations],
   );
   const allLocationsSelected = allowAllLocations && isAllLocationsSelection(storedLocation);
   const defaultLocation = user?.defaultLocation || user?.info?.defaultLocation;
-  const activeLocation = allLocationsSelected
+  const baseLocation = allLocationsSelected
     ? ALL_LOCATIONS
     : availableLocations.find((item) => String(item.id) === String(storedLocation?.id))
     || availableLocations.find((item) => String(item.id) === String(defaultLocation?.id))
     || availableLocations.find((item) => item.code === "PRAGATI_NAGAR")
     || availableLocations[0]
     || null;
+  const overrideLocation = useMemo(
+    () => resolveSectionOverride(sectionOverride, availableLocations),
+    [sectionOverride, availableLocations],
+  );
+  const activeLocation = overrideLocation || baseLocation;
   const isAllLocations = isAllLocationsSelection(activeLocation);
   const activeLocationId = activeLocationScopeId(activeLocation);
 
   useEffect(() => {
-    if (activeLocation) localStorage.setItem(STORAGE_KEY, JSON.stringify(activeLocation));
+    if (baseLocation) localStorage.setItem(STORAGE_KEY, JSON.stringify(baseLocation));
     else localStorage.removeItem(STORAGE_KEY);
-  }, [activeLocation]);
+  }, [baseLocation]);
 
   useEffect(() => {
     if (allLocationsSelected) return;
@@ -77,13 +87,15 @@ export function LocationProvider({ children }) {
     if (storedLocation && !availableLocations.some((item) => String(item.id) === String(storedLocation.id))) {
       const timer = window.setTimeout(() => setStoredLocation(null), 0);
       return () => window.clearTimeout(timer);
-    } else if (!storedLocation && activeLocation) {
-      const timer = window.setTimeout(() => setStoredLocation(activeLocation), 0);
+    } else if (!storedLocation && baseLocation) {
+      const timer = window.setTimeout(() => setStoredLocation(baseLocation), 0);
       return () => window.clearTimeout(timer);
     }
-  }, [activeLocation, allLocationsSelected, allowAllLocations, availableLocations, locationQuerySuccess, storedLocation]);
+  }, [baseLocation, allLocationsSelected, allowAllLocations, availableLocations, locationQuerySuccess, storedLocation]);
 
   const setActiveLocation = useCallback((location) => {
+    // A root-level selection supersedes any transient section override.
+    setSectionOverride(null);
     if (allowAllLocations && isAllLocationsSelection(location)) {
       setStoredLocation(ALL_LOCATIONS);
       return;
@@ -91,15 +103,24 @@ export function LocationProvider({ children }) {
     const next = location && availableLocations.find((item) => String(item.id) === String(location.id));
     setStoredLocation(next || null);
   }, [allowAllLocations, availableLocations]);
+  // Section-level selection: transient override, never persisted, and only
+  // among assigned locations (never the "All Locations" sentinel).
+  const setSectionLocation = useCallback((location) => {
+    setSectionOverride(resolveSectionOverride(location, availableLocations));
+  }, [availableLocations]);
+  const clearSectionLocation = useCallback(() => setSectionOverride(null), []);
   const value = useMemo(() => ({
     activeLocation, activeLocationId, availableLocations,
     isAllLocations, canSelectAllLocations: allowAllLocations, allLocationsOption: ALL_LOCATIONS,
     setActiveLocation, locations: availableLocations, selectLocation: setActiveLocation,
+    sectionLocation: overrideLocation, hasSectionOverride: Boolean(overrideLocation),
+    setSectionLocation, clearSectionLocation,
     isLoading: locationQuery.isLoading,
     error: locationQuery.error,
     refetch: locationQuery.refetch,
   }), [activeLocation, activeLocationId, availableLocations, isAllLocations, allowAllLocations,
-    setActiveLocation, locationQuery.isLoading, locationQuery.error, locationQuery.refetch]);
+    setActiveLocation, overrideLocation, setSectionLocation, clearSectionLocation,
+    locationQuery.isLoading, locationQuery.error, locationQuery.refetch]);
   return <LocationContext.Provider value={value}>{children}</LocationContext.Provider>;
 }
 
@@ -107,6 +128,9 @@ export function useLocation() {
   return useContext(LocationContext) || {
     activeLocation: null, activeLocationId: null, availableLocations: [], locations: [],
     isAllLocations: false, canSelectAllLocations: false, allLocationsOption: ALL_LOCATIONS,
-    setActiveLocation: () => {}, selectLocation: () => {}, isLoading: false, error: null,
+    setActiveLocation: () => {}, selectLocation: () => {},
+    sectionLocation: null, hasSectionOverride: false,
+    setSectionLocation: () => {}, clearSectionLocation: () => {},
+    isLoading: false, error: null,
   };
 }

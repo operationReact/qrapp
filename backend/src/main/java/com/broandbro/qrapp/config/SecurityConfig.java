@@ -169,9 +169,13 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/locations/*/customer-companies").permitAll()
                         .requestMatchers("/api/locations/**").authenticated()
 
-                        // All analytics endpoints — admin only
+                        // All analytics endpoints — admin console roles. Must mirror
+                        // the controller @PreAuthorize (ADMIN, SUPERUSER, SUPER_ADMIN,
+                        // MANAGER); per-location scoping is enforced in the controllers
+                        // via LocationAccessService so SUPER_ADMIN/MANAGER aren't blocked
+                        // here at the URL layer.
                         .requestMatchers("/api/v1/analytics/**")
-                        .hasAnyRole("ADMIN", "SUPERUSER")
+                        .hasAnyRole("ADMIN", "SUPERUSER", "SUPER_ADMIN", "MANAGER")
 
                         // Allow wallet endpoints to pass through (controller will handle auth)
                         .requestMatchers("/api/wallet/**").permitAll()

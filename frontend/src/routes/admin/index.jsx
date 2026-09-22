@@ -7,6 +7,8 @@ import { cn } from "@/lib/utils";
 import { useSidebar } from "@/components/ui/sidebar";
 import { useAuth } from "@/context/AuthContext";
 import { LocationSelector } from "@/components/LocationSelector";
+import { SectionLocationSelector } from "@/components/SectionLocationSelector";
+import { canUseRootLocationSelector } from "@/lib/sectionLocation";
 import { useAdminDashboard } from "@/context/AdminDashboardContext";
 import { useLocation as useActiveLocation } from "@/context/LocationContext";
 import {
@@ -97,6 +99,8 @@ function greeting() {
 
 function DashboardHeader({ rangeKey, onRangeChange, ownerName, notifications }) {
   const { toggleSidebar } = useSidebar();
+  const { user } = useAuth();
+  const showRootLocationSelector = canUseRootLocationSelector(user);
   const range = getRange(rangeKey);
   const panelRef = useRef(null);
   const [open, setOpen] = useState(false);
@@ -165,7 +169,9 @@ function DashboardHeader({ rangeKey, onRangeChange, ownerName, notifications }) 
           </div>
 
           <div className="flex min-w-0 shrink-0 items-center gap-2">
-            <LocationSelector className="max-w-[180px]" allowAllLocations />
+            {showRootLocationSelector
+              ? <LocationSelector className="max-w-[180px]" allowAllLocations />
+              : <SectionLocationSelector className="max-w-[200px]" />}
             <label className="sr-only" htmlFor="dashboard-range">Dashboard date range</label>
             <div className="relative">
               <select

@@ -92,13 +92,21 @@ class LocationSecurityFilterChainTest {
     }
 
     @Test
-    void superAdminAndAdminCanAccessBothLocations() throws Exception {
-        for (String token : new String[]{"super-token", "admin-token"}) {
-            mvc.perform(get("/api/locations/1/authorized").header("Authorization", bearer(token)))
-                    .andExpect(status().isOk());
-            mvc.perform(get("/api/locations/2/authorized").header("Authorization", bearer(token)))
-                    .andExpect(status().isOk());
-        }
+    void superAdminAccessesAllLocationsWhileAdminIsScopedToAssignments() throws Exception {
+        // SUPER_ADMIN retains global, cross-location access.
+        mvc.perform(get("/api/locations/1/authorized").header("Authorization", bearer("super-token")))
+                .andExpect(status().isOk());
+        mvc.perform(get("/api/locations/2/authorized").header("Authorization", bearer("super-token")))
+                .andExpect(status().isOk());
+
+        // ADMIN is now bound to explicit user_location_access assignments: granted
+        // location 1 only, so location 2 is forbidden.
+        when(accesses.findByUserIdAndLocationId(2L, 1L)).thenReturn(Optional.of(grant(admin, a)));
+        when(accesses.findByUserIdAndLocationId(2L, 2L)).thenReturn(Optional.empty());
+        mvc.perform(get("/api/locations/1/authorized").header("Authorization", bearer("admin-token")))
+                .andExpect(status().isOk());
+        mvc.perform(get("/api/locations/2/authorized").header("Authorization", bearer("admin-token")))
+                .andExpect(status().isForbidden());
     }
 
     @Test

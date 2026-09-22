@@ -18,17 +18,22 @@ public class LocationAccessService {
         if (user == null || locationId == null) return false;
         Location location = locationRepository.findById(locationId).orElse(null);
         if (location == null || !Boolean.TRUE.equals(location.getActive())) return false;
+        // Only SUPER_ADMIN / SUPERUSER carries implicit access to every location.
         if (hasGlobalAccess(user)) return true;
-        if (user.getRole() != UserRole.MANAGER && user.getRole() != UserRole.KITCHEN_STAFF) {
-            return user.getDefaultLocation() != null
-                    && locationId.equals(user.getDefaultLocation().getId());
+        // ADMIN, MANAGER and KITCHEN_STAFF are all bound to their explicit,
+        // active user_location_access assignments — a forged or unassigned
+        // locationId therefore yields no matching grant and is rejected.
+        if (usesLocationAssignments(user)) {
+            return accessRepository.findByUserIdAndLocationId(user.getId(), locationId)
+                    .filter(a -> Boolean.TRUE.equals(a.getActive())
+                            && a.getLocation() != null
+                            && Boolean.TRUE.equals(a.getLocation().getActive())
+                            && locationId.equals(a.getLocation().getId()))
+                    .isPresent();
         }
-        return accessRepository.findByUserIdAndLocationId(user.getId(), locationId)
-                .filter(a -> Boolean.TRUE.equals(a.getActive())
-                        && a.getLocation() != null
-                        && Boolean.TRUE.equals(a.getLocation().getActive())
-                        && locationId.equals(a.getLocation().getId()))
-                .isPresent();
+        // Remaining roles (e.g. CUSTOMER) are limited to their default location.
+        return user.getDefaultLocation() != null
+                && locationId.equals(user.getDefaultLocation().getId());
     }
 
     public void requireLocationAccess(User user, Long locationId) {
@@ -39,21 +44,26 @@ public class LocationAccessService {
 
     public List<Location> getAccessibleLocations(User user) {
         if (user == null) return List.of();
+        // Only SUPER_ADMIN / SUPERUSER sees every active location.
         if (hasGlobalAccess(user)) {
             return locationRepository.findByActiveTrueOrderByNameAsc();
         }
-        if (user.getRole() != UserRole.MANAGER && user.getRole() != UserRole.KITCHEN_STAFF) {
-            Location defaultLocation = user.getDefaultLocation();
-            if (defaultLocation != null && Boolean.TRUE.equals(defaultLocation.getActive())) {
-                return List.of(defaultLocation);
-            }
-            return locationRepository.findByCode("PRAGATI_NAGAR")
-                    .filter(location -> Boolean.TRUE.equals(location.getActive()))
-                    .map(List::of)
-                    .orElse(List.of());
+        // ADMIN, MANAGER and KITCHEN_STAFF are scoped to their active
+        // user_location_access assignments (no implicit fallback).
+        if (usesLocationAssignments(user)) {
+            return accessRepository.findByUserIdAndActiveTrueAndLocationActiveTrueOrderByLocationNameAsc(user.getId())
+                    .stream().map(UserLocationAccess::getLocation).toList();
         }
-        return accessRepository.findByUserIdAndActiveTrueAndLocationActiveTrueOrderByLocationNameAsc(user.getId())
-                .stream().map(UserLocationAccess::getLocation).toList();
+        // Remaining roles (e.g. CUSTOMER) use their default location for feed
+        // access, falling back to the public PRAGATI_NAGAR location when unset.
+        Location defaultLocation = user.getDefaultLocation();
+        if (defaultLocation != null && Boolean.TRUE.equals(defaultLocation.getActive())) {
+            return List.of(defaultLocation);
+        }
+        return locationRepository.findByCode("PRAGATI_NAGAR")
+                .filter(location -> Boolean.TRUE.equals(location.getActive()))
+                .map(List::of)
+                .orElse(List.of());
     }
 
     public List<Location> getPublicCustomerLocations() {
@@ -79,9 +89,9 @@ public class LocationAccessService {
      *   <li>ADMIN / MANAGER / KITCHEN_STAFF: bound to the locations they can access
      *       ({@link #getAccessibleLocations}). A requested location is validated with
      *       {@link #canAccessLocation}; with no explicit selection the scope is the
-     *       user's full accessible set. ADMIN keeps the system's existing broad
-     *       access; MANAGER/KITCHEN_STAFF are limited to their {@code user_location_access}
-     *       assignments.</li>
+     *       user's full accessible set. ADMIN, MANAGER and KITCHEN_STAFF are all
+     *       limited to their active {@code user_location_access} assignments — only
+     *       SUPER_ADMIN retains global, cross-location access.</li>
      * </ul>
      *
      * @return {@link Optional#empty()} => no location filter (SUPER_ADMIN, all
@@ -140,8 +150,20 @@ public class LocationAccessService {
     }
 
     private boolean hasGlobalAccess(User user) {
-        return isSuperAdmin(user) || user.getRole() == UserRole.ADMIN
-                || Boolean.TRUE.equals(user.getIsAdmin());
+        // Global, cross-location access is reserved for SUPER_ADMIN / SUPERUSER.
+        // Regular ADMIN (and the legacy is_admin flag) no longer imply it — they
+        // are governed by explicit user_location_access assignments instead.
+        return isSuperAdmin(user);
+    }
+
+    /**
+     * Roles whose location visibility is defined by their active
+     * {@code user_location_access} assignments: ADMIN, MANAGER and KITCHEN_STAFF.
+     */
+    private boolean usesLocationAssignments(User user) {
+        return user.getRole() == UserRole.ADMIN
+                || user.getRole() == UserRole.MANAGER
+                || user.getRole() == UserRole.KITCHEN_STAFF;
     }
 
     private boolean isSuperAdmin(User user) {
