@@ -13,7 +13,17 @@ import { CaretLeftIcon } from "@phosphor-icons/react";
 import OTPVerifyDialog from "@/components/OTPVerifyDialog";
 import { PasswordInput } from "@/components/ui/password-input";
 import { PhoneInput } from "@/components/ui/phone-input";
+import {
+  Combobox,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxList,
+  useComboboxAnchor,
+} from "@/components/ui/combobox";
 import { useAuth } from "@/context/AuthContext";
+import { extractApiError } from "@/lib/apiError";
 
 export const Route = createFileRoute("/(auth)/register")({
   component: function Register() {
@@ -27,6 +37,7 @@ export const Route = createFileRoute("/(auth)/register")({
     const [defaultLocationId, setDefaultLocationId] = useState("");
     const [customerCompanyId, setCustomerCompanyId] = useState("");
     const [customerCompanySearch, setCustomerCompanySearch] = useState("");
+    const companyComboboxAnchor = useComboboxAnchor();
     const [error, setError] = useState(null);
     const locationsQuery = useQuery({
       queryKey: ["locations", "registration-selectable"],
@@ -59,7 +70,7 @@ export const Route = createFileRoute("/(auth)/register")({
         navigate({ to: "/register", search: { verify: true } });
       },
       onError: (err) => {
-        setError(err?.response?.data || "Failed to generate OTP");
+        setError(extractApiError(err, "Failed to generate OTP"));
       },
     });
 
@@ -163,13 +174,33 @@ export const Route = createFileRoute("/(auth)/register")({
                 {defaultLocationId && companiesQuery.isLoading && <div className="min-h-12 animate-pulse rounded-xl border bg-muted" aria-label="Loading customer companies" />}
                 {defaultLocationId && companiesQuery.isSuccess && !companiesQuery.data.length && <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-3 text-sm text-amber-800">No active Customer Companies are available at this Location.</p>}
                 {defaultLocationId && companiesQuery.isSuccess && companiesQuery.data.length > 0 && (
-                  <>
-                   <Input list="registration-customer-companies" required value={customerCompanySearch} onChange={(event) => {
-                     setCustomerCompanySearch(event.target.value);
-                     setCustomerCompanyId(String(companiesQuery.data.find((company) => company.name === event.target.value)?.id || ""));
-                   }} placeholder="Search Customer Company" className="h-10" />
-                   <datalist id="registration-customer-companies">{companiesQuery.data.map((company) => <option key={company.id} value={company.name} />)}</datalist>
-                  </>
+                  <Combobox
+                    items={companiesQuery.data.map((company) => company.name)}
+                    value={customerCompanySearch}
+                    onValueChange={(value) => {
+                      const selectedCompany = companiesQuery.data.find((company) => company.name === value);
+                      setCustomerCompanySearch(value);
+                      setCustomerCompanyId(selectedCompany ? String(selectedCompany.id) : "");
+                    }}
+                  >
+                    <div ref={companyComboboxAnchor}>
+                      <ComboboxInput
+                        required
+                        placeholder="Search Customer Company"
+                        className="h-10"
+                      />
+                    </div>
+                    <ComboboxContent anchor={companyComboboxAnchor}>
+                      <ComboboxEmpty>No matching Customer Companies.</ComboboxEmpty>
+                      <ComboboxList>
+                        {companiesQuery.data.map((company) => (
+                          <ComboboxItem key={company.id} value={company.name}>
+                            {company.name}
+                          </ComboboxItem>
+                        ))}
+                      </ComboboxList>
+                    </ComboboxContent>
+                  </Combobox>
                 )}
               </FieldContent>
             </Field>
