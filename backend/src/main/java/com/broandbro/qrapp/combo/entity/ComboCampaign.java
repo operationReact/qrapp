@@ -1,5 +1,6 @@
 package com.broandbro.qrapp.combo.entity;
 
+import com.broandbro.qrapp.entity.Location;
 import com.broandbro.qrapp.enums.ComboStatus;
 import jakarta.persistence.*;
 import lombok.*;
@@ -22,6 +23,16 @@ public class ComboCampaign {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    /**
+     * Location that owns this campaign. Every campaign is scoped to exactly one
+     * location so the admin surface can be filtered per location while SUPER_ADMIN
+     * retains the cross-location view. Derived from the campaign's eligible
+     * menu-item / category location; application code sets it on create.
+     */
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "location_id", nullable = false)
+    private Location location;
 
     @Column(name = "name", nullable = false, length = 150)
     private String name;

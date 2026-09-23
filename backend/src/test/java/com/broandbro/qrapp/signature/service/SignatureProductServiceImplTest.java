@@ -1,6 +1,7 @@
 package com.broandbro.qrapp.signature.service;
 
 import com.broandbro.qrapp.enums.SignatureInventoryOperation;
+import com.broandbro.qrapp.repository.LocationRepository;
 import com.broandbro.qrapp.signature.dto.StockUpdateRequest;
 import com.broandbro.qrapp.signature.entity.SignatureProduct;
 import com.broandbro.qrapp.signature.exception.InsufficientStockException;
@@ -16,6 +17,7 @@ import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.*;
@@ -28,8 +30,12 @@ class SignatureProductServiceImplTest {
     @Mock SignatureProductRepository productRepo;
     @Mock SignatureProductInventoryLogRepository logRepo;
     @Mock SignatureProductAnalyticsDailyRepository analyticsRepo;
+    @Mock LocationRepository locationRepo;
 
     @InjectMocks SignatureProductServiceImpl sut;
+
+    /** SUPER_ADMIN "All Locations" scope — no location filter is applied. */
+    private static final Optional<List<Long>> ALL_LOCATIONS = Optional.empty();
 
     private SignatureProduct product;
 
@@ -51,7 +57,7 @@ class SignatureProductServiceImplTest {
         when(productRepo.save(any())).thenReturn(product);
         when(logRepo.save(any())).thenReturn(null);
 
-        sut.updateStock(1L, new StockUpdateRequest(SignatureInventoryOperation.STOCK_IN, 5, "restock"), "admin");
+        sut.updateStock(1L, new StockUpdateRequest(SignatureInventoryOperation.STOCK_IN, 5, "restock"), "admin", ALL_LOCATIONS);
 
         assertThat(product.getStockQuantity()).isEqualTo(15);
     }
@@ -63,7 +69,7 @@ class SignatureProductServiceImplTest {
         when(productRepo.save(any())).thenReturn(product);
         when(logRepo.save(any())).thenReturn(null);
 
-        sut.updateStock(1L, new StockUpdateRequest(SignatureInventoryOperation.SALE, 3, null), "system");
+        sut.updateStock(1L, new StockUpdateRequest(SignatureInventoryOperation.SALE, 3, null), "system", ALL_LOCATIONS);
 
         assertThat(product.getStockQuantity()).isEqualTo(7);
     }
@@ -74,7 +80,7 @@ class SignatureProductServiceImplTest {
         when(productRepo.findActiveById(1L)).thenReturn(Optional.of(product));
 
         assertThatThrownBy(() ->
-                sut.updateStock(1L, new StockUpdateRequest(SignatureInventoryOperation.STOCK_OUT, 20, null), "admin"))
+                sut.updateStock(1L, new StockUpdateRequest(SignatureInventoryOperation.STOCK_OUT, 20, null), "admin", ALL_LOCATIONS))
                 .isInstanceOf(InsufficientStockException.class)
                 .hasMessageContaining("Insufficient stock");
     }
@@ -84,7 +90,7 @@ class SignatureProductServiceImplTest {
     void get_throws_when_not_found() {
         when(productRepo.findActiveById(99L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> sut.getProductById(99L))
+        assertThatThrownBy(() -> sut.getProductById(99L, ALL_LOCATIONS))
                 .isInstanceOf(SignatureProductNotFoundException.class)
                 .hasMessageContaining("99");
     }

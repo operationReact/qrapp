@@ -374,8 +374,12 @@ public class InventoryServiceImpl implements InventoryService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<InventoryStatusResponse> getLowStockItems(Pageable pageable) {
-        List<Inventory> lowStockItems = inventoryRepository.findLowStockItems();
+    public Page<InventoryStatusResponse> getLowStockItems(Pageable pageable, Optional<List<Long>> locationScope) {
+        ScopeParams scope = normalizeScope(locationScope);
+        if (!scope.visible()) {
+            return new PageImpl<>(List.of(), pageable, 0);
+        }
+        List<Inventory> lowStockItems = inventoryRepository.findLowStockItems(scope.all(), scope.ids());
 
         List<InventoryStatusResponse> responses = lowStockItems.stream()
             .map(inventory -> buildInventoryStatusResponse(inventory.getMenuItem(), inventory))
@@ -384,15 +388,20 @@ public class InventoryServiceImpl implements InventoryService {
         // Apply pagination manually since findLowStockItems doesn't support it
         int start = (int) pageable.getOffset();
         int end = Math.min(start + pageable.getPageSize(), responses.size());
-        List<InventoryStatusResponse> pageContent = responses.subList(start, end);
+        List<InventoryStatusResponse> pageContent = start >= responses.size()
+                ? List.of() : responses.subList(start, end);
 
         return new PageImpl<>(pageContent, pageable, responses.size());
     }
 
     @Override
     @Transactional(readOnly = true)
-    public Page<InventoryStatusResponse> getOutOfStockItems(Pageable pageable) {
-        List<Inventory> outOfStockItems = inventoryRepository.findOutOfStockItems();
+    public Page<InventoryStatusResponse> getOutOfStockItems(Pageable pageable, Optional<List<Long>> locationScope) {
+        ScopeParams scope = normalizeScope(locationScope);
+        if (!scope.visible()) {
+            return new PageImpl<>(List.of(), pageable, 0);
+        }
+        List<Inventory> outOfStockItems = inventoryRepository.findOutOfStockItems(scope.all(), scope.ids());
 
         List<InventoryStatusResponse> responses = outOfStockItems.stream()
             .map(inventory -> buildInventoryStatusResponse(inventory.getMenuItem(), inventory))
@@ -401,7 +410,8 @@ public class InventoryServiceImpl implements InventoryService {
         // Apply pagination manually
         int start = (int) pageable.getOffset();
         int end = Math.min(start + pageable.getPageSize(), responses.size());
-        List<InventoryStatusResponse> pageContent = responses.subList(start, end);
+        List<InventoryStatusResponse> pageContent = start >= responses.size()
+                ? List.of() : responses.subList(start, end);
 
         return new PageImpl<>(pageContent, pageable, responses.size());
     }
@@ -415,14 +425,19 @@ public class InventoryServiceImpl implements InventoryService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<InventoryAuditResponse> getRecentInventoryChanges(Pageable pageable) {
+    public Page<InventoryAuditResponse> getRecentInventoryChanges(Pageable pageable, Optional<List<Long>> locationScope) {
         if (pageable == null) {
             throw new IllegalArgumentException("Pageable cannot be null");
         }
 
         try {
+            ScopeParams scope = normalizeScope(locationScope);
+            if (!scope.visible()) {
+                return new PageImpl<>(List.of(), pageable, 0);
+            }
             List<InventoryAudit> audits = inventoryAuditRepository.findRecentAudits(pageable);
             List<InventoryAuditResponse> responses = audits.stream()
+                .filter(audit -> scope.all() || isAuditWithinScope(audit, scope.ids()))
                 .map(this::buildAuditResponse)
                 .collect(Collectors.toList());
 
@@ -431,6 +446,19 @@ public class InventoryServiceImpl implements InventoryService {
             log.error("Error fetching recent inventory changes", e);
             throw new InventoryOperationException("Failed to fetch recent inventory changes: " + e.getMessage(), e);
         }
+    }
+
+    /**
+     * True when the menu item referenced by an audit entry belongs to one of the
+     * accessible locations. Missing menu items (e.g. deleted) are excluded from a
+     * restricted scope.
+     */
+    private boolean isAuditWithinScope(InventoryAudit audit, List<Long> locationIds) {
+        return menuRepository.findById(audit.getMenuItemId())
+                .map(MenuItem::getLocation)
+                .filter(Objects::nonNull)
+                .map(location -> locationIds.contains(location.getId()))
+                .orElse(false);
     }
 
     @Override
@@ -500,10 +528,16 @@ public class InventoryServiceImpl implements InventoryService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<AdminInventoryItemResponse> getInventoryItems(InventoryItemFilter filter, Pageable pageable) {
+    public Page<AdminInventoryItemResponse> getInventoryItems(InventoryItemFilter filter, Pageable pageable,
+                                                              Optional<List<Long>> locationScope) {
         String search       = (filter.getSearch() != null && !filter.getSearch().isBlank())
                               ? filter.getSearch().trim() : null;
         boolean lowStockOnly = Boolean.TRUE.equals(filter.getLowStockOnly());
+
+        ScopeParams scope = normalizeScope(locationScope);
+        if (!scope.visible()) {
+            return new PageImpl<>(List.of(), pageable, 0);
+        }
 
         return inventoryRepository.findLimitedItemsWithFilters(
                         filter.getInventoryMode(),
@@ -511,8 +545,41 @@ public class InventoryServiceImpl implements InventoryService {
                         filter.getIsHidden(),
                         Boolean.TRUE.equals(filter.getInStockOnly()),
                         lowStockOnly,
+                        scope.all(),
+                        scope.ids(),
                         pageable)
                 .map(this::toAdminInventoryItemResponse);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Long getMenuItemLocationId(Long menuItemId) {
+        MenuItem menuItem = getMenuItemOrThrow(menuItemId);
+        return menuItem.getLocation() != null ? menuItem.getLocation().getId() : null;
+    }
+
+    /**
+     * Normalises the dashboard location scope ({@code Optional<List<Long>>}) into
+     * flat query parameters:
+     * <ul>
+     *   <li>{@code all == true} — no location filter (SUPER_ADMIN / "All Locations").</li>
+     *   <li>{@code ids} — never empty; a sentinel {@code -1} is used when
+     *       {@code all} is true so the SQL {@code IN} clause always parses.</li>
+     *   <li>{@code visible == false} — the caller can access no location; callers
+     *       should short-circuit to an empty result.</li>
+     * </ul>
+     */
+    private record ScopeParams(boolean all, List<Long> ids, boolean visible) {}
+
+    private static ScopeParams normalizeScope(Optional<List<Long>> scope) {
+        if (scope == null || scope.isEmpty()) {
+            return new ScopeParams(true, List.of(-1L), true);
+        }
+        List<Long> ids = scope.get();
+        if (ids.isEmpty()) {
+            return new ScopeParams(false, List.of(-1L), false);
+        }
+        return new ScopeParams(false, List.copyOf(ids), true);
     }
 
     /**

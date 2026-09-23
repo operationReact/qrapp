@@ -11,6 +11,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { adminOrdersOptions, adminOrderDashboardOptions, adminOrderOptions } from "@/query/options/orders";
 import { updateAdminOrder } from "@/services/order-service";
 import { useAuth } from "./AuthContext";
+import { useLocation as useActiveLocation } from "@/context/LocationContext";
 
 const AdminDashboardContext = createContext(null);
 
@@ -18,6 +19,7 @@ export const AdminDashboardProvider = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { setUser: setAdmin, isAdmin, isSuperUser } = useAuth();
+  const { activeLocationId } = useActiveLocation();
   const queryClient = useQueryClient();
   const canViewAdmin = isAdmin || isSuperUser;
 
@@ -37,8 +39,9 @@ export const AdminDashboardProvider = ({ children }) => {
     if (filters.paymentStatus) params.paymentStatus = filters.paymentStatus;
     if (filters.query) params.query = filters.query;
     if (typeof filters.liveOnly === "boolean") params.liveOnly = filters.liveOnly;
+    if (activeLocationId != null) params.locationId = activeLocationId;
     return params;
-  }, [page, size, filters]);
+  }, [page, size, filters, activeLocationId]);
 
   const {
     data: ordersPage,
@@ -57,7 +60,7 @@ export const AdminDashboardProvider = ({ children }) => {
     error: dashboardError,
     refetch: refetchDashboard,
   } = useQuery({
-    ...adminOrderDashboardOptions(),
+    ...adminOrderDashboardOptions(12, activeLocationId),
     enabled: canViewAdmin,
   });
 
@@ -74,7 +77,7 @@ export const AdminDashboardProvider = ({ children }) => {
   }, [queryError]);
 
   const orderUpdateMutation = useMutation({
-    mutationFn: ({ orderId, payload }) => updateAdminOrder(orderId, payload),
+    mutationFn: ({ orderId, payload }) => updateAdminOrder(orderId, payload, activeLocationId),
     onSuccess: (_, { orderId }) => {
       queryClient.invalidateQueries({ queryKey: ['orders', 'admin'] });
       queryClient.invalidateQueries({ queryKey: ['orders', 'admin', String(orderId)] });

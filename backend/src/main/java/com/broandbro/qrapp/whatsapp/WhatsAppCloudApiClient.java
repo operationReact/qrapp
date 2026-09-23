@@ -30,7 +30,10 @@ public class WhatsAppCloudApiClient {
     }
 
     public void sendAuthenticationCode(String phoneNumber, String otp) {
-        if (!properties.isEnabled() || properties.getPhoneNumberId() == null
+        if (!properties.isEnabled()) {
+            throw new WhatsAppDeliveryException("WhatsApp OTP delivery is disabled", null);
+        }
+        if (properties.getPhoneNumberId() == null
                 || properties.getPhoneNumberId().isBlank()
                 || properties.getAccessToken() == null || properties.getAccessToken().isBlank()) {
             throw new WhatsAppDeliveryException("WhatsApp OTP delivery is not configured", null);

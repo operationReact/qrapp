@@ -1,6 +1,7 @@
 package com.broandbro.qrapp.service;
 
 import com.broandbro.qrapp.dto.partyorder.*;
+import com.broandbro.qrapp.entity.Location;
 import com.broandbro.qrapp.entity.PartyOrder;
 import com.broandbro.qrapp.entity.PartyOrderMenuItem;
 import com.broandbro.qrapp.entity.User;
@@ -11,6 +12,7 @@ import com.broandbro.qrapp.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
@@ -21,6 +23,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -49,6 +52,7 @@ public class PartyOrderServiceImpl implements PartyOrderService {
                 .userId(user.getId())
                 .userPhone(user.getPhone())
                 .userName(user.getName())
+                .location(user.getDefaultLocation())
                 .eventDateTime(req.eventDateTime())
                 .numberOfPeople(req.numberOfPeople())
                 .venue(req.venue())
@@ -230,9 +234,11 @@ public class PartyOrderServiceImpl implements PartyOrderService {
     // =========================================================================
 
     @Override
-    public List<PartyOrderResponse> getAllPartyOrders() {
-        return partyOrderRepo.findAllByOrderByCreatedAtDesc()
-                .stream()
+    public List<PartyOrderResponse> getAllPartyOrders(Optional<List<Long>> locationScope) {
+        List<PartyOrder> orders = isUnfiltered(locationScope)
+                ? partyOrderRepo.findAllByOrderByCreatedAtDesc()
+                : partyOrderRepo.findByLocationIdInOrderByCreatedAtDesc(scopeIdsOrSentinel(locationScope));
+        return orders.stream()
                 .map(po -> {
                     checkAndExpireEstimate(po);
                     return PartyOrderResponse.forAdmin(po);
@@ -241,24 +247,31 @@ public class PartyOrderServiceImpl implements PartyOrderService {
     }
 
     @Override
-    public List<PartyOrderResponse> getPartyOrdersByStatus(PartyOrderStatus status) {
-        return partyOrderRepo.findByStatusOrderByCreatedAtDesc(status)
-                .stream()
+    public List<PartyOrderResponse> getPartyOrdersByStatus(PartyOrderStatus status,
+                                                           Optional<List<Long>> locationScope) {
+        List<PartyOrder> orders = isUnfiltered(locationScope)
+                ? partyOrderRepo.findByStatusOrderByCreatedAtDesc(status)
+                : partyOrderRepo.findByStatusAndLocationIdInOrderByCreatedAtDesc(
+                        status, scopeIdsOrSentinel(locationScope));
+        return orders.stream()
                 .map(PartyOrderResponse::forAdmin)
                 .toList();
     }
 
     @Override
-    public PartyOrderResponse getPartyOrderById(Long orderId) {
+    public PartyOrderResponse getPartyOrderById(Long orderId, Optional<List<Long>> locationScope) {
         PartyOrder po = requireOrder(orderId);
+        assertWithinScope(po, locationScope);
         checkAndExpireEstimate(po);
         return PartyOrderResponse.forAdmin(po);
     }
 
     @Override
     @Transactional
-    public PartyOrderResponse submitEstimate(Long orderId, PartyOrderEstimateRequest req, String adminName) {
+    public PartyOrderResponse submitEstimate(Long orderId, PartyOrderEstimateRequest req, String adminName,
+                                             Optional<List<Long>> locationScope) {
         PartyOrder po = requireOrder(orderId);
+        assertWithinScope(po, locationScope);
 
         if (po.getStatus() != PartyOrderStatus.PENDING_ESTIMATE
                 && po.getStatus() != PartyOrderStatus.NEW
@@ -336,8 +349,10 @@ public class PartyOrderServiceImpl implements PartyOrderService {
 
     @Override
     @Transactional
-    public PartyOrderResponse updateStatus(Long orderId, PartyOrderStatusUpdateRequest req, String adminName) {
+    public PartyOrderResponse updateStatus(Long orderId, PartyOrderStatusUpdateRequest req, String adminName,
+                                           Optional<List<Long>> locationScope) {
         PartyOrder po = requireOrder(orderId);
+        assertWithinScope(po, locationScope);
         PartyOrderStatus prev = po.getStatus();
         po.setStatus(req.status());
         po = partyOrderRepo.save(po);
@@ -348,8 +363,9 @@ public class PartyOrderServiceImpl implements PartyOrderService {
 
     @Override
     @Transactional
-    public PartyOrderResponse markDelivered(Long orderId, String adminName) {
+    public PartyOrderResponse markDelivered(Long orderId, String adminName, Optional<List<Long>> locationScope) {
         PartyOrder po = requireOrder(orderId);
+        assertWithinScope(po, locationScope);
 
         if (po.getStatus() != PartyOrderStatus.CONFIRMED) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
@@ -413,6 +429,35 @@ public class PartyOrderServiceImpl implements PartyOrderService {
                     HttpStatus.FORBIDDEN, "Access denied to party order: " + orderId);
         }
         return po;
+    }
+
+    // ── Location scope helpers ───────────────────────────────────────────────
+
+    /** True when the scope imposes no filter (SUPER_ADMIN "All Locations"). */
+    private boolean isUnfiltered(Optional<List<Long>> locationScope) {
+        return locationScope == null || locationScope.isEmpty();
+    }
+
+    /**
+     * Flattens the scope to the list of visible location IDs. A sentinel {@code -1}
+     * is used when the caller can access nothing so the SQL {@code IN} clause always
+     * parses and yields an empty result set.
+     */
+    private List<Long> scopeIdsOrSentinel(Optional<List<Long>> locationScope) {
+        List<Long> ids = locationScope.get();
+        return ids.isEmpty() ? List.of(-1L) : ids;
+    }
+
+    /** Rejects access to a party order that falls outside the caller's location scope. */
+    private void assertWithinScope(PartyOrder po, Optional<List<Long>> locationScope) {
+        if (isUnfiltered(locationScope)) {
+            return;
+        }
+        Location location = po.getLocation();
+        Long locationId = location != null ? location.getId() : null;
+        if (locationId == null || !locationScope.get().contains(locationId)) {
+            throw new AccessDeniedException("location_access_denied");
+        }
     }
 
     private List<PartyOrderMenuItem> normalizeMenuItems(List<String> raw, PartyOrder parent) {

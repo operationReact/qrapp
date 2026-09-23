@@ -4,6 +4,7 @@ import com.broandbro.qrapp.analytics.config.AnalyticsCacheConfig;
 import com.broandbro.qrapp.analytics.dto.TopMenuItemResponse;
 import com.broandbro.qrapp.analytics.projection.TopMenuItemProjection;
 import com.broandbro.qrapp.analytics.repository.MenuItemAnalyticsRepository;
+import com.broandbro.qrapp.analytics.support.AnalyticsLocationScope;
 import com.broandbro.qrapp.repository.MenuRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -35,46 +36,61 @@ public class MenuAnalyticsServiceImpl implements MenuAnalyticsService {
     @Cacheable(
         cacheManager = "analyticsCacheManager",
         cacheNames   = AnalyticsCacheConfig.CACHE_TOP_ITEMS,
-        key           = "'revenue:' + #from + ':' + #to + ':' + #limit"
+        key           = "'revenue:' + #from + ':' + #to + ':' + #limit + ':' + #scope.allLocations() + ':' + #scope.locationIds()"
     )
-    public List<TopMenuItemResponse> getTopItemsByRevenue(LocalDate from, LocalDate to, int limit) {
-        log.debug("[MenuService] getTopItemsByRevenue from={} to={} limit={}", from, to, limit);
-        return enrichWithImages(menuItemRepo.findTopItemsByRevenue(from, to, PageRequest.of(0, limit)));
+    public List<TopMenuItemResponse> getTopItemsByRevenue(LocalDate from, LocalDate to, int limit, AnalyticsLocationScope scope) {
+        log.debug("[MenuService] getTopItemsByRevenue from={} to={} limit={} scope={}", from, to, limit, scope);
+        if (!scope.visible()) {
+            return List.of();
+        }
+        return enrichWithImages(menuItemRepo.findTopItemsByRevenue(
+                from, to, scope.allLocations(), scope.locationIds(), PageRequest.of(0, limit)));
     }
 
     @Override
     @Cacheable(
         cacheManager = "analyticsCacheManager",
         cacheNames   = AnalyticsCacheConfig.CACHE_TOP_ITEMS,
-        key           = "'qty:' + #from + ':' + #to + ':' + #limit"
+        key           = "'qty:' + #from + ':' + #to + ':' + #limit + ':' + #scope.allLocations() + ':' + #scope.locationIds()"
     )
-    public List<TopMenuItemResponse> getTopItemsByQty(LocalDate from, LocalDate to, int limit) {
-        log.debug("[MenuService] getTopItemsByQty from={} to={} limit={}", from, to, limit);
-        return enrichWithImages(menuItemRepo.findTopItemsByQty(from, to, PageRequest.of(0, limit)));
+    public List<TopMenuItemResponse> getTopItemsByQty(LocalDate from, LocalDate to, int limit, AnalyticsLocationScope scope) {
+        log.debug("[MenuService] getTopItemsByQty from={} to={} limit={} scope={}", from, to, limit, scope);
+        if (!scope.visible()) {
+            return List.of();
+        }
+        return enrichWithImages(menuItemRepo.findTopItemsByQty(
+                from, to, scope.allLocations(), scope.locationIds(), PageRequest.of(0, limit)));
     }
 
     @Override
     @Cacheable(
         cacheManager = "analyticsCacheManager",
         cacheNames   = AnalyticsCacheConfig.CACHE_TOP_ITEMS,
-        key           = "'least:' + #from + ':' + #to + ':' + #limit"
+        key           = "'least:' + #from + ':' + #to + ':' + #limit + ':' + #scope.allLocations() + ':' + #scope.locationIds()"
     )
-    public List<TopMenuItemResponse> getLeastSellingItems(LocalDate from, LocalDate to, int limit) {
-        log.debug("[MenuService] getLeastSellingItems from={} to={} limit={}", from, to, limit);
-        return enrichWithImages(menuItemRepo.findLeastItemsByRevenue(from, to, PageRequest.of(0, limit)));
+    public List<TopMenuItemResponse> getLeastSellingItems(LocalDate from, LocalDate to, int limit, AnalyticsLocationScope scope) {
+        log.debug("[MenuService] getLeastSellingItems from={} to={} limit={} scope={}", from, to, limit, scope);
+        if (!scope.visible()) {
+            return List.of();
+        }
+        return enrichWithImages(menuItemRepo.findLeastItemsByRevenue(
+                from, to, scope.allLocations(), scope.locationIds(), PageRequest.of(0, limit)));
     }
 
     @Override
     @Cacheable(
         cacheManager = "analyticsCacheManager",
         cacheNames   = AnalyticsCacheConfig.CACHE_CATEGORY_ROLLUP,
-        key           = "'category:' + #from + ':' + #to"
+        key           = "'category:' + #from + ':' + #to + ':' + #scope.allLocations() + ':' + #scope.locationIds()"
     )
-    public List<TopMenuItemResponse> getCategoryRevenueRollup(LocalDate from, LocalDate to) {
-        log.debug("[MenuService] getCategoryRevenueRollup from={} to={}", from, to);
+    public List<TopMenuItemResponse> getCategoryRevenueRollup(LocalDate from, LocalDate to, AnalyticsLocationScope scope) {
+        log.debug("[MenuService] getCategoryRevenueRollup from={} to={} scope={}", from, to, scope);
+        if (!scope.visible()) {
+            return List.of();
+        }
         AtomicInteger rank = new AtomicInteger(1);
         // Category rollup: no individual menuItem imageUrl
-        return menuItemRepo.findCategoryRevenueRollup(from, to)
+        return menuItemRepo.findCategoryRevenueRollup(from, to, scope.allLocations(), scope.locationIds())
                 .stream()
                 .map(p -> toResponse(p, rank.getAndIncrement(), null))
                 .collect(Collectors.toList());
@@ -84,30 +100,41 @@ public class MenuAnalyticsServiceImpl implements MenuAnalyticsService {
     @Cacheable(
         cacheManager = "analyticsCacheManager",
         cacheNames   = AnalyticsCacheConfig.CACHE_TOP_ITEMS,
-        key           = "'profit:' + #from + ':' + #to + ':' + #limit"
+        key           = "'profit:' + #from + ':' + #to + ':' + #limit + ':' + #scope.allLocations() + ':' + #scope.locationIds()"
     )
-    public List<TopMenuItemResponse> getTopItemsByProfit(LocalDate from, LocalDate to, int limit) {
-        log.debug("[MenuService] getTopItemsByProfit from={} to={} limit={}", from, to, limit);
-        return enrichWithImages(menuItemRepo.findTopItemsByProfit(from, to, PageRequest.of(0, limit)));
+    public List<TopMenuItemResponse> getTopItemsByProfit(LocalDate from, LocalDate to, int limit, AnalyticsLocationScope scope) {
+        log.debug("[MenuService] getTopItemsByProfit from={} to={} limit={} scope={}", from, to, limit, scope);
+        if (!scope.visible()) {
+            return List.of();
+        }
+        return enrichWithImages(menuItemRepo.findTopItemsByProfit(
+                from, to, scope.allLocations(), scope.locationIds(), PageRequest.of(0, limit)));
     }
 
     @Override
     @Cacheable(
         cacheManager = "analyticsCacheManager",
         cacheNames   = AnalyticsCacheConfig.CACHE_TOP_ITEMS,
-        key           = "'margin:' + #from + ':' + #to + ':' + #limit"
+        key           = "'margin:' + #from + ':' + #to + ':' + #limit + ':' + #scope.allLocations() + ':' + #scope.locationIds()"
     )
-    public List<TopMenuItemResponse> getHighestMarginItems(LocalDate from, LocalDate to, int limit) {
-        log.debug("[MenuService] getHighestMarginItems from={} to={} limit={}", from, to, limit);
-        return enrichWithImages(menuItemRepo.findTopItemsByMargin(from, to, PageRequest.of(0, limit)));
+    public List<TopMenuItemResponse> getHighestMarginItems(LocalDate from, LocalDate to, int limit, AnalyticsLocationScope scope) {
+        log.debug("[MenuService] getHighestMarginItems from={} to={} limit={} scope={}", from, to, limit, scope);
+        if (!scope.visible()) {
+            return List.of();
+        }
+        return enrichWithImages(menuItemRepo.findTopItemsByMargin(
+                from, to, scope.allLocations(), scope.locationIds(), PageRequest.of(0, limit)));
     }
 
     @Override
-    public Page<TopMenuItemResponse> getTopItemsPaged(LocalDate from, LocalDate to, String sortBy, Pageable pageable) {
+    public Page<TopMenuItemResponse> getTopItemsPaged(LocalDate from, LocalDate to, String sortBy, AnalyticsLocationScope scope, Pageable pageable) {
+        if (!scope.visible()) {
+            return Page.empty(pageable);
+        }
         boolean byQty = "qty".equalsIgnoreCase(sortBy);
         List<TopMenuItemProjection> projections = byQty
-                ? menuItemRepo.findTopItemsByQty(from, to, PageRequest.of(0, Integer.MAX_VALUE))
-                : menuItemRepo.findTopItemsByRevenue(from, to, PageRequest.of(0, Integer.MAX_VALUE));
+                ? menuItemRepo.findTopItemsByQty(from, to, scope.allLocations(), scope.locationIds(), PageRequest.of(0, Integer.MAX_VALUE))
+                : menuItemRepo.findTopItemsByRevenue(from, to, scope.allLocations(), scope.locationIds(), PageRequest.of(0, Integer.MAX_VALUE));
 
         int start = (int) pageable.getOffset();
         int end   = Math.min(start + pageable.getPageSize(), projections.size());

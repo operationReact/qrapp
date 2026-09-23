@@ -12,6 +12,9 @@ public record ComboCampaignCreateRequest(
         @Size(max = 150)
         String name,
 
+        @NotNull(message = "locationId is required")
+        Long locationId,
+
         String description,
 
         Instant startsAt,

@@ -1,4 +1,5 @@
 import { queryOptions } from "@tanstack/react-query";
+import { getEffectiveLocationId } from "@/lib/activeLocationStore";
 import {
   getPublicCombos,
   getComboAnalyticsSummary,
@@ -9,17 +10,24 @@ import {
   listMissedOpportunities,
 } from "../../services/comboService";
 
+const storedLocationId = () => {
+  return getEffectiveLocationId();
+};
+
 export const publicCombosOptions = queryOptions({
   queryKey: ["combos", "public"],
   queryFn: getPublicCombos,
   staleTime: 1000 * 60 * 5,
 });
 
-export const comboSummaryOptions = queryOptions({
-  queryKey: ["combos", "summary"],
-  queryFn: getComboAnalyticsSummary,
-  staleTime: 1000 * 60 * 2,
-});
+export const comboSummaryOptions = (activeLocationId) => {
+  const locationId = activeLocationId !== undefined ? activeLocationId : storedLocationId();
+  return queryOptions({
+    queryKey: ["combos", "summary", locationId ?? null],
+    queryFn: () => getComboAnalyticsSummary(locationId ?? undefined),
+    staleTime: 1000 * 60 * 2,
+  });
+};
 
 export const comboListOptions = (params = {}) =>
   queryOptions({

@@ -51,13 +51,20 @@ public interface MenuItemAnalyticsRepository extends JpaRepository<MenuItemAnaly
                        ELSE 0 END           AS avgProfitMargin
            FROM MenuItemAnalytics m
            WHERE m.snapshotDate BETWEEN :from AND :to
+             AND (:allLocations = TRUE OR m.locationId IN :locationIds)
            GROUP BY m.menuItemId, m.menuItemName, m.categoryId, m.categoryName
            ORDER BY SUM(m.totalRevenue) DESC
            """)
     List<TopMenuItemProjection> findTopItemsByRevenue(
-            @Param("from") LocalDate from,
-            @Param("to") LocalDate to,
-            Pageable pageable);
+           @Param("from") LocalDate from,
+           @Param("to") LocalDate to,
+           @Param("allLocations") boolean allLocations,
+           @Param("locationIds") List<Long> locationIds,
+           Pageable pageable);
+
+    default List<TopMenuItemProjection> findTopItemsByRevenue(LocalDate from, LocalDate to, Pageable pageable) {
+        return findTopItemsByRevenue(from, to, true, List.of(-1L), pageable);
+    }
 
     /** Top N items by quantity sold across a date range. */
     @Query("""
@@ -77,13 +84,20 @@ public interface MenuItemAnalyticsRepository extends JpaRepository<MenuItemAnaly
                        ELSE 0 END         AS avgProfitMargin
            FROM MenuItemAnalytics m
            WHERE m.snapshotDate BETWEEN :from AND :to
+             AND (:allLocations = TRUE OR m.locationId IN :locationIds)
            GROUP BY m.menuItemId, m.menuItemName, m.categoryId, m.categoryName
            ORDER BY SUM(m.totalQtySold) DESC
            """)
     List<TopMenuItemProjection> findTopItemsByQty(
-            @Param("from") LocalDate from,
-            @Param("to") LocalDate to,
-            Pageable pageable);
+           @Param("from") LocalDate from,
+           @Param("to") LocalDate to,
+           @Param("allLocations") boolean allLocations,
+           @Param("locationIds") List<Long> locationIds,
+           Pageable pageable);
+
+    default List<TopMenuItemProjection> findTopItemsByQty(LocalDate from, LocalDate to, Pageable pageable) {
+        return findTopItemsByQty(from, to, true, List.of(-1L), pageable);
+    }
 
     /** Least-selling N items by revenue across a date range. */
     @Query("""
@@ -103,13 +117,20 @@ public interface MenuItemAnalyticsRepository extends JpaRepository<MenuItemAnaly
                        ELSE 0 END        AS avgProfitMargin
            FROM MenuItemAnalytics m
            WHERE m.snapshotDate BETWEEN :from AND :to
+             AND (:allLocations = TRUE OR m.locationId IN :locationIds)
            GROUP BY m.menuItemId, m.menuItemName, m.categoryId, m.categoryName
            ORDER BY SUM(m.totalRevenue) ASC
            """)
     List<TopMenuItemProjection> findLeastItemsByRevenue(
-            @Param("from") LocalDate from,
-            @Param("to") LocalDate to,
-            Pageable pageable);
+           @Param("from") LocalDate from,
+           @Param("to") LocalDate to,
+           @Param("allLocations") boolean allLocations,
+           @Param("locationIds") List<Long> locationIds,
+           Pageable pageable);
+
+    default List<TopMenuItemProjection> findLeastItemsByRevenue(LocalDate from, LocalDate to, Pageable pageable) {
+        return findLeastItemsByRevenue(from, to, true, List.of(-1L), pageable);
+    }
 
     /** Category-level revenue rollup for a date range. */
     @Query(value = """
@@ -128,13 +149,20 @@ public interface MenuItemAnalyticsRepository extends JpaRepository<MenuItemAnaly
                RANK() OVER (ORDER BY SUM(total_revenue) DESC)::INTEGER AS revenueRank
            FROM analytics_menu_item
            WHERE snapshot_date BETWEEN :from AND :to
+             AND (:allLocations = TRUE OR location_id IN (:locationIds))
            GROUP BY category_id, category_name
            ORDER BY totalRevenue DESC
            """,
            nativeQuery = true)
     List<TopMenuItemProjection> findCategoryRevenueRollup(
-            @Param("from") LocalDate from,
-            @Param("to") LocalDate to);
+           @Param("from") LocalDate from,
+           @Param("to") LocalDate to,
+           @Param("allLocations") boolean allLocations,
+           @Param("locationIds") List<Long> locationIds);
+
+    default List<TopMenuItemProjection> findCategoryRevenueRollup(LocalDate from, LocalDate to) {
+        return findCategoryRevenueRollup(from, to, true, List.of(-1L));
+    }
 
     /** Top N items ordered by total profit (revenue - cost). */
     @Query("""
@@ -154,13 +182,20 @@ public interface MenuItemAnalyticsRepository extends JpaRepository<MenuItemAnaly
                        ELSE 0 END         AS avgProfitMargin
            FROM MenuItemAnalytics m
            WHERE m.snapshotDate BETWEEN :from AND :to
+             AND (:allLocations = TRUE OR m.locationId IN :locationIds)
            GROUP BY m.menuItemId, m.menuItemName, m.categoryId, m.categoryName
            ORDER BY SUM(m.totalProfit) DESC
            """)
     List<TopMenuItemProjection> findTopItemsByProfit(
-            @Param("from") LocalDate from,
-            @Param("to") LocalDate to,
-            Pageable pageable);
+           @Param("from") LocalDate from,
+           @Param("to") LocalDate to,
+           @Param("allLocations") boolean allLocations,
+           @Param("locationIds") List<Long> locationIds,
+           Pageable pageable);
+
+    default List<TopMenuItemProjection> findTopItemsByProfit(LocalDate from, LocalDate to, Pageable pageable) {
+        return findTopItemsByProfit(from, to, true, List.of(-1L), pageable);
+    }
 
     /** Top N items ordered by profit margin % (highest margin first). */
     @Query("""
@@ -180,6 +215,7 @@ public interface MenuItemAnalyticsRepository extends JpaRepository<MenuItemAnaly
                        ELSE 0 END         AS avgProfitMargin
            FROM MenuItemAnalytics m
            WHERE m.snapshotDate BETWEEN :from AND :to
+             AND (:allLocations = TRUE OR m.locationId IN :locationIds)
              AND m.totalRevenue > 0
            GROUP BY m.menuItemId, m.menuItemName, m.categoryId, m.categoryName
            HAVING SUM(m.totalRevenue) > 0
@@ -188,7 +224,13 @@ public interface MenuItemAnalyticsRepository extends JpaRepository<MenuItemAnaly
     List<TopMenuItemProjection> findTopItemsByMargin(
             @Param("from") LocalDate from,
             @Param("to") LocalDate to,
+            @Param("allLocations") boolean allLocations,
+            @Param("locationIds") List<Long> locationIds,
             Pageable pageable);
+
+    default List<TopMenuItemProjection> findTopItemsByMargin(LocalDate from, LocalDate to, Pageable pageable) {
+        return findTopItemsByMargin(from, to, true, List.of(-1L), pageable);
+    }
 
     // ── Cost override — immediate backfill ───────────────────────────────────
 
@@ -240,6 +282,7 @@ public interface MenuItemAnalyticsRepository extends JpaRepository<MenuItemAnaly
                SELECT
                    mi.id                                      AS menu_item_id,
                    mi.name                                    AS menu_item_name,
+                   mi.location_id                             AS location_id,
                    mi.category_id,
                    c.name                                     AS category_name,
                    COALESCE(SUM(oi.quantity), 0)             AS total_qty_sold,
@@ -260,7 +303,7 @@ public interface MenuItemAnalyticsRepository extends JpaRepository<MenuItemAnaly
                LEFT JOIN orders o ON o.id = oi.order_id
                    AND o.created_at::date = :targetDate
                    AND o.status = 'COMPLETED'
-               GROUP BY mi.id, mi.name, mi.category_id, c.name, mi.estimated_cost
+               GROUP BY mi.id, mi.name, mi.location_id, mi.category_id, c.name, mi.estimated_cost
            ),
            ranked AS (
                SELECT *,
@@ -268,26 +311,26 @@ public interface MenuItemAnalyticsRepository extends JpaRepository<MenuItemAnaly
                    CASE WHEN total_revenue > 0
                         THEN ((total_revenue - total_cost) / total_revenue * 100)
                         ELSE NULL END                          AS avg_profit_margin,
-                   RANK() OVER (ORDER BY total_revenue DESC)::INTEGER AS revenue_rank,
-                   RANK() OVER (ORDER BY total_qty_sold DESC)::INTEGER AS qty_rank
+                   RANK() OVER (PARTITION BY location_id ORDER BY total_revenue DESC)::INTEGER AS revenue_rank,
+                   RANK() OVER (PARTITION BY location_id ORDER BY total_qty_sold DESC)::INTEGER AS qty_rank
                FROM item_stats
            )
            INSERT INTO analytics_menu_item (
-               menu_item_id, menu_item_name, category_id, category_name,
+               menu_item_id, menu_item_name, location_id, category_id, category_name,
                snapshot_date, total_qty_sold, total_revenue, order_count,
                avg_selling_price, revenue_rank, qty_rank,
                total_cost, total_profit, avg_cost_price, avg_profit_margin,
                created_at, updated_at
            )
            SELECT
-               menu_item_id, menu_item_name, category_id, category_name,
+               menu_item_id, menu_item_name, location_id, category_id, category_name,
                :targetDate, total_qty_sold, total_revenue, order_count,
                avg_selling_price, revenue_rank, qty_rank,
                total_cost, total_profit, avg_cost_price, avg_profit_margin,
                NOW(), NOW()
            FROM ranked
 
-           ON CONFLICT (menu_item_id, snapshot_date) DO UPDATE SET
+           ON CONFLICT (menu_item_id, snapshot_date, location_id) DO UPDATE SET
                menu_item_name     = EXCLUDED.menu_item_name,
                category_name      = EXCLUDED.category_name,
                total_qty_sold     = EXCLUDED.total_qty_sold,
@@ -305,4 +348,3 @@ public interface MenuItemAnalyticsRepository extends JpaRepository<MenuItemAnaly
            nativeQuery = true)
     void upsertMenuItemSnapshot(@Param("targetDate") LocalDate targetDate);
 }
-

@@ -6,6 +6,7 @@ import com.broandbro.qrapp.analytics.dto.DashboardSummaryResponse;
 import com.broandbro.qrapp.analytics.entity.DailySalesAnalytics;
 import com.broandbro.qrapp.analytics.projection.DailySalesSummaryProjection;
 import com.broandbro.qrapp.analytics.repository.DailySalesAnalyticsRepository;
+import com.broandbro.qrapp.analytics.support.AnalyticsLocationScope;
 import com.broandbro.qrapp.time.BusinessTime;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -35,15 +36,19 @@ public class SalesAnalyticsServiceImpl implements SalesAnalyticsService {
     @Cacheable(
         cacheManager = "analyticsCacheManager",
         cacheNames   = AnalyticsCacheConfig.CACHE_DASHBOARD,
-        key           = "'kpi:' + #from + ':' + #to"
+        key           = "'kpi:' + #from + ':' + #to + ':' + #scope.allLocations() + ':' + #scope.locationIds()"
     )
-    public DashboardSummaryResponse getDashboardSummary(LocalDate from, LocalDate to) {
-        log.debug("[SalesService] getDashboardSummary from={} to={}", from, to);
+    public DashboardSummaryResponse getDashboardSummary(LocalDate from, LocalDate to, AnalyticsLocationScope scope) {
+        log.debug("[SalesService] getDashboardSummary from={} to={} scope={}", from, to, scope);
+
+        if (!scope.visible()) {
+            return buildDashboardResponse(from, to, null, List.of());
+        }
 
         DailySalesAnalyticsRepository.DashboardKpiProjection kpi =
-                dailySalesRepo.aggregateKpiForRange(from, to);
+                dailySalesRepo.aggregateKpiForRange(from, to, scope.allLocations(), scope.locationIds());
 
-        List<DailySalesResponse> series = getDailySeries(from, to);
+        List<DailySalesResponse> series = getDailySeries(from, to, scope);
 
         return buildDashboardResponse(from, to, kpi, series);
     }
@@ -54,27 +59,41 @@ public class SalesAnalyticsServiceImpl implements SalesAnalyticsService {
     @Cacheable(
         cacheManager = "analyticsCacheManager",
         cacheNames   = AnalyticsCacheConfig.CACHE_DAILY_SALES,
-        key           = "'series:' + #from + ':' + #to"
+        key           = "'series:' + #from + ':' + #to + ':' + #scope.allLocations() + ':' + #scope.locationIds()"
     )
-    public List<DailySalesResponse> getDailySeries(LocalDate from, LocalDate to) {
-        log.debug("[SalesService] getDailySeries from={} to={}", from, to);
-        return dailySalesRepo.findSummaryByDateRange(from, to)
+    public List<DailySalesResponse> getDailySeries(LocalDate from, LocalDate to, AnalyticsLocationScope scope) {
+        log.debug("[SalesService] getDailySeries from={} to={} scope={}", from, to, scope);
+        if (!scope.visible()) {
+            return List.of();
+        }
+        return dailySalesRepo.findSummaryByDateRange(from, to, scope.allLocations(), scope.locationIds())
                 .stream()
                 .map(this::toResponse)
                 .collect(Collectors.toList());
     }
 
     @Override
-    public Optional<DailySalesResponse> findByPreviousDate(LocalDate date) {
+    public Optional<DailySalesResponse> findByPreviousDate(LocalDate date, AnalyticsLocationScope scope) {
         LocalDate previousDate = date.minusDays(1);
-        log.debug("[SalesService] findByPreviousDate date={} (looking up {})", date, previousDate);
-        return dailySalesRepo.findBySalesDate(previousDate)
-                .map(this::entityToResponse);
+        log.debug("[SalesService] findByPreviousDate date={} (looking up {}) scope={}", date, previousDate, scope);
+        if (!scope.visible()) {
+            return Optional.empty();
+        }
+        // With per-location snapshots, aggregate the scope's rows for that day.
+        if (dailySalesRepo.countByDateInScope(previousDate, scope.allLocations(), scope.locationIds()) == 0) {
+            return Optional.empty();
+        }
+        DailySalesAnalyticsRepository.DashboardKpiProjection kpi =
+                dailySalesRepo.aggregateKpiForRange(previousDate, previousDate, scope.allLocations(), scope.locationIds());
+        return Optional.of(kpiToDailyResponse(previousDate, kpi));
     }
 
     @Override
-    public Page<DailySalesResponse> getDailySeriesPaged(LocalDate from, LocalDate to, Pageable pageable) {
-        return dailySalesRepo.findByDateRangePaged(from, to, pageable)
+    public Page<DailySalesResponse> getDailySeriesPaged(LocalDate from, LocalDate to, AnalyticsLocationScope scope, Pageable pageable) {
+        if (!scope.visible()) {
+            return Page.empty(pageable);
+        }
+        return dailySalesRepo.findByDateRangePaged(from, to, scope.allLocations(), scope.locationIds(), pageable)
                 .map(this::entityToResponse);
     }
 
@@ -84,21 +103,27 @@ public class SalesAnalyticsServiceImpl implements SalesAnalyticsService {
     // SalesAnalyticsService and call getDashboardSummary() directly.
 
     @Override
-    public DashboardSummaryResponse getWeeklySummary() {
+    public DashboardSummaryResponse getWeeklySummary(AnalyticsLocationScope scope) {
         LocalDate to   = BusinessTime.today();
         LocalDate from = to.minusDays(6);
-        var kpi = dailySalesRepo.aggregateKpiForRange(from, to);
-        var series = dailySalesRepo.findSummaryByDateRange(from, to)
+        if (!scope.visible()) {
+            return buildDashboardResponse(from, to, null, List.of());
+        }
+        var kpi = dailySalesRepo.aggregateKpiForRange(from, to, scope.allLocations(), scope.locationIds());
+        var series = dailySalesRepo.findSummaryByDateRange(from, to, scope.allLocations(), scope.locationIds())
                 .stream().map(this::toResponse).collect(java.util.stream.Collectors.toList());
         return buildDashboardResponse(from, to, kpi, series);
     }
 
     @Override
-    public DashboardSummaryResponse getMonthlySummary() {
+    public DashboardSummaryResponse getMonthlySummary(AnalyticsLocationScope scope) {
         LocalDate to   = BusinessTime.today();
         LocalDate from = to.minusDays(29);
-        var kpi = dailySalesRepo.aggregateKpiForRange(from, to);
-        var series = dailySalesRepo.findSummaryByDateRange(from, to)
+        if (!scope.visible()) {
+            return buildDashboardResponse(from, to, null, List.of());
+        }
+        var kpi = dailySalesRepo.aggregateKpiForRange(from, to, scope.allLocations(), scope.locationIds());
+        var series = dailySalesRepo.findSummaryByDateRange(from, to, scope.allLocations(), scope.locationIds())
                 .stream().map(this::toResponse).collect(java.util.stream.Collectors.toList());
         return buildDashboardResponse(from, to, kpi, series);
     }
@@ -107,6 +132,16 @@ public class SalesAnalyticsServiceImpl implements SalesAnalyticsService {
             LocalDate from, LocalDate to,
             DailySalesAnalyticsRepository.DashboardKpiProjection kpi,
             java.util.List<DailySalesResponse> series) {
+        if (kpi == null) {
+            return new DashboardSummaryResponse(
+                    from, to,
+                    BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
+                    0L, 0L, 0L, BigDecimal.ZERO,
+                    0L, 0L, 0L,
+                    BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
+                    series,
+                    BigDecimal.ZERO, BigDecimal.ZERO, null);
+        }
         return new DashboardSummaryResponse(
                 from, to,
                 nullSafe(kpi.getTotalRevenue()),
@@ -130,6 +165,28 @@ public class SalesAnalyticsServiceImpl implements SalesAnalyticsService {
     }
 
     // ── Mappers ────────────────────────────────────────────────────────────────
+
+    private DailySalesResponse kpiToDailyResponse(LocalDate date, DailySalesAnalyticsRepository.DashboardKpiProjection kpi) {
+        return new DailySalesResponse(
+                date,
+                (int) nullSafeLong(kpi.getTotalOrders()),
+                (int) nullSafeLong(kpi.getCompletedOrders()),
+                (int) nullSafeLong(kpi.getCancelledOrders()),
+                nullSafe(kpi.getTotalRevenue()),
+                nullSafe(kpi.getNetRevenue()),
+                nullSafe(kpi.getTotalDiscount()),
+                nullSafe(kpi.getAverageOrderValue()),
+                (int) nullSafeLong(kpi.getUniqueCustomers()),
+                (int) nullSafeLong(kpi.getNewCustomers()),
+                (int) nullSafeLong(kpi.getTotalItemsSold()),
+                nullSafe(kpi.getWalletRevenue()),
+                nullSafe(kpi.getOnlineRevenue()),
+                nullSafe(kpi.getCodRevenue()),
+                nullSafe(kpi.getTotalEstimatedCost()),
+                nullSafe(kpi.getTotalEstimatedProfit()),
+                kpi.getAvgProfitMargin()
+        );
+    }
 
     private DailySalesResponse toResponse(DailySalesSummaryProjection p) {
         return new DailySalesResponse(

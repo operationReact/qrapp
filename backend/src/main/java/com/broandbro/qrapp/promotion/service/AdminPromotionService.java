@@ -32,10 +32,42 @@ public class AdminPromotionService {
     private final RewardEngine rewardEngine;
 
     @Transactional(readOnly = true)
-    public List<PromotionResponse> getAllPromotions() {
+    public List<PromotionResponse> getAllPromotions(java.util.Optional<List<Long>> locationScope) {
         return promotionRepository.findAllByOrderByCreatedAtDesc().stream()
+                .filter(p -> isWithinLocationScope(p, locationScope))
                 .map(this::toResponse)
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * Read-only location visibility check for the admin promotions list.
+     *
+     * <p>A promotion is visible when the scope is unrestricted (SUPER_ADMIN /
+     * "all locations"), when it is not restaurant-scoped (a global promotion that
+     * applies everywhere), or when one of its {@link ScopeType#RESTAURANT} scopes
+     * matches an accessible location. This only filters what the admin list shows;
+     * customer eligibility (see {@code PromotionScopeFilter}) is unaffected.</p>
+     */
+    private boolean isWithinLocationScope(Promotion p, java.util.Optional<List<Long>> locationScope) {
+        if (locationScope == null || locationScope.isEmpty()) {
+            return true;
+        }
+        List<Long> ids = locationScope.get();
+        if (ids.isEmpty()) {
+            return false;
+        }
+        List<PromotionScope> scopes = p.getScopes();
+        if (scopes == null || scopes.isEmpty()) {
+            return true;
+        }
+        List<Long> restaurantScopeIds = scopes.stream()
+                .filter(s -> s.getScopeType() == ScopeType.RESTAURANT)
+                .map(PromotionScope::getScopeId)
+                .collect(Collectors.toList());
+        if (restaurantScopeIds.isEmpty()) {
+            return true;
+        }
+        return restaurantScopeIds.stream().anyMatch(ids::contains);
     }
 
     @Transactional(readOnly = true)

@@ -16,8 +16,10 @@ export const validatePromotion = (payload) =>
 
 // ── Admin ─────────────────────────────────────────────────────────────────────
 
-export const fetchAllPromotions = () =>
-  apiClient.get("/api/admin/promotions").then((r) => r.data);
+export const fetchAllPromotions = (locationId) =>
+  apiClient
+    .get("/api/admin/promotions", { params: locationId != null ? { locationId } : {} })
+    .then((r) => r.data);
 
 export const fetchPromotion = (id) =>
   apiClient.get(`/api/admin/promotions/${id}`).then((r) => r.data);

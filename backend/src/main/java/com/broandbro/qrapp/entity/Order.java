@@ -30,6 +30,17 @@ public class Order {
     @Column(name = "user_id")
     private Long userId;
 
+    /**
+     * Location that owns this order. Every order is scoped to exactly one location
+     * so that the admin dashboard, live queue, pre-orders and analytics can be
+     * filtered per location. Kept optional at the mapping level to preserve legacy
+     * rows; application code always sets it for newly created orders (derived from
+     * the location of the ordered menu items).
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "location_id")
+    private Location location;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "status")
     private OrderStatus status;

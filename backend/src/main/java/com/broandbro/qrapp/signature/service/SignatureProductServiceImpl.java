@@ -1,6 +1,8 @@
 package com.broandbro.qrapp.signature.service;
 
 import com.broandbro.qrapp.enums.SignatureInventoryOperation;
+import com.broandbro.qrapp.entity.Location;
+import com.broandbro.qrapp.repository.LocationRepository;
 import com.broandbro.qrapp.signature.dto.*;
 import com.broandbro.qrapp.signature.entity.SignatureProduct;
 import com.broandbro.qrapp.signature.entity.SignatureProductInventoryLog;
@@ -18,6 +20,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,6 +30,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -38,6 +42,7 @@ public class SignatureProductServiceImpl implements SignatureProductService {
     private final SignatureProductRepository productRepo;
     private final SignatureProductInventoryLogRepository logRepo;
     private final SignatureProductAnalyticsDailyRepository analyticsRepo;
+    private final LocationRepository locationRepo;
 
     // ── Create ─────────────────────────────────────────────────────────────────
 
@@ -45,7 +50,9 @@ public class SignatureProductServiceImpl implements SignatureProductService {
     @Transactional
     @CacheEvict(cacheNames = "signatureProducts", allEntries = true)
     public SignatureProductResponse createProduct(SignatureProductCreateRequest req) {
+        Location location = requireLocation(req.locationId());
         SignatureProduct product = SignatureProduct.builder()
+                .location(location)
                 .productName(req.productName())
                 .shortName(req.shortName())
                 .description(req.description())
@@ -80,8 +87,10 @@ public class SignatureProductServiceImpl implements SignatureProductService {
     @Override
     @Transactional
     @CacheEvict(cacheNames = "signatureProducts", allEntries = true)
-    public SignatureProductResponse updateProduct(Long id, SignatureProductCreateRequest req) {
-        SignatureProduct p = requireActive(id);
+    public SignatureProductResponse updateProduct(Long id, SignatureProductCreateRequest req,
+                                                  Optional<List<Long>> locationScope) {
+        SignatureProduct p = requireActiveInScope(id, locationScope);
+        p.setLocation(requireLocation(req.locationId()));
         p.setProductName(req.productName());
         p.setShortName(req.shortName());
         p.setDescription(req.description());
@@ -101,17 +110,18 @@ public class SignatureProductServiceImpl implements SignatureProductService {
     // ── Read ───────────────────────────────────────────────────────────────────
 
     @Override
-    public SignatureProductResponse getProductById(Long id) {
-        return toResponse(requireActive(id));
+    public SignatureProductResponse getProductById(Long id, Optional<List<Long>> locationScope) {
+        return toResponse(requireActiveInScope(id, locationScope));
     }
 
     @Override
     @Cacheable(cacheNames = "signatureProducts",
-               key = "'list:' + #search + ':' + #category + ':' + #isActive + ':' + #isFeatured + ':' + #isComboAttachable + ':' + #pageable.pageNumber")
+               key = "'list:' + #search + ':' + #category + ':' + #isActive + ':' + #isFeatured + ':' + #isComboAttachable + ':' + #pageable.pageNumber + ':' + #locationScope")
     public Page<SignatureProductCardResponse> listProducts(String search, String category,
                                                            Boolean isActive, Boolean isFeatured,
-                                                           Boolean isComboAttachable, Pageable pageable) {
-        Specification<SignatureProduct> spec = buildSpec(search, category, isActive, isFeatured, isComboAttachable);
+                                                           Boolean isComboAttachable, Pageable pageable,
+                                                           Optional<List<Long>> locationScope) {
+        Specification<SignatureProduct> spec = buildSpec(search, category, isActive, isFeatured, isComboAttachable, locationScope);
         return productRepo.findAll(spec, pageable).map(this::toCardResponse);
     }
 
@@ -120,8 +130,9 @@ public class SignatureProductServiceImpl implements SignatureProductService {
     @Override
     @Transactional
     @CacheEvict(cacheNames = "signatureProducts", allEntries = true)
-    public SignatureProductResponse toggleStatus(Long id, boolean isActive, String updatedBy) {
-        SignatureProduct p = requireActive(id);
+    public SignatureProductResponse toggleStatus(Long id, boolean isActive, String updatedBy,
+                                                 Optional<List<Long>> locationScope) {
+        SignatureProduct p = requireActiveInScope(id, locationScope);
         p.setIsActive(isActive);
         log.info("[SignatureProductService] Product {} set isActive={} by {}", id, isActive, updatedBy);
         return toResponse(productRepo.save(p));
@@ -131,8 +142,9 @@ public class SignatureProductServiceImpl implements SignatureProductService {
 
     @Override
     @Transactional
-    public SignatureProductResponse updateStock(Long id, StockUpdateRequest req, String updatedBy) {
-        SignatureProduct p = requireActive(id);
+    public SignatureProductResponse updateStock(Long id, StockUpdateRequest req, String updatedBy,
+                                                Optional<List<Long>> locationScope) {
+        SignatureProduct p = requireActiveInScope(id, locationScope);
         int before = p.getStockQuantity();
         int delta  = req.quantity();
 
@@ -166,8 +178,8 @@ public class SignatureProductServiceImpl implements SignatureProductService {
     @Override
     @Transactional
     @CacheEvict(cacheNames = "signatureProducts", allEntries = true)
-    public void deleteProduct(Long id, String deletedBy) {
-        SignatureProduct p = requireActive(id);
+    public void deleteProduct(Long id, String deletedBy, Optional<List<Long>> locationScope) {
+        SignatureProduct p = requireActiveInScope(id, locationScope);
         p.setDeletedAt(Instant.now());
         p.setIsActive(false);
         productRepo.save(p);
@@ -214,6 +226,32 @@ public class SignatureProductServiceImpl implements SignatureProductService {
                 .orElseThrow(() -> new SignatureProductNotFoundException(id));
     }
 
+    /**
+     * Loads an active product and enforces the caller's location scope. An empty
+     * scope ({@link Optional#empty()}) is the SUPER_ADMIN "All Locations" view and
+     * imposes no restriction; a present list restricts to those location IDs (an
+     * empty list — no accessible location — sees nothing).
+     */
+    private SignatureProduct requireActiveInScope(Long id, Optional<List<Long>> locationScope) {
+        if (locationScope == null || locationScope.isEmpty()) {
+            return requireActive(id);
+        }
+        List<Long> ids = locationScope.get();
+        if (ids.isEmpty()) {
+            throw new AccessDeniedException("location_access_denied");
+        }
+        // Distinguish "not found" (404) from "exists but out of scope" (403).
+        requireActive(id);
+        return productRepo.findActiveByIdAndLocationIdIn(id, ids)
+                .orElseThrow(() -> new AccessDeniedException("location_access_denied"));
+    }
+
+    private Location requireLocation(Long locationId) {
+        return locationRepo.findById(locationId)
+                .filter(l -> Boolean.TRUE.equals(l.getActive()))
+                .orElseThrow(() -> new IllegalArgumentException("location_not_found_or_inactive"));
+    }
+
     private void logInventory(SignatureProduct p, SignatureInventoryOperation op,
                                int qty, int before, int after, String remarks, String createdBy) {
         logRepo.save(SignatureProductInventoryLog.builder()
@@ -234,10 +272,17 @@ public class SignatureProductServiceImpl implements SignatureProductService {
 
     private Specification<SignatureProduct> buildSpec(String search, String category,
                                                        Boolean isActive, Boolean isFeatured,
-                                                       Boolean isComboAttachable) {
+                                                       Boolean isComboAttachable,
+                                                       Optional<List<Long>> locationScope) {
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
             predicates.add(cb.isNull(root.get("deletedAt")));
+            if (locationScope != null && locationScope.isPresent()) {
+                List<Long> ids = locationScope.get();
+                predicates.add(ids.isEmpty()
+                        ? cb.disjunction()                       // no accessible location => empty result
+                        : root.get("location").get("id").in(ids));
+            }
             if (search != null && !search.isBlank()) {
                 String p = "%" + search.toLowerCase() + "%";
                 predicates.add(cb.or(
@@ -260,7 +305,9 @@ public class SignatureProductServiceImpl implements SignatureProductService {
 
     private SignatureProductResponse toResponse(SignatureProduct p) {
         return new SignatureProductResponse(
-                p.getId(), p.getProductName(), p.getShortName(), p.getDescription(),
+                p.getId(),
+                p.getLocation() != null ? p.getLocation().getId() : null,
+                p.getProductName(), p.getShortName(), p.getDescription(),
                 p.getCategory(), p.getImageUrl(), p.getSellingPrice(), p.getProcurementPrice(),
                 p.getStockQuantity(), p.getMinimumStockThreshold(),
                 Boolean.TRUE.equals(p.getIsActive()), Boolean.TRUE.equals(p.getIsFeatured()),
@@ -271,7 +318,9 @@ public class SignatureProductServiceImpl implements SignatureProductService {
 
     private SignatureProductCardResponse toCardResponse(SignatureProduct p) {
         return new SignatureProductCardResponse(
-                p.getId(), p.getProductName(), p.getSellingPrice(), p.getStockQuantity(),
+                p.getId(),
+                p.getLocation() != null ? p.getLocation().getId() : null,
+                p.getProductName(), p.getSellingPrice(), p.getStockQuantity(),
                 Boolean.TRUE.equals(p.getIsFeatured()), Boolean.TRUE.equals(p.getIsComboAttachable()),
                 stockStatus(p), p.getImageUrl());
     }

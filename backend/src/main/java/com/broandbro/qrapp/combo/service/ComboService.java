@@ -1,6 +1,7 @@
 package com.broandbro.qrapp.combo.service;
 
 import com.broandbro.qrapp.combo.dto.*;
+import com.broandbro.qrapp.analytics.support.AnalyticsLocationScope;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -30,5 +31,10 @@ public interface ComboService {
 
     void deleteCombo(Long id, String deletedBy, Long locationId);
 
-    ComboAnalyticsSummaryResponse getAnalyticsSummary();
+    /**
+     * Combo analytics summary, scoped to the caller's authorized locations.
+     * SUPER_ADMIN ("All Locations") aggregates across every location; ADMIN /
+     * MANAGER are restricted to their assigned location(s).
+     */
+    ComboAnalyticsSummaryResponse getAnalyticsSummary(AnalyticsLocationScope scope);
 }

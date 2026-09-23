@@ -20,6 +20,16 @@ public class VendorOrder {
     @JoinColumn(name = "vendor_id")
     private Vendor vendor;
 
+    /**
+     * Location that owns this procurement order. Scoped so the admin vendor-order
+     * surface can be filtered per location while SUPER_ADMIN retains the
+     * cross-location view. Nullable to preserve legacy rows; application code sets
+     * it for freshly created orders (derived from the ordered menu items' location).
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "location_id")
+    private Location location;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private OrderStatus status;

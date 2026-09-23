@@ -9,6 +9,8 @@ import {
   togglePromotionStatus,
 } from "@/services/promotion-service";
 import { promotionsOptions } from "@/query/options/promotions";
+import { useLocation as useActiveLocation } from "@/context/LocationContext";
+import { SectionLocationSelector } from "@/components/SectionLocationSelector";
 import PromotionForm from "@/components/admin/PromotionForm";
 import {
   Table,
@@ -170,6 +172,7 @@ function PromoCard({ promo, onEdit, onDelete, onToggle }) {
 function AdminPromotionsPage() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { activeLocationId } = useActiveLocation();
   const { setUser: setAdmin } = useAuth();
   const queryClient = useQueryClient();
 
@@ -180,7 +183,7 @@ function AdminPromotionsPage() {
   const [selected, setSelected] = useState(null);
   const [statusFilter, setStatusFilter] = useState("All");
 
-  const { data: promotions = [], isLoading, error } = useQuery(promotionsOptions);
+  const { data: promotions = [], isLoading, error } = useQuery(promotionsOptions(activeLocationId));
 
   useEffect(() => {
     if (error && (error?.response?.status === 401 || error?.response?.status === 403)) {
@@ -260,14 +263,17 @@ function AdminPromotionsPage() {
             Manage automatic discounts and coupon-code promotions.
           </p>
         </div>
-        <Button
-          onClick={() => setCreateOpen(true)}
-          size="lg"
-          className="h-12 px-5 gap-2 shrink-0"
-        >
-          <PlusIcon weight="bold" className="size-4" />
-          New Promotion
-        </Button>
+        <div className="flex shrink-0 items-center gap-2">
+          <SectionLocationSelector />
+          <Button
+            onClick={() => setCreateOpen(true)}
+            size="lg"
+            className="h-12 px-5 gap-2 shrink-0"
+          >
+            <PlusIcon weight="bold" className="size-4" />
+            New Promotion
+          </Button>
+        </div>
       </div>
 
       {/* ── Status filter chips ──────────────────────────────────────────────── */}

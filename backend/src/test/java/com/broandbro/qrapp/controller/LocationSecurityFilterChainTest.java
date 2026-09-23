@@ -15,6 +15,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -31,6 +32,7 @@ class LocationSecurityFilterChainTest {
     @MockBean LocationRepository locations;
     @MockBean UserLocationAccessRepository accesses;
     @MockBean UserRepository userRepository;
+    @MockBean com.broandbro.qrapp.service.LocationCodeService locationCodeService;
 
     private final Location a = Location.builder().id(1L).code("A").name("A").active(true).build();
     private final Location b = Location.builder().id(2L).code("B").name("B").active(true).build();
@@ -74,13 +76,46 @@ class LocationSecurityFilterChainTest {
     }
 
     @Test
-    void superAdminAndAdminCanAccessBothLocations() throws Exception {
-        for (String token : new String[]{"super-token", "admin-token"}) {
-            mvc.perform(get("/api/locations/1/authorized").header("Authorization", bearer(token)))
-                    .andExpect(status().isOk());
-            mvc.perform(get("/api/locations/2/authorized").header("Authorization", bearer(token)))
-                    .andExpect(status().isOk());
-        }
+    void unauthenticatedUsersCanReadPublicLocations() throws Exception {
+        when(locations.findByActiveTrueOrderByNameAsc()).thenReturn(List.of(a, b));
+
+        mvc.perform(get("/api/locations/public"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void superAdminCanCreateLocation() throws Exception {
+        Location created = Location.builder().id(3L).code("new-location").name("New Location")
+                .active(true).build();
+        when(locations.findByCode("new-location")).thenReturn(Optional.empty());
+        when(locationCodeService.generate("new-location", "New Location")).thenReturn("new-location");
+        when(locations.save(any(Location.class))).thenReturn(created);
+
+        mvc.perform(post("/api/admin/locations")
+                        .header("Authorization", bearer("super-token"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"code":"new-location","name":"New Location","address":"Somewhere","active":true}
+                                """))
+                .andExpect(status().isCreated());
+    }
+
+    @Test
+    void superAdminAccessesAllLocationsWhileAdminIsScopedToAssignments() throws Exception {
+        // SUPER_ADMIN retains global, cross-location access.
+        mvc.perform(get("/api/locations/1/authorized").header("Authorization", bearer("super-token")))
+                .andExpect(status().isOk());
+        mvc.perform(get("/api/locations/2/authorized").header("Authorization", bearer("super-token")))
+                .andExpect(status().isOk());
+
+        // ADMIN is now bound to explicit user_location_access assignments: granted
+        // location 1 only, so location 2 is forbidden.
+        when(accesses.findByUserIdAndLocationId(2L, 1L)).thenReturn(Optional.of(grant(admin, a)));
+        when(accesses.findByUserIdAndLocationId(2L, 2L)).thenReturn(Optional.empty());
+        mvc.perform(get("/api/locations/1/authorized").header("Authorization", bearer("admin-token")))
+                .andExpect(status().isOk());
+        mvc.perform(get("/api/locations/2/authorized").header("Authorization", bearer("admin-token")))
+                .andExpect(status().isForbidden());
     }
 
     @Test

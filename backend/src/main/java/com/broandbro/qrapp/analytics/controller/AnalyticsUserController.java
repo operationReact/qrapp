@@ -5,6 +5,8 @@ import com.broandbro.qrapp.analytics.dto.RepeatCustomerResponse;
 import com.broandbro.qrapp.analytics.dto.UserAggregateStatsResponse;
 import com.broandbro.qrapp.analytics.dto.UserPreferenceResponse;
 import com.broandbro.qrapp.analytics.service.UserAnalyticsService;
+import com.broandbro.qrapp.analytics.support.AnalyticsLocationScope;
+import com.broandbro.qrapp.analytics.support.AnalyticsScopeResolver;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -15,6 +17,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -36,11 +39,12 @@ import java.util.List;
 @RequestMapping("/api/v1/analytics/users")
 @RequiredArgsConstructor
 @Validated
-@PreAuthorize("hasAnyRole('ADMIN', 'SUPERUSER')")
+@PreAuthorize("hasAnyRole('ADMIN', 'SUPERUSER', 'SUPER_ADMIN', 'MANAGER')")
 @Tag(name = "Analytics — Users", description = "Customer segmentation and preference analytics")
 public class AnalyticsUserController {
 
     private final UserAnalyticsService userService;
+    private final AnalyticsScopeResolver scopeResolver;
 
     // ── GET /api/v1/analytics/users/preferences ────────────────────────────────
 
@@ -49,9 +53,12 @@ public class AnalyticsUserController {
         summary = "Aggregate user preference stats",
         description = "Returns dashboard-level stats: totalUsers, repeatCustomers, avgOrdersPerUser, favoriteItems, orderTimeDistribution."
     )
-    public ResponseEntity<ApiResponse<UserAggregateStatsResponse>> getAggregateStats() {
-        log.debug("[UserController] GET /preferences (aggregate)");
-        return ResponseEntity.ok(ApiResponse.ok(userService.getAggregateStats()));
+    public ResponseEntity<ApiResponse<UserAggregateStatsResponse>> getAggregateStats(
+            @RequestParam(required = false) Long locationId,
+            Authentication authentication) {
+        AnalyticsLocationScope scope = scopeResolver.resolve(authentication, locationId);
+        log.debug("[UserController] GET /preferences (aggregate) locationId={}", locationId);
+        return ResponseEntity.ok(ApiResponse.ok(userService.getAggregateStats(scope)));
     }
 
     // ── GET /api/v1/analytics/users/preferences/{userId} ───────────────────────
@@ -63,10 +70,13 @@ public class AnalyticsUserController {
     )
     public ResponseEntity<ApiResponse<UserPreferenceResponse>> getUserPreference(
             @Parameter(description = "User ID", required = true)
-            @PathVariable Long userId) {
+            @PathVariable Long userId,
+            @RequestParam(required = false) Long locationId,
+            Authentication authentication) {
 
-        log.debug("[UserController] GET /preferences/{}", userId);
-        return userService.getUserPreference(userId)
+        AnalyticsLocationScope scope = scopeResolver.resolve(authentication, locationId);
+        log.debug("[UserController] GET /preferences/{} locationId={}", userId, locationId);
+        return userService.getUserPreference(userId, scope)
                 .map(p -> ResponseEntity.ok(ApiResponse.ok(p)))
                 .orElseGet(() -> ResponseEntity.ok(
                         ApiResponse.error("No analytics snapshot found for userId=" + userId)));
@@ -81,10 +91,13 @@ public class AnalyticsUserController {
     )
     public ResponseEntity<ApiResponse<List<RepeatCustomerResponse>>> getMostActiveUsers(
             @Parameter(description = "Maximum number of users to return (default 20)")
-            @RequestParam(defaultValue = "20") int limit) {
+            @RequestParam(defaultValue = "20") int limit,
+            @RequestParam(required = false) Long locationId,
+            Authentication authentication) {
 
-        log.debug("[UserController] GET /repeat-customers limit={}", limit);
-        return ResponseEntity.ok(ApiResponse.ok(userService.getMostActiveUsers(limit)));
+        AnalyticsLocationScope scope = scopeResolver.resolve(authentication, locationId);
+        log.debug("[UserController] GET /repeat-customers limit={} locationId={}", limit, locationId);
+        return ResponseEntity.ok(ApiResponse.ok(userService.getMostActiveUsers(limit, scope)));
     }
 
     // ── GET /api/v1/analytics/users/segment/{segment} ──────────────────────────
@@ -96,11 +109,14 @@ public class AnalyticsUserController {
     )
     public ResponseEntity<ApiResponse<Page<UserPreferenceResponse>>> getUsersBySegment(
             @PathVariable String segment,
+            @RequestParam(required = false) Long locationId,
+            Authentication authentication,
             @PageableDefault(size = 20) Pageable pageable) {
 
-        log.debug("[UserController] GET /segment/{}", segment);
+        AnalyticsLocationScope scope = scopeResolver.resolve(authentication, locationId);
+        log.debug("[UserController] GET /segment/{} locationId={}", segment, locationId);
         return ResponseEntity.ok(ApiResponse.ok(
-                userService.getUsersBySegment(segment.toUpperCase(), pageable)));
+                userService.getUsersBySegment(segment.toUpperCase(), scope, pageable)));
     }
 
     // ── GET /api/v1/analytics/users/churned ────────────────────────────────────
@@ -108,8 +124,11 @@ public class AnalyticsUserController {
     @GetMapping("/churned")
     @Operation(summary = "Churned users", description = "Users with no order in the last 30 days.")
     public ResponseEntity<ApiResponse<Page<UserPreferenceResponse>>> getChurnedUsers(
+            @RequestParam(required = false) Long locationId,
+            Authentication authentication,
             @PageableDefault(size = 20) Pageable pageable) {
-        return ResponseEntity.ok(ApiResponse.ok(userService.getChurnedUsers(pageable)));
+        AnalyticsLocationScope scope = scopeResolver.resolve(authentication, locationId);
+        return ResponseEntity.ok(ApiResponse.ok(userService.getChurnedUsers(scope, pageable)));
     }
 
     // ── GET /api/v1/analytics/users/top-spenders ───────────────────────────────
@@ -117,15 +136,21 @@ public class AnalyticsUserController {
     @GetMapping("/top-spenders")
     @Operation(summary = "Top spenders (VIP leaderboard)")
     public ResponseEntity<ApiResponse<Page<UserPreferenceResponse>>> getTopSpenders(
+            @RequestParam(required = false) Long locationId,
+            Authentication authentication,
             @PageableDefault(size = 20) Pageable pageable) {
-        return ResponseEntity.ok(ApiResponse.ok(userService.getTopSpenders(pageable)));
+        AnalyticsLocationScope scope = scopeResolver.resolve(authentication, locationId);
+        return ResponseEntity.ok(ApiResponse.ok(userService.getTopSpenders(scope, pageable)));
     }
 
     // ── GET /api/v1/analytics/users/repeat-rate ────────────────────────────────
 
     @GetMapping("/repeat-rate")
     @Operation(summary = "Repeat customer rate", description = "Returns the % of customers with >1 completed order.")
-    public ResponseEntity<ApiResponse<Double>> getRepeatCustomerRate() {
-        return ResponseEntity.ok(ApiResponse.ok(userService.getRepeatCustomerRate()));
+    public ResponseEntity<ApiResponse<Double>> getRepeatCustomerRate(
+            @RequestParam(required = false) Long locationId,
+            Authentication authentication) {
+        AnalyticsLocationScope scope = scopeResolver.resolve(authentication, locationId);
+        return ResponseEntity.ok(ApiResponse.ok(userService.getRepeatCustomerRate(scope)));
     }
 }

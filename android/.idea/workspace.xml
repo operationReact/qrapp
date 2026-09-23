@@ -4,7 +4,37 @@
     <option name="autoReloadType" value="NONE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="a61b7173-180a-4861-9ce5-39983060dec7" name="Changes" comment="" />
+    <list default="true" id="a61b7173-180a-4861-9ce5-39983060dec7" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/.idea/runConfigurations.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../backend/src/main/java/com/broandbro/qrapp/controller/CustomerCompanyController.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../backend/src/main/java/com/broandbro/qrapp/dto/CustomerCompanyRequest.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../backend/src/main/java/com/broandbro/qrapp/dto/CustomerCompanyResponse.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../backend/src/main/java/com/broandbro/qrapp/entity/CustomerCompany.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../backend/src/main/java/com/broandbro/qrapp/entity/LocationCustomerCompany.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../backend/src/main/java/com/broandbro/qrapp/repository/CustomerCompanyRepository.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../backend/src/main/java/com/broandbro/qrapp/repository/LocationCustomerCompanyRepository.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../backend/src/main/java/com/broandbro/qrapp/service/CustomerCompanyService.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../backend/src/main/resources/db/migration/V73__create_customer_company_support.sql" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../frontend/src/routes/admin/customer-companies.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../backend/src/main/java/com/broandbro/qrapp/config/SecurityConfig.java" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/src/main/java/com/broandbro/qrapp/config/SecurityConfig.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../backend/src/main/java/com/broandbro/qrapp/controller/UserAuthController.java" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/src/main/java/com/broandbro/qrapp/controller/UserAuthController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../backend/src/main/java/com/broandbro/qrapp/dto/RegisterRequest.java" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/src/main/java/com/broandbro/qrapp/dto/RegisterRequest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../backend/src/main/java/com/broandbro/qrapp/dto/RegistrationOtpRequest.java" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/src/main/java/com/broandbro/qrapp/dto/RegistrationOtpRequest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../backend/src/main/java/com/broandbro/qrapp/dto/UserResponse.java" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/src/main/java/com/broandbro/qrapp/dto/UserResponse.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../backend/src/main/java/com/broandbro/qrapp/entity/User.java" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/src/main/java/com/broandbro/qrapp/entity/User.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../backend/src/main/java/com/broandbro/qrapp/entity/WhatsAppOtp.java" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/src/main/java/com/broandbro/qrapp/entity/WhatsAppOtp.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../backend/src/main/java/com/broandbro/qrapp/repository/UserRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/src/main/java/com/broandbro/qrapp/repository/UserRepository.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../backend/src/main/java/com/broandbro/qrapp/service/UserService.java" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/src/main/java/com/broandbro/qrapp/service/UserService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../backend/src/main/java/com/broandbro/qrapp/service/WhatsAppOtpService.java" beforeDir="false" afterPath="$PROJECT_DIR$/../backend/src/main/java/com/broandbro/qrapp/service/WhatsAppOtpService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/src/components/admin/ControlCenter.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/components/admin/ControlCenter.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/src/lib/adminNavigation.js" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/lib/adminNavigation.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/src/query/options/management.js" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/query/options/management.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/src/routeTree.gen.ts" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/routeTree.gen.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/src/routes/(auth)/register.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/routes/(auth)/register.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../frontend/src/services/auth-service.js" beforeDir="false" afterPath="$PROJECT_DIR$/../frontend/src/services/auth-service.js" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -13,11 +43,28 @@
   <component name="ClangdSettings">
     <option name="formatViaClangd" value="false" />
   </component>
-  <component name="ExecutionTargetManager" SELECTED_TARGET="device_and_snapshot_combo_box_target[LocalEmulator::path=C:\Users\venum\.android\avd\Medium_Phone.avd]" />
+  <component name="ExecutionTargetManager" SELECTED_TARGET="device_and_snapshot_combo_box_target[]" />
   <component name="ExternalProjectsData">
     <projectState path="$PROJECT_DIR$">
       <ProjectState />
     </projectState>
+  </component>
+  <component name="ExternalProjectsManager">
+    <system id="GRADLE">
+      <state>
+        <projects_view>
+          <tree_state>
+            <expand>
+              <path>
+                <item name="" type="6a2764b6:ExternalProjectsStructure$RootNode" />
+                <item name="bro-and-bro-twa" type="f1a62948:ProjectNode" />
+              </path>
+            </expand>
+            <select />
+          </tree_state>
+        </projects_view>
+      </state>
+    </system>
   </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/.." />
@@ -31,21 +78,22 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.cidr.known.project.marker&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.readMode.enableVisualFormatting&quot;: &quot;true&quot;,
-    &quot;cf.first.check.clang-format&quot;: &quot;false&quot;,
-    &quot;cidr.known.project.marker&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;dev&quot;,
-    &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
-    &quot;last_opened_file_path&quot;: &quot;C:/Users/venum/IdeaProjects/LIFECHANGER/android&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
+    "RunOnceActivity.cidr.known.project.marker": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "RunOnceActivity.readMode.enableVisualFormatting": "true",
+    "android.gradle.sync.needed": "true",
+    "cf.first.check.clang-format": "false",
+    "cidr.known.project.marker": "true",
+    "git-widget-placeholder": "dev",
+    "kotlin-language-version-configured": "true",
+    "last_opened_file_path": "C:/Users/venum/IdeaProjects/LIFECHANGER/android"
   }
-}</component>
+}]]></component>
   <component name="RunManager">
     <configuration name="app" type="AndroidRunConfigurationType" factoryName="Android App" activateToolWindowBeforeRun="false">
       <module name="bro-and-bro-twa.app" />

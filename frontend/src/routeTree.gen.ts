@@ -41,7 +41,9 @@ import { Route as authForgetPasswordRouteImport } from './routes/(auth)/forget-p
 import { Route as AdminControlCenterIndexRouteImport } from './routes/admin/control-center/index'
 import { Route as AdminAnalyticsIndexRouteImport } from './routes/admin/analytics/index'
 import { Route as AdminControlCenterUsersRouteImport } from './routes/admin/control-center/users'
+import { Route as AdminControlCenterPaymentsRouteImport } from './routes/admin/control-center/payments'
 import { Route as AdminControlCenterLocationsRouteImport } from './routes/admin/control-center/locations'
+import { Route as AdminControlCenterCustomerCompaniesRouteImport } from './routes/admin/control-center/customer-companies'
 import { Route as AdminControlCenterAccessRouteImport } from './routes/admin/control-center/access'
 import { Route as AdminAnalyticsUsersRouteImport } from './routes/admin/analytics/users'
 import { Route as AdminAnalyticsSalesRouteImport } from './routes/admin/analytics/sales'
@@ -237,10 +239,22 @@ const AdminControlCenterUsersRoute = AdminControlCenterUsersRouteImport.update({
   path: '/control-center/users',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminControlCenterPaymentsRoute =
+  AdminControlCenterPaymentsRouteImport.update({
+    id: '/control-center/payments',
+    path: '/control-center/payments',
+    getParentRoute: () => AdminRoute,
+  } as any)
 const AdminControlCenterLocationsRoute =
   AdminControlCenterLocationsRouteImport.update({
     id: '/control-center/locations',
     path: '/control-center/locations',
+    getParentRoute: () => AdminRoute,
+  } as any)
+const AdminControlCenterCustomerCompaniesRoute =
+  AdminControlCenterCustomerCompaniesRouteImport.update({
+    id: '/control-center/customer-companies',
+    path: '/control-center/customer-companies',
     getParentRoute: () => AdminRoute,
   } as any)
 const AdminControlCenterAccessRoute =
@@ -481,7 +495,9 @@ export interface FileRoutesByFullPath {
   '/admin/analytics/sales': typeof AdminAnalyticsSalesRoute
   '/admin/analytics/users': typeof AdminAnalyticsUsersRoute
   '/admin/control-center/access': typeof AdminControlCenterAccessRoute
+  '/admin/control-center/customer-companies': typeof AdminControlCenterCustomerCompaniesRoute
   '/admin/control-center/locations': typeof AdminControlCenterLocationsRoute
+  '/admin/control-center/payments': typeof AdminControlCenterPaymentsRoute
   '/admin/control-center/users': typeof AdminControlCenterUsersRoute
   '/admin/analytics/': typeof AdminAnalyticsIndexRoute
   '/admin/control-center/': typeof AdminControlCenterIndexRoute
@@ -548,7 +564,9 @@ export interface FileRoutesByTo {
   '/admin/analytics/sales': typeof AdminAnalyticsSalesRoute
   '/admin/analytics/users': typeof AdminAnalyticsUsersRoute
   '/admin/control-center/access': typeof AdminControlCenterAccessRoute
+  '/admin/control-center/customer-companies': typeof AdminControlCenterCustomerCompaniesRoute
   '/admin/control-center/locations': typeof AdminControlCenterLocationsRoute
+  '/admin/control-center/payments': typeof AdminControlCenterPaymentsRoute
   '/admin/control-center/users': typeof AdminControlCenterUsersRoute
   '/admin/analytics': typeof AdminAnalyticsIndexRoute
   '/admin/control-center': typeof AdminControlCenterIndexRoute
@@ -617,7 +635,9 @@ export interface FileRoutesById {
   '/admin/analytics/sales': typeof AdminAnalyticsSalesRoute
   '/admin/analytics/users': typeof AdminAnalyticsUsersRoute
   '/admin/control-center/access': typeof AdminControlCenterAccessRoute
+  '/admin/control-center/customer-companies': typeof AdminControlCenterCustomerCompaniesRoute
   '/admin/control-center/locations': typeof AdminControlCenterLocationsRoute
+  '/admin/control-center/payments': typeof AdminControlCenterPaymentsRoute
   '/admin/control-center/users': typeof AdminControlCenterUsersRoute
   '/admin/analytics/': typeof AdminAnalyticsIndexRoute
   '/admin/control-center/': typeof AdminControlCenterIndexRoute
@@ -687,7 +707,9 @@ export interface FileRouteTypes {
     | '/admin/analytics/sales'
     | '/admin/analytics/users'
     | '/admin/control-center/access'
+    | '/admin/control-center/customer-companies'
     | '/admin/control-center/locations'
+    | '/admin/control-center/payments'
     | '/admin/control-center/users'
     | '/admin/analytics/'
     | '/admin/control-center/'
@@ -754,7 +776,9 @@ export interface FileRouteTypes {
     | '/admin/analytics/sales'
     | '/admin/analytics/users'
     | '/admin/control-center/access'
+    | '/admin/control-center/customer-companies'
     | '/admin/control-center/locations'
+    | '/admin/control-center/payments'
     | '/admin/control-center/users'
     | '/admin/analytics'
     | '/admin/control-center'
@@ -822,7 +846,9 @@ export interface FileRouteTypes {
     | '/admin/analytics/sales'
     | '/admin/analytics/users'
     | '/admin/control-center/access'
+    | '/admin/control-center/customer-companies'
     | '/admin/control-center/locations'
+    | '/admin/control-center/payments'
     | '/admin/control-center/users'
     | '/admin/analytics/'
     | '/admin/control-center/'
@@ -1087,11 +1113,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminControlCenterUsersRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/control-center/payments': {
+      id: '/admin/control-center/payments'
+      path: '/control-center/payments'
+      fullPath: '/admin/control-center/payments'
+      preLoaderRoute: typeof AdminControlCenterPaymentsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/control-center/locations': {
       id: '/admin/control-center/locations'
       path: '/control-center/locations'
       fullPath: '/admin/control-center/locations'
       preLoaderRoute: typeof AdminControlCenterLocationsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/control-center/customer-companies': {
+      id: '/admin/control-center/customer-companies'
+      path: '/control-center/customer-companies'
+      fullPath: '/admin/control-center/customer-companies'
+      preLoaderRoute: typeof AdminControlCenterCustomerCompaniesRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/control-center/access': {
@@ -1361,7 +1401,9 @@ interface AdminRouteChildren {
   AdminAnalyticsSalesRoute: typeof AdminAnalyticsSalesRoute
   AdminAnalyticsUsersRoute: typeof AdminAnalyticsUsersRoute
   AdminControlCenterAccessRoute: typeof AdminControlCenterAccessRoute
+  AdminControlCenterCustomerCompaniesRoute: typeof AdminControlCenterCustomerCompaniesRoute
   AdminControlCenterLocationsRoute: typeof AdminControlCenterLocationsRoute
+  AdminControlCenterPaymentsRoute: typeof AdminControlCenterPaymentsRoute
   AdminControlCenterUsersRoute: typeof AdminControlCenterUsersRoute
   AdminAnalyticsIndexRoute: typeof AdminAnalyticsIndexRoute
   AdminControlCenterIndexRoute: typeof AdminControlCenterIndexRoute
@@ -1404,7 +1446,10 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminAnalyticsSalesRoute: AdminAnalyticsSalesRoute,
   AdminAnalyticsUsersRoute: AdminAnalyticsUsersRoute,
   AdminControlCenterAccessRoute: AdminControlCenterAccessRoute,
+  AdminControlCenterCustomerCompaniesRoute:
+    AdminControlCenterCustomerCompaniesRoute,
   AdminControlCenterLocationsRoute: AdminControlCenterLocationsRoute,
+  AdminControlCenterPaymentsRoute: AdminControlCenterPaymentsRoute,
   AdminControlCenterUsersRoute: AdminControlCenterUsersRoute,
   AdminAnalyticsIndexRoute: AdminAnalyticsIndexRoute,
   AdminControlCenterIndexRoute: AdminControlCenterIndexRoute,

@@ -15,6 +15,8 @@ import {
 import { liveOrdersAdminOptions } from "@/query/options/orders";
 import { updateAdminOrder } from "@/services/order-service";
 import { useAuth } from "@/context/AuthContext";
+import { useLocation as useActiveLocation } from "@/context/LocationContext";
+import { canAccessAdmin } from "@/lib/roles";
 import { cn, isOrderPaid, formatAge } from "@/lib/utils";
 import {
   CheckCircleIcon,
@@ -276,7 +278,8 @@ export const Route = createFileRoute("/admin/(orders)/kitchen-queue")({
 });
 
 function KitchenQueuePage() {
-  const { isAdmin, isSuperUser } = useAuth();
+  const { user, isAdmin, isSuperUser } = useAuth();
+  const { activeLocationId } = useActiveLocation();
   const queryClient = useQueryClient();
   const [activeFilter, setActiveFilter] = useState("ALL");
   const [showMoreFilters, setShowMoreFilters] = useState(false);
@@ -289,13 +292,13 @@ function KitchenQueuePage() {
     isError,
     refetch,
   } = useQuery({
-    ...liveOrdersAdminOptions(50),
+    ...liveOrdersAdminOptions(50, activeLocationId),
     refetchInterval: 15000,
     refetchIntervalInBackground: true,
   });
 
   const mutation = useMutation({
-    mutationFn: ({ orderId, status }) => updateAdminOrder(orderId, { status }),
+    mutationFn: ({ orderId, status }) => updateAdminOrder(orderId, { status }, activeLocationId),
     onMutate: ({ orderId }) => setPendingId(orderId),
     onError: () => toast.error("Couldn't update the kitchen order. Try again."),
     onSettled: () => setPendingId(null),
@@ -342,7 +345,7 @@ function KitchenQueuePage() {
     }
   }, [activeFilter, delayedOrders, orders]);
 
-  if (!isAdmin && !isSuperUser) {
+  if (!canAccessAdmin(user) && !isAdmin && !isSuperUser) {
     return <Navigate to="/login" replace />;
   }
 

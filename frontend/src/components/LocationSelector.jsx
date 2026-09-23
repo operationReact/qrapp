@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { Check, ChevronDown, MapPin, RefreshCw } from "lucide-react";
+import { Check, ChevronDown, Globe, MapPin, RefreshCw } from "lucide-react";
 import { useLocation } from "@/context/LocationContext";
+import { isAllLocationsSelection } from "@/lib/allLocations";
 import { Button } from "@/components/ui/button";
 import {
   Drawer,
@@ -11,9 +12,20 @@ import {
   DrawerTitle,
 } from "@/components/ui/drawer";
 
-export function LocationSelector({ className = "", home = false, header = false }) {
-  const { activeLocation, availableLocations, setActiveLocation, isLoading, error, refetch } = useLocation();
+export function LocationSelector({ className = "", home = false, header = false, allowAllLocations = false }) {
+  const {
+    activeLocation,
+    availableLocations,
+    setActiveLocation,
+    isLoading,
+    error,
+    refetch,
+    isAllLocations,
+    canSelectAllLocations,
+    allLocationsOption,
+  } = useLocation();
   const [open, setOpen] = useState(false);
+  const showAllLocations = allowAllLocations && canSelectAllLocations;
 
   if (error) {
     return (
@@ -63,7 +75,9 @@ export function LocationSelector({ className = "", home = false, header = false 
           aria-label="Open location selector"
           aria-expanded={open}
         >
-          <MapPin className="size-[17px] shrink-0 text-primary" aria-hidden="true" />
+          {isAllLocations
+            ? <Globe className="size-[17px] shrink-0 text-primary" aria-hidden="true" />
+            : <MapPin className="size-[17px] shrink-0 text-primary" aria-hidden="true" />}
           <span className="min-w-0 flex-1 leading-tight">
             <span className={`block font-semibold uppercase tracking-[0.06em] text-muted-foreground ${header ? "text-[9px]" : "text-[10px]"}`}>
               {header ? "Deliver to" : "Delivering to"}
@@ -82,9 +96,27 @@ export function LocationSelector({ className = "", home = false, header = false 
         </DrawerHeader>
         <div className="px-4 pb-4">
           <div className="grid gap-2">
+            {showAllLocations && (
+              <button
+                key="all-locations"
+                type="button"
+                className={`touch-manipulation flex w-full items-center justify-between rounded-xl border px-3 py-3 text-left text-sm ${isAllLocations ? "border-primary bg-primary/5 text-primary" : "border-border bg-card text-foreground"}`}
+                onClick={() => {
+                  setActiveLocation(allLocationsOption);
+                  setOpen(false);
+                }}
+              >
+                <span className="flex min-w-0 items-center gap-2">
+                  <Globe className="size-4 shrink-0" aria-hidden="true" />
+                  <span className="truncate pr-2 font-medium">All Locations</span>
+                </span>
+                {isAllLocations && <Check className="size-4 shrink-0" aria-hidden="true" />}
+              </button>
+            )}
             {availableLocations.map((location) => {
               const name = location.name || location.title || `Location ${location.id}`;
-              const isActive = String(activeLocation?.id) === String(location.id);
+              const isActive = !isAllLocations && !isAllLocationsSelection(location)
+                && String(activeLocation?.id) === String(location.id);
               return (
                 <button
                   key={location.id}

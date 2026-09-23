@@ -8,6 +8,7 @@ import java.time.Instant;
 /** Full product response — admin views. */
 public record SignatureProductResponse(
         Long id,
+        Long locationId,
         String productName,
         String shortName,
         String description,

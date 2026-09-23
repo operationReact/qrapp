@@ -10,7 +10,9 @@
     "build:prod": "vite build --mode production",
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
-    "test:category-icons": "node --test src/lib/categoryIconResolver.test.js"
+    "test:category-icons":  "node --test src/lib/categoryIconResolver.test.js",
+    "test:roles":  "node --test src/lib/roles.test.js",
+    "test:all-locations":  "node --test src/lib/allLocations.test.js"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.1",

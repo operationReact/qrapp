@@ -1,7 +1,9 @@
 package com.broandbro.qrapp.service;
 import com.broandbro.qrapp.dto.VendorOrderCreateRequest;
 import com.broandbro.qrapp.dto.VendorOrderResponse;
+import com.broandbro.qrapp.entity.Location;
 import com.broandbro.qrapp.entity.MenuItem;
+import com.broandbro.qrapp.entity.User;
 import com.broandbro.qrapp.entity.Vendor;
 import com.broandbro.qrapp.entity.VendorOrder;
 import com.broandbro.qrapp.entity.VendorOrderItem;
@@ -10,6 +12,7 @@ import com.broandbro.qrapp.exception.InvalidOrderStatusTransitionException;
 import com.broandbro.qrapp.repository.MenuRepository;
 import com.broandbro.qrapp.repository.VendorOrderRepository;
 import com.broandbro.qrapp.repository.VendorRepository;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.slf4j.Logger;
@@ -19,6 +22,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 @Service
 @Transactional
 public class VendorOrderService {
@@ -27,6 +31,7 @@ public class VendorOrderService {
     private final VendorRepository vendorRepository;
     private final MenuRepository menuRepository;
     private final PricingService pricingService;
+    private final LocationAccessService locationAccessService;
     private static final Map<OrderStatus, List<OrderStatus>> ALLOWED_TRANSITIONS = new HashMap<>();
     static {
         ALLOWED_TRANSITIONS.put(OrderStatus.ORDER_PLACED, List.of(OrderStatus.ACKNOWLEDGED, OrderStatus.CANCELLED));
@@ -35,13 +40,14 @@ public class VendorOrderService {
         ALLOWED_TRANSITIONS.put(OrderStatus.COMPLETED, List.of());
         ALLOWED_TRANSITIONS.put(OrderStatus.CANCELLED, List.of());
     }
-    public VendorOrderService(VendorOrderRepository vendorOrderRepository, VendorRepository vendorRepository, MenuRepository menuRepository, PricingService pricingService) {
+    public VendorOrderService(VendorOrderRepository vendorOrderRepository, VendorRepository vendorRepository, MenuRepository menuRepository, PricingService pricingService, LocationAccessService locationAccessService) {
         this.vendorOrderRepository = vendorOrderRepository;
         this.vendorRepository = vendorRepository;
         this.menuRepository = menuRepository;
         this.pricingService = pricingService;
+        this.locationAccessService = locationAccessService;
     }
-    public VendorOrderResponse createOrder(VendorOrderCreateRequest request) {
+    public VendorOrderResponse createOrder(VendorOrderCreateRequest request, User actor) {
         // Validate vendor exists
         Vendor vendor = vendorRepository.findById(request.getVendorId())
             .orElseThrow(() -> new RuntimeException("Vendor not found: " + request.getVendorId()));
@@ -62,12 +68,19 @@ public class VendorOrderService {
             }
             menuItems.add(item);
         }
+        // Derive the owning location from the ordered menu items (all share a
+        // location by construction) and enforce the caller can act on it.
+        Location location = resolveOrderLocation(menuItems);
+        if (actor != null && location != null) {
+            locationAccessService.requireLocationAccess(actor, location.getId());
+        }
         // Create VendorOrder
         VendorOrder order = new VendorOrder();
         order.setVendor(vendor);
+        order.setLocation(location);
         order.setStatus(OrderStatus.ORDER_PLACED);
         order.setNotes(request.getNotes());
-        order.setOrderedBy("ADMIN"); // Could be dynamic from auth
+        order.setOrderedBy(actor != null && actor.getPhone() != null ? actor.getPhone() : "ADMIN");
         // Create VendorOrderItems with price snapshots
         List<VendorOrderItem> orderItems = new ArrayList<>();
         BigDecimal totalAmount = BigDecimal.ZERO;
@@ -98,14 +111,23 @@ public class VendorOrderService {
         // TODO: Publish VendorOrderCreatedEvent for async WhatsApp to vendor
         return mapToResponse(savedOrder);
     }
-    public VendorOrderResponse getOrder(Long orderId) {
+    public VendorOrderResponse getOrder(Long orderId, Optional<List<Long>> locationScope) {
         VendorOrder order = vendorOrderRepository.findById(orderId)
             .orElseThrow(() -> new RuntimeException("Order not found: " + orderId));
+        assertWithinScope(order, locationScope);
         return mapToResponse(order);
     }
-    public VendorOrderResponse transitionOrderStatus(Long orderId, OrderStatus newStatus) {
+    public List<VendorOrderResponse> listOrders(Optional<List<Long>> locationScope) {
+        List<VendorOrder> orders = isUnfiltered(locationScope)
+                ? vendorOrderRepository.findAll()
+                : vendorOrderRepository.findByLocationIdInOrderByCreatedAtDesc(scopeIdsOrSentinel(locationScope));
+        return orders.stream().map(this::mapToResponse).toList();
+    }
+    public VendorOrderResponse transitionOrderStatus(Long orderId, OrderStatus newStatus,
+                                                     Optional<List<Long>> locationScope) {
         VendorOrder order = vendorOrderRepository.findById(orderId)
             .orElseThrow(() -> new RuntimeException("Order not found: " + orderId));
+        assertWithinScope(order, locationScope);
         OrderStatus currentStatus = order.getStatus();
         List<OrderStatus> allowedNextStates = ALLOWED_TRANSITIONS.getOrDefault(currentStatus, new ArrayList<>());
         if (!allowedNextStates.contains(newStatus)) {
@@ -118,10 +140,42 @@ public class VendorOrderService {
         log.info("Order {} status updated to {}", orderId, newStatus);
         return mapToResponse(updatedOrder);
     }
+
+    // ── Location scope helpers ───────────────────────────────────────────────
+
+    /** Dominant/first location among the ordered menu items; null when none carry one. */
+    private Location resolveOrderLocation(List<MenuItem> menuItems) {
+        return menuItems.stream()
+                .map(MenuItem::getLocation)
+                .filter(java.util.Objects::nonNull)
+                .findFirst()
+                .orElse(null);
+    }
+
+    private boolean isUnfiltered(Optional<List<Long>> locationScope) {
+        return locationScope == null || locationScope.isEmpty();
+    }
+
+    private List<Long> scopeIdsOrSentinel(Optional<List<Long>> locationScope) {
+        List<Long> ids = locationScope.get();
+        return ids.isEmpty() ? List.of(-1L) : ids;
+    }
+
+    private void assertWithinScope(VendorOrder order, Optional<List<Long>> locationScope) {
+        if (isUnfiltered(locationScope)) {
+            return;
+        }
+        Long locationId = order.getLocation() != null ? order.getLocation().getId() : null;
+        if (locationId == null || !locationScope.get().contains(locationId)) {
+            throw new AccessDeniedException("location_access_denied");
+        }
+    }
+
     private VendorOrderResponse mapToResponse(VendorOrder order) {
         VendorOrderResponse response = new VendorOrderResponse();
         response.setId(order.getId());
         response.setVendorId(order.getVendor() != null ? order.getVendor().getId() : null);
+        response.setLocationId(order.getLocation() != null ? order.getLocation().getId() : null);
         response.setStatus(order.getStatus());
         response.setTotalAmount(order.getTotalAmount());
         response.setNotes(order.getNotes());

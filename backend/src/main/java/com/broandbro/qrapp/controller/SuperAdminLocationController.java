@@ -23,6 +23,7 @@ public class SuperAdminLocationController {
     private final UserLocationAccessRepository accessRepository;
     private final UserService userService;
     private final LocationAccessService accessService;
+    private final com.broandbro.qrapp.service.LocationCodeService locationCodeService;
 
     @GetMapping("/locations")
     public List<LocationResponse> locations(org.springframework.security.core.Authentication authentication) {
@@ -34,8 +35,8 @@ public class SuperAdminLocationController {
     public ResponseEntity<LocationResponse> create(@Valid @RequestBody LocationRequest request,
                                                     org.springframework.security.core.Authentication authentication) {
         authorize(authentication);
-        if (locationRepository.findByCode(request.getCode()).isPresent()) return ResponseEntity.status(HttpStatus.CONFLICT).build();
-        Location l = Location.builder().code(request.getCode().trim()).name(request.getName().trim())
+        String name = request.getName().trim();
+        Location l = Location.builder().code(locationCodeService.generate(request.getCode(), name)).name(name)
                 .address(request.getAddress()).active(request.getActive()).build();
         return ResponseEntity.status(HttpStatus.CREATED).body(LocationResponse.from(locationRepository.save(l)));
     }
@@ -45,7 +46,8 @@ public class SuperAdminLocationController {
                                    org.springframework.security.core.Authentication authentication) {
         authorize(authentication);
         Location l = locationRepository.findById(id).orElseThrow();
-        l.setCode(request.getCode().trim()); l.setName(request.getName().trim());
+        if (request.getCode() != null && !request.getCode().isBlank()) l.setCode(request.getCode().trim());
+        l.setName(request.getName().trim());
         l.setAddress(request.getAddress()); l.setActive(request.getActive());
         return LocationResponse.from(locationRepository.save(l));
     }

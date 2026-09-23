@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -17,6 +18,10 @@ public interface SignatureProductRepository
 
     @Query("SELECT p FROM SignatureProduct p WHERE p.id = :id AND p.deletedAt IS NULL")
     Optional<SignatureProduct> findActiveById(Long id);
+
+    /** Location-scoped active lookup: product must be non-deleted AND owned by one of the given locations. */
+    @Query("SELECT p FROM SignatureProduct p WHERE p.id = :id AND p.deletedAt IS NULL AND p.location.id IN :locationIds")
+    Optional<SignatureProduct> findActiveByIdAndLocationIdIn(Long id, Collection<Long> locationIds);
 
     @Query("SELECT p FROM SignatureProduct p WHERE p.deletedAt IS NULL ORDER BY p.displayPriority DESC")
     Page<SignatureProduct> findAllActive(Pageable pageable);

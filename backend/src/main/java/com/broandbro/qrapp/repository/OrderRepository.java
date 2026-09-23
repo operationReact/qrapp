@@ -25,6 +25,10 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
     /** Same as above but strictly excludes pre-orders (for kitchen queue). */
     List<Order> findAllByStatusInAndPreOrderFalseOrderByCreatedAtAscIdAsc(Collection<OrderStatus> statuses, Pageable pageable);
 
+    /** Location-scoped live queue (kitchen). location.id must be in the supplied set. */
+    List<Order> findAllByStatusInAndPreOrderFalseAndLocationIdInOrderByCreatedAtAscIdAsc(
+            Collection<OrderStatus> statuses, Collection<Long> locationIds, Pageable pageable);
+
     long countByPreOrderFalse();
     long countByStatusAndPreOrderFalse(OrderStatus status);
     long countByStatusInAndPreOrderFalse(Collection<OrderStatus> statuses);
@@ -32,6 +36,16 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
     long countByCompletedAtGreaterThanEqualAndCompletedAtLessThanAndPreOrderFalse(
             LocalDateTime from,
             LocalDateTime to);
+
+    // ── Location-scoped dashboard counters ────────────────────────────────────
+    long countByPreOrderFalseAndLocationIdIn(Collection<Long> locationIds);
+    long countByStatusAndPreOrderFalseAndLocationIdIn(OrderStatus status, Collection<Long> locationIds);
+    long countByStatusInAndPreOrderFalseAndLocationIdIn(Collection<OrderStatus> statuses, Collection<Long> locationIds);
+    long countByPaymentStatusIgnoreCaseAndPreOrderFalseAndLocationIdIn(String paymentStatus, Collection<Long> locationIds);
+    long countByCompletedAtGreaterThanEqualAndCompletedAtLessThanAndPreOrderFalseAndLocationIdIn(
+            LocalDateTime from,
+            LocalDateTime to,
+            Collection<Long> locationIds);
 
     @Query(value = """
             SELECT AVG(EXTRACT(EPOCH FROM (completed_at - created_at)) / 60.0)
@@ -45,6 +59,21 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
     Double averageFulfillmentMinutes(
             @Param("from") LocalDateTime from,
             @Param("to") LocalDateTime to);
+
+    @Query(value = """
+            SELECT AVG(EXTRACT(EPOCH FROM (completed_at - created_at)) / 60.0)
+            FROM orders
+            WHERE pre_order = FALSE
+              AND created_at IS NOT NULL
+              AND completed_at IS NOT NULL
+              AND completed_at >= :from
+              AND completed_at < :to
+              AND location_id IN (:locationIds)
+            """, nativeQuery = true)
+    Double averageFulfillmentMinutesForLocations(
+            @Param("from") LocalDateTime from,
+            @Param("to") LocalDateTime to,
+            @Param("locationIds") Collection<Long> locationIds);
 
     @Query(value = """
             SELECT COUNT(*)
@@ -63,6 +92,25 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
               )
             """, nativeQuery = true)
     long countDelayedLiveOrders();
+
+    @Query(value = """
+            SELECT COUNT(*)
+            FROM orders
+            WHERE pre_order = FALSE
+              AND location_id IN (:locationIds)
+              AND (
+                    (status = 'ORDER_PLACED'
+                     AND COALESCE(last_status_changed_at, created_at)
+                         <= CURRENT_TIMESTAMP - INTERVAL '5 minutes')
+                 OR (status = 'PREPARING'
+                     AND COALESCE(last_status_changed_at, created_at)
+                         <= CURRENT_TIMESTAMP - INTERVAL '15 minutes')
+                 OR (status = 'READY'
+                     AND COALESCE(last_status_changed_at, created_at)
+                         <= CURRENT_TIMESTAMP - INTERVAL '10 minutes')
+              )
+            """, nativeQuery = true)
+    long countDelayedLiveOrdersForLocations(@Param("locationIds") Collection<Long> locationIds);
 
     long countByUserId(Long userId);
 

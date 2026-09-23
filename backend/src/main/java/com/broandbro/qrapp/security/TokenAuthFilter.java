@@ -38,7 +38,6 @@ public class TokenAuthFilter extends OncePerRequestFilter {
                 log.info("User found with token! Phone: {}, ID: {}, IsAdmin: {}, IsSuperUser: {}",
                     u.getPhone(), u.getId(), u.getIsAdmin(), u.getIsSuperUser());
                 List<SimpleGrantedAuthority> authorities = new ArrayList<>();
-                authorities.add(new SimpleGrantedAuthority("ROLE_USER"));
                 if (u.getIsAdmin()) {
                     authorities.add(new SimpleGrantedAuthority("ROLE_ADMIN"));
                 }
@@ -46,7 +45,8 @@ public class TokenAuthFilter extends OncePerRequestFilter {
                     authorities.add(new SimpleGrantedAuthority("ROLE_SUPERUSER"));
                 }
                 UserRole role = u.getRole();
-                if (role != null) authorities.add(new SimpleGrantedAuthority("ROLE_" + role.name()));
+                authorities.add(new SimpleGrantedAuthority(
+                        "ROLE_" + (role == null ? UserRole.CUSTOMER : role).name()));
                 var auth = new UsernamePasswordAuthenticationToken(u.getPhone(), null, authorities);
                 SecurityContextHolder.getContext().setAuthentication(auth);
                 log.info("Authentication set in SecurityContext for user: {} with roles: {}", u.getPhone(), authorities);

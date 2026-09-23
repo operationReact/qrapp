@@ -3,6 +3,8 @@ package com.broandbro.qrapp.analytics.controller;
 import com.broandbro.qrapp.analytics.dto.ApiResponse;
 import com.broandbro.qrapp.analytics.dto.TopMenuItemResponse;
 import com.broandbro.qrapp.analytics.service.MenuAnalyticsService;
+import com.broandbro.qrapp.analytics.support.AnalyticsLocationScope;
+import com.broandbro.qrapp.analytics.support.AnalyticsScopeResolver;
 import com.broandbro.qrapp.time.BusinessTime;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -17,6 +19,7 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -38,11 +41,12 @@ import java.util.List;
 @RequestMapping("/api/v1/analytics/menu")
 @RequiredArgsConstructor
 @Validated
-@PreAuthorize("hasAnyRole('ADMIN', 'SUPERUSER')")
+@PreAuthorize("hasAnyRole('ADMIN', 'SUPERUSER', 'SUPER_ADMIN', 'MANAGER')")
 @Tag(name = "Analytics — Menu", description = "Item and category performance analytics")
 public class AnalyticsMenuController {
 
     private final MenuAnalyticsService menuService;
+    private final AnalyticsScopeResolver scopeResolver;
 
     // ── GET /api/v1/analytics/menu/top-selling ─────────────────────────────────
 
@@ -55,14 +59,18 @@ public class AnalyticsMenuController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
             @Parameter(description = "Max items to return (1–50)")
-            @RequestParam(defaultValue = "10") @Min(1) @Max(50) int limit) {
+            @RequestParam(defaultValue = "10") @Min(1) @Max(50) int limit,
+            @RequestParam(required = false) Long locationId,
+            Authentication authentication) {
 
         LocalDate resolvedTo   = to   != null ? to   : BusinessTime.today();
         LocalDate resolvedFrom = from != null ? from : resolvedTo.minusDays(29);
 
-        log.debug("[MenuController] GET /top-selling from={} to={} limit={}", resolvedFrom, resolvedTo, limit);
+        AnalyticsLocationScope scope = scopeResolver.resolve(authentication, locationId);
+        log.debug("[MenuController] GET /top-selling from={} to={} limit={} locationId={}",
+                resolvedFrom, resolvedTo, limit, locationId);
         return ResponseEntity.ok(ApiResponse.ok(
-                menuService.getTopItemsByRevenue(resolvedFrom, resolvedTo, limit)));
+                menuService.getTopItemsByRevenue(resolvedFrom, resolvedTo, limit, scope)));
     }
 
 
@@ -72,12 +80,15 @@ public class AnalyticsMenuController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
             @RequestParam(defaultValue = "revenue") String sortBy,
+            @RequestParam(required = false) Long locationId,
+            Authentication authentication,
             @PageableDefault(size = 20) Pageable pageable) {
 
         LocalDate resolvedTo   = to   != null ? to   : BusinessTime.today();
         LocalDate resolvedFrom = from != null ? from : resolvedTo.minusDays(29);
+        AnalyticsLocationScope scope = scopeResolver.resolve(authentication, locationId);
         return ResponseEntity.ok(ApiResponse.ok(
-                menuService.getTopItemsPaged(resolvedFrom, resolvedTo, sortBy, pageable)));
+                menuService.getTopItemsPaged(resolvedFrom, resolvedTo, sortBy, scope, pageable)));
     }
 
     // ── GET /api/v1/analytics/menu/top-by-qty ─────────────────────────────────
@@ -87,12 +98,15 @@ public class AnalyticsMenuController {
     public ResponseEntity<ApiResponse<List<TopMenuItemResponse>>> getTopByQty(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
-            @RequestParam(defaultValue = "10") @Min(1) @Max(50) int limit) {
+            @RequestParam(defaultValue = "10") @Min(1) @Max(50) int limit,
+            @RequestParam(required = false) Long locationId,
+            Authentication authentication) {
 
         LocalDate resolvedTo   = to   != null ? to   : BusinessTime.today();
         LocalDate resolvedFrom = from != null ? from : resolvedTo.minusDays(29);
+        AnalyticsLocationScope scope = scopeResolver.resolve(authentication, locationId);
         return ResponseEntity.ok(ApiResponse.ok(
-                menuService.getTopItemsByQty(resolvedFrom, resolvedTo, limit)));
+                menuService.getTopItemsByQty(resolvedFrom, resolvedTo, limit, scope)));
     }
 
     // ── GET /api/v1/analytics/menu/least-selling ──────────────────────────────
@@ -106,13 +120,17 @@ public class AnalyticsMenuController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
             @Parameter(description = "Max items to return (1–50)")
-            @RequestParam(defaultValue = "10") @Min(1) @Max(50) int limit) {
+            @RequestParam(defaultValue = "10") @Min(1) @Max(50) int limit,
+            @RequestParam(required = false) Long locationId,
+            Authentication authentication) {
 
         LocalDate resolvedTo   = to   != null ? to   : BusinessTime.today();
         LocalDate resolvedFrom = from != null ? from : resolvedTo.minusDays(29);
-        log.debug("[MenuController] GET /least-selling from={} to={} limit={}", resolvedFrom, resolvedTo, limit);
+        AnalyticsLocationScope scope = scopeResolver.resolve(authentication, locationId);
+        log.debug("[MenuController] GET /least-selling from={} to={} limit={} locationId={}",
+                resolvedFrom, resolvedTo, limit, locationId);
         return ResponseEntity.ok(ApiResponse.ok(
-                menuService.getLeastSellingItems(resolvedFrom, resolvedTo, limit)));
+                menuService.getLeastSellingItems(resolvedFrom, resolvedTo, limit, scope)));
     }
 
     // ── GET /api/v1/analytics/menu/categories ─────────────────────────────────
@@ -121,12 +139,15 @@ public class AnalyticsMenuController {
     @Operation(summary = "Category revenue rollup", description = "Revenue breakdown by category across a date range.")
     public ResponseEntity<ApiResponse<List<TopMenuItemResponse>>> getCategoryRollup(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @RequestParam(required = false) Long locationId,
+            Authentication authentication) {
 
         LocalDate resolvedTo   = to   != null ? to   : BusinessTime.today();
         LocalDate resolvedFrom = from != null ? from : resolvedTo.minusDays(29);
+        AnalyticsLocationScope scope = scopeResolver.resolve(authentication, locationId);
         return ResponseEntity.ok(ApiResponse.ok(
-                menuService.getCategoryRevenueRollup(resolvedFrom, resolvedTo)));
+                menuService.getCategoryRevenueRollup(resolvedFrom, resolvedTo, scope)));
     }
 
     // ── GET /api/v1/analytics/menu/revenue ────────────────────────────────────
@@ -139,12 +160,16 @@ public class AnalyticsMenuController {
     public ResponseEntity<ApiResponse<List<TopMenuItemResponse>>> getMenuRevenue(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
-            @RequestParam(defaultValue = "50") @Min(1) @Max(100) int limit) {
+            @RequestParam(defaultValue = "50") @Min(1) @Max(100) int limit,
+            @RequestParam(required = false) Long locationId,
+            Authentication authentication) {
 
         LocalDate resolvedTo   = to   != null ? to   : BusinessTime.today();
         LocalDate resolvedFrom = from != null ? from : resolvedTo.minusDays(29);
-        log.debug("[MenuController] GET /revenue from={} to={} limit={}", resolvedFrom, resolvedTo, limit);
+        AnalyticsLocationScope scope = scopeResolver.resolve(authentication, locationId);
+        log.debug("[MenuController] GET /revenue from={} to={} limit={} locationId={}",
+                resolvedFrom, resolvedTo, limit, locationId);
         return ResponseEntity.ok(ApiResponse.ok(
-                menuService.getTopItemsByRevenue(resolvedFrom, resolvedTo, limit)));
+                menuService.getTopItemsByRevenue(resolvedFrom, resolvedTo, limit, scope)));
     }
 }

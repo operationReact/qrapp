@@ -4,7 +4,10 @@ import com.broandbro.qrapp.dto.AdminOrderResponse;
 import com.broandbro.qrapp.dto.AdminPreOrderDashboardResponse;
 import com.broandbro.qrapp.dto.CreatePreOrderRequest;
 import com.broandbro.qrapp.dto.MenuItemResponse;
+import com.broandbro.qrapp.entity.User;
+import com.broandbro.qrapp.service.LocationAccessService;
 import com.broandbro.qrapp.service.OrderService;
+import com.broandbro.qrapp.service.UserService;
 import jakarta.validation.Valid;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
@@ -12,6 +15,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
@@ -31,6 +35,8 @@ import java.util.Optional;
 public class AdminPreOrderController {
 
     private final OrderService orderService;
+    private final UserService userService;
+    private final LocationAccessService locationAccessService;
 
     // ── Available items (PreOrderOnly tagged) ────────────────────────────────
 
@@ -52,9 +58,14 @@ public class AdminPreOrderController {
      */
     @GetMapping("/dashboard")
     public ResponseEntity<AdminPreOrderDashboardResponse> dashboard(
-            @RequestParam(defaultValue = "12") int upcomingLimit
+            @RequestParam(defaultValue = "12") int upcomingLimit,
+            @RequestParam(required = false) Long locationId,
+            Authentication authentication
     ) {
-        return ResponseEntity.ok(orderService.getAdminPreOrderDashboard(upcomingLimit));
+        User user = requireUser(authentication);
+        locationAccessService.requireNonKitchenAdmin(user);
+        Optional<List<Long>> scope = locationAccessService.resolveDashboardLocationScope(user, locationId);
+        return ResponseEntity.ok(orderService.getAdminPreOrderDashboard(upcomingLimit, scope));
     }
 
     // ── List ─────────────────────────────────────────────────────────────────
@@ -78,12 +89,18 @@ public class AdminPreOrderController {
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime scheduledFrom,
             @RequestParam(required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime scheduledTo,
+            @RequestParam(required = false) Long locationId,
+            Authentication authentication,
             Pageable pageable
     ) {
+        User user = requireUser(authentication);
+        locationAccessService.requireNonKitchenAdmin(user);
+        Optional<List<Long>> scope = locationAccessService.resolveDashboardLocationScope(user, locationId);
         return ResponseEntity.ok(orderService.getAdminPreOrders(
                 status, query,
                 Optional.ofNullable(scheduledFrom),
                 Optional.ofNullable(scheduledTo),
+                scope,
                 pageable));
     }
 
@@ -93,7 +110,13 @@ public class AdminPreOrderController {
      * GET /admin/pre-orders/{id}
      */
     @GetMapping("/{id}")
-    public ResponseEntity<AdminOrderResponse> getOne(@PathVariable Long id) {
+    public ResponseEntity<AdminOrderResponse> getOne(@PathVariable Long id,
+                                                     @RequestParam(required = false) Long locationId,
+                                                     Authentication authentication) {
+        User user = requireUser(authentication);
+        locationAccessService.requireNonKitchenAdmin(user);
+        Optional<List<Long>> scope = locationAccessService.resolveDashboardLocationScope(user, locationId);
+        orderService.assertOrderWithinScope(id, scope);
         return ResponseEntity.ok(orderService.getAdminOrder(id));
     }
 
@@ -107,10 +130,15 @@ public class AdminPreOrderController {
     @PostMapping("/{id}/accept")
     public ResponseEntity<AdminOrderResponse> accept(
             @PathVariable Long id,
+            @RequestParam(required = false) Long locationId,
             @RequestBody(required = false) AcceptPreOrderRequest body,
             Authentication authentication
     ) {
-        String actor = authentication != null ? authentication.getName() : "admin";
+        User user = requireUser(authentication);
+        locationAccessService.requireNonKitchenAdmin(user);
+        Optional<List<Long>> scope = locationAccessService.resolveDashboardLocationScope(user, locationId);
+        orderService.assertOrderWithinScope(id, scope);
+        String actor = authentication.getName();
         String note = body != null ? body.getNote() : null;
         return ResponseEntity.ok(orderService.acceptPreOrder(id, note, actor));
     }
@@ -126,9 +154,14 @@ public class AdminPreOrderController {
     public ResponseEntity<AdminOrderResponse> update(
             @PathVariable Long id,
             @Valid @RequestBody com.broandbro.qrapp.dto.AdminOrderUpdateRequest request,
+            @RequestParam(required = false) Long locationId,
             Authentication authentication
     ) {
-        String actor = authentication != null ? authentication.getName() : "admin";
+        User user = requireUser(authentication);
+        locationAccessService.requireNonKitchenAdmin(user);
+        Optional<List<Long>> scope = locationAccessService.resolveDashboardLocationScope(user, locationId);
+        orderService.assertOrderWithinScope(id, scope);
+        String actor = authentication.getName();
         return ResponseEntity.ok(orderService.updateAdminOrder(id, request, actor));
     }
 
@@ -143,9 +176,19 @@ public class AdminPreOrderController {
             @Valid @RequestBody CreatePreOrderRequest request,
             Authentication authentication
     ) {
+        User user = requireUser(authentication);
+        locationAccessService.requireNonKitchenAdmin(user);
         // Admin-created pre-orders have no linked user object
         OrderService.CreateOrderResult result = orderService.createPreOrder(request, null);
         return ResponseEntity.ok(orderService.getAdminOrder(result.order().getId()));
+    }
+
+    private User requireUser(Authentication authentication) {
+        if (authentication == null || authentication.getName() == null) {
+            throw new AccessDeniedException("authentication_required");
+        }
+        return userService.findByPhone(authentication.getName())
+                .orElseThrow(() -> new AccessDeniedException("authentication_required"));
     }
 
     // ── Inner DTOs ────────────────────────────────────────────────────────────

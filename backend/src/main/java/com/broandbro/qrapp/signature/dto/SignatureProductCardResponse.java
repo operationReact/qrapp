@@ -3,6 +3,7 @@ package com.broandbro.qrapp.signature.dto;
 /** Mobile-compact product card. */
 public record SignatureProductCardResponse(
         Long id,
+        Long locationId,
         String name,
         java.math.BigDecimal price,
         int stock,

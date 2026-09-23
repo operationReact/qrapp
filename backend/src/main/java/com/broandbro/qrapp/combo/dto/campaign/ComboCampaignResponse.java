@@ -8,6 +8,7 @@ import java.util.List;
 public record ComboCampaignResponse(
         Long id,
         String name,
+        Long locationId,
         String description,
         ComboStatus status,
         Boolean isActive,

@@ -16,6 +16,8 @@ import java.util.List;
 public record PartyOrderResponse(
         Long id,
         Long userId,
+        /** Owning location id — scopes the order in the admin surface. */
+        Long locationId,
         // PII — only in admin responses
         String userPhone,
         String userName,
@@ -74,6 +76,11 @@ public record PartyOrderResponse(
             BigDecimal estimatedProfit
     ) {}
 
+    /** Owning location id, or {@code null} for legacy rows without a location. */
+    private static Long locationId(PartyOrder po) {
+        return po.getLocation() != null ? po.getLocation().getId() : null;
+    }
+
     private static List<String> extractMenuItemNames(PartyOrder po) {
         if (po.getMenuItems() != null && !po.getMenuItems().isEmpty()) {
             return po.getMenuItems().stream().map(PartyOrderMenuItem::getItemName).toList();
@@ -110,7 +117,7 @@ public record PartyOrderResponse(
         BigDecimal totalAmount = po.getEstimatedTotalAmount() != null
                 ? po.getEstimatedTotalAmount() : po.getEstimatedAmount();
         return new PartyOrderResponse(
-                po.getId(), po.getUserId(), null, null,
+                po.getId(), po.getUserId(), locationId(po), null, null,
                 po.getEventDateTime(), po.getNumberOfPeople(),
                 extractMenuItemNames(po), extractUserMenuItemDetails(po),
                 po.getVenue(), po.getEventType(), po.getSpecialNotes(), po.getBudgetAmount(),
@@ -131,7 +138,7 @@ public record PartyOrderResponse(
     /** Build for admin responses — includes full financial data, PII, and adminNotes. */
     public static PartyOrderResponse forAdmin(PartyOrder po) {
         return new PartyOrderResponse(
-                po.getId(), po.getUserId(), po.getUserPhone(), po.getUserName(),
+                po.getId(), po.getUserId(), locationId(po), po.getUserPhone(), po.getUserName(),
                 po.getEventDateTime(), po.getNumberOfPeople(),
                 extractMenuItemNames(po), extractAdminMenuItemDetails(po),
                 po.getVenue(), po.getEventType(), po.getSpecialNotes(), po.getBudgetAmount(),

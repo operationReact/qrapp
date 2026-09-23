@@ -5,6 +5,7 @@ import com.broandbro.qrapp.analytics.dto.CouponPerformanceResponse;
 import com.broandbro.qrapp.analytics.entity.CouponAnalytics;
 import com.broandbro.qrapp.analytics.projection.CouponPerformanceProjection;
 import com.broandbro.qrapp.analytics.repository.CouponAnalyticsRepository;
+import com.broandbro.qrapp.analytics.support.AnalyticsLocationScope;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
@@ -31,11 +32,14 @@ public class CouponAnalyticsServiceImpl implements CouponAnalyticsService {
     @Cacheable(
         cacheManager = "analyticsCacheManager",
         cacheNames   = AnalyticsCacheConfig.CACHE_COUPON_PERF,
-        key           = "'summary:' + #from + ':' + #to"
+        key           = "'summary:' + #from + ':' + #to + ':' + #scope.allLocations() + ':' + #scope.locationIds()"
     )
-    public List<CouponPerformanceResponse> getPerformanceSummary(LocalDate from, LocalDate to) {
-        log.debug("[CouponService] getPerformanceSummary from={} to={}", from, to);
-        return couponRepo.findPerformanceSummaryByDateRange(from, to)
+    public List<CouponPerformanceResponse> getPerformanceSummary(LocalDate from, LocalDate to, AnalyticsLocationScope scope) {
+        log.debug("[CouponService] getPerformanceSummary from={} to={} scope={}", from, to, scope);
+        if (!scope.visible()) {
+            return List.of();
+        }
+        return couponRepo.findPerformanceSummaryByDateRange(from, to, scope.allLocations(), scope.locationIds())
                 .stream()
                 .map(this::projToResponse)
                 .collect(Collectors.toList());
@@ -43,17 +47,23 @@ public class CouponAnalyticsServiceImpl implements CouponAnalyticsService {
 
     @Override
     public Page<CouponPerformanceResponse> getPerformancePaged(
-            LocalDate from, LocalDate to, String couponCode, Pageable pageable) {
-        return couponRepo.findPerformancePaged(from, to, couponCode, pageable)
+            LocalDate from, LocalDate to, String couponCode, AnalyticsLocationScope scope, Pageable pageable) {
+        if (!scope.visible()) {
+            return Page.empty(pageable);
+        }
+        return couponRepo.findPerformancePaged(from, to, couponCode, scope.allLocations(), scope.locationIds(), pageable)
                 .map(this::projToResponse);
     }
 
     @Override
-    public List<CouponPerformanceResponse> getAbuseSignals(LocalDate from, LocalDate to, int threshold) {
-        log.info("[CouponService] getAbuseSignals from={} to={} threshold={}", from, to, threshold);
-        return couponRepo.findAbuseSignals(from, to, threshold)
+    public List<CouponPerformanceResponse> getAbuseSignals(LocalDate from, LocalDate to, int threshold, AnalyticsLocationScope scope) {
+        log.info("[CouponService] getAbuseSignals from={} to={} threshold={} scope={}", from, to, threshold, scope);
+        if (!scope.visible()) {
+            return List.of();
+        }
+        return couponRepo.findAbuseSignals(from, to, threshold, scope.allLocations(), scope.locationIds())
                 .stream()
-                .map(this::entityToResponse)
+                .map(this::projToResponse)
                 .collect(Collectors.toList());
     }
 
@@ -105,4 +115,3 @@ public class CouponAnalyticsServiceImpl implements CouponAnalyticsService {
 
     private BigDecimal nullSafe(BigDecimal v) { return v != null ? v : BigDecimal.ZERO; }
 }
-

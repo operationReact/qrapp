@@ -2,6 +2,8 @@ package com.broandbro.qrapp.combo.controller;
 
 import com.broandbro.qrapp.combo.dto.*;
 import com.broandbro.qrapp.combo.service.ComboService;
+import com.broandbro.qrapp.analytics.support.AnalyticsLocationScope;
+import com.broandbro.qrapp.analytics.support.AnalyticsScopeResolver;
 import com.broandbro.qrapp.repository.LocationRepository;
 import com.broandbro.qrapp.service.LocationAccessService;
 import com.broandbro.qrapp.service.UserService;
@@ -48,6 +50,7 @@ public class ComboAdminController {
     private final LocationRepository locationRepository;
     private final LocationAccessService locationAccessService;
     private final UserService userService;
+    private final AnalyticsScopeResolver analyticsScopeResolver;
 
     // ── POST /api/admin/combos ─────────────────────────────────────────────────
 
@@ -153,11 +156,15 @@ public class ComboAdminController {
     // ── GET /api/admin/combos/analytics/summary ───────────────────────────────
 
     @GetMapping("/analytics/summary")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN', 'MANAGER')")
     @Operation(summary = "Combo analytics summary",
-               description = "Top sellers, revenue, active combo counts — last 30 days.")
-    public ResponseEntity<ComboAnalyticsSummaryResponse> analyticsSummary() {
-        return ResponseEntity.ok(comboService.getAnalyticsSummary());
+               description = "Top sellers, revenue, active combo counts — last 30 days. "
+                       + "Scoped to the caller's location(s); SUPER_ADMIN with no locationId aggregates all locations.")
+    public ResponseEntity<ComboAnalyticsSummaryResponse> analyticsSummary(
+            @RequestParam(required = false) Long locationId,
+            Authentication auth) {
+        AnalyticsLocationScope scope = analyticsScopeResolver.resolve(auth, locationId);
+        return ResponseEntity.ok(comboService.getAnalyticsSummary(scope));
     }
 
     private void requireLocationAccess(Long locationId, Authentication auth) {

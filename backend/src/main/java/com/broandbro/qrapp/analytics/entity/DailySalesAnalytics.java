@@ -21,12 +21,13 @@ import java.time.LocalDateTime;
 @Table(
     name = "analytics_daily_sales",
     uniqueConstraints = {
-        @UniqueConstraint(name = "uq_analytics_daily_sales_date", columnNames = "sales_date")
+        @UniqueConstraint(name = "uq_analytics_daily_sales_date_location", columnNames = {"sales_date", "location_id"})
     },
     indexes = {
         @Index(name = "idx_ads_sales_date",      columnList = "sales_date DESC"),
         @Index(name = "idx_ads_created_at",      columnList = "created_at"),
-        @Index(name = "idx_ads_total_revenue",   columnList = "total_revenue DESC")
+        @Index(name = "idx_ads_total_revenue",   columnList = "total_revenue DESC"),
+        @Index(name = "idx_ads_location_date",   columnList = "location_id, sales_date DESC")
     }
 )
 @Getter
@@ -43,6 +44,10 @@ public class DailySalesAnalytics {
     /** The calendar date this snapshot covers. */
     @Column(name = "sales_date", nullable = false)
     private LocalDate salesDate;
+
+    /** Owning location. Snapshots are aggregated per (sales_date, location). */
+    @Column(name = "location_id", nullable = false)
+    private Long locationId;
 
     /** Total number of orders placed on this date. */
     @Column(name = "total_orders", nullable = false)

@@ -58,8 +58,8 @@ export const fetchUserPreferences = (params) =>
 export const fetchRepeatCustomers = (params) =>
   apiClient.get("/api/v1/analytics/users/repeat-customers", { params }).then((r) => r.data?.data);
 
-export const fetchRepeatRate = () =>
-  apiClient.get("/api/v1/analytics/users/repeat-rate").then((r) => r.data?.data);
+export const fetchRepeatRate = (params) =>
+  apiClient.get("/api/v1/analytics/users/repeat-rate", { params }).then((r) => r.data?.data);
 
 export const fetchTopSpenders = (params) =>
   apiClient.get("/api/v1/analytics/users/top-spenders", { params }).then((r) => r.data?.data);
@@ -75,8 +75,8 @@ export const fetchCouponPerformance = (params) =>
   apiClient.get("/api/v1/analytics/coupons/performance", { params }).then((r) => r.data?.data);
 
 // ── Overview ───────────────────────────────────────────────────────────────
-export const fetchOverviewKpis = () =>
-  apiClient.get("/api/v1/analytics/overview").then((r) => r.data?.data);
+export const fetchOverviewKpis = (params) =>
+  apiClient.get("/api/v1/analytics/overview", { params }).then((r) => r.data?.data);
 
 // ── Recommendations ────────────────────────────────────────────────────────
 export const fetchRecommendations = (userId) =>

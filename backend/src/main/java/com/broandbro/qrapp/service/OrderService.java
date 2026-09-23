@@ -40,6 +40,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -130,6 +131,10 @@ public class OrderService {
         for (CreateOrderRequest.Item i : req.getItems()) {
             MenuItem menuItem = menuRepository.findById(i.getItemId())
                     .orElseThrow(() -> new RuntimeException("MenuItem not found: " + i.getItemId()));
+            // Scope the order to the location of its items (menu is location-owned).
+            if (order.getLocation() == null && menuItem.getLocation() != null) {
+                order.setLocation(menuItem.getLocation());
+            }
             Long vendorId = menuItem.getVendor() != null ? menuItem.getVendor().getId() : null;
             PricingService.OrderItemSnapshot snap = pricingService.createSnapshot(i.getItemId(), vendorId, i.getQuantity());
             itemSnaps.add(new Object[]{i, snap});
@@ -339,9 +344,15 @@ public class OrderService {
                                                    Optional<String> paymentStatus,
                                                    Optional<String> query,
                                                    boolean liveOnly,
+                                                   Optional<List<Long>> locationScope,
                                                    Pageable pageable) {
         // Pre-orders are managed exclusively via /admin/pre-orders — exclude them here
         Specification<Order> specification = (root, cq, cb) -> cb.isFalse(root.get("preOrder"));
+
+        Specification<Order> locationSpec = locationScopeSpec(locationScope);
+        if (locationSpec != null) {
+            specification = specification.and(locationSpec);
+        }
 
         if (status.isPresent() && !status.get().isBlank()) {
             OrderStatus parsedStatus = parseStatus(status.get());
@@ -368,40 +379,74 @@ public class OrderService {
     }
 
     @Transactional(readOnly = true)
-    public List<AdminOrderResponse> getLiveOrders(int limit) {
+    public List<AdminOrderResponse> getLiveOrders(int limit, Optional<List<Long>> locationScope) {
         int safeLimit = Math.max(1, Math.min(30, limit));
         // Explicitly exclude pre-orders — they are managed via the pre-orders admin page only
+        if (locationScope.isEmpty()) {
+            return buildAdminOrderResponses(
+                    orderRepo.findAllByStatusInAndPreOrderFalseOrderByCreatedAtAscIdAsc(
+                            LIVE_STATUSES, PageRequest.of(0, safeLimit)));
+        }
+        List<Long> ids = locationScope.get();
+        if (ids.isEmpty()) {
+            return List.of();
+        }
         return buildAdminOrderResponses(
-                orderRepo.findAllByStatusInAndPreOrderFalseOrderByCreatedAtAscIdAsc(
-                        LIVE_STATUSES, PageRequest.of(0, safeLimit))
-        );
+                orderRepo.findAllByStatusInAndPreOrderFalseAndLocationIdInOrderByCreatedAtAscIdAsc(
+                        LIVE_STATUSES, ids, PageRequest.of(0, safeLimit)));
     }
 
     @Transactional(readOnly = true)
-    public AdminOrderDashboardResponse getAdminDashboard(int liveLimit) {
+    public AdminOrderDashboardResponse getAdminDashboard(int liveLimit, Optional<List<Long>> locationScope) {
         // Exclude pre-orders — they have their own dashboard
         AdminOrderDashboardResponse response = new AdminOrderDashboardResponse();
-        response.setTotalOrders(orderRepo.countByPreOrderFalse());
-        response.setPlacedOrders(orderRepo.countByStatusAndPreOrderFalse(OrderStatus.ORDER_PLACED));
-        response.setPreparingOrders(orderRepo.countByStatusAndPreOrderFalse(OrderStatus.PREPARING));
-        response.setReadyOrders(orderRepo.countByStatusAndPreOrderFalse(OrderStatus.READY));
-        response.setLiveOrders(orderRepo.countByStatusInAndPreOrderFalse(LIVE_STATUSES));
-        response.setPaidOrders(orderRepo.countByPaymentStatusIgnoreCaseAndPreOrderFalse("PAID"));
+
+        // A scoped user with no accessible locations sees an empty dashboard.
+        if (locationScope.isPresent() && locationScope.get().isEmpty()) {
+            response.setLiveOrdersQueue(List.of());
+            response.setAttentionOrders(List.of());
+            return response;
+        }
+
+        List<Long> ids = locationScope.orElse(null);
+
+        response.setTotalOrders(ids == null
+                ? orderRepo.countByPreOrderFalse()
+                : orderRepo.countByPreOrderFalseAndLocationIdIn(ids));
+        response.setPlacedOrders(ids == null
+                ? orderRepo.countByStatusAndPreOrderFalse(OrderStatus.ORDER_PLACED)
+                : orderRepo.countByStatusAndPreOrderFalseAndLocationIdIn(OrderStatus.ORDER_PLACED, ids));
+        response.setPreparingOrders(ids == null
+                ? orderRepo.countByStatusAndPreOrderFalse(OrderStatus.PREPARING)
+                : orderRepo.countByStatusAndPreOrderFalseAndLocationIdIn(OrderStatus.PREPARING, ids));
+        response.setReadyOrders(ids == null
+                ? orderRepo.countByStatusAndPreOrderFalse(OrderStatus.READY)
+                : orderRepo.countByStatusAndPreOrderFalseAndLocationIdIn(OrderStatus.READY, ids));
+        response.setLiveOrders(ids == null
+                ? orderRepo.countByStatusInAndPreOrderFalse(LIVE_STATUSES)
+                : orderRepo.countByStatusInAndPreOrderFalseAndLocationIdIn(LIVE_STATUSES, ids));
+        response.setPaidOrders(ids == null
+                ? orderRepo.countByPaymentStatusIgnoreCaseAndPreOrderFalse("PAID")
+                : orderRepo.countByPaymentStatusIgnoreCaseAndPreOrderFalseAndLocationIdIn("PAID", ids));
 
         LocalDate today = BusinessTime.today();
         LocalDateTime todayStart = today.atStartOfDay();
         LocalDateTime tomorrowStart = today.plusDays(1).atStartOfDay();
-        response.setCompletedToday(orderRepo.countByCompletedAtGreaterThanEqualAndCompletedAtLessThanAndPreOrderFalse(
-                todayStart, tomorrowStart));
+        response.setCompletedToday(ids == null
+                ? orderRepo.countByCompletedAtGreaterThanEqualAndCompletedAtLessThanAndPreOrderFalse(todayStart, tomorrowStart)
+                : orderRepo.countByCompletedAtGreaterThanEqualAndCompletedAtLessThanAndPreOrderFalseAndLocationIdIn(todayStart, tomorrowStart, ids));
 
-        double averageFulfillment = Optional.ofNullable(
-                        orderRepo.averageFulfillmentMinutes(todayStart, tomorrowStart))
+        double averageFulfillment = Optional.ofNullable(ids == null
+                        ? orderRepo.averageFulfillmentMinutes(todayStart, tomorrowStart)
+                        : orderRepo.averageFulfillmentMinutesForLocations(todayStart, tomorrowStart, ids))
                 .orElse(0.0);
         response.setAverageFulfillmentMinutes(Math.round(averageFulfillment * 10.0) / 10.0);
 
-        List<AdminOrderResponse> liveOrders = getLiveOrders(liveLimit);
+        List<AdminOrderResponse> liveOrders = getLiveOrders(liveLimit, locationScope);
         response.setLiveOrdersQueue(liveOrders);
-        response.setDelayedOrders(orderRepo.countDelayedLiveOrders());
+        response.setDelayedOrders(ids == null
+                ? orderRepo.countDelayedLiveOrders()
+                : orderRepo.countDelayedLiveOrdersForLocations(ids));
         response.setAttentionOrders(liveOrders.stream()
                 .filter(order -> order.isDelayed() || order.getStatus() == OrderStatus.READY)
                 .limit(6)
@@ -415,6 +460,24 @@ public class OrderService {
                 .orElseThrow(() -> new IllegalArgumentException("Order not found: " + orderId));
         return buildAdminOrderResponses(List.of(order)).stream().findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("Order not found: " + orderId));
+    }
+
+    /**
+     * Ensures the given order belongs to a location the caller is allowed to see.
+     * A no-op for SUPER_ADMIN "All Locations" scope (empty Optional).
+     */
+    @Transactional(readOnly = true)
+    public void assertOrderWithinScope(Long orderId, Optional<List<Long>> locationScope) {
+        if (locationScope == null || locationScope.isEmpty()) {
+            return;
+        }
+        List<Long> ids = locationScope.get();
+        Order order = orderRepo.findById(orderId)
+                .orElseThrow(() -> new IllegalArgumentException("Order not found: " + orderId));
+        Long locationId = order.getLocation() != null ? order.getLocation().getId() : null;
+        if (locationId == null || !ids.contains(locationId)) {
+            throw new AccessDeniedException("location_access_denied");
+        }
     }
 
     @Transactional
@@ -509,8 +572,24 @@ public class OrderService {
        // whatsappService.sendOrderPlaced(order.getPhone(), order.getId());
     }
 
-    private Specification<Order> matchesQuery(String rawQuery) {
-        String normalized = rawQuery.trim().toLowerCase(Locale.ROOT);
+    /**
+     * Builds a location filter Specification from a resolved scope.
+     * @return {@code null} when the scope is empty (SUPER_ADMIN "All Locations", no
+     *         filter); a Specification restricting to the scope's IDs otherwise
+     *         (an empty ID list yields a predicate that matches nothing).
+     */
+    private Specification<Order> locationScopeSpec(Optional<List<Long>> scope) {
+        if (scope == null || scope.isEmpty()) {
+            return null;
+        }
+        List<Long> ids = scope.get();
+        if (ids.isEmpty()) {
+            return (root, cq, cb) -> cb.disjunction();
+        }
+        return (root, cq, cb) -> root.get("location").get("id").in(ids);
+    }
+
+    private Specification<Order> matchesQuery(String rawQuery) {        String normalized = rawQuery.trim().toLowerCase(Locale.ROOT);
         return (root, cq, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
             predicates.add(cb.like(cb.lower(root.get("phone")), "%" + normalized + "%"));
@@ -747,6 +826,10 @@ public class OrderService {
             log.info("[createPreOrder] Looking up menuItem id={}", i.getItemId());
             MenuItem menuItem = menuRepository.findById(i.getItemId())
                     .orElseThrow(() -> new RuntimeException("MenuItem not found: " + i.getItemId()));
+            // Scope the pre-order to the location of its items (menu is location-owned).
+            if (order.getLocation() == null && menuItem.getLocation() != null) {
+                order.setLocation(menuItem.getLocation());
+            }
             Long vendorId = menuItem.getVendor() != null ? menuItem.getVendor().getId() : null;
             log.info("[createPreOrder] MenuItem found — id={} name='{}' vendorId={}", menuItem.getId(), menuItem.getName(), vendorId);
 
@@ -822,9 +905,15 @@ public class OrderService {
             Optional<String> query,
             Optional<LocalDateTime> scheduledFrom,
             Optional<LocalDateTime> scheduledTo,
+            Optional<List<Long>> locationScope,
             Pageable pageable) {
 
         Specification<Order> spec = (root, cq, cb) -> cb.isTrue(root.get("preOrder"));
+
+        Specification<Order> locationSpec = locationScopeSpec(locationScope);
+        if (locationSpec != null) {
+            spec = spec.and(locationSpec);
+        }
 
         if (status.isPresent() && !status.get().isBlank()) {
             OrderStatus parsedStatus = parseStatus(status.get());
@@ -858,8 +947,17 @@ public class OrderService {
      * Returns dashboard stats for the pre-order management panel.
      */
     @Transactional(readOnly = true)
-    public AdminPreOrderDashboardResponse getAdminPreOrderDashboard(int upcomingLimit) {
+    public AdminPreOrderDashboardResponse getAdminPreOrderDashboard(int upcomingLimit, Optional<List<Long>> locationScope) {
+        if (locationScope.isPresent() && locationScope.get().isEmpty()) {
+            AdminPreOrderDashboardResponse empty = new AdminPreOrderDashboardResponse();
+            empty.setUpcomingQueue(List.of());
+            return empty;
+        }
         Specification<Order> preOrderSpec = (root, cq, cb) -> cb.isTrue(root.get("preOrder"));
+        Specification<Order> locationSpec = locationScopeSpec(locationScope);
+        if (locationSpec != null) {
+            preOrderSpec = preOrderSpec.and(locationSpec);
+        }
         List<Order> allPreOrders = orderRepo.findAll(preOrderSpec, Sort.by(Sort.Order.asc("scheduledAt")));
 
         LocalDateTime now = BusinessTime.now();

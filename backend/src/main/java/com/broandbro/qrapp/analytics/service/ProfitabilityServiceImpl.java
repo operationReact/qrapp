@@ -4,6 +4,7 @@ import com.broandbro.qrapp.analytics.dto.ProfitabilityDashboardResponse;
 import com.broandbro.qrapp.analytics.dto.ProfitabilityInsightResponse;
 import com.broandbro.qrapp.analytics.dto.TopMenuItemResponse;
 import com.broandbro.qrapp.analytics.repository.DailySalesAnalyticsRepository;
+import com.broandbro.qrapp.analytics.support.AnalyticsLocationScope;
 import com.broandbro.qrapp.service.PricingService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -38,21 +39,24 @@ public class ProfitabilityServiceImpl implements ProfitabilityService {
     // ── Dashboard ─────────────────────────────────────────────────────────────
 
     @Override
-    public ProfitabilityDashboardResponse getProfitabilityDashboard(LocalDate from, LocalDate to) {
-        log.debug("[ProfitabilityService] dashboard from={} to={}", from, to);
+    public ProfitabilityDashboardResponse getProfitabilityDashboard(LocalDate from, LocalDate to, AnalyticsLocationScope scope) {
+        log.debug("[ProfitabilityService] dashboard from={} to={} scope={}", from, to, scope);
+        if (!scope.visible()) {
+            return emptyDashboard(from, to);
+        }
 
-        var kpi = dailySalesRepo.aggregateKpiForRange(from, to);
+        var kpi = dailySalesRepo.aggregateKpiForRange(from, to, scope.allLocations(), scope.locationIds());
 
         BigDecimal totalRevenue  = nullSafe(kpi.getTotalRevenue());
         BigDecimal totalCost     = nullSafe(kpi.getTotalEstimatedCost());
         BigDecimal totalProfit   = nullSafe(kpi.getTotalEstimatedProfit());
         BigDecimal avgMargin     = kpi.getAvgProfitMargin();
 
-        List<TopMenuItemResponse> mostProfitable = getMostProfitableItems(from, to, 10);
-        List<TopMenuItemResponse> highestMargin  = getHighestMarginItems(from, to, 10);
+        List<TopMenuItemResponse> mostProfitable = getMostProfitableItems(from, to, 10, scope);
+        List<TopMenuItemResponse> highestMargin  = getHighestMarginItems(from, to, 10, scope);
 
         List<ProfitabilityInsightResponse> insights = buildInsights(
-                avgMargin, highestMargin, from, to);
+                avgMargin, highestMargin, from, to, scope);
 
         return new ProfitabilityDashboardResponse(
                 from, to,
@@ -69,13 +73,21 @@ public class ProfitabilityServiceImpl implements ProfitabilityService {
     // ── Item rankings ─────────────────────────────────────────────────────────
 
     @Override
-    public List<TopMenuItemResponse> getMostProfitableItems(LocalDate from, LocalDate to, int limit) {
-        return menuAnalyticsService.getTopItemsByProfit(from, to, limit);
+    public List<TopMenuItemResponse> getMostProfitableItems(
+            LocalDate from, LocalDate to, int limit, AnalyticsLocationScope scope) {
+        if (!scope.visible()) {
+            return List.of();
+        }
+        return menuAnalyticsService.getTopItemsByProfit(from, to, limit, scope);
     }
 
     @Override
-    public List<TopMenuItemResponse> getHighestMarginItems(LocalDate from, LocalDate to, int limit) {
-        return menuAnalyticsService.getHighestMarginItems(from, to, limit);
+    public List<TopMenuItemResponse> getHighestMarginItems(
+            LocalDate from, LocalDate to, int limit, AnalyticsLocationScope scope) {
+        if (!scope.visible()) {
+            return List.of();
+        }
+        return menuAnalyticsService.getHighestMarginItems(from, to, limit, scope);
     }
 
     // ── Insight engine ────────────────────────────────────────────────────────
@@ -84,7 +96,8 @@ public class ProfitabilityServiceImpl implements ProfitabilityService {
             BigDecimal avgMargin,
             List<TopMenuItemResponse> byMargin,
             LocalDate from,
-            LocalDate to) {
+            LocalDate to,
+            AnalyticsLocationScope scope) {
 
         List<ProfitabilityInsightResponse> insights = new ArrayList<>();
 
@@ -108,7 +121,8 @@ public class ProfitabilityServiceImpl implements ProfitabilityService {
         }
 
         // 2. High-volume, low-margin items (pricing opportunity)
-        List<TopMenuItemResponse> allItems = menuAnalyticsService.getTopItemsByRevenue(from, to, DEFAULT_INSIGHT_ITEMS * 2);
+        List<TopMenuItemResponse> allItems =
+                menuAnalyticsService.getTopItemsByRevenue(from, to, DEFAULT_INSIGHT_ITEMS * 2, scope);
 
         // Batch-fetch current selling prices in a single query for all candidate items
         List<Long> allItemIds = allItems.stream()
@@ -174,6 +188,19 @@ public class ProfitabilityServiceImpl implements ProfitabilityService {
         return v != null ? v : BigDecimal.ZERO;
     }
 
+    private ProfitabilityDashboardResponse emptyDashboard(LocalDate from, LocalDate to) {
+        return new ProfitabilityDashboardResponse(
+                from, to,
+                BigDecimal.ZERO,
+                BigDecimal.ZERO,
+                BigDecimal.ZERO,
+                null,
+                List.of(),
+                List.of(),
+                List.of()
+        );
+    }
+
     /**
      * Resolves the best available selling price for an item using three tiers:
      * 1. Live price from menu_item_selling_price_history (most accurate)
@@ -197,4 +224,3 @@ public class ProfitabilityServiceImpl implements ProfitabilityService {
         return null;
     }
 }
-

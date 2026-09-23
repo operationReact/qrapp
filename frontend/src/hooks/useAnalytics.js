@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
+import { useLocation as useActiveLocation } from '@/context/LocationContext'
 import {
   overviewKpisOptions,
   dailySalesOptions,
@@ -32,68 +33,73 @@ function useQueryWrapper(options) {
   return { data, loading: isLoading, error, refetch }
 }
 
+function useScopedAnalyticsQuery(optionsFactory, ...args) {
+  const { activeLocationId } = useActiveLocation()
+  return useQueryWrapper(optionsFactory(...args, activeLocationId))
+}
+
 export const useOverviewKpis = () =>
-  useQueryWrapper(overviewKpisOptions)
+  useScopedAnalyticsQuery(overviewKpisOptions)
 
 export const useDailySales = (params) =>
-  useQueryWrapper(dailySalesOptions(params))
+  useScopedAnalyticsQuery(dailySalesOptions, params)
 
 export const useDailySalesRange = (params) =>
-  useQueryWrapper(dailySalesRangeOptions(params))
+  useScopedAnalyticsQuery(dailySalesRangeOptions, params)
 
 export const useSalesSummary = (params) =>
-  useQueryWrapper(salesSummaryOptions(params))
+  useScopedAnalyticsQuery(salesSummaryOptions, params)
 
 export const useWeeklySales = (params) =>
-  useQueryWrapper(weeklySalesOptions(params))
+  useScopedAnalyticsQuery(weeklySalesOptions, params)
 
 export const useMonthlySales = (params) =>
-  useQueryWrapper(monthlySalesOptions(params))
+  useScopedAnalyticsQuery(monthlySalesOptions, params)
 
 export const useHourlyOrders = (params) =>
-  useQueryWrapper(hourlyOrdersOptions(params))
+  useScopedAnalyticsQuery(hourlyOrdersOptions, params)
 
 export const useOrderHeatmap = (params) =>
-  useQueryWrapper(orderHeatmapOptions(params))
+  useScopedAnalyticsQuery(orderHeatmapOptions, params)
 
 export const usePeakHours = (params) =>
-  useQueryWrapper(peakHoursOptions(params))
+  useScopedAnalyticsQuery(peakHoursOptions, params)
 
 export const useTopSellingItems = (params) =>
-  useQueryWrapper(topSellingItemsOptions(params))
+  useScopedAnalyticsQuery(topSellingItemsOptions, params)
 
 export const useLeastSellingItems = (params) =>
-  useQueryWrapper(leastSellingItemsOptions(params))
+  useScopedAnalyticsQuery(leastSellingItemsOptions, params)
 
 export const useMenuRevenue = (params) =>
-  useQueryWrapper(menuRevenueOptions(params))
+  useScopedAnalyticsQuery(menuRevenueOptions, params)
 
 export const useStallPerformance = (params) =>
-  useQueryWrapper(stallPerformanceOptions(params))
+  useScopedAnalyticsQuery(stallPerformanceOptions, params)
 
 export const useUserPreferences = (params) =>
-  useQueryWrapper(userPreferencesOptions(params))
+  useScopedAnalyticsQuery(userPreferencesOptions, params)
 
 export const useRepeatCustomers = (params) =>
-  useQueryWrapper(repeatCustomersOptions(params))
+  useScopedAnalyticsQuery(repeatCustomersOptions, params)
 
 export const useRepeatRate = () =>
-  useQueryWrapper(repeatRateOptions)
+  useScopedAnalyticsQuery(repeatRateOptions)
 
 export const useTopSpenders = (params) =>
-  useQueryWrapper(topSpendersOptions(params))
+  useScopedAnalyticsQuery(topSpendersOptions, params)
 
 export const useChurnedUsers = (params) =>
-  useQueryWrapper(churnedUsersOptions(params))
+  useScopedAnalyticsQuery(churnedUsersOptions, params)
 
 export const useUsersBySegment = (segment, params) =>
-  useQueryWrapper(usersBySegmentOptions(segment, params))
+  useScopedAnalyticsQuery(usersBySegmentOptions, segment, params)
 
 export const useCouponAnalytics = (params) =>
-  useQueryWrapper(couponPerformanceOptions(params))
+  useScopedAnalyticsQuery(couponPerformanceOptions, params)
 
 export const useTrendingItems = () =>
-  useQueryWrapper(trendingItemsOptions)
+  useQueryWrapper(trendingItemsOptions())
 
 export const useRecommendations = (userId) =>
   useQueryWrapper(recommendationsOptions(userId))
@@ -101,10 +107,10 @@ export const useRecommendations = (userId) =>
 // ── Profitability ──────────────────────────────────────────────────────────
 
 export const useProfitabilityDashboard = (params) =>
-  useQueryWrapper(profitabilityDashboardOptions(params))
+  useScopedAnalyticsQuery(profitabilityDashboardOptions, params)
 
 export const useMostProfitableItems = (params) =>
-  useQueryWrapper(mostProfitableItemsOptions(params))
+  useScopedAnalyticsQuery(mostProfitableItemsOptions, params)
 
 export const useHighestMarginItems = (params) =>
-  useQueryWrapper(highestMarginItemsOptions(params))
+  useScopedAnalyticsQuery(highestMarginItemsOptions, params)

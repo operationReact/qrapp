@@ -7,6 +7,7 @@ import com.broandbro.qrapp.analytics.dto.UserPreferenceResponse;
 import com.broandbro.qrapp.analytics.entity.UserPreferenceAnalytics;
 import com.broandbro.qrapp.analytics.projection.UserSegmentProjection;
 import com.broandbro.qrapp.analytics.repository.UserPreferenceAnalyticsRepository;
+import com.broandbro.qrapp.analytics.support.AnalyticsLocationScope;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -34,7 +35,10 @@ public class UserAnalyticsServiceImpl implements UserAnalyticsService {
     private final ObjectMapper objectMapper;
 
     @Override
-    public Optional<UserPreferenceResponse> getUserPreference(Long userId) {
+    public Optional<UserPreferenceResponse> getUserPreference(Long userId, AnalyticsLocationScope scope) {
+        if (!scope.visible()) {
+            return Optional.empty();
+        }
         return userPrefRepo.findByUserId(userId).map(this::entityToResponse);
     }
 
@@ -42,21 +46,30 @@ public class UserAnalyticsServiceImpl implements UserAnalyticsService {
     @Cacheable(
         cacheManager = "analyticsCacheManager",
         cacheNames   = AnalyticsCacheConfig.CACHE_USER_SEGMENT,
-        key           = "'segment:' + #segment + ':' + #pageable.pageNumber"
+        key           = "'segment:' + #segment + ':' + #pageable.pageNumber + ':' + #scope.allLocations() + ':' + #scope.locationIds()"
     )
-    public Page<UserPreferenceResponse> getUsersBySegment(String segment, Pageable pageable) {
-        log.debug("[UserService] getUsersBySegment segment={}", segment);
+    public Page<UserPreferenceResponse> getUsersBySegment(String segment, AnalyticsLocationScope scope, Pageable pageable) {
+        log.debug("[UserService] getUsersBySegment segment={} scope={}", segment, scope);
+        if (!scope.visible()) {
+            return Page.empty(pageable);
+        }
         return userPrefRepo.findBySegment(segment, pageable)
                 .map(this::projectionToResponse);
     }
 
     @Override
-    public Page<UserPreferenceResponse> getChurnedUsers(Pageable pageable) {
+    public Page<UserPreferenceResponse> getChurnedUsers(AnalyticsLocationScope scope, Pageable pageable) {
+        if (!scope.visible()) {
+            return Page.empty(pageable);
+        }
         return userPrefRepo.findChurnedUsers(pageable).map(this::entityToResponse);
     }
 
     @Override
-    public Page<UserPreferenceResponse> getTopSpenders(Pageable pageable) {
+    public Page<UserPreferenceResponse> getTopSpenders(AnalyticsLocationScope scope, Pageable pageable) {
+        if (!scope.visible()) {
+            return Page.empty(pageable);
+        }
         List<UserSegmentProjection> all = userPrefRepo.findTopSpenders(
                 PageRequest.of(0, Integer.MAX_VALUE));
         int start = (int) pageable.getOffset();
@@ -70,27 +83,34 @@ public class UserAnalyticsServiceImpl implements UserAnalyticsService {
     }
 
     @Override
-    public double getRepeatCustomerRate() {
+    public double getRepeatCustomerRate(AnalyticsLocationScope scope) {
+        if (!scope.visible()) {
+            return 0.0;
+        }
         Double rate = userPrefRepo.computeRepeatCustomerRate();
         return rate != null ? rate : 0.0;
     }
 
     @Override
-    public UserAggregateStatsResponse getAggregateStats() {
+    public UserAggregateStatsResponse getAggregateStats(AnalyticsLocationScope scope) {
+        if (!scope.visible()) {
+            return new UserAggregateStatsResponse(0, 0, 0.0, List.of(), List.of());
+        }
+        // Customer-level counts are global by design; live order lists below are location-scoped.
         long totalUsers = userPrefRepo.countTotalUsers();
         long repeatCustomers = userPrefRepo.countRepeatCustomers();
         Double avg = userPrefRepo.avgCompletedOrdersPerUser();
         double avgOrdersPerUser = avg != null ? avg : 0.0;
 
         List<UserAggregateStatsResponse.FavoriteItemEntry> favoriteItems =
-                userPrefRepo.findTopFavoriteItems(10).stream()
+                userPrefRepo.findTopFavoriteItems(10, scope.allLocations(), scope.locationIds()).stream()
                         .map(row -> new UserAggregateStatsResponse.FavoriteItemEntry(
                                 (String) row[0],
                                 ((Number) row[1]).longValue()))
                         .collect(Collectors.toList());
 
         List<UserAggregateStatsResponse.OrderTimeSlot> orderTimeDist =
-                userPrefRepo.findOrderTimeDistribution().stream()
+                userPrefRepo.findOrderTimeDistribution(scope.allLocations(), scope.locationIds()).stream()
                         .map(row -> new UserAggregateStatsResponse.OrderTimeSlot(
                                 (String) row[0],
                                 ((Number) row[1]).longValue()))
@@ -101,8 +121,11 @@ public class UserAnalyticsServiceImpl implements UserAnalyticsService {
     }
 
     @Override
-    public List<RepeatCustomerResponse> getMostActiveUsers(int limit) {
-        return userPrefRepo.findMostActiveUsers(limit).stream()
+    public List<RepeatCustomerResponse> getMostActiveUsers(int limit, AnalyticsLocationScope scope) {
+        if (!scope.visible()) {
+            return List.of();
+        }
+        return userPrefRepo.findMostActiveUsers(limit, scope.allLocations(), scope.locationIds()).stream()
                 .map(row -> new RepeatCustomerResponse(
                         ((Number) row[0]).longValue(),
                         (String) row[1],
@@ -151,4 +174,3 @@ public class UserAnalyticsServiceImpl implements UserAnalyticsService {
         }
     }
 }
-

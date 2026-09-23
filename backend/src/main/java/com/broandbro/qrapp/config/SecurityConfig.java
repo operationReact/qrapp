@@ -152,8 +152,22 @@ public class SecurityConfig {
                                 "/menu"
                         ).hasAnyRole("ADMIN", "SUPERUSER", "SUPER_ADMIN", "MANAGER")
 
+                        // Kitchen Queue — the only admin surface KITCHEN_STAFF may reach.
+                        // These specific matchers must precede the generic /admin/** rule.
+                        .requestMatchers(HttpMethod.GET, "/admin/orders/live")
+                        .hasAnyRole("ADMIN", "SUPERUSER", "SUPER_ADMIN", "MANAGER", "KITCHEN_STAFF")
+                        .requestMatchers(HttpMethod.PATCH, "/admin/orders/*/status")
+                        .hasAnyRole("ADMIN", "SUPERUSER", "SUPER_ADMIN", "MANAGER", "KITCHEN_STAFF")
+
                         .requestMatchers("/admin/**")
                         .hasAnyRole("ADMIN", "SUPERUSER", "SUPER_ADMIN", "MANAGER")
+
+                        // Customer Company authorization is verified against the
+                        // current database user by CustomerCompanyController.
+                        .requestMatchers(
+                                "/api/admin/customer-companies/**",
+                                "/api/admin/locations/*/customer-companies/**"
+                        ).authenticated()
 
                         .requestMatchers("/api/admin/**")
                         .hasAnyRole("ADMIN", "SUPERUSER", "SUPER_ADMIN")
@@ -162,9 +176,13 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/locations/*/customer-companies").permitAll()
                         .requestMatchers("/api/locations/**").authenticated()
 
-                        // All analytics endpoints — admin only
+                        // All analytics endpoints — admin console roles. Must mirror
+                        // the controller @PreAuthorize (ADMIN, SUPERUSER, SUPER_ADMIN,
+                        // MANAGER); per-location scoping is enforced in the controllers
+                        // via LocationAccessService so SUPER_ADMIN/MANAGER aren't blocked
+                        // here at the URL layer.
                         .requestMatchers("/api/v1/analytics/**")
-                        .hasAnyRole("ADMIN", "SUPERUSER")
+                        .hasAnyRole("ADMIN", "SUPERUSER", "SUPER_ADMIN", "MANAGER")
 
                         // Allow wallet endpoints to pass through (controller will handle auth)
                         .requestMatchers("/api/wallet/**").permitAll()

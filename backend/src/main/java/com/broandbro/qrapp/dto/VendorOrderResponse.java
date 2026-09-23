@@ -11,6 +11,7 @@ import com.broandbro.qrapp.enums.OrderStatus;
 public class VendorOrderResponse {
     private Long id;
     private Long vendorId;
+    private Long locationId;
     private OrderStatus status;
     private BigDecimal totalAmount;
     private String notes;

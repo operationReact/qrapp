@@ -30,6 +30,24 @@ public interface HourlyOrderAnalyticsRepository extends JpaRepository<HourlyOrde
 
     Page<HourlyOrderAnalytics> findByOrderDateBetween(LocalDate from, LocalDate to, Pageable pageable);
 
+    @Query("""
+           SELECT h.hourOfDay           AS hourOfDay,
+                  h.dayOfWeek           AS dayOfWeek,
+                  SUM(h.orderCount)     AS totalOrderCount,
+                  SUM(h.completedCount) AS totalCompletedCount,
+                  SUM(h.hourRevenue)    AS totalRevenue,
+                  AVG(h.avgFulfilmentMinutes) AS avgFulfilmentMinutes
+           FROM HourlyOrderAnalytics h
+           WHERE h.orderDate = :date
+             AND (:allLocations = TRUE OR h.locationId IN :locationIds)
+           GROUP BY h.hourOfDay, h.dayOfWeek
+           ORDER BY h.hourOfDay ASC
+           """)
+    List<HourlyOrderSummaryProjection> findHourlyBreakdownForDate(
+            @Param("date") LocalDate date,
+            @Param("allLocations") boolean allLocations,
+            @Param("locationIds") List<Long> locationIds);
+
     // ── Heatmap aggregation ───────────────────────────────────────────────────
 
     /**
@@ -45,12 +63,15 @@ public interface HourlyOrderAnalyticsRepository extends JpaRepository<HourlyOrde
                   AVG(h.avgFulfilmentMinutes) AS avgFulfilmentMinutes
            FROM HourlyOrderAnalytics h
            WHERE h.orderDate BETWEEN :from AND :to
+             AND (:allLocations = TRUE OR h.locationId IN :locationIds)
            GROUP BY h.hourOfDay, h.dayOfWeek
            ORDER BY h.hourOfDay ASC
            """)
     List<HourlyOrderSummaryProjection> findHeatmapByDateRange(
             @Param("from") LocalDate from,
-            @Param("to") LocalDate to);
+            @Param("to") LocalDate to,
+            @Param("allLocations") boolean allLocations,
+            @Param("locationIds") List<Long> locationIds);
 
     /**
      * Identifies peak hours: hours with order count above average for a date range.
@@ -65,12 +86,14 @@ public interface HourlyOrderAnalyticsRepository extends JpaRepository<HourlyOrde
                   AVG(avg_fulfilment_minutes)     AS avgFulfilmentMinutes
            FROM analytics_hourly_orders
            WHERE order_date BETWEEN :from AND :to
+            AND (:allLocations = TRUE OR location_id IN (:locationIds))
            GROUP BY hour_of_day, day_of_week
            HAVING SUM(order_count) > (
                SELECT AVG(daily_sum) FROM (
                    SELECT SUM(order_count) AS daily_sum
                    FROM analytics_hourly_orders
                    WHERE order_date BETWEEN :from AND :to
+                     AND (:allLocations = TRUE OR location_id IN (:locationIds))
                    GROUP BY hour_of_day
                ) sub
            )
@@ -79,7 +102,9 @@ public interface HourlyOrderAnalyticsRepository extends JpaRepository<HourlyOrde
            nativeQuery = true)
     List<HourlyOrderSummaryProjection> findPeakHours(
             @Param("from") LocalDate from,
-            @Param("to") LocalDate to);
+            @Param("to") LocalDate to,
+            @Param("allLocations") boolean allLocations,
+            @Param("locationIds") List<Long> locationIds);
 
     // ── Scheduler UPSERT ──────────────────────────────────────────────────────
 
@@ -91,12 +116,13 @@ public interface HourlyOrderAnalyticsRepository extends JpaRepository<HourlyOrde
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     @Query(value = """
            INSERT INTO analytics_hourly_orders (
-               order_date, hour_of_day, day_of_week,
+               order_date, location_id, hour_of_day, day_of_week,
                order_count, completed_count, hour_revenue,
                avg_fulfilment_minutes, created_at, updated_at
            )
            SELECT
                :targetDate,
+               COALESCE(o.location_id, (SELECT id FROM locations WHERE code = 'PRAGATI_NAGAR')),
                :targetHour,
                EXTRACT(ISODOW FROM CAST(:targetDate AS DATE))::INTEGER,
 
@@ -115,8 +141,9 @@ public interface HourlyOrderAnalyticsRepository extends JpaRepository<HourlyOrde
            FROM orders o
            WHERE o.created_at::date = :targetDate
              AND EXTRACT(HOUR FROM o.created_at)::INTEGER = :targetHour
+           GROUP BY COALESCE(o.location_id, (SELECT id FROM locations WHERE code = 'PRAGATI_NAGAR'))
 
-           ON CONFLICT (order_date, hour_of_day) DO UPDATE SET
+           ON CONFLICT (order_date, hour_of_day, location_id) DO UPDATE SET
                order_count            = EXCLUDED.order_count,
                completed_count        = EXCLUDED.completed_count,
                hour_revenue           = EXCLUDED.hour_revenue,
@@ -128,4 +155,3 @@ public interface HourlyOrderAnalyticsRepository extends JpaRepository<HourlyOrde
             @Param("targetDate") LocalDate targetDate,
             @Param("targetHour") int targetHour);
 }
-

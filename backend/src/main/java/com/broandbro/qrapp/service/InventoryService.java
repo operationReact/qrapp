@@ -11,6 +11,7 @@ import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * Service interface for inventory management.
@@ -143,22 +144,24 @@ public interface InventoryService {
     // ============================================================================
 
     /**
-     * Get all low stock items.
-     *
-     * Low stock = available quantity <= low stock threshold
+     * Get all low stock items, restricted to the caller's location scope.
      *
      * @param pageable pagination info
+     * @param locationScope dashboard location scope: {@link Optional#empty()} = all
+     *        locations (no filter); a present list restricts to those location IDs
+     *        (an empty list means the caller can see nothing).
      * @return paginated list of low stock items
      */
-    Page<InventoryStatusResponse> getLowStockItems(Pageable pageable);
+    Page<InventoryStatusResponse> getLowStockItems(Pageable pageable, Optional<List<Long>> locationScope);
 
     /**
-     * Get all out of stock items.
+     * Get all out of stock items, restricted to the caller's location scope.
      *
      * @param pageable pagination info
+     * @param locationScope see {@link #getLowStockItems(Pageable, Optional)}
      * @return paginated list of out of stock items
      */
-    Page<InventoryStatusResponse> getOutOfStockItems(Pageable pageable);
+    Page<InventoryStatusResponse> getOutOfStockItems(Pageable pageable, Optional<List<Long>> locationScope);
 
     /**
      * Get inventory audit trail for a menu item.
@@ -170,12 +173,13 @@ public interface InventoryService {
     Page<InventoryAuditResponse> getInventoryAuditTrail(Long menuItemId, Pageable pageable);
 
     /**
-     * Get recent inventory changes across all items.
+     * Get recent inventory changes, restricted to the caller's location scope.
      *
      * @param pageable pagination info
+     * @param locationScope see {@link #getLowStockItems(Pageable, Optional)}
      * @return paginated recent audit entries
      */
-    Page<InventoryAuditResponse> getRecentInventoryChanges(Pageable pageable);
+    Page<InventoryAuditResponse> getRecentInventoryChanges(Pageable pageable, Optional<List<Long>> locationScope);
 
     /**
      * Get inventory status for display in menu response.
@@ -196,7 +200,16 @@ public interface InventoryService {
      * @param pageable pagination and sorting
      * @return paginated admin inventory items
      */
-    Page<AdminInventoryItemResponse> getInventoryItems(InventoryItemFilter filter, Pageable pageable);
+    Page<AdminInventoryItemResponse> getInventoryItems(InventoryItemFilter filter, Pageable pageable,
+                                                       Optional<List<Long>> locationScope);
+
+    /**
+     * Resolve the location that owns a menu item, for controller-level access checks.
+     *
+     * @param menuItemId target menu item
+     * @return owning location id (never null for persisted menu items)
+     */
+    Long getMenuItemLocationId(Long menuItemId);
 
     /**
      * Unified update for a menu item's inventory state.
