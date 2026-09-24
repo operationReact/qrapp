@@ -16,7 +16,9 @@ export const menuOptions = (opts = {}) => {
     queryKey: ["menu", locationId, opts],
     queryFn: () => getMenu({ ...opts, locationId }),
     enabled: Boolean(locationId),
-    staleTime: 1000 * 60 * 2,
+    staleTime: 1000 * 15,
+    gcTime: 1000 * 60 * 10,
+    refetchOnWindowFocus: true,
     placeholderData: [],
   });
 };
@@ -25,7 +27,9 @@ export const categoriesOptions = (locationId = storedLocationId()) => queryOptio
   queryKey: ["categories", locationId],
   queryFn: () => getCategories(locationId),
   enabled: Boolean(locationId),
-  staleTime: 1000 * 60 * 5,
+  staleTime: 1000 * 60 * 10,
+  gcTime: 1000 * 60 * 30,
+  refetchOnWindowFocus: false,
 });
 
 export const recommendedMenuOptions = (limit = 6, locationId = storedLocationId()) =>
@@ -33,5 +37,7 @@ export const recommendedMenuOptions = (limit = 6, locationId = storedLocationId(
     queryKey: ["menu", "recommended", locationId, limit],
     queryFn: () => getRecommendedMenu({ limit, locationId }),
     enabled: Boolean(locationId),
-    staleTime: 1000 * 60 * 2,
+    staleTime: 1000 * 15,
+    gcTime: 1000 * 60 * 10,
+    refetchOnWindowFocus: true,
   });

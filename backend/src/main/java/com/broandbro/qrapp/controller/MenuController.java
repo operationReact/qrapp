@@ -56,7 +56,7 @@ import org.springframework.context.ApplicationEventPublisher;
 
 @RestController
 @RequestMapping("/menu")
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 public class MenuController {
 
     private static final Logger log = LoggerFactory.getLogger(MenuController.class);
@@ -76,6 +76,17 @@ public class MenuController {
     private final LocationRepository locationRepository;
     private final LocationAccessService locationAccessService;
     private final UserService userService;
+    private final com.broandbro.qrapp.repository.VendorRepository vendorRepository;
+
+    public MenuController(MenuRepository repo, CategoryRepository categoryRepository,
+                          TagRepository tagRepository, InventoryService inventoryService,
+                          PricingService pricingService, ApplicationEventPublisher eventPublisher,
+                          MenuItemAnalyticsRepository analyticsMenuItemRepo,
+                          LocationRepository locationRepository,
+                          LocationAccessService locationAccessService, UserService userService) {
+        this(repo, categoryRepository, tagRepository, inventoryService, pricingService, eventPublisher,
+                analyticsMenuItemRepo, locationRepository, locationAccessService, userService, null);
+    }
 
     @Autowired
     @Qualifier("analyticsCacheManager")
@@ -99,6 +110,14 @@ public class MenuController {
     }
 
     @GetMapping
+    @Cacheable(
+            cacheNames = "menu",
+            key = "#locationId + ':' + (#isVeg == null ? 'all' : #isVeg) + ':' + " +
+                    "(#categoryId == null ? 'all' : #categoryId) + ':' + " +
+                    "(#recommended == null ? 'all' : #recommended) + ':' + " +
+                    "(#page == null ? 0 : #page) + ':' + (#size == null ? 200 : #size)",
+            sync = true
+    )
     public List<MenuItemResponse> getMenu(
             @RequestParam Long locationId,
             @RequestParam(value = "isVeg", required = false) Boolean isVeg,
@@ -122,7 +141,9 @@ public class MenuController {
 
 
     @GetMapping("/recommended")
-    @Cacheable(cacheNames = "menuRecommended", key = "#locationId + ':' + (#limit == null ? 'default' : #limit)")
+    @Cacheable(cacheNames = "menuRecommended",
+            key = "#locationId + ':' + (#limit == null ? 'default' : #limit)",
+            sync = true)
     public List<MenuItemResponse> getRecommendedMenu(
             @RequestParam Long locationId,
             @RequestParam(value = "limit", required = false) Integer limit) {
@@ -322,6 +343,8 @@ public class MenuController {
                     String tagIdStr = mreq.getParameter("tagId");
                     String isVegStr = mreq.getParameter("isVeg");
                     String inventoryModeStr = mreq.getParameter("inventoryMode");
+                    String vendorIdStr = mreq.getParameter("vendorId");
+                    String fulfillmentTypeStr = mreq.getParameter("fulfillmentType");
 
                     if (name != null) existing.setName(name);
                     if (priceStr != null && !priceStr.isBlank()) {
@@ -357,6 +380,7 @@ public class MenuController {
                         } catch (NumberFormatException ex) { /* ignore */ }
                     }
                     if (isVegStr != null) existing.setIsVeg(Boolean.parseBoolean(isVegStr));
+                    applyVendorFields(existing, vendorIdStr, fulfillmentTypeStr);
 
                     org.springframework.web.multipart.MultipartFile file = mreq.getFile("image");
                     if (file != null && !file.isEmpty()) {
@@ -445,11 +469,17 @@ public class MenuController {
                     boolean iv = v instanceof Boolean ? (Boolean)v : Boolean.parseBoolean(String.valueOf(v));
                     existing.setIsVeg(iv);
                 }
+                if (payload.containsKey("vendorId") || payload.containsKey("fulfillmentType")) {
+                    Object vendorId = payload.get("vendorId");
+                    applyVendorFields(existing, payload.containsKey("vendorId") && vendorId == null ? "null" : (vendorId == null ? null : String.valueOf(vendorId)),
+                            payload.get("fulfillmentType") == null ? null : String.valueOf(payload.get("fulfillmentType")));
+                }
                 if (payload.containsKey("available")) {
                     Object a = payload.get("available");
                     boolean av = a instanceof Boolean ? (Boolean)a : Boolean.parseBoolean(String.valueOf(a));
                     existing.setAvailable(av);
                 }
+
                 if (payload.containsKey("estimatedCost")) {
                     Object ec = payload.get("estimatedCost");
                     if (ec == null) {
@@ -516,6 +546,21 @@ public class MenuController {
         } catch (IOException ex) {
             log.error("Failed to process update request", ex);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to process request");
+        }
+    }
+
+    private void applyVendorFields(MenuItem item, String vendorIdValue, String fulfillmentTypeValue) {
+        if (vendorIdValue != null) {
+            if (vendorIdValue.isBlank() || "null".equalsIgnoreCase(vendorIdValue)) {
+                item.setVendor(null);
+            } else {
+                Long vendorId = Long.parseLong(vendorIdValue);
+                item.setVendor(vendorRepository.findById(vendorId)
+                        .orElseThrow(() -> new IllegalArgumentException("vendor_not_found")));
+            }
+        }
+        if (fulfillmentTypeValue != null && !fulfillmentTypeValue.isBlank()) {
+            item.setFulfillmentType(com.broandbro.qrapp.enums.FulfillmentType.valueOf(fulfillmentTypeValue.toUpperCase()));
         }
     }
 

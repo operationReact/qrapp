@@ -291,42 +291,126 @@ export const companyInfoPages = {
     badge: "Legal",
     title: "Terms & Conditions",
     description:
-      "Terms for using the BRO & BRO Food Court website and ordering platform.",
+      "Terms for using the BRO & BRO Food Court website and location-based food ordering platform.",
     sections: [
       {
-        title: "Introduction",
+        title: "Version and acceptance",
+        details: [
+          { label: "Terms version", value: "2026-09" },
+          { label: "Effective date", value: "24 September 2026" },
+          { label: "Operator", value: companyProfile.legalName },
+        ],
         paragraphs: [
-          "These terms govern use of the BRO & BRO Food Court website and related ordering services.",
-          "By using the site, you agree to the terms that apply to menu browsing, ordering, payments, and account use.",
+          "These Terms & Conditions (Terms) govern your use of the BRO & BRO Food Court website, web application, account, menu, ordering, wallet and related services in India (Platform). The Platform is operated under the brand BRO & BRO Food Court by BRO&BRO HOSPITALITY LLP.",
+          "By creating an account, placing an order, using the wallet, or otherwise using a part of the Platform, you agree to these Terms. Account registration requires a positive acceptance of these Terms and the Privacy Policy. If you do not agree, do not create an account or use the relevant service.",
         ],
       },
       {
-        title: "About BRO & BRO",
-        paragraphs: [
-          "BRO & BRO Food Court is the consumer-facing food brand operated by BRO&BRO HOSPITALITY LLP.",
-        ],
-      },
-      {
-        title: "Use of the website",
+        title: "1. Eligibility, account and security",
         bullets: [
-          "Provide accurate information when placing an order or updating your account.",
-          "Do not misuse the website, abuse promotions, or attempt unauthorized access.",
-          "Respect item availability, pricing, and operational limits shown in the application.",
+          "You must provide truthful, current and complete information, including your mobile number, name where requested, selected food-court location and customer company.",
+          "Registration uses a WhatsApp verification code and a password. Keep your password, phone and login token secure and do not share access or allow another person to place orders through your account.",
+          "You are responsible for activity carried out through your account and must promptly contact support if you suspect unauthorised access or an incorrect account detail.",
+          "The Platform collects optional date-of-birth and special-date information in the profile flow. The Privacy Policy explains how personal information is handled; these Terms do not repeat that policy.",
+          "The registration flow does not currently perform an age verification check. You must use the Platform only if you are legally capable of agreeing to these Terms; a parent or legal guardian must supervise any use by a person who cannot legally contract.",
         ],
       },
       {
-        title: "Orders, payments, refunds, and changes",
+        title: "2. Locations, menu and availability",
         bullets: [
-          "Orders are accepted only when successfully processed by the application and its payment flow.",
-          "Refunds and cancellations follow the published refund and cancellation policy.",
-          "Prices, menu items, and availability may change without prior notice.",
+          "The Platform is configured around participating food-court locations. Your selected location and customer company help determine the services and menu available to you.",
+          "Menu items are associated with a location and may be marked unavailable, hidden, deleted, pre-order-only or limited by operational inventory. An item in a cart is not a guarantee that it will remain available.",
+          "Descriptions, images, vegetarian indicators, tags and prices are supplied through the operating system and may change. Images are illustrative and the prepared item may reasonably differ.",
+          "Some items are prepared in-house and some may be associated with an external vendor. Vendor assignment is an operational relationship; it does not create a direct account or payment relationship between you and a vendor outside the order shown on the Platform.",
         ],
       },
       {
-        title: "Contact information",
+        title: "3. Orders and acceptance",
+        bullets: [
+          "You place an order by submitting the items, quantities, phone number and selected payment method shown at checkout. The server records an order with an order number and an initial status; this is not a promise that every item will be prepared or available.",
+          "The Platform or the relevant food-stall operation may be unable to fulfil an order because of availability, operational capacity, location or payment status. The order status shown in the Platform is the source for the current operational state.",
+          "Pre-orders are a separate flow. Only items tagged for pre-order may be scheduled, and the selected scheduled date and time are recorded for operational handling. No preparation or hand-off time is guaranteed unless expressly shown and confirmed.",
+          "You must check the order number, items and amount shown or returned by the Platform and contact support promptly about an apparent error.",
+        ],
+      },
+      {
+        title: "4. Prices, taxes and offers",
+        bullets: [
+          "The amount calculated at checkout is based on the selling-price snapshots and any valid promotion or combo discount applied by the server. Prices and availability can change before an order is submitted.",
+          "The current order calculation does not add a delivery fee and records tax as zero. This describes the present application configuration, not a promise that future orders will never include applicable taxes or charges. Any amount displayed at checkout is the amount to review before submission.",
+          "Promotions, coupons, combo campaigns and milestone rewards are conditional benefits. Eligibility, validity, expiry, usage limits, stacking and discount value are determined by the applicable promotion configuration and server validation. A reward shown in the app is not a cash entitlement.",
+          "No referral programme or referral benefit was identified in the current customer application. If one is introduced, its specific conditions will be shown with that programme and will form part of the applicable offer.",
+        ],
+      },
+      {
+        title: "5. Payments",
+        bullets: [
+          "The currently implemented checkout methods are Razorpay online payment, authenticated wallet payment, and Pay at Stall when enabled by the operator. The Platform does not currently expose a separate COD or UPI payment method; UPI availability, if any, is controlled by the Razorpay checkout and its providers.",
+          "Razorpay payments are processed through Razorpay and may use the payment instruments and verification steps offered by that provider. A payment may fail, remain pending or be debited without the Platform immediately receiving confirmation.",
+          "Wallet payments require an authenticated account and sufficient wallet balance. Wallet top-ups are initiated and verified through Razorpay; wallet debits for an order are recorded as successful when the server completes the debit.",
+          "Pay at Stall creates an order without collecting money through the Platform and leaves the payment status pending. The participating stall’s operational instructions and the amount shown for the order govern payment at the stall.",
+          "Do not retry a payment repeatedly after a debit or pending result. Keep the order number and provider reference and contact support so the transaction can be reconciled.",
+        ],
+      },
+      {
+        title: "6. Preparation, hand-off and delivery operations",
+        bullets: [
+          "Food preparation is performed by the relevant BRO & BRO food-court operation or an associated vendor. Those operations are responsible for preparing the selected items and updating operational order statuses.",
+          "The current customer flow is location-based and does not collect a delivery address or publish a guaranteed delivery time, delivery fee or delivery service-level commitment. The Platform must not be understood as promising doorstep delivery unless a future checkout explicitly offers and confirms it.",
+          "Statuses such as placed, preparing, ready, delivered and completed reflect operational updates and may be delayed or corrected. Delays can result from demand, preparation, stock, staffing, payment confirmation, technology or other circumstances.",
+          "Customers are responsible for selecting the correct location, being available for the applicable collection or hand-off arrangement, and following reasonable food-court or stall instructions.",
+        ],
+      },
+      {
+        title: "7. Cancellations, refunds and order issues",
+        bullets: [
+          "The current customer application does not provide a self-service order-cancellation or refund endpoint. Do not assume that an order can be cancelled after submission or after preparation has started.",
+          "If you need to request cancellation, or receive an incorrect, missing or materially damaged item, contact support as soon as possible with the order number, payment reference and a clear description. The operator will review the order status, preparation and payment records.",
+          "The current backend does not define an automatic refund schedule, refund eligibility rule, refund amount, refund destination or refund timeline. Any refund, replacement, correction or other resolution is therefore subject to case review, applicable law, the payment provider’s process and the operator’s confirmed business policy.",
+          "For a failed or apparently duplicated online payment, contact support before making another payment. A bank or payment-provider debit may require reconciliation before any action can be taken.",
+        ],
+      },
+      {
+        title: "8. Customer information and permitted use",
+        bullets: [
+          "You may submit profile information, order information, special-date details and notes or requests in the fields provided. Do not submit unlawful, abusive, fraudulent, defamatory, infringing, dangerous or confidential third-party information.",
+          "You must not misuse offers, create duplicate accounts to obtain benefits, manipulate prices or order data, reverse engineer or disrupt the Platform, bypass authentication, access another person’s data, or use the Platform for an unlawful purpose.",
+          "You grant the operator permission to use information you submit only as needed to operate, support, secure and improve the relevant Platform service, subject to the Privacy Policy and applicable law.",
+        ],
+      },
+      {
+        title: "9. Responsibilities of the operator, stalls and vendors",
         paragraphs: [
-          `Email: ${companyProfile.email}`,
-          `Phone: ${companyProfile.phone}`,
+          "BRO&BRO HOSPITALITY LLP operates the Platform, account, order records, payment integrations, wallet records, promotions and customer support channels. The food-court and stall operations prepare and hand over food and manage operational status updates. A menu item may be linked to an external vendor for sourcing or fulfilment. Responsibilities may overlap operationally, but the Platform cannot promise that a vendor or stall will always be available or that every menu description will be error-free.",
+          "Nothing in these Terms excludes or limits a right or remedy that cannot lawfully be excluded or limited under applicable Indian law.",
+        ],
+      },
+      {
+        title: "10. Intellectual property and availability",
+        bullets: [
+          "The Platform software, brand, layout, text, graphics and other content are owned by or licensed to the operator or its licensors. You receive a limited, non-transferable permission to use the Platform for personal, lawful ordering and account purposes.",
+          "The Platform may be changed, suspended or unavailable for maintenance, security, provider failure, connectivity, force majeure or other operational reasons. The operator does not guarantee uninterrupted access, error-free content, uninterrupted payment processing or a particular result.",
+        ],
+      },
+      {
+        title: "11. Liability, suspension and termination",
+        bullets: [
+          "To the extent permitted by law, the operator is not responsible for indirect, incidental, special or consequential loss, loss of data, or loss caused by a payment provider, network, vendor, stall, force majeure event or information you supplied incorrectly. This does not limit liability that cannot lawfully be limited.",
+          "The operator may suspend or terminate access, cancel or decline an order, or disable a benefit where reasonably necessary for security, fraud prevention, misuse, operational reasons, non-payment or breach of these Terms. Amounts already paid will be handled subject to applicable law and the confirmed order/payment records.",
+        ],
+      },
+      {
+        title: "12. Governing law, support and changes",
+        paragraphs: [
+          "These Terms are governed by the laws of India. Any dispute will be handled by the courts having lawful jurisdiction, with Hyderabad, Telangana proposed as the forum because the operator’s registered address is in Hyderabad. This jurisdiction wording requires confirmation by the operator’s legal adviser before production publication.",
+          `For order, account, payment or policy support, contact ${companyProfile.supportEmail} or ${companyProfile.supportPhone}. Include your name, registered phone number, order number or payment reference, and the issue. Registered / mailing address: ${companyProfile.registeredAddress}.`,
+          "The operator may update these Terms by publishing a new version and effective date. Material changes should be presented for acceptance where required. Continued use after the effective date means the updated Terms apply to future use; existing orders remain subject to the Terms and order records applicable when placed, except where a change is required by law.",
+        ],
+      },
+      {
+        title: "Privacy Policy",
+        paragraphs: [
+          "The Privacy Policy separately explains collection, use, sharing, retention, security and rights relating to personal information. It is incorporated by reference only for those privacy matters; these Terms do not replace or restate the Privacy Policy.",
         ],
       },
     ],

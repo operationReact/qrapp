@@ -11,6 +11,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.cache.annotation.CacheEvict;
 
 import java.security.Principal;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -83,6 +84,7 @@ public class BulkMenuUploadController {
      * Only ROW_OK rows are persisted; ROW_ERROR rows are skipped.
      */
     @PostMapping("/commit")
+    @CacheEvict(cacheNames = {"menu", "menuRecommended"}, allEntries = true)
     public ResponseEntity<BulkMenuUploadSummary> commit(
             @RequestBody BulkMenuCommitRequest request,
             Principal principal) {

@@ -67,6 +67,10 @@ app:
   cors:
     allowed-origins: "${APP_CORS_ALLOWED_ORIGINS:http://localhost:5173}"
 
+legal:
+  terms-version: ${LEGAL_TERMS_VERSION:2026-09}
+  privacy-policy-version: ${LEGAL_PRIVACY_POLICY_VERSION:2026-01}
+
 # Analytics Engine configuration
 analytics:
   cron:

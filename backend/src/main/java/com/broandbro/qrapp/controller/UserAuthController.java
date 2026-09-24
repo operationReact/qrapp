@@ -42,7 +42,9 @@ public class UserAuthController {
     public ResponseEntity<?> requestRegistrationOtp(@Valid @RequestBody RegistrationOtpRequest req) {
         try {
             whatsAppOtpService.requestRegistrationOtp(req.getPhoneNumber(), req.getName(), req.getPassword(),
-                    req.getDefaultLocationId(), req.getCustomerCompanyId());
+                    req.getDefaultLocationId(), req.getCustomerCompanyId(), req.getDateOfBirth(),
+                    req.getSpecialDate(), req.getSpecialDayType(), req.getSpecialDayCustomLabel(),
+                    req.getTermsAccepted());
             return ResponseEntity.ok(new OtpResponse(true,
                     "A verification code has been sent to your WhatsApp."));
         } catch (OtpException ex) {
@@ -127,6 +129,10 @@ public class UserAuthController {
         r.setId(currentUser.getId());
         r.setPhone(currentUser.getPhone());
         r.setName(currentUser.getName());
+        r.setDateOfBirth(currentUser.getDateOfBirth());
+        r.setSpecialDate(currentUser.getSpecialDate());
+        r.setSpecialDayType(currentUser.getSpecialDayType());
+        r.setSpecialDayCustomLabel(currentUser.getSpecialDayCustomLabel());
         r.setIsAdmin(currentUser.getIsAdmin());
         r.setIsSuperUser(currentUser.getIsSuperUser());
         r.setRole(currentUser.getRole() != null ? currentUser.getRole().name()

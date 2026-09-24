@@ -3,6 +3,7 @@ package com.broandbro.qrapp.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.Instant;
+import java.time.LocalDate;
 
 @Entity
 @Table(name = "users")
@@ -23,6 +24,19 @@ public class User {
     private String password; // BCrypt encoded
 
     private String name;
+
+    private LocalDate dateOfBirth;
+
+    private LocalDate specialDate;
+
+    @Column(length = 120)
+    private String specialDateDescription;
+
+    @Column(name = "special_day_type", length = 64)
+    private String specialDayType;
+
+    @Column(name = "special_day_custom_label", length = 120)
+    private String specialDayCustomLabel;
 
     @Column(unique = true)
     private String token; // simple bearer token
@@ -46,6 +60,18 @@ public class User {
     @JoinColumn(name = "customer_company_id")
     private CustomerCompany customerCompany;
 
+    @Column(name = "terms_accepted", nullable = false)
+    private Boolean termsAccepted = false;
+
+    @Column(name = "terms_accepted_at")
+    private Instant termsAcceptedAt;
+
+    @Column(name = "terms_version", length = 80)
+    private String termsVersion;
+
+    @Column(name = "privacy_policy_version", length = 80)
+    private String privacyPolicyVersion;
+
     private Instant createdAt;
 
     @PrePersist
@@ -53,6 +79,7 @@ public class User {
         if (createdAt == null) createdAt = Instant.now();
         if (isAdmin == null) isAdmin = false;
         if (isSuperUser == null) isSuperUser = false;
+        if (termsAccepted == null) termsAccepted = false;
         if (role == null) role = isSuperUser ? UserRole.SUPER_ADMIN
                 : (isAdmin ? UserRole.ADMIN : UserRole.CUSTOMER);
     }

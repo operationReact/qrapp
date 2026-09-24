@@ -21,6 +21,7 @@ import { Route as OrdersRouteImport } from './routes/orders'
 import { Route as NewPartyOrderRouteImport } from './routes/new-party-order'
 import { Route as MilestonesRouteImport } from './routes/milestones'
 import { Route as HelpSupportRouteImport } from './routes/help-support'
+import { Route as HallOfHappinessRouteImport } from './routes/hall-of-happiness'
 import { Route as GrievanceRedressalRouteImport } from './routes/grievance-redressal'
 import { Route as FssaiInformationRouteImport } from './routes/fssai-information'
 import { Route as FoodSafetyRouteImport } from './routes/food-safety'
@@ -33,6 +34,7 @@ import { Route as AboutUsRouteImport } from './routes/about-us'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as CategoriesCategoryIdRouteImport } from './routes/categories.$categoryId'
+import { Route as AdminVendorsRouteImport } from './routes/admin/vendors'
 import { Route as AdminOpsCenterRouteImport } from './routes/admin/ops-center'
 import { Route as AdminCustomerCompaniesRouteImport } from './routes/admin/customer-companies'
 import { Route as authRegisterRouteImport } from './routes/(auth)/register'
@@ -61,6 +63,7 @@ import { Route as AdminordersPreOrdersRouteImport } from './routes/admin/(orders
 import { Route as AdminordersPartyOrdersRouteImport } from './routes/admin/(orders)/party-orders'
 import { Route as AdminordersOperationalQueueRouteImport } from './routes/admin/(orders)/operational-queue'
 import { Route as AdminordersKitchenQueueRouteImport } from './routes/admin/(orders)/kitchen-queue'
+import { Route as AdminordersHallOfHappinessRouteImport } from './routes/admin/(orders)/hall-of-happiness'
 import { Route as AdminmilestonesMilestonesRouteImport } from './routes/admin/(milestones)/milestones'
 import { Route as AdminmenuMenuRouteImport } from './routes/admin/(menu)/menu'
 import { Route as AdminmenuMealRolesRouteImport } from './routes/admin/(menu)/meal-roles'
@@ -139,6 +142,11 @@ const HelpSupportRoute = HelpSupportRouteImport.update({
   path: '/help-support',
   getParentRoute: () => rootRouteImport,
 } as any)
+const HallOfHappinessRoute = HallOfHappinessRouteImport.update({
+  id: '/hall-of-happiness',
+  path: '/hall-of-happiness',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const GrievanceRedressalRoute = GrievanceRedressalRouteImport.update({
   id: '/grievance-redressal',
   path: '/grievance-redressal',
@@ -198,6 +206,11 @@ const CategoriesCategoryIdRoute = CategoriesCategoryIdRouteImport.update({
   id: '/categories/$categoryId',
   path: '/categories/$categoryId',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AdminVendorsRoute = AdminVendorsRouteImport.update({
+  id: '/vendors',
+  path: '/vendors',
+  getParentRoute: () => AdminRoute,
 } as any)
 const AdminOpsCenterRoute = AdminOpsCenterRouteImport.update({
   id: '/ops-center',
@@ -348,6 +361,12 @@ const AdminordersKitchenQueueRoute = AdminordersKitchenQueueRouteImport.update({
   path: '/kitchen-queue',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminordersHallOfHappinessRoute =
+  AdminordersHallOfHappinessRouteImport.update({
+    id: '/(orders)/hall-of-happiness',
+    path: '/hall-of-happiness',
+    getParentRoute: () => AdminRoute,
+  } as any)
 const AdminmilestonesMilestonesRoute =
   AdminmilestonesMilestonesRouteImport.update({
     id: '/(milestones)/milestones',
@@ -447,6 +466,7 @@ export interface FileRoutesByFullPath {
   '/food-safety': typeof FoodSafetyRoute
   '/fssai-information': typeof FssaiInformationRoute
   '/grievance-redressal': typeof GrievanceRedressalRoute
+  '/hall-of-happiness': typeof HallOfHappinessRoute
   '/help-support': typeof HelpSupportRoute
   '/milestones': typeof MilestonesRoute
   '/new-party-order': typeof NewPartyOrderRoute
@@ -464,6 +484,7 @@ export interface FileRoutesByFullPath {
   '/register': typeof authRegisterRoute
   '/admin/customer-companies': typeof AdminCustomerCompaniesRoute
   '/admin/ops-center': typeof AdminOpsCenterRoute
+  '/admin/vendors': typeof AdminVendorsRoute
   '/categories/$categoryId': typeof CategoriesCategoryIdRoute
   '/admin/': typeof AdminIndexRoute
   '/admin/coupons': typeof AdmincouponsCouponsRoute
@@ -478,6 +499,7 @@ export interface FileRoutesByFullPath {
   '/admin/meal-roles': typeof AdminmenuMealRolesRoute
   '/admin/menu': typeof AdminmenuMenuRoute
   '/admin/milestones': typeof AdminmilestonesMilestonesRoute
+  '/admin/hall-of-happiness': typeof AdminordersHallOfHappinessRoute
   '/admin/kitchen-queue': typeof AdminordersKitchenQueueRoute
   '/admin/operational-queue': typeof AdminordersOperationalQueueRoute
   '/admin/party-orders': typeof AdminordersPartyOrdersRoute
@@ -516,6 +538,7 @@ export interface FileRoutesByTo {
   '/food-safety': typeof FoodSafetyRoute
   '/fssai-information': typeof FssaiInformationRoute
   '/grievance-redressal': typeof GrievanceRedressalRoute
+  '/hall-of-happiness': typeof HallOfHappinessRoute
   '/help-support': typeof HelpSupportRoute
   '/milestones': typeof MilestonesRoute
   '/new-party-order': typeof NewPartyOrderRoute
@@ -533,6 +556,7 @@ export interface FileRoutesByTo {
   '/register': typeof authRegisterRoute
   '/admin/customer-companies': typeof AdminCustomerCompaniesRoute
   '/admin/ops-center': typeof AdminOpsCenterRoute
+  '/admin/vendors': typeof AdminVendorsRoute
   '/categories/$categoryId': typeof CategoriesCategoryIdRoute
   '/admin': typeof AdminIndexRoute
   '/admin/coupons': typeof AdmincouponsCouponsRoute
@@ -547,6 +571,7 @@ export interface FileRoutesByTo {
   '/admin/meal-roles': typeof AdminmenuMealRolesRoute
   '/admin/menu': typeof AdminmenuMenuRoute
   '/admin/milestones': typeof AdminmilestonesMilestonesRoute
+  '/admin/hall-of-happiness': typeof AdminordersHallOfHappinessRoute
   '/admin/kitchen-queue': typeof AdminordersKitchenQueueRoute
   '/admin/operational-queue': typeof AdminordersOperationalQueueRoute
   '/admin/party-orders': typeof AdminordersPartyOrdersRoute
@@ -587,6 +612,7 @@ export interface FileRoutesById {
   '/food-safety': typeof FoodSafetyRoute
   '/fssai-information': typeof FssaiInformationRoute
   '/grievance-redressal': typeof GrievanceRedressalRoute
+  '/hall-of-happiness': typeof HallOfHappinessRoute
   '/help-support': typeof HelpSupportRoute
   '/milestones': typeof MilestonesRoute
   '/new-party-order': typeof NewPartyOrderRoute
@@ -604,6 +630,7 @@ export interface FileRoutesById {
   '/(auth)/register': typeof authRegisterRoute
   '/admin/customer-companies': typeof AdminCustomerCompaniesRoute
   '/admin/ops-center': typeof AdminOpsCenterRoute
+  '/admin/vendors': typeof AdminVendorsRoute
   '/categories/$categoryId': typeof CategoriesCategoryIdRoute
   '/admin/': typeof AdminIndexRoute
   '/admin/(coupons)/coupons': typeof AdmincouponsCouponsRoute
@@ -618,6 +645,7 @@ export interface FileRoutesById {
   '/admin/(menu)/meal-roles': typeof AdminmenuMealRolesRoute
   '/admin/(menu)/menu': typeof AdminmenuMenuRoute
   '/admin/(milestones)/milestones': typeof AdminmilestonesMilestonesRoute
+  '/admin/(orders)/hall-of-happiness': typeof AdminordersHallOfHappinessRoute
   '/admin/(orders)/kitchen-queue': typeof AdminordersKitchenQueueRoute
   '/admin/(orders)/operational-queue': typeof AdminordersOperationalQueueRoute
   '/admin/(orders)/party-orders': typeof AdminordersPartyOrdersRoute
@@ -659,6 +687,7 @@ export interface FileRouteTypes {
     | '/food-safety'
     | '/fssai-information'
     | '/grievance-redressal'
+    | '/hall-of-happiness'
     | '/help-support'
     | '/milestones'
     | '/new-party-order'
@@ -676,6 +705,7 @@ export interface FileRouteTypes {
     | '/register'
     | '/admin/customer-companies'
     | '/admin/ops-center'
+    | '/admin/vendors'
     | '/categories/$categoryId'
     | '/admin/'
     | '/admin/coupons'
@@ -690,6 +720,7 @@ export interface FileRouteTypes {
     | '/admin/meal-roles'
     | '/admin/menu'
     | '/admin/milestones'
+    | '/admin/hall-of-happiness'
     | '/admin/kitchen-queue'
     | '/admin/operational-queue'
     | '/admin/party-orders'
@@ -728,6 +759,7 @@ export interface FileRouteTypes {
     | '/food-safety'
     | '/fssai-information'
     | '/grievance-redressal'
+    | '/hall-of-happiness'
     | '/help-support'
     | '/milestones'
     | '/new-party-order'
@@ -745,6 +777,7 @@ export interface FileRouteTypes {
     | '/register'
     | '/admin/customer-companies'
     | '/admin/ops-center'
+    | '/admin/vendors'
     | '/categories/$categoryId'
     | '/admin'
     | '/admin/coupons'
@@ -759,6 +792,7 @@ export interface FileRouteTypes {
     | '/admin/meal-roles'
     | '/admin/menu'
     | '/admin/milestones'
+    | '/admin/hall-of-happiness'
     | '/admin/kitchen-queue'
     | '/admin/operational-queue'
     | '/admin/party-orders'
@@ -798,6 +832,7 @@ export interface FileRouteTypes {
     | '/food-safety'
     | '/fssai-information'
     | '/grievance-redressal'
+    | '/hall-of-happiness'
     | '/help-support'
     | '/milestones'
     | '/new-party-order'
@@ -815,6 +850,7 @@ export interface FileRouteTypes {
     | '/(auth)/register'
     | '/admin/customer-companies'
     | '/admin/ops-center'
+    | '/admin/vendors'
     | '/categories/$categoryId'
     | '/admin/'
     | '/admin/(coupons)/coupons'
@@ -829,6 +865,7 @@ export interface FileRouteTypes {
     | '/admin/(menu)/meal-roles'
     | '/admin/(menu)/menu'
     | '/admin/(milestones)/milestones'
+    | '/admin/(orders)/hall-of-happiness'
     | '/admin/(orders)/kitchen-queue'
     | '/admin/(orders)/operational-queue'
     | '/admin/(orders)/party-orders'
@@ -869,6 +906,7 @@ export interface RootRouteChildren {
   FoodSafetyRoute: typeof FoodSafetyRoute
   FssaiInformationRoute: typeof FssaiInformationRoute
   GrievanceRedressalRoute: typeof GrievanceRedressalRoute
+  HallOfHappinessRoute: typeof HallOfHappinessRoute
   HelpSupportRoute: typeof HelpSupportRoute
   MilestonesRoute: typeof MilestonesRoute
   NewPartyOrderRoute: typeof NewPartyOrderRoute
@@ -973,6 +1011,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof HelpSupportRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/hall-of-happiness': {
+      id: '/hall-of-happiness'
+      path: '/hall-of-happiness'
+      fullPath: '/hall-of-happiness'
+      preLoaderRoute: typeof HallOfHappinessRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/grievance-redressal': {
       id: '/grievance-redressal'
       path: '/grievance-redressal'
@@ -1056,6 +1101,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/categories/$categoryId'
       preLoaderRoute: typeof CategoriesCategoryIdRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/admin/vendors': {
+      id: '/admin/vendors'
+      path: '/vendors'
+      fullPath: '/admin/vendors'
+      preLoaderRoute: typeof AdminVendorsRouteImport
+      parentRoute: typeof AdminRoute
     }
     '/admin/ops-center': {
       id: '/admin/ops-center'
@@ -1253,6 +1305,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminordersKitchenQueueRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/(orders)/hall-of-happiness': {
+      id: '/admin/(orders)/hall-of-happiness'
+      path: '/hall-of-happiness'
+      fullPath: '/admin/hall-of-happiness'
+      preLoaderRoute: typeof AdminordersHallOfHappinessRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/(milestones)/milestones': {
       id: '/admin/(milestones)/milestones'
       path: '/milestones'
@@ -1371,6 +1430,7 @@ declare module '@tanstack/react-router' {
 interface AdminRouteChildren {
   AdminCustomerCompaniesRoute: typeof AdminCustomerCompaniesRoute
   AdminOpsCenterRoute: typeof AdminOpsCenterRoute
+  AdminVendorsRoute: typeof AdminVendorsRoute
   AdminIndexRoute: typeof AdminIndexRoute
   AdmincouponsCouponsRoute: typeof AdmincouponsCouponsRoute
   AdmingrowthAutoSuggestionsRoute: typeof AdmingrowthAutoSuggestionsRoute
@@ -1384,6 +1444,7 @@ interface AdminRouteChildren {
   AdminmenuMealRolesRoute: typeof AdminmenuMealRolesRoute
   AdminmenuMenuRoute: typeof AdminmenuMenuRoute
   AdminmilestonesMilestonesRoute: typeof AdminmilestonesMilestonesRoute
+  AdminordersHallOfHappinessRoute: typeof AdminordersHallOfHappinessRoute
   AdminordersKitchenQueueRoute: typeof AdminordersKitchenQueueRoute
   AdminordersOperationalQueueRoute: typeof AdminordersOperationalQueueRoute
   AdminordersPartyOrdersRoute: typeof AdminordersPartyOrdersRoute
@@ -1416,6 +1477,7 @@ interface AdminRouteChildren {
 const AdminRouteChildren: AdminRouteChildren = {
   AdminCustomerCompaniesRoute: AdminCustomerCompaniesRoute,
   AdminOpsCenterRoute: AdminOpsCenterRoute,
+  AdminVendorsRoute: AdminVendorsRoute,
   AdminIndexRoute: AdminIndexRoute,
   AdmincouponsCouponsRoute: AdmincouponsCouponsRoute,
   AdmingrowthAutoSuggestionsRoute: AdmingrowthAutoSuggestionsRoute,
@@ -1429,6 +1491,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminmenuMealRolesRoute: AdminmenuMealRolesRoute,
   AdminmenuMenuRoute: AdminmenuMenuRoute,
   AdminmilestonesMilestonesRoute: AdminmilestonesMilestonesRoute,
+  AdminordersHallOfHappinessRoute: AdminordersHallOfHappinessRoute,
   AdminordersKitchenQueueRoute: AdminordersKitchenQueueRoute,
   AdminordersOperationalQueueRoute: AdminordersOperationalQueueRoute,
   AdminordersPartyOrdersRoute: AdminordersPartyOrdersRoute,
@@ -1472,6 +1535,7 @@ const rootRouteChildren: RootRouteChildren = {
   FoodSafetyRoute: FoodSafetyRoute,
   FssaiInformationRoute: FssaiInformationRoute,
   GrievanceRedressalRoute: GrievanceRedressalRoute,
+  HallOfHappinessRoute: HallOfHappinessRoute,
   HelpSupportRoute: HelpSupportRoute,
   MilestonesRoute: MilestonesRoute,
   NewPartyOrderRoute: NewPartyOrderRoute,

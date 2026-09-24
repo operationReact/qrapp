@@ -17,6 +17,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.cache.annotation.CacheEvict;
 
 import jakarta.validation.Valid;
 import java.util.List;
@@ -129,6 +130,7 @@ public class InventoryController {
      * POST /api/v1/inventory/deduct
      */
     @PostMapping("/deduct")
+    @CacheEvict(cacheNames = {"menu", "menuRecommended"}, allEntries = true)
     @PreAuthorize("hasRole('ADMIN') or isAuthenticated()")
     public ResponseEntity<?> deductInventory(
             @Valid @RequestBody OrderItemInventoryRequest request,
@@ -161,6 +163,7 @@ public class InventoryController {
      * POST /api/v1/inventory/restore
      */
     @PostMapping("/restore")
+    @CacheEvict(cacheNames = {"menu", "menuRecommended"}, allEntries = true)
     @PreAuthorize("hasRole('ADMIN') or isAuthenticated()")
     public ResponseEntity<?> restoreInventory(
             @Valid @RequestBody OrderItemInventoryRequest request,
@@ -191,6 +194,7 @@ public class InventoryController {
      * PUT /api/v1/inventory/update
      */
     @PutMapping("/update")
+    @CacheEvict(cacheNames = {"menu", "menuRecommended"}, allEntries = true)
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> updateInventory(
             @Valid @RequestBody InventoryUpdateRequest request,
@@ -213,6 +217,7 @@ public class InventoryController {
      * PUT /api/v1/inventory/bulk-update
      */
     @PutMapping("/bulk-update")
+    @CacheEvict(cacheNames = {"menu", "menuRecommended"}, allEntries = true)
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> bulkUpdateInventory(
             @Valid @RequestBody List<InventoryUpdateRequest> requests,
@@ -394,4 +399,3 @@ public class InventoryController {
         }
     }
 }
-

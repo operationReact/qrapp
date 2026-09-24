@@ -35,6 +35,21 @@ public class WhatsAppOtp {
     @Column(name = "registration_name")
     private String registrationName;
 
+    @Column(name = "registration_date_of_birth")
+    private java.time.LocalDate registrationDateOfBirth;
+
+    @Column(name = "registration_special_date")
+    private java.time.LocalDate registrationSpecialDate;
+
+    @Column(name = "registration_special_date_description", length = 120)
+    private String registrationSpecialDateDescription;
+
+    @Column(name = "registration_special_day_type", length = 64)
+    private String registrationSpecialDayType;
+
+    @Column(name = "registration_special_day_custom_label", length = 120)
+    private String registrationSpecialDayCustomLabel;
+
     @Column(name = "registration_password_hash")
     private String registrationPasswordHash;
 
@@ -43,6 +58,18 @@ public class WhatsAppOtp {
 
     @Column(name = "registration_customer_company_id")
     private Long registrationCustomerCompanyId;
+
+    @Column(name = "registration_terms_accepted")
+    private Boolean registrationTermsAccepted;
+
+    @Column(name = "registration_terms_accepted_at")
+    private Instant registrationTermsAcceptedAt;
+
+    @Column(name = "registration_terms_version", length = 80)
+    private String registrationTermsVersion;
+
+    @Column(name = "registration_privacy_policy_version", length = 80)
+    private String registrationPrivacyPolicyVersion;
 
     @Column(name = "expires_at", nullable = false)
     private Instant expiresAt;

@@ -5,7 +5,7 @@ spring:
       - "optional:aws-parameterstore:/broandbro/backend/prod/whatsapp?prefix=app.parameter-store.whatsapp."
   cache:
     type: caffeine
-    cache-names: walletBalance,menu,menuRecommended,otp
+    cache-names: walletBalance,menu,menuRecommended,categories,hallOfHappiness,otp
     caffeine:
       spec: maximumSize=500,expireAfterWrite=10m,recordStats
 
@@ -78,3 +78,7 @@ whatsapp:
     resend-cooldown-seconds: ${OTP_RESEND_COOLDOWN_SECONDS:60}
     max-requests-per-hour: ${OTP_MAX_REQUESTS_PER_HOUR:5}
     reset-authorization-minutes: ${PASSWORD_RESET_AUTHORIZATION_MINUTES:10}
+
+legal:
+  terms-version: ${LEGAL_TERMS_VERSION:2026-09}
+  privacy-policy-version: ${LEGAL_PRIVACY_POLICY_VERSION:2026-01}

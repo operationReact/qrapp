@@ -8,8 +8,9 @@ import { apiClient, setUserAuth } from "@/services";
 import { Link } from "@tanstack/react-router";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Field, FieldContent, FieldLabel } from "@/components/ui/field";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
-import { CaretLeftIcon } from "@phosphor-icons/react";
+import { CaretLeftIcon, WhatsappLogoIcon } from "@phosphor-icons/react";
 import OTPVerifyDialog from "@/components/OTPVerifyDialog";
 import { PasswordInput } from "@/components/ui/password-input";
 import { PhoneInput } from "@/components/ui/phone-input";
@@ -24,6 +25,8 @@ import {
 } from "@/components/ui/combobox";
 import { useAuth } from "@/context/AuthContext";
 import { extractApiError } from "@/lib/apiError";
+import { SPECIAL_DAY_TYPES } from "@/content/specialDayOptions";
+import { RegistrationPurposeControl } from "@/components/registration-purpose-control";
 
 export const Route = createFileRoute("/(auth)/register")({
   component: function Register() {
@@ -33,9 +36,14 @@ export const Route = createFileRoute("/(auth)/register")({
 
     const [phone, setPhone] = useState("");
     const [name, setName] = useState("");
+    const [dateOfBirth, setDateOfBirth] = useState("");
+    const [specialDate, setSpecialDate] = useState("");
+    const [specialDayType, setSpecialDayType] = useState("");
+    const [specialDayCustomLabel, setSpecialDayCustomLabel] = useState("");
     const [password, setPassword] = useState("");
     const [defaultLocationId, setDefaultLocationId] = useState("");
     const [customerCompanyId, setCustomerCompanyId] = useState("");
+    const [termsAccepted, setTermsAccepted] = useState(false);
     const [customerCompanySearch, setCustomerCompanySearch] = useState("");
     const companyComboboxAnchor = useComboboxAnchor();
     const [error, setError] = useState(null);
@@ -61,16 +69,27 @@ export const Route = createFileRoute("/(auth)/register")({
     const otpMutation = useMutation({
       mutationFn: () => requestRegistrationOTP({
         name,
+        dateOfBirth,
+        specialDate,
+        specialDayType,
+        specialDayCustomLabel,
         phone,
         password,
         ...(defaultLocationId ? { defaultLocationId } : {}),
         customerCompanyId: Number(customerCompanyId),
+        termsAccepted,
       }),
       onSuccess: () => {
         navigate({ to: "/register", search: { verify: true } });
       },
       onError: (err) => {
-        setError(extractApiError(err, "Failed to generate OTP"));
+        const code = err?.response?.data;
+        const message = code === "invalid_phone_number"
+          ? "Enter a valid WhatsApp Number."
+          : code === "phone_taken"
+            ? "This WhatsApp Number is already registered."
+            : extractApiError(err, "Failed to send WhatsApp OTP");
+        setError(message);
       },
     });
 
@@ -88,6 +107,10 @@ export const Route = createFileRoute("/(auth)/register")({
     const handleGenerateOTP = (e) => {
       e.preventDefault();
       setError(null);
+      if (!termsAccepted) {
+        setError("Please accept the Terms & Conditions and Privacy Policy to create your account.");
+        return;
+      }
       if (!defaultLocationId) {
         setError("Please select a Location.");
         return;
@@ -147,23 +170,25 @@ export const Route = createFileRoute("/(auth)/register")({
                   </p>
                 )}
                 {locationsQuery.isSuccess && locationsQuery.data.length > 0 && (
-                  <select
-                    value={defaultLocationId}
-                    onChange={(event) => {
-                      setDefaultLocationId(event.target.value);
-                      setCustomerCompanyId("");
-                      setCustomerCompanySearch("");
-                    }}
-                    className="min-h-12 w-full rounded-xl border border-input bg-background px-3 text-base outline-none focus:ring-2 focus:ring-ring"
-                    aria-label="Preferred Location"
-                  >
-                    <option value="">Choose a location</option>
-                    {locationsQuery.data.map((location) => (
-                      <option key={location.id} value={location.id}>
-                        {location.name || location.title || `Location ${location.id}`}
-                      </option>
-                    ))}
-                  </select>
+                  <RegistrationPurposeControl type="location" label="Preferred Location">
+                    <select
+                      value={defaultLocationId}
+                      onChange={(event) => {
+                        setDefaultLocationId(event.target.value);
+                        setCustomerCompanyId("");
+                        setCustomerCompanySearch("");
+                      }}
+                      className="min-h-12 w-full rounded-xl border border-input bg-background text-base outline-none focus:ring-2 focus:ring-ring"
+                      aria-label="Preferred Location"
+                    >
+                      <option value="">Choose a location</option>
+                      {locationsQuery.data.map((location) => (
+                        <option key={location.id} value={location.id}>
+                          {location.name || location.title || `Location ${location.id}`}
+                        </option>
+                      ))}
+                    </select>
+                  </RegistrationPurposeControl>
                 )}
               </FieldContent>
             </Field>
@@ -184,11 +209,13 @@ export const Route = createFileRoute("/(auth)/register")({
                     }}
                   >
                     <div ref={companyComboboxAnchor}>
-                      <ComboboxInput
-                        required
-                        placeholder="Search Customer Company"
-                        className="h-10"
-                      />
+                      <RegistrationPurposeControl type="company" placeholder="Search Customer Company">
+                        <ComboboxInput
+                          required
+                          placeholder="Search Customer Company"
+                          className="h-10"
+                        />
+                      </RegistrationPurposeControl>
                     </div>
                     <ComboboxContent anchor={companyComboboxAnchor}>
                       <ComboboxEmpty>No matching Customer Companies.</ComboboxEmpty>
@@ -208,22 +235,84 @@ export const Route = createFileRoute("/(auth)/register")({
               <Field>
                 <FieldLabel>Name</FieldLabel>
                 <FieldContent>
-                  <Input
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Your Name"
-                    className="h-10"
-                  />
+                  <RegistrationPurposeControl type="text" label="Name" placeholder="Your Name">
+                    <Input
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="Your Name"
+                      className="h-10"
+                    />
+                  </RegistrationPurposeControl>
                 </FieldContent>
               </Field>
               <Field>
-                <FieldLabel>Phone Number</FieldLabel>
+                <FieldLabel>Date of Birth</FieldLabel>
+                <FieldContent>
+                  <RegistrationPurposeControl type="date" label="Date of Birth">
+                    <Input
+                      type="date"
+                      value={dateOfBirth}
+                      onChange={(e) => setDateOfBirth(e.target.value)}
+                      max={new Date().toISOString().slice(0, 10)}
+                      className="h-10"
+                    />
+                  </RegistrationPurposeControl>
+                </FieldContent>
+              </Field>
+              <Field>
+                <FieldLabel>❤️ Special Day <span className="text-muted-foreground">(optional)</span></FieldLabel>
+                <FieldContent>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <RegistrationPurposeControl type="date" label="Special Day">
+                      <Input
+                        type="date"
+                        value={specialDate}
+                        onChange={(e) => setSpecialDate(e.target.value)}
+                        aria-label="❤️ Special Day"
+                        className="h-10"
+                      />
+                    </RegistrationPurposeControl>
+                    <RegistrationPurposeControl type="select" label="Special Day occasion">
+                      <select
+                        value={specialDayType}
+                        onChange={(e) => {
+                          setSpecialDayType(e.target.value);
+                          if (e.target.value !== "Other") setSpecialDayCustomLabel("");
+                        }}
+                        aria-label="Special Day occasion"
+                        className="h-10 w-full rounded-xl border border-input bg-background text-base outline-none focus:ring-2 focus:ring-ring"
+                      >
+                        <option value="">Choose an occasion</option>
+                        {SPECIAL_DAY_TYPES.map((type) => (
+                          <option key={type} value={type}>{type}</option>
+                        ))}
+                      </select>
+                    </RegistrationPurposeControl>
+                  </div>
+                  {specialDayType === "Other" && (
+                    <RegistrationPurposeControl type="text" label="Custom special day occasion">
+                      <Input
+                        value={specialDayCustomLabel}
+                        onChange={(e) => setSpecialDayCustomLabel(e.target.value)}
+                        placeholder="Enter your occasion"
+                        maxLength={120}
+                        aria-label="Custom special day occasion"
+                        className="h-10"
+                      />
+                    </RegistrationPurposeControl>
+                  )}
+                </FieldContent>
+              </Field>
+              <Field>
+                <FieldLabel>WhatsApp Number</FieldLabel>
                 <FieldContent>
                   <PhoneInput
+                    icon={WhatsappLogoIcon}
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     required
-                    placeholder="1234567890"
+                    placeholder="Enter your WhatsApp number"
+                    aria-label="WhatsApp Number"
                     className="h-10"
                   />
                 </FieldContent>
@@ -231,18 +320,43 @@ export const Route = createFileRoute("/(auth)/register")({
               <Field>
                 <FieldLabel>Password</FieldLabel>
                 <FieldContent>
-                  <PasswordInput
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="h-10"
-                    required
-                  />
+                  <RegistrationPurposeControl type="password" label="Password">
+                    <PasswordInput
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="h-10 [&>input]:!pl-10"
+                      required
+                    />
+                  </RegistrationPurposeControl>
                 </FieldContent>
               </Field>
               <div className="flex mt-5 flex-col gap-2">
+                <div className="flex items-start gap-3 rounded-xl border border-muted bg-muted/20 p-3 text-sm">
+                  <Checkbox
+                    id="terms-accepted"
+                    checked={termsAccepted}
+                    onCheckedChange={(checked) => {
+                      setTermsAccepted(checked === true);
+                      if (checked === true && error === "Please accept the Terms & Conditions and Privacy Policy to create your account.") {
+                        setError(null);
+                      }
+                    }}
+                    aria-describedby="terms-accepted-description"
+                  />
+                  <label id="terms-accepted-description" htmlFor="terms-accepted" className="leading-5">
+                    I agree to the{" "}
+                    <a href="/terms-and-conditions" target="_blank" rel="noreferrer" className="font-medium text-primary underline">
+                      Terms &amp; Conditions
+                    </a>{" "}
+                    and{" "}
+                    <a href="/privacy-policy" target="_blank" rel="noreferrer" className="font-medium text-primary underline">
+                      Privacy Policy
+                    </a>.
+                  </label>
+                </div>
                 <Button
                   type="submit"
-                  disabled={otpMutation.isPending}
+                  disabled={otpMutation.isPending || !termsAccepted}
                   className="h-10 text-sm! font-medium!"
                 >
                   {otpMutation.isPending ? "Creating..." : "Create Account"}
@@ -263,6 +377,7 @@ export const Route = createFileRoute("/(auth)/register")({
             if (!next) navigate({ to: "/register", search: {} });
           }}
           phone={phone}
+          contactLabel="WhatsApp Number"
           onVerified={handleOTPVerified}
           verifyOtp={verifyRegistrationOTP}
           onResend={handleResendOTP}

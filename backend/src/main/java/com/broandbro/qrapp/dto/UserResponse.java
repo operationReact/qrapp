@@ -7,6 +7,10 @@ public class UserResponse {
     private Long id;
     private String phone;
     private String name;
+    private java.time.LocalDate dateOfBirth;
+    private java.time.LocalDate specialDate;
+    private String specialDayType;
+    private String specialDayCustomLabel;
     private Boolean isAdmin;
     private Boolean isSuperUser;
     private String role;

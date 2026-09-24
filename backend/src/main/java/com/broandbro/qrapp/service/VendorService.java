@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import java.util.List;
 @Service
 @Transactional
 public class VendorService {
@@ -33,6 +34,34 @@ public class VendorService {
         // TODO: Publish VendorCreatedEvent for async WhatsApp onboarding
         // publishEvent(new VendorCreatedEvent(savedVendor));
         return mapToResponse(savedVendor);
+    }
+    @Transactional(readOnly = true)
+    public List<VendorResponse> listVendors() {
+        return vendorRepository.findAllByOrderByVendorNameAsc().stream().map(this::mapToResponse).toList();
+    }
+
+    public VendorResponse updateVendor(Long vendorId, VendorRequest request) {
+        Vendor vendor = vendorRepository.findById(vendorId)
+                .orElseThrow(() -> new RuntimeException("Vendor not found: " + vendorId));
+        if (request.getPhoneNumber() != null && !request.getPhoneNumber().equals(vendor.getPhoneNumber())) {
+            vendorRepository.findByPhoneNumber(request.getPhoneNumber()).ifPresent(existing -> {
+                if (!existing.getId().equals(vendorId)) {
+                    throw new DuplicatePhoneException("Phone number already registered: " + request.getPhoneNumber());
+                }
+            });
+            vendor.setPhoneNumber(request.getPhoneNumber());
+        }
+        if (request.getVendorName() != null) vendor.setVendorName(request.getVendorName());
+        vendor.setAlternatePhoneNumber(request.getAlternatePhoneNumber());
+        vendor.setAddress(request.getAddress());
+        return mapToResponse(vendorRepository.save(vendor));
+    }
+
+    public VendorResponse setActive(Long vendorId, boolean active) {
+        Vendor vendor = vendorRepository.findById(vendorId)
+                .orElseThrow(() -> new RuntimeException("Vendor not found: " + vendorId));
+        vendor.setIsActive(active);
+        return mapToResponse(vendorRepository.save(vendor));
     }
     public VendorResponse getVendor(Long vendorId) {
         Vendor vendor = vendorRepository.findById(vendorId)

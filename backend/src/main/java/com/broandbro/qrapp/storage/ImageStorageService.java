@@ -16,6 +16,11 @@ public interface ImageStorageService {
     String uploadMenuItemImage(byte[] imageBytes, Long menuItemId);
 
     /**
+     * Stores a non-menu image under a caller-supplied isolated folder.
+     */
+    String uploadImage(byte[] imageBytes, String folder, String contentType);
+
+    /**
      * Deletes an image from storage by its public URL.
      * Silently logs a warning if the URL cannot be resolved to a key.
      *
@@ -23,4 +28,3 @@ public interface ImageStorageService {
      */
     void deleteImageByUrl(String publicUrl);
 }
-

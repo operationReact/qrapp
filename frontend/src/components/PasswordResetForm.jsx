@@ -30,7 +30,7 @@ export default function PasswordResetForm({
               value={phone}
               onChange={(e) => onPhoneChange(e.target.value)}
               required
-              placeholder="1234567890"
+              placeholder="9999999999"
               className="h-10"
             />
           </FieldContent>

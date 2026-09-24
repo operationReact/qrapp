@@ -34,13 +34,22 @@ public class S3ImageStorageService implements ImageStorageService {
 
     @Override
     public String uploadMenuItemImage(byte[] imageBytes, Long menuItemId) {
-
         if (!props.isEnabled()) {
             log.warn("[S3] Upload disabled (aws.s3.enabled=false). Returning placeholder URL.");
             return "https://placeholder.example.com/menu-items/" + menuItemId + "/ai-generated.png";
         }
+        return uploadImage(imageBytes, "menu-items/" + menuItemId, "image/png");
+    }
 
-        String key = buildS3Key(menuItemId);
+    @Override
+    public String uploadImage(byte[] imageBytes, String folder, String contentType) {
+
+        if (!props.isEnabled()) {
+            log.warn("[S3] Upload disabled (aws.s3.enabled=false). Returning placeholder URL.");
+            return "https://placeholder.example.com/" + folder + "/image.png";
+        }
+
+        String key = buildS3Key(folder, contentType);
         String bucket = props.getBucketName();
 
         log.info("[S3] Uploading {} bytes to s3://{}/{}", imageBytes.length, bucket, key);
@@ -49,7 +58,7 @@ public class S3ImageStorageService implements ImageStorageService {
             PutObjectRequest putRequest = PutObjectRequest.builder()
                     .bucket(bucket)
                     .key(key)
-                    .contentType("image/png")
+                    .contentType(contentType)
                     .contentLength((long) imageBytes.length)
                     // Remove ACL if your bucket enforces BPA (Block Public Access)
                     // and uses a bucket policy for public reads instead.
@@ -62,13 +71,13 @@ public class S3ImageStorageService implements ImageStorageService {
             return publicUrl;
 
         } catch (S3Exception e) {
-            log.error("[S3] Failed to upload image for menuItemId={}: {}", menuItemId, e.awsErrorDetails().errorMessage(), e);
+            log.error("[S3] Failed to upload image to {}: {}", key, e.awsErrorDetails().errorMessage(), e);
             throw new ImageUploadException(
-                    "S3 upload failed for menuItemId=" + menuItemId + ": " + e.awsErrorDetails().errorMessage(), e);
+                    "S3 upload failed for key=" + key + ": " + e.awsErrorDetails().errorMessage(), e);
         } catch (Exception e) {
-            log.error("[S3] Unexpected error uploading image for menuItemId={}: {}", menuItemId, e.getMessage(), e);
+            log.error("[S3] Unexpected error uploading image to {}: {}", key, e.getMessage(), e);
             throw new ImageUploadException(
-                    "Unexpected error during S3 upload for menuItemId=" + menuItemId, e);
+                    "Unexpected error during S3 upload for key=" + key, e);
         }
     }
 
@@ -116,10 +125,11 @@ public class S3ImageStorageService implements ImageStorageService {
         }
     }
 
-    private String buildS3Key(Long menuItemId) {
+    private String buildS3Key(String folder, String contentType) {
         String uuid = UUID.randomUUID().toString();
         long epoch = Instant.now().getEpochSecond();
-        return String.format("menu-items/%d/%s-%d.png", menuItemId, uuid, epoch);
+        String extension = "image/jpeg".equals(contentType) ? "jpg" : "png";
+        return String.format("%s/%s-%d.%s", folder, uuid, epoch, extension);
     }
 
     private String buildPublicUrl(String bucket, String key) {
@@ -127,4 +137,3 @@ public class S3ImageStorageService implements ImageStorageService {
         return String.format("https://%s.s3.%s.amazonaws.com/%s", bucket, region, key);
     }
 }
-
