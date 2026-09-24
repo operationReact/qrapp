@@ -20,20 +20,20 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { myHallOrderPhotosOptions } from "@/query/options/my-hall-order-photos";
-import { uploadHallPhotosForOrder } from "@/services/hall-of-happiness-service";
+import { uploadHallPhotosForOrder, withdrawHallPhoto } from "@/services/hall-of-happiness-service";
 import { toast } from "sonner";
 
-const MAX_FILES = 10;
+const MAX_PHOTOS = 5;
 const MAX_FILE_BYTES = 5 * 1024 * 1024;
 const STATUS_LABELS = {
-  CUSTOMER_UPLOAD: "Pending",
-  PENDING_REVIEW: "Pending",
-  PENDING: "Pending",
+  CUSTOMER_UPLOAD: "Uploaded",
+  PENDING_REVIEW: "Pending Review",
+  PENDING: "Pending Review",
   APPROVED: "Approved",
   PUBLISHED: "Published",
   REJECTED: "Rejected",
   UNPUBLISHED: "Approved",
-  REMOVED: "Removed",
+  REMOVED: "Withdrawn",
 };
 
 function statusIcon(status) {
@@ -43,17 +43,38 @@ function statusIcon(status) {
   return <ClockIcon className="text-amber-600" />;
 }
 
+function SubmittedPhotoThumbnail({ photo }) {
+  const [failed, setFailed] = useState(false);
+  if (!photo.thumbnailUrl || photo.status === "REMOVED" || failed) {
+    return (
+      <div className="flex h-9 w-12 shrink-0 items-center justify-center rounded bg-muted text-muted-foreground">
+        <ImageIcon size={16} />
+      </div>
+    );
+  }
+  return (
+    <img
+      src={photo.thumbnailUrl}
+      alt=""
+      className="h-9 w-12 shrink-0 rounded object-cover"
+      onError={() => setFailed(true)}
+    />
+  );
+}
+
 export default function CustomerHallPhotoUpload({ order }) {
   const [open, setOpen] = useState(false);
-  const [files, setFiles] = useState([]);
-  const [caption, setCaption] = useState("");
+  const [draftPhotos, setDraftPhotos] = useState([]);
   const [consent, setConsent] = useState(false);
   const [progress, setProgress] = useState(0);
   const queryClient = useQueryClient();
   const photosQuery = useQuery(myHallOrderPhotosOptions(order.id, order.status === "COMPLETED"));
+  const submittedPhotos = photosQuery.data || [];
+  const photoCount = submittedPhotos.length;
+  const totalPhotoCount = photoCount + draftPhotos.length;
   const previews = useMemo(
-    () => files.map((file) => ({ file, url: URL.createObjectURL(file) })),
-    [files],
+    () => draftPhotos.map(({ file }, index) => ({ file, index, url: URL.createObjectURL(file) })),
+    [draftPhotos],
   );
 
   useEffect(() => () => previews.forEach(({ url }) => URL.revokeObjectURL(url)), [previews]);
@@ -61,8 +82,7 @@ export default function CustomerHallPhotoUpload({ order }) {
   const upload = useMutation({
     mutationFn: () => uploadHallPhotosForOrder({
       orderId: order.id,
-      files,
-      caption,
+      photos: draftPhotos,
       consent,
       onUploadProgress: (event) => {
         if (event.total) setProgress(Math.round((event.loaded / event.total) * 100));
@@ -70,8 +90,7 @@ export default function CustomerHallPhotoUpload({ order }) {
     }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["hall-of-happiness"] });
-      setFiles([]);
-      setCaption("");
+      setDraftPhotos([]);
       setConsent(false);
       setProgress(0);
       setOpen(false);
@@ -82,11 +101,26 @@ export default function CustomerHallPhotoUpload({ order }) {
       toast.error(error?.response?.data?.message || "Unable to submit photos.");
     },
   });
+  const withdraw = useMutation({
+    mutationFn: (photoId) => withdrawHallPhoto(photoId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["hall-of-happiness", "order", order.id] });
+      queryClient.invalidateQueries({ queryKey: ["hall-of-happiness"] });
+      toast.success("Photo withdrawn from review.");
+    },
+    onError: (error) => {
+      toast.error(error?.response?.data?.message || "Unable to withdraw this photo.");
+    },
+  });
 
   const chooseFiles = (event) => {
     const selected = Array.from(event.target.files || []);
-    if (selected.length + files.length > MAX_FILES) {
-      toast.error(`You can submit up to ${MAX_FILES} photos at a time.`);
+    if (selected.length !== 1) {
+      toast.error("Add exactly one photo at a time.");
+      return;
+    }
+    if (totalPhotoCount >= MAX_PHOTOS) {
+      toast.error(`You can add up to ${MAX_PHOTOS} photos for this event.`);
       return;
     }
     const invalid = selected.find((file) =>
@@ -97,7 +131,7 @@ export default function CustomerHallPhotoUpload({ order }) {
       toast.error("Use JPEG or PNG photos up to 5 MB each.");
       return;
     }
-    setFiles((current) => [...current, ...selected]);
+    setDraftPhotos((current) => [...current, { file: selected[0], caption: "" }]);
     event.target.value = "";
   };
 
@@ -113,22 +147,44 @@ export default function CustomerHallPhotoUpload({ order }) {
             <p className="text-xs text-muted-foreground">Share memories from this event.</p>
           </div>
         </div>
-        <Button size="sm" onClick={() => setOpen(true)}>
-          <CloudArrowUpIcon /> Upload Event Photos
-        </Button>
+        {totalPhotoCount < MAX_PHOTOS && (
+          <Button size="sm" onClick={() => setOpen(true)}>
+            <CloudArrowUpIcon /> + Add Image
+          </Button>
+        )}
       </div>
 
-      {photosQuery.data?.length > 0 && (
+      <p className="mt-2 text-xs text-muted-foreground">{totalPhotoCount} of {MAX_PHOTOS} photos</p>
+
+      {submittedPhotos.length > 0 && (
         <div className="mt-3 space-y-2 border-t border-rose-200 pt-3">
           <p className="text-xs font-semibold text-secondary-foreground">Your submitted photos</p>
-          {photosQuery.data.map((photo) => (
+          <p className="text-xs text-muted-foreground">Uploaded → Pending Review → Published</p>
+          {submittedPhotos.map((photo) => (
             <div key={photo.id} className="flex items-center gap-2 rounded-lg bg-white/70 p-2 text-xs">
-              <img src={photo.thumbnailUrl} alt="" className="h-9 w-12 rounded object-cover" />
+              <SubmittedPhotoThumbnail photo={photo} />
               {statusIcon(photo.status)}
               <span className="font-medium">{STATUS_LABELS[photo.status] || photo.status}</span>
               {photo.caption && <span className="truncate text-muted-foreground">· {photo.caption}</span>}
+              {photo.status !== "PUBLISHED" && photo.status !== "REMOVED" && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  className="ml-auto h-7 px-2 text-xs text-destructive"
+                  disabled={withdraw.isPending}
+                  onClick={() => withdraw.mutate(photo.id)}
+                >
+                  Withdraw
+                </Button>
+              )}
             </div>
           ))}
+          {submittedPhotos.some((photo) => photo.status === "PENDING_REVIEW" || photo.status === "CUSTOMER_UPLOAD") && (
+            <p className="text-xs text-muted-foreground">
+              Your photos are submitted for review. You can withdraw them at any time before they are published.
+            </p>
+          )}
         </div>
       )}
 
@@ -137,35 +193,51 @@ export default function CustomerHallPhotoUpload({ order }) {
           <DialogHeader>
             <DialogTitle>Upload Event Photos</DialogTitle>
             <DialogDescription>
-              Select up to {MAX_FILES} photos from this completed event. Every photo is reviewed before publication.
+              Add images one at a time and describe each one. {totalPhotoCount} of {MAX_PHOTOS} photos.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4">
             <label className="flex min-h-24 cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-rose-200 bg-rose-50/40 p-4 text-center">
               <ImageIcon size={28} className="mb-1 text-rose-500" />
-              <span className="text-sm font-medium">Choose photos</span>
+              <span className="text-sm font-medium">+ Add Image</span>
               <span className="text-xs text-muted-foreground">JPEG or PNG · 5 MB each</span>
-              <Input type="file" accept="image/jpeg,image/png" multiple onChange={chooseFiles} className="sr-only" />
+              <Input type="file" accept="image/jpeg,image/png" onChange={chooseFiles} className="sr-only" />
             </label>
 
             {previews.length > 0 && (
-              <div className="grid grid-cols-3 gap-2">
-                {previews.map(({ file, url }, index) => (
-                  <div key={`${file.name}-${index}`} className="relative aspect-square overflow-hidden rounded-lg border">
-                    <img src={url} alt={file.name} className="h-full w-full object-cover" />
-                    <button type="button" onClick={() => setFiles((current) => current.filter((_, itemIndex) => itemIndex !== index))} className="absolute right-1 top-1 rounded-full bg-black/65 p-1 text-white" aria-label={`Remove ${file.name}`}>
-                      <TrashIcon size={14} />
-                    </button>
+              <div className="space-y-3">
+                {previews.map(({ file, url, index }) => (
+                  <div key={`${file.name}-${index}`} className="flex gap-3 rounded-lg border p-2">
+                    <img src={url} alt={file.name} className="h-20 w-20 rounded object-cover" />
+                    <div className="min-w-0 flex-1 space-y-2">
+                      <p className="text-xs font-medium text-amber-700">Ready to submit</p>
+                      <Input
+                        value={draftPhotos[index].caption}
+                        maxLength={60}
+                        onChange={(event) => setDraftPhotos((current) => current.map((item, itemIndex) =>
+                          itemIndex === index ? { ...item, caption: event.target.value } : item))}
+                        placeholder="Description (required, max 60 characters)"
+                      />
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <span>{draftPhotos[index].caption.length}/60</span>
+                        <Button type="button" size="sm" variant="ghost" onClick={() => setDraftPhotos((current) => current.filter((_, itemIndex) => itemIndex !== index))}>
+                          <TrashIcon size={14} /> Remove
+                        </Button>
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>
             )}
 
-            <Input value={caption} onChange={(event) => setCaption(event.target.value)} maxLength={240} placeholder="Caption (optional)" />
             <label className="flex items-start gap-2 rounded-lg border p-3 text-sm">
               <input type="checkbox" checked={consent} onChange={(event) => setConsent(event.target.checked)} className="mt-0.5" />
-              <span>I agree that Bro &amp; Bro may showcase these photos in the Hall of Happiness.</span>
+              <span>
+                By submitting, I agree to Bro &amp; Bro&apos;s Hall of Happiness terms and allow
+                the authorized Bro &amp; Bro team to review and potentially publish these photos.
+                This does not publish them automatically.
+              </span>
             </label>
             {upload.isPending && (
               <div className="space-y-1 text-xs text-muted-foreground">
@@ -177,7 +249,7 @@ export default function CustomerHallPhotoUpload({ order }) {
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)} disabled={upload.isPending}>Cancel</Button>
-            <Button onClick={() => upload.mutate()} disabled={!files.length || !consent || upload.isPending}>
+            <Button onClick={() => upload.mutate()} disabled={!draftPhotos.length || draftPhotos.some(({ caption }) => !caption.trim()) || !consent || upload.isPending}>
               {upload.isPending ? "Submitting…" : "Submit for Review"}
             </Button>
           </DialogFooter>

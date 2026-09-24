@@ -1,15 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { useNavigate, Link } from "@tanstack/react-router";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import Navbar from "@/components/shared/Navbar";
 import MobileMenu from "@/components/shared/MobileMenu";
 import { useAuth } from "@/context/AuthContext";
 import { myPartyOrdersOptions } from "@/query/options/party-orders";
 import UserPartyOrderCard from "@/components/UserPartyOrderCard";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Button, buttonVariants } from "@/components/ui/button";
-import { ConfettiIcon, HeartIcon } from "@phosphor-icons/react";
+import { buttonVariants } from "@/components/ui/button";
+import { ConfettiIcon } from "@phosphor-icons/react";
 import {
   Empty,
   EmptyContent,
@@ -18,8 +18,6 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty";
-import { myHallOfHappinessOptions } from "@/query/options/hall-of-happiness";
-import { setHallOfHappinessConsent } from "@/services/hall-of-happiness-service";
 
 export const Route = createFileRoute("/party-orders")({
   component: MyPartyOrdersPage,
@@ -27,7 +25,6 @@ export const Route = createFileRoute("/party-orders")({
 
 function MyPartyOrdersPage() {
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const { user } = useAuth();
 
   useEffect(() => {
@@ -40,14 +37,6 @@ function MyPartyOrdersPage() {
     ...myPartyOrdersOptions,
     enabled: !!user?.token,
   });
-  const { data: photosPage } = useQuery(myHallOfHappinessOptions({
-    enabled: !!user?.token,
-  }));
-  const consentMutation = useMutation({
-    mutationFn: ({ id, granted }) => setHallOfHappinessConsent(id, granted),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["hall-of-happiness"] }),
-  });
-
   return (
     <div className="page-shell pb-mobile-nav! md:pb-[initial]!">
       <Navbar />
@@ -106,50 +95,6 @@ function MyPartyOrdersPage() {
           </div>
         )}
 
-        {photosPage?.content?.length > 0 && (
-          <section className="rounded-2xl border bg-card p-4 shadow-sm">
-            <div className="mb-3 flex items-center gap-2">
-              <HeartIcon size={21} weight="duotone" className="text-rose-500" />
-              <div>
-                <h2 className="font-semibold">Hall of Happiness photo consent</h2>
-                <p className="text-xs text-muted-foreground">
-                  Choose which event photos Bro &amp; Bro may publish in the Hall of Happiness.
-                </p>
-              </div>
-            </div>
-            <div className="space-y-2">
-              {photosPage.content.map((photo) => (
-                <div key={photo.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border p-3">
-                  <div className="flex min-w-0 items-center gap-3">
-                    <img src={photo.thumbnailUrl} alt="" className="h-12 w-16 rounded-lg object-cover" />
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium">{photo.caption || photo.eventType || "Event memory"}</p>
-                      <p className="text-xs text-muted-foreground">Current consent: {photo.consentStatus}</p>
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      variant={photo.consentStatus === "GRANTED" ? "default" : "outline"}
-                      disabled={consentMutation.isPending}
-                      onClick={() => consentMutation.mutate({ id: photo.id, granted: true })}
-                    >
-                      Allow publishing
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      disabled={consentMutation.isPending || photo.consentStatus === "REVOKED"}
-                      onClick={() => consentMutation.mutate({ id: photo.id, granted: false })}
-                    >
-                      Revoke
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
       </main>
 
       <MobileMenu />

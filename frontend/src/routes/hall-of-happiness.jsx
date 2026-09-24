@@ -61,20 +61,27 @@ function GalleryPhoto({ photo }) {
   const title = photo.caption || photo.eventType || "A happy celebration";
   return (
     <article className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm">
-      {failed ? (
-        <div className="flex aspect-[4/3] items-center justify-center bg-muted p-4 text-center text-xs text-muted-foreground">
-          This memory is temporarily unavailable.
-        </div>
-      ) : (
-        <img
-          src={photo.thumbnailUrl || photo.imageUrl}
-          alt={title}
-          loading="lazy"
-          decoding="async"
-          onError={() => setFailed(true)}
-          className="aspect-[4/3] w-full object-cover"
-        />
-      )}
+      <div className="relative">
+        {failed ? (
+          <div className="flex aspect-[4/3] items-center justify-center bg-muted p-4 text-center text-xs text-muted-foreground">
+            This memory is temporarily unavailable.
+          </div>
+        ) : (
+          <img
+            src={photo.thumbnailUrl || photo.imageUrl}
+            alt={title}
+            loading="lazy"
+            decoding="async"
+            onError={() => setFailed(true)}
+            className="aspect-[4/3] w-full object-cover"
+          />
+        )}
+        {!failed && photo.caption && (
+          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 to-transparent px-3 pb-3 pt-8 text-sm font-medium text-white">
+            {photo.caption}
+          </div>
+        )}
+      </div>
       <div className="p-3">
         <p className="truncate text-sm font-semibold">{title}</p>
       </div>

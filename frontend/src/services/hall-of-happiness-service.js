@@ -6,18 +6,18 @@ export const getHallOfHappiness = ({ page = 0, size = 8 } = {}) =>
 export const getMyHallOfHappinessPhotos = ({ page = 0, size = 50 } = {}) =>
   apiClient.get("/api/hall-of-happiness/my", { params: { page, size } }).then((r) => r.data);
 
-export const setHallOfHappinessConsent = (id, granted) =>
-  apiClient.post(`/api/hall-of-happiness/my/${id}/consent`, null, {
-    params: { granted },
-  }).then((r) => r.data);
+export const withdrawHallPhoto = (id) =>
+  apiClient.delete(`/api/hall-of-happiness/my/${id}`).then((r) => r.data);
 
 export const getMyHallPhotosForOrder = (orderId) =>
   apiClient.get(`/api/hall-of-happiness/my/orders/${orderId}/photos`).then((r) => r.data);
 
-export const uploadHallPhotosForOrder = ({ orderId, files, caption, consent, onUploadProgress }) => {
+export const uploadHallPhotosForOrder = ({ orderId, photos, consent, onUploadProgress }) => {
   const form = new FormData();
-  files.forEach((file) => form.append("files", file));
-  if (caption?.trim()) form.append("caption", caption.trim());
+  photos.forEach(({ file, caption }) => {
+    form.append("files", file);
+    form.append("captions", caption.trim());
+  });
   form.append("consent", String(consent));
   return apiClient.post(`/api/hall-of-happiness/my/orders/${orderId}/photos`, form, {
     onUploadProgress,

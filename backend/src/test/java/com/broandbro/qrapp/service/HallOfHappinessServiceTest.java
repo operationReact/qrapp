@@ -77,7 +77,7 @@ class HallOfHappinessServiceTest {
         assertThrows(IllegalArgumentException.class, () -> service.uploadCustomerPhotos(
                 42L, "919999999999",
                 List.of(new MockMultipartFile("files", "memory.jpg", "image/jpeg", new byte[]{1})),
-                null, false));
+                List.of("Memory"), false));
         verifyNoInteractions(partyOrderRepository, photoRepository);
     }
 
@@ -96,7 +96,7 @@ class HallOfHappinessServiceTest {
                 () -> service.uploadCustomerPhotos(
                         42L, "919999999999",
                         List.of(new MockMultipartFile("files", "memory.jpg", "image/jpeg", new byte[]{1})),
-                        null, true));
+                        List.of("Memory"), true));
         verifyNoInteractions(imageStorageService);
     }
 
@@ -121,7 +121,7 @@ class HallOfHappinessServiceTest {
                 42L,
                 "919999999999",
                 List.of(new MockMultipartFile("files", "memory.jpg", "image/jpeg", bytes.toByteArray())),
-                "A happy day",
+                List.of("A happy day"),
                 true);
 
         org.junit.jupiter.api.Assertions.assertEquals(1, result.size());

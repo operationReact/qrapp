@@ -84,12 +84,13 @@ public interface HallOfHappinessPhotoRepository extends JpaRepository<HallOfHapp
 
     Optional<HallOfHappinessPhoto> findByIdAndCustomerId(Long id, Long customerId);
 
+    long countByPartyOrderIdAndCustomerId(Long partyOrderId, Long customerId);
+
     @Query("""
             SELECT photo FROM HallOfHappinessPhoto photo
             JOIN FETCH photo.partyOrder order
             WHERE photo.partyOrder.id = :orderId
               AND photo.customerId = :customerId
-              AND photo.status <> com.broandbro.qrapp.enums.HallOfHappinessPhotoStatus.REMOVED
             ORDER BY photo.createdAt DESC
             """)
     java.util.List<HallOfHappinessPhoto> findForCustomerOrder(

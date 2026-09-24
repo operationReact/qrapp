@@ -41,8 +41,9 @@ import java.text.Normalizer;
 public class HallOfHappinessService {
 
     private static final long MAX_FILE_SIZE = 5 * 1024 * 1024L;
-    private static final int MAX_FILES_PER_SUBMISSION = 10;
-    private static final long MAX_SUBMISSION_SIZE = 25 * 1024 * 1024L;
+    private static final int MAX_PHOTOS_PER_ORDER = 5;
+    private static final int MAX_FILES_PER_SUBMISSION = 5;
+    private static final int MAX_CAPTION_LENGTH = 60;
     private static final int MAX_PAGE_SIZE = 50;
 
     private final HallOfHappinessPhotoRepository photoRepository;
@@ -123,19 +124,12 @@ public class HallOfHappinessService {
     @CacheEvict(cacheNames = "hallOfHappiness", allEntries = true)
     @Transactional
     public List<HallOfHappinessPhotoResponse> uploadCustomerPhotos(
-            Long orderId, String phone, List<MultipartFile> files, String caption, boolean consent) {
+            Long orderId, String phone, List<MultipartFile> files, List<String> captions, boolean consent) {
         if (!consent) {
             throw new IllegalArgumentException("customer_consent_required");
         }
-        if (files == null || files.isEmpty()) {
-            throw new IllegalArgumentException("image_required");
-        }
-        if (files.size() > MAX_FILES_PER_SUBMISSION) {
+        if (files == null || files.isEmpty() || files.size() > MAX_FILES_PER_SUBMISSION) {
             throw new IllegalArgumentException("too_many_images");
-        }
-        long totalSize = files.stream().mapToLong(MultipartFile::getSize).sum();
-        if (totalSize > MAX_SUBMISSION_SIZE) {
-            throw new IllegalArgumentException("submission_too_large");
         }
 
         User customer = customer(phone);
@@ -143,9 +137,26 @@ public class HallOfHappinessService {
         if (!customer.getId().equals(order.getUserId())) {
             throw new AccessDeniedException("party_order_access_denied");
         }
+        if (captions == null || captions.size() != files.size()) {
+            throw new IllegalArgumentException("photo_description_required");
+        }
+        if (photoRepository.countByPartyOrderIdAndCustomerId(orderId, customer.getId())
+                + files.size() > MAX_PHOTOS_PER_ORDER) {
+            throw new IllegalArgumentException("photo_limit_reached");
+        }
 
         String folder = customerFolder(order);
-        return files.stream().map(file -> saveCustomerPhoto(order, customer, file, caption, folder))
+        return java.util.stream.IntStream.range(0, files.size())
+                .mapToObj(index -> {
+                    String caption = trimCaption(captions.get(index));
+                    if (caption == null || caption.isBlank()) {
+                        throw new IllegalArgumentException("photo_description_required");
+                    }
+                    if (caption.length() > MAX_CAPTION_LENGTH) {
+                        throw new IllegalArgumentException("photo_description_too_long");
+                    }
+                    return saveCustomerPhoto(order, customer, files.get(index), caption, folder);
+                })
                 .map(HallOfHappinessPhotoResponse::forCustomer)
                 .toList();
     }
@@ -300,6 +311,29 @@ public class HallOfHappinessService {
                 photo.setStatus(HallOfHappinessPhotoStatus.UNPUBLISHED);
             }
         }
+        return HallOfHappinessPhotoResponse.forCustomer(photoRepository.save(photo));
+    }
+
+    @CacheEvict(cacheNames = "hallOfHappiness", allEntries = true)
+    @Transactional
+    public HallOfHappinessPhotoResponse withdrawCustomerPhoto(Long id, String phone) {
+        Long customerId = userRepository.findByPhone(phone)
+                .orElseThrow(() -> new IllegalArgumentException("customer_not_found"))
+                .getId();
+        HallOfHappinessPhoto photo = photoRepository.findByIdAndCustomerId(id, customerId)
+                .orElseThrow(() -> new IllegalArgumentException("photo_not_found"));
+        if (photo.getStatus() == HallOfHappinessPhotoStatus.PUBLISHED) {
+            throw new IllegalStateException("published_photo_cannot_be_withdrawn");
+        }
+        if (photo.getStatus() == HallOfHappinessPhotoStatus.REMOVED) {
+            throw new IllegalStateException("photo_removed");
+        }
+        photo.setStatus(HallOfHappinessPhotoStatus.REMOVED);
+        photo.setConsentStatus(HallOfHappinessConsentStatus.REVOKED);
+        photo.setConsentGrantedAt(null);
+        photo.setRemovedAt(Instant.now());
+        imageStorageService.deleteImageByUrl(photo.getImageUrl());
+        imageStorageService.deleteImageByUrl(photo.getThumbnailUrl());
         return HallOfHappinessPhotoResponse.forCustomer(photoRepository.save(photo));
     }
 

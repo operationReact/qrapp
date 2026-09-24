@@ -38,6 +38,11 @@ function HappinessCard({ photo }) {
             className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
           />
         )}
+        {!failed && photo.caption && (
+          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 to-transparent px-3 pb-3 pt-8 text-sm font-medium text-white">
+            {photo.caption}
+          </div>
+        )}
       </div>
       <div className="space-y-1 p-3">
         <p className="truncate text-sm font-semibold text-foreground">{title}</p>

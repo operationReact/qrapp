@@ -52,14 +52,6 @@ public class HallOfHappinessController {
         return service.customerPhotos(principal.getName(), page, size);
     }
 
-    @PostMapping("/api/hall-of-happiness/my/{id}/consent")
-    public HallOfHappinessPhotoResponse consent(
-            @PathVariable Long id,
-            @RequestParam boolean granted,
-            Principal principal) {
-        return service.setConsent(id, principal.getName(), granted);
-    }
-
     @GetMapping("/api/hall-of-happiness/my/orders/{orderId}/photos")
     public List<HallOfHappinessPhotoResponse> orderPhotos(
             @PathVariable Long orderId, Principal principal) {
@@ -71,11 +63,17 @@ public class HallOfHappinessController {
     public ResponseEntity<List<HallOfHappinessPhotoResponse>> uploadCustomerPhotos(
             @PathVariable Long orderId,
             @RequestPart("files") List<MultipartFile> files,
-            @RequestParam(required = false) String caption,
+            @RequestParam(name = "captions", required = false) List<String> captions,
             @RequestParam boolean consent,
             Principal principal) {
         return ResponseEntity.status(HttpStatus.CREATED).body(
-                service.uploadCustomerPhotos(orderId, principal.getName(), files, caption, consent));
+                service.uploadCustomerPhotos(orderId, principal.getName(), files, captions, consent));
+    }
+
+    @DeleteMapping("/api/hall-of-happiness/my/{id}")
+    public HallOfHappinessPhotoResponse withdrawCustomerPhoto(
+            @PathVariable Long id, Principal principal) {
+        return service.withdrawCustomerPhoto(id, principal.getName());
     }
 
     @GetMapping("/api/admin/hall-of-happiness")
