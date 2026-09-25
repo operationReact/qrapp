@@ -6,6 +6,26 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
+  --cc-primary: #FF2438;
+  --cc-primary-dark: #E51F32;
+  --cc-primary-light: #FFF0F2;
+  --cc-primary-soft: #FFE4E7;
+  --cc-page: #FAF8F5;
+  --cc-card: #FFFFFF;
+  --cc-text: #171717;
+  --cc-secondary-text: #6B6B6B;
+  --cc-muted-text: #8A8A8A;
+  --cc-border: #E8E2DD;
+  --cc-divider: #EEE9E5;
+  --cc-success: #16A34A;
+  --cc-success-bg: #ECFDF3;
+  --cc-warning: #D97706;
+  --cc-warning-bg: #FFF7ED;
+  --cc-error: #DC2626;
+  --cc-error-bg: #FEF2F2;
+  --cc-info: #2563EB;
+  --cc-info-bg: #EFF6FF;
+
   /* ─────────────────────────────────────────────────────────────
    * BACKGROUND SYSTEM  (3-level depth hierarchy)
    *

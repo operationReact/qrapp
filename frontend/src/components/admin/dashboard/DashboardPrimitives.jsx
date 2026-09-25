@@ -37,7 +37,7 @@ export function Panel({ children, className }) {
   return (
     <section
       className={cn(
-        "min-w-0 overflow-hidden rounded-xl border border-zinc-200/80 bg-white shadow-[0_3px_14px_rgba(24,24,27,.03)]",
+        "min-w-0 overflow-hidden rounded-[16px] border border-[#E8E2DD] bg-white shadow-none",
         className,
       )}
     >
@@ -99,9 +99,9 @@ export function LoadingRows({ count = 3 }) {
   );
 }
 
-export function EmptyState({ icon: Icon = CheckCircle2, title, description }) {
+export function EmptyState({ icon: Icon = CheckCircle2, title, description, compact = false }) {
   return (
-    <div className="flex min-h-32 flex-col items-center justify-center px-4 py-7 text-center">
+    <div className={cn("flex flex-col items-center justify-center px-4 text-center", compact ? "min-h-[150px] py-5" : "min-h-32 py-7")}>
       {createElement(Icon, { size: 20, className: "mb-2 text-zinc-300", "aria-hidden": true })}
       <p className="text-sm font-semibold text-zinc-700">{title}</p>
       {description && <p className="mt-1 max-w-xs text-xs text-zinc-400">{description}</p>}
@@ -129,7 +129,7 @@ export function ErrorState({ message = "Unable to load this section.", onRetry }
 }
 
 export function Trend({ value, label = "vs previous period" }) {
-  if (value == null) return <span className="text-xs text-zinc-400">No comparison</span>;
+  if (value == null) return null;
   const positive = Number(value) >= 0;
   return (
     <span className={cn("text-xs font-semibold", positive ? "text-emerald-600" : "text-red-500")}>

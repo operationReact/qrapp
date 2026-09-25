@@ -3,17 +3,21 @@ import { createElement } from "react";
 import {
   AlertTriangle,
   ArrowUpRight,
+  CircleCheck,
   CheckCircle2,
   ChefHat,
-  CircleDollarSign,
+  Calculator,
   Clock3,
   Flame,
   Package,
-  Plus,
   RefreshCw,
   ShoppingBag,
-  Tag,
+  Receipt,
+  Sparkles,
+  TrendingUp,
+  TriangleAlert,
   Users,
+  Wallet,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -31,72 +35,96 @@ import {
 import { ActivityChart, RevenueChart } from "./DashboardCharts";
 
 const statusMeta = {
-  ORDER_PLACED: { label: "New", color: "text-violet-700", bg: "bg-violet-50" },
-  ACKNOWLEDGED: { label: "Confirmed", color: "text-blue-700", bg: "bg-blue-50" },
-  PREPARING: { label: "Preparing", color: "text-amber-700", bg: "bg-amber-50" },
-  READY: { label: "Ready", color: "text-emerald-700", bg: "bg-emerald-50" },
-  DELIVERED: { label: "Out for delivery", color: "text-cyan-700", bg: "bg-cyan-50" },
-  COMPLETED: { label: "Completed", color: "text-zinc-600", bg: "bg-zinc-100" },
-  CANCELLED: { label: "Cancelled", color: "text-red-700", bg: "bg-red-50" },
+  ORDER_PLACED: { label: "New", color: "text-[#7C3AED]", bg: "bg-[#F5F3FF]", icon: Sparkles },
+  ACKNOWLEDGED: { label: "Confirmed", color: "text-[#2563EB]", bg: "bg-[#EFF6FF]", icon: Receipt },
+  PREPARING: { label: "Preparing", color: "text-[#D97706]", bg: "bg-[#FFF7E6]", icon: ChefHat },
+  READY: { label: "Ready", color: "text-[#16A34A]", bg: "bg-[#ECFDF3]", icon: CircleCheck },
+  DELIVERED: { label: "Out for delivery", color: "text-[#2563EB]", bg: "bg-[#EFF6FF]", icon: Receipt },
+  COMPLETED: { label: "Completed", color: "text-[#6B6B6B]", bg: "bg-[#F8F6F3]", icon: CircleCheck },
+  CANCELLED: { label: "Cancelled", color: "text-[#DC2626]", bg: "bg-[#FEF2F2]", icon: TriangleAlert },
 };
 
-export function KpiStrip({ summary, comparison, loading }) {
+export function KpiStrip({ summary, comparison, loading, error, onRetry }) {
   const current = summary ?? {};
   const previous = comparison ?? {};
   const orders = current.completedOrders;
+  const hasCompletedOrders = Number(orders ?? 0) > 0;
+  const trend = (value, previousValue) => (
+    value != null && previousValue != null && Number(previousValue) !== 0
+      ? ((Number(value) - Number(previousValue)) / Number(previousValue)) * 100
+      : null
+  );
   const cards = [
     {
       label: "Revenue",
-      value: formatCurrency(current.totalRevenue),
-      trend: current.totalRevenue == null ? null : (previous.totalRevenue != null
-        ? ((Number(current.totalRevenue) - Number(previous.totalRevenue)) / Number(previous.totalRevenue || 1)) * 100
-        : null),
-      tone: "text-zinc-950",
+      value: current.totalRevenue == null && hasCompletedOrders ? "Not available" : formatCurrency(current.totalRevenue ?? 0),
+      trend: trend(current.totalRevenue, previous.totalRevenue),
+      icon: Wallet,
+      iconColor: "text-[#16A34A]",
+      iconBg: "bg-[#ECFDF3]",
     },
     {
       label: "Orders",
-      value: formatNumber(orders),
-      trend: orders != null && previous.completedOrders != null
-        ? ((Number(orders) - Number(previous.completedOrders)) / Number(previous.completedOrders || 1)) * 100
-        : null,
-      tone: "text-zinc-950",
+      value: formatNumber(orders ?? 0),
+      trend: trend(orders, previous.completedOrders),
+      icon: Receipt,
+      iconColor: "text-[#2563EB]",
+      iconBg: "bg-[#EFF6FF]",
     },
     {
       label: "Avg. order value",
-      value: formatCurrency(current.averageOrderValue),
-      trend: current.averageOrderValue != null && previous.averageOrderValue != null
-        ? ((Number(current.averageOrderValue) - Number(previous.averageOrderValue)) / Number(previous.averageOrderValue || 1)) * 100
-        : null,
-      tone: "text-zinc-950",
+      value: current.averageOrderValue == null && hasCompletedOrders ? "Not available" : formatCurrency(current.averageOrderValue ?? 0),
+      trend: trend(current.averageOrderValue, previous.averageOrderValue),
+      icon: Calculator,
+      iconColor: "text-[#7C3AED]",
+      iconBg: "bg-[#F5F3FF]",
     },
-    {
-      label: "Est. profit",
-      value: formatCurrency(current.totalEstimatedProfit),
-      note: "Cost-backed estimate",
-      tone: "text-emerald-700",
-    },
-    { label: "Pending", value: loading ? null : formatNumber(current.pendingOrders), note: "Live queue", tone: "text-amber-700" },
-    { label: "Delayed", value: loading ? null : formatNumber(current.delayedOrders), note: "Live queue", tone: "text-red-600" },
   ];
+  const displayCards = error ? cards.map((card) => ({ ...card, value: "—", trend: null })) : cards;
 
   return (
-    <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-zinc-200/80 bg-zinc-200/80 sm:grid-cols-3 lg:grid-cols-6">
-      {cards.map((card, index) => (
-        <div key={card.label} className={cn(
-          "min-w-0 bg-white px-3 py-3 sm:px-4 sm:py-3.5",
-          index === 3 && "bg-emerald-50/30",
-        )}>
-          <p className="text-[10px] font-bold uppercase leading-snug tracking-[0.1em] text-zinc-400">{card.label}</p>
-          {loading && index < 3 ? <Skeleton className="mt-2 h-7 w-20" /> : (
-            <p className={cn("mt-1.5 break-words text-[21px] font-bold leading-tight tracking-tight tabular-nums sm:text-[22px]", card.tone)}>
-              {card.value ?? "—"}
-            </p>
-          )}
-          <div className="mt-1 min-h-4">
-            {card.note ? <span className="text-[11px] leading-snug text-zinc-400">{card.note}</span> : <Trend value={card.trend} />}
-          </div>
+    <section className="rounded-[16px] border border-[#E8E2DD] bg-white p-3.5 shadow-none sm:p-4">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <div>
+          <p className="text-[10px] font-bold uppercase leading-[14px] tracking-[0.08em] text-[#817A75]">Today</p>
+          <p className="mt-0.5 text-[11px] text-[#8A8580]">Current business performance and kitchen status</p>
         </div>
+        <TrendingUp className="size-4 text-[#8A8580]" strokeWidth={1.9} aria-hidden="true" />
+      </div>
+      <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-3">
+      {displayCards.map((card, index) => (
+      <KpiCard key={card.label} card={card} loading={loading} primary={index < 3} />
       ))}
+      </div>
+      {error && <div className="flex items-center justify-between gap-3 rounded-xl border border-[#FECACA] bg-[#FEF2F2] px-3 py-2 text-[11px] text-[#DC2626]">
+        <span>Unable to load performance metrics.</span>
+        {onRetry && <button type="button" onClick={onRetry} className="font-semibold underline underline-offset-2">Retry</button>}
+      </div>}
+    </section>
+  );
+}
+
+function KpiCard({ card, loading, primary = false }) {
+  const Icon = card.icon;
+  return (
+    <div className={cn(
+      "min-w-0 rounded-[14px] border border-[#E8E2DD] bg-white",
+      primary ? "min-h-[92px] p-3.5" : "min-h-16 rounded-xl p-2.5",
+    )}>
+      <div className="flex items-center justify-between gap-2">
+        <p className="truncate text-[10px] font-bold uppercase leading-[14px] tracking-[0.07em] text-[#817A75]">{card.label}</p>
+        {Icon && <span className={cn("grid size-8 shrink-0 place-items-center rounded-[10px]", card.iconBg)}>
+          <Icon className={cn("size-[17px]", card.iconColor)} strokeWidth={2} aria-hidden="true" />
+        </span>}
+      </div>
+      {loading && primary ? <Skeleton className="mt-2 h-7 w-20" /> : (
+        <p className={cn(
+          "mt-1 break-words font-bold leading-6 tracking-tight tabular-nums",
+          primary ? "text-[22px]" : "text-lg",
+          card.value === "Not available" && "text-[13px] text-[#8A8580]",
+        )}>{card.value ?? "—"}</p>
+      )}
+      {card.note ? <p className="mt-0.5 truncate text-[10px] leading-[14px] text-[#8A8580]">{card.note}</p> : card.trend != null ? <Trend value={card.trend} /> : null}
     </div>
   );
 }
@@ -115,14 +143,14 @@ export function RevenueOrdersPanel({ query, data, metric, setMetric, rangeLabel 
   const hasData = rows.some((row) => row.revenue || row.orders);
 
   return (
-    <Panel className="lg:col-span-8">
-      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-zinc-100 px-4 py-3.5 sm:px-5">
+    <Panel className="lg:col-span-8 rounded-[16px] border-[#E8E2DD] shadow-none">
+      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[#EEE9E5] px-4 py-3.5 sm:px-5">
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-400">Business performance</p>
-          <h2 className="mt-1 text-[15px] font-bold tracking-tight text-zinc-950">Revenue &amp; orders</h2>
-          <p className="mt-0.5 text-xs text-zinc-400">{rangeLabel} · completed orders</p>
+          <p className="text-[10px] font-bold uppercase tracking-[0.07em] text-[#817A75]">Business snapshot</p>
+          <h2 className="mt-1 text-base font-bold leading-5 tracking-tight text-[#171717]">Revenue &amp; orders</h2>
+          <p className="mt-0.5 text-[11px] text-[#8A8580]">{rangeLabel} · completed orders</p>
         </div>
-        <div className="flex rounded-lg border border-zinc-200 bg-zinc-50 p-0.5" role="tablist" aria-label="Revenue chart metric">
+        <div className="flex rounded-lg border border-[#E8E2DD] bg-[#FAF8F5] p-0.5" role="tablist" aria-label="Revenue chart metric">
           {[
             ["revenue", "Revenue"],
             ["orders", "Orders"],
@@ -135,8 +163,8 @@ export function RevenueOrdersPanel({ query, data, metric, setMetric, rangeLabel 
               aria-selected={metric === value}
               onClick={() => setMetric(value)}
               className={cn(
-                "rounded-md px-2.5 py-1.5 text-[11px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30",
-                metric === value ? "bg-white text-zinc-950 shadow-sm" : "text-zinc-500 hover:text-zinc-800",
+                "h-8 rounded-lg px-2.5 text-[11px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF2438]/30",
+                metric === value ? "bg-[#171717] text-white" : "text-[#6B6B6B] hover:text-[#171717]",
               )}
             >
               {label}
@@ -147,7 +175,7 @@ export function RevenueOrdersPanel({ query, data, metric, setMetric, rangeLabel 
       {query.isLoading ? <div className="p-4 sm:p-5"><Skeleton className="h-52 w-full sm:h-56" /></div> : query.error ? (
         <ErrorState onRetry={query.refetch} message="Unable to load revenue data." />
       ) : !hasData ? (
-        <EmptyState icon={CircleDollarSign} title="No sales data for this period" description="Completed orders will appear here once they are recorded." />
+        <EmptyState compact icon={Wallet} title="No sales data for this period" description="Completed orders will appear here once recorded." />
       ) : (
         <div className="p-3 sm:p-4">
           <RevenueChart data={rows} metric={metric} />
@@ -162,35 +190,40 @@ export function LiveOperations({ dashboard, loading, error, onRetry }) {
     .filter((order, index, rows) => rows.findIndex((item) => item.id === order.id) === index)
     .slice(0, 5);
   const counts = [
-    ["New", dashboard?.placedOrders ?? 0, "bg-violet-50 text-violet-700"],
-    ["Preparing", dashboard?.preparingOrders ?? 0, "bg-amber-50 text-amber-700"],
-    ["Ready", dashboard?.readyOrders ?? 0, "bg-emerald-50 text-emerald-700"],
-    ["Delayed", dashboard?.delayedOrders ?? 0, "bg-red-50 text-red-700"],
+    ["Pending", dashboard?.placedOrders ?? 0, Clock3, "bg-[#FFF7ED] text-[#D97706]"],
+    ["Preparing", dashboard?.preparingOrders ?? 0, ChefHat, "bg-[#FFF7E6] text-[#D97706]"],
+    ["Ready", dashboard?.readyOrders ?? 0, CircleCheck, "bg-[#ECFDF3] text-[#16A34A]"],
+    ["Delayed", dashboard?.delayedOrders ?? 0, TriangleAlert, "bg-[#FEF2F2] text-[#DC2626]"],
   ];
 
   return (
-    <Panel className="lg:col-span-4">
+    <Panel className="lg:col-span-4 rounded-[16px] border-[#E8E2DD] shadow-none">
       <PanelHeader action="Kitchen queue" to="/admin/kitchen-queue">Live operations</PanelHeader>
       {loading ? <LoadingRows count={3} /> : error ? <ErrorState message="Unable to load live operations." onRetry={onRetry} /> : <>
-      <div className="grid grid-cols-4 gap-1.5 px-4 pt-4 sm:px-5">
-        {counts.map(([label, value, classes]) => (
-          <Link key={label} to="/admin/kitchen-queue" className={cn("rounded-xl px-1 py-2 text-center transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30", classes)}>
-            <p className="text-lg font-bold tabular-nums">{formatNumber(value)}</p>
-            <p className="mt-0.5 truncate text-[10px] font-semibold">{label}</p>
+      <div className="[scrollbar-width:none] flex gap-2 overflow-x-auto px-4 pt-4 sm:px-5 lg:grid lg:grid-cols-4 lg:overflow-visible">
+        {counts.map(([label, value, Icon, classes]) => (
+          <Link key={label} to="/admin/kitchen-queue" className="flex h-[78px] min-w-[82px] shrink-0 flex-col items-center justify-center rounded-xl border border-[#E8E2DD] bg-white p-2 text-center transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF2438]/30">
+            <span className={cn("mb-0.5 grid size-8 place-items-center rounded-[10px]", classes)}>
+              {createElement(Icon, { className: "size-[17px]", strokeWidth: 2, "aria-hidden": true })}
+            </span>
+            <p className="text-lg font-bold leading-5 tabular-nums">{formatNumber(value)}</p>
+            <p className="whitespace-nowrap text-[10px] font-semibold leading-3">{label}</p>
           </Link>
         ))}
       </div>
       </>}
-      <div className="mt-4 divide-y divide-zinc-100 border-t border-zinc-100 px-4 sm:px-5">
+      <div className="mt-4 divide-y divide-[#EEE9E5] border-t border-[#EEE9E5] px-4 sm:px-5">
         {queue.length === 0 ? <EmptyState icon={CheckCircle2} title="Kitchen is clear" description="No active orders need attention right now." /> : queue.map((order) => {
           const meta = statusMeta[order.status] ?? statusMeta.ORDER_PLACED;
+          const StatusIcon = meta.icon;
           return (
-            <Link key={order.id} to="/admin/kitchen-queue" className="flex items-center gap-2.5 py-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30">
-              <span className="grid size-7 shrink-0 place-items-center rounded-lg bg-zinc-100 text-zinc-500"><ChefHat size={14} aria-hidden="true" /></span>
+            <Link key={order.id} to="/admin/kitchen-queue" className="flex min-h-16 items-center gap-2.5 py-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF2438]/30">
+              <span className={cn("grid size-8 shrink-0 place-items-center rounded-[10px]", meta.bg, meta.color)}><StatusIcon className="size-[17px]" strokeWidth={2} aria-hidden="true" /></span>
               <span className="min-w-0 flex-1">
-                <span className="block break-words text-xs font-bold text-zinc-800">#{order.orderNumber ?? order.id}</span>
-                <span className="block text-[11px] text-zinc-400">{order.isDelayed ? "Needs attention" : "Active order"}</span>
+                <span className="block truncate text-xs font-bold text-[#171717]">#{order.orderNumber ?? order.id}</span>
+                <span className="block truncate text-[11px] text-[#6B6B6B]">{order.userName || "Guest"} · {formatNumber(order.totalItems ?? order.items?.reduce((sum, item) => sum + (item.quantity || 0), 0) ?? 0)} items</span>
               </span>
+              <span className="hidden shrink-0 text-[10px] text-[#8A8580] sm:block">{order.createdAt ? new Date(order.createdAt).toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" }) : ""}</span>
               <span className={cn("rounded-md px-2 py-1 text-[10px] font-bold", meta.bg, meta.color)}>{meta.label}</span>
             </Link>
           );
@@ -331,15 +364,15 @@ export function PaymentMix({ summary }) {
   );
 }
 
-export function NeedsAttention({ dashboard, inventoryQuery, summary, liveLoading }) {
+export function NeedsAttention({ dashboard, inventoryQuery, liveLoading }) {
   const inventory = inventoryQuery.data?.content ?? [];
   const inventoryCount = inventoryQuery.data?.totalElements ?? inventory.length;
   const alerts = [
     dashboard?.delayedOrders > 0 && { tone: "red", icon: AlertTriangle, title: `${formatNumber(dashboard.delayedOrders)} delayed order${dashboard.delayedOrders === 1 ? "" : "s"}`, detail: "Review the kitchen queue", to: "/admin/kitchen-queue", action: "Review" },
     dashboard?.placedOrders > 0 && { tone: "amber", icon: ChefHat, title: `${formatNumber(dashboard.placedOrders)} new order${dashboard.placedOrders === 1 ? "" : "s"} waiting`, detail: "Acknowledge incoming orders", to: "/admin/kitchen-queue", action: "Open queue" },
     inventoryCount > 0 && { tone: "amber", icon: Package, title: `${formatNumber(inventoryCount)} item${inventoryCount === 1 ? "" : "s"} running low`, detail: "Check inventory levels", to: "/admin/menu", action: "View stock" },
-    summary?.cancelledOrders > 0 && { tone: "neutral", icon: ShoppingBag, title: `${formatNumber(summary.cancelledOrders)} cancelled orders`, detail: "Cancellation rate for this period", to: "/admin/analytics/orders", action: "Inspect" },
   ].filter(Boolean);
+  if (alerts.length === 0) return null;
   const tones = {
     red: "border-red-100 bg-red-50/60 text-red-700",
     amber: "border-amber-100 bg-amber-50/60 text-amber-700",
@@ -347,7 +380,7 @@ export function NeedsAttention({ dashboard, inventoryQuery, summary, liveLoading
   };
   return (
     <Panel>
-      <PanelHeader action="Operations center" to="/admin/ops-center">Action queue</PanelHeader>
+      <PanelHeader action="Operations center" to="/admin/ops-center">Needs attention</PanelHeader>
       {liveLoading || inventoryQuery.isLoading ? <LoadingRows count={2} /> : inventoryQuery.error ? <ErrorState message="Unable to load inventory alerts." onRetry={inventoryQuery.refetch} /> : alerts.length === 0 ? (
         <EmptyState icon={CheckCircle2} title="Everything is running smoothly" description="No delayed orders, stock alerts, or cancellations need action." />
       ) : (
@@ -370,19 +403,17 @@ export function NeedsAttention({ dashboard, inventoryQuery, summary, liveLoading
 
 export function QuickActions() {
   const actions = [
-    ["Add item", Plus, "/admin/menu"],
-    ["Create combo", Flame, "/admin/combos"],
-    ["Coupon", Tag, "/admin/promotions"],
-    ["Sync", RefreshCw, "/admin/ops-center"],
-    ["Kitchen", ChefHat, "/admin/kitchen-queue"],
+    ["View orders", ShoppingBag, "/admin/operational-queue"],
+    ["Kitchen queue", ChefHat, "/admin/kitchen-queue"],
+    ["View menu", Package, "/admin/menu"],
+    ["View sales", TrendingUp, "/admin/analytics/sales"],
   ];
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <span className="mr-1 text-xs font-bold text-zinc-500">Quick actions</span>
       {actions.map(([label, Icon, to]) => (
-        <Link key={label} to={to} className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 text-xs font-semibold text-zinc-700 shadow-sm transition-colors hover:border-primary/30 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30">
+        <Link key={label} to={to} className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-[#E8E2DD] bg-white px-3 text-xs font-semibold text-[#6B6B6B] transition-colors hover:border-[#FF2438]/30 hover:text-[#FF2438] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF2438]/30">
           {createElement(Icon, { size: 14, "aria-hidden": true })}
-          {label}
+          {label} <span aria-hidden="true">→</span>
         </Link>
       ))}
     </div>

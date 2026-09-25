@@ -11,6 +11,7 @@ import org.springframework.http.*;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import java.util.List;
 
 @RestController
@@ -56,6 +57,39 @@ public class SuperAdminLocationController {
     public List<UserResponse> users(org.springframework.security.core.Authentication authentication) {
         authorize(authentication);
         return userRepository.findAll().stream().map(this::userResponse).toList();
+    }
+
+    @GetMapping("/users/create-options")
+    public CreateUserOptionsResponse createUserOptions(
+            org.springframework.security.core.Authentication authentication) {
+        authorize(authentication);
+        return new CreateUserOptionsResponse(
+                locationRepository.findByActiveTrueOrderByNameAsc().stream()
+                        .map(LocationResponse::from).toList(),
+                List.of(UserRole.ADMIN, UserRole.MANAGER, UserRole.KITCHEN_STAFF));
+    }
+
+    @PostMapping("/users")
+    public ResponseEntity<?> createUser(
+            @Valid @RequestBody CreateUserRequest request,
+            org.springframework.security.core.Authentication authentication) {
+        authorize(authentication);
+        try {
+            return ResponseEntity.status(HttpStatus.CREATED)
+                    .body(userService.createInternalUser(request));
+        } catch (IllegalArgumentException exception) {
+            String reason = exception.getMessage();
+            if ("phone_taken".equals(reason)) {
+                return ResponseEntity.status(HttpStatus.CONFLICT).body("phone_taken");
+            }
+            if ("location_not_found".equals(reason) || "role_not_assignable".equals(reason)
+                    || "invalid_phone_number".equals(reason)) {
+                return ResponseEntity.badRequest().body(reason);
+            }
+            return ResponseEntity.badRequest().body("invalid_user_request");
+        } catch (org.springframework.dao.DataIntegrityViolationException exception) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body("phone_taken");
+        }
     }
 
     @PutMapping("/users/{userId}/role")
@@ -128,5 +162,10 @@ public class SuperAdminLocationController {
         r.setRole(u.getRole() == null ? "CUSTOMER" : u.getRole().name());
         r.setDefaultLocation(u.getDefaultLocation() == null ? null : LocationResponse.from(u.getDefaultLocation()));
         return r;
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<String> invalidRequest() {
+        return ResponseEntity.badRequest().body("invalid_user_request");
     }
 }

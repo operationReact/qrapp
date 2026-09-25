@@ -27,15 +27,15 @@ function SubPageHeader() {
   );
 
   return (
-    <header className="sticky top-0 z-40 border-b border-zinc-200/70 bg-background/90 backdrop-blur-xl">
-      <div className="flex h-14 items-center justify-between px-3 md:px-6">
+    <header className="sticky top-0 z-40 border-b border-[var(--cc-divider)] bg-white">
+      <div className="flex h-14 items-center justify-between px-4 md:h-16 md:px-6">
         {/* hamburger */}
         <Button
           size="icon"
           variant="ghost"
           onClick={toggleSidebar}
           aria-label="Open menu"
-          className="shrink-0"
+          className="size-11 shrink-0 rounded-[10px] text-[var(--cc-text)] hover:bg-[var(--cc-primary-light)]"
         >
           <SidebarIcon />
         </Button>
@@ -45,11 +45,11 @@ function SubPageHeader() {
           aria-label="Notifications"
           size="icon"
           variant="ghost"
-          className="relative shrink-0"
+          className="relative size-11 shrink-0 rounded-[10px] text-[var(--cc-text)] hover:bg-[var(--cc-primary-light)]"
         >
           <Bell className="size-[18px]" />
           {notifCount > 0 && (
-            <span className="absolute top-1 right-1 size-[14px] bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center leading-none tabular-nums">
+            <span className="absolute top-1.5 right-1.5 flex size-4 items-center justify-center rounded-full bg-[var(--cc-primary)] text-[9px] font-bold leading-none text-white">
               {notifCount}
             </span>
           )}
@@ -80,7 +80,7 @@ function AdminLayout() {
         <AdminDashboardProvider>
           <SidebarProvider>
             <AdminSidebar />
-            <SidebarInset className="min-w-0 bg-[#f7f6f3]">
+            <SidebarInset className="min-w-0 bg-[var(--cc-page)]">
               {!hideGenericHeader && <SubPageHeader />}
               <div className="min-h-0 flex-1 flex flex-col">
                 <Outlet />

@@ -2,10 +2,12 @@ package com.broandbro.qrapp.service;
 
 import com.broandbro.qrapp.config.LegalProperties;
 import com.broandbro.qrapp.dto.RegisterRequest;
+import com.broandbro.qrapp.dto.CreateUserRequest;
 import com.broandbro.qrapp.dto.LoginResponse;
 import com.broandbro.qrapp.dto.UpdateProfileRequest;
 import com.broandbro.qrapp.dto.UserResponse;
 import com.broandbro.qrapp.entity.User;
+import com.broandbro.qrapp.entity.Location;
 import com.broandbro.qrapp.entity.Wallet;
 import com.broandbro.qrapp.repository.UserRepository;
 import com.broandbro.qrapp.repository.WalletRepository;
@@ -13,6 +15,8 @@ import com.broandbro.qrapp.repository.LocationRepository;
 import com.broandbro.qrapp.repository.UserLocationAccessRepository;
 import com.broandbro.qrapp.entity.UserLocationAccess;
 import com.broandbro.qrapp.entity.UserRole;
+import com.broandbro.qrapp.otp.PhoneNumberNormalizer;
+import com.broandbro.qrapp.exception.OtpException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -54,6 +58,7 @@ public class UserService {
         if (userRepository.findByPhone(req.getPhone()).isPresent()) {
             throw new IllegalArgumentException("phone_taken");
         }
+
         if (req.getCustomerCompanyId() == null) {
             throw new IllegalArgumentException("customer_company_required");
         }
@@ -94,10 +99,50 @@ public class UserService {
         return toResponse(u);
     }
 
+    @Transactional
+    public UserResponse createInternalUser(CreateUserRequest req) {
+        UserRole role = req.getRole();
+        if (role == null || role == UserRole.CUSTOMER || role == UserRole.SUPER_ADMIN) {
+            throw new IllegalArgumentException("role_not_assignable");
+        }
+        String phone;
+        try {
+            phone = PhoneNumberNormalizer.normalize(req.getPhone());
+        } catch (RuntimeException exception) {
+            throw new IllegalArgumentException("invalid_phone_number", exception);
+        }
+        if (userRepository.findByPhone(phone).isPresent()) {
+            throw new IllegalArgumentException("phone_taken");
+        }
+        Location location = locationRepository.findById(req.getLocationId())
+                .filter(l -> Boolean.TRUE.equals(l.getActive()))
+                .orElseThrow(() -> new IllegalArgumentException("location_not_found"));
+        User user = User.builder()
+                .phone(phone).password(passwordEncoder.encode(req.getPassword()))
+                .name(req.getName().trim()).role(role)
+                .isAdmin(role == UserRole.ADMIN).isSuperUser(false)
+                .termsAccepted(false).defaultLocation(location).build();
+        user = userRepository.save(user);
+        userLocationAccessRepository.save(UserLocationAccess.builder()
+                .user(user).location(location).active(true).build());
+        walletRepository.save(Wallet.builder().user(user).balance(0L).build());
+        return toResponse(user);
+    }
+
     // ...existing code...
 
     public LoginResponse login(String phone, String password) {
         Optional<User> o = userRepository.findByPhone(phone);
+        if (o.isEmpty()) {
+            try {
+                String normalizedPhone = PhoneNumberNormalizer.normalize(phone);
+                if (!normalizedPhone.equals(phone)) {
+                    o = userRepository.findByPhone(normalizedPhone);
+                }
+            } catch (OtpException ignored) {
+                // Preserve the existing invalid-credentials response for malformed login identifiers.
+            }
+        }
         if (o.isEmpty()) return null;
         User u = o.get();
         if (!passwordEncoder.matches(password, u.getPassword())) return null;

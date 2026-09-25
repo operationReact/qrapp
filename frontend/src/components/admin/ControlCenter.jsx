@@ -2,28 +2,37 @@ import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useLocation } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { Bell, Building2, Check, ChevronDown, ChevronRight, CreditCard, Globe2, IndianRupee, KeyRound, MapPin, Menu, MoreVertical, Plus, ShieldCheck, Store, Users, UsersRound, Wallet, Zap } from "lucide-react";
+import { Bell, Building2, CalendarDays, Check, ChevronDown, CreditCard, Eye, EyeOff, Globe2, Heart, IndianRupee, KeyRound, MapPin, Menu, MoreHorizontal, MoreVertical, Plus, Search, ShieldCheck, Store, UserRound, Users, UsersRound, Wallet } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { useSidebar } from "@/components/ui/sidebar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useAdminDashboard } from "@/context/AdminDashboardContext";
 import { useLocation as useActiveLocation } from "@/context/LocationContext";
-import { ROLE } from "@/lib/roles";
+import { hasRole, ROLE } from "@/lib/roles";
+import { useAuth } from "@/context/AuthContext";
 import { adminSettingsOptions, paymentConfigOptions } from "@/query/options/orders";
 import { adminSetPayAtStall } from "@/services/order-service";
-import { adminCustomerCompaniesOptions, adminLocationsOptions, adminUsersOptions, adminVendorsOptions, assignCustomerCompany, createManagementResource, grantUserLocation, locationCustomerCompaniesOptions, removeCustomerCompany, revokeUserLocation, updateCustomerCompany, updateUserRole, userLocationsOptions } from "@/query/options/management";
+import { partyOrdersOptions } from "@/query/options/party-orders";
+import { adminHallOfHappinessOptions } from "@/query/options/admin-hall-of-happiness";
+import { adminCreateUserOptions, adminCustomerCompaniesOptions, adminLocationsOptions, adminUsersOptions, adminVendorsOptions, assignCustomerCompany, createAdminUser, createManagementResource, grantUserLocation, locationCustomerCompaniesOptions, removeCustomerCompany, revokeUserLocation, updateAdminLocation, updateCustomerCompany, updateUserRole, userLocationsOptions } from "@/query/options/management";
 
-// Existing routes/tabs are preserved 1:1 — only the presentation changed.
-const links = [
-  { to: "/admin/control-center", label: "Overview", icon: ShieldCheck },
-  { to: "/admin/control-center/users", label: "Users", icon: Users },
-  { to: "/admin/control-center/locations", label: "Locations", icon: Building2 },
-  { to: "/admin/control-center/customer-companies", label: "Customer Companies", icon: UsersRound },
-  { to: "/admin/control-center/access", label: "Access Management", icon: KeyRound },
-  { to: "/admin/control-center/payments", label: "Payments", icon: CreditCard },
+const primaryNavigation = [
+  { to: "/admin/control-center", label: "Overview", roles: [ROLE.SUPER_ADMIN] },
+  { to: "/admin/control-center/users", label: "Users", roles: [ROLE.SUPER_ADMIN] },
+  { to: "/admin/control-center/locations", label: "Locations", roles: [ROLE.SUPER_ADMIN] },
+];
+
+const moreNavigation = [
+  { to: "/admin/control-center/customer-companies", label: "Customer Companies", roles: [ROLE.SUPER_ADMIN] },
+  { to: "/admin/vendors", label: "Vendors", roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN, ROLE.MANAGER] },
+  { to: "/admin/control-center/access", label: "Access Management", roles: [ROLE.SUPER_ADMIN] },
+  { to: "/admin/control-center/payments", label: "Payment Management", roles: [ROLE.SUPER_ADMIN] },
+  { to: "/admin/hall-of-happiness", label: "Hall of Happiness", roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN, ROLE.MANAGER] },
+  { to: "/admin/party-orders", label: "Party Orders", roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN, ROLE.MANAGER] },
 ];
 
 // Compact 64px header: hamburger (opens the same admin sidebar), page title,
@@ -34,53 +43,122 @@ function ControlCenterHeader() {
   const { dashboard } = useAdminDashboard();
   const notifCount = Math.min((dashboard?.delayedOrders ?? 0) + (dashboard?.placedOrders ?? 0), 9);
   return (
-    <header className="sticky top-0 z-40 border-b border-[#E7DED2] bg-[#FBF9F5]/95 backdrop-blur-xl">
-      <div className="flex h-16 items-center justify-between px-4">
-        <button type="button" onClick={toggleSidebar} aria-label="Open menu" className="grid size-11 shrink-0 place-items-center rounded-xl text-[#29231E] transition-colors hover:bg-[#F3E7D3]">
-          <Menu className="size-6" aria-hidden="true" />
+    <header className="sticky top-0 z-40 border-b border-[var(--cc-divider)] bg-white">
+      <div className="mx-auto flex h-14 max-w-[1280px] items-center justify-between px-4 md:h-16 md:px-6">
+        <button type="button" onClick={toggleSidebar} aria-label="Open menu" className="grid size-11 shrink-0 place-items-center rounded-[10px] text-[var(--cc-text)] transition-colors hover:bg-[var(--cc-primary-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--cc-primary)]/30">
+          <Menu className="size-5" strokeWidth={1.9} aria-hidden="true" />
         </button>
-        <h1 className="min-w-0 truncate text-[18px] font-semibold text-[#29231E]">Control Center</h1>
-        <button type="button" aria-label="Notifications" className="relative grid size-11 shrink-0 place-items-center rounded-xl text-[#29231E] transition-colors hover:bg-[#F3E7D3]">
-          <Bell className="size-6" aria-hidden="true" />
-          {notifCount > 0 && <span className="absolute top-1.5 right-1.5 flex size-4 items-center justify-center rounded-full bg-[#E51B23] text-[9px] font-bold leading-none text-white">{notifCount}</span>}
+        <h1 className="min-w-0 truncate text-[18px] font-semibold leading-6 text-[var(--cc-text)]">Control Center</h1>
+        <button type="button" aria-label="Notifications" className="relative grid size-11 shrink-0 place-items-center rounded-[10px] text-[var(--cc-text)] transition-colors hover:bg-[var(--cc-primary-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--cc-primary)]/30">
+          <Bell className="size-5" strokeWidth={1.9} aria-hidden="true" />
+          {notifCount > 0 && <span className="absolute top-1.5 right-1.5 flex size-4 items-center justify-center rounded-full bg-[var(--cc-primary)] text-[9px] font-bold leading-none text-white">{notifCount > 9 ? "9+" : notifCount}</span>}
         </button>
       </div>
     </header>
   );
 }
 
-function ControlCenterTabs() {
+function ControlCenterNavigation() {
   const { pathname } = useLocation();
+  const { user } = useAuth();
+  const [moreOpen, setMoreOpen] = useState(false);
+  const moreRef = useRef(null);
+  const visiblePrimary = primaryNavigation.filter((item) => hasRole(user, item.roles));
+  const visibleMore = moreNavigation.filter((item) => hasRole(user, item.roles));
+  const moreActive = visibleMore.some((item) => pathname === item.to || pathname.startsWith(`${item.to}/`));
+
+  useEffect(() => {
+    if (!moreOpen) return undefined;
+    const closeOnPointerDown = (event) => {
+      if (!moreRef.current?.contains(event.target)) setMoreOpen(false);
+    };
+    const closeOnEscape = (event) => {
+      if (event.key === "Escape") setMoreOpen(false);
+    };
+    document.addEventListener("pointerdown", closeOnPointerDown);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeOnPointerDown);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [moreOpen]);
+
   return (
-    <nav aria-label="Super Admin control center" className="mx-4 my-3 overflow-x-auto rounded-2xl border border-[#E7DED2] bg-[#FFFDFC] p-1 no-scrollbar">
-      <div className="flex min-w-max gap-1">
-        {links.map(({ to, label }) => {
+    <nav aria-label="Control Center navigation" className="relative z-30 mx-auto max-w-[1200px] px-4 py-3 md:px-6">
+      <div className="flex h-[42px] items-center gap-1 rounded-full border border-[var(--cc-border)] bg-white p-1">
+        {visiblePrimary.map(({ to, label }) => {
           const active = pathname === to;
-          return (
-            <Link
-              key={to}
-              to={to}
-              className={`flex h-10 shrink-0 items-center justify-center whitespace-nowrap rounded-xl px-3.5 text-[13px] font-medium transition-colors ${active ? "bg-[#29231E] text-white" : "text-[#29231E] hover:bg-[#F7F3EC]"}`}
-            >
-              {label}
-            </Link>
-          );
+          return <Link key={to} to={to} className={`flex min-w-0 flex-1 items-center justify-center rounded-full px-2 text-xs font-semibold transition-colors sm:px-3 sm:text-[13px] ${active ? "bg-[#24211F] text-white" : "text-[#24211F] hover:bg-[var(--cc-primary-light)]"}`}>{label}</Link>;
         })}
+        {visibleMore.length > 0 && (
+          <div ref={moreRef} className="relative min-w-0 flex-1">
+            <button type="button" aria-haspopup="menu" aria-expanded={moreOpen} onClick={() => setMoreOpen((current) => !current)} className={`flex h-10 w-full items-center justify-center gap-1 rounded-full px-2 text-xs font-semibold transition-colors sm:px-3 sm:text-[13px] ${moreActive || moreOpen ? "bg-[#24211F] text-white" : "text-[#24211F] hover:bg-[var(--cc-primary-light)]"}`}>
+              <span>More</span>
+              <MoreHorizontal className="size-4" strokeWidth={2} aria-hidden="true" />
+            </button>
+            {moreOpen && <div role="menu" className="absolute right-0 top-[calc(100%+8px)] w-[min(232px,calc(100vw-32px))] rounded-[16px] border border-[var(--cc-border)] bg-white p-1.5 shadow-[0_4px_12px_rgba(0,0,0,0.08)]">
+              {visibleMore.map(({ to, label }) => <Link key={to} to={to} role="menuitem" onClick={() => setMoreOpen(false)} className={`flex min-h-10 items-center rounded-[10px] px-3 text-sm ${pathname === to || pathname.startsWith(`${to}/`) ? "bg-[var(--cc-primary-light)] font-semibold text-[var(--cc-primary-dark)]" : "text-[var(--cc-text)] hover:bg-[var(--cc-page)]"}`}>{label}</Link>)}
+            </div>}
+          </div>
+        )}
       </div>
     </nav>
   );
 }
 
-function Shell({ title, description, children }) {
+function ControlCenterLocationContext() {
+  const queryClient = useQueryClient();
+  const {
+    activeLocation,
+    availableLocations,
+    allLocationsOption,
+    canSelectAllLocations,
+    setActiveLocation,
+    isLoading,
+  } = useActiveLocation();
+  const activeId = String(activeLocation?.id || "");
+  return <div className="mx-auto max-w-[1280px] px-4 pt-2 md:px-6">
+    <label className="relative block max-w-xs">
+      <span className="sr-only">Active location</span>
+      <MapPin className="pointer-events-none absolute left-3 top-1/2 z-10 size-4 -translate-y-1/2 text-[var(--cc-primary)]" aria-hidden="true" />
+      <select
+        aria-label="Active location"
+        value={activeId}
+        disabled={isLoading}
+        onChange={(event) => {
+          const next = event.target.value === String(allLocationsOption?.id)
+            ? allLocationsOption
+            : availableLocations.find((location) => String(location.id) === event.target.value);
+          if (next) {
+            setActiveLocation(next);
+            queryClient.invalidateQueries({ queryKey: ["admin"] });
+            queryClient.invalidateQueries({ queryKey: ["party-orders"] });
+            queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+            queryClient.invalidateQueries({ queryKey: ["admin-locations"] });
+            queryClient.invalidateQueries({ queryKey: ["admin-customer-companies"] });
+          }
+        }}
+        className="h-10 w-full appearance-none rounded-[10px] border border-[var(--cc-border)] bg-white px-10 pr-8 text-[13px] font-semibold text-[var(--cc-text)] outline-none transition focus-visible:border-[var(--cc-primary)] focus-visible:ring-2 focus-visible:ring-[var(--cc-primary)]/20 disabled:opacity-60"
+      >
+        {canSelectAllLocations && <option value={String(allLocationsOption?.id)}>All Locations</option>}
+        {availableLocations.map((location) => <option key={location.id} value={String(location.id)}>{location.name || location.title || `Location ${location.id}`}</option>)}
+      </select>
+      <ChevronDown className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-[var(--cc-muted-text)]" aria-hidden="true" />
+    </label>
+  </div>;
+}
+
+function Shell({ title, description, children, showLocationContext = true }) {
   return (
-    <main className="mx-auto w-full max-w-7xl bg-[#FBF9F5] pb-8">
+    <main className="admin-control-center min-h-screen w-full bg-[var(--cc-page)] pb-10 text-[var(--cc-text)]">
       <ControlCenterHeader />
-      <ControlCenterTabs />
-      <div className="space-y-4 px-4">
+      {showLocationContext && <ControlCenterLocationContext />}
+      <ControlCenterNavigation />
+      <div className="mx-auto max-w-[1200px] space-y-5 px-4 md:px-6">
         {title && (
           <div>
-            <h2 className="text-[18px] font-semibold text-[#29231E]">{title}</h2>
-            {description && <p className="mt-0.5 text-[13px] text-[#756E66]">{description}</p>}
+            <h2 className="text-[22px] font-bold leading-7 text-[var(--cc-text)]">{title}</h2>
+            {description && <p className="mt-1 text-[13px] leading-[18px] text-[var(--cc-secondary-text)]">{description}</p>}
           </div>
         )}
         {children}
@@ -89,53 +167,22 @@ function Shell({ title, description, children }) {
   );
 }
 
-function ErrorState({ error }) { return error ? <p className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">Unable to load this data. {error.message}</p> : null; }
-function Items({ items, empty = "No records found." }) {
-  if (!items?.length) return <p className="py-8 text-center text-sm text-zinc-500">{empty}</p>;
-  return <div className="grid gap-3 sm:grid-cols-2">{items.map((item, index) => <Card key={item.id ?? index} size="sm"><CardContent className="flex items-center justify-between gap-3 p-4"><div className="min-w-0"><p className="truncate font-semibold text-zinc-900">{item.name || item.email || item.username || item.title || `Record ${index + 1}`}</p><p className="truncate text-xs text-zinc-500">{item.email || item.code || item.description || item.status || "Active"}</p></div><span className="shrink-0 rounded-full bg-zinc-100 px-2 py-1 text-[10px] font-bold uppercase text-zinc-500">{item.role || item.type || "Active"}</span></CardContent></Card>)}</div>;
-}
-
-// Reusable, config-driven presentation for a management area. Passing
-// `wide: true` renders the full-width single-row variant (used today by
-// Payment Management); everything else renders the 2-column stat tile.
-// Adding a future module (e.g. Vendor Management) only requires one more
-// entry in the `cards` array below — no new layout component.
-function ManagementCard({ to, icon, title, count, description, wide }) {
+function ErrorState({ error }) { return error ? <p className="rounded-[10px] border border-[var(--cc-error)]/20 bg-[var(--cc-error-bg)] p-4 text-sm text-[var(--cc-error)]">Unable to load this data. {error.message}</p> : null; }
+function ManagementCard({ to, icon, title, count, description }) {
   const Icon = icon;
-  if (wide) {
-    return (
-      <Link to={to} className="col-span-2 flex min-h-[92px] items-center gap-3 rounded-2xl border border-[#E7DED2] bg-[#FFFDFC] p-3.5 transition hover:border-[#E51B23]/30">
-        <div className="grid size-9 shrink-0 place-items-center rounded-xl bg-[#FFF0F0] text-[#E51B23]">
-          <Icon className="size-[21px]" aria-hidden="true" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className="flex items-center gap-1 text-[15px] font-semibold text-[#29231E]">{title}</p>
-          <p className="mt-0.5 truncate text-[11px] text-[#756E66]">{description}</p>
-        </div>
-        <ChevronRight className="size-4 shrink-0 text-[#756E66]" aria-hidden="true" />
-      </Link>
-    );
-  }
+  const isStatus = typeof count === "string";
   return (
-    <Link to={to} className="flex min-h-[132px] flex-col rounded-2xl border border-[#E7DED2] bg-[#FFFDFC] p-3.5 transition hover:border-[#E51B23]/30">
-      <div className="grid size-9 shrink-0 place-items-center rounded-xl bg-[#FFF0F0] text-[#E51B23]">
-        <Icon className="size-5" aria-hidden="true" />
+    <Link to={to} className="flex h-[clamp(96px,28vw,108px)] min-h-[96px] max-h-[108px] items-start gap-2.5 rounded-[14px] border border-[var(--cc-border)] bg-[var(--cc-card)] p-3 shadow-[0_1px_3px_rgba(0,0,0,0.05)] transition duration-150 hover:-translate-y-px hover:border-[var(--cc-primary)]/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--cc-primary)]/30">
+      <div className="grid size-8 shrink-0 place-items-center rounded-[10px] bg-[var(--cc-primary-light)] text-[var(--cc-primary)]">
+        <Icon className="size-4" strokeWidth={1.9} aria-hidden="true" />
       </div>
-      <p className="mt-2 text-sm font-semibold text-[#29231E]">{title}</p>
-      <p className="text-[26px] font-bold leading-tight text-[#29231E]">{count}</p>
-      <p className="mt-auto text-[11px] leading-snug text-[#756E66]">{description}</p>
-    </Link>
-  );
-}
-
-function QuickAction({ to, icon, label }) {
-  const Icon = icon;
-  return (
-    <Link to={to} className="flex min-w-[72px] shrink-0 flex-col items-center gap-1.5 rounded-2xl border border-[#E7DED2] bg-[#FFFDFC] px-3 py-2.5 text-center transition hover:border-[#E51B23]/30">
-      <div className="grid size-9 place-items-center rounded-xl bg-[#FFF0F0] text-[#E51B23]">
-        <Icon className="size-5" aria-hidden="true" />
+      <div className="min-w-0 flex-1">
+        <div className="flex items-baseline justify-between gap-2">
+          <p className="min-w-0 truncate text-[13px] font-semibold leading-[18px] text-[var(--cc-text)]">{title}</p>
+          <p className={isStatus ? "shrink-0 rounded-full bg-[var(--cc-primary-light)] px-2 py-1 text-[10px] font-semibold leading-3 text-[var(--cc-primary-dark)]" : "shrink-0 text-xl font-bold leading-6 text-[var(--cc-text)]"}>{count ?? 0}</p>
+        </div>
+        <p className="mt-1 line-clamp-2 text-[10px] leading-[14px] text-[var(--cc-muted-text)]">{description} <span aria-hidden="true">→</span></p>
       </div>
-      <span className="text-[11px] font-medium leading-tight text-[#29231E]">{label}</span>
     </Link>
   );
 }
@@ -145,79 +192,197 @@ export function ControlCenterOverview() {
   const { data: locations = [] } = useQuery(adminLocationsOptions());
   const { data: companies = [] } = useQuery(adminCustomerCompaniesOptions());
   const { data: vendors = [] } = useQuery(adminVendorsOptions());
+  const { data: partyOrders = [] } = useQuery(partyOrdersOptions);
+  const { data: hallData } = useQuery(adminHallOfHappinessOptions({ page: 0, size: 100 }));
+  const { data: paymentConfig } = useQuery(paymentConfigOptions);
+  const hallPhotos = hallData?.content || [];
+  const pendingHall = hallPhotos.filter((photo) => ["CUSTOMER_UPLOAD", "PENDING", "PENDING_REVIEW"].includes(photo.status)).length;
+  const enabledPayments = [paymentConfig?.walletEnabled, paymentConfig?.razorpayEnabled, paymentConfig?.payAtStallEnabled].filter(Boolean).length;
 
-  // Config-driven cards — add a future module (e.g. Vendor Management) by
-  // appending one entry here rather than building a new layout.
-  const cards = [
-    { to: "/admin/control-center/users", title: "Users", count: users.length, icon: Users, description: "Manage administrator access" },
-    { to: "/admin/control-center/locations", title: "Locations", count: locations.length, icon: Building2, description: "Create and manage operating locations" },
-    { to: "/admin/control-center/customer-companies", title: "Customer Companies", count: companies.length, icon: UsersRound, description: "Manage companies and assignments" },
-    { to: "/admin/vendors", title: "Vendors", count: vendors.length, icon: Store, description: "Manage vendors, assignments and costs" },
-    { to: "/admin/control-center/access", title: "Access Management", count: "—", icon: KeyRound, description: "Manage roles and location access" },
-    { to: "/admin/control-center/payments", title: "Payment Management", icon: CreditCard, description: "Configure available payment methods", wide: true },
+  const groups = [
+    {
+      label: "Organization",
+      cards: [
+        { to: "/admin/control-center/users", title: "Users", count: users.length, icon: Users, description: "Manage internal accounts and access" },
+        { to: "/admin/control-center/locations", title: "Locations", count: locations.length, icon: Building2, description: "Configure operating locations" },
+        { to: "/admin/control-center/customer-companies", title: "Customer Companies", count: companies.length, icon: UsersRound, description: "Manage company assignments" },
+        { to: "/admin/vendors", title: "Vendors", count: vendors.length, icon: Store, description: "Manage vendors and costs" },
+      ],
+    },
+    {
+      label: "Security & Configuration",
+      cards: [
+        { to: "/admin/control-center/access", title: "Access Management", count: "Configured", icon: KeyRound, description: "Manage roles" },
+        { to: "/admin/control-center/payments", title: "Payment Management", count: enabledPayments, icon: CreditCard, description: "Configure payment methods" },
+      ],
+    },
+    {
+      label: "Operations",
+      cards: [
+        { to: "/admin/party-orders", title: "Party Orders", count: partyOrders.filter((order) => !["COMPLETED", "CANCELLED"].includes(order.status)).length, icon: CalendarDays, description: "Review Party/Event orders" },
+        { to: "/admin/hall-of-happiness", title: "Hall of Happiness", count: pendingHall, icon: Heart, description: pendingHall ? "Pending review" : "No pending reviews" },
+      ],
+    },
   ];
 
-  // Only expose quick actions for functionality that already exists today.
-  const quickActions = [
-    { to: "/admin/control-center/locations", icon: Plus, label: "Add Location" },
-    { to: "/admin/control-center/customer-companies", icon: Building2, label: "Add Customer Company" },
-    { to: "/admin/control-center/access", icon: KeyRound, label: "Manage Access" },
-  ];
-
-  return <Shell>
-    <div>
-      <h2 className="text-[18px] font-semibold text-[#29231E]">Overview</h2>
-      <p className="mt-0.5 text-[13px] text-[#756E66]">Key management areas</p>
-    </div>
-    <div className="grid grid-cols-2 gap-2.5">
-      {cards.map((card) => <ManagementCard key={card.to} {...card} />)}
-    </div>
-    <div>
-      <div className="mb-2 flex items-center gap-1.5 text-[#29231E]">
-        <Zap className="size-4 text-[#B88746]" aria-hidden="true" />
-        <h3 className="text-sm font-semibold">Quick Actions</h3>
-      </div>
-      <div className="flex gap-2 overflow-x-auto no-scrollbar">
-        {quickActions.map((action) => <QuickAction key={action.label} {...action} />)}
-      </div>
+  return <Shell title="Control Center" description="Manage your Bro & Bro operations." showLocationContext={false}>
+    <div className="space-y-6">
+      {groups.map((group) => (
+        <section key={group.label} className="space-y-2.5" aria-labelledby={`control-center-${group.label}`}>
+            <h3 id={`control-center-${group.label}`} className="text-[10px] font-bold leading-[14px] uppercase tracking-[0.08em] text-[var(--cc-muted-text)]">{group.label}</h3>
+            <div className={`grid grid-cols-2 gap-2.5 ${group.label === "Organization" ? "lg:grid-cols-4" : "lg:grid-cols-2 xl:grid-cols-4"}`}>
+            {group.cards.map((card) => <ManagementCard key={card.to} {...card} />)}
+          </div>
+        </section>
+      ))}
     </div>
   </Shell>;
 }
 
+const roleLabels = {
+  SUPER_ADMIN: "Super Admin",
+  ADMIN: "Admin",
+  CUSTOMER: "Customer",
+  MANAGER: "Manager",
+  KITCHEN_STAFF: "Kitchen Staff",
+};
+const defaultAssignableRoles = [ROLE.ADMIN, ROLE.MANAGER, ROLE.KITCHEN_STAFF];
+
+function humanRole(role) {
+  return roleLabels[String(role || "").replace(/^ROLE_/, "")] || String(role || "Unknown").replaceAll("_", " ");
+}
+
+function Field({ label, icon: Icon, children, hint }) {
+  return <label className="block space-y-1.5">
+    <span className="flex items-center gap-1 text-xs font-semibold text-[var(--cc-text)]">{label}</span>
+    <div className="relative">
+      {Icon && <Icon className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[var(--cc-muted-text)]" aria-hidden="true" />}
+      {children}
+    </div>
+    {hint && <span className="text-xs text-[var(--cc-muted-text)]">{hint}</span>}
+  </label>;
+}
+
+function UserCreateDialog({ open, onOpenChange, form, setForm, roles, locations, optionsLoading, mutation, apiError, optionsError }) {
+  const [showPassword, setShowPassword] = useState(false);
+  const canSubmit = form.name.trim() && /^(?:\+91[\s-]?)?[6-9]\d{9}$/.test(form.phone.trim()) && form.password && form.role && form.locationId && !mutation.isPending;
+  return <Dialog open={open} onOpenChange={onOpenChange}>
+    <DialogContent className="max-h-[calc(100vh-32px)] overflow-y-auto rounded-[20px] border border-[var(--cc-border)] bg-white p-5 shadow-[0_12px_40px_rgba(0,0,0,0.16)] sm:max-w-lg">
+      <DialogHeader>
+        <DialogTitle className="text-lg font-semibold text-[var(--cc-text)]">Create User</DialogTitle>
+        <DialogDescription className="text-sm text-[var(--cc-secondary-text)]">Create an internal user who can sign in immediately.</DialogDescription>
+      </DialogHeader>
+      <form className="grid gap-4 sm:grid-cols-2" onSubmit={(event) => { event.preventDefault(); if (canSubmit) mutation.mutate(); }}>
+        <Field label="Full Name" icon={UserRound}><Input className="h-11 rounded-[10px] border-[var(--cc-border)] pl-10 focus-visible:border-[var(--cc-primary)] focus-visible:ring-2 focus-visible:ring-[var(--cc-primary)]" required placeholder="Full name" value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} /></Field>
+        <Field label="WhatsApp / Phone Number" icon={MapPin}><Input className="h-11 rounded-[10px] border-[var(--cc-border)] pl-10 focus-visible:border-[var(--cc-primary)] focus-visible:ring-2 focus-visible:ring-[var(--cc-primary)]" required inputMode="tel" placeholder="WhatsApp number" value={form.phone} onChange={(event) => setForm((current) => ({ ...current, phone: event.target.value }))} /></Field>
+        <Field label="Password" icon={KeyRound}><Input className="h-11 rounded-[10px] border-[var(--cc-border)] px-10 focus-visible:border-[var(--cc-primary)] focus-visible:ring-2 focus-visible:ring-[var(--cc-primary)]" required type={showPassword ? "text" : "password"} placeholder="Secure password" value={form.password} onChange={(event) => setForm((current) => ({ ...current, password: event.target.value }))} /><button type="button" aria-label={showPassword ? "Hide password" : "Show password"} onClick={() => setShowPassword((current) => !current)} className="absolute right-2 top-1/2 grid size-8 -translate-y-1/2 place-items-center rounded-[8px] text-[var(--cc-muted-text)] hover:bg-[var(--cc-primary-light)]">{showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}</button></Field>
+        <Field label="Role" icon={ShieldCheck}><select required className="h-11 w-full appearance-none rounded-[10px] border border-[var(--cc-border)] bg-white px-10 text-sm focus:border-[var(--cc-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--cc-primary)]" value={form.role} onChange={(event) => setForm((current) => ({ ...current, role: event.target.value }))} disabled={optionsLoading}><option value="">Select role</option>{roles.map((role) => <option key={role} value={role}>{humanRole(role)}</option>)}</select></Field>
+        <Field label="Location" icon={MapPin}><select required className="h-11 w-full appearance-none rounded-[10px] border border-[var(--cc-border)] bg-white px-10 text-sm focus:border-[var(--cc-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--cc-primary)] sm:col-span-2" value={form.locationId} onChange={(event) => setForm((current) => ({ ...current, locationId: event.target.value }))} disabled={optionsLoading}><option value="">Select active location</option>{locations.map((location) => <option key={location.id} value={location.id}>{location.name}</option>)}</select></Field>
+        <Button type="submit" className="h-11 rounded-[10px] bg-[var(--cc-primary)] text-sm font-semibold text-white hover:bg-[var(--cc-primary-dark)] disabled:bg-[#F9A0A8] sm:col-span-2" disabled={!canSubmit}>{mutation.isPending ? "Creating user..." : "Create User"}</Button>
+      </form>
+      {apiError && <p className="rounded-[10px] border border-[var(--cc-error)]/20 bg-[var(--cc-error-bg)] p-3 text-sm text-[var(--cc-error)]">{apiError}</p>}
+      {optionsError && <ErrorState error={optionsError} />}
+    </DialogContent>
+  </Dialog>;
+}
+
+function UserCard({ user }) {
+  const active = user.active ?? user.enabled ?? true;
+  return <div className="flex min-h-[76px] items-center gap-3 rounded-[16px] border border-[var(--cc-border)] bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
+    <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-[var(--cc-primary-light)] text-[var(--cc-primary)]"><UserRound className="size-5" /></div>
+    <div className="min-w-0 flex-1"><p className="truncate text-[15px] font-semibold text-[var(--cc-text)]">{user.name || user.fullName || user.username || "Unnamed user"}</p><p className="truncate text-xs text-[var(--cc-secondary-text)]">{user.phone || user.whatsappNumber || user.email || "No phone number"}</p></div>
+    <div className="hidden items-end gap-1.5 sm:flex sm:flex-col"><span className="rounded-full bg-[var(--cc-primary-light)] px-2.5 py-1 text-xs font-semibold text-[var(--cc-primary-dark)]">{humanRole(user.role || user.roles?.[0])}</span><span className={`text-xs ${active ? "text-[var(--cc-success)]" : "text-[var(--cc-muted-text)]"}`}>{active ? "Active" : "Inactive"}</span></div>
+    <DropdownMenu><DropdownMenuTrigger className="grid size-11 shrink-0 place-items-center rounded-[10px] text-[var(--cc-muted-text)] hover:bg-[var(--cc-primary-light)]" aria-label={`Actions for ${user.name || "user"}`}><MoreVertical className="size-5" /></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem>View access</DropdownMenuItem></DropdownMenuContent></DropdownMenu>
+  </div>;
+}
+
 export function ControlCenterUsers() {
   const { data = [], isLoading, error } = useQuery(adminUsersOptions());
-  return <Shell title="Users" description="Review administrator accounts and manage access from the Access Management screen."><Card><CardHeader><CardTitle>Administrator accounts</CardTitle></CardHeader><CardContent>{isLoading ? <p className="text-sm text-zinc-500">Loading users…</p> : <Items items={data} />}{<ErrorState error={error} />}</CardContent></Card></Shell>;
+  const { data: options, isLoading: optionsLoading, error: optionsError } = useQuery(adminCreateUserOptions());
+  const queryClient = useQueryClient();
+  const [form, setForm] = useState({ name: "", phone: "", password: "", role: "", locationId: "" });
+  const [createOpen, setCreateOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const [roleFilter, setRoleFilter] = useState("ALL");
+  const [statusFilter, setStatusFilter] = useState("ALL");
+  const mutation = useMutation({
+    mutationFn: () => createAdminUser({ ...form, name: form.name.trim(), phone: form.phone.trim(), locationId: Number(form.locationId) }),
+    onSuccess: () => {
+      setForm({ name: "", phone: "", password: "", role: "", locationId: "" });
+      setCreateOpen(false);
+      queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
+      toast.success("Internal user created successfully.");
+    },
+  });
+  const apiError = mutation.error
+    ? mutation.error?.response?.status === 409
+      ? "That phone number is already registered."
+      : mutation.error?.response?.status === 403
+        ? "Only a Super Admin can create users."
+        : mutation.error?.response?.data === "invalid_phone_number"
+          ? "Enter a valid Indian WhatsApp number."
+          : "Unable to create user. Check the details and try again."
+    : null;
+  const roles = options?.roles || [];
+  const locations = options?.locations || [];
+  const filteredUsers = data.filter((user) => {
+    const query = search.trim().toLowerCase();
+    const name = String(user.name || user.fullName || user.username || "").toLowerCase();
+    const phone = String(user.phone || user.whatsappNumber || "").toLowerCase();
+    const active = user.active ?? user.enabled ?? true;
+    return (!query || name.includes(query) || phone.includes(query)) && (roleFilter === "ALL" || String(user.role || user.roles?.[0]) === roleFilter) && (statusFilter === "ALL" || (statusFilter === "ACTIVE" ? active : !active));
+  });
+  return <Shell title="Users" description="Create and manage internal users.">
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div className="relative w-full sm:max-w-sm"><Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[var(--cc-muted-text)]" /><Input className="h-11 rounded-[10px] border-[var(--cc-border)] bg-white pl-10" placeholder="Search name or WhatsApp number" value={search} onChange={(event) => setSearch(event.target.value)} /></div><Button className="h-11 w-full rounded-[10px] bg-[var(--cc-primary)] text-sm font-semibold text-white hover:bg-[var(--cc-primary-dark)] sm:w-auto" onClick={() => setCreateOpen(true)}><Plus className="size-[18px]" /> Create User</Button></div>
+    <div className="grid grid-cols-2 gap-2 sm:max-w-md"><select className="h-11 rounded-[10px] border border-[var(--cc-border)] bg-white px-3 text-sm" value={roleFilter} onChange={(event) => setRoleFilter(event.target.value)}><option value="ALL">All Roles</option>{[...new Set(data.map((user) => user.role || user.roles?.[0]).filter(Boolean))].map((role) => <option key={role} value={role}>{humanRole(role)}</option>)}</select><select className="h-11 rounded-[10px] border border-[var(--cc-border)] bg-white px-3 text-sm" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}><option value="ALL">All Status</option><option value="ACTIVE">Active</option><option value="INACTIVE">Inactive</option></select></div>
+    {isLoading ? <p className="text-sm text-[var(--cc-muted-text)]">Loading users...</p> : <div className="grid gap-3 lg:grid-cols-2">{filteredUsers.map((user) => <UserCard key={user.id} user={user} />)}{!filteredUsers.length && <p className="rounded-[16px] border border-[var(--cc-border)] bg-white p-8 text-center text-sm text-[var(--cc-muted-text)] lg:col-span-2">No users match these filters.</p>}</div>}
+    <ErrorState error={error} />
+    <UserCreateDialog open={createOpen} onOpenChange={setCreateOpen} form={form} setForm={setForm} roles={roles} locations={locations} optionsLoading={optionsLoading} mutation={mutation} apiError={apiError} optionsError={optionsError} />
+  </Shell>;
+}
+
+function LocationCard({ location, onEdit }) {
+  const active = location.active ?? true;
+  return <div className="flex items-center gap-3 rounded-[16px] border border-[var(--cc-border)] bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
+    <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-[var(--cc-primary-light)] text-[var(--cc-primary)]"><MapPin className="size-5" /></div>
+    <div className="min-w-0 flex-1"><p className="truncate text-base font-semibold text-[var(--cc-text)]">{location.name}</p><p className="truncate text-xs text-[#77716D]">{location.code}</p><p className="mt-1 truncate text-[13px] text-[var(--cc-secondary-text)]">{location.address || "No address provided"}</p></div>
+    <span className={`hidden rounded-full px-2.5 py-1 text-xs font-semibold sm:inline-flex ${active ? "bg-[var(--cc-success-bg)] text-[var(--cc-success)]" : "bg-[var(--cc-page)] text-[var(--cc-muted-text)]"}`}>{active ? "ACTIVE" : "INACTIVE"}</span>
+    <DropdownMenu><DropdownMenuTrigger className="grid size-11 shrink-0 place-items-center rounded-[10px] text-[var(--cc-muted-text)] hover:bg-[var(--cc-primary-light)]" aria-label={`Actions for ${location.name}`}><MoreVertical className="size-5" /></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onClick={() => onEdit(location)}>Edit location</DropdownMenuItem></DropdownMenuContent></DropdownMenu>
+  </div>;
+}
+
+function LocationDialog({ open, onOpenChange, initial, onSave, pending, error }) {
+  const [form, setForm] = useState(() => ({ name: initial?.name || "", code: initial?.code || "", address: initial?.address || "", active: initial?.active ?? true }));
+  const editing = Boolean(initial);
+  return <Dialog open={open} onOpenChange={onOpenChange}><DialogContent className="rounded-[20px] border border-[var(--cc-border)] bg-white p-5 shadow-[0_12px_40px_rgba(0,0,0,0.16)] sm:max-w-lg"><DialogHeader><DialogTitle className="text-lg font-semibold">{editing ? "Edit Location" : "Add Location"}</DialogTitle><DialogDescription className="text-sm text-[var(--cc-secondary-text)]">{editing ? "Update the operating location details." : "Create a new operating location."}</DialogDescription></DialogHeader><form className="grid gap-4 sm:grid-cols-2" onSubmit={(event) => { event.preventDefault(); onSave(form); }}><Field label="Location Name" icon={MapPin}><Input required className="h-11 rounded-[10px] pl-10" value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} /></Field><Field label="Location Code" icon={KeyRound}><Input required className="h-11 rounded-[10px] pl-10" value={form.code} onChange={(event) => setForm((current) => ({ ...current, code: event.target.value }))} /></Field><Field label="Address" icon={Building2}><Input className="h-11 rounded-[10px] pl-10 sm:col-span-2" value={form.address} onChange={(event) => setForm((current) => ({ ...current, address: event.target.value }))} /></Field>{editing && <label className="flex h-11 items-center gap-2 text-sm sm:col-span-2"><input type="checkbox" checked={form.active} onChange={(event) => setForm((current) => ({ ...current, active: event.target.checked }))} /> Active</label>}<Button type="submit" className="h-11 rounded-[10px] bg-[var(--cc-primary)] font-semibold text-white hover:bg-[var(--cc-primary-dark)] disabled:bg-[#F9A0A8] sm:col-span-2" disabled={pending}>{pending ? "Saving..." : editing ? "Save Location" : "Add Location"}</Button>{error && <p className="text-sm text-[var(--cc-error)] sm:col-span-2">{error}</p>}</form></DialogContent></Dialog>;
 }
 
 export function ControlCenterLocations() {
   const { data = [], isLoading, error } = useQuery(adminLocationsOptions());
   const { activeLocation } = useActiveLocation();
   const [form, setForm] = useState({ name: "", code: "", address: "" });
+  const [locationDialogOpen, setLocationDialogOpen] = useState(false);
+  const [editingLocation, setEditingLocation] = useState(null);
   const queryClient = useQueryClient();
   const generatedCode = `LOC-${form.name.trim().toUpperCase().replace(/[^A-Z0-9]+/g, "-").replace(/^-|-$/g, "")}-001`;
   const mutation = useMutation({
-    mutationFn: () => createManagementResource("/api/admin/locations", { ...form, name: form.name.trim(), code: (form.code.trim() || generatedCode), address: form.address.trim(), active: true }),
+    mutationFn: (payload = form) => createManagementResource("/api/admin/locations", { ...payload, name: payload.name.trim(), code: (payload.code.trim() || generatedCode), address: payload.address.trim(), active: true }),
     onSuccess: () => { setForm({ name: "", code: "", address: "" }); queryClient.invalidateQueries({ queryKey: ["admin", "locations"] }); },
+  });
+  const editMutation = useMutation({
+    mutationFn: ({ id, payload }) => updateAdminLocation(id, payload),
+    onSuccess: () => { setLocationDialogOpen(false); setEditingLocation(null); queryClient.invalidateQueries({ queryKey: ["admin", "locations"] }); toast.success("Location updated."); },
   });
   const apiError = mutation.error?.response?.status === 409
     ? "A location with this code already exists."
     : mutation.error?.response?.status === 403
       ? "Only a Super Admin can add locations."
       : mutation.error?.response?.data?.message || mutation.error?.response?.data || mutation.error?.message;
-  return <Shell title="Locations" description="Create operating locations and make them available to registration, access management, and company assignments.">
-    <div className="grid gap-5 lg:grid-cols-[minmax(0,1.1fr)_minmax(18rem,.9fr)]">
-      <Card className="border-zinc-200 shadow-sm"><CardHeader><CardTitle>Add a location</CardTitle><p className="text-sm text-zinc-500">Use a unique code that remains stable for integrations.</p></CardHeader><CardContent>
-        <form className="grid gap-3 sm:grid-cols-2" onSubmit={(event) => { event.preventDefault(); if (form.name.trim() && (form.code.trim() || generatedCode)) mutation.mutate(); }}>
-          <Input className="min-h-11" required placeholder="Location name" value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value, code: current.code || `LOC-${event.target.value.toUpperCase().replace(/[^A-Z0-9]+/g, "-").replace(/^-|-$/g, "")}-001` }))} />
-          <Input className="min-h-11" required placeholder="Location code" value={form.code} onChange={(event) => setForm((current) => ({ ...current, code: event.target.value }))} />
-          <Input className="min-h-11 sm:col-span-2" placeholder="Address (optional)" value={form.address} onChange={(event) => setForm((current) => ({ ...current, address: event.target.value }))} />
-          <Button type="submit" className="min-h-11 sm:col-span-2" disabled={mutation.isPending}>{mutation.isPending ? "Adding location…" : "Add location"}</Button>
-        </form>
-        {apiError && <p className="mt-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{apiError}</p>}
-      </CardContent></Card>
-      <Card className="border-zinc-200 bg-primary/5 shadow-sm"><CardHeader><CardTitle>Current location</CardTitle></CardHeader><CardContent><p className="text-2xl font-bold text-zinc-950">{activeLocation?.name || "Not selected"}</p><p className="mt-2 text-sm text-zinc-600">Use the location selector to change the active operating context.</p></CardContent></Card>
-    </div>
-    <Card className="border-zinc-200 shadow-sm"><CardHeader><CardTitle>Configured locations</CardTitle></CardHeader><CardContent>{isLoading ? <p className="text-sm text-zinc-500">Loading locations…</p> : <Items items={data} empty="No locations are configured." />}<ErrorState error={error} /></CardContent></Card>
+  return <Shell title="Locations" description="Create and manage operating locations.">
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><p className="text-sm text-[var(--cc-secondary-text)]">{activeLocation?.name ? `Current location: ${activeLocation.name}` : "Configure locations for operations and access."}</p><Button className="h-11 w-full rounded-[10px] bg-[var(--cc-primary)] font-semibold text-white hover:bg-[var(--cc-primary-dark)] sm:w-auto" onClick={() => { setEditingLocation(null); setLocationDialogOpen(true); }}><Plus className="size-[18px]" /> Add Location</Button></div>
+    {isLoading ? <p className="text-sm text-[var(--cc-muted-text)]">Loading locations...</p> : <div className="grid gap-3 lg:grid-cols-2">{data.map((location) => <LocationCard key={location.id} location={location} onEdit={(item) => { setEditingLocation(item); setLocationDialogOpen(true); }} />)}{!data.length && <p className="rounded-[16px] border border-[var(--cc-border)] bg-white p-8 text-center text-sm text-[var(--cc-muted-text)] lg:col-span-2">No locations are configured.</p>}</div>}
+    <ErrorState error={error} />
+    <LocationDialog key={`${editingLocation?.id || "new"}-${locationDialogOpen}`} open={locationDialogOpen} onOpenChange={setLocationDialogOpen} initial={editingLocation} pending={editingLocation ? editMutation.isPending : mutation.isPending} error={editingLocation ? editMutation.error?.response?.data?.message || editMutation.error?.message : apiError} onSave={(payload) => editingLocation ? editMutation.mutate({ id: editingLocation.id, payload }) : mutation.mutate({ ...payload, active: true })} />
   </Shell>;
 }
 
@@ -238,21 +403,21 @@ function CompanyLocationSelector({ locations, value, onChange }) {
         onClick={() => setOpen((current) => !current)}
         aria-haspopup="listbox"
         aria-expanded={open}
-        className="flex h-10 w-full min-w-[150px] items-center gap-1.5 rounded-full border border-[#E7DED2] bg-[#FFFDFC] px-3 text-left"
+        className="flex h-11 w-full min-w-[150px] items-center gap-1.5 rounded-[10px] border border-[var(--cc-border)] bg-white px-3 text-left"
       >
-        <MapPin className="size-[15px] shrink-0 text-[#B88746]" aria-hidden="true" />
-        <span className="min-w-0 flex-1 truncate text-xs font-medium text-[#29231E]">{label}</span>
-        <ChevronDown className={`size-3.5 shrink-0 text-[#756E66] transition-transform ${open ? "rotate-180" : ""}`} aria-hidden="true" />
+        <MapPin className="size-[15px] shrink-0 text-[var(--cc-primary)]" aria-hidden="true" />
+        <span className="min-w-0 flex-1 truncate text-sm font-medium text-[var(--cc-text)]">{label}</span>
+        <ChevronDown className={`size-3.5 shrink-0 text-[var(--cc-muted-text)] transition-transform ${open ? "rotate-180" : ""}`} aria-hidden="true" />
       </button>
       {open && (
-        <div className="absolute right-0 top-[calc(100%+6px)] z-20 max-h-64 w-56 overflow-y-auto rounded-2xl border border-[#E7DED2] bg-[#FFFDFC] p-1.5 shadow-lg">
-          <button type="button" className={`flex min-h-11 w-full items-center gap-2 rounded-xl px-2.5 text-left text-sm ${value === ALL_LOCATIONS_VALUE ? "bg-[#FFF0F0] font-semibold text-[#E51B23]" : "text-[#29231E] hover:bg-[#F7F3EC]"}`} onClick={() => { onChange(ALL_LOCATIONS_VALUE); setOpen(false); }}>
+        <div className="absolute right-0 top-[calc(100%+6px)] z-20 max-h-64 w-56 overflow-y-auto rounded-[16px] border border-[var(--cc-border)] bg-white p-1.5 shadow-[0_4px_12px_rgba(0,0,0,0.08)]">
+          <button type="button" className={`flex min-h-11 w-full items-center gap-2 rounded-[10px] px-2.5 text-left text-sm ${value === ALL_LOCATIONS_VALUE ? "bg-[var(--cc-primary-light)] font-semibold text-[var(--cc-primary-dark)]" : "text-[var(--cc-text)] hover:bg-[var(--cc-page)]"}`} onClick={() => { onChange(ALL_LOCATIONS_VALUE); setOpen(false); }}>
             <Globe2 className="size-4 shrink-0" aria-hidden="true" /><span className="flex-1">All Locations</span>{value === ALL_LOCATIONS_VALUE && <Check className="size-4" aria-hidden="true" />}
           </button>
           {locations.map((location) => {
             const active = String(location.id) === value;
             return (
-              <button key={location.id} type="button" className={`flex min-h-11 w-full items-center gap-2 rounded-xl px-2.5 text-left text-sm ${active ? "bg-[#FFF0F0] font-semibold text-[#E51B23]" : "text-[#29231E] hover:bg-[#F7F3EC]"}`} onClick={() => { onChange(String(location.id)); setOpen(false); }}>
+              <button key={location.id} type="button" className={`flex min-h-11 w-full items-center gap-2 rounded-[10px] px-2.5 text-left text-sm ${active ? "bg-[var(--cc-primary-light)] font-semibold text-[var(--cc-primary-dark)]" : "text-[var(--cc-text)] hover:bg-[var(--cc-page)]"}`} onClick={() => { onChange(String(location.id)); setOpen(false); }}>
                 <MapPin className="size-4 shrink-0" aria-hidden="true" /><span className="flex-1 truncate">{location.name}</span>{active && <Check className="size-4" aria-hidden="true" />}
               </button>
             );
@@ -265,16 +430,16 @@ function CompanyLocationSelector({ locations, value, onChange }) {
 
 function CompanyRow({ company, subtitle, onEdit, onToggleActive, onRemove, busy }) {
   return (
-    <div className="flex min-h-16 items-center gap-3 border-b border-[#E7DED2] px-3 py-3 last:border-0">
-      <div className="grid size-9 shrink-0 place-items-center rounded-xl bg-[#FFF0F0] text-[#E51B23]">
-        <Building2 className="size-[18px]" aria-hidden="true" />
+    <div className="flex min-h-[72px] items-center gap-3 border-b border-[var(--cc-divider)] px-3 py-3 last:border-0">
+      <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-[var(--cc-primary-light)] text-[var(--cc-primary)]">
+        <Building2 className="size-5" aria-hidden="true" />
       </div>
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-semibold text-[#29231E]">{company.name}</p>
-        <p className="truncate text-[11px] text-[#756E66]">{subtitle}</p>
+        <p className="truncate text-[15px] font-semibold text-[var(--cc-text)]">{company.name}</p>
+        <p className="truncate text-xs text-[var(--cc-secondary-text)]">{subtitle}</p>
       </div>
       <DropdownMenu>
-        <DropdownMenuTrigger className="grid size-11 shrink-0 place-items-center rounded-xl text-[#756E66] hover:bg-[#F7F3EC]" aria-label={`Actions for ${company.name}`} disabled={busy}>
+        <DropdownMenuTrigger className="grid size-11 shrink-0 place-items-center rounded-[10px] text-[var(--cc-muted-text)] hover:bg-[var(--cc-primary-light)]" aria-label={`Actions for ${company.name}`} disabled={busy}>
           <MoreVertical className="size-[18px]" aria-hidden="true" />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
@@ -368,44 +533,44 @@ export function CustomerCompanies() {
     createMutation.mutate();
   };
 
-  return <Shell title="Customer Companies" description="Manage companies and assign them to operating locations.">
-    <CompanyLocationSelector locations={locations} value={selectedLocationId} onChange={setSelectedLocationId} />
+  return <Shell title="Customer Companies" description="Manage customer companies and their operating locations.">
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><CompanyLocationSelector locations={locations} value={selectedLocationId} onChange={setSelectedLocationId} /><span className="text-xs text-[var(--cc-secondary-text)]">{isAllLocations ? "Viewing all companies" : `Viewing ${selectedLocation?.name || "selected location"}`}</span></div>
 
-    <form onSubmit={handleSubmit} className="space-y-3 rounded-2xl border border-[#E7DED2] bg-[#FFFDFC] p-3.5">
-      <p className="text-sm font-semibold text-[#29231E]">Add Customer Company</p>
+    <form onSubmit={handleSubmit} className="space-y-3 rounded-[16px] border border-[var(--cc-border)] bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
+      <p className="text-[15px] font-semibold text-[var(--cc-text)]">Add Customer Company</p>
       <Input
         ref={nameInputRef}
-        className="h-11 rounded-[10px] border-[#E7DED2]"
+        className="h-11 rounded-[10px] border-[var(--cc-border)]"
         placeholder="Company name"
         value={name}
         onChange={(event) => setName(event.target.value)}
         maxLength={COMPANY_NAME_MAX}
         aria-invalid={!!nameError}
       />
-      {nameError && <p className="text-xs text-[#E51B23]">{nameError}</p>}
-      {isAllLocations && <p className="text-xs text-[#756E66]">Select a location above to add a company to it.</p>}
-      <Button type="submit" disabled={!canSubmit} className="h-11 w-full rounded-[10px] bg-[#E51B23] text-sm font-semibold text-white hover:bg-[#E51B23]/90">
+      {nameError && <p className="text-xs text-[var(--cc-error)]">{nameError}</p>}
+      {isAllLocations && <p className="text-xs text-[var(--cc-secondary-text)]">Select a specific location to add a company.</p>}
+      <Button type="submit" disabled={!canSubmit} className="h-11 w-full rounded-[10px] bg-[var(--cc-primary)] text-sm font-semibold text-white hover:bg-[var(--cc-primary-dark)] disabled:bg-[#F9A0A8]">
         {createMutation.isPending ? "Adding…" : "Add Customer Company"}
       </Button>
     </form>
 
     <div>
       <div className="mb-2 flex items-center gap-2">
-        <h3 className="text-sm font-semibold text-[#29231E]">Customer Companies</h3>
-        <span className="rounded-full bg-[#FFF0F0] px-2 py-0.5 text-[13px] font-semibold text-[#E51B23]">{visibleCount}</span>
+        <h3 className="text-[15px] font-semibold text-[var(--cc-text)]">Customer Companies</h3>
+        <span className="rounded-full bg-[var(--cc-primary-light)] px-2.5 py-1 text-xs font-semibold text-[var(--cc-primary-dark)]">{visibleCount}</span>
       </div>
-      <div className="rounded-2xl border border-[#E7DED2] bg-[#FFFDFC]">
-        {(companiesLoading || locationsLoading || (!isAllLocations && assignedQuery.isLoading)) && <p className="p-4 text-center text-sm text-[#756E66]">Loading…</p>}
+      <div className="rounded-[16px] border border-[var(--cc-border)] bg-white">
+        {(companiesLoading || locationsLoading || (!isAllLocations && assignedQuery.isLoading)) && <p className="p-4 text-center text-sm text-[var(--cc-muted-text)]">Loading...</p>}
         {!companiesLoading && !visibleCompanies.length && (
           <div className="flex flex-col items-center gap-3 px-4 py-8 text-center">
-            <p className="text-sm font-semibold text-[#29231E]">No customer companies</p>
-            <p className="text-xs text-[#756E66]">{isAllLocations ? "No Customer Companies have been created yet." : `No companies are assigned to ${selectedLocation?.name || "this location"} yet.`}</p>
-            {!isAllLocations && <Button type="button" size="sm" className="h-9 rounded-[10px] bg-[#E51B23] text-white hover:bg-[#E51B23]/90" onClick={() => nameInputRef.current?.focus()}>Add Customer Company</Button>}
+            <p className="text-sm font-semibold text-[var(--cc-text)]">No customer companies</p>
+            <p className="text-xs text-[var(--cc-secondary-text)]">{isAllLocations ? "No Customer Companies have been created yet." : `No companies are assigned to ${selectedLocation?.name || "this location"} yet.`}</p>
+            {!isAllLocations && <Button type="button" className="h-11 rounded-[10px] bg-[var(--cc-primary)] text-white hover:bg-[var(--cc-primary-dark)]" onClick={() => nameInputRef.current?.focus()}>Add Customer Company</Button>}
           </div>
         )}
         {visibleCompanies.map((company) => (
           editingId === company.id ? (
-            <div key={company.id} className="flex items-center gap-2 border-b border-[#E7DED2] p-3 last:border-0">
+            <div key={company.id} className="flex min-h-[72px] items-center gap-2 border-b border-[var(--cc-divider)] p-3 last:border-0">
               <Input className="h-10 flex-1 rounded-[10px]" value={editingName} onChange={(event) => setEditingName(event.target.value)} aria-label={`Edit ${company.name}`} maxLength={COMPANY_NAME_MAX} />
               <Button size="sm" className="h-10" disabled={companyMutation.isPending || editingName.trim().length < COMPANY_NAME_MIN} onClick={() => { companyMutation.mutate({ company, name: editingName.trim(), active: company.active }); setEditingId(null); }}>Save</Button>
               <Button size="sm" variant="outline" className="h-10" onClick={() => setEditingId(null)}>Cancel</Button>
@@ -431,22 +596,25 @@ export function CustomerCompanies() {
 export function ControlCenterAccess() {
   const { data: users = [], isLoading: usersLoading, error: usersError } = useQuery(adminUsersOptions());
   const { data: locations = [], isLoading: locationsLoading, error: locationsError } = useQuery(adminLocationsOptions());
+  const { data: createOptions } = useQuery(adminCreateUserOptions());
   const [selectedId, setSelectedId] = useState(null);
+  const [userSearch, setUserSearch] = useState("");
   const selectedUser = users.find((item) => String(item.id) === String(selectedId)) || users[0];
   const assignedQuery = useQuery(userLocationsOptions(selectedUser?.id));
-  const [role, setRole] = useState(ROLE.CUSTOMER);
+  const [role, setRole] = useState("");
   const [selectedLocations, setSelectedLocations] = useState([]);
   const [feedback, setFeedback] = useState(null);
   const queryClient = useQueryClient();
+  const assignableRoles = createOptions?.roles || defaultAssignableRoles;
 
   useEffect(() => {
     if (!selectedUser) return;
     const timer = window.setTimeout(() => {
       setSelectedId(selectedUser.id);
-      setRole(selectedUser.role || ROLE.CUSTOMER);
+      setRole(assignableRoles.includes(selectedUser.role) ? selectedUser.role : assignableRoles[0] || "");
     }, 0);
     return () => window.clearTimeout(timer);
-  }, [selectedUser]);
+  }, [selectedUser, assignableRoles]);
   useEffect(() => {
     const timer = window.setTimeout(() => setSelectedLocations((assignedQuery.data || []).map((item) => String(item.id))), 0);
     return () => window.clearTimeout(timer);
@@ -472,22 +640,20 @@ export function ControlCenterAccess() {
   const loading = usersLoading || locationsLoading;
   const canSave = Boolean(selectedUser) && !saveMutation.isPending && !assignedQuery.isLoading;
   const toggleLocation = (id) => setSelectedLocations((current) => current.includes(String(id)) ? current.filter((value) => value !== String(id)) : [...current, String(id)]);
+  const visibleUsers = users.filter((item) => `${item.name || item.fullName || item.username || ""} ${item.phone || item.email || ""}`.toLowerCase().includes(userSearch.toLowerCase()));
 
   return <Shell title="Access Management" description="Manage each user's role and authorized operating locations.">
-    <div className="grid gap-4 lg:grid-cols-[minmax(14rem,0.7fr)_minmax(0,1.3fr)]">
-      <Card><CardHeader><CardTitle>Users</CardTitle></CardHeader><CardContent className="space-y-2">
-        {users.map((item) => <button type="button" key={item.id} onClick={() => setSelectedId(item.id)} className={`flex min-h-14 w-full items-center justify-between rounded-xl border px-3 text-left ${String(item.id) === String(selectedUser?.id) ? "border-primary bg-primary/5" : "border-zinc-200"}`}><span className="min-w-0 truncate text-sm font-semibold">{item.email || item.name || item.username}</span><span className="ml-2 text-[10px] font-bold uppercase text-zinc-500">{item.role || ROLE.CUSTOMER}</span></button>)}
-        {!users.length && !usersLoading && <p className="py-6 text-sm text-zinc-500">No users found.</p>}
-      </CardContent></Card>
-      <Card><CardHeader><CardTitle>{selectedUser ? "User access" : "Select a user"}</CardTitle></CardHeader><CardContent className="space-y-5">
-        {loading && <p className="text-sm text-zinc-500">Loading access…</p>}
-        {selectedUser && !loading && <><div><p className="text-sm font-semibold">{selectedUser.email || selectedUser.name || selectedUser.username}</p><label className="mt-3 block text-xs font-bold uppercase tracking-wide text-zinc-500" htmlFor="user-role">Role</label><select id="user-role" className="mt-1 min-h-11 w-full rounded-lg border border-zinc-200 bg-white px-3 text-sm" value={role} onChange={(event) => setRole(event.target.value)}>{Object.values(ROLE).map((value) => <option key={value}>{value}</option>)}</select></div>
-          <fieldset><legend className="text-xs font-bold uppercase tracking-wide text-zinc-500">Locations</legend><div className="mt-2 space-y-2">{locations.map((location) => <label key={location.id} className="flex min-h-11 items-center gap-3 rounded-lg border border-zinc-200 px-3"><input type="checkbox" className="size-4" checked={selectedLocations.includes(String(location.id))} onChange={() => toggleLocation(location.id)} /><span className="text-sm">{location.name || location.title || `Location ${location.id}`}</span></label>)}</div></fieldset>
-          <Button className="min-h-11 w-full" disabled={!canSave} onClick={() => { setFeedback(null); saveMutation.mutate(); }}>{saveMutation.isPending ? "Saving…" : <><Check className="size-4" /> Save Access</>}</Button>
-          {feedback && <p role="status" className={feedback.type === "error" ? "text-sm text-red-700" : "text-sm text-emerald-700"}>{feedback.text}</p>}
-        </>}
+    <div className="grid gap-5 lg:grid-cols-[minmax(18rem,.8fr)_minmax(0,1.2fr)]">
+      <section className="rounded-[16px] border border-[var(--cc-border)] bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.06)]"><p className="mb-3 text-[11px] font-bold uppercase tracking-[0.06em] text-[#77716D]">Select User</p><div className="relative mb-3"><Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[var(--cc-muted-text)]" /><Input className="h-11 rounded-[10px] pl-10" placeholder="Search user" value={userSearch} onChange={(event) => setUserSearch(event.target.value)} /></div><div className="space-y-2">{visibleUsers.map((item) => <button type="button" key={item.id} onClick={() => setSelectedId(item.id)} className={`flex min-h-11 w-full items-center gap-2 rounded-[10px] border px-3 text-left ${String(item.id) === String(selectedUser?.id) ? "border-[var(--cc-primary)] bg-[var(--cc-primary-light)]" : "border-[var(--cc-border)] hover:bg-[var(--cc-page)]"}`}><span className="min-w-0 flex-1 truncate text-sm font-semibold">{item.name || item.fullName || item.username || item.email}</span><span className="text-xs text-[var(--cc-muted-text)]">{humanRole(item.role)}</span></button>)}</div></section>
+      <section className="rounded-[16px] border border-[var(--cc-border)] bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.06)]"><p className="mb-4 text-[11px] font-bold uppercase tracking-[0.06em] text-[#77716D]">User Access</p>
+        {loading && <p className="text-sm text-[var(--cc-muted-text)]">Loading access...</p>}
+        {selectedUser && !loading && <div className="space-y-5"><div><p className="text-base font-semibold text-[var(--cc-text)]">{selectedUser.name || selectedUser.fullName || selectedUser.username || selectedUser.email}</p><Field label="Role" icon={ShieldCheck}><select id="user-role" className="h-11 w-full rounded-[10px] border border-[var(--cc-border)] bg-white px-10 text-sm" value={role} onChange={(event) => setRole(event.target.value)}>{assignableRoles.map((value) => <option key={value} value={value}>{humanRole(value)}</option>)}</select></Field></div>
+          <fieldset><legend className="text-[11px] font-bold uppercase tracking-[0.06em] text-[#77716D]">Authorized Locations</legend><div className="mt-2 grid gap-2 sm:grid-cols-2">{locations.map((location) => { const checked = selectedLocations.includes(String(location.id)); return <label key={location.id} className={`flex min-h-11 cursor-pointer items-center gap-3 rounded-[10px] border px-3 text-sm ${checked ? "border-[var(--cc-primary)] bg-[var(--cc-primary-light)]" : "border-[var(--cc-border)]"}`}><input type="checkbox" className="size-4 accent-[var(--cc-primary)]" checked={checked} onChange={() => toggleLocation(location.id)} /><span>{location.name || location.title || `Location ${location.id}`}</span></label>; })}</div></fieldset>
+          <Button className="h-11 w-full rounded-[10px] bg-[var(--cc-primary)] font-semibold text-white hover:bg-[var(--cc-primary-dark)]" disabled={!canSave} onClick={() => { setFeedback(null); saveMutation.mutate(); }}>{saveMutation.isPending ? "Saving..." : <><Check className="size-4" /> Save Access</>}</Button>
+          {feedback && <p role="status" className={feedback.type === "error" ? "text-sm text-[var(--cc-error)]" : "text-sm text-[var(--cc-success)]"}>{feedback.text}</p>}
+        </div>}
         <ErrorState error={usersError || locationsError || assignedQuery.error} />
-      </CardContent></Card>
+      </section>
     </div>
   </Shell>;
 }
@@ -497,17 +663,17 @@ export function ControlCenterAccess() {
 function PaymentMethodRow({ icon, title, description, enabled, onToggle, readOnly, loading }) {
   const Icon = icon;
   return (
-    <div className="flex h-14 items-center gap-3 px-3">
-      <div className={`grid size-9 shrink-0 place-items-center rounded-xl ${enabled ? "bg-emerald-50 text-emerald-600" : "bg-zinc-100 text-zinc-400"}`}>
-        <Icon className="size-[18px]" aria-hidden="true" />
+    <div className="flex min-h-[72px] items-center gap-3 border-b border-[var(--cc-divider)] px-4 last:border-0">
+      <div className={`grid size-10 shrink-0 place-items-center rounded-xl ${enabled ? "bg-[var(--cc-success-bg)] text-[var(--cc-success)]" : "bg-[var(--cc-page)] text-[var(--cc-muted-text)]"}`}>
+        <Icon className="size-5" strokeWidth={1.9} aria-hidden="true" />
       </div>
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-semibold text-[#29231E]">{title}</p>
-        <p className="truncate text-[11px] text-[#756E66]">{description}</p>
+        <p className="truncate text-sm font-semibold text-[var(--cc-text)]">{title}</p>
+        <p className="truncate text-xs text-[var(--cc-secondary-text)]">{description}</p>
       </div>
       {readOnly
-        ? <span className={`shrink-0 rounded-full px-2 py-1 text-[10px] font-bold uppercase ${enabled ? "bg-emerald-50 text-emerald-600" : "bg-zinc-100 text-zinc-500"}`}>{enabled ? "Enabled" : "Disabled"}</span>
-        : <Switch checked={!!enabled} onCheckedChange={onToggle} disabled={loading || enabled === null || enabled === undefined} aria-label={`Toggle ${title}`} />}
+        ? <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${enabled ? "bg-[var(--cc-success-bg)] text-[var(--cc-success)]" : "bg-[var(--cc-page)] text-[var(--cc-muted-text)]"}`}>{enabled ? "Enabled" : "Disabled"}</span>
+        : <Switch checked={!!enabled} onCheckedChange={onToggle} disabled={loading || enabled === null || enabled === undefined} aria-label={`Toggle ${title}`} className="data-[checked]:bg-[var(--cc-primary)]" />}
     </div>
   );
 }
@@ -529,10 +695,10 @@ export function ControlCenterPayments() {
     },
   });
 
-  return <Shell title="Payment Management" description="Configure which payment methods customers can use.">
-    <Card className="border-[#E7DED2] bg-[#FFFDFC] shadow-none">
-      <CardHeader><CardTitle className="text-sm font-semibold text-[#29231E]">Payment methods</CardTitle></CardHeader>
-      <CardContent className="divide-y divide-[#E7DED2] p-0">
+  return <Shell title="Payment Management" description="Configure available customer payment methods.">
+    <Card className="rounded-[16px] border-[var(--cc-border)] bg-white shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
+      <CardHeader className="border-b border-[var(--cc-divider)] py-4"><CardTitle className="text-[15px] font-semibold text-[var(--cc-text)]">Payment methods</CardTitle></CardHeader>
+      <CardContent className="p-0">
         <PaymentMethodRow
           icon={Wallet}
           title="Valid Balance (Wallet)"

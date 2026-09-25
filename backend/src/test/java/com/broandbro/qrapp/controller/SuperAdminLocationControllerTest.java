@@ -16,6 +16,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 
 import java.util.Optional;
+import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
@@ -77,6 +78,66 @@ class SuperAdminLocationControllerTest {
                         .content("{\"active\":true}"))
                 .andExpect(status().isForbidden());
         verifyNoInteractions(accessRepository);
+    }
+
+    @Test
+    @WithMockUser(roles = "SUPER_ADMIN")
+    void createUserRejectsInvalidPhoneBeforeService() throws Exception {
+        when(userService.findByPhone("user")).thenReturn(Optional.of(
+                User.builder().phone("user").role(UserRole.SUPER_ADMIN).build()));
+
+        mockMvc.perform(post("/api/admin/users")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"A User\",\"phone\":\"12345\",\"password\":\"x\",\"role\":\"ADMIN\",\"locationId\":3}"))
+                .andExpect(status().isBadRequest());
+        verify(userService, never()).createInternalUser(any());
+    }
+
+    @Test
+    @WithMockUser(roles = "SUPER_ADMIN")
+    void createUserReturnsCreatedWithoutPassword() throws Exception {
+        when(userService.findByPhone("user")).thenReturn(Optional.of(
+                User.builder().phone("user").role(UserRole.SUPER_ADMIN).build()));
+        when(userService.createInternalUser(any())).thenReturn(
+                new com.broandbro.qrapp.dto.UserResponse());
+
+        mockMvc.perform(post("/api/admin/users")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"A User\",\"phone\":\"9876543210\",\"password\":\"secret\",\"role\":\"MANAGER\",\"locationId\":3}"))
+                .andExpect(status().isCreated())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers
+                        .jsonPath("$.password").doesNotExist());
+    }
+
+    @Test
+    @WithMockUser(roles = "SUPER_ADMIN")
+    void createUserReturnsConflictForDuplicatePhone() throws Exception {
+        when(userService.findByPhone("user")).thenReturn(Optional.of(
+                User.builder().phone("user").role(UserRole.SUPER_ADMIN).build()));
+        when(userService.createInternalUser(any()))
+                .thenThrow(new IllegalArgumentException("phone_taken"));
+
+        mockMvc.perform(post("/api/admin/users")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"A User\",\"phone\":\"9876543210\",\"password\":\"secret\",\"role\":\"MANAGER\",\"locationId\":3}"))
+                .andExpect(status().isConflict());
+    }
+
+    @Test
+    @WithMockUser(roles = "SUPER_ADMIN")
+    void createOptionsExposeOnlyInternalAssignableRoles() throws Exception {
+        when(userService.findByPhone("user")).thenReturn(Optional.of(
+                User.builder().phone("user").role(UserRole.SUPER_ADMIN).build()));
+        when(locationRepository.findByActiveTrueOrderByNameAsc()).thenReturn(List.of());
+
+        mockMvc.perform(get("/api/admin/users/create-options"))
+                .andExpect(status().isOk())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers
+                        .jsonPath("$.roles[0]").value("ADMIN"))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers
+                        .jsonPath("$.roles[1]").value("MANAGER"))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers
+                        .jsonPath("$.roles[2]").value("KITCHEN_STAFF"));
     }
 
 }
