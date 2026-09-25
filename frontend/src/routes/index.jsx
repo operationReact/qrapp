@@ -163,7 +163,7 @@ function MenuPage() {
           />
         </div>
 
-        <div className="container-premium -mx-[0.875rem] w-auto px-0 md:mx-0 md:w-auto md:px-0">
+        <div className="container-premium -mx-[0.875rem] mt-1 w-auto px-0 md:mx-0 md:w-auto md:px-0">
           <CategoryTabs categories={categories} active={category} />
         </div>
 

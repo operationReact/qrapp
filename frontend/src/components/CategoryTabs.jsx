@@ -36,6 +36,8 @@ export default function CategoryTabs({ categories, active }) {
       <div className="flex min-w-max items-start gap-0.5 pb-0 [touch-action:pan-x]">
         {allCategories.map((category) => {
           const catName = getCategoryName(category);
+          const isActive = active === catName;
+          const isAllActive = isActive && catName.toLowerCase() === "all";
           return (
           <a
             href={`/#${catName}`}
@@ -45,13 +47,14 @@ export default function CategoryTabs({ categories, active }) {
               variant: "ghost",
               className: cn(
                 "group h-auto w-[74px] min-w-[74px] flex-col gap-0.5 rounded-2xl px-0 py-0 text-[13px] font-semibold leading-4 shadow-none touch-manipulation hover:bg-transparent md:h-9 md:w-auto md:min-w-fit md:flex-row md:gap-1.5 md:rounded-full md:px-3.5 md:py-2 md:text-xs",
-                active === catName ? "text-primary" : "text-foreground",
+                isActive ? "text-primary" : "text-foreground",
               ),
             })}
           >
             <span className={cn(
               "grid h-[50px] w-[50px] place-items-center rounded-[16px] bg-[#f4f7fb] text-[29px] shadow-[0_4px_10px_rgba(41,47,67,0.05)] transition-colors md:hidden",
-              active === catName && "bg-primary text-primary-foreground shadow-[0_7px_16px_rgba(241,32,70,0.22)]",
+              isActive && !isAllActive && "bg-primary text-primary-foreground shadow-[0_7px_16px_rgba(241,32,70,0.22)]",
+              isAllActive && "border border-primary/20 bg-primary/10 text-primary shadow-none",
             )}>
               <CategoryImage category={category} />
             </span>
