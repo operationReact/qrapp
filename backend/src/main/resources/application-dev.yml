@@ -100,7 +100,7 @@ aws:
 
 # ── OpenAI Configuration ──────────────────────────────────────────────────
 openai:
-  api-key: ${app.parameter-store.openai.apiKey:}
+  api-key: ${OPENAI_API_KEY:${app.parameter-store.openai.apiKey:}}
 
 # ── Allowed CORS Origins ────────────────────────────────────────────
 # Comma-separated list of frontend domains that can access the API

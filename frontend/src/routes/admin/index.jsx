@@ -13,27 +13,15 @@ import { useAdminDashboard } from "@/context/AdminDashboardContext";
 import { useLocation as useActiveLocation } from "@/context/LocationContext";
 import {
   dailySalesRangeOptions,
-  orderHeatmapOptions,
-  repeatRateOptions,
   salesSummaryOptions,
-  stallPerformanceOptions,
-  topSellingItemsOptions,
-  userPreferencesOptions,
 } from "@/query/options/analytics";
 import { inventoryAlertsOptions } from "@/query/options/inventory";
 import {
   KpiStrip,
   LiveOperations,
   NeedsAttention,
-  OrderActivity,
-  PaymentMix,
-  QuickActions,
   RevenueOrdersPanel,
-  StallPerformance,
-  TopSellingItems,
-  CustomerInsights,
 } from "@/components/admin/dashboard/DashboardPanels";
-import { formatNumber, formatPercent, Panel, PanelHeader } from "@/components/admin/dashboard/DashboardPrimitives";
 
 export const Route = createFileRoute("/admin/")({ component: AdminDashboardPage });
 
@@ -103,6 +91,7 @@ function DashboardHeader({ rangeKey, onRangeChange, ownerName, notifications }) 
   const showRootLocationSelector = canUseRootLocationSelector(user);
   const range = getRange(rangeKey);
   const panelRef = useRef(null);
+  const mobilePanelRef = useRef(null);
   const [open, setOpen] = useState(false);
   const [readIds, setReadIds] = useState(() => {
     try {
@@ -116,7 +105,10 @@ function DashboardHeader({ rangeKey, onRangeChange, ownerName, notifications }) 
 
   useEffect(() => {
     const handlePointerDown = (event) => {
-      if (open && panelRef.current && !panelRef.current.contains(event.target)) setOpen(false);
+      if (open
+        && panelRef.current && mobilePanelRef.current
+        && !panelRef.current.contains(event.target)
+        && !mobilePanelRef.current.contains(event.target)) setOpen(false);
     };
     document.addEventListener("pointerdown", handlePointerDown);
     return () => document.removeEventListener("pointerdown", handlePointerDown);
@@ -128,8 +120,76 @@ function DashboardHeader({ rangeKey, onRangeChange, ownerName, notifications }) 
   };
 
   return (
-    <header className="border-b border-zinc-200/50 bg-white/95 pt-[env(safe-area-inset-top)]">
-      <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-2 px-4 pb-3 pt-2.5 sm:px-6 lg:flex-row lg:items-center lg:gap-6 lg:px-8 lg:py-3">
+    <header className="border-b border-[#E8E2DD] bg-white pt-[env(safe-area-inset-top)]">
+      <div className="mx-auto w-full max-w-[1200px] lg:hidden">
+        <div className="flex h-14 items-center gap-2 px-4">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleSidebar}
+            aria-label="Open admin menu"
+            className="size-10 shrink-0 rounded-[10px] text-[#171717]"
+          >
+            <Menu size={20} />
+          </Button>
+          <div className="flex min-w-0 items-center gap-2">
+            <span className="grid size-8 shrink-0 place-items-center rounded-full bg-[#171717] text-[11px] font-black tracking-tight text-white">Q</span>
+            <div className="min-w-0">
+              <p className="truncate text-[10px] font-bold uppercase leading-[14px] tracking-[0.08em] text-[#8A8580]">Operations</p>
+              <p className="truncate text-xs font-semibold leading-4 text-[#171717]">Admin Workspace</p>
+            </div>
+          </div>
+          <div ref={mobilePanelRef} className="relative ml-auto">
+            <button
+              type="button"
+              aria-label={unreadCount > 0 ? `${unreadCount} unread notifications` : "Notifications"}
+              aria-expanded={open}
+              onClick={() => setOpen((value) => !value)}
+              className="relative grid size-10 place-items-center rounded-[10px] text-[#6B6B6B] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF2438]/30"
+            >
+              <Bell size={20} aria-hidden="true" />
+              {unreadCount > 0 && <span className="absolute right-0 top-0 grid min-w-4 place-items-center rounded-full bg-[#FF2438] px-1 text-[9px] font-bold leading-4 text-white">{unreadCount > 9 ? "9+" : unreadCount}</span>}
+            </button>
+            {open && <div className="absolute right-0 top-11 z-50 w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-xl border border-[#E8E2DD] bg-white shadow-[0_4px_12px_rgba(0,0,0,0.08)]">
+              <div className="flex items-center justify-between border-b border-[#EEE9E5] px-4 py-3">
+                <p className="text-sm font-bold text-[#171717]">Notifications</p>
+                {notifications.length > 0 && <button type="button" className="text-[11px] font-semibold text-[#FF2438]" onClick={() => markRead(notifications.map((notification) => notification.id))}>Mark all read</button>}
+              </div>
+              {notifications.length === 0 ? <p className="px-4 py-6 text-center text-xs text-[#8A8580]">No live admin alerts need attention.</p> : (
+                <div className="divide-y divide-[#EEE9E5]">
+                  {notifications.map((notification) => {
+                    const unread = !readIds.includes(notification.id);
+                    return <Link key={notification.id} to={notification.to} onClick={() => { markRead([...new Set([...readIds, notification.id])]); setOpen(false); }} className="block px-4 py-3 text-xs text-[#171717]">
+                      <span className="font-semibold">{notification.title}</span>
+                      <span className="mt-0.5 block text-[11px] text-[#6B6B6B]">{unread ? notification.detail : "Viewed"}</span>
+                    </Link>;
+                  })}
+                </div>
+              )}
+            </div>}
+          </div>
+        </div>
+        <div className="flex h-12 min-w-0 items-center gap-2 px-4 pb-2 pt-1">
+          <div className="min-w-0 flex-1">
+            {showRootLocationSelector
+              ? <LocationSelector className="w-full max-w-none !min-h-10 !rounded-[10px]" allowAllLocations />
+              : <SectionLocationSelector className="w-full max-w-none !h-10 !min-h-10 !rounded-[10px]" />}
+          </div>
+          <label className="sr-only" htmlFor="dashboard-range-mobile">Dashboard date range</label>
+          <div className="relative shrink-0">
+            <select
+              id="dashboard-range-mobile"
+              value={rangeKey}
+              onChange={(event) => onRangeChange(event.target.value)}
+              className="h-10 w-[108px] appearance-none rounded-[10px] border border-[#E8E2DD] bg-white pl-3 pr-7 text-xs font-semibold text-[#171717] outline-none focus-visible:border-[#FF2438] focus-visible:ring-2 focus-visible:ring-[#FF2438]/20"
+            >
+              {RANGE_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+            </select>
+            <ChevronDown size={14} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[#8A8580]" aria-hidden="true" />
+          </div>
+        </div>
+      </div>
+      <div className="mx-auto hidden w-full max-w-[1200px] lg:flex flex-col gap-2 px-4 pb-3 pt-2.5 sm:px-6 lg:flex-row lg:items-center lg:gap-6 lg:px-8 lg:py-3">
         <div className="flex min-w-0 items-center justify-between gap-3 lg:contents">
           <Button
             variant="ghost"
@@ -141,24 +201,24 @@ function DashboardHeader({ rangeKey, onRangeChange, ownerName, notifications }) 
             <Menu size={19} />
           </Button>
           <div className="flex min-w-0 flex-1 items-center gap-2 lg:flex-none">
-            <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-zinc-950 text-[11px] font-black tracking-tight text-white">
+            <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-[#171717] text-[11px] font-black tracking-tight text-white">
               Q
             </span>
             <div className="min-w-0">
-              <p className="truncate text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-400">
+              <p className="truncate text-[10px] font-bold uppercase tracking-[0.16em] text-[#817A75]">
                 Operations
               </p>
-              <p className="truncate text-xs font-semibold text-zinc-700">Admin workspace</p>
+              <p className="truncate text-xs font-semibold text-[#171717]">Admin workspace</p>
             </div>
           </div>
         </div>
 
         <div className="flex min-w-0 items-center justify-between gap-3 lg:flex-1">
           <div className="min-w-0">
-            <h1 className="truncate text-xl font-bold leading-tight tracking-tight text-zinc-950 sm:text-2xl">
+            <h1 className="truncate text-[22px] font-bold leading-7 tracking-tight text-[#171717]">
               Dashboard
             </h1>
-            <p className="mt-0.5 flex min-w-0 items-center gap-1.5 truncate text-xs text-zinc-400 sm:text-sm">
+            <p className="mt-0.5 flex min-w-0 items-center gap-1.5 truncate text-[11px] text-[#8A8580] sm:text-[13px]">
               <CalendarDays size={13} aria-hidden="true" />
               <span className="truncate">{dateLabel(range.to)}</span>
               <span className="hidden text-zinc-300 sm:inline">·</span>
@@ -170,21 +230,21 @@ function DashboardHeader({ rangeKey, onRangeChange, ownerName, notifications }) 
 
           <div className="flex min-w-0 shrink-0 items-center gap-2">
             {showRootLocationSelector
-              ? <LocationSelector className="max-w-[180px]" allowAllLocations />
-              : <SectionLocationSelector className="max-w-[200px]" />}
+              ? <LocationSelector header className="max-w-[180px] !min-h-10 !rounded-[10px]" allowAllLocations />
+              : <SectionLocationSelector className="max-w-[200px] !h-10 !min-h-10 !rounded-[10px]" />}
             <label className="sr-only" htmlFor="dashboard-range">Dashboard date range</label>
             <div className="relative">
               <select
                 id="dashboard-range"
                 value={rangeKey}
                 onChange={(event) => onRangeChange(event.target.value)}
-                className="h-11 w-[116px] appearance-none rounded-xl border border-zinc-200 bg-zinc-50 pl-3 pr-8 text-xs font-bold text-zinc-700 outline-none transition-colors hover:bg-white focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20 sm:w-[132px]"
+                className="h-10 w-[116px] appearance-none rounded-[10px] border border-[#E8E2DD] bg-white pl-3 pr-8 text-xs font-semibold text-[#171717] outline-none transition-colors hover:bg-[#FAF8F5] focus-visible:border-[#FF2438] focus-visible:ring-2 focus-visible:ring-[#FF2438]/20 sm:w-[132px]"
               >
                 {RANGE_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
               </select>
               <ChevronDown
                 size={15}
-                className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400"
+                className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[#8A8580]"
                 aria-hidden="true"
               />
             </div>
@@ -195,10 +255,10 @@ function DashboardHeader({ rangeKey, onRangeChange, ownerName, notifications }) 
               aria-label={unreadCount > 0 ? `${unreadCount} unread notifications` : "Notifications"}
               aria-expanded={open}
               onClick={() => setOpen((value) => !value)}
-              className="relative grid size-11 place-items-center rounded-xl border border-zinc-200 text-zinc-600 transition-colors hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+              className="relative grid size-11 place-items-center rounded-[10px] border border-[#E8E2DD] text-[#6B6B6B] transition-colors hover:bg-[#FAF8F5] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF2438]/30"
             >
               <Bell size={17} aria-hidden="true" />
-              {unreadCount > 0 && <span className="absolute right-0.5 top-0.5 grid min-w-4 place-items-center rounded-full bg-red-600 px-1 text-[9px] font-bold leading-4 text-white">{unreadCount > 9 ? "9+" : unreadCount}</span>}
+              {unreadCount > 0 && <span className="absolute right-0.5 top-0.5 grid min-w-4 place-items-center rounded-full bg-[#FF2438] px-1 text-[9px] font-bold leading-4 text-white">{unreadCount > 9 ? "9+" : unreadCount}</span>}
             </button>
             {open && (
               <div className="absolute right-0 top-11 z-50 w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-xl">
@@ -266,28 +326,6 @@ function DashboardHeader({ rangeKey, onRangeChange, ownerName, notifications }) 
   );
 }
 
-function OrderOutcomes({ summary }) {
-  const total = Number(summary?.totalOrders ?? 0);
-  const cancelled = Number(summary?.cancelledOrders ?? 0);
-  return (
-    <Panel>
-      <PanelHeader>Order outcomes</PanelHeader>
-      <div className="grid grid-cols-2 divide-x divide-zinc-100">
-        <div className="px-4 py-4 sm:px-5">
-          <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-zinc-400">Cancelled</p>
-          <p className="mt-1.5 text-2xl font-bold tabular-nums text-zinc-900">{formatNumber(cancelled)}</p>
-          <p className="mt-1 text-xs text-zinc-400">{total ? formatPercent((cancelled / total) * 100) : "—"} of orders</p>
-        </div>
-        <div className="px-4 py-4 sm:px-5">
-          <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-zinc-400">Refunds</p>
-          <p className="mt-1.5 text-lg font-bold text-zinc-500">Not tracked</p>
-          <p className="mt-1 text-xs leading-relaxed text-zinc-400">No reliable refund aggregate is available in the current API.</p>
-        </div>
-      </div>
-    </Panel>
-  );
-}
-
 function AdminDashboardPage() {
   const { isAdmin, isSuperUser, user } = useAuth();
   const location = useLocation();
@@ -308,11 +346,6 @@ function AdminDashboardPage() {
   const summaryQuery = useQuery({ ...salesSummaryOptions(params, activeLocationId), enabled: canViewAdmin });
   const comparisonQuery = useQuery({ ...salesSummaryOptions(previousParams, activeLocationId), enabled: canViewAdmin });
   const dailyQuery = useQuery({ ...dailySalesRangeOptions(params, activeLocationId), enabled: canViewAdmin });
-  const topItemsQuery = useQuery({ ...topSellingItemsOptions({ ...params, limit: 5 }, activeLocationId), enabled: canViewAdmin });
-  const stallQuery = useQuery({ ...stallPerformanceOptions(params, activeLocationId), enabled: canViewAdmin });
-  const activityQuery = useQuery({ ...orderHeatmapOptions(params, activeLocationId), enabled: canViewAdmin });
-  const customerQuery = useQuery({ ...userPreferencesOptions({}, activeLocationId), enabled: canViewAdmin });
-  const repeatQuery = useQuery({ ...repeatRateOptions(activeLocationId), enabled: canViewAdmin });
   const inventoryQuery = useQuery({ ...inventoryAlertsOptions(6, activeLocationId), enabled: canViewAdmin });
 
   const ownerName = user?.info?.name?.split(" ")[0] ?? "";
@@ -321,6 +354,8 @@ function AdminDashboardPage() {
   const summaryWithLive = {
     ...summary,
     pendingOrders: (live.placedOrders ?? 0) + (live.preparingOrders ?? 0),
+    preparingOrders: live.preparingOrders ?? 0,
+    readyOrders: live.readyOrders ?? 0,
     delayedOrders: live.delayedOrders ?? 0,
   };
   const selectedLabel = rangeKey === "today" ? "Today" : RANGE_OPTIONS.find((item) => item.value === rangeKey)?.label;
@@ -349,26 +384,25 @@ function AdminDashboardPage() {
       tone: "bg-orange-500",
       to: "/admin/menu",
     },
-    summary.cancelledOrders > 0 && {
-      id: `cancelled-orders-${rangeKey}-${summary.cancelledOrders}`,
-      title: `${summary.cancelledOrders} cancelled order${summary.cancelledOrders === 1 ? "" : "s"}`,
-      detail: "Review cancellation activity for the selected period.",
-      time: selectedLabel,
-      tone: "bg-zinc-400",
-      to: "/admin/analytics/orders",
-    },
-  ].filter(Boolean), [inventoryQuery.data, live.delayedOrders, live.placedOrders, rangeKey, selectedLabel, summary.cancelledOrders]);
-  const activityRangeLabel = rangeKey === "today" ? "Today" : selectedLabel;
+  ].filter(Boolean), [inventoryQuery.data, live.delayedOrders, live.placedOrders]);
 
   if (!canViewAdmin) return <Navigate to="/login" replace state={{ from: location.pathname }} />;
 
   return (
-    <div className="min-h-screen bg-[#f7f6f3]">
+    <div className="min-h-screen bg-[#F8F6F3]">
       <DashboardHeader rangeKey={rangeKey} onRangeChange={setRangeKey} ownerName={ownerName} notifications={notifications} />
-      <main className="mx-auto flex w-full max-w-[1600px] flex-col gap-4 px-4 py-4 sm:px-6 lg:gap-5 lg:px-8 lg:py-5">
-        <div className="order-1"><KpiStrip summary={summaryWithLive} comparison={comparisonQuery.data} loading={summaryQuery.isLoading || dashboardLoading} /></div>
+      <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-4 px-4 py-4 sm:px-6 lg:gap-5 lg:px-8 lg:py-5">
+        <div className="order-1"><KpiStrip summary={summaryWithLive} comparison={comparisonQuery.data} loading={summaryQuery.isLoading || dashboardLoading} error={summaryQuery.error} onRetry={summaryQuery.refetch} /></div>
 
-        <div className="order-2 grid grid-cols-1 gap-4 lg:grid-cols-12 lg:gap-5">
+        <div className="order-2">
+          <LiveOperations dashboard={live} loading={dashboardLoading} error={dashboardError} onRetry={refetchDashboard} />
+        </div>
+
+        <div className="order-3">
+          <NeedsAttention dashboard={live} inventoryQuery={inventoryQuery} liveLoading={dashboardLoading} />
+        </div>
+
+        <div className="order-4">
           <RevenueOrdersPanel
             query={dailyQuery}
             data={dailyQuery.data}
@@ -376,44 +410,7 @@ function AdminDashboardPage() {
             setMetric={setMetric}
             rangeLabel={selectedLabel}
           />
-          <LiveOperations dashboard={live} loading={dashboardLoading} error={dashboardError} onRetry={refetchDashboard} />
         </div>
-
-        <div className="order-4">
-          <div className="mb-3 flex items-end justify-between gap-3">
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-400">Business insights</p>
-              <h2 className="mt-1 text-lg font-bold tracking-tight text-zinc-950">What is moving the business</h2>
-            </div>
-            <span className="hidden text-xs text-zinc-400 sm:block">{selectedLabel} · completed orders</span>
-          </div>
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-5">
-            <TopSellingItems query={topItemsQuery} to={range.to} />
-            <StallPerformance query={stallQuery} />
-          </div>
-        </div>
-
-        <div className="order-5 grid grid-cols-1 gap-4 lg:grid-cols-12 lg:gap-5">
-          <div className="lg:col-span-7"><OrderActivity query={activityQuery} rangeLabel={activityRangeLabel} /></div>
-          <div className="lg:col-span-5"><CustomerInsights query={customerQuery} repeatQuery={repeatQuery} /></div>
-        </div>
-
-        <div className="order-3">
-          <div className="mb-2">
-            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-400">Exceptions &amp; settlement</p>
-            <h2 className="mt-1 text-lg font-bold tracking-tight text-zinc-950">Needs attention</h2>
-          </div>
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-12 lg:gap-5">
-            <div className="lg:col-span-6"><NeedsAttention dashboard={live} inventoryQuery={inventoryQuery} summary={summary} liveLoading={dashboardLoading} /></div>
-            <div className="lg:col-span-3"><PaymentMix summary={summary} /></div>
-            <div className="lg:col-span-3"><OrderOutcomes summary={summary} /></div>
-          </div>
-        </div>
-
-        <div className="order-6"><QuickActions /></div>
-        <p className="order-7 pb-2 text-[11px] text-zinc-400">
-          Estimated profit uses recorded menu-item costs against completed-order revenue. It is an operational estimate, not finalized accounting profit.
-        </p>
       </main>
     </div>
   );

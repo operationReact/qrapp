@@ -10,6 +10,10 @@ const list = (path, key, params) => ({
 });
 
 export const adminUsersOptions = (params) => list("/api/admin/users", "users", params);
+export const adminCreateUserOptions = () => ({
+  queryKey: ["admin", "users", "create-options"],
+  queryFn: async () => (await apiClient.get("/api/admin/users/create-options")).data,
+});
 export const adminLocationsOptions = (params) => list("/api/admin/locations", "locations", params);
 export const adminCustomerCompaniesOptions = (params) => list("/api/admin/customer-companies", "customer-companies", params);
 export const adminVendorsOptions = () => list("/api/v1/vendors", "vendors");
@@ -30,6 +34,7 @@ export const userLocationsOptions = (userId, enabled = true) => ({
 
 export async function createManagementResource(path, payload) { return (await apiClient.post(path, payload)).data; }
 export async function updateManagementResource(path, id, payload) { return (await apiClient.patch(`${path}/${id}`, payload)).data; }
+export async function updateAdminLocation(id, payload) { return (await apiClient.put(`/api/admin/locations/${id}`, payload)).data; }
 export async function updateCustomerCompany(id, payload) { return (await apiClient.put(`/api/admin/customer-companies/${id}`, payload)).data; }
 export async function assignCustomerCompany(locationId, companyId) {
   return apiClient.put(`/api/admin/locations/${locationId}/customer-companies/${companyId}`);
@@ -38,6 +43,7 @@ export async function removeCustomerCompany(locationId, companyId) {
   return apiClient.delete(`/api/admin/locations/${locationId}/customer-companies/${companyId}`);
 }
 export async function updateUserRole(id, payload) { return (await apiClient.put(`/api/admin/users/${id}/role`, payload)).data; }
+export async function createAdminUser(payload) { return (await apiClient.post("/api/admin/users", payload)).data; }
 export async function grantUserLocation(userId, locationId) {
   return (await apiClient.put(`/api/admin/users/${userId}/locations/${locationId}`, { active: true })).data;
 }

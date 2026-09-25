@@ -66,25 +66,26 @@ function PartyOrdersPage() {
   return (
     <>
       {/* ── Page Header ───────────────────────────────────────────────── */}
-      <div className="px-4 pt-6 pb-5">
+      <div className="admin-control-center min-h-screen bg-[var(--cc-page)] pb-10 text-[var(--cc-text)]">
+      <div className="mx-auto max-w-[1200px] px-4 pt-6 pb-5 md:px-6">
         <h1 className="text-2xl font-bold tracking-tight text-foreground md:text-[28px] leading-tight">
           Party Orders
         </h1>
-        <p className="mt-1.5 text-sm text-muted-foreground">
-          Manage party order requests and provide estimates.
+        <p className="mt-1.5 text-[13px] text-[var(--cc-secondary-text)]">
+          Manage customer Party/Event orders.
         </p>
       </div>
 
-      <div className="px-4 pb-6 space-y-4">
+      <div className="mx-auto max-w-[1200px] space-y-4 px-4 pb-6 md:px-6">
         {/* ── Search ──────────────────────────────────────────────────── */}
-        <InputGroup className="w-full max-w-sm">
+        <InputGroup className="h-11 w-full max-w-sm rounded-[10px] border-[var(--cc-border)] bg-white">
           <InputGroupAddon>
             <MagnifyingGlassIcon weight="bold" />
           </InputGroupAddon>
           <InputGroupInput
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by name, phone, menu item…"
+            placeholder="Search customer, event or order"
           />
         </InputGroup>
 
@@ -151,6 +152,7 @@ function PartyOrdersPage() {
             )}
           </TabsContent>
         </Tabs>
+      </div>
       </div>
     </>
   );

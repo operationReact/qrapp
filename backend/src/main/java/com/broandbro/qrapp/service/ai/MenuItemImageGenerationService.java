@@ -215,17 +215,24 @@ public class MenuItemImageGenerationService {
                 }, imageGenerationExecutor)
                 .exceptionally(ex -> {
                     log.error("[ImgGen] ✘ Failed option {}/{} for menuItemId={}: {}", i + 1, cappedCount, menuItemId, ex.getMessage());
-                    return null;
+                    throw new java.util.concurrent.CompletionException(ex);
                 }))
                 .toList();
 
         // Wait for all to complete, then collect non-null results
         CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
 
-        return futures.stream()
+        List<String> generatedUrls = futures.stream()
                 .map(CompletableFuture::join)
                 .filter(Objects::nonNull)
                 .collect(java.util.stream.Collectors.toList());
+
+        if (generatedUrls.isEmpty()) {
+            throw new OpenAiImageGenerationException(
+                    "No image was generated for menuItemId=" + menuItemId);
+        }
+
+        return generatedUrls;
     }
 
     /**

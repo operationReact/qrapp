@@ -61,20 +61,20 @@ function formatK(amount) {
 }
 
 const STATUS_STYLES = {
-  NEW: "bg-sky-50 text-sky-700 border-sky-200",
-  UNDER_REVIEW: "bg-orange-50 text-orange-700 border-orange-200",
-  PENDING_ESTIMATE: "bg-amber-50 text-amber-700 border-amber-200",
-  ESTIMATE_SENT: "bg-violet-50 text-violet-700 border-violet-200",
-  CONFIRMED: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  REJECTED: "bg-red-50 text-red-700 border-red-200",
-  CANCELLED: "bg-zinc-100 text-zinc-500 border-zinc-200",
-  DELIVERED: "bg-blue-50 text-blue-700 border-blue-200",
-  COMPLETED: "bg-green-50 text-green-700 border-green-200",
+  NEW: "bg-[var(--cc-info-bg)] text-[var(--cc-info)] border-[var(--cc-info)]/20",
+  UNDER_REVIEW: "bg-[var(--cc-warning-bg)] text-[var(--cc-warning)] border-[var(--cc-warning)]/20",
+  PENDING_ESTIMATE: "bg-[var(--cc-warning-bg)] text-[var(--cc-warning)] border-[var(--cc-warning)]/20",
+  ESTIMATE_SENT: "bg-[var(--cc-info-bg)] text-[var(--cc-info)] border-[var(--cc-info)]/20",
+  CONFIRMED: "bg-[var(--cc-success-bg)] text-[var(--cc-success)] border-[var(--cc-success)]/20",
+  REJECTED: "bg-[var(--cc-error-bg)] text-[var(--cc-error)] border-[var(--cc-error)]/20",
+  CANCELLED: "bg-[#F3F1EF] text-[var(--cc-muted-text)] border-[var(--cc-border)]",
+  DELIVERED: "bg-[var(--cc-info-bg)] text-[var(--cc-info)] border-[var(--cc-info)]/20",
+  COMPLETED: "bg-[var(--cc-success-bg)] text-[var(--cc-success)] border-[var(--cc-success)]/20",
 };
 
 function StatusBadge({ status }) {
   const cls =
-    STATUS_STYLES[status] ?? "bg-zinc-100 text-zinc-600 border-zinc-200";
+    STATUS_STYLES[status] ?? "bg-[#F3F1EF] text-[var(--cc-muted-text)] border-[var(--cc-border)]";
   return (
     <Badge className={`h-6 ${cls}`}>
       Status: {status?.replace(/_/g, " ") ?? "—"}
@@ -120,12 +120,15 @@ export default function PartyOrderCard({ order, onEstimateSubmitted }) {
 
   return (
     <>
-      <Card className="overflow-hidden">
+      <Card className="overflow-hidden rounded-[16px] border-[var(--cc-border)] bg-white shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
         {/* ── Header: customer + status ─────────────────────────── */}
         <CardHeader>
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
-              <p className="text-base mb-1 flex items-center gap-1 font-medium truncate">
+              <p className="mb-1 truncate text-[15px] font-semibold">
+                Order #{order.id}
+              </p>
+              <p className="mb-1 flex items-center gap-1 truncate text-sm font-medium">
                 <UserIcon weight="duotone" className="text-muted-foreground" />{" "}
                 {order.userName}
               </p>
@@ -239,7 +242,7 @@ export default function PartyOrderCard({ order, onEstimateSubmitted }) {
                           <span className="flex items-center gap-1">
                             <ChartLineIcon weight="duotone" /> Profit:
                           </span>
-                          <span className={cn("font-bold", order.estimatedTotalProfit >= 0 ? "text-emerald-600" : "text-red-500")}>
+                          <span className={cn("font-bold", order.estimatedTotalProfit >= 0 ? "text-[var(--cc-success)]" : "text-[var(--cc-error)]")}>
                             {order.estimatedTotalProfit >= 0 ? "+" : ""}
                             {formatK(order.estimatedTotalProfit)}
                           </span>
@@ -253,7 +256,7 @@ export default function PartyOrderCard({ order, onEstimateSubmitted }) {
                           </span>
                           <span className="font-medium">{formatK(order.budgetAmount)}</span>
                           {order.estimatedTotalAmount && (
-                            <span className={cn("font-semibold", order.estimatedTotalAmount - order.budgetAmount >= 0 ? "text-red-500" : "text-emerald-600")}>
+                            <span className={cn("font-semibold", order.estimatedTotalAmount - order.budgetAmount >= 0 ? "text-[var(--cc-error)]" : "text-[var(--cc-success)]")}>
                               ({order.estimatedTotalAmount - order.budgetAmount >= 0 ? "+" : ""}
                               {formatK(order.estimatedTotalAmount - order.budgetAmount)})
                             </span>
@@ -266,13 +269,13 @@ export default function PartyOrderCard({ order, onEstimateSubmitted }) {
                         <div className="mt-2 pt-2 border-t border-muted-foreground/20 space-y-1.5">
                           <div className="flex items-center justify-between text-sm">
                             <span className="text-muted-foreground">Advance Paid (30%)</span>
-                            <span className="font-semibold text-emerald-600">
+                            <span className="font-semibold text-[var(--cc-success)]">
                               ✓ {formatCurrency(order.advancePaidAmount)}
                             </span>
                           </div>
                           <div className="flex items-center justify-between text-sm">
                             <span className="text-muted-foreground">Balance Due (70%)</span>
-                            <span className={cn("font-semibold", order.balancePaid ? "text-emerald-600" : "text-amber-600")}>
+                            <span className={cn("font-semibold", order.balancePaid ? "text-[var(--cc-success)]" : "text-[var(--cc-warning)]")}>
                               {order.balancePaid
                                 ? `✓ ${formatCurrency(order.balancePaidAmount)} (Paid)`
                                 : formatCurrency(
@@ -298,10 +301,10 @@ export default function PartyOrderCard({ order, onEstimateSubmitted }) {
                     <CountdownTimer targetDate={order.eventDateTime} label="Event starts in" expiredLabel="Event date passed" />
                   )}
                   {order.status === "DELIVERED" && (
-                    <p className="text-xs text-amber-600 font-medium mt-2">⏳ Waiting for customer to pay balance.</p>
+                    <p className="mt-2 text-xs font-medium text-[var(--cc-warning)]">⏳ Waiting for customer to pay balance.</p>
                   )}
                   {order.status === "COMPLETED" && (
-                    <p className="text-xs text-emerald-600 font-medium mt-2">✓ Full payment received. Order complete.</p>
+                    <p className="mt-2 text-xs font-medium text-[var(--cc-success)]">✓ Full payment received. Order complete.</p>
                   )}
                 </CollapsibleContent>
               </Collapsible>
@@ -352,7 +355,7 @@ export default function PartyOrderCard({ order, onEstimateSubmitted }) {
               <Button
                 size="sm"
                 variant="outline"
-                className="flex-1 border-blue-300 text-blue-700 hover:bg-blue-50"
+                className="h-11 flex-1 border-[var(--cc-info)]/30 text-[var(--cc-info)] hover:bg-[var(--cc-info-bg)]"
                 disabled={deliverMut.isPending}
                 onClick={() => deliverMut.mutate()}
               >
