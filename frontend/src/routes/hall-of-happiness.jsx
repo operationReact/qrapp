@@ -5,6 +5,7 @@ import { ArrowLeftIcon, HeartIcon, WarningCircleIcon } from "@phosphor-icons/rea
 import { hallOfHappinessOptions } from "@/query/options/hall-of-happiness";
 import { useAuth } from "@/context/AuthContext";
 import { Skeleton } from "@/components/ui/skeleton";
+import { STATIC_HAPPINESS_PHOTOS } from "@/components/HallOfHappinessSection";
 
 export const Route = createFileRoute("/hall-of-happiness")({
   component: HallOfHappinessPage,
@@ -16,6 +17,10 @@ function HallOfHappinessPage() {
     size: 24,
     enabled: Boolean(user?.token),
   }));
+  const photos = [
+    ...STATIC_HAPPINESS_PHOTOS,
+    ...(query.data?.content || []),
+  ];
 
   return (
     <main className="container-premium py-6 md:py-10">
@@ -29,19 +34,19 @@ function HallOfHappinessPage() {
           A collection of joyful moments from celebrations brought to life by Bro &amp; Bro.
         </p>
       </div>
-      {query.isLoading ? (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {Array.from({ length: 8 }).map((_, index) => (
-            <Skeleton key={index} className="aspect-[4/3] rounded-2xl" />
-          ))}
-        </div>
-      ) : query.isError ? (
-        <div className="flex items-center gap-2 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+      {query.isError && (
+        <div className="mb-4 flex items-center gap-2 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
           <WarningCircleIcon size={20} weight="duotone" /> Happiness memories are temporarily unavailable.
         </div>
-      ) : query.data?.content?.length ? (
+      )}
+      {query.isLoading && (
+        <div className="mb-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <Skeleton className="aspect-[4/3] rounded-2xl" />
+        </div>
+      )}
+      {photos.length ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {query.data.content.map((photo) => (
+          {photos.map((photo) => (
             <GalleryPhoto key={photo.id} photo={photo} />
           ))}
         </div>

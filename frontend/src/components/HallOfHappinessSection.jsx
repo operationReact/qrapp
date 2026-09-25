@@ -8,7 +8,7 @@ import { useAuth } from "@/context/AuthContext";
 import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
 import { Skeleton } from "@/components/ui/skeleton";
 
-const STATIC_HAPPINESS_PHOTOS = [
+export const STATIC_HAPPINESS_PHOTOS = [
   {
     id: "static-hall-of-happiness-1",
     imageUrl: "/hall_of_happiness/HOHP1.jpeg",
