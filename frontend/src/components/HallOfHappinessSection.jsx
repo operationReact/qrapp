@@ -81,7 +81,7 @@ function HappinessCard({ photo }) {
 export default function HallOfHappinessSection() {
   const { user } = useAuth();
   const autoplay = useMemo(
-    () => Autoplay({ delay: 3500, stopOnInteraction: false }),
+    () => Autoplay({ delay: 1700, stopOnInteraction: false }),
     [],
   );
   const query = useQuery(hallOfHappinessOptions({
