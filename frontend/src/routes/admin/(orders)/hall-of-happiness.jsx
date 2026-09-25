@@ -130,7 +130,7 @@ function HallOfHappinessAdminPage() {
           </InputGroup>
           <select value={status} onChange={(event) => setStatus(event.target.value)} className="h-10 rounded-lg border bg-background px-3 text-sm">
             <option value="">All statuses</option>
-            {["CUSTOMER_UPLOAD", "PENDING_REVIEW", "PENDING", "APPROVED", "PUBLISHED", "REJECTED", "UNPUBLISHED", "REMOVED"].map((value) => <option key={value}>{value}</option>)}
+            {["CUSTOMER_UPLOAD", "PENDING_REVIEW", "PENDING", "APPROVED", "PUBLISHED", "REJECTED", "UNPUBLISHED", "WITHDRAWN", "REMOVED"].map((value) => <option key={value}>{value}</option>)}
           </select>
           <select value={consent} onChange={(event) => setConsent(event.target.value)} className="h-10 rounded-lg border bg-background px-3 text-sm">
             <option value="">All consent</option>
@@ -178,6 +178,7 @@ function PhotoReviewCard({ photo, action, edit }) {
         <div className="flex items-start justify-between gap-2">
           <div>
             <p className="font-semibold">{photo.eventType || "Party/Event"} · Order #{photo.orderId}</p>
+            {photo.submissionId && <p className="text-xs text-muted-foreground">Submission #{photo.submissionId}</p>}
             <p className="text-xs text-muted-foreground">{photo.customerName || "Customer"} · Consent: {photo.consentStatus}</p>
           </div>
           <span className="rounded-full bg-muted px-2 py-1 text-[10px] font-semibold">{photo.status}</span>

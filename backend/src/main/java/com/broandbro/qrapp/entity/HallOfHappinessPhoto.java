@@ -29,6 +29,10 @@ public class HallOfHappinessPhoto {
     @JoinColumn(name = "party_order_id", nullable = false)
     private PartyOrder partyOrder;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "submission_id")
+    private HallOfHappinessSubmission submission;
+
     @Column(name = "customer_id", nullable = false)
     private Long customerId;
 

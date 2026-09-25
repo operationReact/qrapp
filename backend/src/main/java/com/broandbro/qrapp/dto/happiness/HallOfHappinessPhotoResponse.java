@@ -6,6 +6,7 @@ import java.time.LocalDateTime;
 
 public record HallOfHappinessPhotoResponse(
         Long id,
+        Long submissionId,
         Long orderId,
         String eventType,
         LocalDateTime eventDateTime,
@@ -32,6 +33,7 @@ public record HallOfHappinessPhotoResponse(
             HallOfHappinessPhoto photo, String customerName, String customerPhone) {
         return new HallOfHappinessPhotoResponse(
                 photo.getId(),
+                photo.getSubmission() == null ? null : photo.getSubmission().getId(),
                 photo.getPartyOrder().getId(),
                 photo.getPartyOrder().getEventType(),
                 photo.getPartyOrder().getEventDateTime(),

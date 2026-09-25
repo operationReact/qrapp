@@ -8,5 +8,6 @@ public enum HallOfHappinessPhotoStatus {
     PUBLISHED,
     REJECTED,
     UNPUBLISHED,
+    WITHDRAWN,
     REMOVED
 }

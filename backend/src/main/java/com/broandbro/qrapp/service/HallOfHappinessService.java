@@ -3,12 +3,15 @@ package com.broandbro.qrapp.service;
 import com.broandbro.qrapp.dto.happiness.HallOfHappinessPhotoResponse;
 import com.broandbro.qrapp.dto.happiness.HallOfHappinessPhotoUpdateRequest;
 import com.broandbro.qrapp.entity.HallOfHappinessPhoto;
+import com.broandbro.qrapp.entity.HallOfHappinessSubmission;
 import com.broandbro.qrapp.entity.PartyOrder;
 import com.broandbro.qrapp.entity.User;
 import com.broandbro.qrapp.enums.HallOfHappinessConsentStatus;
 import com.broandbro.qrapp.enums.HallOfHappinessPhotoStatus;
+import com.broandbro.qrapp.enums.HallOfHappinessSubmissionStatus;
 import com.broandbro.qrapp.enums.PartyOrderStatus;
 import com.broandbro.qrapp.repository.HallOfHappinessPhotoRepository;
+import com.broandbro.qrapp.repository.HallOfHappinessSubmissionRepository;
 import com.broandbro.qrapp.repository.PartyOrderRepository;
 import com.broandbro.qrapp.repository.UserRepository;
 import com.broandbro.qrapp.storage.ImageStorageService;
@@ -49,6 +52,7 @@ public class HallOfHappinessService {
     private final HallOfHappinessPhotoRepository photoRepository;
     private final PartyOrderRepository partyOrderRepository;
     private final UserRepository userRepository;
+    private final HallOfHappinessSubmissionRepository submissionRepository;
     private final ImageStorageService imageStorageService;
     private final LocationAccessService locationAccessService;
 
@@ -56,11 +60,13 @@ public class HallOfHappinessService {
             HallOfHappinessPhotoRepository photoRepository,
             PartyOrderRepository partyOrderRepository,
             UserRepository userRepository,
+            HallOfHappinessSubmissionRepository submissionRepository,
             ImageStorageService imageStorageService,
             LocationAccessService locationAccessService) {
         this.photoRepository = photoRepository;
         this.partyOrderRepository = partyOrderRepository;
         this.userRepository = userRepository;
+        this.submissionRepository = submissionRepository;
         this.imageStorageService = imageStorageService;
         this.locationAccessService = locationAccessService;
     }
@@ -128,7 +134,10 @@ public class HallOfHappinessService {
         if (!consent) {
             throw new IllegalArgumentException("customer_consent_required");
         }
-        if (files == null || files.isEmpty() || files.size() > MAX_FILES_PER_SUBMISSION) {
+        if (files == null || files.isEmpty()) {
+            throw new IllegalArgumentException("image_required");
+        }
+        if (files.size() > MAX_FILES_PER_SUBMISSION) {
             throw new IllegalArgumentException("too_many_images");
         }
 
@@ -145,6 +154,14 @@ public class HallOfHappinessService {
             throw new IllegalArgumentException("photo_limit_reached");
         }
 
+        HallOfHappinessSubmission submission = submissionRepository.save(HallOfHappinessSubmission.builder()
+                .partyOrder(order)
+                .customerId(customer.getId())
+                .consentAccepted(true)
+                .consentAcceptedAt(java.time.Instant.now())
+                .termsVersion("hall-of-happiness-v1")
+                .status(HallOfHappinessSubmissionStatus.PENDING_REVIEW)
+                .build());
         String folder = customerFolder(order);
         return java.util.stream.IntStream.range(0, files.size())
                 .mapToObj(index -> {
@@ -155,7 +172,7 @@ public class HallOfHappinessService {
                     if (caption.length() > MAX_CAPTION_LENGTH) {
                         throw new IllegalArgumentException("photo_description_too_long");
                     }
-                    return saveCustomerPhoto(order, customer, files.get(index), caption, folder);
+                    return saveCustomerPhoto(order, customer, files.get(index), caption, folder, submission);
                 })
                 .map(HallOfHappinessPhotoResponse::forCustomer)
                 .toList();
@@ -325,10 +342,11 @@ public class HallOfHappinessService {
         if (photo.getStatus() == HallOfHappinessPhotoStatus.PUBLISHED) {
             throw new IllegalStateException("published_photo_cannot_be_withdrawn");
         }
-        if (photo.getStatus() == HallOfHappinessPhotoStatus.REMOVED) {
+        if (photo.getStatus() == HallOfHappinessPhotoStatus.REMOVED
+                || photo.getStatus() == HallOfHappinessPhotoStatus.WITHDRAWN) {
             throw new IllegalStateException("photo_removed");
         }
-        photo.setStatus(HallOfHappinessPhotoStatus.REMOVED);
+        photo.setStatus(HallOfHappinessPhotoStatus.WITHDRAWN);
         photo.setConsentStatus(HallOfHappinessConsentStatus.REVOKED);
         photo.setConsentGrantedAt(null);
         photo.setRemovedAt(Instant.now());
@@ -353,7 +371,8 @@ public class HallOfHappinessService {
     }
 
     private HallOfHappinessPhoto saveCustomerPhoto(
-            PartyOrder order, User customer, MultipartFile file, String caption, String folder) {
+            PartyOrder order, User customer, MultipartFile file, String caption, String folder,
+            HallOfHappinessSubmission submission) {
         validateFile(file);
         byte[] image = optimize(file, 1600, 0.86);
         byte[] thumbnail = optimize(image, 720, 0.80);
@@ -361,6 +380,7 @@ public class HallOfHappinessService {
         String thumbnailUrl = imageStorageService.uploadImage(thumbnail, folder + "/thumbnail", "image/jpeg");
         return photoRepository.save(HallOfHappinessPhoto.builder()
                 .partyOrder(order)
+                .submission(submission)
                 .customerId(customer.getId())
                 .imageUrl(imageUrl)
                 .thumbnailUrl(thumbnailUrl)

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   CheckCircleIcon,
@@ -6,6 +7,8 @@ import {
   CloudArrowUpIcon,
   HeartIcon,
   ImageIcon,
+  ArrowDownIcon,
+  ArrowUpIcon,
   TrashIcon,
   XCircleIcon,
 } from "@phosphor-icons/react";
@@ -29,23 +32,24 @@ const STATUS_LABELS = {
   CUSTOMER_UPLOAD: "Uploaded",
   PENDING_REVIEW: "Pending Review",
   PENDING: "Pending Review",
-  APPROVED: "Approved",
+  APPROVED: "Pending Review",
   PUBLISHED: "Published",
   REJECTED: "Rejected",
-  UNPUBLISHED: "Approved",
-  REMOVED: "Withdrawn",
+  UNPUBLISHED: "Pending Review",
+  WITHDRAWN: "Withdrawn",
+  REMOVED: "Removed",
 };
 
 function statusIcon(status) {
   if (status === "PUBLISHED") return <CheckCircleIcon className="text-emerald-600" />;
-  if (status === "REJECTED" || status === "REMOVED") return <XCircleIcon className="text-red-500" />;
+  if (status === "REJECTED" || status === "REMOVED" || status === "WITHDRAWN") return <XCircleIcon className="text-red-500" />;
   if (status === "APPROVED" || status === "UNPUBLISHED") return <CheckCircleIcon className="text-blue-600" />;
   return <ClockIcon className="text-amber-600" />;
 }
 
 function SubmittedPhotoThumbnail({ photo }) {
   const [failed, setFailed] = useState(false);
-  if (!photo.thumbnailUrl || photo.status === "REMOVED" || failed) {
+  if (!photo.thumbnailUrl || photo.status === "REMOVED" || photo.status === "WITHDRAWN" || failed) {
     return (
       <div className="flex h-9 w-12 shrink-0 items-center justify-center rounded bg-muted text-muted-foreground">
         <ImageIcon size={16} />
@@ -124,15 +128,25 @@ export default function CustomerHallPhotoUpload({ order }) {
       return;
     }
     const invalid = selected.find((file) =>
-      !["image/jpeg", "image/png"].includes(file.type) ||
+      !["image/jpeg", "image/png", "image/webp"].includes(file.type) ||
       file.size > MAX_FILE_BYTES,
     );
     if (invalid) {
-      toast.error("Use JPEG or PNG photos up to 5 MB each.");
+      toast.error("Use JPEG, PNG, or WEBP photos up to 5 MB each.");
       return;
     }
     setDraftPhotos((current) => [...current, { file: selected[0], caption: "" }]);
     event.target.value = "";
+  };
+
+  const moveDraftPhoto = (index, direction) => {
+    setDraftPhotos((current) => {
+      const target = index + direction;
+      if (target < 0 || target >= current.length) return current;
+      const next = [...current];
+      [next[index], next[target]] = [next[target], next[index]];
+      return next;
+    });
   };
 
   if (order.status !== "COMPLETED") return null;
@@ -159,21 +173,24 @@ export default function CustomerHallPhotoUpload({ order }) {
       {submittedPhotos.length > 0 && (
         <div className="mt-3 space-y-2 border-t border-rose-200 pt-3">
           <p className="text-xs font-semibold text-secondary-foreground">Your submitted photos</p>
-          <p className="text-xs text-muted-foreground">Uploaded → Pending Review → Published</p>
           {submittedPhotos.map((photo) => (
             <div key={photo.id} className="flex items-center gap-2 rounded-lg bg-white/70 p-2 text-xs">
               <SubmittedPhotoThumbnail photo={photo} />
               {statusIcon(photo.status)}
               <span className="font-medium">{STATUS_LABELS[photo.status] || photo.status}</span>
               {photo.caption && <span className="truncate text-muted-foreground">· {photo.caption}</span>}
-              {photo.status !== "PUBLISHED" && photo.status !== "REMOVED" && (
+              {photo.status !== "PUBLISHED" && photo.status !== "REMOVED" && photo.status !== "WITHDRAWN" && (
                 <Button
                   type="button"
                   size="sm"
                   variant="ghost"
                   className="ml-auto h-7 px-2 text-xs text-destructive"
                   disabled={withdraw.isPending}
-                  onClick={() => withdraw.mutate(photo.id)}
+                  onClick={() => {
+                    if (window.confirm("Remove this photo from review?\n\nThis photo will no longer be considered for Hall of Happiness publication.")) {
+                      withdraw.mutate(photo.id);
+                    }
+                  }}
                 >
                   Withdraw
                 </Button>
@@ -186,6 +203,9 @@ export default function CustomerHallPhotoUpload({ order }) {
             </p>
           )}
         </div>
+      )}
+      {submittedPhotos.length === 0 && draftPhotos.length === 0 && (
+        <p className="mt-3 text-xs text-muted-foreground">You can share up to 5 photos from your event.</p>
       )}
 
       <Dialog open={open} onOpenChange={setOpen}>
@@ -201,8 +221,8 @@ export default function CustomerHallPhotoUpload({ order }) {
             <label className="flex min-h-24 cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-rose-200 bg-rose-50/40 p-4 text-center">
               <ImageIcon size={28} className="mb-1 text-rose-500" />
               <span className="text-sm font-medium">+ Add Image</span>
-              <span className="text-xs text-muted-foreground">JPEG or PNG · 5 MB each</span>
-              <Input type="file" accept="image/jpeg,image/png" onChange={chooseFiles} className="sr-only" />
+              <span className="text-xs text-muted-foreground">JPEG, PNG, or WEBP · 5 MB each</span>
+              <Input type="file" accept="image/jpeg,image/png,image/webp" onChange={chooseFiles} className="sr-only" />
             </label>
 
             {previews.length > 0 && (
@@ -221,9 +241,17 @@ export default function CustomerHallPhotoUpload({ order }) {
                       />
                       <div className="flex items-center justify-between text-xs text-muted-foreground">
                         <span>{draftPhotos[index].caption.length}/60</span>
-                        <Button type="button" size="sm" variant="ghost" onClick={() => setDraftPhotos((current) => current.filter((_, itemIndex) => itemIndex !== index))}>
-                          <TrashIcon size={14} /> Remove
-                        </Button>
+                        <div className="flex items-center gap-1">
+                          <Button type="button" size="icon" variant="ghost" disabled={index === 0} onClick={() => moveDraftPhoto(index, -1)} aria-label="Move image up">
+                            <ArrowUpIcon size={14} />
+                          </Button>
+                          <Button type="button" size="icon" variant="ghost" disabled={index === draftPhotos.length - 1} onClick={() => moveDraftPhoto(index, 1)} aria-label="Move image down">
+                            <ArrowDownIcon size={14} />
+                          </Button>
+                          <Button type="button" size="sm" variant="ghost" onClick={() => setDraftPhotos((current) => current.filter((_, itemIndex) => itemIndex !== index))}>
+                            <TrashIcon size={14} /> Remove
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -234,8 +262,11 @@ export default function CustomerHallPhotoUpload({ order }) {
             <label className="flex items-start gap-2 rounded-lg border p-3 text-sm">
               <input type="checkbox" checked={consent} onChange={(event) => setConsent(event.target.checked)} className="mt-0.5" />
               <span>
-                By submitting, I agree to Bro &amp; Bro&apos;s Hall of Happiness terms and allow
-                the authorized Bro &amp; Bro team to review and potentially publish these photos.
+                I agree to Bro &amp; Bro&apos;s{" "}
+                <Link to="/terms-and-conditions" target="_blank" className="font-medium text-primary underline">
+                  Hall of Happiness Terms &amp; Conditions
+                </Link>{" "}
+                and authorize the Bro &amp; Bro team to review and potentially publish these photos.
                 This does not publish them automatically.
               </span>
             </label>

@@ -7,6 +7,7 @@ import com.broandbro.qrapp.enums.HallOfHappinessConsentStatus;
 import com.broandbro.qrapp.enums.HallOfHappinessPhotoStatus;
 import com.broandbro.qrapp.enums.PartyOrderStatus;
 import com.broandbro.qrapp.repository.HallOfHappinessPhotoRepository;
+import com.broandbro.qrapp.repository.HallOfHappinessSubmissionRepository;
 import com.broandbro.qrapp.repository.PartyOrderRepository;
 import com.broandbro.qrapp.repository.UserRepository;
 import com.broandbro.qrapp.storage.ImageStorageService;
@@ -33,6 +34,8 @@ class HallOfHappinessServiceTest {
 
     @Mock
     private HallOfHappinessPhotoRepository photoRepository;
+    @Mock
+    private HallOfHappinessSubmissionRepository submissionRepository;
     @Mock
     private PartyOrderRepository partyOrderRepository;
     @Mock
@@ -101,7 +104,7 @@ class HallOfHappinessServiceTest {
     }
 
     @Test
-    void customerUploadProcessesAndStoresAValidJpeg() throws Exception {
+    void customerUploadProcessesBatchWithIndependentDescriptions() throws Exception {
         User customer = new User();
         customer.setId(7L);
         when(userRepository.findByPhone("919999999999")).thenReturn(Optional.of(customer));
@@ -120,15 +123,19 @@ class HallOfHappinessServiceTest {
         var result = service.uploadCustomerPhotos(
                 42L,
                 "919999999999",
-                List.of(new MockMultipartFile("files", "memory.jpg", "image/jpeg", bytes.toByteArray())),
-                List.of("A happy day"),
+                List.of(
+                        new MockMultipartFile("files", "memory-1.jpg", "image/jpeg", bytes.toByteArray()),
+                        new MockMultipartFile("files", "memory-2.jpg", "image/jpeg", bytes.toByteArray())),
+                List.of("A happy day", "Team celebration"),
                 true);
 
-        org.junit.jupiter.api.Assertions.assertEquals(1, result.size());
+        org.junit.jupiter.api.Assertions.assertEquals(2, result.size());
         ArgumentCaptor<HallOfHappinessPhoto> saved = ArgumentCaptor.forClass(HallOfHappinessPhoto.class);
-        verify(photoRepository, times(1)).save(saved.capture());
-        org.junit.jupiter.api.Assertions.assertEquals(
-                HallOfHappinessPhotoStatus.PENDING_REVIEW, saved.getValue().getStatus());
+        verify(photoRepository, times(2)).save(saved.capture());
+        org.junit.jupiter.api.Assertions.assertEquals(HallOfHappinessPhotoStatus.PENDING_REVIEW,
+                saved.getAllValues().get(0).getStatus());
+        org.junit.jupiter.api.Assertions.assertEquals("A happy day", saved.getAllValues().get(0).getCaption());
+        org.junit.jupiter.api.Assertions.assertEquals("Team celebration", saved.getAllValues().get(1).getCaption());
     }
 
     private HallOfHappinessPhoto photo(
