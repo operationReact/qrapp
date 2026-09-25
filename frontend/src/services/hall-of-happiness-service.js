@@ -28,14 +28,6 @@ export const uploadHallPhotosForOrder = ({ orderId, photos, consent, termsVersio
 export const getAdminHallOfHappiness = (params = {}) =>
   apiClient.get("/api/admin/hall-of-happiness", { params }).then((r) => r.data);
 
-export const uploadAdminHallPhoto = ({ orderId, file, caption }) => {
-  const form = new FormData();
-  form.append("orderId", orderId);
-  form.append("file", file);
-  if (caption) form.append("caption", caption);
-  return apiClient.post("/api/admin/hall-of-happiness/photos", form).then((r) => r.data);
-};
-
 export const updateAdminHallPhoto = (id, payload) =>
   apiClient.patch(`/api/admin/hall-of-happiness/photos/${id}`, payload).then((r) => r.data);
 

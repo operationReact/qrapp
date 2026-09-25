@@ -42,6 +42,9 @@ import java.text.Normalizer;
 
 @Service
 public class HallOfHappinessService {
+    private static final LocalDateTime ADMIN_SEARCH_MIN_DATE = LocalDateTime.of(1900, 1, 1, 0, 0);
+    private static final LocalDateTime ADMIN_SEARCH_MAX_DATE = LocalDateTime.of(9999, 12, 31, 23, 59, 59, 999_999_999);
+
 
     private static final long MAX_FILE_SIZE = 5 * 1024 * 1024L;
     private static final int MAX_PHOTOS_PER_ORDER = 5;
@@ -73,17 +76,11 @@ public class HallOfHappinessService {
     }
 
     @Transactional(readOnly = true)
-    public void requireAdminOrderAccess(Long orderId, User user) {
-        PartyOrder order = requireCompletedOrder(orderId);
-        if (order.getLocation() == null || order.getLocation().getId() == null) {
-            throw new AccessDeniedException("location_access_denied");
-        }
-        locationAccessService.requireLocationAccess(user, order.getLocation().getId());
-    }
-
-    @Transactional(readOnly = true)
     public void requireAdminPhotoAccess(Long id, User user) {
         HallOfHappinessPhoto photo = requirePhoto(id);
+        if (photo.getSubmission() == null) {
+            throw new IllegalArgumentException("legacy_photo_not_moderatable");
+        }
         if (photo.getPartyOrder().getLocation() == null
                 || photo.getPartyOrder().getLocation().getId() == null) {
             throw new AccessDeniedException("location_access_denied");
@@ -183,30 +180,6 @@ public class HallOfHappinessService {
                 .toList();
     }
 
-    @CacheEvict(cacheNames = "hallOfHappiness", allEntries = true)
-    @Transactional
-    public HallOfHappinessPhotoResponse createPhoto(
-            Long orderId, MultipartFile file, String caption, String adminUsername) {
-        validateFile(file);
-        PartyOrder order = requireCompletedOrder(orderId);
-
-        byte[] image = optimize(file, 1600, 0.86);
-        byte[] thumbnail = optimize(image, 720, 0.80);
-        String folder = orderFolder(order);
-        String imageUrl = imageStorageService.uploadImage(image, folder + "/original", "image/jpeg");
-        String thumbnailUrl = imageStorageService.uploadImage(thumbnail, folder + "/thumbnail", "image/jpeg");
-
-        HallOfHappinessPhoto photo = HallOfHappinessPhoto.builder()
-                .partyOrder(order)
-                .customerId(order.getUserId())
-                .imageUrl(imageUrl)
-                .thumbnailUrl(thumbnailUrl)
-                .caption(trimCaption(caption))
-                .createdBy(adminUsername)
-                .build();
-        return HallOfHappinessPhotoResponse.forAdmin(photoRepository.save(photo));
-    }
-
     @Transactional(readOnly = true)
     public Page<HallOfHappinessPhotoResponse> adminSearch(
             HallOfHappinessPhotoStatus status,
@@ -220,9 +193,11 @@ public class HallOfHappinessService {
             Collection<Long> locationIds,
             int page,
             int size) {
-        LocalDateTime from = fromDate == null ? null : fromDate.atStartOfDay();
-        LocalDateTime to = toDate == null ? null : toDate.plusDays(1).atStartOfDay();
-        String normalizedSearch = search == null || search.isBlank() ? null : search.trim();
+        LocalDateTime from = fromDate == null ? ADMIN_SEARCH_MIN_DATE : fromDate.atStartOfDay();
+        LocalDateTime to = toDate == null ? ADMIN_SEARCH_MAX_DATE : toDate.plusDays(1).atStartOfDay();
+        String normalizedSearch = search == null || search.isBlank()
+                ? ""
+                : "%" + search.trim().toLowerCase(Locale.ROOT) + "%";
         return photoRepository.search(status, consent, orderId, customerId, from, to,
                         normalizedSearch, allLocations, locationIds,
                         PageRequest.of(safePage(page), safeSize(size),

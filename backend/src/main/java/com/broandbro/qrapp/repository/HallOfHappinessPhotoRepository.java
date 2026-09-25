@@ -60,14 +60,15 @@ public interface HallOfHappinessPhotoRepository extends JpaRepository<HallOfHapp
               AND (:consent IS NULL OR photo.consentStatus = :consent)
               AND (:orderId IS NULL OR order.id = :orderId)
               AND (:customerId IS NULL OR photo.customerId = :customerId)
-              AND (:fromDate IS NULL OR order.eventDateTime >= :fromDate)
-              AND (:toDate IS NULL OR order.eventDateTime < :toDate)
+              AND photo.submission IS NOT NULL
+              AND order.eventDateTime >= :fromDate
+              AND order.eventDateTime < :toDate
               AND (:allLocations = TRUE OR order.location.id IN :locationIds)
-              AND (:search IS NULL OR
-                   LOWER(COALESCE(photo.caption, '')) LIKE LOWER(CONCAT('%', :search, '%')) OR
-                   LOWER(COALESCE(order.eventType, '')) LIKE LOWER(CONCAT('%', :search, '%')) OR
-                   LOWER(COALESCE(order.userName, '')) LIKE LOWER(CONCAT('%', :search, '%')) OR
-                   LOWER(COALESCE(order.userPhone, '')) LIKE LOWER(CONCAT('%', :search, '%')))
+              AND (:searchPattern = '' OR
+                   LOWER(COALESCE(photo.caption, '')) LIKE :searchPattern OR
+                   LOWER(COALESCE(order.eventType, '')) LIKE :searchPattern OR
+                   LOWER(COALESCE(order.userName, '')) LIKE :searchPattern OR
+                   LOWER(COALESCE(order.userPhone, '')) LIKE :searchPattern)
             ORDER BY photo.createdAt DESC
             """)
     Page<HallOfHappinessPhoto> search(
@@ -77,7 +78,7 @@ public interface HallOfHappinessPhotoRepository extends JpaRepository<HallOfHapp
             @Param("customerId") Long customerId,
             @Param("fromDate") java.time.LocalDateTime fromDate,
             @Param("toDate") java.time.LocalDateTime toDate,
-            @Param("search") String search,
+            @Param("searchPattern") String searchPattern,
             @Param("allLocations") boolean allLocations,
             @Param("locationIds") Collection<Long> locationIds,
             Pageable pageable);

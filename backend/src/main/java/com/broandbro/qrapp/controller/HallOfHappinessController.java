@@ -97,20 +97,6 @@ public class HallOfHappinessController {
                 search, scope.isEmpty(), locationIds, page, size);
     }
 
-    @PostMapping(value = "/api/admin/hall-of-happiness/photos",
-            consumes = "multipart/form-data")
-    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN', 'SUPERUSER', 'MANAGER')")
-    public ResponseEntity<HallOfHappinessPhotoResponse> create(
-            @RequestParam Long orderId,
-            @RequestPart("file") MultipartFile file,
-            @RequestParam(required = false) String caption,
-            Principal principal) {
-        User user = adminUser(principal);
-        service.requireAdminOrderAccess(orderId, user);
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(service.createPhoto(orderId, file, caption, principal.getName()));
-    }
-
     @PatchMapping("/api/admin/hall-of-happiness/photos/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN', 'SUPERUSER', 'MANAGER')")
     public HallOfHappinessPhotoResponse update(
