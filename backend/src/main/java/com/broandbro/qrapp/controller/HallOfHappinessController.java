@@ -65,9 +65,10 @@ public class HallOfHappinessController {
             @RequestPart("files") List<MultipartFile> files,
             @RequestParam(name = "captions", required = false) List<String> captions,
             @RequestParam boolean consent,
+            @RequestParam(name = "termsVersion") String termsVersion,
             Principal principal) {
         return ResponseEntity.status(HttpStatus.CREATED).body(
-                service.uploadCustomerPhotos(orderId, principal.getName(), files, captions, consent));
+                service.uploadCustomerPhotos(orderId, principal.getName(), files, captions, consent, termsVersion));
     }
 
     @DeleteMapping("/api/hall-of-happiness/my/{id}")

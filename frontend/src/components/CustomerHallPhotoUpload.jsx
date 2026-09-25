@@ -28,6 +28,7 @@ import { toast } from "sonner";
 
 const MAX_PHOTOS = 5;
 const MAX_FILE_BYTES = 5 * 1024 * 1024;
+const TERMS_VERSION = "hall-of-happiness-v1";
 const STATUS_LABELS = {
   CUSTOMER_UPLOAD: "Uploaded",
   PENDING_REVIEW: "Pending Review",
@@ -75,7 +76,6 @@ export default function CustomerHallPhotoUpload({ order }) {
   const photosQuery = useQuery(myHallOrderPhotosOptions(order.id, order.status === "COMPLETED"));
   const submittedPhotos = photosQuery.data || [];
   const photoCount = submittedPhotos.length;
-  const totalPhotoCount = photoCount + draftPhotos.length;
   const previews = useMemo(
     () => draftPhotos.map(({ file }, index) => ({ file, index, url: URL.createObjectURL(file) })),
     [draftPhotos],
@@ -88,6 +88,7 @@ export default function CustomerHallPhotoUpload({ order }) {
       orderId: order.id,
       photos: draftPhotos,
       consent,
+      termsVersion: TERMS_VERSION,
       onUploadProgress: (event) => {
         if (event.total) setProgress(Math.round((event.loaded / event.total) * 100));
       },
@@ -123,7 +124,7 @@ export default function CustomerHallPhotoUpload({ order }) {
       toast.error("Add exactly one photo at a time.");
       return;
     }
-    if (totalPhotoCount >= MAX_PHOTOS) {
+    if (draftPhotos.length >= MAX_PHOTOS) {
       toast.error(`You can add up to ${MAX_PHOTOS} photos for this event.`);
       return;
     }
@@ -161,14 +162,14 @@ export default function CustomerHallPhotoUpload({ order }) {
             <p className="text-xs text-muted-foreground">Share memories from this event.</p>
           </div>
         </div>
-        {totalPhotoCount < MAX_PHOTOS && (
+        {photoCount < MAX_PHOTOS && (
           <Button size="sm" onClick={() => setOpen(true)}>
             <CloudArrowUpIcon /> + Add Image
           </Button>
         )}
       </div>
 
-      <p className="mt-2 text-xs text-muted-foreground">{totalPhotoCount} of {MAX_PHOTOS} photos</p>
+      <p className="mt-2 text-xs text-muted-foreground">{photoCount} of {MAX_PHOTOS} photos submitted</p>
 
       {submittedPhotos.length > 0 && (
         <div className="mt-3 space-y-2 border-t border-rose-200 pt-3">
@@ -213,17 +214,23 @@ export default function CustomerHallPhotoUpload({ order }) {
           <DialogHeader>
             <DialogTitle>Upload Event Photos</DialogTitle>
             <DialogDescription>
-              Add images one at a time and describe each one. {totalPhotoCount} of {MAX_PHOTOS} photos.
+              Add up to 5 photos and add a short description for each.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4">
-            <label className="flex min-h-24 cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-rose-200 bg-rose-50/40 p-4 text-center">
-              <ImageIcon size={28} className="mb-1 text-rose-500" />
-              <span className="text-sm font-medium">+ Add Image</span>
-              <span className="text-xs text-muted-foreground">JPEG, PNG, or WEBP · 5 MB each</span>
-              <Input type="file" accept="image/jpeg,image/png,image/webp" onChange={chooseFiles} className="sr-only" />
-            </label>
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-semibold">{draftPhotos.length} of {MAX_PHOTOS} photos</p>
+              {draftPhotos.length < MAX_PHOTOS ? (
+                <label className="inline-flex min-h-11 cursor-pointer items-center justify-center rounded-xl border border-rose-200 bg-rose-50 px-4 text-sm font-medium text-rose-700">
+                  <ImageIcon size={20} className="mr-2 text-rose-500" />
+                  + Add Image
+                  <Input type="file" accept="image/jpeg,image/png,image/webp" onChange={chooseFiles} className="sr-only" />
+                </label>
+              ) : (
+                <span className="text-xs font-medium text-muted-foreground">Maximum 5 photos</span>
+              )}
+            </div>
 
             {previews.length > 0 && (
               <div className="space-y-3">

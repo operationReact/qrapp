@@ -47,6 +47,7 @@ public class HallOfHappinessService {
     private static final int MAX_PHOTOS_PER_ORDER = 5;
     private static final int MAX_FILES_PER_SUBMISSION = 5;
     private static final int MAX_CAPTION_LENGTH = 60;
+    private static final String CURRENT_TERMS_VERSION = "hall-of-happiness-v1";
     private static final int MAX_PAGE_SIZE = 50;
 
     private final HallOfHappinessPhotoRepository photoRepository;
@@ -130,9 +131,13 @@ public class HallOfHappinessService {
     @CacheEvict(cacheNames = "hallOfHappiness", allEntries = true)
     @Transactional
     public List<HallOfHappinessPhotoResponse> uploadCustomerPhotos(
-            Long orderId, String phone, List<MultipartFile> files, List<String> captions, boolean consent) {
+            Long orderId, String phone, List<MultipartFile> files, List<String> captions,
+            boolean consent, String termsVersion) {
         if (!consent) {
             throw new IllegalArgumentException("customer_consent_required");
+        }
+        if (!CURRENT_TERMS_VERSION.equals(termsVersion)) {
+            throw new IllegalArgumentException("invalid_terms_version");
         }
         if (files == null || files.isEmpty()) {
             throw new IllegalArgumentException("image_required");
@@ -159,7 +164,7 @@ public class HallOfHappinessService {
                 .customerId(customer.getId())
                 .consentAccepted(true)
                 .consentAcceptedAt(java.time.Instant.now())
-                .termsVersion("hall-of-happiness-v1")
+                .termsVersion(termsVersion)
                 .status(HallOfHappinessSubmissionStatus.PENDING_REVIEW)
                 .build());
         String folder = customerFolder(order);

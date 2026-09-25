@@ -12,13 +12,14 @@ export const withdrawHallPhoto = (id) =>
 export const getMyHallPhotosForOrder = (orderId) =>
   apiClient.get(`/api/hall-of-happiness/my/orders/${orderId}/photos`).then((r) => r.data);
 
-export const uploadHallPhotosForOrder = ({ orderId, photos, consent, onUploadProgress }) => {
+export const uploadHallPhotosForOrder = ({ orderId, photos, consent, termsVersion, onUploadProgress }) => {
   const form = new FormData();
   photos.forEach(({ file, caption }) => {
     form.append("files", file);
     form.append("captions", caption.trim());
   });
   form.append("consent", String(consent));
+  form.append("termsVersion", termsVersion);
   return apiClient.post(`/api/hall-of-happiness/my/orders/${orderId}/photos`, form, {
     onUploadProgress,
   }).then((r) => r.data);
