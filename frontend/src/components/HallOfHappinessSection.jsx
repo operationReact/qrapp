@@ -42,11 +42,12 @@ function formatEventDate(value) {
 
 function HappinessCard({ photo }) {
   const [failed, setFailed] = useState(false);
-  const title = photo.caption || photo.eventType || "A happy celebration";
+  const title = photo.caption || photo.description || photo.eventType || "A Bro & Bro celebration";
+  const eventDate = formatEventDate(photo.eventDateTime);
 
   return (
-    <article className="group overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm">
-      <div className="relative aspect-[4/3] overflow-hidden bg-muted">
+    <article className="group overflow-hidden rounded-[18px] border border-rose-100/80 bg-card shadow-[0_8px_24px_-16px_rgba(120,53,15,0.45)]">
+      <div className="relative h-[230px] overflow-hidden bg-muted sm:h-[240px]">
         {failed ? (
           <div className="flex h-full flex-col items-center justify-center gap-2 p-4 text-center text-muted-foreground">
             <HeartIcon size={28} weight="duotone" className="text-rose-400" />
@@ -62,16 +63,11 @@ function HappinessCard({ photo }) {
             className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
           />
         )}
-        {!failed && photo.caption && (
-          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 to-transparent px-3 pb-3 pt-8 text-sm font-medium text-white">
-            {photo.caption}
+        {!failed && (
+          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/45 to-transparent px-4 pb-4 pt-14 text-white">
+            <p className="text-sm font-semibold leading-snug drop-shadow-sm">{title}</p>
+            {eventDate && <p className="mt-1 text-[11px] text-white/75">{eventDate}</p>}
           </div>
-        )}
-      </div>
-      <div className="space-y-1 p-3">
-        <p className="truncate text-sm font-semibold text-foreground">{title}</p>
-        {photo.eventDateTime && (
-          <p className="text-xs text-muted-foreground">{formatEventDate(photo.eventDateTime)}</p>
         )}
       </div>
     </article>
@@ -94,10 +90,17 @@ export default function HallOfHappinessSection() {
   ];
 
   return (
-    <section data-testid="hall-of-happiness-section" aria-labelledby="hall-of-happiness-heading" className="container-premium py-4 md:py-6">
+    <section
+      data-testid="hall-of-happiness-section"
+      aria-labelledby="hall-of-happiness-heading"
+      className="container-premium rounded-[24px] border border-rose-100/70 bg-gradient-to-br from-rose-50/75 via-amber-50/35 to-background px-3 py-4 md:px-5 md:py-5"
+    >
       <div className="mb-3 flex items-end justify-between gap-3">
         <div>
-          <p className="mb-1 text-xs font-semibold uppercase tracking-[0.16em] text-rose-500">Celebrations worth remembering</p>
+          <p className="mb-1 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-rose-600">
+            <HeartIcon size={13} weight="fill" />
+            Memories we made together
+          </p>
           <h2 id="hall-of-happiness-heading" className="text-xl font-bold tracking-tight sm:text-2xl">
             ❤️ Bro &amp; Bro Hall of Happiness
           </h2>
@@ -115,7 +118,7 @@ export default function HallOfHappinessSection() {
       )}
       {query.isLoading && (
         <div className="mb-3 flex gap-3 overflow-hidden">
-          <Skeleton className="h-56 min-w-[78%] rounded-2xl sm:h-64 sm:min-w-0 sm:flex-1" />
+          <Skeleton className="h-[230px] w-[300px] shrink-0 rounded-[18px] sm:h-[240px]" />
         </div>
       )}
       {photos.length ? (
@@ -125,9 +128,12 @@ export default function HallOfHappinessSection() {
           onMouseEnter={autoplay.stop}
           onMouseLeave={autoplay.reset}
         >
-          <CarouselContent className="-ml-3">
-            {photos.map((photo) => (
-              <CarouselItem key={photo.id} className="basis-[78%] pl-3 sm:basis-1/3 lg:basis-1/4">
+          <CarouselContent className="no-scrollbar -ml-3">
+            {photos.map((photo, index) => (
+              <CarouselItem
+                key={photo.id}
+                className={`${index === 0 ? "basis-[300px] sm:basis-[320px]" : "basis-[275px] sm:basis-[280px]"} pl-3`}
+              >
                 <HappinessCard photo={photo} />
               </CarouselItem>
             ))}
