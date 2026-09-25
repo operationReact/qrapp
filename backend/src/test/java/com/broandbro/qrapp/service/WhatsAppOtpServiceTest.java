@@ -135,17 +135,58 @@ class WhatsAppOtpServiceTest {
     }
 
     @Test
+    void registrationRejectsMissingOrFalseTermsAcceptance() {
+        assertThatThrownBy(() -> service.requestRegistrationOtp("+919876543210", "A", "password",
+                null, 1L, null, null, null, false))
+                .isInstanceOf(OtpException.class).hasMessage("terms_acceptance_required");
+        assertThatThrownBy(() -> service.requestRegistrationOtp("+919876543210", "A", "password",
+                null, 1L, null, null, null, null))
+                .isInstanceOf(OtpException.class).hasMessage("terms_acceptance_required");
+        verifyNoInteractions(whatsAppClient);
+    }
+
+    @Test
+    void acceptedTermsArePersistedWithServerTimestampAndVersions() {
+        service.requestRegistrationOtp("+919876543210", "A", "password",
+                null, 1L, null, null, null, null, true);
+
+        ArgumentCaptor<WhatsAppOtp> capture = ArgumentCaptor.forClass(WhatsAppOtp.class);
+        verify(otpRepository).save(capture.capture());
+        WhatsAppOtp record = capture.getValue();
+        assertThat(record.getRegistrationTermsAccepted()).isTrue();
+        assertThat(record.getRegistrationTermsAcceptedAt()).isNotNull();
+        assertThat(record.getRegistrationTermsVersion()).isEqualTo("2026-09");
+        assertThat(record.getRegistrationPrivacyPolicyVersion()).isEqualTo("2026-01");
+    }
+
+    @Test
+    void verificationRejectsOtpWithoutTermsAcceptance() {
+        WhatsAppOtp record = activeOtp(OtpPurpose.REGISTRATION, "123456");
+        record.setRegistrationTermsAccepted(null);
+        when(otpRepository.findFirstByPhoneNumberAndPurposeAndStatusOrderByCreatedAtDesc(
+                anyString(), eq(OtpPurpose.REGISTRATION), eq(OtpStatus.ACTIVE))).thenReturn(Optional.of(record));
+
+        assertThatThrownBy(() -> service.verifyRegistrationOtp("+919876543210", "123456"))
+                .isInstanceOf(OtpException.class).hasMessage("terms_acceptance_required");
+        verifyNoInteractions(userService);
+    }
+
+    @Test
     void successfulOtpIsMarkedConsumedAndCannotBeReused() {
         WhatsAppOtp record = activeOtp(OtpPurpose.REGISTRATION, "123456");
         when(otpRepository.findFirstByPhoneNumberAndPurposeAndStatusOrderByCreatedAtDesc(
                 anyString(), eq(OtpPurpose.REGISTRATION), eq(OtpStatus.ACTIVE))).thenReturn(Optional.of(record));
-        when(userService.registerVerified(anyString(), any(), anyString())).thenReturn(null);
+        when(userService.registerVerified(anyString(), any(), anyString(), any(), any(), any(), any(),
+                any(), any(), any(), any(), any(), any())).thenReturn(null);
 
         service.verifyRegistrationOtp("+919876543210", "123456");
 
         assertThat(record.getStatus()).isEqualTo(OtpStatus.VERIFIED);
         assertThat(record.getConsumedAt()).isNotNull();
-        verify(userService).registerVerified("+919876543210", "A", record.getRegistrationPasswordHash());
+        verify(userService).registerVerified("+919876543210", "A", record.getRegistrationPasswordHash(),
+                null, null, null, null, record.getRegistrationSpecialDayType(),
+                record.getRegistrationSpecialDayCustomLabel(), true, record.getRegistrationTermsAcceptedAt(),
+                record.getRegistrationTermsVersion(), record.getRegistrationPrivacyPolicyVersion());
     }
 
     @Test
@@ -161,9 +202,13 @@ class WhatsAppOtpServiceTest {
         record.setRegistrationDefaultLocationId(8L);
         when(otpRepository.findFirstByPhoneNumberAndPurposeAndStatusOrderByCreatedAtDesc(
                 anyString(), eq(OtpPurpose.REGISTRATION), eq(OtpStatus.ACTIVE))).thenReturn(Optional.of(record));
-        when(userService.registerVerified(anyString(), any(), anyString(), eq(8L))).thenReturn(null);
+        when(userService.registerVerified(anyString(), any(), anyString(), eq(8L), any(), any(), any(),
+                any(), any(), any(), any(), any(), any())).thenReturn(null);
         service.verifyRegistrationOtp("+919876543210", "123456");
-        verify(userService).registerVerified("+919876543210", "A", record.getRegistrationPasswordHash(), 8L);
+        verify(userService).registerVerified("+919876543210", "A", record.getRegistrationPasswordHash(), 8L,
+                null, null, null, record.getRegistrationSpecialDayType(),
+                record.getRegistrationSpecialDayCustomLabel(), true, record.getRegistrationTermsAcceptedAt(),
+                record.getRegistrationTermsVersion(), record.getRegistrationPrivacyPolicyVersion());
     }
 
     @Test
@@ -184,6 +229,10 @@ class WhatsAppOtpServiceTest {
                 .otpHash(passwordEncoder.encode(plainOtp))
                 .registrationName("A")
                 .registrationPasswordHash(passwordEncoder.encode("password"))
+                .registrationTermsAccepted(true)
+                .registrationTermsAcceptedAt(Instant.now())
+                .registrationTermsVersion("2026-01")
+                .registrationPrivacyPolicyVersion("2026-01")
                 .expiresAt(Instant.now().plus(5, ChronoUnit.MINUTES))
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())

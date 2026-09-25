@@ -12,6 +12,7 @@ const list = (path, key, params) => ({
 export const adminUsersOptions = (params) => list("/api/admin/users", "users", params);
 export const adminLocationsOptions = (params) => list("/api/admin/locations", "locations", params);
 export const adminCustomerCompaniesOptions = (params) => list("/api/admin/customer-companies", "customer-companies", params);
+export const adminVendorsOptions = () => list("/api/v1/vendors", "vendors");
 export const locationCustomerCompaniesOptions = (locationId, enabled = true) => ({
   queryKey: ["admin", "locations", locationId, "customer-companies"],
   enabled: Boolean(locationId) && enabled,

@@ -17,6 +17,7 @@ import MobileMenu from "../components/shared/MobileMenu";
 import { useLocation } from "@tanstack/react-router";
 import { useLocation as useActiveLocation } from "@/context/LocationContext";
 import DealsSection from "@/components/DealsSection";
+import HallOfHappinessSection from "@/components/HallOfHappinessSection";
 import React from "react";
 import { BowlFoodIcon, CaretRightIcon } from "@phosphor-icons/react";
 import {
@@ -168,6 +169,7 @@ function MenuPage() {
 
         <DealsSection />
       </div>
+      <HallOfHappinessSection />
 
       <main className="container-premium py-2 md:py-4 lg:py-5">
         <div className="page-stack gap-2!">

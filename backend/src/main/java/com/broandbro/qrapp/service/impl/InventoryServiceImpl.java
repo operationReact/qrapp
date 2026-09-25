@@ -17,6 +17,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.cache.annotation.CacheEvict;
 
 import java.time.Instant;
 import java.util.*;
@@ -167,6 +168,7 @@ public class InventoryServiceImpl implements InventoryService {
     // ============================================================================
 
     @Override
+    @CacheEvict(cacheNames = {"menu", "menuRecommended"}, allEntries = true)
     public void deductInventory(Long menuItemId, Long quantity, String orderId) {
         MenuItem menuItem = getMenuItemOrThrow(menuItemId);
 
@@ -218,6 +220,7 @@ public class InventoryServiceImpl implements InventoryService {
     }
 
     @Override
+    @CacheEvict(cacheNames = {"menu", "menuRecommended"}, allEntries = true)
     public void restoreInventory(Long menuItemId, Long quantity, String orderId) {
         MenuItem menuItem = getMenuItemOrThrow(menuItemId);
 
@@ -299,6 +302,7 @@ public class InventoryServiceImpl implements InventoryService {
     // ============================================================================
 
     @Override
+    @CacheEvict(cacheNames = {"menu", "menuRecommended"}, allEntries = true)
     public InventoryStatusResponse updateInventory(InventoryUpdateRequest request, Long adminUserId) {
         MenuItem menuItem = getMenuItemOrThrow(request.getMenuItemId());
 
@@ -360,6 +364,7 @@ public class InventoryServiceImpl implements InventoryService {
     }
 
     @Override
+    @CacheEvict(cacheNames = {"menu", "menuRecommended"}, allEntries = true)
     public List<InventoryStatusResponse> bulkUpdateInventory(List<InventoryUpdateRequest> requests, Long adminUserId) {
         return requests.stream()
             .map(request -> updateInventory(request, adminUserId))

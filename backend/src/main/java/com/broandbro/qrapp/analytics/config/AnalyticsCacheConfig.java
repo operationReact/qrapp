@@ -55,12 +55,16 @@ public class AnalyticsCacheConfig {
     @Primary
     public CacheManager cacheManager() {
         CaffeineCacheManager manager = new CaffeineCacheManager(
-                "walletBalance", "menu", "menuRecommended",
+                "walletBalance", "menu", "menuRecommended", "categories", "hallOfHappiness",
                 "combos", "signatureProducts");  // Combo & Signature Product caches
         manager.setCaffeine(Caffeine.newBuilder()
                 .maximumSize(500)
                 .expireAfterWrite(60, TimeUnit.SECONDS)
                 .recordStats());
+        manager.registerCustomCache("menu", buildCache(15));
+        manager.registerCustomCache("menuRecommended", buildCache(15));
+        manager.registerCustomCache("categories", buildCache(600));
+        manager.registerCustomCache("hallOfHappiness", buildCache(120));
         return manager;
     }
 
@@ -121,4 +125,3 @@ public class AnalyticsCacheConfig {
                 .build();
     }
 }
-

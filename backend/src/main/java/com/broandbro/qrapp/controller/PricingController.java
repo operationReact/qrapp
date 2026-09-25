@@ -16,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.cache.annotation.CacheEvict;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -70,6 +71,7 @@ public class PricingController {
      * Closes the current active price record and opens a new one.
      */
     @PostMapping("/menu-items/set-price")
+    @CacheEvict(cacheNames = {"menu", "menuRecommended"}, allEntries = true)
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_USER')")
     public ResponseEntity<MenuItemSellingPriceHistory> setSellingPrice(
             @RequestBody PriceSetRequest request, @RequestParam Long locationId,

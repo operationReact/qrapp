@@ -1,5 +1,6 @@
 package com.broandbro.qrapp.service;
 
+import com.broandbro.qrapp.config.LegalProperties;
 import com.broandbro.qrapp.dto.RegisterRequest;
 import com.broandbro.qrapp.dto.LoginResponse;
 import com.broandbro.qrapp.dto.UpdateProfileRequest;
@@ -35,6 +36,8 @@ public class UserService {
     private final LocationRepository locationRepository;
     private final UserLocationAccessRepository userLocationAccessRepository;
     private final CustomerCompanyService customerCompanyService;
+    private final LocationAccessService locationAccessService;
+    private final LegalProperties legalProperties;
     private final SecureRandom random = new SecureRandom();
 
     // simple token->user cache to reduce DB lookups from TokenAuthFilter
@@ -47,16 +50,30 @@ public class UserService {
      */
     @Transactional
     public UserResponse register(RegisterRequest req) {
+        requireTermsAccepted(req.getTermsAccepted());
         if (userRepository.findByPhone(req.getPhone()).isPresent()) {
             throw new IllegalArgumentException("phone_taken");
         }
         if (req.getCustomerCompanyId() == null) {
             throw new IllegalArgumentException("customer_company_required");
         }
+        String specialDayType = SpecialDayTypes.typeOrNull(req.getSpecialDayType());
+        if (specialDayType != null && req.getSpecialDate() == null) {
+            throw new IllegalArgumentException("special_date_required");
+        }
         User u = User.builder()
                 .phone(req.getPhone())
                 .password(passwordEncoder.encode(req.getPassword()))
                 .name(req.getName())
+                .dateOfBirth(req.getDateOfBirth())
+                .specialDate(req.getSpecialDate())
+                .specialDayType(specialDayType)
+                .specialDayCustomLabel(SpecialDayTypes.customLabelOrNull(
+                        specialDayType, req.getSpecialDayCustomLabel()))
+                .termsAccepted(true)
+                .termsAcceptedAt(Instant.now())
+                .termsVersion(legalProperties.getTermsVersion())
+                .privacyPolicyVersion(legalProperties.getPrivacyPolicyVersion())
                 .build();
         u.setDefaultLocation(resolveDefaultLocation(req.getDefaultLocationId()));
         u.setCustomerCompany(customerCompanyService.validateRegistration(
@@ -99,27 +116,68 @@ public class UserService {
 
     @Transactional
     public LoginResponse registerVerified(String phone, String name, String passwordHash) {
-        return registerVerified(phone, name, passwordHash, null);
+        return registerVerified(phone, name, passwordHash, null, null, null, null, null);
     }
 
     @Transactional
     public LoginResponse registerVerified(String phone, String name, String passwordHash, Long defaultLocationId) {
+        return registerVerified(phone, name, passwordHash, defaultLocationId, null, null, null, null);
+    }
+
+    @Transactional
+    public LoginResponse registerVerified(String phone, String name, String passwordHash,
+                                          Long defaultLocationId, Long customerCompanyId,
+                                          java.time.LocalDate dateOfBirth,
+                                          java.time.LocalDate specialDate,
+                                          String specialDateDescription) {
+        return registerVerified(phone, name, passwordHash, defaultLocationId, customerCompanyId,
+                dateOfBirth, specialDate, specialDateDescription == null ? null : "Other",
+                specialDateDescription, true, Instant.now(),
+                legalProperties.getTermsVersion(), legalProperties.getPrivacyPolicyVersion());
+    }
+
+    @Transactional
+    public LoginResponse registerVerified(String phone, String name, String passwordHash,
+                                          Long defaultLocationId, Long customerCompanyId,
+                                          java.time.LocalDate dateOfBirth,
+                                          java.time.LocalDate specialDate,
+                                          String specialDayType,
+                                          String specialDayCustomLabel,
+                                          Boolean termsAccepted, Instant termsAcceptedAt,
+                                          String termsVersion, String privacyPolicyVersion) {
+        requireTermsAccepted(termsAccepted);
         if (userRepository.findByPhone(phone).isPresent()) {
             throw new IllegalArgumentException("phone_taken");
         }
         User user = User.builder()
-                .phone(phone)
-                .password(passwordHash)
-                .name(name)
+                .phone(phone).password(passwordHash).name(name)
+                .dateOfBirth(dateOfBirth).specialDate(specialDate)
+                .specialDayType(SpecialDayTypes.typeOrNull(specialDayType))
+                .specialDayCustomLabel(SpecialDayTypes.customLabelOrNull(
+                        specialDayType, specialDayCustomLabel))
+                .termsAccepted(true)
+                .termsAcceptedAt(termsAcceptedAt == null ? Instant.now() : termsAcceptedAt)
+                .termsVersion(termsVersion == null ? legalProperties.getTermsVersion() : termsVersion)
+                .privacyPolicyVersion(privacyPolicyVersion == null
+                        ? legalProperties.getPrivacyPolicyVersion() : privacyPolicyVersion)
                 .build();
         user.setDefaultLocation(resolveDefaultLocation(defaultLocationId));
+        if (customerCompanyId != null) {
+            user.setCustomerCompany(customerCompanyService.validateRegistration(
+                    user.getDefaultLocation().getId(), customerCompanyId));
+        }
         user = userRepository.save(user);
         if (user.getDefaultLocation() != null) {
             userLocationAccessRepository.save(UserLocationAccess.builder()
                     .user(user).location(user.getDefaultLocation()).active(true).build());
         }
         walletRepository.save(Wallet.builder().user(user).balance(0L).build());
-        String token = generateToken(user);
+        byte[] tokenBytes = new byte[24];
+        random.nextBytes(tokenBytes);
+        String token = Base64.getUrlEncoder().withoutPadding().encodeToString(tokenBytes);
+        user.setToken(token);
+        userRepository.save(user);
+        cacheUser(user);
         LoginResponse response = new LoginResponse();
         response.setToken(token);
         response.setUser(toResponse(user));
@@ -128,27 +186,21 @@ public class UserService {
 
     @Transactional
     public LoginResponse registerVerified(String phone, String name, String passwordHash,
-                                          Long defaultLocationId, Long customerCompanyId) {
-        if (userRepository.findByPhone(phone).isPresent()) {
-            throw new IllegalArgumentException("phone_taken");
+                                          Long defaultLocationId, Long customerCompanyId,
+                                          java.time.LocalDate dateOfBirth,
+                                          java.time.LocalDate specialDate,
+                                          String specialDateDescription,
+                                          Boolean termsAccepted, Instant termsAcceptedAt,
+                                          String termsVersion, String privacyPolicyVersion) {
+        return registerVerified(phone, name, passwordHash, defaultLocationId, customerCompanyId,
+                dateOfBirth, specialDate, "Other", specialDateDescription, termsAccepted,
+                termsAcceptedAt, termsVersion, privacyPolicyVersion);
+    }
+
+    private void requireTermsAccepted(Boolean termsAccepted) {
+        if (!Boolean.TRUE.equals(termsAccepted)) {
+            throw new IllegalArgumentException("terms_acceptance_required");
         }
-        User user = User.builder()
-                .phone(phone)
-                .password(passwordHash)
-                .name(name)
-                .build();
-        user.setDefaultLocation(resolveDefaultLocation(defaultLocationId));
-        user.setCustomerCompany(customerCompanyService.validateRegistration(
-                user.getDefaultLocation().getId(), customerCompanyId));
-        user = userRepository.save(user);
-        userLocationAccessRepository.save(UserLocationAccess.builder()
-                .user(user).location(user.getDefaultLocation()).active(true).build());
-        walletRepository.save(Wallet.builder().user(user).balance(0L).build());
-        String token = generateToken(user);
-        LoginResponse response = new LoginResponse();
-        response.setToken(token);
-        response.setUser(toResponse(user));
-        return response;
     }
 
     private String generateToken(User user) {
@@ -219,6 +271,49 @@ public class UserService {
             }
         }
 
+        if (req.getDateOfBirth() != null) {
+            if (req.getDateOfBirth().isAfter(java.time.LocalDate.now())) {
+                throw new IllegalArgumentException("date_of_birth_in_future");
+            }
+            user.setDateOfBirth(req.getDateOfBirth());
+        }
+
+        if (req.hasSpecialDateChange()) {
+            String type = SpecialDayTypes.typeOrNull(req.getSpecialDayType());
+            String customLabel = SpecialDayTypes.customLabelOrNull(type, req.getSpecialDayCustomLabel());
+            if (req.getSpecialDate() == null && type != null) {
+                throw new IllegalArgumentException("special_date_required");
+            }
+            user.setSpecialDate(req.getSpecialDate());
+            user.setSpecialDayType(type);
+            user.setSpecialDayCustomLabel(customLabel);
+        }
+
+        if (req.getDefaultLocationId() != null || req.getCustomerCompanyId() != null) {
+            com.broandbro.qrapp.entity.Location location = user.getDefaultLocation();
+            if (req.getDefaultLocationId() != null) {
+                if (effectiveRole(user) != UserRole.CUSTOMER) {
+                    locationAccessService.requireLocationAccess(user, req.getDefaultLocationId());
+                }
+                location = resolveDefaultLocation(req.getDefaultLocationId());
+                user.setDefaultLocation(location);
+                if (userLocationAccessRepository.findByUserIdAndLocationId(user.getId(), location.getId()).isEmpty()) {
+                    userLocationAccessRepository.save(UserLocationAccess.builder()
+                            .user(user).location(location).active(true).build());
+                }
+            }
+            if (req.getCustomerCompanyId() != null) {
+                if (location == null) {
+                    throw new IllegalArgumentException("location_required");
+                }
+                user.setCustomerCompany(customerCompanyService.validateRegistration(
+                        location.getId(), req.getCustomerCompanyId()));
+            } else if (req.getDefaultLocationId() != null && user.getCustomerCompany() != null) {
+                user.setCustomerCompany(customerCompanyService.validateRegistration(
+                        location.getId(), user.getCustomerCompany().getId()));
+            }
+        }
+
         String newPassword = trimToNull(req.getNewPassword());
         if (newPassword != null) {
             String currentPassword = trimToNull(req.getCurrentPassword());
@@ -250,6 +345,10 @@ public class UserService {
         r.setId(u.getId());
         r.setPhone(u.getPhone());
         r.setName(u.getName());
+        r.setDateOfBirth(u.getDateOfBirth());
+        r.setSpecialDate(u.getSpecialDate());
+        r.setSpecialDayType(u.getSpecialDayType());
+        r.setSpecialDayCustomLabel(u.getSpecialDayCustomLabel());
         r.setIsAdmin(u.getIsAdmin());
         r.setIsSuperUser(u.getIsSuperUser());
         r.setRole(effectiveRole(u).name());

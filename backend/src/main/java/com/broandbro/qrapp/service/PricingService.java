@@ -16,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.cache.annotation.CacheEvict;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -166,6 +167,7 @@ public class PricingService {
      * @return the saved price history record
      */
     @Transactional
+    @CacheEvict(cacheNames = {"menu", "menuRecommended"}, allEntries = true)
     public MenuItemSellingPriceHistory setSellingPrice(PriceSetRequest request) {
         MenuItem item = menuRepository.findById(request.menuItemId())
                 .orElseThrow(() -> new IllegalArgumentException(

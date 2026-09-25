@@ -1,5 +1,6 @@
 package com.broandbro.qrapp.service;
 
+import com.broandbro.qrapp.config.LegalProperties;
 import com.broandbro.qrapp.config.WhatsAppOtpProperties;
 import com.broandbro.qrapp.dto.LoginResponse;
 import com.broandbro.qrapp.entity.PasswordResetAuthorization;
@@ -39,6 +40,7 @@ public class WhatsAppOtpService {
     private final WhatsAppOtpProperties properties;
     private final UserService userService;
     private final LocationRepository locationRepository;
+    private final LegalProperties legalProperties;
     private final SecureRandom secureRandom = new SecureRandom();
 
     public WhatsAppOtpService(WhatsAppOtpRepository otpRepository,
@@ -47,7 +49,16 @@ public class WhatsAppOtpService {
                               WhatsAppCloudApiClient whatsAppClient, WhatsAppOtpProperties properties,
                               UserService userService) {
         this(otpRepository, resetAuthorizationRepository, userRepository, passwordEncoder,
-                whatsAppClient, properties, userService, null);
+                whatsAppClient, properties, userService, null, new LegalProperties());
+    }
+
+    public WhatsAppOtpService(WhatsAppOtpRepository otpRepository,
+                              PasswordResetAuthorizationRepository resetAuthorizationRepository,
+                              UserRepository userRepository, PasswordEncoder passwordEncoder,
+                              WhatsAppCloudApiClient whatsAppClient, WhatsAppOtpProperties properties,
+                              UserService userService, LocationRepository locationRepository) {
+        this(otpRepository, resetAuthorizationRepository, userRepository, passwordEncoder,
+                whatsAppClient, properties, userService, locationRepository, new LegalProperties());
     }
 
     @Autowired
@@ -55,7 +66,8 @@ public class WhatsAppOtpService {
                               PasswordResetAuthorizationRepository resetAuthorizationRepository,
                               UserRepository userRepository, PasswordEncoder passwordEncoder,
                               WhatsAppCloudApiClient whatsAppClient, WhatsAppOtpProperties properties,
-                              UserService userService, LocationRepository locationRepository) {
+                              UserService userService, LocationRepository locationRepository,
+                              LegalProperties legalProperties) {
         this.otpRepository = otpRepository;
         this.resetAuthorizationRepository = resetAuthorizationRepository;
         this.userRepository = userRepository;
@@ -64,6 +76,7 @@ public class WhatsAppOtpService {
         this.properties = properties;
         this.userService = userService;
         this.locationRepository = locationRepository;
+        this.legalProperties = legalProperties;
     }
 
     public void requestRegistrationOtp(String rawPhone, String name, String password) {
@@ -82,6 +95,14 @@ public class WhatsAppOtpService {
 
     public void requestRegistrationOtp(String rawPhone, String name, String password,
                                        Long defaultLocationId, Long customerCompanyId) {
+        requestRegistrationOtp(rawPhone, name, password, defaultLocationId, customerCompanyId, null, null, null);
+    }
+
+    public void requestRegistrationOtp(String rawPhone, String name, String password,
+                                       Long defaultLocationId, Long customerCompanyId,
+                                       java.time.LocalDate dateOfBirth,
+                                       java.time.LocalDate specialDate,
+                                       String specialDateDescription) {
         String phone = PhoneNumberNormalizer.normalize(rawPhone);
         if (userRepository.findByPhone(phone).isPresent()) {
             throw new OtpException("phone_taken");
@@ -89,7 +110,42 @@ public class WhatsAppOtpService {
         validateLocation(defaultLocationId);
         if (customerCompanyId == null) throw new OtpException("customer_company_required");
         String passwordHash = passwordEncoder.encode(password);
-        requestOtp(phone, OtpPurpose.REGISTRATION, name, passwordHash, defaultLocationId, customerCompanyId);
+        requestOtp(phone, OtpPurpose.REGISTRATION, name, passwordHash, defaultLocationId,
+                customerCompanyId, dateOfBirth, specialDate, specialDateDescription);
+    }
+
+    public void requestRegistrationOtp(String rawPhone, String name, String password,
+                                       Long defaultLocationId, Long customerCompanyId,
+                                       java.time.LocalDate dateOfBirth,
+                                       java.time.LocalDate specialDate,
+                                       String specialDateDescription, Boolean termsAccepted) {
+        requestRegistrationOtp(rawPhone, name, password, defaultLocationId, customerCompanyId,
+                dateOfBirth, specialDate, "Other", specialDateDescription, termsAccepted);
+    }
+
+    public void requestRegistrationOtp(String rawPhone, String name, String password,
+                                       Long defaultLocationId, Long customerCompanyId,
+                                       java.time.LocalDate dateOfBirth,
+                                       java.time.LocalDate specialDate,
+                                       String specialDayType, String specialDayCustomLabel,
+                                       Boolean termsAccepted) {
+        if (!Boolean.TRUE.equals(termsAccepted)) {
+            throw new OtpException("terms_acceptance_required");
+        }
+        String phone = PhoneNumberNormalizer.normalize(rawPhone);
+        if (userRepository.findByPhone(phone).isPresent()) {
+            throw new OtpException("phone_taken");
+        }
+        validateLocation(defaultLocationId);
+        if (customerCompanyId == null) throw new OtpException("customer_company_required");
+        String normalizedType = SpecialDayTypes.typeOrNull(specialDayType);
+        if (normalizedType != null && specialDate == null) {
+            throw new OtpException("special_date_required");
+        }
+        requestOtp(phone, OtpPurpose.REGISTRATION, name, passwordEncoder.encode(password),
+                defaultLocationId, customerCompanyId, dateOfBirth, specialDate,
+                normalizedType, specialDayCustomLabel, true, Instant.now(), legalProperties.getTermsVersion(),
+                legalProperties.getPrivacyPolicyVersion());
     }
 
     public void requestPasswordResetOtp(String rawPhone) {
@@ -104,11 +160,31 @@ public class WhatsAppOtpService {
 
     private void requestOtp(String phone, OtpPurpose purpose, String name, String passwordHash,
                             Long defaultLocationId) {
-        requestOtp(phone, purpose, name, passwordHash, defaultLocationId, null);
+        requestOtp(phone, purpose, name, passwordHash, defaultLocationId, null, null, null, null);
     }
 
     private void requestOtp(String phone, OtpPurpose purpose, String name, String passwordHash,
                             Long defaultLocationId, Long customerCompanyId) {
+        requestOtp(phone, purpose, name, passwordHash, defaultLocationId, customerCompanyId, null, null, null);
+    }
+
+    private void requestOtp(String phone, OtpPurpose purpose, String name, String passwordHash,
+                            Long defaultLocationId, Long customerCompanyId,
+                            java.time.LocalDate dateOfBirth,
+                            java.time.LocalDate specialDate,
+                            String specialDateDescription) {
+        requestOtp(phone, purpose, name, passwordHash, defaultLocationId, customerCompanyId,
+                dateOfBirth, specialDate, specialDateDescription == null ? null : "Other",
+                specialDateDescription, null, null, null, null);
+    }
+
+    private void requestOtp(String phone, OtpPurpose purpose, String name, String passwordHash,
+                            Long defaultLocationId, Long customerCompanyId,
+                            java.time.LocalDate dateOfBirth,
+                            java.time.LocalDate specialDate,
+                            String specialDayType, String specialDayCustomLabel,
+                            Boolean termsAccepted, Instant termsAcceptedAt,
+                            String termsVersion, String privacyPolicyVersion) {
         Instant now = Instant.now();
         WhatsAppOtpProperties.Otp limits = properties.getOtp();
         if (otpRepository.countByPhoneNumberAndCreatedAtAfter(phone, now.minus(1, ChronoUnit.HOURS))
@@ -131,9 +207,18 @@ public class WhatsAppOtpService {
                 .purpose(purpose)
                 .otpHash(passwordEncoder.encode(otp))
                 .registrationName(name)
+                .registrationDateOfBirth(dateOfBirth)
+                .registrationSpecialDate(specialDate)
+                .registrationSpecialDayType(SpecialDayTypes.typeOrNull(specialDayType))
+                .registrationSpecialDayCustomLabel(SpecialDayTypes.customLabelOrNull(
+                        specialDayType, specialDayCustomLabel))
                 .registrationPasswordHash(passwordHash)
                 .registrationDefaultLocationId(defaultLocationId)
                 .registrationCustomerCompanyId(customerCompanyId)
+                .registrationTermsAccepted(termsAccepted)
+                .registrationTermsAcceptedAt(termsAcceptedAt)
+                .registrationTermsVersion(termsVersion)
+                .registrationPrivacyPolicyVersion(privacyPolicyVersion)
                 .expiresAt(now.plus(limits.getExpiryMinutes(), ChronoUnit.MINUTES))
                 .attemptCount(0)
                 .status(OtpStatus.ACTIVE)
@@ -159,16 +244,17 @@ public class WhatsAppOtpService {
         if (otp.getRegistrationPasswordHash() == null) {
             throw new OtpException("invalid_otp");
         }
-        validateLocation(otp.getRegistrationDefaultLocationId());
-        if (otp.getRegistrationCustomerCompanyId() == null) {
-            if (otp.getRegistrationDefaultLocationId() == null) {
-                return userService.registerVerified(phone, otp.getRegistrationName(), otp.getRegistrationPasswordHash());
-            }
-            return userService.registerVerified(phone, otp.getRegistrationName(), otp.getRegistrationPasswordHash(),
-                    otp.getRegistrationDefaultLocationId());
+        if (!Boolean.TRUE.equals(otp.getRegistrationTermsAccepted())) {
+            throw new OtpException("terms_acceptance_required");
         }
+        validateLocation(otp.getRegistrationDefaultLocationId());
         return userService.registerVerified(phone, otp.getRegistrationName(), otp.getRegistrationPasswordHash(),
-                otp.getRegistrationDefaultLocationId(), otp.getRegistrationCustomerCompanyId());
+                otp.getRegistrationDefaultLocationId(), otp.getRegistrationCustomerCompanyId(),
+                otp.getRegistrationDateOfBirth(), otp.getRegistrationSpecialDate(),
+                otp.getRegistrationSpecialDayType(), otp.getRegistrationSpecialDayCustomLabel(),
+                otp.getRegistrationTermsAccepted(),
+                otp.getRegistrationTermsAcceptedAt(), otp.getRegistrationTermsVersion(),
+                otp.getRegistrationPrivacyPolicyVersion());
     }
 
     @Transactional

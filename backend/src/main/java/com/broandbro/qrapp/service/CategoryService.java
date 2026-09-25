@@ -9,6 +9,8 @@ import com.broandbro.qrapp.repository.MenuRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 
 import java.util.List;
 import java.util.Optional;
@@ -22,6 +24,7 @@ public class CategoryService {
     private final LocationRepository locationRepository;
     private final LocationAccessService locationAccessService;
 
+    @Cacheable(cacheNames = "categories", key = "#locationId", sync = true)
     public List<Category> getAllCategories(Long locationId) {
         requireActiveLocation(locationId);
         return categoryRepository.findByLocationIdAndIsDeletedFalse(locationId);
@@ -37,12 +40,14 @@ public class CategoryService {
         return categoryRepository.findByLocationIdAndNameAndIsDeletedFalse(locationId, name);
     }
 
+    @CacheEvict(cacheNames = {"categories", "menu", "menuRecommended"}, allEntries = true)
     public Category createCategory(Long locationId, Category category, User user) {
         Location location = requireManagementLocation(locationId, user);
         category.setLocation(location);
         return categoryRepository.save(category);
     }
 
+    @CacheEvict(cacheNames = {"categories", "menu", "menuRecommended"}, allEntries = true)
     public Category updateCategory(Long locationId, Long id, Category category, User user) {
         requireManagementLocation(locationId, user);
         return categoryRepository.findByIdAndLocationIdAndIsDeletedFalse(id, locationId)
@@ -55,6 +60,7 @@ public class CategoryService {
     }
 
     @Transactional
+    @CacheEvict(cacheNames = {"categories", "menu", "menuRecommended"}, allEntries = true)
     public void deleteCategory(Long locationId, Long id, User user) {
         requireManagementLocation(locationId, user);
         Category category = categoryRepository.findByIdAndLocationIdAndIsDeletedFalse(id, locationId)
@@ -75,6 +81,7 @@ public class CategoryService {
     }
 
     @Transactional
+    @CacheEvict(cacheNames = {"categories", "menu", "menuRecommended"}, allEntries = true)
     public void restoreCategory(Long locationId, Long id, User user) {
         requireManagementLocation(locationId, user);
         Category category = categoryRepository.findByIdAndLocationIdAndIsDeletedTrue(id, locationId)

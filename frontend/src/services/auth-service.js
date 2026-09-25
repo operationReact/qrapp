@@ -15,13 +15,23 @@ export const updateCurrentUser = (data) =>
 export const registerUser = (data) =>
   apiClient.post("/auth/register", data).then((r) => r.data);
 
-export const requestRegistrationOTP = ({ phone, password, name, defaultLocationId, customerCompanyId }) =>
+export const requestRegistrationOTP = ({
+  phone, password, name, dateOfBirth, specialDate, specialDayType, specialDayCustomLabel,
+  defaultLocationId, customerCompanyId, termsAccepted,
+}) =>
   apiClient.post("/auth/register/request-otp", {
     phoneNumber: phone,
     password,
     name,
+    ...(dateOfBirth ? { dateOfBirth } : {}),
+    ...(specialDate ? { specialDate } : {}),
+    ...(specialDayType ? { specialDayType } : {}),
+    ...(specialDayType === "Other" && specialDayCustomLabel?.trim()
+      ? { specialDayCustomLabel: specialDayCustomLabel.trim() }
+      : {}),
     ...(defaultLocationId != null ? { defaultLocationId } : {}),
     customerCompanyId,
+    termsAccepted,
   }).then((r) => r.data);
 
 export const verifyRegistrationOTP = ({ phone, otp }) =>

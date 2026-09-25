@@ -8,7 +8,7 @@ import { useAuth } from "@/context/AuthContext";
 import { myPartyOrdersOptions } from "@/query/options/party-orders";
 import UserPartyOrderCard from "@/components/UserPartyOrderCard";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { ConfettiIcon } from "@phosphor-icons/react";
 import {
   Empty,
@@ -37,7 +37,6 @@ function MyPartyOrdersPage() {
     ...myPartyOrdersOptions,
     enabled: !!user?.token,
   });
-
   return (
     <div className="page-shell pb-mobile-nav! md:pb-[initial]!">
       <Navbar />
@@ -95,6 +94,7 @@ function MyPartyOrdersPage() {
             ))}
           </div>
         )}
+
       </main>
 
       <MobileMenu />

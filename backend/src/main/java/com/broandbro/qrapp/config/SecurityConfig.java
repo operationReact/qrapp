@@ -168,6 +168,8 @@ public class SecurityConfig {
                                 "/api/admin/customer-companies/**",
                                 "/api/admin/locations/*/customer-companies/**"
                         ).authenticated()
+                        .requestMatchers("/api/admin/hall-of-happiness/**")
+                        .hasAnyRole("ADMIN", "SUPERUSER", "SUPER_ADMIN", "MANAGER")
 
                         .requestMatchers("/api/admin/**")
                         .hasAnyRole("ADMIN", "SUPERUSER", "SUPER_ADMIN")

@@ -14,6 +14,7 @@ import {
 } from "@/services/party-order-service";
 import { toast } from "sonner";
 import CountdownTimer from "@/components/CountdownTimer";
+import CustomerHallPhotoUpload from "@/components/CustomerHallPhotoUpload";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -586,6 +587,8 @@ export default function UserPartyOrderCard({ order }) {
               </AlertDialog>
             </div>
           )}
+
+          <CustomerHallPhotoUpload order={order} />
 
           {order.specialNotes && (
             <div className="border space-y-2 border-primary/10 col-span-2 w-full gap-1.5 text-xs bg-primary/5 rounded-lg px-2.5 py-2">

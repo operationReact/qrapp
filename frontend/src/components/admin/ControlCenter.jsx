@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useLocation } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { Bell, Building2, Check, ChevronDown, ChevronRight, CreditCard, Globe2, IndianRupee, KeyRound, MapPin, Menu, MoreVertical, Plus, ShieldCheck, Users, UsersRound, Wallet, Zap } from "lucide-react";
+import { Bell, Building2, Check, ChevronDown, ChevronRight, CreditCard, Globe2, IndianRupee, KeyRound, MapPin, Menu, MoreVertical, Plus, ShieldCheck, Store, Users, UsersRound, Wallet, Zap } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,7 +14,7 @@ import { useLocation as useActiveLocation } from "@/context/LocationContext";
 import { ROLE } from "@/lib/roles";
 import { adminSettingsOptions, paymentConfigOptions } from "@/query/options/orders";
 import { adminSetPayAtStall } from "@/services/order-service";
-import { adminCustomerCompaniesOptions, adminLocationsOptions, adminUsersOptions, assignCustomerCompany, createManagementResource, grantUserLocation, locationCustomerCompaniesOptions, removeCustomerCompany, revokeUserLocation, updateCustomerCompany, updateUserRole, userLocationsOptions } from "@/query/options/management";
+import { adminCustomerCompaniesOptions, adminLocationsOptions, adminUsersOptions, adminVendorsOptions, assignCustomerCompany, createManagementResource, grantUserLocation, locationCustomerCompaniesOptions, removeCustomerCompany, revokeUserLocation, updateCustomerCompany, updateUserRole, userLocationsOptions } from "@/query/options/management";
 
 // Existing routes/tabs are preserved 1:1 — only the presentation changed.
 const links = [
@@ -144,6 +144,7 @@ export function ControlCenterOverview() {
   const { data: users = [] } = useQuery(adminUsersOptions());
   const { data: locations = [] } = useQuery(adminLocationsOptions());
   const { data: companies = [] } = useQuery(adminCustomerCompaniesOptions());
+  const { data: vendors = [] } = useQuery(adminVendorsOptions());
 
   // Config-driven cards — add a future module (e.g. Vendor Management) by
   // appending one entry here rather than building a new layout.
@@ -151,6 +152,7 @@ export function ControlCenterOverview() {
     { to: "/admin/control-center/users", title: "Users", count: users.length, icon: Users, description: "Manage administrator access" },
     { to: "/admin/control-center/locations", title: "Locations", count: locations.length, icon: Building2, description: "Create and manage operating locations" },
     { to: "/admin/control-center/customer-companies", title: "Customer Companies", count: companies.length, icon: UsersRound, description: "Manage companies and assignments" },
+    { to: "/admin/vendors", title: "Vendors", count: vendors.length, icon: Store, description: "Manage vendors, assignments and costs" },
     { to: "/admin/control-center/access", title: "Access Management", count: "—", icon: KeyRound, description: "Manage roles and location access" },
     { to: "/admin/control-center/payments", title: "Payment Management", icon: CreditCard, description: "Configure available payment methods", wide: true },
   ];

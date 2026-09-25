@@ -3,6 +3,8 @@ import {
   ForkKnifeIcon, KeyIcon, LightningIcon, ListPlusIcon, MagicWandIcon,
   QueueIcon, ShieldCheckIcon, SlidersIcon, SparkleIcon, TerminalWindowIcon,
   TicketIcon, TrophyIcon, UsersThreeIcon, UserCircleIcon, ShoppingCartSimpleIcon,
+  StorefrontIcon,
+  ConfettiIcon,
 } from "@phosphor-icons/react";
 import { ROLE } from "./roles";
 
@@ -18,8 +20,10 @@ export const ADMIN_NAVIGATION = [
     { to: "/admin/combo-campaigns", label: "BYOC Campaigns", icon: SparkleIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN] },
   ] },
   { section: "Operations", items: [
+    { to: "/admin/vendors", label: "Vendor Management", icon: StorefrontIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN, ROLE.MANAGER] },
     { to: "/admin/kitchen-queue", label: "Kitchen Queue", icon: QueueIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN, ROLE.MANAGER, ROLE.KITCHEN_STAFF] },
     { to: "/admin/party-orders", label: "Party Orders", icon: UsersThreeIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN, ROLE.MANAGER] },
+    { to: "/admin/hall-of-happiness", label: "Hall of Happiness", icon: ConfettiIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN, ROLE.MANAGER] },
     { to: "/admin/pre-orders", label: "Pre-Orders", icon: CalendarCheckIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN, ROLE.MANAGER] },
   ] },
   { section: "Offers", items: [

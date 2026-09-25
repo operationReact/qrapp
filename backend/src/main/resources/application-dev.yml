@@ -1,7 +1,7 @@
 spring:
   cache:
     type: caffeine
-    cache-names: walletBalance,menu,menuRecommended,otp
+    cache-names: walletBalance,menu,menuRecommended,categories,hallOfHappiness,otp
     caffeine:
       spec: maximumSize=500,expireAfterWrite=10m,recordStats
 
@@ -111,3 +111,7 @@ app:
   parameter-store:
     auto-create: false
     environment: dev
+
+legal:
+  terms-version: ${LEGAL_TERMS_VERSION:2026-09}
+  privacy-policy-version: ${LEGAL_PRIVACY_POLICY_VERSION:2026-01}

@@ -33,6 +33,7 @@ export default function OTPVerifyDialog({
   onVerified,
   onResend,
   verifyOtp,
+  contactLabel = "mobile number",
 }) {
   const [otp, setOtp] = useState("");
   const [countdown, setCountdown] = useState(RESEND_COUNTDOWN);
@@ -70,9 +71,9 @@ export default function OTPVerifyDialog({
   }, [open]);
 
   const mutationError = verifyMutation.isError
-    ? extractApiError(verifyMutation.error, "Invalid OTP")
+    ? getOtpError(verifyMutation.error, "Invalid OTP", contactLabel)
     : resendMutation.isError
-      ? extractApiError(resendMutation.error, "Failed to resend OTP")
+      ? getOtpError(resendMutation.error, "Failed to resend OTP", contactLabel)
       : null;
 
   const displayError = error ?? mutationError;
@@ -82,6 +83,13 @@ export default function OTPVerifyDialog({
     setError(null);
     if (verifyMutation.isError) verifyMutation.reset();
     if (resendMutation.isError) resendMutation.reset();
+  }
+
+  function getOtpError(error, fallback, contactLabel) {
+    const code = error?.response?.data;
+    if (code === "invalid_phone_number") return `Enter a valid ${contactLabel}.`;
+    if (code === "phone_taken") return `This ${contactLabel} is already registered.`;
+    return extractApiError(error, fallback);
   }
 
   function handleVerify() {
@@ -109,7 +117,7 @@ export default function OTPVerifyDialog({
         <DialogHeader>
           <DialogTitle className="text-base font-medium">Verify Your Account</DialogTitle>
           <DialogDescription>
-            Enter the OTP sent to your mobile number +91 {phone}
+            Enter the OTP sent to your {contactLabel} +91 {phone}
           </DialogDescription>
         </DialogHeader>
 
