@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, useLocation } from "@tanstack/react-router";
+import { Link, useLocation, useNavigate, useSearch } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { Bell, Building2, CalendarDays, Check, ChevronDown, CreditCard, Eye, EyeOff, Globe2, Heart, IndianRupee, KeyRound, MapPin, Menu, MoreHorizontal, MoreVertical, Plus, Search, ShieldCheck, Store, UserRound, Users, UsersRound, Wallet } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,7 +20,7 @@ import { adminSettingsOptions, paymentConfigOptions } from "@/query/options/orde
 import { adminSetPayAtStall } from "@/services/order-service";
 import { partyOrdersOptions } from "@/query/options/party-orders";
 import { adminHallOfHappinessOptions } from "@/query/options/admin-hall-of-happiness";
-import { adminCreateUserOptions, adminCustomerCompaniesOptions, adminLocationsOptions, adminUsersOptions, adminVendorsOptions, assignCustomerCompany, createAdminLocation, createAdminUser, createManagementResource, grantUserLocation, revokeUserLocation, updateAdminLocation, updateCustomerCompany, updateUserRole, userLocationsOptions } from "@/query/options/management";
+import { adminCreateUserOptions, adminCustomerCompaniesOptions, adminLocationsOptions, adminLocationsPageOptions, adminUsersOptions, adminVendorsOptions, assignCustomerCompany, createAdminLocation, createAdminUser, createManagementResource, grantUserLocation, revokeUserLocation, updateAdminLocation, updateCustomerCompany, updateUserRole, userLocationsOptions } from "@/query/options/management";
 import { baseURL } from "@/services";
 
 const primaryNavigation = [
@@ -348,8 +348,7 @@ function LocationCard({ location, onEdit }) {
   const active = location.active ?? true;
   return <div className="flex items-center gap-3 rounded-[16px] border border-[var(--cc-border)] bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
     <LocationThumbnail key={location.locationPhotoUrl || "location-pin"} url={location.locationPhotoUrl} locationId={location.id} name={location.name} />
-    <div className="min-w-0 flex-1"><p className="break-words text-base font-semibold leading-5 text-[var(--cc-text)]">{location.name}</p><p className="break-all text-xs text-[#77716D]">{location.code || location.locationCode || "Generated on save"}</p><p className="mt-1 break-words text-[13px] leading-4 text-[var(--cc-secondary-text)]">{[location.addressLine1, location.city, location.stateUt, location.pinCode].filter(Boolean).join(", ") || location.address || "No address provided"}</p></div>
-    <span className={`hidden rounded-full px-2.5 py-1 text-xs font-semibold sm:inline-flex ${active ? "bg-[var(--cc-success-bg)] text-[var(--cc-success)]" : "bg-[var(--cc-page)] text-[var(--cc-muted-text)]"}`}>{active ? "ACTIVE" : "INACTIVE"}</span>
+    <div className="min-w-0 flex-1"><p className="break-words text-base font-semibold leading-5 text-[var(--cc-text)]">{location.name}</p><div className="mt-1 flex min-w-0 flex-wrap items-center gap-2"><span className={`shrink-0 rounded-full px-2 py-1 text-[10px] font-semibold ${active ? "bg-[var(--cc-success-bg)] text-[var(--cc-success)]" : "bg-[var(--cc-page)] text-[var(--cc-muted-text)]"}`}>{active ? "Active" : "Inactive"}</span><p className="break-all text-xs text-[#77716D]">{location.code || location.locationCode || "Generated on save"}</p></div><p className="mt-1 break-words text-[13px] leading-4 text-[var(--cc-secondary-text)]">{[location.addressLine1, location.city, location.stateUt, location.pinCode].filter(Boolean).join(", ") || location.address || "No address provided"}</p></div>
     <DropdownMenu><DropdownMenuTrigger className="grid size-11 shrink-0 place-items-center rounded-[10px] text-[var(--cc-muted-text)] hover:bg-[var(--cc-primary-light)]" aria-label={`Actions for ${location.name}`}><MoreVertical className="size-5" /></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onClick={() => onEdit(location)}>Edit location</DropdownMenuItem></DropdownMenuContent></DropdownMenu>
   </div>;
 }
@@ -432,12 +431,99 @@ function LocationDialog({ open, onOpenChange, initial, onSave, pending, error })
   </form></DialogContent></Dialog>;
 }
 
+const DEFAULT_LOCATION_FILTERS = {
+  status: "ACTIVE",
+  state: "",
+  city: "",
+  country: "India",
+  customerCompanyId: "",
+  search: "",
+  page: 0,
+};
+
+function locationFiltersFromSearch(search) {
+  return {
+    status: ["ACTIVE", "INACTIVE", "ALL"].includes(String(search.status || "").toUpperCase())
+      ? String(search.status).toUpperCase() : "ACTIVE",
+    state: String(search.state || ""),
+    city: String(search.city || ""),
+    country: String(search.country || "India"),
+    customerCompanyId: String(search.customerCompanyId || ""),
+    search: String(search.search || ""),
+    page: Math.max(0, Number(search.page || 0) || 0),
+  };
+}
+
+function LocationFilterFields({ filters, locations, companies, onChange }) {
+  const states = [...new Set(locations.map((location) => location.stateUt).filter(Boolean))].sort();
+  const cities = [...new Set(locations
+    .filter((location) => !filters.state || location.stateUt === filters.state)
+    .map((location) => location.city).filter(Boolean))].sort();
+  const countries = [...new Set(locations.map((location) => location.country).filter(Boolean))].sort();
+  const selectClass = "h-10 w-full min-w-0 rounded-[10px] border border-[var(--cc-border)] bg-white px-3 text-sm";
+  return <div className="grid min-w-0 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+    <label className="min-w-0 space-y-1 text-xs font-semibold"><span>Status</span><select className={selectClass} value={filters.status} onChange={(event) => onChange({ status: event.target.value })}><option value="ACTIVE">Active</option><option value="INACTIVE">Inactive</option><option value="ALL">All</option></select></label>
+    <label className="min-w-0 space-y-1 text-xs font-semibold"><span>State</span><select className={selectClass} value={filters.state} onChange={(event) => onChange({ state: event.target.value, city: "" })}><option value="">All States</option>{states.map((state) => <option key={state} value={state}>{state}</option>)}</select></label>
+    <label className="min-w-0 space-y-1 text-xs font-semibold"><span>City</span><select className={selectClass} value={filters.city} onChange={(event) => onChange({ city: event.target.value })}><option value="">All Cities</option>{cities.map((city) => <option key={city} value={city}>{city}</option>)}</select></label>
+    <label className="min-w-0 space-y-1 text-xs font-semibold"><span>Country</span><select className={selectClass} value={filters.country} onChange={(event) => onChange({ country: event.target.value })}><option value="">All Countries</option>{countries.map((country) => <option key={country} value={country}>{country}</option>)}</select></label>
+    <label className="min-w-0 space-y-1 text-xs font-semibold"><span>Customer Company</span><select className={selectClass} value={filters.customerCompanyId} onChange={(event) => onChange({ customerCompanyId: event.target.value })}><option value="">All Companies</option>{companies.map((company) => <option key={company.id} value={company.id}>{company.name}</option>)}</select></label>
+    <label className="min-w-0 space-y-1 text-xs font-semibold sm:col-span-2 lg:col-span-1"><span>Search</span><Input className="h-10 rounded-[10px] border-[var(--cc-border)]" placeholder="Name, code, city, state or PIN" value={filters.search} onChange={(event) => onChange({ search: event.target.value })} /></label>
+  </div>;
+}
+
 export function ControlCenterLocations() {
-  const { data = [], isLoading, error } = useQuery(adminLocationsOptions());
+  const navigate = useNavigate();
+  const routeSearch = useSearch({ strict: false });
+  const urlFilters = locationFiltersFromSearch(routeSearch);
+  const [filters, setFilters] = useState(urlFilters);
+  const [filterDraft, setFilterDraft] = useState(urlFilters);
+  const [filterOpen, setFilterOpen] = useState(false);
+  const searchDebounce = useRef(null);
+  const queryParams = { ...Object.fromEntries(Object.entries(urlFilters).filter(([, value]) => value !== "")), size: 20 };
+  const { data: pageData, isLoading, error } = useQuery(adminLocationsPageOptions(queryParams));
+  const data = pageData?.content || [];
+  const totalPages = pageData?.totalPages || 1;
+  const { data: filterLocations = [] } = useQuery(adminLocationsOptions({ status: "ALL" }));
+  const { data: companies = [] } = useQuery(adminCustomerCompaniesOptions());
   const [locationDialogOpen, setLocationDialogOpen] = useState(false);
   const [editingLocation, setEditingLocation] = useState(null);
   const [generatedCode, setGeneratedCode] = useState("");
   const queryClient = useQueryClient();
+  useEffect(() => {
+    setFilters(urlFilters);
+    setFilterDraft(urlFilters);
+  }, [routeSearch.status, routeSearch.state, routeSearch.city, routeSearch.country, routeSearch.customerCompanyId, routeSearch.search, routeSearch.page]);
+  useEffect(() => () => window.clearTimeout(searchDebounce.current), []);
+  const commitFilters = (next) => {
+    const params = Object.fromEntries(Object.entries(next).filter(([, value]) => value !== ""));
+    navigate({ search: params, replace: true });
+  };
+  const changeFilter = (patch) => {
+    const next = { ...filters, ...patch, page: Object.prototype.hasOwnProperty.call(patch, "page") ? patch.page : 0 };
+    setFilters(next);
+    setFilterDraft(next);
+    if (Object.prototype.hasOwnProperty.call(patch, "search")) {
+      window.clearTimeout(searchDebounce.current);
+      searchDebounce.current = window.setTimeout(() => commitFilters(next), 400);
+    } else {
+      commitFilters(next);
+    }
+  };
+  const clearFilters = () => {
+    const next = { ...DEFAULT_LOCATION_FILTERS };
+    setFilters(next);
+    setFilterDraft(next);
+    setFilterOpen(false);
+    commitFilters(next);
+  };
+  const filterCount = [
+    filters.status !== "ACTIVE",
+    Boolean(filters.state),
+    Boolean(filters.city),
+    filters.country !== "India",
+    Boolean(filters.customerCompanyId),
+    Boolean(filters.search),
+  ].filter(Boolean).length;
   const mutation = useMutation({
     mutationFn: ({ payload, photo, previewCode }) => createAdminLocation({ ...payload, country: "India", name: payload.name.trim(), addressLine1: payload.addressLine1.trim(), addressLine2: (payload.addressLine2 || "").trim(), landmark: (payload.landmark || "").trim(), city: payload.city.trim(), district: payload.district.trim(), stateUt: payload.stateUt.trim(), pinCode: payload.pinCode.trim(), active: true }, photo).then((created) => ({ created, previewCode })),
     onSuccess: ({ created, previewCode }) => {
@@ -457,8 +543,15 @@ export function ControlCenterLocations() {
       ? "Only a Super Admin can add locations."
       : mutation.error?.response?.data?.message || mutation.error?.response?.data || mutation.error?.message;
   return <Shell title="Locations" description="Create and manage operating locations." showLocationContext={false}>
-    <div className="flex min-w-0 justify-end"><Button className="h-11 w-full rounded-[10px] bg-[var(--cc-primary)] font-semibold text-white hover:bg-[var(--cc-primary-dark)] sm:w-auto" onClick={() => { setGeneratedCode(""); setEditingLocation(null); setLocationDialogOpen(true); }}><Plus className="size-[18px]" /> Add Location</Button></div>
-    {isLoading ? <p className="text-sm text-[var(--cc-muted-text)]">Loading locations...</p> : <div className="grid gap-3 lg:grid-cols-2">{data.map((location) => <LocationCard key={location.id} location={location} onEdit={(item) => { setEditingLocation(item); setLocationDialogOpen(true); }} />)}{!data.length && <p className="rounded-[16px] border border-[var(--cc-border)] bg-white p-8 text-center text-sm text-[var(--cc-muted-text)] lg:col-span-2">No locations are configured.</p>}</div>}
+    <div className="flex min-w-0 flex-col gap-3">
+      <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <Button variant="outline" className="h-10 w-full rounded-[10px] sm:hidden" onClick={() => { setFilterDraft(filters); setFilterOpen(true); }}>Filters{filterCount ? ` · ${filterCount}` : ""}</Button>
+        <Button className="h-11 w-full rounded-[10px] bg-[var(--cc-primary)] font-semibold text-white hover:bg-[var(--cc-primary-dark)] sm:w-auto sm:ml-auto" onClick={() => { setGeneratedCode(""); setEditingLocation(null); setLocationDialogOpen(true); }}><Plus className="size-[18px]" /> Add Location</Button>
+      </div>
+      <div className="hidden min-w-0 sm:block"><LocationFilterFields filters={filters} locations={filterLocations} companies={companies} onChange={changeFilter} />{filterCount > 0 && <Button type="button" variant="outline" className="mt-3 h-9" onClick={clearFilters}>Clear filters</Button>}</div>
+    </div>
+    <Dialog open={filterOpen} onOpenChange={setFilterOpen}><DialogContent className="max-h-[90vh] w-[calc(100vw-32px)] max-w-[calc(100vw-32px)] overflow-y-auto rounded-[20px] p-5 sm:max-w-lg"><DialogHeader><DialogTitle>Filters</DialogTitle><DialogDescription>Filter authorized operating locations.</DialogDescription></DialogHeader><LocationFilterFields filters={filterDraft} locations={filterLocations} companies={companies} onChange={(patch) => setFilterDraft((current) => ({ ...current, ...patch, ...(patch.state && !filterLocations.some((location) => location.stateUt === patch.state && location.city === current.city) ? { city: "" } : {}) }))} /><div className="flex flex-col gap-2 sm:flex-row sm:justify-end"><Button type="button" variant="outline" className="h-11" onClick={clearFilters}>Clear</Button><Button type="button" className="h-11 bg-[var(--cc-primary)] text-white hover:bg-[var(--cc-primary-dark)]" onClick={() => { const next = { ...filterDraft, page: 0 }; setFilters(next); commitFilters(next); setFilterOpen(false); }}>Apply Filters</Button></div></DialogContent></Dialog>
+    {isLoading ? <p className="text-sm text-[var(--cc-muted-text)]">Loading locations...</p> : <><div className="grid gap-3 lg:grid-cols-2">{data.map((location) => <LocationCard key={location.id} location={location} onEdit={(item) => { setEditingLocation(item); setLocationDialogOpen(true); }} />)}{!data.length && <div className="rounded-[16px] border border-[var(--cc-border)] bg-white p-8 text-center lg:col-span-2"><p className="text-sm text-[var(--cc-muted-text)]">{filters.search ? `No locations found for "${filters.search}".` : filterCount ? "No locations match your filters." : filters.status === "ACTIVE" ? "No active locations found." : "No locations found."}</p><Button type="button" variant="outline" className="mt-3 h-10" onClick={clearFilters}>Clear Filters</Button></div>}</div>{totalPages > 1 && <div className="flex items-center justify-center gap-3 pt-2"><Button type="button" variant="outline" className="h-10" disabled={filters.page === 0} onClick={() => changeFilter({ page: filters.page - 1 })}>Previous</Button><span className="text-xs text-[var(--cc-muted-text)]">Page {filters.page + 1} of {totalPages}</span><Button type="button" variant="outline" className="h-10" disabled={filters.page + 1 >= totalPages} onClick={() => changeFilter({ page: filters.page + 1 })}>Next</Button></div>}</>}
     <ErrorState error={error} />
     <LocationDialog key={`${editingLocation?.id || "new"}-${locationDialogOpen}-${generatedCode}`} open={locationDialogOpen} onOpenChange={setLocationDialogOpen} initial={editingLocation} pending={editingLocation ? editMutation.isPending : mutation.isPending} error={editingLocation ? editMutation.error?.response?.data?.message || editMutation.error?.message : apiError} onSave={(payload) => { const { photo, removePhoto, ...editablePayload } = payload; const previewCode = editablePayload.code; if (editingLocation) editMutation.mutate({ id: editingLocation.id, payload: { ...editablePayload, removePhoto }, photo }); else mutation.mutate({ payload: editablePayload, photo, previewCode }); }} />
   </Shell>;

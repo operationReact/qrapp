@@ -13,6 +13,10 @@ import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import java.util.List;
 
 @RestController
@@ -29,9 +33,33 @@ public class SuperAdminLocationController {
     private final com.broandbro.qrapp.service.LocationPhotoService locationPhotoService;
 
     @GetMapping("/locations")
-    public List<LocationResponse> locations(org.springframework.security.core.Authentication authentication) {
+    public Page<LocationResponse> locations(
+            @RequestParam(defaultValue = "ACTIVE") String status,
+            @RequestParam(required = false) String state,
+            @RequestParam(required = false) String city,
+            @RequestParam(required = false) String country,
+            @RequestParam(required = false) Long customerCompanyId,
+            @RequestParam(required = false) String search,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            org.springframework.security.core.Authentication authentication) {
         authorize(authentication);
-        return locationRepository.findAll().stream().map(LocationResponse::from).toList();
+        if (page < 0 || size < 1 || size > 100) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "invalid_location_pagination");
+        }
+        Boolean active = switch (status.trim().toUpperCase(java.util.Locale.ROOT)) {
+            case "ACTIVE" -> true;
+            case "INACTIVE" -> false;
+            case "ALL" -> null;
+            default -> throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "invalid_location_status");
+        };
+        return locationRepository.findForAdminFilters(active, clean(state), clean(city), clean(country),
+                        customerCompanyId, clean(search), PageRequest.of(page, size, Sort.by("name").ascending()))
+                .map(LocationResponse::from);
+    }
+
+    private static String clean(String value) {
+        return value == null || value.isBlank() ? null : value.trim();
     }
 
     @PostMapping("/locations")

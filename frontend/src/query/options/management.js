@@ -15,6 +15,10 @@ export const adminCreateUserOptions = () => ({
   queryFn: async () => (await apiClient.get("/api/admin/users/create-options")).data,
 });
 export const adminLocationsOptions = (params) => list("/api/admin/locations", "locations", params);
+export const adminLocationsPageOptions = (params) => ({
+  queryKey: ["admin", "locations-page", params || {}],
+  queryFn: async () => (await apiClient.get("/api/admin/locations", { params })).data,
+});
 export const adminCustomerCompaniesOptions = (params) => list("/api/admin/customer-companies", "customer-companies", params);
 export const adminVendorsOptions = () => list("/api/v1/vendors", "vendors");
 export const locationCustomerCompaniesOptions = (locationId, enabled = true) => ({
