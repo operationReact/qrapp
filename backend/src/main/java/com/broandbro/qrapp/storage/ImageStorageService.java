@@ -23,6 +23,10 @@ public interface ImageStorageService {
 
     StoredImage uploadImageWithKey(byte[] imageBytes, String folder, String contentType);
 
+    StoredImage uploadLocationImageWithKey(byte[] imageBytes, Long locationId, String locationName, String contentType);
+
+    void deleteLocationImageByKey(String key);
+
     /**
      * Deletes an image from storage by its public URL.
      * Silently logs a warning if the URL cannot be resolved to a key.

@@ -29,7 +29,11 @@ public class LocationPhotoService {
         validate(file);
         ImageStorageService.StoredImage stored;
         try {
-            stored = storage.uploadImageWithKey(file.getBytes(), "locations/" + location.getId(), file.getContentType().toLowerCase(Locale.ROOT));
+            String contentType = file.getContentType() == null
+                    ? ""
+                    : file.getContentType().toLowerCase(Locale.ROOT);
+            stored = storage.uploadLocationImageWithKey(file.getBytes(), location.getId(), location.getName(),
+                    contentType);
         } catch (IOException e) {
             throw new InvalidImageException("Could not read location photo");
         }
@@ -48,7 +52,9 @@ public class LocationPhotoService {
     }
 
     private void deletePrevious(Location location) {
-        if (location.getLocationPhotoUrl() != null) {
+        if (location.getLocationPhotoKey() != null) {
+            storage.deleteLocationImageByKey(location.getLocationPhotoKey());
+        } else if (location.getLocationPhotoUrl() != null) {
             storage.deleteImageByUrl(location.getLocationPhotoUrl());
         }
     }

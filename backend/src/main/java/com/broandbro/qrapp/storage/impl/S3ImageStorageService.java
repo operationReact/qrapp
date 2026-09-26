@@ -56,14 +56,38 @@ public class S3ImageStorageService implements ImageStorageService {
 
     @Override
     public StoredImage uploadImageWithKey(byte[] imageBytes, String folder, String contentType) {
-
         if (!props.isEnabled()) {
             return storeLocally(imageBytes, folder, contentType);
         }
-
         String key = buildS3Key(folder, contentType);
-        String bucket = props.getBucketName();
+        return putObject(imageBytes, props.getBucketName(), key, contentType);
+    }
 
+    @Override
+    public StoredImage uploadLocationImageWithKey(byte[] imageBytes, Long locationId, String locationName,
+                                                   String contentType) {
+        String folder = "locations/" + locationId;
+        String key = folder + "/" + safeFileName(locationName) + extension(contentType);
+        if (!props.isEnabled()) {
+            return storeLocally(imageBytes, key, contentType);
+        }
+        return putObject(imageBytes, props.getLocationBucketName(), key, contentType);
+    }
+
+    @Override
+    public void deleteLocationImageByKey(String key) {
+        if (key == null || key.isBlank()) return;
+        if (key.startsWith("local/")) {
+            deleteLocalImage(key);
+            return;
+        }
+        if (props.isEnabled()) {
+            s3Client.deleteObject(DeleteObjectRequest.builder()
+                    .bucket(props.getLocationBucketName()).key(key).build());
+        }
+    }
+
+    private StoredImage putObject(byte[] imageBytes, String bucket, String key, String contentType) {
         log.info("[S3] Uploading {} bytes to s3://{}/{}", imageBytes.length, bucket, key);
 
         try {
@@ -119,7 +143,7 @@ public class S3ImageStorageService implements ImageStorageService {
             throw new IllegalArgumentException("Image storage reference is unavailable");
         }
         var response = s3Client.getObjectAsBytes(GetObjectRequest.builder()
-                .bucket(props.getBucketName()).key(key).build());
+                .bucket(props.getLocationBucketName()).key(key).build());
         return new StoredContent(response.asByteArray(),
                 response.response().contentType() == null
                         ? "application/octet-stream"
@@ -127,9 +151,8 @@ public class S3ImageStorageService implements ImageStorageService {
     }
 
     private StoredImage storeLocally(byte[] imageBytes, String folder, String contentType) {
-        String extension = "image/jpeg".equals(contentType) ? "jpg"
-                : "image/webp".equals(contentType) ? "webp" : "png";
-        String key = "local/" + folder + "/" + UUID.randomUUID() + "." + extension;
+        String key = folder.startsWith("local/") ? folder
+                : "local/" + folder + "/" + UUID.randomUUID() + extension(contentType);
         Path file = LOCAL_IMAGE_ROOT.resolve(key.substring("local/".length())).normalize();
         try {
             Files.createDirectories(file.getParent());
@@ -138,6 +161,27 @@ public class S3ImageStorageService implements ImageStorageService {
         } catch (IOException e) {
             throw new ImageUploadException("Could not store local image", e);
         }
+    }
+
+    private void deleteLocalImage(String key) {
+        Path file = LOCAL_IMAGE_ROOT.resolve(key.substring("local/".length())).normalize();
+        try {
+            if (file.startsWith(LOCAL_IMAGE_ROOT)) Files.deleteIfExists(file);
+        } catch (IOException e) {
+            log.warn("[S3] Failed to delete local image {}", key, e);
+        }
+    }
+
+    private String safeFileName(String value) {
+        String safe = (value == null ? "location" : value).trim()
+                .replaceAll("[^A-Za-z0-9]+", "-")
+                .replaceAll("^-|-$", "");
+        return safe.isBlank() ? "location" : safe;
+    }
+
+    private String extension(String contentType) {
+        return "image/jpeg".equals(contentType) ? ".jpg"
+                : "image/webp".equals(contentType) ? ".webp" : ".png";
     }
 
     // -------------------------------------------------------------------------
