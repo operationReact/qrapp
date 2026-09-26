@@ -10,6 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { useSidebar } from "@/components/ui/sidebar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useAdminDashboard } from "@/context/AdminDashboardContext";
 import { useLocation as useActiveLocation } from "@/context/LocationContext";
 import { hasRole, ROLE } from "@/lib/roles";
@@ -599,7 +600,8 @@ export function ControlCenterAccess() {
   const { data: createOptions } = useQuery(adminCreateUserOptions());
   const [selectedId, setSelectedId] = useState(null);
   const [userSearch, setUserSearch] = useState("");
-  const selectedUser = users.find((item) => String(item.id) === String(selectedId)) || users[0];
+  const [userPickerOpen, setUserPickerOpen] = useState(false);
+  const selectedUser = users.find((item) => String(item.id) === String(selectedId)) || null;
   const assignedQuery = useQuery(userLocationsOptions(selectedUser?.id));
   const [role, setRole] = useState("");
   const [selectedLocations, setSelectedLocations] = useState([]);
@@ -640,20 +642,82 @@ export function ControlCenterAccess() {
   const loading = usersLoading || locationsLoading;
   const canSave = Boolean(selectedUser) && !saveMutation.isPending && !assignedQuery.isLoading;
   const toggleLocation = (id) => setSelectedLocations((current) => current.includes(String(id)) ? current.filter((value) => value !== String(id)) : [...current, String(id)]);
-  const visibleUsers = users.filter((item) => `${item.name || item.fullName || item.username || ""} ${item.phone || item.email || ""}`.toLowerCase().includes(userSearch.toLowerCase()));
+  const visibleUsers = users.filter((item) => `${item.name || item.fullName || item.username || ""} ${item.phone || item.email || ""}`.toLowerCase().includes(userSearch.trim().toLowerCase()));
+  const userName = (item) => item?.name || item?.fullName || item?.username || item?.email || "Unnamed user";
+  const userSecondary = (item) => item?.phone || item?.phoneNumber || item?.email || "";
 
   return <Shell title="Access Management" description="Manage each user's role and authorized operating locations.">
     <div className="grid gap-5 lg:grid-cols-[minmax(18rem,.8fr)_minmax(0,1.2fr)]">
-      <section className="rounded-[16px] border border-[var(--cc-border)] bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.06)]"><p className="mb-3 text-[11px] font-bold uppercase tracking-[0.06em] text-[#77716D]">Select User</p><div className="relative mb-3"><Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[var(--cc-muted-text)]" /><Input className="h-11 rounded-[10px] pl-10" placeholder="Search user" value={userSearch} onChange={(event) => setUserSearch(event.target.value)} /></div><div className="space-y-2">{visibleUsers.map((item) => <button type="button" key={item.id} onClick={() => setSelectedId(item.id)} className={`flex min-h-11 w-full items-center gap-2 rounded-[10px] border px-3 text-left ${String(item.id) === String(selectedUser?.id) ? "border-[var(--cc-primary)] bg-[var(--cc-primary-light)]" : "border-[var(--cc-border)] hover:bg-[var(--cc-page)]"}`}><span className="min-w-0 flex-1 truncate text-sm font-semibold">{item.name || item.fullName || item.username || item.email}</span><span className="text-xs text-[var(--cc-muted-text)]">{humanRole(item.role)}</span></button>)}</div></section>
-      <section className="rounded-[16px] border border-[var(--cc-border)] bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.06)]"><p className="mb-4 text-[11px] font-bold uppercase tracking-[0.06em] text-[#77716D]">User Access</p>
+      <section className="rounded-[16px] border border-[var(--cc-border)] bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
+        <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.06em] text-[#77716D]">Select User</p>
+        <Popover open={userPickerOpen} onOpenChange={setUserPickerOpen}>
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              aria-label={selectedUser ? `Selected user ${userName(selectedUser)}` : "Select a user"}
+              className="flex h-11 w-full items-center gap-2 rounded-[10px] border border-[var(--cc-border)] bg-white px-3 text-left text-[13px] transition-colors hover:border-[var(--cc-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--cc-primary)]/30"
+            >
+              <UserRound className="size-4 shrink-0 text-[var(--cc-primary)]" aria-hidden="true" />
+              <span className="min-w-0 flex-1 truncate font-semibold text-[var(--cc-text)]">
+                {selectedUser ? userName(selectedUser) : "Select a user"}
+              </span>
+              <ChevronDown className="size-4 shrink-0 text-[var(--cc-muted-text)]" aria-hidden="true" />
+            </button>
+          </PopoverTrigger>
+          <PopoverContent
+            align="start"
+            className="w-[calc(100vw-2rem)] max-w-[28rem] gap-0 overflow-hidden rounded-[12px] border-[var(--cc-border)] bg-white p-0 shadow-lg sm:w-[24rem]"
+          >
+            <div className="border-b border-[#F0ECE8] p-2">
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[var(--cc-muted-text)]" aria-hidden="true" />
+                <Input
+                  autoFocus
+                  className="h-10 rounded-[10px] border-[var(--cc-border)] pl-9 text-[13px]"
+                  placeholder="Search users..."
+                  value={userSearch}
+                  onChange={(event) => setUserSearch(event.target.value)}
+                  aria-label="Search users"
+                />
+              </div>
+            </div>
+            <div className="max-h-[min(320px,calc(100dvh-12rem))] overflow-y-auto">
+              {usersLoading ? <p className="p-4 text-center text-sm text-[var(--cc-muted-text)]">Loading users...</p> : visibleUsers.length === 0 ? (
+                <p className="p-4 text-center text-sm text-[var(--cc-muted-text)]">No matching users.</p>
+              ) : visibleUsers.map((item) => (
+                <button
+                  type="button"
+                  key={item.id}
+                  onClick={() => {
+                    setSelectedId(item.id);
+                    setUserPickerOpen(false);
+                    setUserSearch("");
+                  }}
+                  className={`flex min-h-[52px] w-full items-center gap-3 border-b border-[#F0ECE8] px-3 py-2 text-left transition-colors last:border-0 hover:bg-[var(--cc-page)] ${String(item.id) === String(selectedUser?.id) ? "bg-[var(--cc-primary-light)]" : ""}`}
+                >
+                  <UserRound className="size-4 shrink-0 text-[var(--cc-primary)]" aria-hidden="true" />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-[13px] font-semibold text-[var(--cc-text)]">{userName(item)}</span>
+                    <span className="block truncate text-[11px] text-[var(--cc-secondary-text)]">{userSecondary(item) || "No phone or email available"}</span>
+                  </span>
+                  <span className="shrink-0 text-[10px] font-bold uppercase tracking-wide text-[var(--cc-muted-text)]">{humanRole(item.role)}</span>
+                </button>
+              ))}
+            </div>
+          </PopoverContent>
+        </Popover>
+        {!selectedUser && !usersLoading && <p className="mt-3 text-sm text-[var(--cc-secondary-text)]">Select a user to manage their role and authorized locations.</p>}
+        <ErrorState error={usersError || locationsError} />
+      </section>
+      {selectedUser && <section className="rounded-[16px] border border-[var(--cc-border)] bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.06)]"><p className="mb-4 text-[11px] font-bold uppercase tracking-[0.06em] text-[#77716D]">User Access</p>
         {loading && <p className="text-sm text-[var(--cc-muted-text)]">Loading access...</p>}
         {selectedUser && !loading && <div className="space-y-5"><div><p className="text-base font-semibold text-[var(--cc-text)]">{selectedUser.name || selectedUser.fullName || selectedUser.username || selectedUser.email}</p><Field label="Role" icon={ShieldCheck}><select id="user-role" className="h-11 w-full rounded-[10px] border border-[var(--cc-border)] bg-white px-10 text-sm" value={role} onChange={(event) => setRole(event.target.value)}>{assignableRoles.map((value) => <option key={value} value={value}>{humanRole(value)}</option>)}</select></Field></div>
           <fieldset><legend className="text-[11px] font-bold uppercase tracking-[0.06em] text-[#77716D]">Authorized Locations</legend><div className="mt-2 grid gap-2 sm:grid-cols-2">{locations.map((location) => { const checked = selectedLocations.includes(String(location.id)); return <label key={location.id} className={`flex min-h-11 cursor-pointer items-center gap-3 rounded-[10px] border px-3 text-sm ${checked ? "border-[var(--cc-primary)] bg-[var(--cc-primary-light)]" : "border-[var(--cc-border)]"}`}><input type="checkbox" className="size-4 accent-[var(--cc-primary)]" checked={checked} onChange={() => toggleLocation(location.id)} /><span>{location.name || location.title || `Location ${location.id}`}</span></label>; })}</div></fieldset>
           <Button className="h-11 w-full rounded-[10px] bg-[var(--cc-primary)] font-semibold text-white hover:bg-[var(--cc-primary-dark)]" disabled={!canSave} onClick={() => { setFeedback(null); saveMutation.mutate(); }}>{saveMutation.isPending ? "Saving..." : <><Check className="size-4" /> Save Access</>}</Button>
           {feedback && <p role="status" className={feedback.type === "error" ? "text-sm text-[var(--cc-error)]" : "text-sm text-[var(--cc-success)]"}>{feedback.text}</p>}
         </div>}
-        <ErrorState error={usersError || locationsError || assignedQuery.error} />
-      </section>
+        <ErrorState error={assignedQuery.error} />
+      </section>}
     </div>
   </Shell>;
 }
