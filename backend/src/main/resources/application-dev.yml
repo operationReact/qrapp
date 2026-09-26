@@ -88,13 +88,13 @@ razorpay:
 #   export AWS_ACCESS_KEY_ID=your_key
 #   export AWS_SECRET_ACCESS_KEY=your_secret
 #   export AWS_S3_BUCKET_NAME=qrapp-menu-images   # optional, uses default
-#   export AWS_S3_REGION=us-east-1               # optional, uses default
+#   export AWS_S3_REGION=ap-south-1               # optional, uses default
 #
 aws:
   s3:
     enabled: ${app.parameter-store.aws.s3.enabled:true}
     bucket-name: ${app.parameter-store.aws.s3.bucketName:broandbro-dev-root-bucket}
-    region: ${app.parameter-store.aws.s3.region:us-east-1}
+    region: ${AWS_S3_REGION:ap-south-1}
     access-key: ${app.parameter-store.aws.s3.accessKey:}
     secret-key: ${app.parameter-store.aws.s3.secretKey:}
 
