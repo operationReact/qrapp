@@ -18,3 +18,18 @@ export const INDIA_STATE_CODES = {
   "Dadra and Nagar Haveli and Daman and Diu": "DH", Delhi: "DL", "Jammu and Kashmir": "JK",
   Ladakh: "LA", Lakshadweep: "LD", Puducherry: "PY",
 };
+
+const LOCATION_CODE_FILLER_WORDS = new Set(["THE", "AND", "OF", "AT", "IN"]);
+
+export function locationNameAbbreviation(value) {
+  const words = String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, " ")
+    .trim()
+    .split(/\s+/)
+    .filter((word) => word && !LOCATION_CODE_FILLER_WORDS.has(word));
+  if (!words.length) return "";
+  return words.length === 1 ? words[0].slice(0, 3) : words.map((word) => word[0]).join("").slice(0, 5);
+}

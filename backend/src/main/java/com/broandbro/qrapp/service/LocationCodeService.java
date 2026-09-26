@@ -8,12 +8,16 @@ import org.springframework.stereotype.Service;
 
 import java.text.Normalizer;
 import java.util.Locale;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 @RequiredArgsConstructor
 public class LocationCodeService {
-    private static final int MAX_SLUG_LENGTH = 20;
+    private static final Set<String> FILLER_WORDS = Set.of("THE", "AND", "OF", "AT", "IN");
     private static final Map<String, String> STATE_CODES = Map.ofEntries(
             Map.entry("Andhra Pradesh", "AP"), Map.entry("Arunachal Pradesh", "AR"),
             Map.entry("Assam", "AS"), Map.entry("Bihar", "BR"), Map.entry("Chhattisgarh", "CG"),
@@ -50,19 +54,27 @@ public class LocationCodeService {
         if (stateCode == null) {
             throw new IllegalArgumentException("Unsupported state or union territory");
         }
-        return slugify(locationName) + "-" + stateCode;
+        return abbreviation(locationName) + "-" + stateCode;
     }
 
-    private String slugify(String value) {
+    private String abbreviation(String value) {
         String normalized = Normalizer.normalize(value == null ? "" : value, Normalizer.Form.NFD)
                 .replaceAll("\\p{M}", "")
                 .toUpperCase(Locale.ROOT)
-                .replaceAll("[^A-Z0-9]+", "-")
-                .replaceAll("^-|-$", "");
-        if (normalized.isBlank()) {
+                .replaceAll("[^A-Z0-9]+", " ")
+                .trim();
+        List<String> words = Stream.of(normalized.split("\\s+"))
+                .filter(word -> !word.isBlank() && !FILLER_WORDS.contains(word))
+                .toList();
+        if (words.isEmpty()) {
             throw new IllegalArgumentException("Location name must contain letters or digits");
         }
-        return normalized.substring(0, Math.min(normalized.length(), MAX_SLUG_LENGTH))
-                .replaceAll("-$", "");
+        if (words.size() == 1) {
+            return words.get(0).substring(0, Math.min(3, words.get(0).length()));
+        }
+        return words.stream()
+                .map(word -> word.substring(0, 1))
+                .collect(Collectors.joining())
+                .substring(0, Math.min(5, words.size()));
     }
 }

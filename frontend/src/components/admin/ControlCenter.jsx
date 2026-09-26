@@ -15,7 +15,7 @@ import { useAdminDashboard } from "@/context/AdminDashboardContext";
 import { useLocation as useActiveLocation } from "@/context/LocationContext";
 import { hasRole, ROLE } from "@/lib/roles";
 import { useAuth } from "@/context/AuthContext";
-import { INDIA_STATE_CODES, INDIA_STATES_AND_UTS } from "@/lib/indiaStates";
+import { INDIA_STATE_CODES, INDIA_STATES_AND_UTS, locationNameAbbreviation } from "@/lib/indiaStates";
 import { adminSettingsOptions, paymentConfigOptions } from "@/query/options/orders";
 import { adminSetPayAtStall } from "@/services/order-service";
 import { partyOrdersOptions } from "@/query/options/party-orders";
@@ -387,7 +387,7 @@ function LocationDialog({ open, onOpenChange, initial, onSave, pending, error, g
     setPhoto(file);
     setRemovePhoto(false);
   };
-  const previewCode = editing ? initial?.code || "" : generatedCode || `${form.name.trim().toUpperCase().replace(/[^A-Z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 20).replace(/-$/, "") || "LOCATION"}-${INDIA_STATE_CODES[form.stateUt] || "ST"}-001`;
+  const previewCode = editing ? initial?.code || "" : generatedCode || (form.name.trim() && form.stateUt ? `${locationNameAbbreviation(form.name)}-${INDIA_STATE_CODES[form.stateUt]}-001` : "");
   const update = (key) => (event) => setForm((current) => ({ ...current, [key]: event.target.value }));
   return <Dialog open={open} onOpenChange={onOpenChange}><DialogContent className="max-h-[90vh] overflow-y-auto rounded-[20px] border border-[var(--cc-border)] bg-white p-5 shadow-[0_12px_40px_rgba(0,0,0,0.16)] sm:max-w-2xl"><DialogHeader><DialogTitle className="text-lg font-semibold">{editing ? "Edit Location" : "Add Location"}</DialogTitle><DialogDescription className="text-sm text-[var(--cc-secondary-text)]">{editing ? "Update the structured operating location details." : "Create an India-based operating location."}</DialogDescription></DialogHeader><form className="grid gap-4 sm:grid-cols-2" onSubmit={(event) => { event.preventDefault(); onSave({ ...form, photo, removePhoto }); }}>
     <Field label="Location Name" icon={MapPin}><Input required className="h-11 rounded-[10px] pl-10" value={form.name} onChange={update("name")} /></Field>
