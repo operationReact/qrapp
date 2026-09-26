@@ -1,50 +1,145 @@
 package com.broandbro.qrapp.service;
 
+import com.broandbro.qrapp.entity.Location;
 import com.broandbro.qrapp.repository.LocationRepository;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.text.Normalizer;
 import java.util.Locale;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Stream;
 
 @Service
 @RequiredArgsConstructor
 public class LocationCodeService {
-    private static final int MAX_CODE_LENGTH = 80;
+    private static final Set<String> FILLER_WORDS = Set.of("THE", "AND", "OF", "AT", "IN");
+    private static final Set<String> LEGAL_SUFFIXES = Set.of("LTD", "LIMITED", "LLP", "INC", "CORP", "CORPORATION", "PVT", "PRIVATE");
+    private static final Map<String, String> STATE_CODES = Map.ofEntries(
+            Map.entry("Andhra Pradesh", "AP"), Map.entry("Arunachal Pradesh", "AR"),
+            Map.entry("Assam", "AS"), Map.entry("Bihar", "BR"), Map.entry("Chhattisgarh", "CG"),
+            Map.entry("Goa", "GA"), Map.entry("Gujarat", "GJ"), Map.entry("Haryana", "HR"),
+            Map.entry("Himachal Pradesh", "HP"), Map.entry("Jharkhand", "JH"), Map.entry("Karnataka", "KA"),
+            Map.entry("Kerala", "KL"), Map.entry("Madhya Pradesh", "MP"), Map.entry("Maharashtra", "MH"),
+            Map.entry("Manipur", "MN"), Map.entry("Meghalaya", "ML"), Map.entry("Mizoram", "MZ"),
+            Map.entry("Nagaland", "NL"), Map.entry("Odisha", "OD"), Map.entry("Punjab", "PB"),
+            Map.entry("Rajasthan", "RJ"), Map.entry("Sikkim", "SK"), Map.entry("Tamil Nadu", "TN"),
+            Map.entry("Telangana", "TG"), Map.entry("Tripura", "TR"), Map.entry("Uttar Pradesh", "UP"),
+            Map.entry("Uttarakhand", "UK"), Map.entry("West Bengal", "WB"),
+            Map.entry("Andaman and Nicobar Islands", "AN"), Map.entry("Chandigarh", "CH"),
+            Map.entry("Dadra and Nagar Haveli and Daman and Diu", "DH"), Map.entry("Delhi", "DL"),
+            Map.entry("Jammu and Kashmir", "JK"), Map.entry("Ladakh", "LA"),
+            Map.entry("Lakshadweep", "LD"), Map.entry("Puducherry", "PY")
+    );
     private final LocationRepository locationRepository;
 
-    public String generate(String requestedCode, String locationName) {
-        boolean explicit = requestedCode != null && !requestedCode.isBlank();
-        String source = explicit ? requestedCode : locationName;
-        String base = slugify(source);
-        if (base.isBlank()) base = "LOCATION";
-        if (!base.startsWith("LOC-")) base = "LOC-" + base;
-        base = base.toUpperCase(Locale.ROOT);
-
-        int suffix = 1;
-        if (base.matches("LOC-.+-\\d{3}")) {
-            suffix = Integer.parseInt(base.substring(base.length() - 3));
-            base = base.substring(0, base.length() - 4);
-        }
-        String candidate = withSequence(base, suffix);
-        while (locationRepository.findByCode(candidate).isPresent()) {
-            candidate = withSequence(base, ++suffix);
-        }
-        return candidate;
+    @Transactional
+    public Location create(Location location) {
+        return create(location, null);
     }
 
-    private String withSequence(String base, int sequence) {
-        String suffix = String.format("-%03d", sequence);
-        int baseLength = Math.min(base.length(), MAX_CODE_LENGTH - suffix.length());
-        return base.substring(0, baseLength) + suffix;
+    @Transactional
+    public Location create(Location location, String requestedCode) {
+        String normalizedRequestedCode = normalizeRequestedCode(requestedCode);
+        if (normalizedRequestedCode != null) {
+            if (locationRepository.existsByCode(normalizedRequestedCode)) {
+                throw new IllegalArgumentException("Location code already exists. Please use a different code.");
+            }
+            long sequence = locationRepository.nextGlobalCodeSequence();
+            location.setCode(normalizedRequestedCode);
+            location.setCodeSequence(sequence);
+            location.setCodeManuallyEdited(true);
+            return locationRepository.save(location);
+        }
+        long sequence = locationRepository.nextGlobalCodeSequence();
+        location.setCode(prefix(location.getName(), location.getStateUt()) + "-" + formatSequence(sequence));
+        location.setCodeSequence(sequence);
+        location.setCodeManuallyEdited(false);
+        return locationRepository.save(location);
     }
 
-    private String slugify(String value) {
+    @Transactional
+    public Location update(Location location, String requestedCode) {
+        String normalizedRequestedCode = normalizeRequestedCode(requestedCode);
+        String automaticCode = location.getCodeSequence() == null
+                ? null
+                : prefix(location.getName(), location.getStateUt()) + "-" + formatSequence(location.getCodeSequence());
+
+        if (normalizedRequestedCode != null && !normalizedRequestedCode.equals(location.getCode())) {
+            if (locationRepository.existsByCodeAndIdNot(normalizedRequestedCode, location.getId())) {
+                throw new IllegalArgumentException("Location code already exists. Please use a different code.");
+            }
+            if (!normalizedRequestedCode.equals(automaticCode)) {
+                location.setCode(normalizedRequestedCode);
+                location.setCodeSequence(sequenceFromCode(normalizedRequestedCode));
+                location.setCodeManuallyEdited(true);
+            } else {
+                location.setCode(automaticCode);
+                location.setCodeManuallyEdited(false);
+            }
+        } else if (!Boolean.TRUE.equals(location.getCodeManuallyEdited()) && automaticCode != null) {
+            if (locationRepository.existsByCodeAndIdNot(automaticCode, location.getId())) {
+                throw new IllegalArgumentException("Location code already exists. Please use a different code.");
+            }
+            location.setCode(automaticCode);
+        }
+        return location;
+    }
+
+    public String preview(String locationName, String stateUt) {
+        return prefix(locationName, stateUt) + "-001";
+    }
+
+    private String prefix(String locationName, String stateUt) {
+        return abbreviation(locationName) + "-" + stateCode(stateUt);
+    }
+
+    private String abbreviation(String value) {
         String normalized = Normalizer.normalize(value == null ? "" : value, Normalizer.Form.NFD)
                 .replaceAll("\\p{M}", "")
                 .toUpperCase(Locale.ROOT)
-                .replaceAll("[^A-Z0-9]+", "-")
-                .replaceAll("^-|-$", "");
+                .replaceAll("[^A-Z0-9]+", " ")
+                .trim();
+        List<String> words = Stream.of(normalized.split("\\s+"))
+                .filter(word -> !word.isBlank() && !FILLER_WORDS.contains(word))
+                .filter(word -> !LEGAL_SUFFIXES.contains(word))
+                .toList();
+        if (words.isEmpty()) {
+            throw new IllegalArgumentException("Location name must contain letters or digits");
+        }
+        String firstWord = words.get(0);
+        return words.size() > 1 && words.get(1).equals(firstWord)
+                ? firstWord + firstWord
+                : firstWord;
+    }
+
+    private String stateCode(String stateUt) {
+        String code = STATE_CODES.entrySet().stream()
+                .filter(entry -> entry.getKey().equalsIgnoreCase(stateUt == null ? "" : stateUt.trim()))
+                .map(Map.Entry::getValue)
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("State/UT is required to generate a location code"));
+        return code;
+    }
+
+    private String formatSequence(long sequence) {
+        return String.format(Locale.ROOT, "%03d", sequence);
+    }
+
+    private Long sequenceFromCode(String code) {
+        String[] parts = code.split("-");
+        return Long.parseLong(parts[parts.length - 1]);
+    }
+
+    private String normalizeRequestedCode(String requestedCode) {
+        if (requestedCode == null || requestedCode.isBlank()) return null;
+        String normalized = requestedCode.trim().toUpperCase(Locale.ROOT);
+        if (!normalized.matches("[A-Z0-9]+-[A-Z0-9]+-[0-9]+")) {
+            throw new IllegalArgumentException("Location code must use NAME-STATE-SEQUENCE format");
+        }
         return normalized;
     }
 }

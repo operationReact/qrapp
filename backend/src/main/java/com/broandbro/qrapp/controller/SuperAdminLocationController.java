@@ -11,7 +11,12 @@ import org.springframework.http.*;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import java.util.List;
 
 @RestController
@@ -25,11 +30,36 @@ public class SuperAdminLocationController {
     private final UserService userService;
     private final LocationAccessService accessService;
     private final com.broandbro.qrapp.service.LocationCodeService locationCodeService;
+    private final com.broandbro.qrapp.service.LocationPhotoService locationPhotoService;
 
     @GetMapping("/locations")
-    public List<LocationResponse> locations(org.springframework.security.core.Authentication authentication) {
+    public Page<LocationResponse> locations(
+            @RequestParam(defaultValue = "ACTIVE") String status,
+            @RequestParam(required = false) String state,
+            @RequestParam(required = false) String city,
+            @RequestParam(required = false) String country,
+            @RequestParam(required = false) Long customerCompanyId,
+            @RequestParam(required = false) String search,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            org.springframework.security.core.Authentication authentication) {
         authorize(authentication);
-        return locationRepository.findAll().stream().map(LocationResponse::from).toList();
+        if (page < 0 || size < 1 || size > 100) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "invalid_location_pagination");
+        }
+        Boolean active = switch (status.trim().toUpperCase(java.util.Locale.ROOT)) {
+            case "ACTIVE" -> true;
+            case "INACTIVE" -> false;
+            case "ALL" -> null;
+            default -> throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "invalid_location_status");
+        };
+        return locationRepository.findForAdminFilters(active, clean(state), clean(city), clean(country),
+                        customerCompanyId, clean(search), PageRequest.of(page, size, Sort.by("name").ascending()))
+                .map(LocationResponse::from);
+    }
+
+    private static String clean(String value) {
+        return value == null || value.isBlank() ? null : value.trim();
     }
 
     @PostMapping("/locations")
@@ -37,9 +67,31 @@ public class SuperAdminLocationController {
                                                     org.springframework.security.core.Authentication authentication) {
         authorize(authentication);
         String name = request.getName().trim();
-        Location l = Location.builder().code(locationCodeService.generate(request.getCode(), name)).name(name)
-                .address(request.getAddress()).active(request.getActive()).build();
-        return ResponseEntity.status(HttpStatus.CREATED).body(LocationResponse.from(locationRepository.save(l)));
+        Location l = Location.builder().name(name)
+                .country(trimOrDefault(request.getCountry(), "India"))
+                .addressLine1(request.getAddressLine1().trim())
+                .addressLine2(trim(request.getAddressLine2()))
+                .landmark(trim(request.getLandmark()))
+                .city(request.getCity().trim())
+                .district(request.getDistrict().trim())
+                .stateUt(request.getStateUt().trim())
+                .pinCode(request.getPinCode().trim())
+                .active(request.getActive()).build();
+        l.setAddress(formatAddress(l));
+        return ResponseEntity.status(HttpStatus.CREATED).body(LocationResponse.from(locationCodeService.create(l, request.getCode())));
+    }
+
+    @PostMapping(value = "/locations", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<LocationResponse> createMultipart(
+            @Valid @RequestPart("location") LocationRequest request,
+            @RequestPart(value = "photo", required = false) MultipartFile photo,
+            @RequestPart(value = "removePhoto", required = false) Boolean removePhoto,
+            org.springframework.security.core.Authentication authentication) {
+        ResponseEntity<LocationResponse> created = create(request, authentication);
+        if (photo == null) return created;
+        Location location = locationRepository.findById(created.getBody().getId()).orElseThrow();
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(LocationResponse.from(locationPhotoService.replace(location, photo)));
     }
 
     @PutMapping("/locations/{id}")
@@ -47,10 +99,49 @@ public class SuperAdminLocationController {
                                    org.springframework.security.core.Authentication authentication) {
         authorize(authentication);
         Location l = locationRepository.findById(id).orElseThrow();
-        if (request.getCode() != null && !request.getCode().isBlank()) l.setCode(request.getCode().trim());
         l.setName(request.getName().trim());
-        l.setAddress(request.getAddress()); l.setActive(request.getActive());
-        return LocationResponse.from(locationRepository.save(l));
+        l.setCountry(trimOrDefault(request.getCountry(), "India"));
+        l.setAddressLine1(request.getAddressLine1().trim());
+        l.setAddressLine2(trim(request.getAddressLine2()));
+        l.setLandmark(trim(request.getLandmark()));
+        l.setCity(request.getCity().trim());
+        l.setDistrict(request.getDistrict().trim());
+        l.setStateUt(request.getStateUt().trim());
+        l.setPinCode(request.getPinCode().trim());
+        l.setAddress(formatAddress(l));
+        l.setActive(request.getActive());
+        return LocationResponse.from(locationRepository.save(locationCodeService.update(l, request.getCode())));
+    }
+
+    @PutMapping(value = "/locations/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public LocationResponse updateMultipart(
+            @PathVariable Long id,
+            @Valid @RequestPart("location") LocationRequest request,
+            @RequestPart(value = "photo", required = false) MultipartFile photo,
+            @RequestPart(value = "removePhoto", required = false) Boolean removePhoto,
+            org.springframework.security.core.Authentication authentication) {
+        LocationResponse updated = update(id, request, authentication);
+        if (photo == null && !Boolean.TRUE.equals(removePhoto)) return updated;
+        Location location = locationRepository.findById(id).orElseThrow();
+        if (Boolean.TRUE.equals(removePhoto)) location = locationPhotoService.remove(location);
+        if (photo == null) return LocationResponse.from(location);
+        return LocationResponse.from(locationPhotoService.replace(location, photo));
+    }
+
+    private static String trim(String value) {
+        return value == null || value.isBlank() ? null : value.trim();
+    }
+
+    private static String trimOrDefault(String value, String fallback) {
+        return value == null || value.isBlank() ? fallback : value.trim();
+    }
+
+    private static String formatAddress(Location location) {
+        return java.util.stream.Stream.of(
+                        location.getAddressLine1(), location.getAddressLine2(), location.getLandmark(),
+                        location.getCity(), location.getDistrict(), location.getStateUt(), location.getPinCode())
+                .filter(value -> value != null && !value.isBlank())
+                .collect(java.util.stream.Collectors.joining(", "));
     }
 
     @GetMapping("/users")

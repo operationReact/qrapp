@@ -19,4 +19,8 @@ public interface LocationCustomerCompanyRepository extends JpaRepository<Locatio
             "where link.location.id = :locationId order by link.customerCompany.name")
     List<com.broandbro.qrapp.entity.CustomerCompany> findCompaniesByLocationId(@Param("locationId") Long locationId);
 
+    @Query("select link.location.name from LocationCustomerCompany link " +
+            "where link.customerCompany.id = :companyId order by link.location.name")
+    List<String> findLocationNamesByCustomerCompanyId(@Param("companyId") Long companyId);
+
 }

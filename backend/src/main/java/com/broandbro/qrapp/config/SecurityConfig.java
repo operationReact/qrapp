@@ -113,7 +113,7 @@ public class SecurityConfig {
                                 "/shipping-policy"
                         ).permitAll()
 
-                        .requestMatchers("/uploads/**").permitAll()
+                        .requestMatchers("/uploads/**", "/api/public/location-images/**").permitAll()
 
                         // Swagger / OpenAPI
                         .requestMatchers(

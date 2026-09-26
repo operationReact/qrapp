@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, useLocation } from "@tanstack/react-router";
+import { Link, useLocation, useNavigate, useSearch } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { Bell, Building2, CalendarDays, Check, ChevronDown, CreditCard, Eye, EyeOff, Globe2, Heart, IndianRupee, KeyRound, MapPin, Menu, MoreHorizontal, MoreVertical, Plus, Search, ShieldCheck, Store, UserRound, Users, UsersRound, Wallet } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,11 +15,13 @@ import { useAdminDashboard } from "@/context/AdminDashboardContext";
 import { useLocation as useActiveLocation } from "@/context/LocationContext";
 import { hasRole, ROLE } from "@/lib/roles";
 import { useAuth } from "@/context/AuthContext";
+import { INDIA_STATES_AND_UTS, locationCodePreview } from "@/lib/indiaStates";
 import { adminSettingsOptions, paymentConfigOptions } from "@/query/options/orders";
 import { adminSetPayAtStall } from "@/services/order-service";
 import { partyOrdersOptions } from "@/query/options/party-orders";
 import { adminHallOfHappinessOptions } from "@/query/options/admin-hall-of-happiness";
-import { adminCreateUserOptions, adminCustomerCompaniesOptions, adminLocationsOptions, adminUsersOptions, adminVendorsOptions, assignCustomerCompany, createAdminUser, createManagementResource, grantUserLocation, locationCustomerCompaniesOptions, removeCustomerCompany, revokeUserLocation, updateAdminLocation, updateCustomerCompany, updateUserRole, userLocationsOptions } from "@/query/options/management";
+import { adminCreateUserOptions, adminCustomerCompaniesOptions, adminLocationsOptions, adminLocationsPageOptions, adminUsersOptions, adminVendorsOptions, assignCustomerCompany, createAdminLocation, createAdminUser, createManagementResource, grantUserLocation, revokeUserLocation, updateAdminLocation, updateCustomerCompany, updateUserRole, userLocationsOptions } from "@/query/options/management";
+import { baseURL } from "@/services";
 
 const primaryNavigation = [
   { to: "/admin/control-center", label: "Overview", roles: [ROLE.SUPER_ADMIN] },
@@ -45,7 +47,7 @@ function ControlCenterHeader() {
   const notifCount = Math.min((dashboard?.delayedOrders ?? 0) + (dashboard?.placedOrders ?? 0), 9);
   return (
     <header className="sticky top-0 z-40 border-b border-[var(--cc-divider)] bg-white">
-      <div className="mx-auto flex h-14 max-w-[1280px] items-center justify-between px-4 md:h-16 md:px-6">
+      <div className="mx-auto flex h-14 min-w-0 max-w-[1280px] items-center justify-between px-4 md:h-16 md:px-6">
         <button type="button" onClick={toggleSidebar} aria-label="Open menu" className="grid size-11 shrink-0 place-items-center rounded-[10px] text-[var(--cc-text)] transition-colors hover:bg-[var(--cc-primary-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--cc-primary)]/30">
           <Menu className="size-5" strokeWidth={1.9} aria-hidden="true" />
         </button>
@@ -85,8 +87,8 @@ function ControlCenterNavigation() {
   }, [moreOpen]);
 
   return (
-    <nav aria-label="Control Center navigation" className="relative z-30 mx-auto max-w-[1200px] px-4 py-3 md:px-6">
-      <div className="flex h-[42px] items-center gap-1 rounded-full border border-[var(--cc-border)] bg-white p-1">
+    <nav aria-label="Control Center navigation" className="relative z-30 mx-auto min-w-0 max-w-[1200px] px-4 py-3 md:px-6">
+      <div className="flex h-[42px] min-w-0 items-center gap-1 rounded-full border border-[var(--cc-border)] bg-white p-1">
         {visiblePrimary.map(({ to, label }) => {
           const active = pathname === to;
           return <Link key={to} to={to} className={`flex min-w-0 flex-1 items-center justify-center rounded-full px-2 text-xs font-semibold transition-colors sm:px-3 sm:text-[13px] ${active ? "bg-[#24211F] text-white" : "text-[#24211F] hover:bg-[var(--cc-primary-light)]"}`}>{label}</Link>;
@@ -118,7 +120,7 @@ function ControlCenterLocationContext() {
     isLoading,
   } = useActiveLocation();
   const activeId = String(activeLocation?.id || "");
-  return <div className="mx-auto max-w-[1280px] px-4 pt-2 md:px-6">
+  return <div className="mx-auto min-w-0 max-w-[1280px] px-4 pt-2 md:px-6">
     <label className="relative block max-w-xs">
       <span className="sr-only">Active location</span>
       <MapPin className="pointer-events-none absolute left-3 top-1/2 z-10 size-4 -translate-y-1/2 text-[var(--cc-primary)]" aria-hidden="true" />
@@ -151,11 +153,11 @@ function ControlCenterLocationContext() {
 
 function Shell({ title, description, children, showLocationContext = true }) {
   return (
-    <main className="admin-control-center min-h-screen w-full bg-[var(--cc-page)] pb-10 text-[var(--cc-text)]">
+    <main className="admin-control-center min-h-screen w-full min-w-0 max-w-[100vw] bg-[var(--cc-page)] pb-10 text-[var(--cc-text)]">
       <ControlCenterHeader />
       {showLocationContext && <ControlCenterLocationContext />}
       <ControlCenterNavigation />
-      <div className="mx-auto max-w-[1200px] space-y-5 px-4 md:px-6">
+      <div className="mx-auto min-w-0 max-w-[100vw] space-y-5 px-4 md:max-w-[1200px] md:px-6">
         {title && (
           <div>
             <h2 className="text-[22px] font-bold leading-7 text-[var(--cc-text)]">{title}</h2>
@@ -256,7 +258,7 @@ function humanRole(role) {
 function Field({ label, icon: Icon, children, hint }) {
   return <label className="block space-y-1.5">
     <span className="flex items-center gap-1 text-xs font-semibold text-[var(--cc-text)]">{label}</span>
-    <div className="relative">
+    <div className="relative min-w-0">
       {Icon && <Icon className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[var(--cc-muted-text)]" aria-hidden="true" />}
       {children}
     </div>
@@ -345,45 +347,213 @@ export function ControlCenterUsers() {
 function LocationCard({ location, onEdit }) {
   const active = location.active ?? true;
   return <div className="flex items-center gap-3 rounded-[16px] border border-[var(--cc-border)] bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
-    <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-[var(--cc-primary-light)] text-[var(--cc-primary)]"><MapPin className="size-5" /></div>
-    <div className="min-w-0 flex-1"><p className="truncate text-base font-semibold text-[var(--cc-text)]">{location.name}</p><p className="truncate text-xs text-[#77716D]">{location.code}</p><p className="mt-1 truncate text-[13px] text-[var(--cc-secondary-text)]">{location.address || "No address provided"}</p></div>
-    <span className={`hidden rounded-full px-2.5 py-1 text-xs font-semibold sm:inline-flex ${active ? "bg-[var(--cc-success-bg)] text-[var(--cc-success)]" : "bg-[var(--cc-page)] text-[var(--cc-muted-text)]"}`}>{active ? "ACTIVE" : "INACTIVE"}</span>
+    <LocationThumbnail key={location.locationPhotoUrl || "location-pin"} url={location.locationPhotoUrl} locationId={location.id} name={location.name} />
+    <div className="min-w-0 flex-1"><p className="break-words text-base font-semibold leading-5 text-[var(--cc-text)]">{location.name}</p><div className="mt-1 flex min-w-0 flex-wrap items-center gap-2"><span className={`shrink-0 rounded-full px-2 py-1 text-[10px] font-semibold ${active ? "bg-[var(--cc-success-bg)] text-[var(--cc-success)]" : "bg-[var(--cc-page)] text-[var(--cc-muted-text)]"}`}>{active ? "Active" : "Inactive"}</span><p className="break-all text-xs text-[#77716D]">{location.code || location.locationCode || "Generated on save"}</p></div><p className="mt-1 break-words text-[13px] leading-4 text-[var(--cc-secondary-text)]">{[location.addressLine1, location.city, location.stateUt, location.pinCode].filter(Boolean).join(", ") || location.address || "No address provided"}</p></div>
     <DropdownMenu><DropdownMenuTrigger className="grid size-11 shrink-0 place-items-center rounded-[10px] text-[var(--cc-muted-text)] hover:bg-[var(--cc-primary-light)]" aria-label={`Actions for ${location.name}`}><MoreVertical className="size-5" /></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onClick={() => onEdit(location)}>Edit location</DropdownMenuItem></DropdownMenuContent></DropdownMenu>
   </div>;
 }
 
+function LocationThumbnail({ url, locationId, name }) {
+  const [failed, setFailed] = useState(false);
+  if (!url || failed) {
+    return <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-[var(--cc-primary-light)] text-[var(--cc-primary)]"><MapPin className="size-5" /></div>;
+  }
+  const imageUrl = `${baseURL}/api/public/location-images/${locationId}`;
+  return <img src={imageUrl} alt={`${name || "Location"} photo`} loading="lazy" onError={() => setFailed(true)} className="size-10 shrink-0 rounded-xl object-cover" />;
+}
+
+function StateSelect({ value, onChange }) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const options = INDIA_STATES_AND_UTS.filter((state) => state.toLowerCase().includes(search.toLowerCase()));
+  return <div className="relative">
+    <button type="button" className="flex h-11 w-full items-center gap-2 rounded-[10px] border border-[var(--cc-border)] bg-white px-3 text-left text-sm" onClick={() => setOpen((current) => !current)} aria-haspopup="listbox" aria-expanded={open}>
+      <MapPin className="size-4 shrink-0 text-[var(--cc-primary)]" /><span className={`min-w-0 flex-1 truncate ${value ? "text-[var(--cc-text)]" : "text-[var(--cc-muted-text)]"}`}>{value || "Select State / UT"}</span><ChevronDown className="size-4 text-[var(--cc-muted-text)]" />
+    </button>
+    {open && <div className="absolute z-50 mt-1 max-h-72 w-full overflow-hidden rounded-[10px] border border-[var(--cc-border)] bg-white shadow-lg">
+      <div className="border-b border-[#F0ECE8] p-2"><div className="relative"><Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-[var(--cc-muted-text)]" /><Input autoFocus value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search states and UTs..." className="h-10 rounded-lg pl-9" /></div></div>
+      <div className="max-h-56 overflow-y-auto p-1" role="listbox">{options.map((state) => <button type="button" key={state} className="flex min-h-11 w-full items-center rounded-lg px-3 text-left text-sm hover:bg-[var(--cc-primary-light)]" onClick={() => { onChange(state); setOpen(false); setSearch(""); }}>{state}</button>)}{!options.length && <p className="p-3 text-sm text-[var(--cc-muted-text)]">No matching state or UT.</p>}</div>
+    </div>}
+  </div>;
+}
+
 function LocationDialog({ open, onOpenChange, initial, onSave, pending, error }) {
-  const [form, setForm] = useState(() => ({ name: initial?.name || "", code: initial?.code || "", address: initial?.address || "", active: initial?.active ?? true }));
+  const [form, setForm] = useState(() => ({ code: initial?.code || "", name: initial?.name || "", country: "India", addressLine1: initial?.addressLine1 || initial?.address || "", addressLine2: initial?.addressLine2 || "", landmark: initial?.landmark || "", city: initial?.city || "", district: initial?.district || "", stateUt: initial?.stateUt || "", pinCode: initial?.pinCode || "", active: initial?.active ?? true }));
+  const [locationCodeManuallyEdited, setLocationCodeManuallyEdited] = useState(Boolean(initial?.codeManuallyEdited ?? initial?.code));
+  const [photo, setPhoto] = useState(null);
+  const [removePhoto, setRemovePhoto] = useState(false);
+  const [photoError, setPhotoError] = useState("");
   const editing = Boolean(initial);
-  return <Dialog open={open} onOpenChange={onOpenChange}><DialogContent className="rounded-[20px] border border-[var(--cc-border)] bg-white p-5 shadow-[0_12px_40px_rgba(0,0,0,0.16)] sm:max-w-lg"><DialogHeader><DialogTitle className="text-lg font-semibold">{editing ? "Edit Location" : "Add Location"}</DialogTitle><DialogDescription className="text-sm text-[var(--cc-secondary-text)]">{editing ? "Update the operating location details." : "Create a new operating location."}</DialogDescription></DialogHeader><form className="grid gap-4 sm:grid-cols-2" onSubmit={(event) => { event.preventDefault(); onSave(form); }}><Field label="Location Name" icon={MapPin}><Input required className="h-11 rounded-[10px] pl-10" value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} /></Field><Field label="Location Code" icon={KeyRound}><Input required className="h-11 rounded-[10px] pl-10" value={form.code} onChange={(event) => setForm((current) => ({ ...current, code: event.target.value }))} /></Field><Field label="Address" icon={Building2}><Input className="h-11 rounded-[10px] pl-10 sm:col-span-2" value={form.address} onChange={(event) => setForm((current) => ({ ...current, address: event.target.value }))} /></Field>{editing && <label className="flex h-11 items-center gap-2 text-sm sm:col-span-2"><input type="checkbox" checked={form.active} onChange={(event) => setForm((current) => ({ ...current, active: event.target.checked }))} /> Active</label>}<Button type="submit" className="h-11 rounded-[10px] bg-[var(--cc-primary)] font-semibold text-white hover:bg-[var(--cc-primary-dark)] disabled:bg-[#F9A0A8] sm:col-span-2" disabled={pending}>{pending ? "Saving..." : editing ? "Save Location" : "Add Location"}</Button>{error && <p className="text-sm text-[var(--cc-error)] sm:col-span-2">{error}</p>}</form></DialogContent></Dialog>;
+  const photoPreview = useMemo(() => photo ? URL.createObjectURL(photo) : "", [photo]);
+  useEffect(() => photoPreview ? () => URL.revokeObjectURL(photoPreview) : undefined, [photoPreview]);
+  const selectPhoto = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type) || file.size > 5 * 1024 * 1024) {
+      setPhotoError("Choose a JPG, JPEG, PNG or WEBP image up to 5 MB.");
+      return;
+    }
+    setPhotoError("");
+    setPhoto(file);
+    setRemovePhoto(false);
+  };
+  const existingSequence = initial?.codeSequence || Number(initial?.code?.match(/-(\d+)$/)?.[1]) || 1;
+  const previewCode = form.code;
+  const update = (key) => (event) => {
+    const value = event.target.value;
+    if (key === "name" && !locationCodeManuallyEdited) {
+      setForm((current) => ({ ...current, name: value, code: locationCodePreview(value, current.stateUt, editing ? existingSequence : 1) }));
+      return;
+    }
+    setForm((current) => ({ ...current, [key]: value }));
+  };
+  const updateState = (stateUt) => {
+    setForm((current) => ({ ...current, stateUt, code: locationCodeManuallyEdited ? current.code : locationCodePreview(current.name, stateUt, editing ? existingSequence : 1) }));
+  };
+  const updateLocationCode = (event) => {
+    setLocationCodeManuallyEdited(true);
+    setForm((current) => ({ ...current, code: event.target.value }));
+  };
+  return <Dialog open={open} onOpenChange={onOpenChange}><DialogContent className="max-h-[calc(100vh-32px)] w-[calc(100vw-32px)] max-w-[calc(100vw-32px)] min-w-0 overflow-y-auto rounded-[20px] border border-[var(--cc-border)] bg-white p-5 shadow-[0_12px_40px_rgba(0,0,0,0.16)] sm:max-w-2xl"><DialogHeader className="min-w-0"><DialogTitle className="text-lg font-semibold break-words">{editing ? "Edit Location" : "Add Location"}</DialogTitle><DialogDescription className="text-sm break-words text-[var(--cc-secondary-text)]">{editing ? "Update the structured operating location details." : "Create an India-based operating location."}</DialogDescription></DialogHeader><form className="grid min-w-0 gap-4 sm:grid-cols-2" onSubmit={(event) => { event.preventDefault(); onSave({ ...form, code: locationCodeManuallyEdited ? form.code : "", photo, removePhoto }); }}>
+    <Field label="Location Name" icon={MapPin}><Input required className="h-11 rounded-[10px] pl-10" value={form.name} onChange={update("name")} /></Field>
+    <div className="min-w-0 space-y-1.5 sm:col-span-2"><span className="flex items-center gap-1 text-xs font-semibold text-[var(--cc-text)]">Location Photo <span className="font-normal text-[var(--cc-muted-text)]">(optional)</span></span><div className="overflow-hidden rounded-[12px] border border-dashed border-[var(--cc-border)] bg-[#FAF8F5] p-3">{photo || (initial?.locationPhotoUrl && !removePhoto) ? <div className="flex min-w-0 flex-wrap items-center gap-3"><img src={photoPreview || initial.locationPhotoUrl} alt={`${form.name || "Location"} preview`} className="h-20 w-32 max-w-full shrink-0 rounded-lg object-cover" /><div className="flex min-w-0 flex-wrap gap-2"><label className="inline-flex h-10 max-w-full cursor-pointer items-center rounded-lg border border-[var(--cc-border)] bg-white px-3 text-sm font-medium">Change Photo<input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={selectPhoto} /></label><button type="button" className="h-10 max-w-full rounded-lg border border-[var(--cc-border)] bg-white px-3 text-sm font-medium" onClick={() => { setPhoto(null); setPhotoError(""); setRemovePhoto(true); }}>Remove Photo</button></div></div> : <label className="flex min-h-24 min-w-0 cursor-pointer flex-col items-center justify-center gap-1 text-center text-sm text-[var(--cc-muted-text)]"><span className="font-medium text-[var(--cc-text)]">Upload Photo</span><span className="break-words">JPG, JPEG, PNG or WEBP · max 5 MB · recommended 16:9</span><input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={selectPhoto} /></label>}{photoError && <p className="mt-2 break-words text-xs text-[var(--cc-error)]">{photoError}</p>}</div></div>
+    <Field label="Country"><Input readOnly className="h-11 rounded-[10px] bg-[#FAF8F5]" value="India" /></Field>
+    <Field label="Address Line 1" icon={Building2}><Input required className="h-11 rounded-[10px] pl-10" value={form.addressLine1} onChange={update("addressLine1")} /></Field>
+    <Field label="Address Line 2 (optional)"><Input className="h-11 rounded-[10px]" value={form.addressLine2} onChange={update("addressLine2")} /></Field>
+    <Field label="Landmark (optional)"><Input className="h-11 rounded-[10px]" value={form.landmark} onChange={update("landmark")} /></Field>
+    <Field label="City / Town"><Input required className="h-11 rounded-[10px]" value={form.city} onChange={update("city")} /></Field>
+    <Field label="District"><Input required className="h-11 rounded-[10px]" value={form.district} onChange={update("district")} /></Field>
+    <Field label="State / UT"><StateSelect value={form.stateUt} onChange={updateState} /></Field>
+    <Field label="PIN Code" hint="Exactly 6 digits"><Input required inputMode="numeric" pattern="\d{6}" maxLength={6} className="h-11 rounded-[10px]" value={form.pinCode} onChange={(event) => setForm((current) => ({ ...current, pinCode: event.target.value.replace(/\D/g, "").slice(0, 6) }))} /></Field>
+    <Field label="Location Code" icon={KeyRound} hint="Automatically generated. You can edit it."><Input required className="h-11 rounded-[10px] bg-[#FAF8F5] pl-10 font-semibold" value={previewCode} onChange={updateLocationCode} /></Field>
+    {editing && <label className="flex h-11 items-center gap-2 text-sm sm:col-span-2"><input type="checkbox" checked={form.active} onChange={(event) => setForm((current) => ({ ...current, active: event.target.checked }))} /> Active</label>}
+    <Button type="submit" className="h-11 rounded-[10px] bg-[var(--cc-primary)] font-semibold text-white hover:bg-[var(--cc-primary-dark)] disabled:bg-[#F9A0A8] sm:col-span-2" disabled={pending}>{pending ? "Saving..." : editing ? "Save Location" : "Add Location"}</Button>{error && <p className="text-sm text-[var(--cc-error)] sm:col-span-2">{error}</p>}
+  </form></DialogContent></Dialog>;
+}
+
+const DEFAULT_LOCATION_FILTERS = {
+  status: "ACTIVE",
+  state: "",
+  city: "",
+  country: "India",
+  customerCompanyId: "",
+  search: "",
+  page: 0,
+};
+
+function locationFiltersFromSearch(search) {
+  return {
+    status: ["ACTIVE", "INACTIVE", "ALL"].includes(String(search.status || "").toUpperCase())
+      ? String(search.status).toUpperCase() : "ACTIVE",
+    state: String(search.state || ""),
+    city: String(search.city || ""),
+    country: String(search.country || "India"),
+    customerCompanyId: String(search.customerCompanyId || ""),
+    search: String(search.search || ""),
+    page: Math.max(0, Number(search.page || 0) || 0),
+  };
+}
+
+function LocationFilterFields({ filters, locations, companies, onChange }) {
+  const states = [...new Set(locations.map((location) => location.stateUt).filter(Boolean))].sort();
+  const cities = [...new Set(locations
+    .filter((location) => !filters.state || location.stateUt === filters.state)
+    .map((location) => location.city).filter(Boolean))].sort();
+  const countries = [...new Set(locations.map((location) => location.country).filter(Boolean))].sort();
+  const selectClass = "h-10 w-full min-w-0 rounded-[10px] border border-[var(--cc-border)] bg-white px-3 text-sm";
+  return <div className="grid min-w-0 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+    <label className="min-w-0 space-y-1 text-xs font-semibold"><span>Status</span><select className={selectClass} value={filters.status} onChange={(event) => onChange({ status: event.target.value })}><option value="ACTIVE">Active</option><option value="INACTIVE">Inactive</option><option value="ALL">All</option></select></label>
+    <label className="min-w-0 space-y-1 text-xs font-semibold"><span>State</span><select className={selectClass} value={filters.state} onChange={(event) => onChange({ state: event.target.value, city: "" })}><option value="">All States</option>{states.map((state) => <option key={state} value={state}>{state}</option>)}</select></label>
+    <label className="min-w-0 space-y-1 text-xs font-semibold"><span>City</span><select className={selectClass} value={filters.city} onChange={(event) => onChange({ city: event.target.value })}><option value="">All Cities</option>{cities.map((city) => <option key={city} value={city}>{city}</option>)}</select></label>
+    <label className="min-w-0 space-y-1 text-xs font-semibold"><span>Country</span><select className={selectClass} value={filters.country} onChange={(event) => onChange({ country: event.target.value })}><option value="">All Countries</option>{countries.map((country) => <option key={country} value={country}>{country}</option>)}</select></label>
+    <label className="min-w-0 space-y-1 text-xs font-semibold"><span>Customer Company</span><select className={selectClass} value={filters.customerCompanyId} onChange={(event) => onChange({ customerCompanyId: event.target.value })}><option value="">All Companies</option>{companies.map((company) => <option key={company.id} value={company.id}>{company.name}</option>)}</select></label>
+    <label className="min-w-0 space-y-1 text-xs font-semibold sm:col-span-2 lg:col-span-1"><span>Search</span><Input className="h-10 rounded-[10px] border-[var(--cc-border)]" placeholder="Name, code, city, state or PIN" value={filters.search} onChange={(event) => onChange({ search: event.target.value })} /></label>
+  </div>;
 }
 
 export function ControlCenterLocations() {
-  const { data = [], isLoading, error } = useQuery(adminLocationsOptions());
-  const { activeLocation } = useActiveLocation();
-  const [form, setForm] = useState({ name: "", code: "", address: "" });
+  const navigate = useNavigate();
+  const routeSearch = useSearch({ strict: false });
+  const urlFilters = locationFiltersFromSearch(routeSearch);
+  const [filters, setFilters] = useState(urlFilters);
+  const [filterDraft, setFilterDraft] = useState(urlFilters);
+  const [filterOpen, setFilterOpen] = useState(false);
+  const searchDebounce = useRef(null);
+  const queryParams = { ...Object.fromEntries(Object.entries(urlFilters).filter(([, value]) => value !== "")), size: 20 };
+  const { data: pageData, isLoading, error } = useQuery(adminLocationsPageOptions(queryParams));
+  const data = pageData?.content || [];
+  const totalPages = pageData?.totalPages || 1;
+  const { data: filterLocations = [] } = useQuery(adminLocationsOptions({ status: "ALL" }));
+  const { data: companies = [] } = useQuery(adminCustomerCompaniesOptions());
   const [locationDialogOpen, setLocationDialogOpen] = useState(false);
   const [editingLocation, setEditingLocation] = useState(null);
+  const [generatedCode, setGeneratedCode] = useState("");
   const queryClient = useQueryClient();
-  const generatedCode = `LOC-${form.name.trim().toUpperCase().replace(/[^A-Z0-9]+/g, "-").replace(/^-|-$/g, "")}-001`;
+  useEffect(() => {
+    setFilters(urlFilters);
+    setFilterDraft(urlFilters);
+  }, [routeSearch.status, routeSearch.state, routeSearch.city, routeSearch.country, routeSearch.customerCompanyId, routeSearch.search, routeSearch.page]);
+  useEffect(() => () => window.clearTimeout(searchDebounce.current), []);
+  const commitFilters = (next) => {
+    const params = Object.fromEntries(Object.entries(next).filter(([, value]) => value !== ""));
+    navigate({ search: params, replace: true });
+  };
+  const changeFilter = (patch) => {
+    const next = { ...filters, ...patch, page: Object.prototype.hasOwnProperty.call(patch, "page") ? patch.page : 0 };
+    setFilters(next);
+    setFilterDraft(next);
+    if (Object.prototype.hasOwnProperty.call(patch, "search")) {
+      window.clearTimeout(searchDebounce.current);
+      searchDebounce.current = window.setTimeout(() => commitFilters(next), 400);
+    } else {
+      commitFilters(next);
+    }
+  };
+  const clearFilters = () => {
+    const next = { ...DEFAULT_LOCATION_FILTERS };
+    setFilters(next);
+    setFilterDraft(next);
+    setFilterOpen(false);
+    commitFilters(next);
+  };
+  const filterCount = [
+    filters.status !== "ACTIVE",
+    Boolean(filters.state),
+    Boolean(filters.city),
+    filters.country !== "India",
+    Boolean(filters.customerCompanyId),
+    Boolean(filters.search),
+  ].filter(Boolean).length;
   const mutation = useMutation({
-    mutationFn: (payload = form) => createManagementResource("/api/admin/locations", { ...payload, name: payload.name.trim(), code: (payload.code.trim() || generatedCode), address: payload.address.trim(), active: true }),
-    onSuccess: () => { setForm({ name: "", code: "", address: "" }); queryClient.invalidateQueries({ queryKey: ["admin", "locations"] }); },
+    mutationFn: ({ payload, photo, previewCode }) => createAdminLocation({ ...payload, country: "India", name: payload.name.trim(), addressLine1: payload.addressLine1.trim(), addressLine2: (payload.addressLine2 || "").trim(), landmark: (payload.landmark || "").trim(), city: payload.city.trim(), district: payload.district.trim(), stateUt: payload.stateUt.trim(), pinCode: payload.pinCode.trim(), active: true }, photo).then((created) => ({ created, previewCode })),
+    onSuccess: ({ created, previewCode }) => {
+      const code = created?.code || created?.locationCode || created?.data?.code || previewCode || "";
+      setGeneratedCode(code);
+      queryClient.invalidateQueries({ queryKey: ["admin", "locations"] });
+      toast.success(code ? `Location created with code ${code}.` : "Location created.");
+    },
   });
   const editMutation = useMutation({
-    mutationFn: ({ id, payload }) => updateAdminLocation(id, payload),
+    mutationFn: ({ id, payload, photo }) => updateAdminLocation(id, payload, photo),
     onSuccess: () => { setLocationDialogOpen(false); setEditingLocation(null); queryClient.invalidateQueries({ queryKey: ["admin", "locations"] }); toast.success("Location updated."); },
   });
   const apiError = mutation.error?.response?.status === 409
-    ? "A location with this code already exists."
+    ? mutation.error?.response?.data?.message || "Location code already exists. Please use a different code."
     : mutation.error?.response?.status === 403
       ? "Only a Super Admin can add locations."
       : mutation.error?.response?.data?.message || mutation.error?.response?.data || mutation.error?.message;
-  return <Shell title="Locations" description="Create and manage operating locations.">
-    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><p className="text-sm text-[var(--cc-secondary-text)]">{activeLocation?.name ? `Current location: ${activeLocation.name}` : "Configure locations for operations and access."}</p><Button className="h-11 w-full rounded-[10px] bg-[var(--cc-primary)] font-semibold text-white hover:bg-[var(--cc-primary-dark)] sm:w-auto" onClick={() => { setEditingLocation(null); setLocationDialogOpen(true); }}><Plus className="size-[18px]" /> Add Location</Button></div>
-    {isLoading ? <p className="text-sm text-[var(--cc-muted-text)]">Loading locations...</p> : <div className="grid gap-3 lg:grid-cols-2">{data.map((location) => <LocationCard key={location.id} location={location} onEdit={(item) => { setEditingLocation(item); setLocationDialogOpen(true); }} />)}{!data.length && <p className="rounded-[16px] border border-[var(--cc-border)] bg-white p-8 text-center text-sm text-[var(--cc-muted-text)] lg:col-span-2">No locations are configured.</p>}</div>}
+  return <Shell title="Locations" description="Create and manage operating locations." showLocationContext={false}>
+    <div className="flex min-w-0 flex-col gap-3">
+      <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <Button variant="outline" className="h-10 w-full rounded-[10px] sm:hidden" onClick={() => { setFilterDraft(filters); setFilterOpen(true); }}>Filters{filterCount ? ` · ${filterCount}` : ""}</Button>
+        <Button className="h-11 w-full rounded-[10px] bg-[var(--cc-primary)] font-semibold text-white hover:bg-[var(--cc-primary-dark)] sm:w-auto sm:ml-auto" onClick={() => { setGeneratedCode(""); setEditingLocation(null); setLocationDialogOpen(true); }}><Plus className="size-[18px]" /> Add Location</Button>
+      </div>
+      <div className="hidden min-w-0 sm:block"><LocationFilterFields filters={filters} locations={filterLocations} companies={companies} onChange={changeFilter} />{filterCount > 0 && <Button type="button" variant="outline" className="mt-3 h-9" onClick={clearFilters}>Clear filters</Button>}</div>
+    </div>
+    <Dialog open={filterOpen} onOpenChange={setFilterOpen}><DialogContent className="max-h-[90vh] w-[calc(100vw-32px)] max-w-[calc(100vw-32px)] overflow-y-auto rounded-[20px] p-5 sm:max-w-lg"><DialogHeader><DialogTitle>Filters</DialogTitle><DialogDescription>Filter authorized operating locations.</DialogDescription></DialogHeader><LocationFilterFields filters={filterDraft} locations={filterLocations} companies={companies} onChange={(patch) => setFilterDraft((current) => ({ ...current, ...patch, ...(patch.state && !filterLocations.some((location) => location.stateUt === patch.state && location.city === current.city) ? { city: "" } : {}) }))} /><div className="flex flex-col gap-2 sm:flex-row sm:justify-end"><Button type="button" variant="outline" className="h-11" onClick={clearFilters}>Clear</Button><Button type="button" className="h-11 bg-[var(--cc-primary)] text-white hover:bg-[var(--cc-primary-dark)]" onClick={() => { const next = { ...filterDraft, page: 0 }; setFilters(next); commitFilters(next); setFilterOpen(false); }}>Apply Filters</Button></div></DialogContent></Dialog>
+    {isLoading ? <p className="text-sm text-[var(--cc-muted-text)]">Loading locations...</p> : <><div className="grid gap-3 lg:grid-cols-2">{data.map((location) => <LocationCard key={location.id} location={location} onEdit={(item) => { setEditingLocation(item); setLocationDialogOpen(true); }} />)}{!data.length && <div className="rounded-[16px] border border-[var(--cc-border)] bg-white p-8 text-center lg:col-span-2"><p className="text-sm text-[var(--cc-muted-text)]">{filters.search ? `No locations found for "${filters.search}".` : filterCount ? "No locations match your filters." : filters.status === "ACTIVE" ? "No active locations found." : "No locations found."}</p><Button type="button" variant="outline" className="mt-3 h-10" onClick={clearFilters}>Clear Filters</Button></div>}</div>{totalPages > 1 && <div className="flex items-center justify-center gap-3 pt-2"><Button type="button" variant="outline" className="h-10" disabled={filters.page === 0} onClick={() => changeFilter({ page: filters.page - 1 })}>Previous</Button><span className="text-xs text-[var(--cc-muted-text)]">Page {filters.page + 1} of {totalPages}</span><Button type="button" variant="outline" className="h-10" disabled={filters.page + 1 >= totalPages} onClick={() => changeFilter({ page: filters.page + 1 })}>Next</Button></div>}</>}
     <ErrorState error={error} />
-    <LocationDialog key={`${editingLocation?.id || "new"}-${locationDialogOpen}`} open={locationDialogOpen} onOpenChange={setLocationDialogOpen} initial={editingLocation} pending={editingLocation ? editMutation.isPending : mutation.isPending} error={editingLocation ? editMutation.error?.response?.data?.message || editMutation.error?.message : apiError} onSave={(payload) => editingLocation ? editMutation.mutate({ id: editingLocation.id, payload }) : mutation.mutate({ ...payload, active: true })} />
+    <LocationDialog key={`${editingLocation?.id || "new"}-${locationDialogOpen}-${generatedCode}`} open={locationDialogOpen} onOpenChange={setLocationDialogOpen} initial={editingLocation} pending={editingLocation ? editMutation.isPending : mutation.isPending} error={editingLocation ? editMutation.error?.response?.data?.message || editMutation.error?.message : apiError} onSave={(payload) => { const { photo, removePhoto, ...editablePayload } = payload; const previewCode = editablePayload.code; if (editingLocation) editMutation.mutate({ id: editingLocation.id, payload: { ...editablePayload, removePhoto }, photo }); else mutation.mutate({ payload: editablePayload, photo, previewCode }); }} />
   </Shell>;
 }
 
@@ -392,43 +562,6 @@ export function ControlCenterLocations() {
 // existing location-scoping pattern used across the admin app, but scoped
 // locally to this page — it intentionally does not touch the global
 // LocationContext used for orders/menu).
-const ALL_LOCATIONS_VALUE = "ALL";
-function CompanyLocationSelector({ locations, value, onChange }) {
-  const [open, setOpen] = useState(false);
-  const selected = locations.find((location) => String(location.id) === value);
-  const label = value === ALL_LOCATIONS_VALUE ? "All Locations" : selected?.name || "Select location";
-  return (
-    <div className="relative">
-      <button
-        type="button"
-        onClick={() => setOpen((current) => !current)}
-        aria-haspopup="listbox"
-        aria-expanded={open}
-        className="flex h-11 w-full min-w-[150px] items-center gap-1.5 rounded-[10px] border border-[var(--cc-border)] bg-white px-3 text-left"
-      >
-        <MapPin className="size-[15px] shrink-0 text-[var(--cc-primary)]" aria-hidden="true" />
-        <span className="min-w-0 flex-1 truncate text-sm font-medium text-[var(--cc-text)]">{label}</span>
-        <ChevronDown className={`size-3.5 shrink-0 text-[var(--cc-muted-text)] transition-transform ${open ? "rotate-180" : ""}`} aria-hidden="true" />
-      </button>
-      {open && (
-        <div className="absolute right-0 top-[calc(100%+6px)] z-20 max-h-64 w-56 overflow-y-auto rounded-[16px] border border-[var(--cc-border)] bg-white p-1.5 shadow-[0_4px_12px_rgba(0,0,0,0.08)]">
-          <button type="button" className={`flex min-h-11 w-full items-center gap-2 rounded-[10px] px-2.5 text-left text-sm ${value === ALL_LOCATIONS_VALUE ? "bg-[var(--cc-primary-light)] font-semibold text-[var(--cc-primary-dark)]" : "text-[var(--cc-text)] hover:bg-[var(--cc-page)]"}`} onClick={() => { onChange(ALL_LOCATIONS_VALUE); setOpen(false); }}>
-            <Globe2 className="size-4 shrink-0" aria-hidden="true" /><span className="flex-1">All Locations</span>{value === ALL_LOCATIONS_VALUE && <Check className="size-4" aria-hidden="true" />}
-          </button>
-          {locations.map((location) => {
-            const active = String(location.id) === value;
-            return (
-              <button key={location.id} type="button" className={`flex min-h-11 w-full items-center gap-2 rounded-[10px] px-2.5 text-left text-sm ${active ? "bg-[var(--cc-primary-light)] font-semibold text-[var(--cc-primary-dark)]" : "text-[var(--cc-text)] hover:bg-[var(--cc-page)]"}`} onClick={() => { onChange(String(location.id)); setOpen(false); }}>
-                <MapPin className="size-4 shrink-0" aria-hidden="true" /><span className="flex-1 truncate">{location.name}</span>{active && <Check className="size-4" aria-hidden="true" />}
-              </button>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
-}
-
 function CompanyRow({ company, subtitle, onEdit, onToggleActive, onRemove, busy }) {
   return (
     <div className="flex min-h-[72px] items-center gap-3 border-b border-[var(--cc-divider)] px-3 py-3 last:border-0">
@@ -436,8 +569,8 @@ function CompanyRow({ company, subtitle, onEdit, onToggleActive, onRemove, busy 
         <Building2 className="size-5" aria-hidden="true" />
       </div>
       <div className="min-w-0 flex-1">
-        <p className="truncate text-[15px] font-semibold text-[var(--cc-text)]">{company.name}</p>
-        <p className="truncate text-xs text-[var(--cc-secondary-text)]">{subtitle}</p>
+        <p className="break-words text-[15px] font-semibold text-[var(--cc-text)]">{company.name}</p>
+        <p className="break-words text-xs text-[var(--cc-secondary-text)]">{subtitle}</p>
       </div>
       <DropdownMenu>
         <DropdownMenuTrigger className="grid size-11 shrink-0 place-items-center rounded-[10px] text-[var(--cc-muted-text)] hover:bg-[var(--cc-primary-light)]" aria-label={`Actions for ${company.name}`} disabled={busy}>
@@ -460,43 +593,32 @@ export function CustomerCompanies() {
   const { data: companies = [], isLoading: companiesLoading, error: companiesError } = useQuery(adminCustomerCompaniesOptions());
   const { data: locations = [], isLoading: locationsLoading, error: locationsError } = useQuery(adminLocationsOptions());
   const [name, setName] = useState("");
-  const [selectedLocationId, setSelectedLocationId] = useState(ALL_LOCATIONS_VALUE);
+  const [createLocationId, setCreateLocationId] = useState("");
   const [editingId, setEditingId] = useState(null);
   const [editingName, setEditingName] = useState("");
   const queryClient = useQueryClient();
 
-  const isAllLocations = selectedLocationId === ALL_LOCATIONS_VALUE;
-  const selectedLocation = locations.find((location) => String(location.id) === selectedLocationId);
-  const assignedQuery = useQuery(locationCustomerCompaniesOptions(isAllLocations ? null : selectedLocationId));
-  const assignedIds = new Set((assignedQuery.data || []).map((company) => String(company.id)));
-
-  // What the list actually shows: every company when viewing "All Locations",
-  // or only the companies assigned to the selected location — this is the
-  // existing GET /api/admin/locations/{id}/customer-companies contract.
-  const visibleCompanies = isAllLocations ? companies : (assignedQuery.data || []);
-  const visibleCount = isAllLocations ? companies.length : assignedIds.size;
+  const selectedLocation = locations.find((location) => String(location.id) === createLocationId);
+  const visibleCompanies = companies;
+  const visibleCount = companies.length;
 
   const refresh = () => {
     queryClient.invalidateQueries({ queryKey: ["admin", "customer-companies"] });
-    queryClient.invalidateQueries({ queryKey: ["admin", "locations", selectedLocationId, "customer-companies"] });
   };
 
-  // ROOT CAUSE FIX: creating a company previously never assigned it to the
-  // selected location — the form only called the create endpoint. Now, when
-  // a specific location is selected, we chain the existing create + assign
-  // calls so "Add Customer Company" does what the UI promises.
   const createMutation = useMutation({
     mutationFn: async () => {
       const trimmed = name.trim();
       const created = await createManagementResource("/api/admin/customer-companies", { name: trimmed, active: true });
-      if (!isAllLocations && selectedLocationId) {
-        await assignCustomerCompany(selectedLocationId, created.id);
+      if (createLocationId) {
+        await assignCustomerCompany(createLocationId, created.id);
       }
       return created;
     },
     onSuccess: () => {
       setName("");
-      toast.success(isAllLocations ? "Customer Company added." : `Customer Company added to ${selectedLocation?.name || "location"}.`);
+      setCreateLocationId("");
+      toast.success(`Customer Company added to ${selectedLocation?.name || "location"}.`);
       refresh();
     },
     onError: (error) => toast.error(error?.response?.data?.message || error.message || "Unable to add Customer Company."),
@@ -506,19 +628,11 @@ export function CustomerCompanies() {
     onSuccess: refresh,
     onError: (error) => toast.error(error?.response?.data?.message || error.message || "Unable to update Customer Company."),
   });
-  const mappingMutation = useMutation({
-    mutationFn: ({ companyId, assigned }) => assigned
-      ? removeCustomerCompany(selectedLocationId, companyId)
-      : assignCustomerCompany(selectedLocationId, companyId),
-    onSuccess: () => { toast.success("Assignment updated."); refresh(); },
-    onError: (error) => toast.error(error?.response?.data?.message || error.message || "Unable to update the location assignment."),
-  });
-
   const nameInputRef = useRef(null);
   const nameError = name.trim().length > 0 && (name.trim().length < COMPANY_NAME_MIN || name.trim().length > COMPANY_NAME_MAX)
     ? `Company name must be ${COMPANY_NAME_MIN}-${COMPANY_NAME_MAX} characters.`
     : null;
-  const canSubmit = name.trim().length >= COMPANY_NAME_MIN && name.trim().length <= COMPANY_NAME_MAX && !isAllLocations && !createMutation.isPending;
+  const canSubmit = name.trim().length >= COMPANY_NAME_MIN && name.trim().length <= COMPANY_NAME_MAX && Boolean(createLocationId) && !createMutation.isPending;
 
   const handleSubmit = (event) => {
     event.preventDefault();
@@ -527,16 +641,14 @@ export function CustomerCompanies() {
       toast.error(`Company name must be ${COMPANY_NAME_MIN}-${COMPANY_NAME_MAX} characters.`);
       return;
     }
-    if (isAllLocations) {
+    if (!createLocationId) {
       toast.error("Select a location before adding a company.");
       return;
     }
     createMutation.mutate();
   };
 
-  return <Shell title="Customer Companies" description="Manage customer companies and their operating locations.">
-    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><CompanyLocationSelector locations={locations} value={selectedLocationId} onChange={setSelectedLocationId} /><span className="text-xs text-[var(--cc-secondary-text)]">{isAllLocations ? "Viewing all companies" : `Viewing ${selectedLocation?.name || "selected location"}`}</span></div>
-
+  return <Shell title="Customer Companies" description="Manage customer companies and their operating locations." showLocationContext={false}>
     <form onSubmit={handleSubmit} className="space-y-3 rounded-[16px] border border-[var(--cc-border)] bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
       <p className="text-[15px] font-semibold text-[var(--cc-text)]">Add Customer Company</p>
       <Input
@@ -549,7 +661,13 @@ export function CustomerCompanies() {
         aria-invalid={!!nameError}
       />
       {nameError && <p className="text-xs text-[var(--cc-error)]">{nameError}</p>}
-      {isAllLocations && <p className="text-xs text-[var(--cc-secondary-text)]">Select a specific location to add a company.</p>}
+      <label className="block space-y-1.5 text-xs font-semibold text-[var(--cc-text)]">
+        <span>Operating Location</span>
+        <select required aria-label="Operating Location" className="h-11 w-full rounded-[10px] border border-[var(--cc-border)] bg-white px-3 text-sm font-normal" value={createLocationId} onChange={(event) => setCreateLocationId(event.target.value)} disabled={locationsLoading}>
+        <option value="">Select operating location</option>
+        {locations.map((location) => <option key={location.id} value={location.id}>{location.name}</option>)}
+        </select>
+      </label>
       <Button type="submit" disabled={!canSubmit} className="h-11 w-full rounded-[10px] bg-[var(--cc-primary)] text-sm font-semibold text-white hover:bg-[var(--cc-primary-dark)] disabled:bg-[#F9A0A8]">
         {createMutation.isPending ? "Adding…" : "Add Customer Company"}
       </Button>
@@ -561,12 +679,12 @@ export function CustomerCompanies() {
         <span className="rounded-full bg-[var(--cc-primary-light)] px-2.5 py-1 text-xs font-semibold text-[var(--cc-primary-dark)]">{visibleCount}</span>
       </div>
       <div className="rounded-[16px] border border-[var(--cc-border)] bg-white">
-        {(companiesLoading || locationsLoading || (!isAllLocations && assignedQuery.isLoading)) && <p className="p-4 text-center text-sm text-[var(--cc-muted-text)]">Loading...</p>}
+        {companiesLoading && <p className="p-4 text-center text-sm text-[var(--cc-muted-text)]">Loading...</p>}
         {!companiesLoading && !visibleCompanies.length && (
           <div className="flex flex-col items-center gap-3 px-4 py-8 text-center">
             <p className="text-sm font-semibold text-[var(--cc-text)]">No customer companies</p>
-            <p className="text-xs text-[var(--cc-secondary-text)]">{isAllLocations ? "No Customer Companies have been created yet." : `No companies are assigned to ${selectedLocation?.name || "this location"} yet.`}</p>
-            {!isAllLocations && <Button type="button" className="h-11 rounded-[10px] bg-[var(--cc-primary)] text-white hover:bg-[var(--cc-primary-dark)]" onClick={() => nameInputRef.current?.focus()}>Add Customer Company</Button>}
+            <p className="text-xs text-[var(--cc-secondary-text)]">No Customer Companies have been created yet.</p>
+            <Button type="button" className="h-11 rounded-[10px] bg-[var(--cc-primary)] text-white hover:bg-[var(--cc-primary-dark)]" onClick={() => nameInputRef.current?.focus()}>Add Customer Company</Button>
           </div>
         )}
         {visibleCompanies.map((company) => (
@@ -580,16 +698,15 @@ export function CustomerCompanies() {
             <CompanyRow
               key={company.id}
               company={company}
-              subtitle={isAllLocations ? (company.active ? "Active" : "Inactive") : (selectedLocation?.name || "Assigned")}
-              busy={companyMutation.isPending || mappingMutation.isPending}
+              subtitle={`${(company.locationNames || []).join(", ") || "No operating location"} · ${company.active ? "Active" : "Inactive"}`}
+              busy={companyMutation.isPending}
               onEdit={() => { setEditingId(company.id); setEditingName(company.name); }}
               onToggleActive={() => companyMutation.mutate({ company, name: company.name, active: !company.active })}
-              onRemove={!isAllLocations ? () => mappingMutation.mutate({ companyId: company.id, assigned: true }) : undefined}
             />
           )
         ))}
       </div>
-      <ErrorState error={companiesError || locationsError || assignedQuery.error} />
+      <ErrorState error={companiesError || locationsError} />
     </div>
   </Shell>;
 }

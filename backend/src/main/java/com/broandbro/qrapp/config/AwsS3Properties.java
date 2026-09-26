@@ -15,6 +15,8 @@ public class AwsS3Properties {
     /** S3 bucket name for menu item images. */
     private String bucketName;
 
+    private String locationBucketName;
+
     /** AWS region (e.g. us-east-1). */
     private String region;
 
@@ -27,4 +29,3 @@ public class AwsS3Properties {
     /** Whether S3 uploading is enabled (set to false for local development). */
     private boolean enabled = true;
 }
-

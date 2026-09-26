@@ -110,8 +110,8 @@ jobs:
 
           S3_BUCKET=$(get_optional_parameter "/broandbro/backend/prod/aws/s3/bucketName")
           S3_BUCKET=${S3_BUCKET:-broandbro-prod-root-bucket}
-          S3_REGION=$(get_optional_parameter "/broandbro/backend/prod/aws/s3/region")
-          S3_REGION=${S3_REGION:-us-east-1}
+          S3_LOCATION_BUCKET=broandbro-location-images-prod
+          S3_REGION=us-east-1
           S3_ENABLED=$(get_optional_parameter "/broandbro/backend/prod/aws/s3/enabled")
           S3_ENABLED=${S3_ENABLED:-true}
           AWS_ACCESS_KEY=$(get_optional_parameter "/broandbro/backend/prod/aws/s3/accessKey")
@@ -132,6 +132,7 @@ jobs:
           echo "DB_PASSWORD=$DB_PASSWORD" >> $GITHUB_ENV
           echo "OPENAI_API_KEY=$OPENAI_API_KEY" >> $GITHUB_ENV
           echo "S3_BUCKET=$S3_BUCKET" >> $GITHUB_ENV
+          echo "S3_LOCATION_BUCKET=$S3_LOCATION_BUCKET" >> $GITHUB_ENV
           echo "S3_REGION=$S3_REGION" >> $GITHUB_ENV
           echo "S3_ENABLED=$S3_ENABLED" >> $GITHUB_ENV
           echo "AWS_ACCESS_KEY=$AWS_ACCESS_KEY" >> $GITHUB_ENV
@@ -288,6 +289,7 @@ jobs:
 
           # AWS S3 (shared media bucket)
           AWS_S3_BUCKET_NAME=${{ env.S3_BUCKET }}
+          AWS_S3_LOCATION_BUCKET_NAME=${{ env.S3_LOCATION_BUCKET }}
           AWS_S3_REGION=${{ env.S3_REGION }}
           AWS_S3_ENABLED=${{ env.S3_ENABLED }}
           AWS_ACCESS_KEY_ID=${{ env.AWS_ACCESS_KEY }}

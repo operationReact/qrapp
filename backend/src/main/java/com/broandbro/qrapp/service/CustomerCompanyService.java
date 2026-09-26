@@ -22,6 +22,10 @@ public class CustomerCompanyService {
         return companyRepository.findAllByOrderByNameAsc();
     }
 
+    public List<String> locationNames(Long companyId) {
+        return linkRepository.findLocationNamesByCustomerCompanyId(companyId);
+    }
+
     public List<CustomerCompany> listActiveForLocation(Long locationId) {
         requireActiveLocation(locationId);
         return linkRepository.findActiveCompaniesByLocationId(locationId);
