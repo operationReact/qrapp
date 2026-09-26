@@ -5,6 +5,7 @@ package com.broandbro.qrapp.storage;
  * Currently backed by AWS S3; can be extended for GCS, Azure Blob, local disk, etc.
  */
 public interface ImageStorageService {
+    record StoredImage(String url, String key) {}
 
     /**
      * Uploads a raw image to the storage backend and returns the public URL.
@@ -19,6 +20,8 @@ public interface ImageStorageService {
      * Stores a non-menu image under a caller-supplied isolated folder.
      */
     String uploadImage(byte[] imageBytes, String folder, String contentType);
+
+    StoredImage uploadImageWithKey(byte[] imageBytes, String folder, String contentType);
 
     /**
      * Deletes an image from storage by its public URL.

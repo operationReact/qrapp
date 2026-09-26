@@ -7,9 +7,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.Optional;
-
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -19,23 +18,66 @@ class LocationCodeServiceTest {
 
     @Test
     void generatesReadableSlugAndNumericCollisionSuffix() {
-        when(locationRepository.findByCode("LOC-MINDSPACE-HI-TECH-001")).thenReturn(Optional.of(Location.builder().build()));
-        when(locationRepository.findByCode("LOC-MINDSPACE-HI-TECH-002")).thenReturn(Optional.of(Location.builder().build()));
-        when(locationRepository.findByCode("LOC-MINDSPACE-HI-TECH-003")).thenReturn(Optional.empty());
+        when(locationRepository.findMaxSequence("MINDSPACE-HI-TECH-TG")).thenReturn(2);
 
-        String code = new LocationCodeService(locationRepository)
-                .generate(null, "Mindspace Hi-Tech");
+        Location location = Location.builder().name("Mindspace Hi-Tech").stateUt("Telangana").build();
+        when(locationRepository.save(location)).thenReturn(location);
 
-        assertThat(code).isEqualTo("LOC-MINDSPACE-HI-TECH-003");
+        new LocationCodeService(locationRepository).create(location);
+
+        assertThat(location.getCode()).isEqualTo("MINDSPACE-HI-TECH-TG-003");
     }
 
     @Test
-    void usesExplicitCodeAsSlugBaseWhenProvided() {
-        when(locationRepository.findByCode("LOC-TOWER-A-001")).thenReturn(Optional.empty());
+    void generatesFirstSequenceForDifferentState() {
+        when(locationRepository.findMaxSequence("MINDSPACE-AP")).thenReturn(0);
+        Location location = Location.builder().name("Mindspace").stateUt("Andhra Pradesh").build();
+        when(locationRepository.save(location)).thenReturn(location);
 
-        String code = new LocationCodeService(locationRepository)
-                .generate("Tower A", "Ignored Name");
+        new LocationCodeService(locationRepository).create(location);
 
-        assertThat(code).isEqualTo("LOC-TOWER-A-001");
+        assertThat(location.getCode()).isEqualTo("MINDSPACE-AP-001");
+    }
+
+    @Test
+    void normalizesSpecialCharactersAndLimitsSlug() {
+        when(locationRepository.findMaxSequence("VERY-LONG-LOCATION-N-TG")).thenReturn(0);
+        Location location = Location.builder()
+                .name("Very Long Location Name! @#")
+                .stateUt("Telangana")
+                .build();
+        when(locationRepository.save(location)).thenReturn(location);
+
+        new LocationCodeService(locationRepository).create(location);
+
+        assertThat(location.getCode()).isEqualTo("VERY-LONG-LOCATION-N-TG-001");
+    }
+
+    @Test
+    void usesIndependentSequenceForSameNameInDifferentState() {
+        when(locationRepository.findMaxSequence("MEENAKSHI-TG")).thenReturn(3);
+        when(locationRepository.findMaxSequence("MEENAKSHI-AP")).thenReturn(0);
+        Location telangana = Location.builder().name("Meenakshi").stateUt("Telangana").build();
+        Location andhra = Location.builder().name("Meenakshi").stateUt("Andhra Pradesh").build();
+        when(locationRepository.save(telangana)).thenReturn(telangana);
+        when(locationRepository.save(andhra)).thenReturn(andhra);
+        LocationCodeService service = new LocationCodeService(locationRepository);
+
+        service.create(telangana);
+        service.create(andhra);
+
+        assertThat(telangana.getCode()).isEqualTo("MEENAKSHI-TG-004");
+        assertThat(andhra.getCode()).isEqualTo("MEENAKSHI-AP-001");
+    }
+
+    @Test
+    void locksPrefixBeforeReadingSequenceForConcurrentCreationSafety() {
+        when(locationRepository.findMaxSequence("PRAGATI-TG")).thenReturn(0);
+        Location location = Location.builder().name("Pragati").stateUt("Telangana").build();
+        when(locationRepository.save(location)).thenReturn(location);
+
+        new LocationCodeService(locationRepository).create(location);
+
+        verify(locationRepository).lockCodePrefix("PRAGATI-TG");
     }
 }

@@ -87,15 +87,13 @@ class LocationSecurityFilterChainTest {
     void superAdminCanCreateLocation() throws Exception {
         Location created = Location.builder().id(3L).code("new-location").name("New Location")
                 .active(true).build();
-        when(locations.findByCode("new-location")).thenReturn(Optional.empty());
-        when(locationCodeService.generate("new-location", "New Location")).thenReturn("new-location");
-        when(locations.save(any(Location.class))).thenReturn(created);
+        when(locationCodeService.create(any(Location.class))).thenReturn(created);
 
         mvc.perform(post("/api/admin/locations")
                         .header("Authorization", bearer("super-token"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"code":"new-location","name":"New Location","address":"Somewhere","active":true}
+                                {"name":"New Location","addressLine1":"Somewhere","city":"Hyderabad","district":"Hyderabad","stateUt":"Telangana","pinCode":"500001","active":true}
                                 """))
                 .andExpect(status().isCreated());
     }

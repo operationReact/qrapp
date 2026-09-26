@@ -34,7 +34,26 @@ export const userLocationsOptions = (userId, enabled = true) => ({
 
 export async function createManagementResource(path, payload) { return (await apiClient.post(path, payload)).data; }
 export async function updateManagementResource(path, id, payload) { return (await apiClient.patch(`${path}/${id}`, payload)).data; }
-export async function updateAdminLocation(id, payload) { return (await apiClient.put(`/api/admin/locations/${id}`, payload)).data; }
+function locationFormData(payload, photo) {
+  const locationPayload = { ...payload };
+  const removePhoto = locationPayload.removePhoto;
+  delete locationPayload.removePhoto;
+  delete locationPayload.photo;
+  const formData = new FormData();
+  formData.append("location", new Blob([JSON.stringify(locationPayload)], { type: "application/json" }));
+  if (photo) formData.append("photo", photo);
+  if (removePhoto) formData.append("removePhoto", "true");
+  return formData;
+}
+export async function createAdminLocation(payload, photo) {
+  return (await apiClient.post("/api/admin/locations", locationFormData(payload, photo))).data;
+}
+export async function updateAdminLocation(id, payload, photo) {
+  return (await apiClient.put(`/api/admin/locations/${id}`, locationFormData(payload, photo))).data;
+}
+export async function removeAdminLocationPhoto(id) {
+  return (await apiClient.delete(`/api/admin/locations/${id}/photo`)).data;
+}
 export async function updateCustomerCompany(id, payload) { return (await apiClient.put(`/api/admin/customer-companies/${id}`, payload)).data; }
 export async function assignCustomerCompany(locationId, companyId) {
   return apiClient.put(`/api/admin/locations/${locationId}/customer-companies/${companyId}`);

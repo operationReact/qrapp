@@ -43,10 +43,15 @@ public class S3ImageStorageService implements ImageStorageService {
 
     @Override
     public String uploadImage(byte[] imageBytes, String folder, String contentType) {
+        return uploadImageWithKey(imageBytes, folder, contentType).url();
+    }
+
+    @Override
+    public StoredImage uploadImageWithKey(byte[] imageBytes, String folder, String contentType) {
 
         if (!props.isEnabled()) {
             log.warn("[S3] Upload disabled (aws.s3.enabled=false). Returning placeholder URL.");
-            return "https://placeholder.example.com/" + folder + "/image.png";
+            return new StoredImage("https://placeholder.example.com/" + folder + "/image.png", null);
         }
 
         String key = buildS3Key(folder, contentType);
@@ -68,7 +73,7 @@ public class S3ImageStorageService implements ImageStorageService {
 
             String publicUrl = buildPublicUrl(bucket, key);
             log.info("[S3] Upload successful. URL: {}", publicUrl);
-            return publicUrl;
+            return new StoredImage(publicUrl, key);
 
         } catch (S3Exception e) {
             log.error("[S3] Failed to upload image to {}: {}", key, e.awsErrorDetails().errorMessage(), e);
