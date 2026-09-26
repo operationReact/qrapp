@@ -79,6 +79,15 @@ export function KpiStrip({ summary, comparison, loading, error, onRetry }) {
       iconColor: "text-[#7C3AED]",
       iconBg: "bg-[#F5F3FF]",
     },
+    {
+      label: "Est. profit",
+      value: formatCurrency(current.totalEstimatedProfit ?? 0),
+      note: "Cost-backed estimate",
+      icon: TrendingUp,
+      iconColor: "text-[#16A34A]",
+      iconBg: "bg-[#ECFDF3]",
+      valueColor: "text-[#059669]",
+    },
   ];
   const displayCards = error ? cards.map((card) => ({ ...card, value: "—", trend: null })) : cards;
 
@@ -87,13 +96,13 @@ export function KpiStrip({ summary, comparison, loading, error, onRetry }) {
       <div className="mb-3 flex items-center justify-between gap-3">
         <div>
           <p className="text-[10px] font-bold uppercase leading-[14px] tracking-[0.08em] text-[#817A75]">Today</p>
-          <p className="mt-0.5 text-[11px] text-[#8A8580]">Current business performance and kitchen status</p>
+          <p className="mt-0.5 text-[11px] text-[#8A8580]">Current business performance</p>
         </div>
         <TrendingUp className="size-4 text-[#8A8580]" strokeWidth={1.9} aria-hidden="true" />
       </div>
-      <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-3">
-      {displayCards.map((card, index) => (
-      <KpiCard key={card.label} card={card} loading={loading} primary={index < 3} />
+      <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
+      {displayCards.map((card) => (
+      <KpiCard key={card.label} card={card} loading={loading} />
       ))}
       </div>
       {error && <div className="flex items-center justify-between gap-3 rounded-xl border border-[#FECACA] bg-[#FEF2F2] px-3 py-2 text-[11px] text-[#DC2626]">
@@ -104,27 +113,27 @@ export function KpiStrip({ summary, comparison, loading, error, onRetry }) {
   );
 }
 
-function KpiCard({ card, loading, primary = false }) {
+function KpiCard({ card, loading }) {
   const Icon = card.icon;
   return (
     <div className={cn(
-      "min-w-0 rounded-[14px] border border-[#E8E2DD] bg-white",
-      primary ? "min-h-[92px] p-3.5" : "min-h-16 rounded-xl p-2.5",
+      "min-w-0 rounded-[14px] border border-[#E8E2DD] bg-white p-2.5",
+      "min-h-[88px]",
     )}>
       <div className="flex items-center justify-between gap-2">
-        <p className="truncate text-[10px] font-bold uppercase leading-[14px] tracking-[0.07em] text-[#817A75]">{card.label}</p>
+        <p className="min-w-0 text-[10px] font-bold uppercase leading-[13px] tracking-[0.07em] text-[#817A75]">{card.label}</p>
         {Icon && <span className={cn("grid size-8 shrink-0 place-items-center rounded-[10px]", card.iconBg)}>
           <Icon className={cn("size-[17px]", card.iconColor)} strokeWidth={2} aria-hidden="true" />
         </span>}
       </div>
-      {loading && primary ? <Skeleton className="mt-2 h-7 w-20" /> : (
+      {loading ? <Skeleton className="mt-2 h-6 w-16" /> : (
         <p className={cn(
-          "mt-1 break-words font-bold leading-6 tracking-tight tabular-nums",
-          primary ? "text-[22px]" : "text-lg",
+          "mt-1 break-words text-[20px] font-extrabold leading-6 tracking-tight tabular-nums",
+          card.valueColor,
           card.value === "Not available" && "text-[13px] text-[#8A8580]",
         )}>{card.value ?? "—"}</p>
       )}
-      {card.note ? <p className="mt-0.5 truncate text-[10px] leading-[14px] text-[#8A8580]">{card.note}</p> : card.trend != null ? <Trend value={card.trend} /> : null}
+      {card.note ? <p className="mt-0.5 whitespace-nowrap text-[10px] leading-[14px] text-[#8A8580]">{card.note}</p> : card.trend != null ? <Trend value={card.trend} /> : null}
     </div>
   );
 }
@@ -190,7 +199,7 @@ export function LiveOperations({ dashboard, loading, error, onRetry }) {
     .filter((order, index, rows) => rows.findIndex((item) => item.id === order.id) === index)
     .slice(0, 5);
   const counts = [
-    ["Pending", dashboard?.placedOrders ?? 0, Clock3, "bg-[#FFF7ED] text-[#D97706]"],
+    ["New", dashboard?.placedOrders ?? 0, Sparkles, "bg-[#F5F3FF] text-[#7C3AED]"],
     ["Preparing", dashboard?.preparingOrders ?? 0, ChefHat, "bg-[#FFF7E6] text-[#D97706]"],
     ["Ready", dashboard?.readyOrders ?? 0, CircleCheck, "bg-[#ECFDF3] text-[#16A34A]"],
     ["Delayed", dashboard?.delayedOrders ?? 0, TriangleAlert, "bg-[#FEF2F2] text-[#DC2626]"],

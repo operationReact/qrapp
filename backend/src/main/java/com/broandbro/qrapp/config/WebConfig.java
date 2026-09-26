@@ -2,9 +2,7 @@ package com.broandbro.qrapp.config;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
@@ -33,15 +31,7 @@ public class WebConfig implements WebMvcConfigurer {
 
     @Override
     public void addCorsMappings(CorsRegistry registry) {
-        String origins = allowedOrigins == null ? "" : allowedOrigins.trim();
-        List<String> originList = Arrays.stream(origins.split(","))
-            .map(String::trim)
-            .filter(s -> !s.isEmpty())
-            .collect(Collectors.toList());
-
-        if (originList.isEmpty()) {
-            originList = List.of("http://localhost:5173");
-        }
+        List<String> originList = CorsOrigins.resolve(allowedOrigins);
 
         registry
             .addMapping("/**")
