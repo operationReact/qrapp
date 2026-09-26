@@ -475,7 +475,7 @@ export function ControlCenterLocations() {
   const navigate = useNavigate();
   const routeSearch = useSearch({ strict: false });
   const urlFilters = locationFiltersFromSearch(routeSearch);
-  const [filters, setFilters] = useState(urlFilters);
+  const filters = urlFilters;
   const [filterDraft, setFilterDraft] = useState(urlFilters);
   const [filterOpen, setFilterOpen] = useState(false);
   const searchDebounce = useRef(null);
@@ -489,10 +489,6 @@ export function ControlCenterLocations() {
   const [editingLocation, setEditingLocation] = useState(null);
   const [generatedCode, setGeneratedCode] = useState("");
   const queryClient = useQueryClient();
-  useEffect(() => {
-    setFilters(urlFilters);
-    setFilterDraft(urlFilters);
-  }, [routeSearch.status, routeSearch.state, routeSearch.city, routeSearch.country, routeSearch.customerCompanyId, routeSearch.search, routeSearch.page]);
   useEffect(() => () => window.clearTimeout(searchDebounce.current), []);
   const commitFilters = (next) => {
     const params = Object.fromEntries(Object.entries(next).filter(([, value]) => value !== ""));
@@ -500,7 +496,6 @@ export function ControlCenterLocations() {
   };
   const changeFilter = (patch) => {
     const next = { ...filters, ...patch, page: Object.prototype.hasOwnProperty.call(patch, "page") ? patch.page : 0 };
-    setFilters(next);
     setFilterDraft(next);
     if (Object.prototype.hasOwnProperty.call(patch, "search")) {
       window.clearTimeout(searchDebounce.current);
@@ -511,7 +506,6 @@ export function ControlCenterLocations() {
   };
   const clearFilters = () => {
     const next = { ...DEFAULT_LOCATION_FILTERS };
-    setFilters(next);
     setFilterDraft(next);
     setFilterOpen(false);
     commitFilters(next);
@@ -550,7 +544,7 @@ export function ControlCenterLocations() {
       </div>
       <div className="hidden min-w-0 sm:block"><LocationFilterFields filters={filters} locations={filterLocations} companies={companies} onChange={changeFilter} />{filterCount > 0 && <Button type="button" variant="outline" className="mt-3 h-9" onClick={clearFilters}>Clear filters</Button>}</div>
     </div>
-    <Dialog open={filterOpen} onOpenChange={setFilterOpen}><DialogContent className="max-h-[90vh] w-[calc(100vw-32px)] max-w-[calc(100vw-32px)] overflow-y-auto rounded-[20px] p-5 sm:max-w-lg"><DialogHeader><DialogTitle>Filters</DialogTitle><DialogDescription>Filter authorized operating locations.</DialogDescription></DialogHeader><LocationFilterFields filters={filterDraft} locations={filterLocations} companies={companies} onChange={(patch) => setFilterDraft((current) => ({ ...current, ...patch, ...(patch.state && !filterLocations.some((location) => location.stateUt === patch.state && location.city === current.city) ? { city: "" } : {}) }))} /><div className="flex flex-col gap-2 sm:flex-row sm:justify-end"><Button type="button" variant="outline" className="h-11" onClick={clearFilters}>Clear</Button><Button type="button" className="h-11 bg-[var(--cc-primary)] text-white hover:bg-[var(--cc-primary-dark)]" onClick={() => { const next = { ...filterDraft, page: 0 }; setFilters(next); commitFilters(next); setFilterOpen(false); }}>Apply Filters</Button></div></DialogContent></Dialog>
+    <Dialog open={filterOpen} onOpenChange={setFilterOpen}><DialogContent className="max-h-[90vh] w-[calc(100vw-32px)] max-w-[calc(100vw-32px)] overflow-y-auto rounded-[20px] p-5 sm:max-w-lg"><DialogHeader><DialogTitle>Filters</DialogTitle><DialogDescription>Filter authorized operating locations.</DialogDescription></DialogHeader><LocationFilterFields filters={filterDraft} locations={filterLocations} companies={companies} onChange={(patch) => setFilterDraft((current) => ({ ...current, ...patch, ...(patch.state && !filterLocations.some((location) => location.stateUt === patch.state && location.city === current.city) ? { city: "" } : {}) }))} /><div className="flex flex-col gap-2 sm:flex-row sm:justify-end"><Button type="button" variant="outline" className="h-11" onClick={clearFilters}>Clear</Button><Button type="button" className="h-11 bg-[var(--cc-primary)] text-white hover:bg-[var(--cc-primary-dark)]" onClick={() => { const next = { ...filterDraft, page: 0 }; setFilterDraft(next); commitFilters(next); setFilterOpen(false); }}>Apply Filters</Button></div></DialogContent></Dialog>
     {isLoading ? <p className="text-sm text-[var(--cc-muted-text)]">Loading locations...</p> : <><div className="grid gap-3 lg:grid-cols-2">{data.map((location) => <LocationCard key={location.id} location={location} onEdit={(item) => { setEditingLocation(item); setLocationDialogOpen(true); }} />)}{!data.length && <div className="rounded-[16px] border border-[var(--cc-border)] bg-white p-8 text-center lg:col-span-2"><p className="text-sm text-[var(--cc-muted-text)]">{filters.search ? `No locations found for "${filters.search}".` : filterCount ? "No locations match your filters." : filters.status === "ACTIVE" ? "No active locations found." : "No locations found."}</p><Button type="button" variant="outline" className="mt-3 h-10" onClick={clearFilters}>Clear Filters</Button></div>}</div>{totalPages > 1 && <div className="flex items-center justify-center gap-3 pt-2"><Button type="button" variant="outline" className="h-10" disabled={filters.page === 0} onClick={() => changeFilter({ page: filters.page - 1 })}>Previous</Button><span className="text-xs text-[var(--cc-muted-text)]">Page {filters.page + 1} of {totalPages}</span><Button type="button" variant="outline" className="h-10" disabled={filters.page + 1 >= totalPages} onClick={() => changeFilter({ page: filters.page + 1 })}>Next</Button></div>}</>}
     <ErrorState error={error} />
     <LocationDialog key={`${editingLocation?.id || "new"}-${locationDialogOpen}-${generatedCode}`} open={locationDialogOpen} onOpenChange={setLocationDialogOpen} initial={editingLocation} pending={editingLocation ? editMutation.isPending : mutation.isPending} error={editingLocation ? editMutation.error?.response?.data?.message || editMutation.error?.message : apiError} onSave={(payload) => { const { photo, removePhoto, ...editablePayload } = payload; const previewCode = editablePayload.code; if (editingLocation) editMutation.mutate({ id: editingLocation.id, payload: { ...editablePayload, removePhoto }, photo }); else mutation.mutate({ payload: editablePayload, photo, previewCode }); }} />
