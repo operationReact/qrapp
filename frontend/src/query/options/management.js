@@ -46,6 +46,12 @@ function locationFormData(payload, photo) {
   return formData;
 }
 export async function createAdminLocation(payload, photo) {
+  if (!photo) {
+    const locationPayload = { ...payload };
+    delete locationPayload.removePhoto;
+    delete locationPayload.photo;
+    return (await apiClient.post("/api/admin/locations", locationPayload)).data;
+  }
   return (await apiClient.post("/api/admin/locations", locationFormData(payload, photo))).data;
 }
 export async function updateAdminLocation(id, payload, photo) {

@@ -9,6 +9,7 @@ import java.util.Optional;
 
 public interface LocationRepository extends JpaRepository<Location, Long> {
     Optional<Location> findByCode(String code);
+    boolean existsByCode(String code);
     List<Location> findByActiveTrueOrderByNameAsc();
 
     @Query(value = "SELECT pg_advisory_xact_lock(hashtext(:prefix))", nativeQuery = true)

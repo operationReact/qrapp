@@ -18,6 +18,11 @@ import java.util.stream.Stream;
 @RequiredArgsConstructor
 public class LocationCodeService {
     private static final Set<String> FILLER_WORDS = Set.of("THE", "AND", "OF", "AT", "IN");
+    private static final Set<String> LEGAL_SUFFIXES = Set.of("LTD", "LIMITED", "LLP", "INC", "CORP", "CORPORATION", "PVT", "PRIVATE");
+    private static final Map<String, String> CITY_CODES = Map.of(
+            "HYDERABAD", "HYD", "BENGALURU", "BLR", "BANGALORE", "BLR",
+            "MUMBAI", "MUM", "DELHI", "DEL", "CHENNAI", "CHE", "PUNE", "PUN"
+    );
     private static final Map<String, String> STATE_CODES = Map.ofEntries(
             Map.entry("Andhra Pradesh", "AP"), Map.entry("Arunachal Pradesh", "AR"),
             Map.entry("Assam", "AS"), Map.entry("Bihar", "BR"), Map.entry("Chhattisgarh", "CG"),
@@ -38,23 +43,33 @@ public class LocationCodeService {
 
     @Transactional
     public Location create(Location location) {
-        String prefix = prefix(location.getName(), location.getStateUt());
+        return create(location, null);
+    }
+
+    @Transactional
+    public Location create(Location location, String requestedCode) {
+        String normalizedRequestedCode = normalizeRequestedCode(requestedCode);
+        String prefix = prefix(location.getName(), location.getCity());
+        if (normalizedRequestedCode != null) {
+            locationRepository.lockCodePrefix(normalizedRequestedCode);
+            if (locationRepository.existsByCode(normalizedRequestedCode)) {
+                throw new IllegalArgumentException("Location code already exists. Please use a different code.");
+            }
+            location.setCode(normalizedRequestedCode);
+            return locationRepository.save(location);
+        }
         locationRepository.lockCodePrefix(prefix);
         int sequence = locationRepository.findMaxSequence(prefix) + 1;
         location.setCode(prefix + "-" + String.format("%03d", sequence));
         return locationRepository.save(location);
     }
 
-    public String preview(String locationName, String stateUt) {
-        return prefix(locationName, stateUt) + "-001";
+    public String preview(String locationName, String city) {
+        return prefix(locationName, city) + "-001";
     }
 
-    private String prefix(String locationName, String stateUt) {
-        String stateCode = STATE_CODES.get(stateUt == null ? "" : stateUt.trim());
-        if (stateCode == null) {
-            throw new IllegalArgumentException("Unsupported state or union territory");
-        }
-        return abbreviation(locationName) + "-" + stateCode;
+    private String prefix(String locationName, String city) {
+        return abbreviation(locationName) + "-" + cityCode(city);
     }
 
     private String abbreviation(String value) {
@@ -65,16 +80,31 @@ public class LocationCodeService {
                 .trim();
         List<String> words = Stream.of(normalized.split("\\s+"))
                 .filter(word -> !word.isBlank() && !FILLER_WORDS.contains(word))
+                .filter(word -> !LEGAL_SUFFIXES.contains(word))
                 .toList();
         if (words.isEmpty()) {
             throw new IllegalArgumentException("Location name must contain letters or digits");
         }
-        if (words.size() == 1) {
-            return words.get(0).substring(0, Math.min(3, words.get(0).length()));
+        return words.get(0).substring(0, Math.min(words.size() == 1 ? 3 : 5, words.get(0).length()));
+    }
+
+    private String cityCode(String city) {
+        String normalized = Normalizer.normalize(city == null ? "" : city, Normalizer.Form.NFD)
+                .replaceAll("\\p{M}", "")
+                .toUpperCase(Locale.ROOT)
+                .replaceAll("[^A-Z0-9]", "");
+        if (normalized.isBlank()) {
+            throw new IllegalArgumentException("City is required to generate a location code");
         }
-        return words.stream()
-                .map(word -> word.substring(0, 1))
-                .collect(Collectors.joining())
-                .substring(0, Math.min(5, words.size()));
+        return CITY_CODES.getOrDefault(normalized, normalized.substring(0, Math.min(3, normalized.length())));
+    }
+
+    private String normalizeRequestedCode(String requestedCode) {
+        if (requestedCode == null || requestedCode.isBlank()) return null;
+        String normalized = requestedCode.trim().toUpperCase(Locale.ROOT);
+        if (!normalized.matches("[A-Z0-9]+(?:-[A-Z0-9]+){2}")) {
+            throw new IllegalArgumentException("Location code must use NAME-CITY-SEQUENCE format");
+        }
+        return normalized;
     }
 }

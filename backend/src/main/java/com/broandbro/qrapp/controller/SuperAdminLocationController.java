@@ -50,7 +50,7 @@ public class SuperAdminLocationController {
                 .pinCode(request.getPinCode().trim())
                 .active(request.getActive()).build();
         l.setAddress(formatAddress(l));
-        return ResponseEntity.status(HttpStatus.CREATED).body(LocationResponse.from(locationCodeService.create(l)));
+        return ResponseEntity.status(HttpStatus.CREATED).body(LocationResponse.from(locationCodeService.create(l, request.getCode())));
     }
 
     @PostMapping(value = "/locations", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

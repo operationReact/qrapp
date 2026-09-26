@@ -15,7 +15,7 @@ import { useAdminDashboard } from "@/context/AdminDashboardContext";
 import { useLocation as useActiveLocation } from "@/context/LocationContext";
 import { hasRole, ROLE } from "@/lib/roles";
 import { useAuth } from "@/context/AuthContext";
-import { INDIA_STATE_CODES, INDIA_STATES_AND_UTS, locationNameAbbreviation } from "@/lib/indiaStates";
+import { INDIA_STATES_AND_UTS, locationNameAbbreviation } from "@/lib/indiaStates";
 import { adminSettingsOptions, paymentConfigOptions } from "@/query/options/orders";
 import { adminSetPayAtStall } from "@/services/order-service";
 import { partyOrdersOptions } from "@/query/options/party-orders";
@@ -347,7 +347,7 @@ function LocationCard({ location, onEdit }) {
   const active = location.active ?? true;
   return <div className="flex items-center gap-3 rounded-[16px] border border-[var(--cc-border)] bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
     <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-[var(--cc-primary-light)] text-[var(--cc-primary)]"><MapPin className="size-5" /></div>
-    <div className="min-w-0 flex-1"><p className="truncate text-base font-semibold text-[var(--cc-text)]">{location.name}</p><p className="truncate text-xs text-[#77716D]">{location.code}</p><p className="mt-1 truncate text-[13px] text-[var(--cc-secondary-text)]">{[location.addressLine1, location.city, location.stateUt, location.pinCode].filter(Boolean).join(", ") || location.address || "No address provided"}</p></div>
+    <div className="min-w-0 flex-1"><p className="truncate text-base font-semibold text-[var(--cc-text)]">{location.name}</p><p className="truncate text-xs text-[#77716D]">{location.code || location.locationCode || "Generated on save"}</p><p className="mt-1 truncate text-[13px] text-[var(--cc-secondary-text)]">{[location.addressLine1, location.city, location.stateUt, location.pinCode].filter(Boolean).join(", ") || location.address || "No address provided"}</p></div>
     <span className={`hidden rounded-full px-2.5 py-1 text-xs font-semibold sm:inline-flex ${active ? "bg-[var(--cc-success-bg)] text-[var(--cc-success)]" : "bg-[var(--cc-page)] text-[var(--cc-muted-text)]"}`}>{active ? "ACTIVE" : "INACTIVE"}</span>
     <DropdownMenu><DropdownMenuTrigger className="grid size-11 shrink-0 place-items-center rounded-[10px] text-[var(--cc-muted-text)] hover:bg-[var(--cc-primary-light)]" aria-label={`Actions for ${location.name}`}><MoreVertical className="size-5" /></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onClick={() => onEdit(location)}>Edit location</DropdownMenuItem></DropdownMenuContent></DropdownMenu>
   </div>;
@@ -368,8 +368,9 @@ function StateSelect({ value, onChange }) {
   </div>;
 }
 
-function LocationDialog({ open, onOpenChange, initial, onSave, pending, error, generatedCode }) {
-  const [form, setForm] = useState(() => ({ name: initial?.name || "", country: "India", addressLine1: initial?.addressLine1 || initial?.address || "", addressLine2: initial?.addressLine2 || "", landmark: initial?.landmark || "", city: initial?.city || "", district: initial?.district || "", stateUt: initial?.stateUt || "", pinCode: initial?.pinCode || "", active: initial?.active ?? true }));
+function LocationDialog({ open, onOpenChange, initial, onSave, pending, error }) {
+  const [form, setForm] = useState(() => ({ code: initial?.code || "", name: initial?.name || "", country: "India", addressLine1: initial?.addressLine1 || initial?.address || "", addressLine2: initial?.addressLine2 || "", landmark: initial?.landmark || "", city: initial?.city || "", district: initial?.district || "", stateUt: initial?.stateUt || "", pinCode: initial?.pinCode || "", active: initial?.active ?? true }));
+  const [locationCodeManuallyEdited, setLocationCodeManuallyEdited] = useState(Boolean(initial?.code));
   const [photo, setPhoto] = useState(null);
   const [removePhoto, setRemovePhoto] = useState(false);
   const [photoError, setPhotoError] = useState("");
@@ -387,11 +388,22 @@ function LocationDialog({ open, onOpenChange, initial, onSave, pending, error, g
     setPhoto(file);
     setRemovePhoto(false);
   };
-  const previewCode = editing ? initial?.code || "" : generatedCode || (form.name.trim() && form.stateUt ? `${locationNameAbbreviation(form.name)}-${INDIA_STATE_CODES[form.stateUt]}-001` : "");
-  const update = (key) => (event) => setForm((current) => ({ ...current, [key]: event.target.value }));
+  const previewCode = editing ? initial?.code || "" : form.code;
+  const update = (key) => (event) => {
+    const value = event.target.value;
+    if (key === "name" && !locationCodeManuallyEdited) {
+      setForm((current) => ({ ...current, name: value, code: value.trim() ? `${locationNameAbbreviation(value)}-001` : "" }));
+      return;
+    }
+    setForm((current) => ({ ...current, [key]: value }));
+  };
+  const updateLocationCode = (event) => {
+    setLocationCodeManuallyEdited(true);
+    setForm((current) => ({ ...current, code: event.target.value }));
+  };
   return <Dialog open={open} onOpenChange={onOpenChange}><DialogContent className="max-h-[90vh] overflow-y-auto rounded-[20px] border border-[var(--cc-border)] bg-white p-5 shadow-[0_12px_40px_rgba(0,0,0,0.16)] sm:max-w-2xl"><DialogHeader><DialogTitle className="text-lg font-semibold">{editing ? "Edit Location" : "Add Location"}</DialogTitle><DialogDescription className="text-sm text-[var(--cc-secondary-text)]">{editing ? "Update the structured operating location details." : "Create an India-based operating location."}</DialogDescription></DialogHeader><form className="grid gap-4 sm:grid-cols-2" onSubmit={(event) => { event.preventDefault(); onSave({ ...form, photo, removePhoto }); }}>
     <Field label="Location Name" icon={MapPin}><Input required className="h-11 rounded-[10px] pl-10" value={form.name} onChange={update("name")} /></Field>
-    <Field label="Location Code" icon={KeyRound} hint="Automatically generated."><Input readOnly disabled className="h-11 rounded-[10px] bg-[#FAF8F5] pl-10 font-semibold" value={previewCode} /></Field>
+    <Field label="Location Code" icon={KeyRound} hint="Automatically generated. You can edit it."><Input required readOnly={editing} disabled={editing} className="h-11 rounded-[10px] bg-[#FAF8F5] pl-10 font-semibold" value={previewCode} onChange={updateLocationCode} /></Field>
     <div className="space-y-1.5 sm:col-span-2"><span className="flex items-center gap-1 text-xs font-semibold text-[var(--cc-text)]">Location Photo <span className="font-normal text-[var(--cc-muted-text)]">(optional)</span></span><div className="overflow-hidden rounded-[12px] border border-dashed border-[var(--cc-border)] bg-[#FAF8F5] p-3">{photo || (initial?.locationPhotoUrl && !removePhoto) ? <div className="flex items-center gap-3"><img src={photoPreview || initial.locationPhotoUrl} alt={`${form.name || "Location"} preview`} className="h-20 w-32 rounded-lg object-cover" /><div className="flex flex-wrap gap-2"><label className="inline-flex h-10 cursor-pointer items-center rounded-lg border border-[var(--cc-border)] bg-white px-3 text-sm font-medium">Change Photo<input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={selectPhoto} /></label><button type="button" className="h-10 rounded-lg border border-[var(--cc-border)] bg-white px-3 text-sm font-medium" onClick={() => { setPhoto(null); setPhotoError(""); setRemovePhoto(true); }}>Remove Photo</button></div></div> : <label className="flex min-h-24 cursor-pointer flex-col items-center justify-center gap-1 text-sm text-[var(--cc-muted-text)]"><span className="font-medium text-[var(--cc-text)]">Upload Photo</span><span>JPG, JPEG, PNG or WEBP · max 5 MB · recommended 16:9</span><input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={selectPhoto} /></label>}{photoError && <p className="mt-2 text-xs text-[var(--cc-error)]">{photoError}</p>}</div></div>
     <Field label="Country"><Input readOnly className="h-11 rounded-[10px] bg-[#FAF8F5]" value="India" /></Field>
     <Field label="Address Line 1" icon={Building2}><Input required className="h-11 rounded-[10px] pl-10" value={form.addressLine1} onChange={update("addressLine1")} /></Field>
@@ -409,21 +421,25 @@ function LocationDialog({ open, onOpenChange, initial, onSave, pending, error, g
 export function ControlCenterLocations() {
   const { data = [], isLoading, error } = useQuery(adminLocationsOptions());
   const { activeLocation } = useActiveLocation();
-  const [form, setForm] = useState({});
   const [locationDialogOpen, setLocationDialogOpen] = useState(false);
   const [editingLocation, setEditingLocation] = useState(null);
   const [generatedCode, setGeneratedCode] = useState("");
   const queryClient = useQueryClient();
   const mutation = useMutation({
-    mutationFn: ({ payload = form, photo }) => createAdminLocation({ ...payload, country: "India", name: payload.name.trim(), addressLine1: payload.addressLine1.trim(), addressLine2: (payload.addressLine2 || "").trim(), landmark: (payload.landmark || "").trim(), city: payload.city.trim(), district: payload.district.trim(), stateUt: payload.stateUt.trim(), pinCode: payload.pinCode.trim(), active: true }, photo),
-    onSuccess: (created) => { setGeneratedCode(created?.code || ""); setForm({}); queryClient.invalidateQueries({ queryKey: ["admin", "locations"] }); toast.success(`Location created with code ${created?.code || "generated"}.`); },
+    mutationFn: ({ payload, photo, previewCode }) => createAdminLocation({ ...payload, country: "India", name: payload.name.trim(), addressLine1: payload.addressLine1.trim(), addressLine2: (payload.addressLine2 || "").trim(), landmark: (payload.landmark || "").trim(), city: payload.city.trim(), district: payload.district.trim(), stateUt: payload.stateUt.trim(), pinCode: payload.pinCode.trim(), active: true }, photo).then((created) => ({ created, previewCode })),
+    onSuccess: ({ created, previewCode }) => {
+      const code = created?.code || created?.locationCode || created?.data?.code || previewCode || "";
+      setGeneratedCode(code);
+      queryClient.invalidateQueries({ queryKey: ["admin", "locations"] });
+      toast.success(code ? `Location created with code ${code}.` : "Location created.");
+    },
   });
   const editMutation = useMutation({
     mutationFn: ({ id, payload, photo }) => updateAdminLocation(id, payload, photo),
     onSuccess: () => { setLocationDialogOpen(false); setEditingLocation(null); queryClient.invalidateQueries({ queryKey: ["admin", "locations"] }); toast.success("Location updated."); },
   });
   const apiError = mutation.error?.response?.status === 409
-    ? "A location with this code already exists."
+    ? mutation.error?.response?.data?.message || "Location code already exists. Please use a different code."
     : mutation.error?.response?.status === 403
       ? "Only a Super Admin can add locations."
       : mutation.error?.response?.data?.message || mutation.error?.response?.data || mutation.error?.message;
@@ -431,7 +447,7 @@ export function ControlCenterLocations() {
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><p className="text-sm text-[var(--cc-secondary-text)]">{activeLocation?.name ? `Current location: ${activeLocation.name}` : "Configure locations for operations and access."}</p><Button className="h-11 w-full rounded-[10px] bg-[var(--cc-primary)] font-semibold text-white hover:bg-[var(--cc-primary-dark)] sm:w-auto" onClick={() => { setGeneratedCode(""); setEditingLocation(null); setLocationDialogOpen(true); }}><Plus className="size-[18px]" /> Add Location</Button></div>
     {isLoading ? <p className="text-sm text-[var(--cc-muted-text)]">Loading locations...</p> : <div className="grid gap-3 lg:grid-cols-2">{data.map((location) => <LocationCard key={location.id} location={location} onEdit={(item) => { setEditingLocation(item); setLocationDialogOpen(true); }} />)}{!data.length && <p className="rounded-[16px] border border-[var(--cc-border)] bg-white p-8 text-center text-sm text-[var(--cc-muted-text)] lg:col-span-2">No locations are configured.</p>}</div>}
     <ErrorState error={error} />
-    <LocationDialog key={`${editingLocation?.id || "new"}-${locationDialogOpen}-${generatedCode}`} open={locationDialogOpen} onOpenChange={setLocationDialogOpen} initial={editingLocation} generatedCode={generatedCode} pending={editingLocation ? editMutation.isPending : mutation.isPending} error={editingLocation ? editMutation.error?.response?.data?.message || editMutation.error?.message : apiError} onSave={(payload) => { const { photo, removePhoto, ...editablePayload } = payload; if (editingLocation) editMutation.mutate({ id: editingLocation.id, payload: { ...editablePayload, removePhoto }, photo }); else mutation.mutate({ payload: editablePayload, photo }); }} />
+    <LocationDialog key={`${editingLocation?.id || "new"}-${locationDialogOpen}-${generatedCode}`} open={locationDialogOpen} onOpenChange={setLocationDialogOpen} initial={editingLocation} pending={editingLocation ? editMutation.isPending : mutation.isPending} error={editingLocation ? editMutation.error?.response?.data?.message || editMutation.error?.message : apiError} onSave={(payload) => { const { photo, removePhoto, ...editablePayload } = payload; const previewCode = editablePayload.code; if (editingLocation) editMutation.mutate({ id: editingLocation.id, payload: { ...editablePayload, removePhoto }, photo }); else mutation.mutate({ payload: editablePayload, photo, previewCode }); }} />
   </Shell>;
 }
 

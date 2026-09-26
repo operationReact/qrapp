@@ -8,6 +8,7 @@ import com.broandbro.qrapp.validation.IndiaStateUt;
 @Data
 public class LocationRequest {
     @NotBlank private String name;
+    private String code;
     @NotBlank private String addressLine1;
     private String addressLine2;
     private String landmark;

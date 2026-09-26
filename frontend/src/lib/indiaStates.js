@@ -31,5 +31,6 @@ export function locationNameAbbreviation(value) {
     .split(/\s+/)
     .filter((word) => word && !LOCATION_CODE_FILLER_WORDS.has(word));
   if (!words.length) return "";
-  return words.length === 1 ? words[0].slice(0, 3) : words.map((word) => word[0]).join("").slice(0, 5);
+  const prefix = words[0];
+  return words[1] === words[0] ? `${prefix}${prefix}` : prefix;
 }
