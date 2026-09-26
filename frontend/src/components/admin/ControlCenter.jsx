@@ -21,6 +21,7 @@ import { adminSetPayAtStall } from "@/services/order-service";
 import { partyOrdersOptions } from "@/query/options/party-orders";
 import { adminHallOfHappinessOptions } from "@/query/options/admin-hall-of-happiness";
 import { adminCreateUserOptions, adminCustomerCompaniesOptions, adminLocationsOptions, adminUsersOptions, adminVendorsOptions, assignCustomerCompany, createAdminLocation, createAdminUser, createManagementResource, grantUserLocation, locationCustomerCompaniesOptions, removeCustomerCompany, revokeUserLocation, updateAdminLocation, updateCustomerCompany, updateUserRole, userLocationsOptions } from "@/query/options/management";
+import { baseURL } from "@/services";
 
 const primaryNavigation = [
   { to: "/admin/control-center", label: "Overview", roles: [ROLE.SUPER_ADMIN] },
@@ -346,11 +347,20 @@ export function ControlCenterUsers() {
 function LocationCard({ location, onEdit }) {
   const active = location.active ?? true;
   return <div className="flex items-center gap-3 rounded-[16px] border border-[var(--cc-border)] bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
-    <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-[var(--cc-primary-light)] text-[var(--cc-primary)]"><MapPin className="size-5" /></div>
+    <LocationThumbnail key={location.locationPhotoUrl || "location-pin"} url={location.locationPhotoUrl} locationId={location.id} name={location.name} />
     <div className="min-w-0 flex-1"><p className="truncate text-base font-semibold text-[var(--cc-text)]">{location.name}</p><p className="truncate text-xs text-[#77716D]">{location.code || location.locationCode || "Generated on save"}</p><p className="mt-1 truncate text-[13px] text-[var(--cc-secondary-text)]">{[location.addressLine1, location.city, location.stateUt, location.pinCode].filter(Boolean).join(", ") || location.address || "No address provided"}</p></div>
     <span className={`hidden rounded-full px-2.5 py-1 text-xs font-semibold sm:inline-flex ${active ? "bg-[var(--cc-success-bg)] text-[var(--cc-success)]" : "bg-[var(--cc-page)] text-[var(--cc-muted-text)]"}`}>{active ? "ACTIVE" : "INACTIVE"}</span>
     <DropdownMenu><DropdownMenuTrigger className="grid size-11 shrink-0 place-items-center rounded-[10px] text-[var(--cc-muted-text)] hover:bg-[var(--cc-primary-light)]" aria-label={`Actions for ${location.name}`}><MoreVertical className="size-5" /></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onClick={() => onEdit(location)}>Edit location</DropdownMenuItem></DropdownMenuContent></DropdownMenu>
   </div>;
+}
+
+function LocationThumbnail({ url, locationId, name }) {
+  const [failed, setFailed] = useState(false);
+  if (!url || failed) {
+    return <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-[var(--cc-primary-light)] text-[var(--cc-primary)]"><MapPin className="size-5" /></div>;
+  }
+  const imageUrl = `${baseURL}/api/public/location-images/${locationId}`;
+  return <img src={imageUrl} alt={`${name || "Location"} photo`} loading="lazy" onError={() => setFailed(true)} className="size-10 shrink-0 rounded-xl object-cover" />;
 }
 
 function StateSelect({ value, onChange }) {

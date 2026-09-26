@@ -9,10 +9,15 @@ import org.springframework.stereotype.Service;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.model.S3Exception;
 
 import java.time.Instant;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.UUID;
 
 /**
@@ -28,6 +33,9 @@ import java.util.UUID;
 @RequiredArgsConstructor
 @Slf4j
 public class S3ImageStorageService implements ImageStorageService {
+    public record StoredContent(byte[] bytes, String contentType) {}
+    private static final Path LOCAL_IMAGE_ROOT = Paths.get(
+            System.getProperty("user.dir"), ".local-image-storage").toAbsolutePath().normalize();
 
     private final S3Client s3Client;
     private final AwsS3Properties props;
@@ -50,8 +58,7 @@ public class S3ImageStorageService implements ImageStorageService {
     public StoredImage uploadImageWithKey(byte[] imageBytes, String folder, String contentType) {
 
         if (!props.isEnabled()) {
-            log.warn("[S3] Upload disabled (aws.s3.enabled=false). Returning placeholder URL.");
-            return new StoredImage("https://placeholder.example.com/" + folder + "/image.png", null);
+            return storeLocally(imageBytes, folder, contentType);
         }
 
         String key = buildS3Key(folder, contentType);
@@ -86,6 +93,53 @@ public class S3ImageStorageService implements ImageStorageService {
         }
     }
 
+    public byte[] readLocalImage(String key) {
+        if (key == null || !key.startsWith("local/")) {
+            throw new IllegalArgumentException("Unsupported local image key");
+        }
+
+        Path file = LOCAL_IMAGE_ROOT.resolve(key.substring("local/".length())).normalize();
+        if (!file.startsWith(LOCAL_IMAGE_ROOT) || !Files.isRegularFile(file)) {
+            throw new IllegalArgumentException("Local image not found");
+        }
+        try {
+            return Files.readAllBytes(file);
+        } catch (IOException e) {
+            throw new ImageUploadException("Could not read local image", e);
+        }
+    }
+
+    public StoredContent readImage(String key) {
+        if (key != null && key.startsWith("local/")) {
+            String contentType = key.endsWith(".jpg") || key.endsWith(".jpeg")
+                    ? "image/jpeg" : key.endsWith(".webp") ? "image/webp" : "image/png";
+            return new StoredContent(readLocalImage(key), contentType);
+        }
+        if (key == null || key.isBlank() || !props.isEnabled()) {
+            throw new IllegalArgumentException("Image storage reference is unavailable");
+        }
+        var response = s3Client.getObjectAsBytes(GetObjectRequest.builder()
+                .bucket(props.getBucketName()).key(key).build());
+        return new StoredContent(response.asByteArray(),
+                response.response().contentType() == null
+                        ? "application/octet-stream"
+                        : response.response().contentType());
+    }
+
+    private StoredImage storeLocally(byte[] imageBytes, String folder, String contentType) {
+        String extension = "image/jpeg".equals(contentType) ? "jpg"
+                : "image/webp".equals(contentType) ? "webp" : "png";
+        String key = "local/" + folder + "/" + UUID.randomUUID() + "." + extension;
+        Path file = LOCAL_IMAGE_ROOT.resolve(key.substring("local/".length())).normalize();
+        try {
+            Files.createDirectories(file.getParent());
+            Files.write(file, imageBytes);
+            return new StoredImage("/api/public/location-images/" + key.substring("local/".length()), key);
+        } catch (IOException e) {
+            throw new ImageUploadException("Could not store local image", e);
+        }
+    }
+
     // -------------------------------------------------------------------------
     // Private helpers
     // -------------------------------------------------------------------------
@@ -95,7 +149,14 @@ public class S3ImageStorageService implements ImageStorageService {
         if (publicUrl == null || publicUrl.isBlank()) return;
 
         if (!props.isEnabled()) {
-            log.warn("[S3] Delete disabled (aws.s3.enabled=false). Skipping deletion of {}", publicUrl);
+            if (publicUrl.startsWith("/api/public/location-images/")) {
+                Path file = LOCAL_IMAGE_ROOT.resolve(publicUrl.substring("/api/public/location-images/".length())).normalize();
+                try {
+                    if (file.startsWith(LOCAL_IMAGE_ROOT)) Files.deleteIfExists(file);
+                } catch (IOException e) {
+                    log.warn("[S3] Failed to delete local image {}", publicUrl, e);
+                }
+            }
             return;
         }
 
