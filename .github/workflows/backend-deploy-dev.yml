@@ -154,6 +154,27 @@ jobs:
           WHATSAPP_PHONE_NUMBER_ID=$(get_optional_parameter "/broandbro/backend/dev/whatsapp/phoneNumberId")
           WHATSAPP_ACCESS_TOKEN=$(get_optional_parameter "/broandbro/backend/dev/whatsapp/accessToken")
 
+          for VALUE in \
+            "$DB_URL" \
+            "$DB_USERNAME" \
+            "$DB_PASSWORD" \
+            "$OPENAI_API_KEY" \
+            "$S3_BUCKET" \
+            "$S3_LOCATION_BUCKET" \
+            "$S3_REGION" \
+            "$S3_ENABLED" \
+            "$RAZORPAY_KEY" \
+            "$RAZORPAY_SECRET" \
+            "$RAZORPAY_WEBHOOK_SECRET" \
+            "$WHATSAPP_WEBHOOK_VERIFY_TOKEN" \
+            "$WHATSAPP_APP_SECRET" \
+            "$WHATSAPP_PHONE_NUMBER_ID" \
+            "$WHATSAPP_ACCESS_TOKEN"; do
+            if [ -n "$VALUE" ]; then
+              echo "::add-mask::$VALUE"
+            fi
+          done
+
           # Store in environment for next step
           echo "DB_URL=$DB_URL" >> $GITHUB_ENV
           echo "DB_USERNAME=$DB_USERNAME" >> $GITHUB_ENV
@@ -262,7 +283,7 @@ jobs:
 
           echo "🔒  Ensuring HTTPS is configured..."
           if [ ! -d /etc/letsencrypt/live/dev-api.broandbro.in ]; then
-            certbot --nginx \
+            timeout 5m certbot --nginx \
               -d dev-api.broandbro.in \
               --email admin@broandbro.in \
               --agree-tos \
@@ -270,7 +291,7 @@ jobs:
               --non-interactive \
               --redirect
           else
-            certbot renew --quiet
+            echo "ℹ️  Existing TLS certificate detected; skipping inline renewal (handled by certbot-renew.timer)"
           fi
           nginx -t
           systemctl reload nginx
