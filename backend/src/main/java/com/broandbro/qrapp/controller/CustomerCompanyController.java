@@ -31,7 +31,9 @@ public class CustomerCompanyController {
     @GetMapping("/api/admin/customer-companies")
     public List<CustomerCompanyResponse> companies(Authentication authentication) {
         authorize(authentication);
-        return companyService.listAll().stream().map(CustomerCompanyResponse::from).toList();
+        return companyService.listAll().stream()
+                .map(company -> CustomerCompanyResponse.from(company, companyService.locationNames(company.getId())))
+                .toList();
     }
 
     @PreAuthorize("isAuthenticated()")
