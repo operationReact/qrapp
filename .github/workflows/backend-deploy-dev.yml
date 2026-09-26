@@ -332,7 +332,16 @@ jobs:
                 --instance-id "$INSTANCE_ID" \
                 --region us-east-1 \
                 --query 'StatusDetails' \
-                --output text 2>/dev/null || echo "Pending")
+                --output text 2>&1)
+              RC=$?
+              if [ $RC -ne 0 ]; then
+                if echo "$STATUS" | grep -q "InvocationDoesNotExist"; then
+                  STATUS="Pending"
+                else
+                  echo "⚠️  SSM probe invocation failed: $STATUS"
+                  return 1
+                fi
+              fi
               echo "    probe [$i/12] $STATUS"
               case "$STATUS" in
                 Success) return 0 ;;
