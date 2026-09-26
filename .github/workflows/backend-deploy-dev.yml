@@ -345,7 +345,7 @@ jobs:
               echo "    probe [$i/12] $STATUS"
               case "$STATUS" in
                 Success) return 0 ;;
-                Failed|Cancelled|TimedOut|DeliveryTimedOut) return 1 ;;
+                Failed|Cancelled|TimedOut|DeliveryTimedOut|ExecutionTimedOut|Undeliverable|Terminated|InvalidPlatform) return 1 ;;
               esac
             done
             return 1
@@ -428,7 +428,7 @@ jobs:
                 echo "✅ Deployment successful"
                 exit 0
                 ;;
-              Failed|Cancelled|TimedOut|DeliveryTimedOut)
+              Failed|Cancelled|TimedOut|DeliveryTimedOut|ExecutionTimedOut|Undeliverable|Terminated|InvalidPlatform)
                 OUTPUT=$(echo "$INVOCATION" | python3 -c \
                   "import sys,json; d=json.load(sys.stdin); \
                    print(d.get('StandardOutputContent','')); \
