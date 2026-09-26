@@ -12,8 +12,15 @@ public class Location {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true, updatable = false, length = 80)
+    @Column(nullable = false, unique = true, length = 80)
     private String code;
+
+    @Column(name = "code_sequence")
+    private Long codeSequence;
+
+    @Column(name = "code_manually_edited", nullable = false)
+    @Builder.Default
+    private Boolean codeManuallyEdited = false;
 
     @Column(nullable = false)
     private String name;

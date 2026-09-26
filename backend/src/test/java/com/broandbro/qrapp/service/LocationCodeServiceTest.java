@@ -8,7 +8,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -17,95 +16,75 @@ class LocationCodeServiceTest {
     LocationRepository locationRepository;
 
     @Test
-    void generatesReadableSlugAndNumericCollisionSuffix() {
-        when(locationRepository.findMaxSequence("MINDS-HYD")).thenReturn(2);
+    void usesOneGlobalSequenceAcrossPrefixesAndStates() {
+        when(locationRepository.nextGlobalCodeSequence()).thenReturn(1L, 2L, 3L);
 
-        Location location = Location.builder().name("Mindspace Hi-Tech").city("Hyderabad").build();
-        when(locationRepository.save(location)).thenReturn(location);
+        Location first = location("GeBBS Healthcare Solutions", "Telangana");
+        Location second = location("Bro & Bro", "Telangana");
+        Location third = location("ABC Foods", "Karnataka");
 
-        new LocationCodeService(locationRepository).create(location);
+        new LocationCodeService(locationRepository).create(first);
+        new LocationCodeService(locationRepository).create(second);
+        new LocationCodeService(locationRepository).create(third);
 
-        assertThat(location.getCode()).isEqualTo("MINDS-HYD-003");
+        assertThat(first.getCode()).isEqualTo("GEBBS-TG-001");
+        assertThat(second.getCode()).isEqualTo("BROBRO-TG-002");
+        assertThat(third.getCode()).isEqualTo("ABC-KA-003");
     }
 
     @Test
-    void generatesFirstSequenceForDifferentState() {
-        when(locationRepository.findMaxSequence("MIN-DEL")).thenReturn(0);
-        Location location = Location.builder().name("Mindspace").city("Delhi").build();
-        when(locationRepository.save(location)).thenReturn(location);
+    void formatsSequencesAboveNinetyNineWithoutTruncation() {
+        when(locationRepository.nextGlobalCodeSequence()).thenReturn(100L);
+        Location location = location("Urban", "Maharashtra");
 
         new LocationCodeService(locationRepository).create(location);
 
-        assertThat(location.getCode()).isEqualTo("MIN-DEL-001");
+        assertThat(location.getCode()).isEqualTo("URBAN-MH-100");
     }
 
     @Test
-    void usesMeaningfulWordInitialsAndRemovesFillerWords() {
-        when(locationRepository.findMaxSequence("GEBBS-HYD")).thenReturn(0);
-        Location location = Location.builder()
-                .name("The GeBBS Healthcare and Solutions")
-                .city("Hyderabad")
-                .build();
-        when(locationRepository.save(location)).thenReturn(location);
+    void preservesSequenceWhenAutomaticLocationChangesState() {
+        Location location = location("GeBBS Healthcare Solutions", "Karnataka");
+        location.setId(7L);
+        location.setCode("GEBBS-TG-001");
+        location.setCodeSequence(1L);
+        location.setCodeManuallyEdited(false);
+        when(locationRepository.existsByCodeAndIdNot("GEBBS-KA-001", 7L)).thenReturn(false);
 
-        new LocationCodeService(locationRepository).create(location);
+        new LocationCodeService(locationRepository).update(location, "GEBBS-KA-001");
+
+        assertThat(location.getCode()).isEqualTo("GEBBS-KA-001");
+        assertThat(location.getCodeSequence()).isEqualTo(1L);
+        assertThat(location.getCodeManuallyEdited()).isFalse();
+    }
+
+    @Test
+    void preservesManualCodeWhenNameOrStateChanges() {
+        Location location = location("GeBBS Healthcare Solutions", "Karnataka");
+        location.setId(7L);
+        location.setCode("GEBBS-HYD-001");
+        location.setCodeSequence(1L);
+        location.setCodeManuallyEdited(true);
+
+        new LocationCodeService(locationRepository).update(location, "GEBBS-HYD-001");
 
         assertThat(location.getCode()).isEqualTo("GEBBS-HYD-001");
+        assertThat(location.getCodeManuallyEdited()).isTrue();
     }
 
     @Test
-    void normalizesSpecialCharactersAndLimitsSlug() {
-        when(locationRepository.findMaxSequence("VERY-HYD")).thenReturn(0);
-        Location location = Location.builder()
-                .name("Very Long Location Name! @#")
-                .city("Hyderabad")
-                .build();
-        when(locationRepository.save(location)).thenReturn(location);
+    void rejectsDuplicateManualCode() {
+        Location location = location("ABC Foods", "Karnataka");
+        location.setId(8L);
+        when(locationRepository.existsByCode("ABC-KA-001")).thenReturn(true);
 
-        new LocationCodeService(locationRepository).create(location);
-
-        assertThat(location.getCode()).isEqualTo("VERY-HYD-001");
+        org.assertj.core.api.Assertions.assertThatThrownBy(
+                        () -> new LocationCodeService(locationRepository).create(location, "ABC-KA-001"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Location code already exists. Please use a different code.");
     }
 
-    @Test
-    void limitsMultiWordAbbreviationToFiveLetters() {
-        when(locationRepository.findMaxSequence("ALPHA-HYD")).thenReturn(0);
-        Location location = Location.builder()
-                .name("Alpha Bravo Charlie Delta Echo Foxtrot")
-                .city("Hyderabad")
-                .build();
-        when(locationRepository.save(location)).thenReturn(location);
-
-        new LocationCodeService(locationRepository).create(location);
-
-        assertThat(location.getCode()).isEqualTo("ALPHA-HYD-001");
-    }
-
-    @Test
-    void usesIndependentSequenceForSameNameInDifferentState() {
-        when(locationRepository.findMaxSequence("MEENA-HYD")).thenReturn(3);
-        when(locationRepository.findMaxSequence("MEENA-DEL")).thenReturn(0);
-        Location telangana = Location.builder().name("Meenakshi Towers").city("Hyderabad").build();
-        Location andhra = Location.builder().name("Meenakshi Towers").city("Delhi").build();
-        when(locationRepository.save(telangana)).thenReturn(telangana);
-        when(locationRepository.save(andhra)).thenReturn(andhra);
-        LocationCodeService service = new LocationCodeService(locationRepository);
-
-        service.create(telangana);
-        service.create(andhra);
-
-        assertThat(telangana.getCode()).isEqualTo("MEENA-HYD-004");
-        assertThat(andhra.getCode()).isEqualTo("MEENA-DEL-001");
-    }
-
-    @Test
-    void locksPrefixBeforeReadingSequenceForConcurrentCreationSafety() {
-        when(locationRepository.findMaxSequence("PRA-HYD")).thenReturn(0);
-        Location location = Location.builder().name("Pragati").city("Hyderabad").build();
-        when(locationRepository.save(location)).thenReturn(location);
-
-        new LocationCodeService(locationRepository).create(location);
-
-        verify(locationRepository).lockCodePrefix("PRA-HYD");
+    private Location location(String name, String state) {
+        return Location.builder().name(name).stateUt(state).build();
     }
 }

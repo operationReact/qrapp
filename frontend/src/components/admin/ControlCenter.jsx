@@ -15,7 +15,7 @@ import { useAdminDashboard } from "@/context/AdminDashboardContext";
 import { useLocation as useActiveLocation } from "@/context/LocationContext";
 import { hasRole, ROLE } from "@/lib/roles";
 import { useAuth } from "@/context/AuthContext";
-import { INDIA_STATES_AND_UTS, locationNameAbbreviation } from "@/lib/indiaStates";
+import { INDIA_STATES_AND_UTS, locationCodePreview } from "@/lib/indiaStates";
 import { adminSettingsOptions, paymentConfigOptions } from "@/query/options/orders";
 import { adminSetPayAtStall } from "@/services/order-service";
 import { partyOrdersOptions } from "@/query/options/party-orders";
@@ -370,7 +370,7 @@ function StateSelect({ value, onChange }) {
 
 function LocationDialog({ open, onOpenChange, initial, onSave, pending, error }) {
   const [form, setForm] = useState(() => ({ code: initial?.code || "", name: initial?.name || "", country: "India", addressLine1: initial?.addressLine1 || initial?.address || "", addressLine2: initial?.addressLine2 || "", landmark: initial?.landmark || "", city: initial?.city || "", district: initial?.district || "", stateUt: initial?.stateUt || "", pinCode: initial?.pinCode || "", active: initial?.active ?? true }));
-  const [locationCodeManuallyEdited, setLocationCodeManuallyEdited] = useState(Boolean(initial?.code));
+  const [locationCodeManuallyEdited, setLocationCodeManuallyEdited] = useState(Boolean(initial?.codeManuallyEdited ?? initial?.code));
   const [photo, setPhoto] = useState(null);
   const [removePhoto, setRemovePhoto] = useState(false);
   const [photoError, setPhotoError] = useState("");
@@ -388,22 +388,25 @@ function LocationDialog({ open, onOpenChange, initial, onSave, pending, error })
     setPhoto(file);
     setRemovePhoto(false);
   };
-  const previewCode = editing ? initial?.code || "" : form.code;
+  const existingSequence = initial?.codeSequence || Number(initial?.code?.match(/-(\d+)$/)?.[1]) || 1;
+  const previewCode = form.code;
   const update = (key) => (event) => {
     const value = event.target.value;
     if (key === "name" && !locationCodeManuallyEdited) {
-      setForm((current) => ({ ...current, name: value, code: value.trim() ? `${locationNameAbbreviation(value)}-001` : "" }));
+      setForm((current) => ({ ...current, name: value, code: locationCodePreview(value, current.stateUt, editing ? existingSequence : 1) }));
       return;
     }
     setForm((current) => ({ ...current, [key]: value }));
+  };
+  const updateState = (stateUt) => {
+    setForm((current) => ({ ...current, stateUt, code: locationCodeManuallyEdited ? current.code : locationCodePreview(current.name, stateUt, editing ? existingSequence : 1) }));
   };
   const updateLocationCode = (event) => {
     setLocationCodeManuallyEdited(true);
     setForm((current) => ({ ...current, code: event.target.value }));
   };
-  return <Dialog open={open} onOpenChange={onOpenChange}><DialogContent className="max-h-[90vh] overflow-y-auto rounded-[20px] border border-[var(--cc-border)] bg-white p-5 shadow-[0_12px_40px_rgba(0,0,0,0.16)] sm:max-w-2xl"><DialogHeader><DialogTitle className="text-lg font-semibold">{editing ? "Edit Location" : "Add Location"}</DialogTitle><DialogDescription className="text-sm text-[var(--cc-secondary-text)]">{editing ? "Update the structured operating location details." : "Create an India-based operating location."}</DialogDescription></DialogHeader><form className="grid gap-4 sm:grid-cols-2" onSubmit={(event) => { event.preventDefault(); onSave({ ...form, photo, removePhoto }); }}>
+  return <Dialog open={open} onOpenChange={onOpenChange}><DialogContent className="max-h-[90vh] overflow-y-auto rounded-[20px] border border-[var(--cc-border)] bg-white p-5 shadow-[0_12px_40px_rgba(0,0,0,0.16)] sm:max-w-2xl"><DialogHeader><DialogTitle className="text-lg font-semibold">{editing ? "Edit Location" : "Add Location"}</DialogTitle><DialogDescription className="text-sm text-[var(--cc-secondary-text)]">{editing ? "Update the structured operating location details." : "Create an India-based operating location."}</DialogDescription></DialogHeader><form className="grid gap-4 sm:grid-cols-2" onSubmit={(event) => { event.preventDefault(); onSave({ ...form, code: locationCodeManuallyEdited ? form.code : "", photo, removePhoto }); }}>
     <Field label="Location Name" icon={MapPin}><Input required className="h-11 rounded-[10px] pl-10" value={form.name} onChange={update("name")} /></Field>
-    <Field label="Location Code" icon={KeyRound} hint="Automatically generated. You can edit it."><Input required readOnly={editing} disabled={editing} className="h-11 rounded-[10px] bg-[#FAF8F5] pl-10 font-semibold" value={previewCode} onChange={updateLocationCode} /></Field>
     <div className="space-y-1.5 sm:col-span-2"><span className="flex items-center gap-1 text-xs font-semibold text-[var(--cc-text)]">Location Photo <span className="font-normal text-[var(--cc-muted-text)]">(optional)</span></span><div className="overflow-hidden rounded-[12px] border border-dashed border-[var(--cc-border)] bg-[#FAF8F5] p-3">{photo || (initial?.locationPhotoUrl && !removePhoto) ? <div className="flex items-center gap-3"><img src={photoPreview || initial.locationPhotoUrl} alt={`${form.name || "Location"} preview`} className="h-20 w-32 rounded-lg object-cover" /><div className="flex flex-wrap gap-2"><label className="inline-flex h-10 cursor-pointer items-center rounded-lg border border-[var(--cc-border)] bg-white px-3 text-sm font-medium">Change Photo<input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={selectPhoto} /></label><button type="button" className="h-10 rounded-lg border border-[var(--cc-border)] bg-white px-3 text-sm font-medium" onClick={() => { setPhoto(null); setPhotoError(""); setRemovePhoto(true); }}>Remove Photo</button></div></div> : <label className="flex min-h-24 cursor-pointer flex-col items-center justify-center gap-1 text-sm text-[var(--cc-muted-text)]"><span className="font-medium text-[var(--cc-text)]">Upload Photo</span><span>JPG, JPEG, PNG or WEBP · max 5 MB · recommended 16:9</span><input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={selectPhoto} /></label>}{photoError && <p className="mt-2 text-xs text-[var(--cc-error)]">{photoError}</p>}</div></div>
     <Field label="Country"><Input readOnly className="h-11 rounded-[10px] bg-[#FAF8F5]" value="India" /></Field>
     <Field label="Address Line 1" icon={Building2}><Input required className="h-11 rounded-[10px] pl-10" value={form.addressLine1} onChange={update("addressLine1")} /></Field>
@@ -411,8 +414,9 @@ function LocationDialog({ open, onOpenChange, initial, onSave, pending, error })
     <Field label="Landmark (optional)"><Input className="h-11 rounded-[10px]" value={form.landmark} onChange={update("landmark")} /></Field>
     <Field label="City / Town"><Input required className="h-11 rounded-[10px]" value={form.city} onChange={update("city")} /></Field>
     <Field label="District"><Input required className="h-11 rounded-[10px]" value={form.district} onChange={update("district")} /></Field>
-    <Field label="State / UT"><StateSelect value={form.stateUt} onChange={(stateUt) => setForm((current) => ({ ...current, stateUt }))} /></Field>
+    <Field label="State / UT"><StateSelect value={form.stateUt} onChange={updateState} /></Field>
     <Field label="PIN Code" hint="Exactly 6 digits"><Input required inputMode="numeric" pattern="\d{6}" maxLength={6} className="h-11 rounded-[10px]" value={form.pinCode} onChange={(event) => setForm((current) => ({ ...current, pinCode: event.target.value.replace(/\D/g, "").slice(0, 6) }))} /></Field>
+    <Field label="Location Code" icon={KeyRound} hint="Automatically generated. You can edit it."><Input required className="h-11 rounded-[10px] bg-[#FAF8F5] pl-10 font-semibold" value={previewCode} onChange={updateLocationCode} /></Field>
     {editing && <label className="flex h-11 items-center gap-2 text-sm sm:col-span-2"><input type="checkbox" checked={form.active} onChange={(event) => setForm((current) => ({ ...current, active: event.target.checked }))} /> Active</label>}
     <Button type="submit" className="h-11 rounded-[10px] bg-[var(--cc-primary)] font-semibold text-white hover:bg-[var(--cc-primary-dark)] disabled:bg-[#F9A0A8] sm:col-span-2" disabled={pending}>{pending ? "Saving..." : editing ? "Save Location" : "Add Location"}</Button>{error && <p className="text-sm text-[var(--cc-error)] sm:col-span-2">{error}</p>}
   </form></DialogContent></Dialog>;

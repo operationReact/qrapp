@@ -8,6 +8,8 @@ import java.math.BigDecimal;
 public class LocationResponse {
     private Long id;
     private String code;
+    private Long codeSequence;
+    private Boolean codeManuallyEdited;
     private String name;
     private String address;
     private String country;
@@ -27,6 +29,8 @@ public class LocationResponse {
         LocationResponse response = new LocationResponse();
         response.setId(l.getId());
         response.setCode(l.getCode());
+        response.setCodeSequence(l.getCodeSequence());
+        response.setCodeManuallyEdited(l.getCodeManuallyEdited());
         response.setName(l.getName());
         response.setAddress(l.getAddress() != null ? l.getAddress() : formatAddress(l));
         response.setCountry(l.getCountry());

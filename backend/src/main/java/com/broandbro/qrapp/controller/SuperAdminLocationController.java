@@ -82,7 +82,7 @@ public class SuperAdminLocationController {
         l.setPinCode(request.getPinCode().trim());
         l.setAddress(formatAddress(l));
         l.setActive(request.getActive());
-        return LocationResponse.from(locationRepository.save(l));
+        return LocationResponse.from(locationRepository.save(locationCodeService.update(l, request.getCode())));
     }
 
     @PutMapping(value = "/locations/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

@@ -34,3 +34,9 @@ export function locationNameAbbreviation(value) {
   const prefix = words[0];
   return words[1] === words[0] ? `${prefix}${prefix}` : prefix;
 }
+
+export function locationCodePreview(name, stateUt, sequence = 1) {
+  const prefix = locationNameAbbreviation(name);
+  const stateCode = INDIA_STATE_CODES[stateUt];
+  return prefix && stateCode ? `${prefix}-${stateCode}-${String(sequence).padStart(3, "0")}` : "";
+}
