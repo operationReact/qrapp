@@ -94,9 +94,9 @@ jobs:
             fi
           fi
 
-      - name: Import shared media bucket (if already exists)
+      - name: Check prod media bucket
         run: |
-          BUCKET="${{ vars.MEDIA_BUCKET_NAME || 'broandbro-menu-images-shared' }}"
+          BUCKET="${{ vars.MEDIA_BUCKET_NAME || 'broandbro-prod-root-bucket' }}"
           if aws s3api head-bucket --bucket "$BUCKET" 2>/dev/null; then
             echo "Media bucket $BUCKET exists - checking state..."
             if ! terraform state show data.aws_s3_bucket.media 2>/dev/null; then
@@ -184,4 +184,3 @@ jobs:
           EC2_IP=$(terraform output -raw ec2_elastic_ip 2>/dev/null || echo "N/A")
           echo "| CloudFront ID | $CF_ID |" >> $GITHUB_STEP_SUMMARY
           echo "| EC2 IP | $EC2_IP |" >> $GITHUB_STEP_SUMMARY
-

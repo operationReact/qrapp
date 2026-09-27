@@ -171,11 +171,10 @@ resource "aws_iam_role_policy_attachment" "github_actions_admin" {
 }
 
 # =============================================================================
-# Shared Media Bucket – AI-generated menu item images
-# NOTE: This bucket is now CREATED AND MANAGED by environments/dev/main.tf
-# (aws_s3_bucket.media resource) and shared across all environments (dev, prod).
-# It is provisioned automatically by the dev Terraform apply workflow without
-# needing a separate bootstrap run.
+# Media Buckets – AI-generated menu item images
+# NOTE: Environment-specific media buckets are managed by the environment stacks.
+# The dev stack creates and manages broandbro-dev-root-bucket, while prod looks
+# up broandbro-prod-root-bucket. No separate bootstrap run is required.
 #
 # If this bootstrap previously created the bucket, the dev apply workflow will
 # import it into the dev state automatically.
@@ -205,4 +204,3 @@ output "github_oidc_provider_arn" {
 
 # Media bucket outputs removed – bucket is now managed by environments/dev/main.tf.
 # Use: cd infra/environments/dev && terraform output media_bucket_name
-

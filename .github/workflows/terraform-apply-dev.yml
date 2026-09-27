@@ -114,18 +114,27 @@ jobs:
             fi
           fi
 
-      - name: Import shared media bucket (if exists)
+      - name: Import dev media bucket (if exists)
         run: |
-          BUCKET="${{ vars.MEDIA_BUCKET_NAME || 'broandbro-menu-images-shared' }}"
+          BUCKET="${{ vars.MEDIA_BUCKET_NAME || 'broandbro-dev-root-bucket' }}"
           if aws s3api head-bucket --bucket "$BUCKET" 2>/dev/null; then
             echo "Media bucket $BUCKET exists - checking state..."
             STATE_OUTPUT=$(terraform state show aws_s3_bucket.media 2>/dev/null || true)
             if [ -z "$STATE_OUTPUT" ]; then
               echo "Importing media bucket..."
               terraform import aws_s3_bucket.media "$BUCKET"
-            elif echo "$STATE_OUTPUT" | grep -q "(tainted)"; then
-              echo "Removing taint and re-importing..."
-              terraform state rm aws_s3_bucket.media
+            elif echo "$STATE_OUTPUT" | grep -q "(tainted)" || ! echo "$STATE_OUTPUT" | grep -Eq "^[[:space:]]*(bucket|id)[[:space:]]*=[[:space:]]*\"$BUCKET\"$"; then
+              echo "State does not match $BUCKET - resetting media bucket resources..."
+              for resource in \
+                aws_s3_bucket_policy.media \
+                aws_s3_bucket_cors_configuration.media \
+                aws_s3_bucket_lifecycle_configuration.media \
+                aws_s3_bucket_versioning.media \
+                aws_s3_bucket_server_side_encryption_configuration.media \
+                aws_s3_bucket_public_access_block.media \
+                aws_s3_bucket.media; do
+                terraform state rm "$resource" 2>/dev/null || true
+              done
               terraform import aws_s3_bucket.media "$BUCKET"
             else
               echo "Media bucket already in state"

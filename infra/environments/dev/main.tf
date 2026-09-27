@@ -50,11 +50,8 @@ provider "aws" {
   }
 }
 
-# ── Shared media bucket (AI-generated menu item images) ──────────────────────
-# Created here in the dev environment so it exists before any data sources
-# reference it. lifecycle.prevent_destroy ensures it is never deleted.
-# Prod references it via a data source (see environments/prod/main.tf).
-# This is a SHARED bucket used by ALL environments (dev, prod).
+# ── Development media bucket (AI-generated menu item images) ─────────────────
+# This bucket is managed by the dev environment and protected from destruction.
 resource "aws_s3_bucket" "media" {
   bucket = var.media_bucket_name
 
@@ -68,7 +65,7 @@ resource "aws_s3_bucket" "media" {
 
   tags = {
     Name      = var.media_bucket_name
-    Purpose   = "AI-generated menu item images - shared across all environments"
+    Purpose   = "AI-generated menu item images - development"
     ManagedBy = "Terraform"
   }
 }
@@ -265,4 +262,3 @@ module "route53" {
   ec2_elastic_ip            = module.ec2.elastic_ip
   create_www_record         = false # dev doesn't need www
 }
-
