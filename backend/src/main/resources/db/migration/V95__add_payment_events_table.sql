@@ -1,5 +1,5 @@
 CREATE TABLE payment_events (
-    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    id BIGSERIAL PRIMARY KEY,
     order_id BIGINT NOT NULL,
     previous_status VARCHAR(50),
     new_status VARCHAR(50) NOT NULL,
@@ -10,7 +10,8 @@ CREATE TABLE payment_events (
     reason VARCHAR(255),
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     
-    CONSTRAINT fk_payment_events_order_id FOREIGN KEY (order_id) REFERENCES orders(id),
-    INDEX idx_payment_events_order_id (order_id),
-    INDEX idx_payment_events_created_at (created_at)
+    CONSTRAINT fk_payment_events_order_id FOREIGN KEY (order_id) REFERENCES orders(id)
 );
+
+CREATE INDEX idx_payment_events_order_id ON payment_events(order_id);
+CREATE INDEX idx_payment_events_created_at ON payment_events(created_at);

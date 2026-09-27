@@ -322,10 +322,15 @@ export function KitchenQueueOrderDetailPanel({
       updateOrderStatusAdmin(orderId, { status, reason, paymentStatus }, locationId),
     onError: (error) => {
       const message = error?.response?.data?.message || "Failed to update order";
-      if (message.includes("PAYMENT_REQUIRED")) {
-        toast.error("Payment required before hand over");
+      if (message.includes("PAYMENT_REQUIRED_FOR_HANDOVER")) {
+        // Extract payment status from message: "... Current payment status: PENDING"
+        const statusMatch = message.match(/Current payment status: (\w+)/);
+        const status = statusMatch ? statusMatch[1] : "pending";
+        toast.error(`Cannot hand over: Payment is ${status}. Mark as Paid first.`);
       } else if (message.includes("Reason is required")) {
         toast.error("Please provide a reason for this correction");
+      } else if (message.includes("PAYMENT_REQUIRED")) {
+        toast.error("Payment required before hand over");
       } else {
         toast.error(message);
       }
@@ -481,24 +486,32 @@ export function KitchenQueueOrderDetailPanel({
 
                     {/* Forward action (disabled if payment required) */}
                     {FORWARD_ACTIONS[order.status] && (
-                      <button
-                        type="button"
-                        onClick={() =>
-                          handleStageChange(FORWARD_ACTIONS[order.status].target, false)
-                        }
-                        disabled={
-                          order.status === "READY" && !paid
-                        }
-                        className={cn(
-                          "w-full flex items-center justify-between px-4 py-2.5 text-sm font-semibold rounded-lg transition-colors",
-                          order.status === "READY" && !paid
-                            ? "bg-gray-100 text-gray-500 cursor-not-allowed"
-                            : "bg-blue-100 text-blue-700 hover:bg-blue-200"
+                      <>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handleStageChange(FORWARD_ACTIONS[order.status].target, false)
+                          }
+                          disabled={
+                            order.status === "READY" && !paid
+                          }
+                          className={cn(
+                            "w-full flex items-center justify-between px-4 py-2.5 text-sm font-semibold rounded-lg transition-colors",
+                            order.status === "READY" && !paid
+                              ? "bg-gray-100 text-gray-500 cursor-not-allowed"
+                              : "bg-blue-100 text-blue-700 hover:bg-blue-200"
+                          )}
+                        >
+                          <span>{FORWARD_ACTIONS[order.status].label}</span>
+                          <ArrowRight size={16} />
+                        </button>
+                        {order.status === "READY" && !paid && (
+                          <p className="text-xs text-amber-600 bg-amber-50 px-3 py-2 rounded-lg flex items-center gap-1">
+                            <AlertTriangle size={14} />
+                            Mark as Paid before handing over
+                          </p>
                         )}
-                      >
-                        <span>{FORWARD_ACTIONS[order.status].label}</span>
-                        <ArrowRight size={16} />
-                      </button>
+                      </>
                     )}
 
                     {/* Backward action */}
