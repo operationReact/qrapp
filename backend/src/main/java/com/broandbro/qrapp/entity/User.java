@@ -74,12 +74,17 @@ public class User {
 
     private Instant createdAt;
 
+    @Column(nullable = false)
+    @Builder.Default
+    private Boolean active = true;
+
     @PrePersist
     public void prePersist() {
         if (createdAt == null) createdAt = Instant.now();
         if (isAdmin == null) isAdmin = false;
         if (isSuperUser == null) isSuperUser = false;
         if (termsAccepted == null) termsAccepted = false;
+        if (active == null) active = true;
         if (role == null) role = isSuperUser ? UserRole.SUPER_ADMIN
                 : (isAdmin ? UserRole.ADMIN : UserRole.CUSTOMER);
     }

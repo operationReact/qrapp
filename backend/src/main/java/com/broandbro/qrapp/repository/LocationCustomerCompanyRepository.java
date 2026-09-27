@@ -23,4 +23,8 @@ public interface LocationCustomerCompanyRepository extends JpaRepository<Locatio
             "where link.customerCompany.id = :companyId order by link.location.name")
     List<String> findLocationNamesByCustomerCompanyId(@Param("companyId") Long companyId);
 
+    /** Delete all location-customer company mappings for a location. */
+    @Modifying
+    @Query("DELETE FROM LocationCustomerCompany l WHERE l.location.id = :locationId")
+    void deleteByLocationId(@Param("locationId") Long locationId);
 }

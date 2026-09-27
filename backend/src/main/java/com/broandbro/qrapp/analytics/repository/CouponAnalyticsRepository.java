@@ -213,4 +213,9 @@ public interface CouponAnalyticsRepository extends JpaRepository<CouponAnalytics
            """,
            nativeQuery = true)
     void upsertCouponSnapshot(@Param("targetDate") LocalDate targetDate);
+
+    /** Delete all analytics for a location. */
+    @Modifying
+    @Query("DELETE FROM CouponAnalytics e WHERE e.locationId = :locationId")
+    void deleteByLocationId(@Param("locationId") Long locationId);
 }

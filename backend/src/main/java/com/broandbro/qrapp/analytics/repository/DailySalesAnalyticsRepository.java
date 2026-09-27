@@ -301,5 +301,11 @@ public interface DailySalesAnalyticsRepository extends JpaRepository<DailySalesA
         BigDecimal getNetRevenue();
         BigDecimal getTotalRevenue();
     }
+
+    /** Delete all daily sales analytics for a location. */
+    @Modifying
+    @Query("DELETE FROM DailySalesAnalytics d WHERE d.locationId = :locationId")
+    void deleteByLocationId(@Param("locationId") Long locationId);
 }
+
 

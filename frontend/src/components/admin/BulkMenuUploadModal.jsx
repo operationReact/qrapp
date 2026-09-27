@@ -73,8 +73,8 @@ export default function BulkMenuUploadModal({ open, onClose, onSuccess }) {
     setStep(STEP.VALIDATING);
     setError(null);
     try {
-      const res = await bulkMenuValidate(selectedFile, activeLocationId);
-      setPreview(res.data);
+      const preview = await bulkMenuValidate(selectedFile, activeLocationId);
+      setPreview(preview);
       setStep(STEP.PREVIEW);
     } catch (err) {
       setError(
@@ -91,8 +91,8 @@ export default function BulkMenuUploadModal({ open, onClose, onSuccess }) {
     setStep(STEP.COMMITTING);
     setError(null);
     try {
-      const res = await bulkMenuCommit(validRows, uploadMode, activeLocationId);
-      setSummary(res.data);
+      const summary = await bulkMenuCommit(validRows, uploadMode, activeLocationId);
+      setSummary(summary);
       setStep(STEP.DONE);
       onSuccess?.();
     } catch (err) {

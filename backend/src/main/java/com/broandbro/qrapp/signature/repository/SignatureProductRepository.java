@@ -5,7 +5,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.Collection;
@@ -42,5 +44,10 @@ public interface SignatureProductRepository
 
     @Query("SELECT COUNT(p) FROM SignatureProduct p WHERE p.deletedAt IS NULL AND p.stockQuantity <= 0 AND p.isActive = true")
     long countOutOfStock();
+
+    /** Delete all signature products for a location. */
+    @Modifying
+    @Query("DELETE FROM SignatureProduct s WHERE s.location.id = :locationId")
+    void deleteByLocationId(@Param("locationId") Long locationId);
 }
 

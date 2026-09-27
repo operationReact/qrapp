@@ -3,6 +3,9 @@ package com.broandbro.qrapp.repository;
 import com.broandbro.qrapp.entity.PartyOrder;
 import com.broandbro.qrapp.enums.PartyOrderStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.Collection;
@@ -26,5 +29,11 @@ public interface PartyOrderRepository extends JpaRepository<PartyOrder, Long> {
     /** Admin (location-scoped): orders in a given status whose location is in the given set. */
     List<PartyOrder> findByStatusAndLocationIdInOrderByCreatedAtDesc(
             PartyOrderStatus status, Collection<Long> locationIds);
+
+    /** Clear location for party orders when location is deleted. */
+    @Modifying
+    @Query("UPDATE PartyOrder p SET p.location = null WHERE p.location.id = :locationId")
+    void clearLocationForPartyOrders(@Param("locationId") Long locationId);
 }
+
 

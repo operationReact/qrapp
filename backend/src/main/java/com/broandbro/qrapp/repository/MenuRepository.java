@@ -136,4 +136,9 @@ public interface MenuRepository extends JpaRepository<MenuItem, Long> {
                        @Param("locationId") Long locationId,
                        @Param("imageUrl") String imageUrl,
                        @Param("now") java.time.Instant now);
+
+    /** Delete all menu items for a location (both active and soft-deleted). */
+    @Modifying
+    @Query("DELETE FROM MenuItem m WHERE m.location.id = :locationId")
+    void deleteByLocationId(@Param("locationId") Long locationId);
 }

@@ -8,6 +8,7 @@ import com.broandbro.qrapp.dto.AdminPreOrderDashboardResponse;
 import com.broandbro.qrapp.dto.CreateOrderRequest;
 import com.broandbro.qrapp.dto.CreatePreOrderRequest;
 import com.broandbro.qrapp.dto.UserOrderSummaryResponse;
+import com.broandbro.qrapp.entity.Location;
 import com.broandbro.qrapp.entity.MenuItem;
 import com.broandbro.qrapp.entity.Order;
 import com.broandbro.qrapp.entity.OrderItem;
@@ -86,17 +87,21 @@ public class OrderService {
     private final ComboCampaignService comboCampaignService;
 
     /**
-     * Creates a new order with a human-readable order number.
+     * Creates a new order with a human-readable, location-specific order number.
      *
-     * Thread-safe order number generation happens inside this transaction:
-     * 1. Acquires pessimistic write lock on today's sequence row
-     * 2. Increments the sequence atomically
-     * 3. Generates formatted order number (BB-YYYYMMDD-XXXX)
-     * 4. Associates order number with the new order
+     * Flow:
+     * 1. Validate items and resolve order location
+     * 2. Validate location has a location code
+     * 3. Generate location-specific order number using pessimistic locking
+     * 4. Create and persist order with immutable location code
+     * 5. Persist order items
+     *
+     * Thread-safe order number generation happens inside this transaction.
      *
      * @param req the order creation request
      * @param user the user placing the order (optional)
-     * @return the created order with order_number field populated
+     * @return the created order with location-specific order_number
+     * @throws OrderValidationException if location has no location code
      * @throws RuntimeException if order number generation fails
      */
     @Transactional
@@ -123,11 +128,7 @@ public class OrderService {
         order.setLastStatusChangedAt(now);
         order.setPriority(OrderPriority.NORMAL);
 
-        // Generate human-readable order number with pessimistic locking
-        String orderNumber = orderNumberGenerator.generateOrderNumber(now.toLocalDate());
-        order.setOrderNumber(orderNumber);
-
-        // ── Step 1: pre-compute all item snapshots BEFORE any DB save ──────────
+        // ── Step 1a: pre-compute all item snapshots BEFORE any DB save ──────────
         // Build (item, snapshot) pairs so we can sum up totals first
         List<Object[]> itemSnaps = new java.util.ArrayList<>(); // [CreateOrderRequest.Item, OrderItemSnapshot]
         java.math.BigDecimal subtotal = java.math.BigDecimal.ZERO;
@@ -144,6 +145,42 @@ public class OrderService {
             itemSnaps.add(new Object[]{i, snap});
             subtotal = subtotal.add(snap.lineTotal() != null ? snap.lineTotal() : java.math.BigDecimal.ZERO);
         }
+
+        // ── Step 1b: validate location and extract location code ─────────────────
+        // Every order must have a location before we generate the order number
+        log.info("[createOrder] DEBUG: order.getLocation()={}", order.getLocation());
+        if (order.getLocation() == null) {
+            log.error("[createOrder] REJECT: Order has no location");
+            throw new OrderValidationException("LOCATION_REQUIRED", "Order must have a location");
+        }
+        
+        Location resolvedLocation = order.getLocation();
+        log.info("[createOrder] DEBUG: Location resolved - id={}, name={}, code={}", 
+            resolvedLocation.getId(), resolvedLocation.getName(), resolvedLocation.getCode());
+        
+        String locationCode = resolvedLocation.getCode();
+        log.info("[createOrder] DEBUG: Extracted locationCode={}", locationCode);
+        
+        if (locationCode == null || locationCode.isBlank()) {
+            log.error("[createOrder] REJECT: Location has no code. Location id={} name='{}'", 
+                resolvedLocation.getId(), resolvedLocation.getName());
+            throw new OrderValidationException(
+                "LOCATION_CODE_MISSING",
+                "Location '" + resolvedLocation.getName() + "' has no location code. " +
+                "Location code is required to generate the order number."
+            );
+        }
+
+        // ── Step 1c: Generate location-specific order number with pessimistic locking
+        log.info("[createOrder] DEBUG: About to generateOrderNumber with locationCode={}, date={}", 
+            locationCode, now.toLocalDate());
+        String orderNumber = orderNumberGenerator.generateOrderNumber(locationCode, now.toLocalDate());
+        log.info("[createOrder] DEBUG: Generated orderNumber={}", orderNumber);
+        
+        order.setOrderNumber(orderNumber);
+        order.setLocationCode(locationCode); // Store immutable location code snapshot
+        log.info("[createOrder] DEBUG: Set order.orderNumber={}, order.locationCode={}", 
+            order.getOrderNumber(), order.getLocationCode());
 
         // ── Step 2: set order-level totals before the first (only) save ─────────
         java.math.BigDecimal couponDiscount = java.math.BigDecimal.ZERO;
@@ -192,7 +229,14 @@ public class OrderService {
         order.setGrandTotal(subtotal.subtract(couponDiscount).add(tax));
 
         // ── Step 3: single save — order persisted with correct totals + gets ID ─
+        log.info("[createOrder] DEBUG: Before orderRepo.save() - orderNumber={}, locationCode={}, locationId={}", 
+            order.getOrderNumber(), order.getLocationCode(), order.getLocation() != null ? order.getLocation().getId() : null);
+        
         order = orderRepo.save(order);
+        
+        log.info("[createOrder] DEBUG: After orderRepo.save() - orderId={}, orderNumber={}, locationCode={}", 
+            order.getId(), order.getOrderNumber(), order.getLocationCode());
+        
         recordStatusHistory(order.getId(), null, OrderStatus.ORDER_PLACED, "Order created", "SYSTEM", now);
 
         // Record promotion usage (after order gets its ID)
@@ -824,14 +868,10 @@ public class OrderService {
             order.setAdminNote(req.getCustomerNote());
         }
 
-        String orderNumber = orderNumberGenerator.generateOrderNumber(now.toLocalDate());
-        order.setOrderNumber(orderNumber);
-        log.info("[createPreOrder] Order number generated: {}", orderNumber);
-
+        // ── Build item list and resolve location before order number generation ────
         List<Object[]> itemSnaps = new java.util.ArrayList<>();
         java.math.BigDecimal subtotal = java.math.BigDecimal.ZERO;
 
-        // Build item list converting from CreatePreOrderRequest items
         List<CreateOrderRequest.Item> orderItems = req.getItems().stream().map(i -> {
             CreateOrderRequest.Item item = new CreateOrderRequest.Item();
             item.setItemId(i.getItemId());
@@ -861,6 +901,26 @@ public class OrderService {
             itemSnaps.add(new Object[]{i, snap});
             subtotal = subtotal.add(snap.lineTotal() != null ? snap.lineTotal() : java.math.BigDecimal.ZERO);
         }
+
+        // ── Validate location and extract location code ────────────────────────────
+        if (order.getLocation() == null) {
+            throw new OrderValidationException("LOCATION_REQUIRED", "Pre-order must have a location");
+        }
+        
+        String locationCode = order.getLocation().getCode();
+        if (locationCode == null || locationCode.isBlank()) {
+            throw new OrderValidationException(
+                "LOCATION_CODE_MISSING",
+                "Location '" + order.getLocation().getName() + "' has no location code. " +
+                "Location code is required to generate the order number."
+            );
+        }
+
+        // ── Generate location-specific order number with pessimistic locking
+        String orderNumber = orderNumberGenerator.generateOrderNumber(locationCode, now.toLocalDate());
+        order.setOrderNumber(orderNumber);
+        order.setLocationCode(locationCode); // Store immutable location code snapshot
+        log.info("[createPreOrder] Order number generated: {}", orderNumber);
 
         log.info("[createPreOrder] Subtotal after items: {}", subtotal);
 
