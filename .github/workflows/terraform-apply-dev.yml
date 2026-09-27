@@ -130,7 +130,7 @@ jobs:
               || [ "$STATE_ID" != "$BUCKET" ]; then
               echo "State does not match $BUCKET - resetting media bucket resources..."
               terraform state list 2>/dev/null \
-                | grep -E '^aws_s3_bucket(_[[:alnum:]_]+)?\.media$' \
+                | grep -E '(^|\.)aws_s3_bucket(_[[:alnum:]_]+)?\.media(\[[^]]+\])?$' \
                 | sort -r \
                 | while read -r resource; do
                     terraform state rm "$resource" 2>/dev/null || true
