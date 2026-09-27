@@ -327,7 +327,7 @@ jobs:
             sudo ss -ltn '( sport = :443 )' | grep -q LISTEN
             echo "HTTPS is listening on port 443"
             curl --fail --silent --show-error --retry 10 --retry-delay 5 \
-              "https://api.broandbro.in/api/cache" > /dev/null
+              "https://api.broandbro.in/api/payment/config" > /dev/null
             echo "Production API HTTPS smoke test passed"
 
             # Wait up to 90s for healthy startup (prod needs a bit more time)
