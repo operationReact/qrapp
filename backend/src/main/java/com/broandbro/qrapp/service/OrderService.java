@@ -138,6 +138,9 @@ public class OrderService {
         order.setPhone(user != null ? user.getPhone() : req.getPhone());
         order.setUserId(user != null ? user.getId() : null);
         order.setStatus(OrderStatus.ORDER_PLACED);
+        // CRITICAL: Payment status is PENDING at order creation.
+        // Order will NOT appear in Kitchen Queue until paymentStatus = PAID (or WALLET/PAY_AT_STALL with PENDING).
+        // This is enforced by OrderService.getLiveOrders() which calls findKitchenEligibleOrdersByStatusIn...
         order.setPaymentStatus("PENDING");
         order.setPaymentMethod(req.getPaymentMethod() != null ? req.getPaymentMethod() : PaymentMethod.RAZORPAY);
         order.setCreatedAt(now);
@@ -474,9 +477,10 @@ public class OrderService {
     public List<AdminOrderResponse> getLiveOrders(int limit, Optional<List<Long>> locationScope) {
         int safeLimit = Math.max(1, Math.min(30, limit));
         // Explicitly exclude pre-orders — they are managed via the pre-orders admin page only
+        // CRITICAL: Only kitchen-eligible orders (PAID or PAY_AT_STALL/WALLET with PENDING status)
         if (locationScope.isEmpty()) {
             return buildAdminOrderResponses(
-                    orderRepo.findAllByStatusInAndPreOrderFalseOrderByCreatedAtAscIdAsc(
+                    orderRepo.findKitchenEligibleOrdersByStatusInOrderByCreatedAtAscIdAsc(
                             LIVE_STATUSES, PageRequest.of(0, safeLimit)));
         }
         List<Long> ids = locationScope.get();
@@ -484,7 +488,7 @@ public class OrderService {
             return List.of();
         }
         return buildAdminOrderResponses(
-                orderRepo.findAllByStatusInAndPreOrderFalseAndLocationIdInOrderByCreatedAtAscIdAsc(
+                orderRepo.findKitchenEligibleOrdersByStatusInAndLocationIdInOrderByCreatedAtAscIdAsc(
                         LIVE_STATUSES, ids, PageRequest.of(0, safeLimit)));
     }
 
@@ -655,21 +659,34 @@ public class OrderService {
     @Transactional
     public void markOrderPaidByRazorpayOrderId(String razorpayOrderId) {
         Order order = orderRepo.findByRazorpayOrderId(razorpayOrderId)
-                .orElseThrow();
+               .orElseThrow(() -> new IllegalArgumentException("Order not found for razorpayOrderId: " + razorpayOrderId));
 
-        order.setPaymentStatus("PAID");
-        order.setPaymentMethod(PaymentMethod.RAZORPAY);
-        orderRepo.save(order);
+       log.info("[PaymentGateway] Marking order PAID via Razorpay | orderId={} orderNumber={} razorpayOrderId={}",
+               order.getId(), order.getOrderNumber(), razorpayOrderId);
+
+       order.setPaymentStatus("PAID");
+       order.setPaymentMethod(PaymentMethod.RAZORPAY);
+       orderRepo.save(order);
+
+       log.info("[PaymentGateway] Order payment confirmed | orderId={} orderNumber={} paymentStatus=PAID | Now eligible for Kitchen Queue",
+               order.getId(), order.getOrderNumber());
 
        // whatsappService.sendOrderPlaced(order.getPhone(), order.getId());
     }
 
     @Transactional
     public void markOrderPaidByWallet(Long orderId) {
-        Order order = orderRepo.findById(orderId).orElseThrow();
-        order.setPaymentStatus("PAID");
-        order.setPaymentMethod(PaymentMethod.WALLET);
-        orderRepo.save(order);
+       Order order = orderRepo.findById(orderId).orElseThrow(() -> new IllegalArgumentException("Order not found: " + orderId));
+
+       log.info("[PaymentGateway] Marking order PAID via Wallet | orderId={} orderNumber={}",
+               order.getId(), order.getOrderNumber());
+
+       order.setPaymentStatus("PAID");
+       order.setPaymentMethod(PaymentMethod.WALLET);
+       orderRepo.save(order);
+
+       log.info("[PaymentGateway] Order payment confirmed | orderId={} orderNumber={} paymentStatus=PAID | Now eligible for Kitchen Queue",
+               order.getId(), order.getOrderNumber());
 
        // whatsappService.sendOrderPlaced(order.getPhone(), order.getId());
     }
@@ -1151,6 +1168,22 @@ public class OrderService {
             }
         }
         
+        // CRITICAL: Payment eligibility check for kitchen workflow
+        // ORDER_PLACED → PREPARING requires payment to be eligible (PAID or PAY_AT_STALL/WALLET pending)
+        if (currentStatus == OrderStatus.ORDER_PLACED && nextStatus == OrderStatus.PREPARING) {
+            String paymentStatus = order != null ? order.getPaymentStatus() : null;
+            PaymentMethod paymentMethod = order != null ? order.getPaymentMethod() : null;
+            
+            boolean isKitchenEligible = isOrderKitchenEligible(paymentStatus, paymentMethod);
+            if (!isKitchenEligible) {
+                throw new OrderValidationException(
+                    "PAYMENT_NOT_CONFIRMED",
+                    "Order cannot enter kitchen until payment is confirmed. " +
+                    "Current payment status: " + paymentStatus + ", payment method: " + paymentMethod
+                );
+            }
+        }
+        
         // Payment gate: READY → COMPLETED (hand over) requires PAID status
         // This does NOT apply to COMPLETED → READY correction
         if (currentStatus == OrderStatus.READY && nextStatus == OrderStatus.COMPLETED) {
@@ -1162,6 +1195,33 @@ public class OrderService {
                 );
             }
         }
+    }
+    
+    /**
+     * Determines if an order is eligible to enter the kitchen queue.
+     * 
+     * Kitchen-eligible means:
+     * - Payment is PAID (for online payment via RAZORPAY), OR
+     * - Payment is PENDING and payment method is PAY_AT_STALL or WALLET
+     *   (these methods don't require pre-confirmation)
+     */
+    private boolean isOrderKitchenEligible(String paymentStatus, PaymentMethod paymentMethod) {
+        if (paymentStatus == null) {
+            return false;
+        }
+        
+        // PAID orders are always kitchen-eligible
+        if (paymentStatus.equalsIgnoreCase("PAID")) {
+            return true;
+        }
+        
+        // PENDING payment only eligible for PAY_AT_STALL and WALLET (not RAZORPAY)
+        if (paymentStatus.equalsIgnoreCase("PENDING")) {
+            return paymentMethod == PaymentMethod.PAY_AT_STALL || paymentMethod == PaymentMethod.WALLET;
+        }
+        
+        // FAILED or any other status = not kitchen eligible
+        return false;
     }
     
     /**

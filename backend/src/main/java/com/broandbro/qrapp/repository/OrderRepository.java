@@ -29,6 +29,49 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
     List<Order> findAllByStatusInAndPreOrderFalseAndLocationIdInOrderByCreatedAtAscIdAsc(
             Collection<OrderStatus> statuses, Collection<Long> locationIds, Pageable pageable);
 
+    /**
+     * Kitchen-eligible orders: Only PAID online orders or PAY_AT_STALL orders can enter kitchen.
+     * PENDING/FAILED/CANCELLED online orders are excluded.
+     * Global scope (super admin, no location filter).
+     */
+    @Query("""
+        SELECT o FROM Order o
+        WHERE o.preOrder = false
+          AND o.status IN :statuses
+          AND (
+            o.paymentStatus = 'PAID'
+            OR (o.paymentStatus IS NOT NULL 
+                AND UPPER(o.paymentStatus) = 'PENDING'
+                AND o.paymentMethod IN ('PAY_AT_STALL', 'WALLET'))
+          )
+        ORDER BY o.createdAt ASC, o.id ASC
+    """)
+    List<Order> findKitchenEligibleOrdersByStatusInOrderByCreatedAtAscIdAsc(
+            @Param("statuses") Collection<OrderStatus> statuses,
+            Pageable pageable);
+
+    /**
+     * Kitchen-eligible orders scoped to specific locations.
+     * Only PAID online orders or PAY_AT_STALL/WALLET orders can enter kitchen.
+     */
+    @Query("""
+        SELECT o FROM Order o
+        WHERE o.preOrder = false
+          AND o.status IN :statuses
+          AND o.location.id IN :locationIds
+          AND (
+            o.paymentStatus = 'PAID'
+            OR (o.paymentStatus IS NOT NULL 
+                AND UPPER(o.paymentStatus) = 'PENDING'
+                AND o.paymentMethod IN ('PAY_AT_STALL', 'WALLET'))
+          )
+        ORDER BY o.createdAt ASC, o.id ASC
+    """)
+    List<Order> findKitchenEligibleOrdersByStatusInAndLocationIdInOrderByCreatedAtAscIdAsc(
+            @Param("statuses") Collection<OrderStatus> statuses,
+            @Param("locationIds") Collection<Long> locationIds,
+            Pageable pageable);
+
     long countByPreOrderFalse();
     long countByStatusAndPreOrderFalse(OrderStatus status);
     long countByStatusInAndPreOrderFalse(Collection<OrderStatus> statuses);
@@ -90,6 +133,11 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
                      AND COALESCE(last_status_changed_at, created_at)
                          <= CURRENT_TIMESTAMP - INTERVAL '10 minutes')
               )
+              AND (
+                   payment_status = 'PAID'
+                   OR (payment_status = 'PENDING'
+                       AND payment_method IN ('PAY_AT_STALL', 'WALLET'))
+              )
             """, nativeQuery = true)
     long countDelayedLiveOrders();
 
@@ -108,6 +156,11 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
                  OR (status = 'READY'
                      AND COALESCE(last_status_changed_at, created_at)
                          <= CURRENT_TIMESTAMP - INTERVAL '10 minutes')
+              )
+              AND (
+                   payment_status = 'PAID'
+                   OR (payment_status = 'PENDING'
+                       AND payment_method IN ('PAY_AT_STALL', 'WALLET'))
               )
             """, nativeQuery = true)
     long countDelayedLiveOrdersForLocations(@Param("locationIds") Collection<Long> locationIds);
