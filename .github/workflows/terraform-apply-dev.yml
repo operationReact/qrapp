@@ -129,19 +129,12 @@ jobs:
               || [ "$STATE_BUCKET" != "$BUCKET" ] \
               || [ "$STATE_ID" != "$BUCKET" ]; then
               echo "State does not match $BUCKET - resetting media bucket resources..."
-              for resource in \
-                aws_s3_bucket_policy.media \
-                aws_s3_bucket_cors_configuration.media \
-                aws_s3_bucket_lifecycle_configuration.media \
-                aws_s3_bucket_versioning.media \
-                aws_s3_bucket_website_configuration.media \
-                aws_s3_bucket_acl.media \
-                aws_s3_bucket_ownership_controls.media \
-                aws_s3_bucket_server_side_encryption_configuration.media \
-                aws_s3_bucket_public_access_block.media \
-                aws_s3_bucket.media; do
-                terraform state rm "$resource" 2>/dev/null || true
-              done
+              terraform state list 2>/dev/null \
+                | grep -E '^aws_s3_bucket(_[[:alnum:]_]+)?\.media$' \
+                | sort -r \
+                | while read -r resource; do
+                    terraform state rm "$resource" 2>/dev/null || true
+                  done
               terraform import aws_s3_bucket.media "$BUCKET"
             else
               echo "Media bucket already in state"
