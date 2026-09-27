@@ -127,4 +127,9 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
 
     /** Count pre-orders by status */
     long countByPreOrderTrueAndStatus(com.broandbro.qrapp.enums.OrderStatus status);
+
+    /** Clear location for orders when location is deleted. */
+    @org.springframework.data.jpa.repository.Modifying
+    @Query("UPDATE Order o SET o.location = null WHERE o.location.id = :locationId")
+    void clearLocationForOrders(@Param("locationId") Long locationId);
 }

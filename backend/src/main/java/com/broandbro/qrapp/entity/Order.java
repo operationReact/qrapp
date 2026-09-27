@@ -17,12 +17,23 @@ public class Order {
     private Long id;
 
     /**
-     * Human-readable order number in format: SHOPCODE-YYYYMMDD-XXX
-     * Example: BB-20260515-001
-     * Unique across all orders.
+     * Human-readable order number in format: {LOCATION_CODE}-YYYYMMDD-XXXX
+     * Example: PRAGATI-TG-001-20260515-0001 (new format)
+     * Legacy: BB-20260515-0001 (old format)
+     * Unique across all orders. Immutable after order creation.
      */
-    @Column(name = "order_number", unique = true, length = 32)
+    @Column(name = "order_number", unique = true, length = 50)
     private String orderNumber;
+
+    /**
+     * Location code at the time of order creation (immutable).
+     * Stored separately to track which location generated this order,
+     * even if the Location's code changes later.
+     * Example: PRAGATI-TG-001
+     * Nullable for legacy orders (created before this field was added).
+     */
+    @Column(name = "location_code", length = 80)
+    private String locationCode;
 
     @Column(name = "phone")
     private String phone;

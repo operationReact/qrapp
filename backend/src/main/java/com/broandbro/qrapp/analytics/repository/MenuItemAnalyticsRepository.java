@@ -347,4 +347,9 @@ public interface MenuItemAnalyticsRepository extends JpaRepository<MenuItemAnaly
            """,
            nativeQuery = true)
     void upsertMenuItemSnapshot(@Param("targetDate") LocalDate targetDate);
+
+    /** Delete all analytics for a location. */
+    @Modifying
+    @Query("DELETE FROM MenuItemAnalytics e WHERE e.locationId = :locationId")
+    void deleteByLocationId(@Param("locationId") Long locationId);
 }

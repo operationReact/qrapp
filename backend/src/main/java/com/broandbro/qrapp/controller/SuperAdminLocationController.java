@@ -31,6 +31,7 @@ public class SuperAdminLocationController {
     private final LocationAccessService accessService;
     private final com.broandbro.qrapp.service.LocationCodeService locationCodeService;
     private final com.broandbro.qrapp.service.LocationPhotoService locationPhotoService;
+    private final com.broandbro.qrapp.service.LocationDeletionService locationDeletionService;
 
     @GetMapping("/locations")
     public Page<LocationResponse> locations(
@@ -131,6 +132,14 @@ public class SuperAdminLocationController {
         if (Boolean.TRUE.equals(removePhoto)) location = locationPhotoService.remove(location);
         if (photo == null) return LocationResponse.from(location);
         return LocationResponse.from(locationPhotoService.replace(location, photo));
+    }
+
+    @DeleteMapping("/locations/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void delete(@PathVariable Long id,
+                       org.springframework.security.core.Authentication authentication) {
+        authorize(authentication);
+        locationDeletionService.deleteLocationWithCleanup(id);
     }
 
     private static String trim(String value) {

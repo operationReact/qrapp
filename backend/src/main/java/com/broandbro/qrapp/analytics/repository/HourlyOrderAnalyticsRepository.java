@@ -154,4 +154,9 @@ public interface HourlyOrderAnalyticsRepository extends JpaRepository<HourlyOrde
     void upsertHourlySnapshot(
             @Param("targetDate") LocalDate targetDate,
             @Param("targetHour") int targetHour);
+
+    /** Delete all analytics for a location. */
+    @Modifying
+    @Query("DELETE FROM HourlyOrderAnalytics e WHERE e.locationId = :locationId")
+    void deleteByLocationId(@Param("locationId") Long locationId);
 }

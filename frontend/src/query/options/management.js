@@ -79,3 +79,6 @@ export async function grantUserLocation(userId, locationId) {
 export async function revokeUserLocation(userId, locationId) {
   return (await apiClient.delete(`/api/admin/users/${userId}/locations/${locationId}`)).data;
 }
+export async function deleteAdminLocation(id) {
+  return (await apiClient.delete(`/api/admin/locations/${id}`)).data;
+}

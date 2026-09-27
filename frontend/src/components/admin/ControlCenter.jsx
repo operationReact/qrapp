@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useLocation, useNavigate, useSearch } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { Bell, Building2, CalendarDays, Check, ChevronDown, CreditCard, Eye, EyeOff, Globe2, Heart, IndianRupee, KeyRound, MapPin, Menu, MoreHorizontal, MoreVertical, Plus, Search, ShieldCheck, Store, UserRound, Users, UsersRound, Wallet } from "lucide-react";
+import { Bell, Building2, CalendarDays, Check, ChevronDown, CreditCard, Eye, EyeOff, Globe2, Heart, IndianRupee, KeyRound, MapPin, Menu, MoreHorizontal, MoreVertical, Plus, Search, ShieldCheck, Store, Trash2, UserRound, Users, UsersRound, Wallet } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,7 +20,7 @@ import { adminSettingsOptions, paymentConfigOptions } from "@/query/options/orde
 import { adminSetPayAtStall } from "@/services/order-service";
 import { partyOrdersOptions } from "@/query/options/party-orders";
 import { adminHallOfHappinessOptions } from "@/query/options/admin-hall-of-happiness";
-import { adminCreateUserOptions, adminCustomerCompaniesOptions, adminLocationsOptions, adminLocationsPageOptions, adminUsersOptions, adminVendorsOptions, assignCustomerCompany, createAdminLocation, createAdminUser, createManagementResource, grantUserLocation, revokeUserLocation, updateAdminLocation, updateCustomerCompany, updateUserRole, userLocationsOptions } from "@/query/options/management";
+import { adminCreateUserOptions, adminCustomerCompaniesOptions, adminLocationsOptions, adminLocationsPageOptions, adminUsersOptions, adminVendorsOptions, assignCustomerCompany, createAdminLocation, createAdminUser, createManagementResource, deleteAdminLocation, grantUserLocation, revokeUserLocation, updateAdminLocation, updateCustomerCompany, updateUserRole, userLocationsOptions } from "@/query/options/management";
 import { baseURL } from "@/services";
 
 const primaryNavigation = [
@@ -344,12 +344,12 @@ export function ControlCenterUsers() {
   </Shell>;
 }
 
-function LocationCard({ location, onEdit }) {
+function LocationCard({ location, onEdit, onDelete }) {
   const active = location.active ?? true;
   return <div className="flex items-center gap-3 rounded-[16px] border border-[var(--cc-border)] bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
     <LocationThumbnail key={location.locationPhotoUrl || "location-pin"} url={location.locationPhotoUrl} locationId={location.id} name={location.name} />
     <div className="min-w-0 flex-1"><p className="break-words text-base font-semibold leading-5 text-[var(--cc-text)]">{location.name}</p><div className="mt-1 flex min-w-0 flex-wrap items-center gap-2"><span className={`shrink-0 rounded-full px-2 py-1 text-[10px] font-semibold ${active ? "bg-[var(--cc-success-bg)] text-[var(--cc-success)]" : "bg-[var(--cc-page)] text-[var(--cc-muted-text)]"}`}>{active ? "Active" : "Inactive"}</span><p className="break-all text-xs text-[#77716D]">{location.code || location.locationCode || "Generated on save"}</p></div><p className="mt-1 break-words text-[13px] leading-4 text-[var(--cc-secondary-text)]">{[location.addressLine1, location.city, location.stateUt, location.pinCode].filter(Boolean).join(", ") || location.address || "No address provided"}</p></div>
-    <DropdownMenu><DropdownMenuTrigger className="grid size-11 shrink-0 place-items-center rounded-[10px] text-[var(--cc-muted-text)] hover:bg-[var(--cc-primary-light)]" aria-label={`Actions for ${location.name}`}><MoreVertical className="size-5" /></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onClick={() => onEdit(location)}>Edit location</DropdownMenuItem></DropdownMenuContent></DropdownMenu>
+    <DropdownMenu><DropdownMenuTrigger className="grid size-11 shrink-0 place-items-center rounded-[10px] text-[var(--cc-muted-text)] hover:bg-[var(--cc-primary-light)]" aria-label={`Actions for ${location.name}`}><MoreVertical className="size-5" /></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onClick={() => onEdit(location)}>Edit location</DropdownMenuItem><DropdownMenuItem onClick={() => onDelete(location)} className="text-[var(--cc-error)]">Delete location</DropdownMenuItem></DropdownMenuContent></DropdownMenu>
   </div>;
 }
 
@@ -488,6 +488,8 @@ export function ControlCenterLocations() {
   const [locationDialogOpen, setLocationDialogOpen] = useState(false);
   const [editingLocation, setEditingLocation] = useState(null);
   const [generatedCode, setGeneratedCode] = useState("");
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [locationToDelete, setLocationToDelete] = useState(null);
   const queryClient = useQueryClient();
   useEffect(() => () => window.clearTimeout(searchDebounce.current), []);
   const commitFilters = (next) => {
@@ -531,6 +533,19 @@ export function ControlCenterLocations() {
     mutationFn: ({ id, payload, photo }) => updateAdminLocation(id, payload, photo),
     onSuccess: () => { setLocationDialogOpen(false); setEditingLocation(null); queryClient.invalidateQueries({ queryKey: ["admin", "locations"] }); toast.success("Location updated."); },
   });
+  const deleteMutation = useMutation({
+    mutationFn: (id) => deleteAdminLocation(id),
+    onSuccess: () => {
+      setDeleteConfirmOpen(false);
+      setLocationToDelete(null);
+      queryClient.invalidateQueries({ queryKey: ["admin", "locations"] });
+      toast.success("Location deleted successfully.");
+    },
+    onError: (error) => {
+      const errorMessage = error?.response?.data?.message || error?.message || "Failed to delete location.";
+      toast.error(errorMessage);
+    },
+  });
   const apiError = mutation.error?.response?.status === 409
     ? mutation.error?.response?.data?.message || "Location code already exists. Please use a different code."
     : mutation.error?.response?.status === 403
@@ -545,8 +560,22 @@ export function ControlCenterLocations() {
       <div className="hidden min-w-0 sm:block"><LocationFilterFields filters={filters} locations={filterLocations} companies={companies} onChange={changeFilter} />{filterCount > 0 && <Button type="button" variant="outline" className="mt-3 h-9" onClick={clearFilters}>Clear filters</Button>}</div>
     </div>
     <Dialog open={filterOpen} onOpenChange={setFilterOpen}><DialogContent className="max-h-[90vh] w-[calc(100vw-32px)] max-w-[calc(100vw-32px)] overflow-y-auto rounded-[20px] p-5 sm:max-w-lg"><DialogHeader><DialogTitle>Filters</DialogTitle><DialogDescription>Filter authorized operating locations.</DialogDescription></DialogHeader><LocationFilterFields filters={filterDraft} locations={filterLocations} companies={companies} onChange={(patch) => setFilterDraft((current) => ({ ...current, ...patch, ...(patch.state && !filterLocations.some((location) => location.stateUt === patch.state && location.city === current.city) ? { city: "" } : {}) }))} /><div className="flex flex-col gap-2 sm:flex-row sm:justify-end"><Button type="button" variant="outline" className="h-11" onClick={clearFilters}>Clear</Button><Button type="button" className="h-11 bg-[var(--cc-primary)] text-white hover:bg-[var(--cc-primary-dark)]" onClick={() => { const next = { ...filterDraft, page: 0 }; setFilterDraft(next); commitFilters(next); setFilterOpen(false); }}>Apply Filters</Button></div></DialogContent></Dialog>
-    {isLoading ? <p className="text-sm text-[var(--cc-muted-text)]">Loading locations...</p> : <><div className="grid gap-3 lg:grid-cols-2">{data.map((location) => <LocationCard key={location.id} location={location} onEdit={(item) => { setEditingLocation(item); setLocationDialogOpen(true); }} />)}{!data.length && <div className="rounded-[16px] border border-[var(--cc-border)] bg-white p-8 text-center lg:col-span-2"><p className="text-sm text-[var(--cc-muted-text)]">{filters.search ? `No locations found for "${filters.search}".` : filterCount ? "No locations match your filters." : filters.status === "ACTIVE" ? "No active locations found." : "No locations found."}</p><Button type="button" variant="outline" className="mt-3 h-10" onClick={clearFilters}>Clear Filters</Button></div>}</div>{totalPages > 1 && <div className="flex items-center justify-center gap-3 pt-2"><Button type="button" variant="outline" className="h-10" disabled={filters.page === 0} onClick={() => changeFilter({ page: filters.page - 1 })}>Previous</Button><span className="text-xs text-[var(--cc-muted-text)]">Page {filters.page + 1} of {totalPages}</span><Button type="button" variant="outline" className="h-10" disabled={filters.page + 1 >= totalPages} onClick={() => changeFilter({ page: filters.page + 1 })}>Next</Button></div>}</>}
+    {isLoading ? <p className="text-sm text-[var(--cc-muted-text)]">Loading locations...</p> : <><div className="grid gap-3 lg:grid-cols-2">{data.map((location) => <LocationCard key={location.id} location={location} onEdit={(item) => { setEditingLocation(item); setLocationDialogOpen(true); }} onDelete={(item) => { setLocationToDelete(item); setDeleteConfirmOpen(true); }} />)}{!data.length && <div className="rounded-[16px] border border-[var(--cc-border)] bg-white p-8 text-center lg:col-span-2"><p className="text-sm text-[var(--cc-muted-text)]">{filters.search ? `No locations found for "${filters.search}".` : filterCount ? "No locations match your filters." : filters.status === "ACTIVE" ? "No active locations found." : "No locations found."}</p><Button type="button" variant="outline" className="mt-3 h-10" onClick={clearFilters}>Clear Filters</Button></div>}</div>{totalPages > 1 && <div className="flex items-center justify-center gap-3 pt-2"><Button type="button" variant="outline" className="h-10" disabled={filters.page === 0} onClick={() => changeFilter({ page: filters.page - 1 })}>Previous</Button><span className="text-xs text-[var(--cc-muted-text)]">Page {filters.page + 1} of {totalPages}</span><Button type="button" variant="outline" className="h-10" disabled={filters.page + 1 >= totalPages} onClick={() => changeFilter({ page: filters.page + 1 })}>Next</Button></div>}</>}
     <ErrorState error={error} />
+    <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+      <DialogContent className="rounded-[20px] border border-[var(--cc-border)] bg-white p-5 shadow-[0_12px_40px_rgba(0,0,0,0.16)] sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="text-lg font-semibold text-[var(--cc-text)]">Delete Location</DialogTitle>
+          <DialogDescription className="text-sm text-[var(--cc-secondary-text)]">Are you sure you want to delete "{locationToDelete?.name}"? This action cannot be undone.</DialogDescription>
+        </DialogHeader>
+        <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+          <Button type="button" variant="outline" className="h-11" onClick={() => setDeleteConfirmOpen(false)} disabled={deleteMutation.isPending}>Cancel</Button>
+          <Button type="button" className="h-11 bg-[var(--cc-error)] text-white hover:bg-[var(--cc-error-dark)] disabled:bg-[#F9A0A8]" onClick={() => deleteMutation.mutate(locationToDelete?.id)} disabled={deleteMutation.isPending}>
+            {deleteMutation.isPending ? "Deleting..." : "Delete Location"}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
     <LocationDialog key={`${editingLocation?.id || "new"}-${locationDialogOpen}-${generatedCode}`} open={locationDialogOpen} onOpenChange={setLocationDialogOpen} initial={editingLocation} pending={editingLocation ? editMutation.isPending : mutation.isPending} error={editingLocation ? editMutation.error?.response?.data?.message || editMutation.error?.message : apiError} onSave={(payload) => { const { photo, removePhoto, ...editablePayload } = payload; const previewCode = editablePayload.code; if (editingLocation) editMutation.mutate({ id: editingLocation.id, payload: { ...editablePayload, removePhoto }, photo }); else mutation.mutate({ payload: editablePayload, photo, previewCode }); }} />
   </Shell>;
 }

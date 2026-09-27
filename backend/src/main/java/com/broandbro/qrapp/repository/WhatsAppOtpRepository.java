@@ -26,4 +26,9 @@ public interface WhatsAppOtpRepository extends JpaRepository<WhatsAppOtp, Long> 
     int invalidateActive(@Param("phone") String phoneNumber, @Param("purpose") OtpPurpose purpose,
                          @Param("active") OtpStatus active, @Param("status") OtpStatus status,
                          @Param("now") Instant now);
+
+    /** Clear registration default location for OTP records. */
+    @Modifying
+    @Query("UPDATE WhatsAppOtp o SET o.registrationDefaultLocationId = null WHERE o.registrationDefaultLocationId = :locationId")
+    void clearRegistrationDefaultLocation(@Param("locationId") Long locationId);
 }

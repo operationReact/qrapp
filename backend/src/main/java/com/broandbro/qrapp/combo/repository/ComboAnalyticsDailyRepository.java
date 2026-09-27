@@ -3,6 +3,7 @@ package com.broandbro.qrapp.combo.repository;
 import com.broandbro.qrapp.combo.entity.ComboAnalyticsDaily;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -67,5 +68,9 @@ public interface ComboAnalyticsDailyRepository extends JpaRepository<ComboAnalyt
                                  @Param("allLocations") boolean allLocations,
                                  @Param("locationIds") List<Long> locationIds,
                                  Pageable pageable);
-}
 
+    /** Delete all analytics for a location. */
+    @Modifying
+    @Query("DELETE FROM ComboAnalyticsDaily e WHERE e.locationId = :locationId")
+    void deleteByLocationId(@Param("locationId") Long locationId);
+}

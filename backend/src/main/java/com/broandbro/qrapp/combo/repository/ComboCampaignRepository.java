@@ -2,6 +2,7 @@ package com.broandbro.qrapp.combo.repository;
 
 import com.broandbro.qrapp.combo.entity.ComboCampaign;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -44,5 +45,10 @@ public interface ComboCampaignRepository extends JpaRepository<ComboCampaign, Lo
     @Query("SELECT c FROM ComboCampaign c WHERE c.deletedAt IS NULL AND c.location.id IN :locationIds "
             + "ORDER BY c.displayPriority DESC, c.id ASC")
     List<ComboCampaign> findAllNonDeletedInScope(@Param("locationIds") Collection<Long> locationIds);
+
+    /** Delete all combo campaigns for a location. */
+    @Modifying
+    @Query("DELETE FROM ComboCampaign c WHERE c.location.id = :locationId")
+    void deleteByLocationId(@Param("locationId") Long locationId);
 }
 
