@@ -30,6 +30,13 @@ public class CreateOrderRequest {
      */
     private Long byocCampaignId;
 
+    /**
+     * Location ID where the order is being placed.
+     * Frontend sends this to help with location validation and order routing.
+     * Backend validates that user is authorized and all items belong to this location.
+     */
+    private Long locationId;
+
     @Data
     public static class Item {
         @NotNull

@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
@@ -38,6 +39,7 @@ public class CacheAdminController {
     // -------------------------------------------------------------------------
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN')")
     public ResponseEntity<Map<String, Object>> listCaches() {
         Collection<String> names = cacheManager.getCacheNames();
         return ResponseEntity.ok(Map.of(
@@ -52,6 +54,7 @@ public class CacheAdminController {
     // -------------------------------------------------------------------------
 
     @GetMapping("/{name}")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN')")
     public ResponseEntity<Map<String, Object>> getCacheByName(@PathVariable String name) {
         Cache cache = cacheManager.getCache(name);
         if (cache == null) {
@@ -83,6 +86,7 @@ public class CacheAdminController {
     // -------------------------------------------------------------------------
 
     @GetMapping("/{name}/{key}")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN')")
     public ResponseEntity<Map<String, Object>> getCacheValue(
             @PathVariable String name,
             @PathVariable String key) {
@@ -122,6 +126,7 @@ public class CacheAdminController {
     // -------------------------------------------------------------------------
 
     @DeleteMapping
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN')")
     public ResponseEntity<Map<String, Object>> evictAll() {
         Collection<String> names = cacheManager.getCacheNames();
         List<String> evicted = names.stream()
@@ -148,6 +153,7 @@ public class CacheAdminController {
     // -------------------------------------------------------------------------
 
     @DeleteMapping("/{name}")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN')")
     public ResponseEntity<Map<String, Object>> evictByName(@PathVariable String name) {
         Cache cache = cacheManager.getCache(name);
         if (cache == null) {
