@@ -76,7 +76,7 @@ jobs:
       # random_password resource inside the rds module (no external input required).
       - name: Terraform Plan
         id: plan
-        run: terraform plan -no-color -out=tfplan
+        run: terraform plan -no-color -lock=false -out=tfplan
         continue-on-error: true
 
       - name: Post Plan to PR
@@ -162,7 +162,7 @@ jobs:
       # random_password resource inside the rds module (no external input required).
       - name: Terraform Plan
         id: plan
-        run: terraform plan -no-color -out=tfplan
+        run: terraform plan -no-color -lock=false -out=tfplan
         continue-on-error: true
 
       - name: Post Plan to PR
@@ -207,4 +207,3 @@ jobs:
       - name: Fail if plan failed
         if: steps.plan.outcome == 'failure'
         run: exit 1
-

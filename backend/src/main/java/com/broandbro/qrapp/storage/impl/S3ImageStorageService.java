@@ -23,8 +23,8 @@ import java.util.UUID;
 /**
  * AWS S3 implementation of {@link ImageStorageService}.
  *
- * <p>Folder structure:
- * <pre>menu-items/{menuItemId}/{uuid}-{epoch}.png</pre>
+ * <p>Folder structure for menu item images (location-scoped):
+ * <pre>locations/menu-images/{locationId}/{uuid}-{epoch}.png</pre>
  *
  * <p>When {@code aws.s3.enabled=false}, falls back to a placeholder URL
  * so local development works without real AWS credentials.
@@ -41,12 +41,12 @@ public class S3ImageStorageService implements ImageStorageService {
     private final AwsS3Properties props;
 
     @Override
-    public String uploadMenuItemImage(byte[] imageBytes, Long menuItemId) {
+    public String uploadMenuItemImage(byte[] imageBytes, Long menuItemId, Long locationId) {
         if (!props.isEnabled()) {
             log.warn("[S3] Upload disabled (aws.s3.enabled=false). Returning placeholder URL.");
-            return "https://placeholder.example.com/menu-items/" + menuItemId + "/ai-generated.png";
+            return "https://placeholder.example.com/locations/menu-images/" + locationId + "/ai-generated.png";
         }
-        return uploadImage(imageBytes, "menu-items/" + menuItemId, "image/png");
+        return uploadImage(imageBytes, "locations/menu-images/" + locationId, "image/png");
     }
 
     @Override
