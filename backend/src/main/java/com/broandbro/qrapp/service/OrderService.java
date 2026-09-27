@@ -557,7 +557,7 @@ public class OrderService {
 
         if (hasPaymentStatusChange && !previousPaymentStatus.equals(nextPaymentStatus)) {
             recordPaymentEvent(order.getId(), previousPaymentStatus, nextPaymentStatus, 
-                    order.getTotal(), order.getPaymentMethod(), normalizedActor, now);
+                    order.getGrandTotal(), order.getPaymentMethod(), normalizedActor, now);
         }
 
         return getAdminOrder(orderId);
