@@ -34,33 +34,40 @@ public class WebhookController {
     public ResponseEntity<?> handleWebhook(@RequestBody String payload,
                                            @RequestHeader(value = "X-Razorpay-Signature", required = false) String signature) {
 
+        log.info("[Webhook] Received Razorpay webhook");
+
         // If a webhook secret is configured, verify signature
         if (webhookSecret != null && !webhookSecret.isBlank()) {
             if (signature == null || signature.isBlank()) {
-                log.warn("Missing webhook signature");
+                log.warn("[Webhook] Missing webhook signature");
                 return ResponseEntity.badRequest().build();
             }
 
             try {
                 String computed = computeHmacSHA256(payload, webhookSecret);
                 if (!computed.equals(signature)) {
-                    log.warn("Invalid webhook signature");
+                    log.warn("[Webhook] Invalid webhook signature");
                     return ResponseEntity.status(401).build();
                 }
+                log.info("[Webhook] Signature verified successfully");
             } catch (Exception e) {
-                log.error("Error verifying webhook signature", e);
+                log.error("[Webhook] Error verifying webhook signature", e);
                 return ResponseEntity.status(500).build();
             }
+        } else {
+            log.warn("[Webhook] No webhook secret configured - signature verification skipped");
         }
 
         // Best-effort parse to extract razorpay_order_id using regex
         String razorpayOrderId = extractRazorpayOrderId(payload);
         if (razorpayOrderId == null) {
-            log.warn("Could not extract razorpay_order_id from payload");
+            log.warn("[Webhook] Could not extract razorpay_order_id from payload: {}", payload);
             return ResponseEntity.badRequest().build();
         }
 
+        log.info("[Webhook] Extracted razorpay_order_id: {}", razorpayOrderId);
         orderService.markOrderPaidByRazorpayOrderId(razorpayOrderId);
+        log.info("[Webhook] Order marked as PAID for razorpay_order_id: {}", razorpayOrderId);
 
         return ResponseEntity.ok().build();
     }
