@@ -30,6 +30,8 @@ import com.broandbro.qrapp.repository.MenuRepository;
 import com.broandbro.qrapp.repository.OrderItemRepository;
 import com.broandbro.qrapp.repository.OrderRepository;
 import com.broandbro.qrapp.repository.OrderStatusHistoryRepository;
+import com.broandbro.qrapp.repository.PaymentEventRepository;
+import com.broandbro.qrapp.entity.PaymentEvent;
 import com.broandbro.qrapp.time.BusinessTime;
 import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
@@ -72,6 +74,7 @@ public class OrderService {
     private final OrderItemRepository orderItemRepo;
     private final MenuRepository menuRepository;
     private final OrderStatusHistoryRepository orderStatusHistoryRepository;
+    private final PaymentEventRepository paymentEventRepository;
     private final OrderNumberGenerator orderNumberGenerator;
     private final PricingService pricingService;
     private final PromotionRepository promotionRepository;
@@ -503,6 +506,8 @@ public class OrderService {
         LocalDateTime now = BusinessTime.now();
         OrderStatus previousStatus = order.getStatus();
         OrderStatus nextStatus = previousStatus;
+        String previousPaymentStatus = order.getPaymentStatus();
+        String nextPaymentStatus = previousPaymentStatus;
 
         if (hasStatusChange) {
             nextStatus = parseStatus(request.getStatus());
@@ -528,6 +533,7 @@ public class OrderService {
             if (!normalized.equals("PAID") && !normalized.equals("PENDING") && !normalized.equals("FAILED")) {
                 throw new IllegalArgumentException("Invalid paymentStatus: " + request.getPaymentStatus());
             }
+            nextPaymentStatus = normalized;
             order.setPaymentStatus(normalized);
         }
 
@@ -547,6 +553,11 @@ public class OrderService {
             if (nextStatus == OrderStatus.READY) {
                 //whatsappService.sendOrderReady(order.getPhone(), order.getId());
             }
+        }
+
+        if (hasPaymentStatusChange && !previousPaymentStatus.equals(nextPaymentStatus)) {
+            recordPaymentEvent(order.getId(), previousPaymentStatus, nextPaymentStatus, 
+                    order.getTotal(), order.getPaymentMethod(), normalizedActor, now);
         }
 
         return getAdminOrder(orderId);
@@ -1154,6 +1165,28 @@ public class OrderService {
                                      String changedBy,
                                      LocalDateTime changedAt) {
         recordStatusHistory(orderId, previousStatus, newStatus, note, changedBy, changedAt, null, null, "STATUS_CHANGE");
+    }
+
+    /**
+     * Records a payment status change event in the payment_events table.
+     * This creates an immutable audit trail for all manual payment updates.
+     */
+    private void recordPaymentEvent(Long orderId, 
+                                   String previousStatus, 
+                                   String newStatus,
+                                   java.math.BigDecimal amount,
+                                   PaymentMethod paymentMethod,
+                                   String performedBy,
+                                   LocalDateTime createdAt) {
+        PaymentEvent event = new PaymentEvent();
+        event.setOrderId(orderId);
+        event.setPreviousStatus(previousStatus);
+        event.setNewStatus(newStatus);
+        event.setAmount(amount);
+        event.setPaymentMethod(paymentMethod);
+        event.setPerformedBy(performedBy);
+        event.setCreatedAt(createdAt != null ? createdAt : BusinessTime.now());
+        paymentEventRepository.save(event);
     }
 
     private String trimToNull(String value) {

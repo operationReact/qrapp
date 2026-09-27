@@ -6,6 +6,7 @@ import {
   ArrowRight,
   AlertTriangle,
   LoaderCircle,
+  CreditCard,
 } from "lucide-react";
 import {
   Dialog,
@@ -101,6 +102,76 @@ function TimelineEntry({ entry, index, total }) {
         )}
       </div>
     </div>
+  );
+}
+
+function PaymentConfirmationDialog({
+  isOpen,
+  onOpenChange,
+  order,
+  onConfirm,
+  isLoading,
+}) {
+  if (!order) return null;
+
+  const handleConfirm = () => {
+    onConfirm();
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogContent className="rounded-[20px]">
+        <DialogHeader>
+          <DialogTitle className="text-left">Mark Payment as Received?</DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <p className="text-sm font-medium text-gray-600">Order</p>
+            <p className="font-semibold text-gray-900">{order.orderNumber}</p>
+          </div>
+
+          <div className="space-y-2">
+            <p className="text-sm font-medium text-gray-600">Amount</p>
+            <p className="font-semibold text-gray-900">₹{order.total?.toFixed(0) || 0}</p>
+          </div>
+
+          <div className="space-y-2">
+            <p className="text-sm font-medium text-gray-600">Current Payment Status</p>
+            <span className="inline-block px-3 py-1 rounded bg-yellow-100 text-yellow-700 text-sm font-semibold">
+              UNPAID
+            </span>
+          </div>
+
+          <div className="space-y-2">
+            <p className="text-sm font-medium text-gray-600">New Payment Status</p>
+            <span className="inline-block px-3 py-1 rounded bg-green-100 text-green-700 text-sm font-semibold">
+              PAID
+            </span>
+          </div>
+        </div>
+
+        <DialogFooter className="gap-2">
+          <button
+            type="button"
+            onClick={() => onOpenChange(false)}
+            disabled={isLoading}
+            className="flex-1 px-4 py-2 text-sm font-semibold text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={handleConfirm}
+            disabled={isLoading}
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:opacity-50"
+          >
+            {isLoading && <LoaderCircle size={16} className="animate-spin" />}
+            Mark as Paid
+          </button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -236,6 +307,7 @@ export function KitchenQueueOrderDetailPanel({
   const [stageControlOpen, setStageControlOpen] = useState(false);
   const [targetStatus, setTargetStatus] = useState(null);
   const [isBackwardMove, setIsBackwardMove] = useState(false);
+  const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
 
   // Fetch order details
   const { data: order, isLoading, error } = useQuery({
@@ -246,8 +318,8 @@ export function KitchenQueueOrderDetailPanel({
 
   // Update order status mutation
   const updateMutation = useMutation({
-    mutationFn: ({ status, reason }) =>
-      updateOrderStatusAdmin(orderId, { status, reason }, locationId),
+    mutationFn: ({ status, reason, paymentStatus }) =>
+      updateOrderStatusAdmin(orderId, { status, reason, paymentStatus }, locationId),
     onError: (error) => {
       const message = error?.response?.data?.message || "Failed to update order";
       if (message.includes("PAYMENT_REQUIRED")) {
@@ -261,6 +333,7 @@ export function KitchenQueueOrderDetailPanel({
     onSuccess: () => {
       toast.success("Order updated successfully");
       setStageControlOpen(false);
+      setPaymentDialogOpen(false);
       setTargetStatus(null);
       // Invalidate all relevant queries
       queryClient.invalidateQueries({ queryKey: ["orders", "admin", "live"] });
@@ -277,6 +350,10 @@ export function KitchenQueueOrderDetailPanel({
 
   const handleStageConfirm = (reason) => {
     updateMutation.mutate({ status: targetStatus, reason });
+  };
+
+  const handleMarkAsPaid = () => {
+    updateMutation.mutate({ paymentStatus: "PAID" });
   };
 
   if (!isOpen) return null;
@@ -383,11 +460,26 @@ export function KitchenQueueOrderDetailPanel({
                   </div>
                 )}
 
-                {/* Stage Control */}
+                {/* Stage Control & Payment Actions */}
                 <div className="space-y-3">
-                  <h3 className="text-sm font-semibold text-gray-900">Stage Control</h3>
+                  <h3 className="text-sm font-semibold text-gray-900">
+                    {paid ? "Stage Control" : "Payment & Stage Control"}
+                  </h3>
                   <div className="space-y-2">
-                    {/* Forward action */}
+                    {/* Mark as Paid button for unpaid orders */}
+                    {!paid && order.status === "READY" && (
+                      <button
+                        type="button"
+                        onClick={() => setPaymentDialogOpen(true)}
+                        disabled={updateMutation.isPending}
+                        className="w-full flex items-center justify-between px-4 py-2.5 text-sm font-semibold rounded-lg transition-colors bg-green-100 text-green-700 hover:bg-green-200 disabled:opacity-50"
+                      >
+                        <span>Mark as Paid</span>
+                        <CreditCard size={16} />
+                      </button>
+                    )}
+
+                    {/* Forward action (disabled if payment required) */}
                     {FORWARD_ACTIONS[order.status] && (
                       <button
                         type="button"
@@ -395,11 +487,11 @@ export function KitchenQueueOrderDetailPanel({
                           handleStageChange(FORWARD_ACTIONS[order.status].target, false)
                         }
                         disabled={
-                          !canHandOver && order.status === "READY" && !paid
+                          order.status === "READY" && !paid
                         }
                         className={cn(
                           "w-full flex items-center justify-between px-4 py-2.5 text-sm font-semibold rounded-lg transition-colors",
-                          !canHandOver && order.status === "READY" && !paid
+                          order.status === "READY" && !paid
                             ? "bg-gray-100 text-gray-500 cursor-not-allowed"
                             : "bg-blue-100 text-blue-700 hover:bg-blue-200"
                         )}
@@ -454,6 +546,14 @@ export function KitchenQueueOrderDetailPanel({
         targetStatus={targetStatus}
         isBackward={isBackwardMove}
         onConfirm={handleStageConfirm}
+        isLoading={updateMutation.isPending}
+      />
+
+      <PaymentConfirmationDialog
+        isOpen={paymentDialogOpen}
+        onOpenChange={setPaymentDialogOpen}
+        order={order}
+        onConfirm={handleMarkAsPaid}
         isLoading={updateMutation.isPending}
       />
     </>
