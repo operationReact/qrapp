@@ -2,10 +2,12 @@ import { createFileRoute, Navigate, useLocation } from "@tanstack/react-router";
 import { useAuth } from "@/context/AuthContext";
 import { useEffect, useState } from "react";
 import { getAdminSettings, adminSetPayAtStall } from "@/services/order-service";
+import { clearAllApplicationCache } from "@/services/cache-service";
 import AdminHeader from "@/components/admin/AdminHeader";
 import {
   CurrencyInrIcon,
   SlidersIcon,
+  TrashIcon,
 } from "@phosphor-icons/react";
 
 export const Route = createFileRoute("/admin/(settings)/settings")({
@@ -66,6 +68,8 @@ function GlobalControlsPage() {
 
   const [payAtStall, setPayAtStall] = useState(null);
   const [payAtStallToggling, setPayAtStallToggling] = useState(false);
+  const [clearingCache, setClearingCache] = useState(false);
+  const [cacheMessage, setCacheMessage] = useState("");
 
   useEffect(() => {
     getAdminSettings()
@@ -83,6 +87,23 @@ function GlobalControlsPage() {
       // ignore
     } finally {
       setPayAtStallToggling(false);
+    }
+  };
+
+  const handleClearCache = async () => {
+    setClearingCache(true);
+    setCacheMessage("");
+    try {
+      await clearAllApplicationCache();
+      setCacheMessage("✓ Cache cleared successfully! Refreshing app...");
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+    } catch (error) {
+      console.error("Error clearing cache:", error);
+      setCacheMessage("✗ Error clearing cache. Please try again.");
+    } finally {
+      setClearingCache(false);
     }
   };
 
@@ -115,6 +136,42 @@ function GlobalControlsPage() {
               loading={payAtStallToggling || payAtStall === null}
               onToggle={handleTogglePayAtStall}
             />
+          </div>
+        </section>
+
+        {/* ── Cache Management ── */}
+        <section className="rounded-xl border border-border bg-white overflow-hidden">
+          <div className="px-4 pt-4 pb-2 flex items-center gap-2 border-b border-gray-100">
+            <TrashIcon weight="bold" className="size-4 text-red-600" />
+            <h2 className="text-sm font-bold text-gray-800 uppercase tracking-wide">
+              Cache & Performance
+            </h2>
+          </div>
+          <div className="px-4 py-4">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <div className="text-sm font-semibold text-gray-900">Clear All Cache</div>
+                <div className="text-xs text-gray-500 mt-0.5 max-w-sm">
+                  Clear browser storage, server cache, and service workers. This can help resolve display issues or refresh stale data.
+                </div>
+              </div>
+              <button
+                onClick={handleClearCache}
+                disabled={clearingCache}
+                className="px-4 py-2 bg-red-50 hover:bg-red-100 disabled:opacity-50 text-red-600 font-medium rounded-lg transition-colors text-sm whitespace-nowrap"
+              >
+                {clearingCache ? "Clearing…" : "Clear Cache"}
+              </button>
+            </div>
+            {cacheMessage && (
+              <div className={`mt-3 text-xs p-2 rounded ${
+                cacheMessage.startsWith("✓") 
+                  ? "bg-emerald-50 text-emerald-700" 
+                  : "bg-red-50 text-red-700"
+              }`}>
+                {cacheMessage}
+              </div>
+            )}
           </div>
         </section>
 

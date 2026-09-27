@@ -407,7 +407,7 @@ function CartPage() {
           !appliedPromotion && byocDiscount?.campaignId
             ? byocDiscount.campaignId
             : undefined,
-      });
+      }, activeLocationId);
       console.log("Order response:", res);
       const responsePaymentMethod = res?.paymentMethod || paymentMethod;
 

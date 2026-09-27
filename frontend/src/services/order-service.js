@@ -3,8 +3,10 @@ import { apiClient } from "./index";
 export const getMyOrders = () =>
   apiClient.get("/orders/me").then((r) => r.data);
 
-export const createOrder = (data) =>
-  apiClient.post("/orders", data).then((r) => r.data);
+export const createOrder = (data, locationId) => {
+  const payload = locationId ? { ...data, locationId } : data;
+  return apiClient.post("/orders", payload).then((r) => r.data);
+};
 
 export const getOrdersAdmin = ({
   page = 0,

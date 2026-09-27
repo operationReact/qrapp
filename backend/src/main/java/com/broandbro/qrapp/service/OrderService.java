@@ -85,6 +85,8 @@ public class OrderService {
     private final MilestoneCouponService milestoneCouponService;
     private final com.broandbro.qrapp.repository.UserRepository userRepository;
     private final ComboCampaignService comboCampaignService;
+    private final LocationAccessService locationAccessService;
+    private final com.broandbro.qrapp.repository.LocationRepository locationRepository;
 
     /**
      * Creates a new order with a human-readable, location-specific order number.
@@ -117,6 +119,20 @@ public class OrderService {
                 "Please use the pre-order flow to schedule them.");
         }
 
+        // ── Validate location (if provided by frontend) ───────────────────────
+        Location requestedLocation = null;
+        if (req.getLocationId() != null) {
+            requestedLocation = locationRepository.findById(req.getLocationId())
+                    .orElseThrow(() -> new IllegalArgumentException("Location not found: " + req.getLocationId()));
+            
+            // If user is provided, validate they have access to this location
+            if (user != null) {
+                locationAccessService.requireLocationAccess(user, req.getLocationId());
+            }
+            log.info("[createOrder] Location provided by frontend: id={}, name={}", 
+                requestedLocation.getId(), requestedLocation.getName());
+        }
+
         LocalDateTime now = BusinessTime.now();
         Order order = new Order();
         order.setPhone(user != null ? user.getPhone() : req.getPhone());
@@ -136,6 +152,16 @@ public class OrderService {
         for (CreateOrderRequest.Item i : req.getItems()) {
             MenuItem menuItem = menuRepository.findById(i.getItemId())
                     .orElseThrow(() -> new RuntimeException("MenuItem not found: " + i.getItemId()));
+            
+            // ── Validate menu item belongs to requested location (if provided) ───
+            if (requestedLocation != null && menuItem.getLocation() != null) {
+                if (!requestedLocation.getId().equals(menuItem.getLocation().getId())) {
+                    throw new IllegalArgumentException(
+                        "Menu item '" + menuItem.getName() + "' does not belong to location '" + 
+                        requestedLocation.getName() + "'. Cannot add items from different locations to same order.");
+                }
+            }
+            
             // Scope the order to the location of its items (menu is location-owned).
             if (order.getLocation() == null && menuItem.getLocation() != null) {
                 order.setLocation(menuItem.getLocation());
@@ -144,6 +170,24 @@ public class OrderService {
             PricingService.OrderItemSnapshot snap = pricingService.createSnapshot(i.getItemId(), vendorId, i.getQuantity());
             itemSnaps.add(new Object[]{i, snap});
             subtotal = subtotal.add(snap.lineTotal() != null ? snap.lineTotal() : java.math.BigDecimal.ZERO);
+        }
+
+        // ── Validate all items come from the same location ──────────────────────
+        // Extract the location from the first menu item (after all items are loaded)
+        // and verify consistency
+        if (order.getLocation() == null) {
+            MenuItem firstItem = menuRepository.findById(req.getItems().get(0).getItemId())
+                    .orElseThrow(() -> new RuntimeException("MenuItem not found"));
+            order.setLocation(firstItem.getLocation());
+        }
+        
+        // If frontend provided a location, it must match the order's resolved location
+        if (requestedLocation != null && order.getLocation() != null) {
+            if (!requestedLocation.getId().equals(order.getLocation().getId())) {
+                throw new IllegalArgumentException(
+                    "Order location mismatch: requested=" + requestedLocation.getId() + 
+                    " but items belong to location=" + order.getLocation().getId());
+            }
         }
 
         // ── Step 1b: validate location and extract location code ─────────────────
