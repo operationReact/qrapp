@@ -2,6 +2,7 @@ package com.broandbro.qrapp.repository;
 
 import com.broandbro.qrapp.entity.Order;
 import com.broandbro.qrapp.enums.OrderStatus;
+import com.broandbro.qrapp.enums.PaymentMethod;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -34,42 +35,21 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
      * PENDING/FAILED/CANCELLED online orders are excluded.
      * Global scope (super admin, no location filter).
      */
-    @Query("""
-        SELECT o FROM Order o
-        WHERE o.preOrder = false
-          AND o.status IN :statuses
-          AND (
-            o.paymentStatus = 'PAID'
-            OR (o.paymentStatus IS NOT NULL 
-                AND UPPER(o.paymentStatus) = 'PENDING'
-                AND o.paymentMethod IN ('PAY_AT_STALL', 'WALLET'))
-          )
-        ORDER BY o.createdAt ASC, o.id ASC
-    """)
+    @Query("SELECT o FROM Order o WHERE o.preOrder = false AND o.status IN :statuses AND (o.paymentStatus = 'PAID' OR (o.paymentStatus IS NOT NULL AND UPPER(o.paymentStatus) = 'PENDING' AND o.paymentMethod IN :codPaymentMethods)) ORDER BY o.createdAt ASC, o.id ASC")
     List<Order> findKitchenEligibleOrdersByStatusInOrderByCreatedAtAscIdAsc(
-            @Param("statuses") Collection<OrderStatus> statuses,
-            Pageable pageable);
+           @Param("statuses") Collection<OrderStatus> statuses,
+           @Param("codPaymentMethods") Collection<PaymentMethod> codPaymentMethods,
+           Pageable pageable);
 
     /**
      * Kitchen-eligible orders scoped to specific locations.
      * Only PAID online orders or PAY_AT_STALL/WALLET orders can enter kitchen.
      */
-    @Query("""
-        SELECT o FROM Order o
-        WHERE o.preOrder = false
-          AND o.status IN :statuses
-          AND o.location.id IN :locationIds
-          AND (
-            o.paymentStatus = 'PAID'
-            OR (o.paymentStatus IS NOT NULL 
-                AND UPPER(o.paymentStatus) = 'PENDING'
-                AND o.paymentMethod IN ('PAY_AT_STALL', 'WALLET'))
-          )
-        ORDER BY o.createdAt ASC, o.id ASC
-    """)
+    @Query("SELECT o FROM Order o WHERE o.preOrder = false AND o.status IN :statuses AND o.location.id IN :locationIds AND (o.paymentStatus = 'PAID' OR (o.paymentStatus IS NOT NULL AND UPPER(o.paymentStatus) = 'PENDING' AND o.paymentMethod IN :codPaymentMethods)) ORDER BY o.createdAt ASC, o.id ASC")
     List<Order> findKitchenEligibleOrdersByStatusInAndLocationIdInOrderByCreatedAtAscIdAsc(
             @Param("statuses") Collection<OrderStatus> statuses,
             @Param("locationIds") Collection<Long> locationIds,
+            @Param("codPaymentMethods") Collection<PaymentMethod> codPaymentMethods,
             Pageable pageable);
 
     long countByPreOrderFalse();
