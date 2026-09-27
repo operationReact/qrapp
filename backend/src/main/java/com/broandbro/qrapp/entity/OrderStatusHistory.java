@@ -35,10 +35,23 @@ public class OrderStatusHistory {
     @Column(name = "changed_by")
     private String changedBy;
 
+    @Column(name = "performed_by_user_id")
+    private Long performedByUserId;
+
     @Column(name = "note", length = 1000)
     private String note;
 
+    @Column(name = "reason", length = 255)
+    private String reason;
+
+    @Column(name = "action_type", length = 50)
+    private String actionType;
+
     @Column(name = "changed_at", nullable = false)
     private LocalDateTime changedAt;
+
+    @Column(name = "created_at", nullable = false)
+    private LocalDateTime createdAt;
 }
+
 

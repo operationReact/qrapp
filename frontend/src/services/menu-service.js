@@ -58,7 +58,7 @@ export const bulkMenuCommit = (rows, uploadMode = "UPSERT", locationId) =>
   apiClient.post("/admin/menu/bulk-upload/commit", { rows, uploadMode, locationId }).then((r) => r.data);
 
 export const bulkMenuDownloadTemplate = () =>
-  apiClient.get("/admin/menu/bulk-upload/template", { responseType: "blob" }).then((r) => r.data);
+  apiClient.get("/admin/menu/bulk-upload/template", { responseType: "blob" });
 
 // AI image generation
 export const generateAiImageOptions = (menuItemId, count = 3, additionalPrompt = null, previousGeneratedUrls = [], locationId) =>

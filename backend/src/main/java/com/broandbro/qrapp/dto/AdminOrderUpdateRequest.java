@@ -12,5 +12,9 @@ public class AdminOrderUpdateRequest {
 
     /** Optional: "PAID", "PENDING", "FAILED" — lets admin manually record cash payment */
     private String paymentStatus;
+
+    /** Optional: reason for status change, especially for backward transitions */
+    @Size(max = 255)
+    private String reason;
 }
 

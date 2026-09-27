@@ -1,5 +1,5 @@
 import { createFileRoute, Link, Navigate, useLocation } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Bell, CalendarDays, ChevronDown, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -329,11 +329,12 @@ function DashboardHeader({ rangeKey, onRangeChange, ownerName, notifications }) 
 function AdminDashboardPage() {
   const { isAdmin, isSuperUser, user } = useAuth();
   const location = useLocation();
-  const { activeLocationId } = useActiveLocation();
+  const { activeLocationId, isLoading: locationLoading } = useActiveLocation();
   const canViewAdmin = isAdmin || isSuperUser;
   const {
     dashboard,
     dashboardLoading,
+    dashboardUpdatedAt,
     dashboardError,
     refetchDashboard,
   } = useAdminDashboard();
@@ -343,14 +344,33 @@ function AdminDashboardPage() {
   const params = useMemo(() => ({ from: range.from, to: range.to }), [range.from, range.to]);
   const previousParams = useMemo(() => ({ from: range.previousFrom, to: range.previousTo }), [range.previousFrom, range.previousTo]);
 
-  const summaryQuery = useQuery({ ...salesSummaryOptions(params, activeLocationId), enabled: canViewAdmin });
-  const comparisonQuery = useQuery({ ...salesSummaryOptions(previousParams, activeLocationId), enabled: canViewAdmin });
-  const dailyQuery = useQuery({ ...dailySalesRangeOptions(params, activeLocationId), enabled: canViewAdmin });
-  const inventoryQuery = useQuery({ ...inventoryAlertsOptions(6, activeLocationId), enabled: canViewAdmin });
+  const dashboardQueriesEnabled = canViewAdmin && !locationLoading;
+  const summaryQuery = useQuery({ ...salesSummaryOptions(params, activeLocationId), enabled: dashboardQueriesEnabled });
+  const comparisonQuery = useQuery({ ...salesSummaryOptions(previousParams, activeLocationId), enabled: dashboardQueriesEnabled });
+  const dailyQuery = useQuery({ ...dailySalesRangeOptions(params, activeLocationId), enabled: dashboardQueriesEnabled });
+  const inventoryQuery = useQuery({ ...inventoryAlertsOptions(6, activeLocationId), enabled: dashboardQueriesEnabled });
+  const { data: summaryData, isLoading: summaryLoading, error: summaryError, refetch: refetchSummary } = summaryQuery;
+  const { data: dailyData, refetch: refetchDaily } = dailyQuery;
+  const refreshAnalytics = useCallback(async () => {
+    await refetchSummary();
+    await refetchDaily();
+  }, [refetchSummary, refetchDaily]);
+
+  const lastDashboardUpdateRef = useRef(0);
+  useEffect(() => {
+    if (!dashboardUpdatedAt || lastDashboardUpdateRef.current === 0) {
+      lastDashboardUpdateRef.current = dashboardUpdatedAt || 0;
+      return;
+    }
+    if (dashboardUpdatedAt === lastDashboardUpdateRef.current) return;
+    lastDashboardUpdateRef.current = dashboardUpdatedAt;
+
+    void refreshAnalytics();
+  }, [dashboardUpdatedAt, refreshAnalytics]);
 
   const ownerName = user?.info?.name?.split(" ")[0] ?? "";
   const live = dashboard ?? {};
-  const summary = summaryQuery.data ?? {};
+  const summary = summaryData ?? {};
   const summaryWithLive = {
     ...summary,
     pendingOrders: (live.placedOrders ?? 0) + (live.preparingOrders ?? 0),
@@ -392,7 +412,7 @@ function AdminDashboardPage() {
     <div className="min-h-screen bg-[#F8F6F3]">
       <DashboardHeader rangeKey={rangeKey} onRangeChange={setRangeKey} ownerName={ownerName} notifications={notifications} />
       <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-4 px-4 py-4 sm:px-6 lg:gap-5 lg:px-8 lg:py-5">
-        <div className="order-1"><KpiStrip summary={summaryWithLive} comparison={comparisonQuery.data} loading={summaryQuery.isLoading || dashboardLoading} error={summaryQuery.error} onRetry={summaryQuery.refetch} /></div>
+        <div className="order-1"><KpiStrip summary={summaryWithLive} comparison={comparisonQuery.data} periodLabel={selectedLabel} loading={summaryLoading || dashboardLoading} error={summaryError && !summaryData ? summaryError : null} onRetry={refetchSummary} /></div>
 
         <div className="order-2">
           <LiveOperations dashboard={live} loading={dashboardLoading} error={dashboardError} onRetry={refetchDashboard} />
@@ -405,7 +425,7 @@ function AdminDashboardPage() {
         <div className="order-4">
           <RevenueOrdersPanel
             query={dailyQuery}
-            data={dailyQuery.data}
+            data={dailyData}
             metric={metric}
             setMetric={setMetric}
             rangeLabel={selectedLabel}

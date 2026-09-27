@@ -42,6 +42,7 @@ public class AdminController {
         orderService.assertOrderWithinScope(id, scope);
         AdminOrderUpdateRequest updateRequest = new AdminOrderUpdateRequest();
         updateRequest.setStatus(req.getStatus());
+        updateRequest.setReason(req.getReason());
         return ResponseEntity.ok(orderService.updateAdminOrder(id, updateRequest, authentication.getName()));
     }
 

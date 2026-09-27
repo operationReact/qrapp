@@ -33,6 +33,8 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from "@/components/ui/drawer";
+import { KitchenQueueOrderDetailPanel } from "@/components/admin/kitchen-queue/OrderDetailPanel";
+import { CompletedOrdersView } from "@/components/admin/kitchen-queue/CompletedOrdersView";
 
 const STATUS_META = {
   PLACED: {
@@ -133,7 +135,7 @@ function StatusChip({ status, delayed }) {
   );
 }
 
-function OrderCard({ order, onAction, isPending }) {
+function OrderCard({ order, onAction, onExpand, isPending }) {
   const status = getStatusKey(order.status);
   const meta = STATUS_META[status];
   const nextAction = NEXT_ACTION[status];
@@ -144,11 +146,19 @@ function OrderCard({ order, onAction, isPending }) {
   return (
     <article
       className={cn(
-        "border-l-4 rounded-[14px] border border-[#E8E2DD] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.04)] transition-shadow hover:shadow-[0_4px_12px_rgba(0,0,0,0.06)]",
+        "border-l-4 rounded-[14px] border border-[#E8E2DD] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.04)] transition-all hover:shadow-[0_4px_12px_rgba(0,0,0,0.06)] cursor-pointer",
         delayed ? "border-l-[#DC2626] bg-[#FEF2F2]" : meta?.rail,
         isPending && "opacity-70",
       )}
       aria-busy={isPending}
+      onClick={() => onExpand(order.id)}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          onExpand(order.id);
+        }
+      }}
     >
       <div className="p-3.5 sm:p-4">
         <header className="flex items-center justify-between gap-3">
@@ -217,7 +227,10 @@ function OrderCard({ order, onAction, isPending }) {
         {nextAction && (
           <button
             type="button"
-            onClick={() => onAction(order.id, nextAction.status)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onAction(order.id, nextAction.status);
+            }}
             disabled={isPending}
             className={cn(
               "mt-3 flex min-h-12 w-full items-center gap-2 rounded-xl px-4 py-3 text-[13px] font-bold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 active:scale-[.99] disabled:cursor-not-allowed",
@@ -268,11 +281,13 @@ function KitchenQueuePage() {
   const { user, isAdmin, isSuperUser } = useAuth();
   const { activeLocationId } = useActiveLocation();
   const queryClient = useQueryClient();
+  const [activeTab, setActiveTab] = useState("active");
   const [activeFilter, setActiveFilter] = useState("ALL");
   const [paymentFilter, setPaymentFilter] = useState("ALL");
   const [draftPaymentFilter, setDraftPaymentFilter] = useState("ALL");
   const [filterOpen, setFilterOpen] = useState(false);
   const [pendingId, setPendingId] = useState(null);
+  const [expandedOrderId, setExpandedOrderId] = useState(null);
 
   const {
     data: liveOrders = [],
@@ -293,6 +308,7 @@ function KitchenQueuePage() {
     onSettled: () => setPendingId(null),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["orders", "admin", "live"] });
+      // Invalidate all admin order queries (both active and completed)
       queryClient.invalidateQueries({ queryKey: ["orders", "admin"] });
     },
   });
@@ -382,7 +398,44 @@ function KitchenQueuePage() {
           <LocationSelector header className="h-10 min-h-10 w-full rounded-[10px] shadow-none" />
         </div>
 
-        <nav className="mt-2 flex gap-2 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label="Kitchen order status">
+        {/* Active/Completed Tabs */}
+        <div className="mt-2 flex gap-1 border-b border-[#E8E2DD]">
+          <button
+            type="button"
+            onClick={() => setActiveTab("active")}
+            className={cn(
+              "min-h-10 px-4 text-sm font-bold transition-colors relative",
+              activeTab === "active"
+                ? "text-[#171717]"
+                : "text-[#6B6B6B] hover:text-[#171717]"
+            )}
+          >
+            Active
+            {activeTab === "active" && (
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#171717]" aria-hidden="true" />
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("completed")}
+            className={cn(
+              "min-h-10 px-4 text-sm font-bold transition-colors relative",
+              activeTab === "completed"
+                ? "text-[#171717]"
+                : "text-[#6B6B6B] hover:text-[#171717]"
+            )}
+          >
+            Completed
+            {activeTab === "completed" && (
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#171717]" aria-hidden="true" />
+            )}
+          </button>
+        </div>
+
+        {/* Status Filter Nav - Only show on Active tab */}
+        {activeTab === "active" && (
+          <>
+            <nav className="mt-2 flex gap-2 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label="Kitchen order status">
           {PRIMARY_FILTERS.map((filter) => (
             <button
               key={filter.key}
@@ -430,6 +483,8 @@ function KitchenQueuePage() {
             Filter{paymentFilter !== "ALL" && ` · ${paymentFilter === "PAID" ? "Paid" : "Unpaid"}`}
           </button>
         </div>
+          </>
+        )}
 
         <Drawer open={filterOpen} onOpenChange={setFilterOpen}>
           <DrawerContent className="rounded-t-[20px] px-5 pb-[env(safe-area-inset-bottom)]">
@@ -482,55 +537,78 @@ function KitchenQueuePage() {
       </header>
 
       <main className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-4 py-4 pb-[calc(1rem+env(safe-area-inset-bottom))] [touch-action:pan-y] sm:px-6 sm:py-5">
-        {isError && (
-          <div className="mb-4 flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-3.5 py-3 text-red-800" role="alert">
-            <CircleAlert size={18} className="mt-0.5 shrink-0 text-red-600" aria-hidden="true" />
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-bold">{orders.length ? "Queue connection interrupted" : "Couldn't load the kitchen queue"}</p>
-              <p className="mt-0.5 text-xs text-red-700/80">
-                {orders.length ? "Showing the last available orders." : "Try again to retrieve live orders."}
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => refetch()}
-              className="min-h-9 shrink-0 rounded-lg px-2 text-xs font-bold text-red-700 underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
-            >
-              Try again
-            </button>
-          </div>
-        )}
+        {activeTab === "active" ? (
+          <>
+            {isError && (
+              <div className="mb-4 flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-3.5 py-3 text-red-800" role="alert">
+                <CircleAlert size={18} className="mt-0.5 shrink-0 text-red-600" aria-hidden="true" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-bold">{orders.length ? "Queue connection interrupted" : "Couldn't load the kitchen queue"}</p>
+                  <p className="mt-0.5 text-xs text-red-700/80">
+                    {orders.length ? "Showing the last available orders." : "Try again to retrieve live orders."}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => refetch()}
+                  className="min-h-9 shrink-0 rounded-lg px-2 text-xs font-bold text-red-700 underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
+                >
+                  Try again
+                </button>
+              </div>
+            )}
 
-        {isLoading ? (
-          <div className="grid grid-cols-1 gap-2.5 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-            {Array.from({ length: 4 }, (_, index) => <QueueSkeleton key={index} />)}
-          </div>
-        ) : paymentFilteredOrders.length === 0 ? (
-          <div className="flex min-h-[220px] flex-col items-center justify-center rounded-[14px] border border-dashed border-[#E8E2DD] bg-white/60 px-6 text-center">
-            <span className="grid size-12 place-items-center rounded-2xl bg-emerald-50 text-emerald-600">
-              <CheckCircle2 size={24} aria-hidden="true" />
-            </span>
-            <h2 className="mt-4 text-base font-bold text-zinc-800">{emptyLabel}</h2>
-            <p className="mt-1 max-w-xs text-sm leading-relaxed text-zinc-500">
-              {activeFilter === "ALL" ? "No live orders are waiting for kitchen action." : "Try another filter to view more orders."}
-            </p>
-            <p className="mt-3 text-xs font-medium text-zinc-400">
-              {isFetching ? "Updating…" : "Updated just now"}
-            </p>
-          </div>
+            {isLoading ? (
+              <div className="grid grid-cols-1 gap-2.5 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+                {Array.from({ length: 4 }, (_, index) => <QueueSkeleton key={index} />)}
+              </div>
+            ) : paymentFilteredOrders.length === 0 ? (
+              <div className="flex min-h-[220px] flex-col items-center justify-center rounded-[14px] border border-dashed border-[#E8E2DD] bg-white/60 px-6 text-center">
+                <span className="grid size-12 place-items-center rounded-2xl bg-emerald-50 text-emerald-600">
+                  <CheckCircle2 size={24} aria-hidden="true" />
+                </span>
+                <h2 className="mt-4 text-base font-bold text-zinc-800">{emptyLabel}</h2>
+                <p className="mt-1 max-w-xs text-sm leading-relaxed text-zinc-500">
+                  {activeFilter === "ALL" ? "No live orders are waiting for kitchen action." : "Try another filter to view more orders."}
+                </p>
+                <p className="mt-3 text-xs font-medium text-zinc-400">
+                  {isFetching ? "Updating…" : "Updated just now"}
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 items-start gap-2.5 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+                {paymentFilteredOrders.map((order) => (
+                  <OrderCard
+                    key={order.id}
+                    order={order}
+                    onAction={(orderId, status) => mutation.mutate({ orderId, status })}
+                    onExpand={setExpandedOrderId}
+                    isPending={pendingId === order.id}
+                  />
+                ))}
+              </div>
+            )}
+          </>
         ) : (
-          <div className="grid grid-cols-1 items-start gap-2.5 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-            {paymentFilteredOrders.map((order) => (
-              <OrderCard
-                key={order.id}
-                order={order}
-                onAction={(orderId, status) => mutation.mutate({ orderId, status })}
-                isPending={pendingId === order.id}
-              />
-            ))}
-          </div>
+          <CompletedOrdersView
+            activeLocationId={activeLocationId}
+            expandedOrderId={expandedOrderId}
+            onExpandOrder={setExpandedOrderId}
+          />
         )}
       </main>
+
+      {/* Expanded Order Detail Panel */}
+      <KitchenQueueOrderDetailPanel
+        orderId={expandedOrderId}
+        isOpen={!!expandedOrderId}
+        onOpenChange={(open) => {
+          if (!open) {
+            setExpandedOrderId(null);
+          }
+        }}
+        locationId={activeLocationId}
+      />
     </div>
   );
 }

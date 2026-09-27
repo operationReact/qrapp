@@ -44,6 +44,7 @@ import {
 } from "@/components/ui/field";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/context/AuthContext";
+import { useLocation } from "@/context/LocationContext";
 import {
   Empty,
   EmptyContent,
@@ -96,6 +97,7 @@ function CartPage() {
     removeByocDiscount,
   } = useCart();
   const { user } = useAuth();
+  const { activeLocationId } = useLocation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [recommended, setRecommended] = useState([]);
@@ -289,11 +291,19 @@ function CartPage() {
   useEffect(() => {
     let mounted = true;
     async function fetchRecommended() {
+      if (!activeLocationId) {
+        setRecommended([]);
+        setRecLoading(false);
+        return;
+      }
       setRecLoading(true);
       try {
-        const res = await getRecommendedMenu({ limit: 12 });
+        const itemsForLocation = await getRecommendedMenu({
+          limit: 12,
+          locationId: activeLocationId,
+        });
         const idsInCart = new Set(cart.map((i) => i.id));
-        const items = (res.data || [])
+        const items = (itemsForLocation || [])
           .filter((i) => !idsInCart.has(i.id))
           .slice(0, 6);
         if (mounted) setRecommended(items);
@@ -308,7 +318,7 @@ function CartPage() {
     return () => {
       mounted = false;
     };
-  }, [cart]);
+  }, [activeLocationId, cart]);
 
   useEffect(() => {
     let mounted = true;

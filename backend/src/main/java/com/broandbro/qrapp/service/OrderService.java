@@ -507,7 +507,7 @@ public class OrderService {
         if (hasStatusChange) {
             nextStatus = parseStatus(request.getStatus());
             if (!previousStatus.equals(nextStatus)) {
-                validateTransition(previousStatus, nextStatus);
+                validateTransition(previousStatus, nextStatus, order);
                 order.setStatus(nextStatus);
                 order.setLastStatusChangedAt(now);
                 if (nextStatus == OrderStatus.PREPARING && order.getStartedAt() == null) {
@@ -541,7 +541,8 @@ public class OrderService {
         orderRepo.save(order);
 
         if (hasStatusChange && !previousStatus.equals(nextStatus)) {
-            recordStatusHistory(order.getId(), previousStatus, nextStatus, trimToNull(request.getAdminNote()), normalizedActor, now);
+            recordStatusHistory(order.getId(), previousStatus, nextStatus, trimToNull(request.getAdminNote()), 
+                    normalizedActor, now, trimToNull(request.getReason()), null, "STATUS_CHANGE");
             if (nextStatus == OrderStatus.READY) {
                 //whatsappService.sendOrderReady(order.getPhone(), order.getId());
             }
@@ -717,7 +718,10 @@ public class OrderService {
                     historyEntry.setPreviousStatus(entry.getPreviousStatus());
                     historyEntry.setNewStatus(entry.getNewStatus());
                     historyEntry.setChangedBy(entry.getChangedBy());
+                    historyEntry.setPerformedByUserId(entry.getPerformedByUserId());
                     historyEntry.setNote(entry.getNote());
+                    historyEntry.setReason(entry.getReason());
+                    historyEntry.setActionType(entry.getActionType());
                     historyEntry.setChangedAt(entry.getChangedAt());
                     return historyEntry;
                 })
@@ -1017,10 +1021,18 @@ public class OrderService {
         return getAdminOrder(orderId);
     }
 
-    private void validateTransition(OrderStatus currentStatus, OrderStatus nextStatus) {
+    private void validateTransition(OrderStatus currentStatus, OrderStatus nextStatus, Order order) {
         List<OrderStatus> allowed = allowedTransitionsFor(currentStatus);
         if (!allowed.contains(nextStatus)) {
             throw new IllegalArgumentException("Cannot move order from " + currentStatus + " to " + nextStatus);
+        }
+        
+        // Payment gate: READY → COMPLETED (hand over) requires PAID status
+        if (currentStatus == OrderStatus.READY && nextStatus == OrderStatus.COMPLETED) {
+            String paymentStatus = order != null ? order.getPaymentStatus() : null;
+            if (paymentStatus == null || !paymentStatus.equalsIgnoreCase("PAID")) {
+                throw new IllegalStateException("PAYMENT_REQUIRED_FOR_HANDOVER: Order cannot be handed over until payment is completed. Current payment status: " + paymentStatus);
+            }
         }
     }
 
@@ -1029,12 +1041,19 @@ public class OrderService {
             return List.of();
         }
         return switch (status) {
+            // Pre-ordered can move to placed or cancelled
             case PRE_ORDERED -> List.of(OrderStatus.ORDER_PLACED, OrderStatus.CANCELLED);
+            // Placed: forward to preparing/ready/completed, backward none, cancel anytime
             case ORDER_PLACED -> List.of(OrderStatus.PREPARING, OrderStatus.READY, OrderStatus.COMPLETED, OrderStatus.CANCELLED);
+            // Acknowledged: no transitions (not currently used in kitchen flow)
             case ACKNOWLEDGED -> List.of();
+            // Preparing: forward to ready/completed, backward to placed, cancel anytime
             case PREPARING -> List.of(OrderStatus.ORDER_PLACED, OrderStatus.READY, OrderStatus.COMPLETED, OrderStatus.CANCELLED);
+            // Ready: forward to completed, backward to preparing, cancel anytime
             case READY -> List.of(OrderStatus.PREPARING, OrderStatus.COMPLETED, OrderStatus.CANCELLED);
+            // Delivered: no transitions (party orders only)
             case DELIVERED -> List.of();
+            // Completed, Cancelled: terminal states, no transitions
             case COMPLETED, CANCELLED -> List.of();
         };
     }
@@ -1081,15 +1100,33 @@ public class OrderService {
                                      OrderStatus newStatus,
                                      String note,
                                      String changedBy,
-                                     LocalDateTime changedAt) {
+                                     LocalDateTime changedAt,
+                                     String reason,
+                                     Long performedByUserId,
+                                     String actionType) {
         OrderStatusHistory history = new OrderStatusHistory();
         history.setOrderId(orderId);
         history.setPreviousStatus(previousStatus);
         history.setNewStatus(newStatus);
         history.setNote(note);
         history.setChangedBy(changedBy);
-        history.setChangedAt(changedAt != null ? changedAt : BusinessTime.now());
+        history.setPerformedByUserId(performedByUserId);
+        history.setReason(reason);
+        history.setActionType(actionType != null ? actionType : "STATUS_CHANGE");
+        LocalDateTime now = BusinessTime.now();
+        history.setChangedAt(changedAt != null ? changedAt : now);
+        history.setCreatedAt(changedAt != null ? changedAt : now);
         orderStatusHistoryRepository.save(history);
+    }
+
+    // Overload for backward compatibility with existing callers
+    private void recordStatusHistory(Long orderId,
+                                     OrderStatus previousStatus,
+                                     OrderStatus newStatus,
+                                     String note,
+                                     String changedBy,
+                                     LocalDateTime changedAt) {
+        recordStatusHistory(orderId, previousStatus, newStatus, note, changedBy, changedAt, null, null, "STATUS_CHANGE");
     }
 
     private String trimToNull(String value) {

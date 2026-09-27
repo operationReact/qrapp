@@ -44,7 +44,7 @@ const statusMeta = {
   CANCELLED: { label: "Cancelled", color: "text-[#DC2626]", bg: "bg-[#FEF2F2]", icon: TriangleAlert },
 };
 
-export function KpiStrip({ summary, comparison, loading, error, onRetry }) {
+export function KpiStrip({ summary, comparison, periodLabel = "Today", loading, error, onRetry }) {
   const current = summary ?? {};
   const previous = comparison ?? {};
   const orders = current.completedOrders;
@@ -95,7 +95,7 @@ export function KpiStrip({ summary, comparison, loading, error, onRetry }) {
     <section className="rounded-[16px] border border-[#E8E2DD] bg-white p-3.5 shadow-none sm:p-4">
       <div className="mb-3 flex items-center justify-between gap-3">
         <div>
-          <p className="text-[10px] font-bold uppercase leading-[14px] tracking-[0.08em] text-[#817A75]">Today</p>
+          <p className="text-[10px] font-bold uppercase leading-[14px] tracking-[0.08em] text-[#817A75]">{periodLabel}</p>
           <p className="mt-0.5 text-[11px] text-[#8A8580]">Current business performance</p>
         </div>
         <TrendingUp className="size-4 text-[#8A8580]" strokeWidth={1.9} aria-hidden="true" />

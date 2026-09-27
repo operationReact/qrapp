@@ -19,9 +19,10 @@ export const AdminDashboardProvider = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { setUser: setAdmin, isAdmin, isSuperUser } = useAuth();
-  const { activeLocationId } = useActiveLocation();
+  const { activeLocationId, isLoading: locationLoading } = useActiveLocation();
   const queryClient = useQueryClient();
   const canViewAdmin = isAdmin || isSuperUser;
+  const dashboardEnabled = canViewAdmin && !locationLoading;
 
 
   const [page, setPage] = useState(0);
@@ -50,18 +51,19 @@ export const AdminDashboardProvider = ({ children }) => {
     error: queryError,
   } = useQuery({
     ...adminOrdersOptions(ordersParams),
-    enabled: canViewAdmin,
+    enabled: dashboardEnabled,
   });
 
   const {
     data: dashboard,
     isLoading: dashboardLoading,
     isRefetching: dashboardRefreshing,
+    dataUpdatedAt: dashboardQueryUpdatedAt,
     error: dashboardError,
     refetch: refetchDashboard,
   } = useQuery({
     ...adminOrderDashboardOptions(12, activeLocationId),
-    enabled: canViewAdmin,
+    enabled: dashboardEnabled,
   });
 
   useEffect(() => {
@@ -122,6 +124,7 @@ export const AdminDashboardProvider = ({ children }) => {
       dashboard: dashboardOrDefault,
       dashboardLoading,
       dashboardRefreshing,
+      dashboardUpdatedAt: dashboardQueryUpdatedAt,
       dashboardError,
       refetchDashboard,
       page, setPage, size, setSize,
@@ -135,6 +138,7 @@ export const AdminDashboardProvider = ({ children }) => {
       ordersPageOrDefault, dashboardOrDefault,
       page, size, filters, loading, ordersPage, refreshing, error,
       dashboardLoading, dashboardRefreshing, dashboardError, refetchDashboard,
+      dashboardQueryUpdatedAt,
       orderUpdateMutation.isPending,
       loadData, handleOrderUpdate,
     ],
