@@ -1,5 +1,6 @@
 package com.broandbro.qrapp.service;
 
+import com.broandbro.qrapp.exception.OrderValidationException;
 import com.broandbro.qrapp.dto.AdminOrderDashboardResponse;
 import com.broandbro.qrapp.dto.AdminOrderResponse;
 import com.broandbro.qrapp.dto.AdminOrderUpdateRequest;
@@ -30,6 +31,8 @@ import com.broandbro.qrapp.repository.MenuRepository;
 import com.broandbro.qrapp.repository.OrderItemRepository;
 import com.broandbro.qrapp.repository.OrderRepository;
 import com.broandbro.qrapp.repository.OrderStatusHistoryRepository;
+import com.broandbro.qrapp.repository.PaymentEventRepository;
+import com.broandbro.qrapp.entity.PaymentEvent;
 import com.broandbro.qrapp.time.BusinessTime;
 import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
@@ -72,6 +75,7 @@ public class OrderService {
     private final OrderItemRepository orderItemRepo;
     private final MenuRepository menuRepository;
     private final OrderStatusHistoryRepository orderStatusHistoryRepository;
+    private final PaymentEventRepository paymentEventRepository;
     private final OrderNumberGenerator orderNumberGenerator;
     private final PricingService pricingService;
     private final PromotionRepository promotionRepository;
@@ -503,11 +507,14 @@ public class OrderService {
         LocalDateTime now = BusinessTime.now();
         OrderStatus previousStatus = order.getStatus();
         OrderStatus nextStatus = previousStatus;
+        String previousPaymentStatus = order.getPaymentStatus();
+        String nextPaymentStatus = previousPaymentStatus;
 
         if (hasStatusChange) {
             nextStatus = parseStatus(request.getStatus());
             if (!previousStatus.equals(nextStatus)) {
-                validateTransition(previousStatus, nextStatus);
+                // Pass reason for transition validation (required for corrective transitions)
+                validateTransition(previousStatus, nextStatus, order, trimToNull(request.getReason()));
                 order.setStatus(nextStatus);
                 order.setLastStatusChangedAt(now);
                 if (nextStatus == OrderStatus.PREPARING && order.getStartedAt() == null) {
@@ -527,6 +534,7 @@ public class OrderService {
             if (!normalized.equals("PAID") && !normalized.equals("PENDING") && !normalized.equals("FAILED")) {
                 throw new IllegalArgumentException("Invalid paymentStatus: " + request.getPaymentStatus());
             }
+            nextPaymentStatus = normalized;
             order.setPaymentStatus(normalized);
         }
 
@@ -541,10 +549,16 @@ public class OrderService {
         orderRepo.save(order);
 
         if (hasStatusChange && !previousStatus.equals(nextStatus)) {
-            recordStatusHistory(order.getId(), previousStatus, nextStatus, trimToNull(request.getAdminNote()), normalizedActor, now);
+            recordStatusHistory(order.getId(), previousStatus, nextStatus, trimToNull(request.getAdminNote()), 
+                    normalizedActor, now, trimToNull(request.getReason()), null, "STATUS_CHANGE");
             if (nextStatus == OrderStatus.READY) {
                 //whatsappService.sendOrderReady(order.getPhone(), order.getId());
             }
+        }
+
+        if (hasPaymentStatusChange && !previousPaymentStatus.equals(nextPaymentStatus)) {
+            recordPaymentEvent(order.getId(), previousPaymentStatus, nextPaymentStatus, 
+                    order.getGrandTotal(), order.getPaymentMethod(), normalizedActor, now);
         }
 
         return getAdminOrder(orderId);
@@ -717,7 +731,10 @@ public class OrderService {
                     historyEntry.setPreviousStatus(entry.getPreviousStatus());
                     historyEntry.setNewStatus(entry.getNewStatus());
                     historyEntry.setChangedBy(entry.getChangedBy());
+                    historyEntry.setPerformedByUserId(entry.getPerformedByUserId());
                     historyEntry.setNote(entry.getNote());
+                    historyEntry.setReason(entry.getReason());
+                    historyEntry.setActionType(entry.getActionType());
                     historyEntry.setChangedAt(entry.getChangedAt());
                     return historyEntry;
                 })
@@ -1017,11 +1034,46 @@ public class OrderService {
         return getAdminOrder(orderId);
     }
 
-    private void validateTransition(OrderStatus currentStatus, OrderStatus nextStatus) {
+    private void validateTransition(OrderStatus currentStatus, OrderStatus nextStatus, Order order, String reason) {
         List<OrderStatus> allowed = allowedTransitionsFor(currentStatus);
         if (!allowed.contains(nextStatus)) {
             throw new IllegalArgumentException("Cannot move order from " + currentStatus + " to " + nextStatus);
         }
+        
+        // Corrective transitions require a reason (audit trail)
+        if (isCorrectiveTransition(currentStatus, nextStatus)) {
+            if (reason == null || reason.trim().isEmpty()) {
+                throw new IllegalArgumentException("Reason is required for corrective transition from " + currentStatus + " to " + nextStatus);
+            }
+        }
+        
+        // Payment gate: READY → COMPLETED (hand over) requires PAID status
+        // This does NOT apply to COMPLETED → READY correction
+        if (currentStatus == OrderStatus.READY && nextStatus == OrderStatus.COMPLETED) {
+            String paymentStatus = order != null ? order.getPaymentStatus() : null;
+            if (paymentStatus == null || !paymentStatus.equalsIgnoreCase("PAID")) {
+                throw new OrderValidationException(
+                    "PAYMENT_REQUIRED_FOR_HANDOVER",
+                    "Order cannot be handed over until payment is completed. Current payment status: " + paymentStatus
+                );
+            }
+        }
+    }
+    
+    /**
+     * Determines if a transition is corrective (backward in the normal workflow).
+     * Corrective transitions require a reason for audit trail.
+     */
+    private boolean isCorrectiveTransition(OrderStatus from, OrderStatus to) {
+        // COMPLETED → READY is a corrective transition
+        if (from == OrderStatus.COMPLETED && to == OrderStatus.READY) {
+            return true;
+        }
+        // READY → PREPARING is a corrective transition
+        if (from == OrderStatus.READY && to == OrderStatus.PREPARING) {
+            return true;
+        }
+        return false;
     }
 
     private List<OrderStatus> allowedTransitionsFor(OrderStatus status) {
@@ -1029,13 +1081,22 @@ public class OrderService {
             return List.of();
         }
         return switch (status) {
+            // Pre-ordered can move to placed or cancelled
             case PRE_ORDERED -> List.of(OrderStatus.ORDER_PLACED, OrderStatus.CANCELLED);
+            // Placed: forward to preparing/ready/completed, backward none, cancel anytime
             case ORDER_PLACED -> List.of(OrderStatus.PREPARING, OrderStatus.READY, OrderStatus.COMPLETED, OrderStatus.CANCELLED);
+            // Acknowledged: no transitions (not currently used in kitchen flow)
             case ACKNOWLEDGED -> List.of();
+            // Preparing: forward to ready/completed, backward to placed, cancel anytime
             case PREPARING -> List.of(OrderStatus.ORDER_PLACED, OrderStatus.READY, OrderStatus.COMPLETED, OrderStatus.CANCELLED);
+            // Ready: forward to completed, backward to preparing, cancel anytime
             case READY -> List.of(OrderStatus.PREPARING, OrderStatus.COMPLETED, OrderStatus.CANCELLED);
+            // Delivered: no transitions (party orders only)
             case DELIVERED -> List.of();
-            case COMPLETED, CANCELLED -> List.of();
+            // Cancelled: terminal state, no transitions
+            case CANCELLED -> List.of();
+            // Completed: corrective transition back to READY (requires reason and authorization)
+            case COMPLETED -> List.of(OrderStatus.READY);
         };
     }
 
@@ -1081,15 +1142,55 @@ public class OrderService {
                                      OrderStatus newStatus,
                                      String note,
                                      String changedBy,
-                                     LocalDateTime changedAt) {
+                                     LocalDateTime changedAt,
+                                     String reason,
+                                     Long performedByUserId,
+                                     String actionType) {
         OrderStatusHistory history = new OrderStatusHistory();
         history.setOrderId(orderId);
         history.setPreviousStatus(previousStatus);
         history.setNewStatus(newStatus);
         history.setNote(note);
         history.setChangedBy(changedBy);
-        history.setChangedAt(changedAt != null ? changedAt : BusinessTime.now());
+        history.setPerformedByUserId(performedByUserId);
+        history.setReason(reason);
+        history.setActionType(actionType != null ? actionType : "STATUS_CHANGE");
+        LocalDateTime now = BusinessTime.now();
+        history.setChangedAt(changedAt != null ? changedAt : now);
+        history.setCreatedAt(changedAt != null ? changedAt : now);
         orderStatusHistoryRepository.save(history);
+    }
+
+    // Overload for backward compatibility with existing callers
+    private void recordStatusHistory(Long orderId,
+                                     OrderStatus previousStatus,
+                                     OrderStatus newStatus,
+                                     String note,
+                                     String changedBy,
+                                     LocalDateTime changedAt) {
+        recordStatusHistory(orderId, previousStatus, newStatus, note, changedBy, changedAt, null, null, "STATUS_CHANGE");
+    }
+
+    /**
+     * Records a payment status change event in the payment_events table.
+     * This creates an immutable audit trail for all manual payment updates.
+     */
+    private void recordPaymentEvent(Long orderId, 
+                                   String previousStatus, 
+                                   String newStatus,
+                                   java.math.BigDecimal amount,
+                                   PaymentMethod paymentMethod,
+                                   String performedBy,
+                                   LocalDateTime createdAt) {
+        PaymentEvent event = new PaymentEvent();
+        event.setOrderId(orderId);
+        event.setPreviousStatus(previousStatus);
+        event.setNewStatus(newStatus);
+        event.setAmount(amount);
+        event.setPaymentMethod(paymentMethod);
+        event.setPerformedBy(performedBy);
+        event.setCreatedAt(createdAt != null ? createdAt : BusinessTime.now());
+        paymentEventRepository.save(event);
     }
 
     private String trimToNull(String value) {

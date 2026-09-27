@@ -56,7 +56,10 @@ public class AdminOrderResponse {
         private OrderStatus previousStatus;
         private OrderStatus newStatus;
         private String changedBy;
+        private Long performedByUserId;
         private String note;
+        private String reason;
+        private String actionType;
         private LocalDateTime changedAt;
     }
 }

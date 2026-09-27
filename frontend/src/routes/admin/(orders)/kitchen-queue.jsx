@@ -33,6 +33,10 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from "@/components/ui/drawer";
+import { KitchenQueueOrderDetailPanel } from "@/components/admin/kitchen-queue/OrderDetailPanel";
+import { CompletedOrdersView } from "@/components/admin/kitchen-queue/CompletedOrdersView";
+import { useMarkOrderAsPaid } from "@/hooks/useOrderMutations";
+import { parseApiError, getBusinessErrorMessage } from "@/lib/api-error-parser";
 
 const STATUS_META = {
   PLACED: {
@@ -133,7 +137,7 @@ function StatusChip({ status, delayed }) {
   );
 }
 
-function OrderCard({ order, onAction, isPending }) {
+function OrderCard({ order, onAction, onExpand, isPending, onPayment }) {
   const status = getStatusKey(order.status);
   const meta = STATUS_META[status];
   const nextAction = NEXT_ACTION[status];
@@ -144,11 +148,19 @@ function OrderCard({ order, onAction, isPending }) {
   return (
     <article
       className={cn(
-        "border-l-4 rounded-[14px] border border-[#E8E2DD] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.04)] transition-shadow hover:shadow-[0_4px_12px_rgba(0,0,0,0.06)]",
+        "border-l-4 rounded-[14px] border border-[#E8E2DD] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.04)] transition-all hover:shadow-[0_4px_12px_rgba(0,0,0,0.06)] cursor-pointer",
         delayed ? "border-l-[#DC2626] bg-[#FEF2F2]" : meta?.rail,
         isPending && "opacity-70",
       )}
       aria-busy={isPending}
+      onClick={() => onExpand(order.id)}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          onExpand(order.id);
+        }
+      }}
     >
       <div className="p-3.5 sm:p-4">
         <header className="flex items-center justify-between gap-3">
@@ -214,27 +226,64 @@ function OrderCard({ order, onAction, isPending }) {
           </span>
         </div>
 
-        {nextAction && (
-          <button
-            type="button"
-            onClick={() => onAction(order.id, nextAction.status)}
-            disabled={isPending}
-            className={cn(
-              "mt-3 flex min-h-12 w-full items-center gap-2 rounded-xl px-4 py-3 text-[13px] font-bold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 active:scale-[.99] disabled:cursor-not-allowed",
-              delayed ? "bg-red-600 text-white hover:bg-red-700 active:bg-red-800" : meta?.action,
-            )}
-            aria-label={`${nextAction.label} for ${formatOrderNumber(order)}`}
-            aria-busy={isPending}
-          >
-            {isPending ? (
-              <LoaderCircle size={18} className="animate-spin" aria-hidden="true" />
-            ) : (
-              <ActionIcon weight="bold" className="size-[18px]" aria-hidden="true" />
-            )}
-            <span className="flex-1 text-left">{isPending ? "Updating…" : nextAction.label}</span>
-            {!isPending && <ArrowRight size={18} aria-hidden="true" />}
-          </button>
-        )}
+        {/* Action buttons */}
+        <div className="mt-3 space-y-2">
+          {/* Mark as Paid button for unpaid READY orders */}
+          {!paid && order.status === "READY" && onPayment && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onPayment(order.id);
+              }}
+              disabled={isPending}
+              className="w-full flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-[13px] font-bold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500/40 active:scale-[.99] disabled:cursor-not-allowed bg-green-100 text-green-700 hover:bg-green-200 active:bg-green-300 disabled:opacity-70"
+              aria-label={`Mark ${formatOrderNumber(order)} as paid`}
+              aria-busy={isPending}
+            >
+              Mark as Paid
+            </button>
+          )}
+
+          {/* Hand Over / Stage action button */}
+          {nextAction && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onAction(order.id, nextAction.status);
+              }}
+              disabled={isPending || (order.status === "READY" && !paid)}
+              className={cn(
+                "w-full flex items-center gap-2 rounded-xl px-4 py-3 text-[13px] font-bold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 active:scale-[.99] disabled:cursor-not-allowed",
+                order.status === "READY" && !paid
+                  ? "bg-gray-100 text-gray-500 cursor-not-allowed"
+                  : delayed
+                    ? "bg-red-600 text-white hover:bg-red-700 active:bg-red-800"
+                    : meta?.action,
+              )}
+              aria-label={`${nextAction.label} for ${formatOrderNumber(order)}`}
+              aria-busy={isPending}
+              title={order.status === "READY" && !paid ? "Mark as Paid before hand over" : undefined}
+            >
+              {isPending ? (
+                <LoaderCircle size={18} className="animate-spin" aria-hidden="true" />
+              ) : (
+                <ActionIcon weight="bold" className="size-[18px]" aria-hidden="true" />
+              )}
+              <span className="flex-1 text-left">{isPending ? "Updating…" : nextAction.label}</span>
+              {!isPending && <ArrowRight size={18} aria-hidden="true" />}
+            </button>
+          )}
+
+          {/* Helper text for disabled hand over */}
+          {order.status === "READY" && !paid && (
+            <p className="text-xs text-amber-600 bg-amber-50 px-2.5 py-1.5 rounded-lg flex items-center gap-1">
+              <AlertTriangle size={12} aria-hidden="true" />
+              <span>Payment required before hand over</span>
+            </p>
+          )}
+        </div>
       </div>
     </article>
   );
@@ -268,11 +317,13 @@ function KitchenQueuePage() {
   const { user, isAdmin, isSuperUser } = useAuth();
   const { activeLocationId } = useActiveLocation();
   const queryClient = useQueryClient();
+  const [activeTab, setActiveTab] = useState("active");
   const [activeFilter, setActiveFilter] = useState("ALL");
   const [paymentFilter, setPaymentFilter] = useState("ALL");
   const [draftPaymentFilter, setDraftPaymentFilter] = useState("ALL");
   const [filterOpen, setFilterOpen] = useState(false);
   const [pendingId, setPendingId] = useState(null);
+  const [expandedOrderId, setExpandedOrderId] = useState(null);
 
   const {
     data: liveOrders = [],
@@ -287,15 +338,23 @@ function KitchenQueuePage() {
   });
 
   const mutation = useMutation({
-    mutationFn: ({ orderId, status }) => updateAdminOrder(orderId, { status }, activeLocationId),
-    onMutate: ({ orderId }) => setPendingId(orderId),
-    onError: () => toast.error("Couldn't update the kitchen order. Try again."),
+    mutationFn: ({ orderId, status }) =>
+      updateAdminOrder(orderId, { status }, activeLocationId),
+    onError: (error) => {
+      const parsedError = parseApiError(error);
+      const message = parsedError.isBusinessError
+        ? getBusinessErrorMessage(parsedError.code, parsedError.message)
+        : parsedError.message;
+      toast.error(message);
+    },
     onSettled: () => setPendingId(null),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["orders", "admin", "live"] });
       queryClient.invalidateQueries({ queryKey: ["orders", "admin"] });
     },
   });
+
+  const paymentMutation = useMarkOrderAsPaid(activeLocationId);
 
   const orders = useMemo(
     () => liveOrders.filter((order) => !order.preOrder),
@@ -382,7 +441,44 @@ function KitchenQueuePage() {
           <LocationSelector header className="h-10 min-h-10 w-full rounded-[10px] shadow-none" />
         </div>
 
-        <nav className="mt-2 flex gap-2 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label="Kitchen order status">
+        {/* Active/Completed Tabs */}
+        <div className="mt-2 flex gap-1 border-b border-[#E8E2DD]">
+          <button
+            type="button"
+            onClick={() => setActiveTab("active")}
+            className={cn(
+              "min-h-10 px-4 text-sm font-bold transition-colors relative",
+              activeTab === "active"
+                ? "text-[#171717]"
+                : "text-[#6B6B6B] hover:text-[#171717]"
+            )}
+          >
+            Active
+            {activeTab === "active" && (
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#171717]" aria-hidden="true" />
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("completed")}
+            className={cn(
+              "min-h-10 px-4 text-sm font-bold transition-colors relative",
+              activeTab === "completed"
+                ? "text-[#171717]"
+                : "text-[#6B6B6B] hover:text-[#171717]"
+            )}
+          >
+            Completed
+            {activeTab === "completed" && (
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#171717]" aria-hidden="true" />
+            )}
+          </button>
+        </div>
+
+        {/* Status Filter Nav - Only show on Active tab */}
+        {activeTab === "active" && (
+          <>
+            <nav className="mt-2 flex gap-2 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label="Kitchen order status">
           {PRIMARY_FILTERS.map((filter) => (
             <button
               key={filter.key}
@@ -430,6 +526,8 @@ function KitchenQueuePage() {
             Filter{paymentFilter !== "ALL" && ` · ${paymentFilter === "PAID" ? "Paid" : "Unpaid"}`}
           </button>
         </div>
+          </>
+        )}
 
         <Drawer open={filterOpen} onOpenChange={setFilterOpen}>
           <DrawerContent className="rounded-t-[20px] px-5 pb-[env(safe-area-inset-bottom)]">
@@ -482,55 +580,85 @@ function KitchenQueuePage() {
       </header>
 
       <main className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-4 py-4 pb-[calc(1rem+env(safe-area-inset-bottom))] [touch-action:pan-y] sm:px-6 sm:py-5">
-        {isError && (
-          <div className="mb-4 flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-3.5 py-3 text-red-800" role="alert">
-            <CircleAlert size={18} className="mt-0.5 shrink-0 text-red-600" aria-hidden="true" />
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-bold">{orders.length ? "Queue connection interrupted" : "Couldn't load the kitchen queue"}</p>
-              <p className="mt-0.5 text-xs text-red-700/80">
-                {orders.length ? "Showing the last available orders." : "Try again to retrieve live orders."}
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => refetch()}
-              className="min-h-9 shrink-0 rounded-lg px-2 text-xs font-bold text-red-700 underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
-            >
-              Try again
-            </button>
-          </div>
-        )}
+        {activeTab === "active" ? (
+          <>
+            {isError && (
+              <div className="mb-4 flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-3.5 py-3 text-red-800" role="alert">
+                <CircleAlert size={18} className="mt-0.5 shrink-0 text-red-600" aria-hidden="true" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-bold">{orders.length ? "Queue connection interrupted" : "Couldn't load the kitchen queue"}</p>
+                  <p className="mt-0.5 text-xs text-red-700/80">
+                    {orders.length ? "Showing the last available orders." : "Try again to retrieve live orders."}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => refetch()}
+                  className="min-h-9 shrink-0 rounded-lg px-2 text-xs font-bold text-red-700 underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
+                >
+                  Try again
+                </button>
+              </div>
+            )}
 
-        {isLoading ? (
-          <div className="grid grid-cols-1 gap-2.5 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-            {Array.from({ length: 4 }, (_, index) => <QueueSkeleton key={index} />)}
-          </div>
-        ) : paymentFilteredOrders.length === 0 ? (
-          <div className="flex min-h-[220px] flex-col items-center justify-center rounded-[14px] border border-dashed border-[#E8E2DD] bg-white/60 px-6 text-center">
-            <span className="grid size-12 place-items-center rounded-2xl bg-emerald-50 text-emerald-600">
-              <CheckCircle2 size={24} aria-hidden="true" />
-            </span>
-            <h2 className="mt-4 text-base font-bold text-zinc-800">{emptyLabel}</h2>
-            <p className="mt-1 max-w-xs text-sm leading-relaxed text-zinc-500">
-              {activeFilter === "ALL" ? "No live orders are waiting for kitchen action." : "Try another filter to view more orders."}
-            </p>
-            <p className="mt-3 text-xs font-medium text-zinc-400">
-              {isFetching ? "Updating…" : "Updated just now"}
-            </p>
-          </div>
+            {isLoading ? (
+              <div className="grid grid-cols-1 gap-2.5 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+                {Array.from({ length: 4 }, (_, index) => <QueueSkeleton key={index} />)}
+              </div>
+            ) : paymentFilteredOrders.length === 0 ? (
+              <div className="flex min-h-[220px] flex-col items-center justify-center rounded-[14px] border border-dashed border-[#E8E2DD] bg-white/60 px-6 text-center">
+                <span className="grid size-12 place-items-center rounded-2xl bg-emerald-50 text-emerald-600">
+                  <CheckCircle2 size={24} aria-hidden="true" />
+                </span>
+                <h2 className="mt-4 text-base font-bold text-zinc-800">{emptyLabel}</h2>
+                <p className="mt-1 max-w-xs text-sm leading-relaxed text-zinc-500">
+                  {activeFilter === "ALL" ? "No live orders are waiting for kitchen action." : "Try another filter to view more orders."}
+                </p>
+                <p className="mt-3 text-xs font-medium text-zinc-400">
+                  {isFetching ? "Updating…" : "Updated just now"}
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 items-start gap-2.5 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+                {paymentFilteredOrders.map((order) => (
+                  <OrderCard
+                    key={order.id}
+                    order={order}
+                    onAction={(orderId, status) => {
+                      setPendingId(orderId);
+                      mutation.mutate({ orderId, status });
+                    }}
+                    onPayment={(orderId) => {
+                      setPendingId(orderId);
+                      paymentMutation.mutate(orderId);
+                    }}
+                    onExpand={setExpandedOrderId}
+                    isPending={pendingId === order.id && (mutation.isPending || paymentMutation.isPending)}
+                  />
+                ))}
+              </div>
+            )}
+          </>
         ) : (
-          <div className="grid grid-cols-1 items-start gap-2.5 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-            {paymentFilteredOrders.map((order) => (
-              <OrderCard
-                key={order.id}
-                order={order}
-                onAction={(orderId, status) => mutation.mutate({ orderId, status })}
-                isPending={pendingId === order.id}
-              />
-            ))}
-          </div>
+          <CompletedOrdersView
+            activeLocationId={activeLocationId}
+            expandedOrderId={expandedOrderId}
+            onExpandOrder={setExpandedOrderId}
+          />
         )}
       </main>
+
+      {/* Expanded Order Detail Panel */}
+      <KitchenQueueOrderDetailPanel
+        orderId={expandedOrderId}
+        isOpen={!!expandedOrderId}
+        onOpenChange={(open) => {
+          if (!open) {
+            setExpandedOrderId(null);
+          }
+        }}
+        locationId={activeLocationId}
+      />
     </div>
   );
 }

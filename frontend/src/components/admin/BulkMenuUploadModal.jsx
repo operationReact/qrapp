@@ -33,6 +33,7 @@ export default function BulkMenuUploadModal({ open, onClose, onSuccess }) {
   const [summary, setSummary] = useState(null); // BulkMenuUploadSummary
   const [uploadMode, setUploadMode] = useState("UPSERT");
   const [error, setError] = useState(null);
+  const [isDownloadingTemplate, setIsDownloadingTemplate] = useState(false);
   const { activeLocationId } = useActiveLocation();
 
   // ---- helpers ----
@@ -103,16 +104,45 @@ export default function BulkMenuUploadModal({ open, onClose, onSuccess }) {
   };
 
   const handleDownloadTemplate = async () => {
+    if (isDownloadingTemplate) return;
+    setIsDownloadingTemplate(true);
+    setError(null);
     try {
-      const res = await bulkMenuDownloadTemplate();
-      const url = URL.createObjectURL(res.data);
+      const response = await bulkMenuDownloadTemplate();
+      const blob = response.data;
+      const contentType = response.headers?.["content-type"] || blob?.type || "";
+      console.debug("[BulkMenuUpload] Template response", {
+        status: response.status,
+        contentType,
+        size: blob?.size || 0,
+      });
+      if (response.status !== 200 || !(blob instanceof Blob) || blob.size === 0) {
+        throw new Error("Template response was empty or invalid.");
+      }
+      if (contentType.includes("application/json")) {
+        const message = await blob.text();
+        throw new Error(message || "Template endpoint returned an error.");
+      }
+      const disposition = response.headers?.["content-disposition"] || "";
+      const filenameMatch = disposition.match(/filename="?([^";]+)"?/i);
+      const filename = filenameMatch?.[1] || "menu-upload-template.xlsx";
+      const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = "menu_bulk_upload_template.xlsx";
+      a.download = filename;
+      document.body.appendChild(a);
       a.click();
+      a.remove();
       URL.revokeObjectURL(url);
-    } catch {
-      setError("Failed to download template.");
+    } catch (err) {
+      console.error("[BulkMenuUpload] Template download failed", {
+        status: err?.response?.status,
+        contentType: err?.response?.headers?.["content-type"],
+        message: err?.message,
+      });
+      setError("Unable to download the template. Please try again.");
+    } finally {
+      setIsDownloadingTemplate(false);
     }
   };
 
@@ -149,10 +179,14 @@ export default function BulkMenuUploadModal({ open, onClose, onSuccess }) {
                 <span>
                   Don't have the template?{" "}
                   <button
+                    type="button"
                     onClick={handleDownloadTemplate}
+                    disabled={isDownloadingTemplate}
                     className="font-semibold underline underline-offset-2 hover:text-blue-900"
                   >
-                    Download the Excel template
+                    {isDownloadingTemplate
+                      ? "Downloading template..."
+                      : "Download the Excel template"}
                   </button>{" "}
                   and fill it in before uploading.
                 </span>

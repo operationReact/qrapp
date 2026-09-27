@@ -53,13 +53,18 @@ public class SuperAdminLocationController {
             case "ALL" -> null;
             default -> throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "invalid_location_status");
         };
-        return locationRepository.findForAdminFilters(active, clean(state), clean(city), clean(country),
-                        customerCompanyId, clean(search), PageRequest.of(page, size, Sort.by("name").ascending()))
+        return locationRepository.findForAdminFilters(active, cleanLower(state), cleanLower(city), cleanLower(country),
+                        customerCompanyId, cleanLower(search), PageRequest.of(page, size, Sort.by("name").ascending()))
                 .map(LocationResponse::from);
     }
 
     private static String clean(String value) {
         return value == null || value.isBlank() ? null : value.trim();
+    }
+
+    private static String cleanLower(String value) {
+        String cleaned = clean(value);
+        return cleaned == null ? "" : cleaned.toLowerCase(java.util.Locale.ROOT);
     }
 
     @PostMapping("/locations")

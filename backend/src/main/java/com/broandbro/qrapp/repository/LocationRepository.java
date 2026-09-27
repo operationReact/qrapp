@@ -18,18 +18,18 @@ public interface LocationRepository extends JpaRepository<Location, Long> {
     @Query("""
             select distinct l from Location l
             where (:active is null or l.active = :active)
-              and (:state is null or lower(l.stateUt) = lower(:state))
-              and (:city is null or lower(l.city) = lower(:city))
-              and (:country is null or lower(l.country) = lower(:country))
+              and (:state = '' or lower(l.stateUt) = :state)
+              and (:city = '' or lower(l.city) = :city)
+              and (:country = '' or lower(l.country) = :country)
               and (:customerCompanyId is null or exists (
                   select link.id from LocationCustomerCompany link
                   where link.location = l and link.customerCompany.id = :customerCompanyId
               ))
-              and (:search is null or
-                   lower(l.name) like lower(concat('%', :search, '%')) or
-                   lower(l.code) like lower(concat('%', :search, '%')) or
-                   lower(coalesce(l.city, '')) like lower(concat('%', :search, '%')) or
-                   lower(coalesce(l.stateUt, '')) like lower(concat('%', :search, '%')) or
+              and (:search = '' or
+                   lower(l.name) like concat('%', :search, '%') or
+                   lower(l.code) like concat('%', :search, '%') or
+                   lower(coalesce(l.city, '')) like concat('%', :search, '%') or
+                   lower(coalesce(l.stateUt, '')) like concat('%', :search, '%') or
                    coalesce(l.pinCode, '') like concat('%', :search, '%'))
             """)
     Page<Location> findForAdminFilters(@Param("active") Boolean active,

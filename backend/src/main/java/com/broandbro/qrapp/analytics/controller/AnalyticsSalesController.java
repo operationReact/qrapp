@@ -77,6 +77,7 @@ public class AnalyticsSalesController {
         LocalDate resolvedFrom = from != null ? from : resolvedTo.minusDays(1);
         validateRange(resolvedFrom, resolvedTo);
         AnalyticsLocationScope scope = scopeResolver.resolve(authentication, locationId);
+        refreshTodaySnapshotIfIncluded(resolvedFrom, resolvedTo);
 
         log.debug("[SalesController] GET /daily from={} to={} locationId={}", resolvedFrom, resolvedTo, locationId);
         return ResponseEntity.ok(
@@ -165,6 +166,7 @@ public class AnalyticsSalesController {
             Authentication authentication) {
         validateRange(from, to);
         AnalyticsLocationScope scope = scopeResolver.resolve(authentication, locationId);
+        refreshTodaySnapshotIfIncluded(from, to);
         return ResponseEntity.ok(ApiResponse.ok(salesService.getDashboardSummary(from, to, scope)));
     }
 
@@ -199,6 +201,13 @@ public class AnalyticsSalesController {
         }
         if (from.plusDays(365).isBefore(to)) {
             throw new IllegalArgumentException("Date range must not exceed 365 days");
+        }
+    }
+
+    private void refreshTodaySnapshotIfIncluded(LocalDate from, LocalDate to) {
+        LocalDate today = BusinessTime.today();
+        if (!to.isBefore(today) && !from.isAfter(today)) {
+            dailySalesScheduler.executeUpsert(today);
         }
     }
 }
