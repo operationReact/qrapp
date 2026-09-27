@@ -48,9 +48,9 @@ variable "alarm_email" {
 }
 
 variable "media_bucket_name" {
-  description = "Name of the shared S3 bucket for AI-generated menu item images. Created once in dev and shared across all environments."
+  description = "Name of the development S3 bucket for AI-generated menu item images."
   type        = string
-  default     = "broandbro-menu-images-shared"
+  default     = "broandbro-dev-root-bucket"
 }
 
 variable "existing_certificate_arn" {

@@ -23,5 +23,5 @@ db_username        = "broandbro"
 alarm_email = ""
 
 # ── Media bucket ──────────────────────────────────────────────────────────────
-# Shared media bucket used by all environments
-media_bucket_name = "broandbro-menu-images-shared"
+# Production media bucket for AI-generated menu images
+media_bucket_name = "broandbro-prod-root-bucket"

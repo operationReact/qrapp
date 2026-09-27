@@ -60,7 +60,7 @@ broandbro/
 | Frontend domain | dev.broandbro.in          | broandbro.in |
 | API domain | dev-api.broandbro.in      | api.broandbro.in |
 | S3 frontend bucket | broandbro-develop-ui      | broandbro-prod-ui |
-| S3 media bucket | broandbro-menu-images-shared (shared) | broandbro-menu-images-shared (shared) |
+| S3 media bucket | broandbro-dev-root-bucket | broandbro-prod-root-bucket |
 | CloudFront pricing | PriceClass_100            | PriceClass_200 |
 | Terraform state | env/dev/terraform.tfstate | env/prod/terraform.tfstate |
 | Approval required | ❌                         | ✅ |
@@ -524,4 +524,3 @@ terraform force-unlock LOCK_ID
 - [ ] EC2 runs as non-root `broandbro` user
 - [ ] OIDC authentication (no long-lived AWS keys in GitHub)
 - [ ] Deletion protection enabled on prod RDS
-

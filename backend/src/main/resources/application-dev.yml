@@ -94,7 +94,7 @@ razorpay:
 aws:
   s3:
     enabled: ${app.parameter-store.aws.s3.enabled:true}
-    bucket-name: ${app.parameter-store.aws.s3.bucketName:broandbro-menu-images-shared}
+    bucket-name: ${app.parameter-store.aws.s3.bucketName:broandbro-dev-root-bucket}
     location-bucket-name: ${app.parameter-store.aws.s3.locationBucketName:broandbro-location-images-dev}
     region: ${AWS_S3_REGION:us-east-1}
     access-key: ${app.parameter-store.aws.s3.accessKey:}
