@@ -137,14 +137,20 @@ resource "aws_s3_bucket_policy" "media" {
           AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"
         }
         Action   = ["s3:PutObject", "s3:DeleteObject", "s3:GetObject"]
-        Resource = "${aws_s3_bucket.media.arn}/menu-items/*"
+        Resource = [
+          "${aws_s3_bucket.media.arn}/menu-items/*",
+          "${aws_s3_bucket.media.arn}/locations/menu-images/*"
+        ]
       },
       {
         Sid       = "PublicReadMenuImages"
         Effect    = "Allow"
         Principal = "*"
         Action    = ["s3:GetObject"]
-        Resource  = "${aws_s3_bucket.media.arn}/menu-items/*"
+        Resource = [
+          "${aws_s3_bucket.media.arn}/menu-items/*",
+          "${aws_s3_bucket.media.arn}/locations/menu-images/*"
+        ]
       },
       {
         Sid       = "DenyNonSSLUploads"
