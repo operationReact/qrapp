@@ -24,6 +24,8 @@ import {
 } from "@/components/ui/select";
 import { getAdminOrder, updateOrderStatusAdmin } from "@/services/order-service";
 import { cn, isOrderPaid, formatAge } from "@/lib/utils";
+import { parseApiError, getBusinessErrorMessage } from "@/lib/api-error-parser";
+import { useMarkOrderAsPaid, useUpdateOrderStatus } from "@/hooks/useOrderMutations";
 
 const STATUS_META = {
   ORDER_PLACED: { label: "New", color: "#7C3AED", dot: "bg-[#7C3AED]" },
@@ -316,29 +318,39 @@ export function KitchenQueueOrderDetailPanel({
     enabled: isOpen && !!orderId,
   });
 
-  // Update order status mutation
-  const updateMutation = useMutation({
-    mutationFn: ({ status, reason, paymentStatus }) =>
-      updateOrderStatusAdmin(orderId, { status, reason, paymentStatus }, locationId),
+  // Use shared hook for payment mutations
+  const paymentMutation = useMarkOrderAsPaid(locationId, () => {
+    setPaymentDialogOpen(false);
+  });
+
+  // Custom mutation for stage/status changes
+  const stageMutation = useMutation({
+    mutationFn: ({ status, reason }) =>
+      updateOrderStatusAdmin(orderId, { status, reason }, locationId),
     onError: (error) => {
-      const message = error?.response?.data?.message || "Failed to update order";
-      if (message.includes("PAYMENT_REQUIRED_FOR_HANDOVER")) {
-        // Extract payment status from message: "... Current payment status: PENDING"
-        const statusMatch = message.match(/Current payment status: (\w+)/);
-        const status = statusMatch ? statusMatch[1] : "pending";
-        toast.error(`Cannot hand over: Payment is ${status}. Mark as Paid first.`);
-      } else if (message.includes("Reason is required")) {
-        toast.error("Please provide a reason for this correction");
-      } else if (message.includes("PAYMENT_REQUIRED")) {
-        toast.error("Payment required before hand over");
-      } else {
-        toast.error(message);
+      const parsedError = parseApiError(error);
+
+      // Payment-specific error handling
+      if (parsedError.code === "PAYMENT_REQUIRED_FOR_HANDOVER") {
+        toast.error("Payment is required before hand over. Mark as Paid first.");
+        return;
       }
+
+      // Reason required for corrective transitions
+      if (parsedError.message?.includes("Reason is required")) {
+        toast.error("Please provide a reason for this correction");
+        return;
+      }
+
+      const message = parsedError.isBusinessError
+        ? getBusinessErrorMessage(parsedError.code, parsedError.message)
+        : parsedError.message;
+
+      toast.error(message);
     },
     onSuccess: () => {
       toast.success("Order updated successfully");
       setStageControlOpen(false);
-      setPaymentDialogOpen(false);
       setTargetStatus(null);
       // Invalidate all relevant queries
       queryClient.invalidateQueries({ queryKey: ["orders", "admin", "live"] });
@@ -354,11 +366,11 @@ export function KitchenQueueOrderDetailPanel({
   };
 
   const handleStageConfirm = (reason) => {
-    updateMutation.mutate({ status: targetStatus, reason });
+    stageMutation.mutate({ status: targetStatus, reason });
   };
 
   const handleMarkAsPaid = () => {
-    updateMutation.mutate({ paymentStatus: "PAID" });
+    paymentMutation.mutate(orderId);
   };
 
   if (!isOpen) return null;

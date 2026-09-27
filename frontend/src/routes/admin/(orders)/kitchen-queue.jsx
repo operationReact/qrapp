@@ -35,6 +35,8 @@ import {
 } from "@/components/ui/drawer";
 import { KitchenQueueOrderDetailPanel } from "@/components/admin/kitchen-queue/OrderDetailPanel";
 import { CompletedOrdersView } from "@/components/admin/kitchen-queue/CompletedOrdersView";
+import { useMarkOrderAsPaid } from "@/hooks/useOrderMutations";
+import { parseApiError, getBusinessErrorMessage } from "@/lib/api-error-parser";
 
 const STATUS_META = {
   PLACED: {
@@ -135,7 +137,7 @@ function StatusChip({ status, delayed }) {
   );
 }
 
-function OrderCard({ order, onAction, onExpand, isPending }) {
+function OrderCard({ order, onAction, onExpand, isPending, onPayment }) {
   const status = getStatusKey(order.status);
   const meta = STATUS_META[status];
   const nextAction = NEXT_ACTION[status];
@@ -224,30 +226,64 @@ function OrderCard({ order, onAction, onExpand, isPending }) {
           </span>
         </div>
 
-        {nextAction && (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onAction(order.id, nextAction.status);
-            }}
-            disabled={isPending}
-            className={cn(
-              "mt-3 flex min-h-12 w-full items-center gap-2 rounded-xl px-4 py-3 text-[13px] font-bold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 active:scale-[.99] disabled:cursor-not-allowed",
-              delayed ? "bg-red-600 text-white hover:bg-red-700 active:bg-red-800" : meta?.action,
-            )}
-            aria-label={`${nextAction.label} for ${formatOrderNumber(order)}`}
-            aria-busy={isPending}
-          >
-            {isPending ? (
-              <LoaderCircle size={18} className="animate-spin" aria-hidden="true" />
-            ) : (
-              <ActionIcon weight="bold" className="size-[18px]" aria-hidden="true" />
-            )}
-            <span className="flex-1 text-left">{isPending ? "Updating…" : nextAction.label}</span>
-            {!isPending && <ArrowRight size={18} aria-hidden="true" />}
-          </button>
-        )}
+        {/* Action buttons */}
+        <div className="mt-3 space-y-2">
+          {/* Mark as Paid button for unpaid READY orders */}
+          {!paid && order.status === "READY" && onPayment && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onPayment(order.id);
+              }}
+              disabled={isPending}
+              className="w-full flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-[13px] font-bold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500/40 active:scale-[.99] disabled:cursor-not-allowed bg-green-100 text-green-700 hover:bg-green-200 active:bg-green-300 disabled:opacity-70"
+              aria-label={`Mark ${formatOrderNumber(order)} as paid`}
+              aria-busy={isPending}
+            >
+              Mark as Paid
+            </button>
+          )}
+
+          {/* Hand Over / Stage action button */}
+          {nextAction && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onAction(order.id, nextAction.status);
+              }}
+              disabled={isPending || (order.status === "READY" && !paid)}
+              className={cn(
+                "w-full flex items-center gap-2 rounded-xl px-4 py-3 text-[13px] font-bold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 active:scale-[.99] disabled:cursor-not-allowed",
+                order.status === "READY" && !paid
+                  ? "bg-gray-100 text-gray-500 cursor-not-allowed"
+                  : delayed
+                    ? "bg-red-600 text-white hover:bg-red-700 active:bg-red-800"
+                    : meta?.action,
+              )}
+              aria-label={`${nextAction.label} for ${formatOrderNumber(order)}`}
+              aria-busy={isPending}
+              title={order.status === "READY" && !paid ? "Mark as Paid before hand over" : undefined}
+            >
+              {isPending ? (
+                <LoaderCircle size={18} className="animate-spin" aria-hidden="true" />
+              ) : (
+                <ActionIcon weight="bold" className="size-[18px]" aria-hidden="true" />
+              )}
+              <span className="flex-1 text-left">{isPending ? "Updating…" : nextAction.label}</span>
+              {!isPending && <ArrowRight size={18} aria-hidden="true" />}
+            </button>
+          )}
+
+          {/* Helper text for disabled hand over */}
+          {order.status === "READY" && !paid && (
+            <p className="text-xs text-amber-600 bg-amber-50 px-2.5 py-1.5 rounded-lg flex items-center gap-1">
+              <AlertTriangle size={12} aria-hidden="true" />
+              <span>Payment required before hand over</span>
+            </p>
+          )}
+        </div>
       </div>
     </article>
   );
@@ -302,16 +338,23 @@ function KitchenQueuePage() {
   });
 
   const mutation = useMutation({
-    mutationFn: ({ orderId, status }) => updateAdminOrder(orderId, { status }, activeLocationId),
-    onMutate: ({ orderId }) => setPendingId(orderId),
-    onError: () => toast.error("Couldn't update the kitchen order. Try again."),
+    mutationFn: ({ orderId, status }) =>
+      updateAdminOrder(orderId, { status }, activeLocationId),
+    onError: (error) => {
+      const parsedError = parseApiError(error);
+      const message = parsedError.isBusinessError
+        ? getBusinessErrorMessage(parsedError.code, parsedError.message)
+        : parsedError.message;
+      toast.error(message);
+    },
     onSettled: () => setPendingId(null),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["orders", "admin", "live"] });
-      // Invalidate all admin order queries (both active and completed)
       queryClient.invalidateQueries({ queryKey: ["orders", "admin"] });
     },
   });
+
+  const paymentMutation = useMarkOrderAsPaid(activeLocationId);
 
   const orders = useMemo(
     () => liveOrders.filter((order) => !order.preOrder),
@@ -581,9 +624,16 @@ function KitchenQueuePage() {
                   <OrderCard
                     key={order.id}
                     order={order}
-                    onAction={(orderId, status) => mutation.mutate({ orderId, status })}
+                    onAction={(orderId, status) => {
+                      setPendingId(orderId);
+                      mutation.mutate({ orderId, status });
+                    }}
+                    onPayment={(orderId) => {
+                      setPendingId(orderId);
+                      paymentMutation.mutate(orderId);
+                    }}
                     onExpand={setExpandedOrderId}
-                    isPending={pendingId === order.id}
+                    isPending={pendingId === order.id && (mutation.isPending || paymentMutation.isPending)}
                   />
                 ))}
               </div>

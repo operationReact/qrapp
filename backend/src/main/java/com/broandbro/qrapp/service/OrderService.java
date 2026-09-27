@@ -1,5 +1,6 @@
 package com.broandbro.qrapp.service;
 
+import com.broandbro.qrapp.exception.OrderValidationException;
 import com.broandbro.qrapp.dto.AdminOrderDashboardResponse;
 import com.broandbro.qrapp.dto.AdminOrderResponse;
 import com.broandbro.qrapp.dto.AdminOrderUpdateRequest;
@@ -1051,7 +1052,10 @@ public class OrderService {
         if (currentStatus == OrderStatus.READY && nextStatus == OrderStatus.COMPLETED) {
             String paymentStatus = order != null ? order.getPaymentStatus() : null;
             if (paymentStatus == null || !paymentStatus.equalsIgnoreCase("PAID")) {
-                throw new IllegalStateException("PAYMENT_REQUIRED_FOR_HANDOVER: Order cannot be handed over until payment is completed. Current payment status: " + paymentStatus);
+                throw new OrderValidationException(
+                    "PAYMENT_REQUIRED_FOR_HANDOVER",
+                    "Order cannot be handed over until payment is completed. Current payment status: " + paymentStatus
+                );
             }
         }
     }

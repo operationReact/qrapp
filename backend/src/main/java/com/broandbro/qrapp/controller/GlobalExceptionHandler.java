@@ -15,6 +15,8 @@ import com.broandbro.qrapp.exception.InventoryNotConfiguredException;
 import com.broandbro.qrapp.exception.InventoryOperationException;
 import com.broandbro.qrapp.exception.MenuItemNotFoundException;
 import com.broandbro.qrapp.exception.OpenAiImageGenerationException;
+import com.broandbro.qrapp.exception.OrderValidationException;
+import com.broandbro.qrapp.dto.ErrorResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -83,6 +85,13 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(InsufficientStockException.class)
     public ResponseEntity<String> handleInsufficientStock(InsufficientStockException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(ex.getMessage());
+    }
+
+    @ExceptionHandler(OrderValidationException.class)
+    public ResponseEntity<ErrorResponse> handleOrderValidation(OrderValidationException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(
+            new ErrorResponse(ex.getErrorCode(), ex.getMessage())
+        );
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
