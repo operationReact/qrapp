@@ -123,13 +123,18 @@ jobs:
             if [ -z "$STATE_OUTPUT" ]; then
               echo "Importing media bucket..."
               terraform import aws_s3_bucket.media "$BUCKET"
-            elif echo "$STATE_OUTPUT" | grep -q "(tainted)" || ! echo "$STATE_OUTPUT" | grep -Eq "^[[:space:]]*(bucket|id)[[:space:]]*=[[:space:]]*\"$BUCKET\"$"; then
+            elif echo "$STATE_OUTPUT" | grep -q "(tainted)" \
+              || ! echo "$STATE_OUTPUT" | grep -Eq "^[[:space:]]*bucket[[:space:]]*=[[:space:]]*\"$BUCKET\"$" \
+              || ! echo "$STATE_OUTPUT" | grep -Eq "^[[:space:]]*id[[:space:]]*=[[:space:]]*\"$BUCKET\"$"; then
               echo "State does not match $BUCKET - resetting media bucket resources..."
               for resource in \
                 aws_s3_bucket_policy.media \
                 aws_s3_bucket_cors_configuration.media \
                 aws_s3_bucket_lifecycle_configuration.media \
                 aws_s3_bucket_versioning.media \
+                aws_s3_bucket_website_configuration.media \
+                aws_s3_bucket_acl.media \
+                aws_s3_bucket_ownership_controls.media \
                 aws_s3_bucket_server_side_encryption_configuration.media \
                 aws_s3_bucket_public_access_block.media \
                 aws_s3_bucket.media; do
