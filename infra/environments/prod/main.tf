@@ -56,6 +56,64 @@ data "aws_s3_bucket" "media" {
   bucket = var.media_bucket_name
 }
 
+# ── Allow public read access for media bucket ──────────────────────────────────
+resource "aws_s3_bucket_public_access_block" "media" {
+  bucket = data.aws_s3_bucket.media.id
+
+  block_public_acls       = false
+  block_public_policy     = false
+  ignore_public_acls      = false
+  restrict_public_buckets = false
+}
+
+# ── Bucket policy: allow public read access for images ────────────────────────
+resource "aws_s3_bucket_policy" "media" {
+  bucket = data.aws_s3_bucket.media.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "AllowPublicRead"
+        Effect = "Allow"
+        Principal = "*"
+        Action   = "s3:GetObject"
+        Resource = "${data.aws_s3_bucket.media.arn}/*"
+      },
+      {
+        Sid       = "DenyNonSSL"
+        Effect    = "Deny"
+        Principal = "*"
+        Action    = "s3:*"
+        Resource = [
+          data.aws_s3_bucket.media.arn,
+          "${data.aws_s3_bucket.media.arn}/*"
+        ]
+        Condition = {
+          Bool = { "aws:SecureTransport" = "false" }
+        }
+      }
+    ]
+  })
+
+  depends_on = [aws_s3_bucket_public_access_block.media]
+}
+
+# ── CORS configuration for browser access ──────────────────────────────────────
+resource "aws_s3_bucket_cors_configuration" "media" {
+  bucket = data.aws_s3_bucket.media.id
+
+  cors_rule {
+    allowed_headers = ["*"]
+    allowed_methods = ["GET", "HEAD"]
+    allowed_origins = ["*"]
+    expose_headers  = ["ETag", "x-amz-version-id"]
+    max_age_seconds = 3000
+  }
+
+  depends_on = [aws_s3_bucket_public_access_block.media]
+}
+
 # ── Security Groups ───────────────────────────────────────────────────────────
 module "security_group" {
   source = "../../modules/security-group"
