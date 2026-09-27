@@ -3,6 +3,7 @@ spring:
     import:
       - "optional:aws-parameterstore:/broandbro/backend/prod?prefix=app.parameter-store."
       - "optional:aws-parameterstore:/broandbro/backend/prod/whatsapp?prefix=app.parameter-store.whatsapp."
+      - "optional:aws-parameterstore:/broandbro/backend/prod/openai?prefix=app.parameter-store.openai."
   cache:
     type: caffeine
     cache-names: walletBalance,menu,menuRecommended,categories,hallOfHappiness,otp
@@ -59,7 +60,7 @@ aws:
     secret-key: ${app.parameter-store.aws.s3.secretKey:}
 
 openai:
-  api-key: ${app.parameter-store.openai.apiKey}
+  api-key: ${app.parameter-store.openai.apiKey:${OPENAI_API_KEY:}}
   image-model: ${OPENAI_IMAGE_MODEL:gpt-image-1}
   image-size: ${OPENAI_IMAGE_SIZE:1024x1024}
 
