@@ -507,7 +507,8 @@ public class OrderService {
         if (hasStatusChange) {
             nextStatus = parseStatus(request.getStatus());
             if (!previousStatus.equals(nextStatus)) {
-                validateTransition(previousStatus, nextStatus, order);
+                // Pass reason for transition validation (required for corrective transitions)
+                validateTransition(previousStatus, nextStatus, order, trimToNull(request.getReason()));
                 order.setStatus(nextStatus);
                 order.setLastStatusChangedAt(now);
                 if (nextStatus == OrderStatus.PREPARING && order.getStartedAt() == null) {
@@ -1021,19 +1022,43 @@ public class OrderService {
         return getAdminOrder(orderId);
     }
 
-    private void validateTransition(OrderStatus currentStatus, OrderStatus nextStatus, Order order) {
+    private void validateTransition(OrderStatus currentStatus, OrderStatus nextStatus, Order order, String reason) {
         List<OrderStatus> allowed = allowedTransitionsFor(currentStatus);
         if (!allowed.contains(nextStatus)) {
             throw new IllegalArgumentException("Cannot move order from " + currentStatus + " to " + nextStatus);
         }
         
+        // Corrective transitions require a reason (audit trail)
+        if (isCorrectiveTransition(currentStatus, nextStatus)) {
+            if (reason == null || reason.trim().isEmpty()) {
+                throw new IllegalArgumentException("Reason is required for corrective transition from " + currentStatus + " to " + nextStatus);
+            }
+        }
+        
         // Payment gate: READY → COMPLETED (hand over) requires PAID status
+        // This does NOT apply to COMPLETED → READY correction
         if (currentStatus == OrderStatus.READY && nextStatus == OrderStatus.COMPLETED) {
             String paymentStatus = order != null ? order.getPaymentStatus() : null;
             if (paymentStatus == null || !paymentStatus.equalsIgnoreCase("PAID")) {
                 throw new IllegalStateException("PAYMENT_REQUIRED_FOR_HANDOVER: Order cannot be handed over until payment is completed. Current payment status: " + paymentStatus);
             }
         }
+    }
+    
+    /**
+     * Determines if a transition is corrective (backward in the normal workflow).
+     * Corrective transitions require a reason for audit trail.
+     */
+    private boolean isCorrectiveTransition(OrderStatus from, OrderStatus to) {
+        // COMPLETED → READY is a corrective transition
+        if (from == OrderStatus.COMPLETED && to == OrderStatus.READY) {
+            return true;
+        }
+        // READY → PREPARING is a corrective transition
+        if (from == OrderStatus.READY && to == OrderStatus.PREPARING) {
+            return true;
+        }
+        return false;
     }
 
     private List<OrderStatus> allowedTransitionsFor(OrderStatus status) {
@@ -1053,8 +1078,10 @@ public class OrderService {
             case READY -> List.of(OrderStatus.PREPARING, OrderStatus.COMPLETED, OrderStatus.CANCELLED);
             // Delivered: no transitions (party orders only)
             case DELIVERED -> List.of();
-            // Completed, Cancelled: terminal states, no transitions
-            case COMPLETED, CANCELLED -> List.of();
+            // Cancelled: terminal state, no transitions
+            case CANCELLED -> List.of();
+            // Completed: corrective transition back to READY (requires reason and authorization)
+            case COMPLETED -> List.of(OrderStatus.READY);
         };
     }
 
