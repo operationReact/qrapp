@@ -70,6 +70,7 @@ import java.util.stream.Collectors;
 public class OrderService {
 
     private static final Set<OrderStatus> LIVE_STATUSES = EnumSet.of(OrderStatus.ORDER_PLACED, OrderStatus.PREPARING, OrderStatus.READY);
+    private static final Collection<PaymentMethod> COD_PAYMENT_METHODS = List.of(PaymentMethod.PAY_AT_STALL, PaymentMethod.WALLET);
     private static final String PRE_ORDER_ONLY_TAG = "PreOrderOnly";
 
     private final OrderRepository orderRepo;
@@ -481,7 +482,7 @@ public class OrderService {
         if (locationScope.isEmpty()) {
             return buildAdminOrderResponses(
                     orderRepo.findKitchenEligibleOrdersByStatusInOrderByCreatedAtAscIdAsc(
-                            LIVE_STATUSES, PageRequest.of(0, safeLimit)));
+                            LIVE_STATUSES, COD_PAYMENT_METHODS, PageRequest.of(0, safeLimit)));
         }
         List<Long> ids = locationScope.get();
         if (ids.isEmpty()) {
@@ -489,7 +490,7 @@ public class OrderService {
         }
         return buildAdminOrderResponses(
                 orderRepo.findKitchenEligibleOrdersByStatusInAndLocationIdInOrderByCreatedAtAscIdAsc(
-                        LIVE_STATUSES, ids, PageRequest.of(0, safeLimit)));
+                        LIVE_STATUSES, ids, COD_PAYMENT_METHODS, PageRequest.of(0, safeLimit)));
     }
 
     @Transactional(readOnly = true)

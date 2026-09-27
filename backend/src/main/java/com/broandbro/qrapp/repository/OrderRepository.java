@@ -42,12 +42,14 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
             o.paymentStatus = 'PAID'
             OR (o.paymentStatus IS NOT NULL 
                 AND UPPER(o.paymentStatus) = 'PENDING'
-                AND o.paymentMethod IN ('PAY_AT_STALL', 'WALLET'))
+789+
+                3AND o.paymentMethod IN :codPaymentMethods)
           )
         ORDER BY o.createdAt ASC, o.id ASC
     """)
     List<Order> findKitchenEligibleOrdersByStatusInOrderByCreatedAtAscIdAsc(
             @Param("statuses") Collection<OrderStatus> statuses,
+            @Param("codPaymentMethods") Collection<PaymentMethod> codPaymentMethods,
             Pageable pageable);
 
     /**
@@ -63,13 +65,14 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
             o.paymentStatus = 'PAID'
             OR (o.paymentStatus IS NOT NULL 
                 AND UPPER(o.paymentStatus) = 'PENDING'
-                AND o.paymentMethod IN ('PAY_AT_STALL', 'WALLET'))
+                AND o.paymentMethod IN :codPaymentMethods)
           )
         ORDER BY o.createdAt ASC, o.id ASC
     """)
     List<Order> findKitchenEligibleOrdersByStatusInAndLocationIdInOrderByCreatedAtAscIdAsc(
             @Param("statuses") Collection<OrderStatus> statuses,
             @Param("locationIds") Collection<Long> locationIds,
+            @Param("codPaymentMethods") Collection<PaymentMethod> codPaymentMethods,
             Pageable pageable);
 
     long countByPreOrderFalse();
