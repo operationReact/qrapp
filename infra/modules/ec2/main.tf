@@ -135,14 +135,14 @@ resource "aws_iam_role_policy" "media_s3" {
     Version = "2012-10-17"
     Statement = [
       {
-        Sid    = "AllowMenuItemImageUploads"
+        Sid    = "AllowLocationMenuImageUploads"
         Effect = "Allow"
         Action = [
           "s3:PutObject",
           "s3:GetObject",
           "s3:DeleteObject"
         ]
-        Resource = "${var.media_bucket_arn}/menu-items/*"
+        Resource = "${var.media_bucket_arn}/locations/menu-images/*"
       },
       {
         # EC2 pulls its own deploy JAR from S3 instead of receiving it via SCP.
@@ -159,7 +159,7 @@ resource "aws_iam_role_policy" "media_s3" {
         Resource = var.media_bucket_arn
         Condition = {
           StringLike = {
-            "s3:prefix" = ["menu-items/*", "deploy/${var.environment}/*"]
+            "s3:prefix" = ["locations/menu-images/*", "deploy/${var.environment}/*"]
           }
         }
       }

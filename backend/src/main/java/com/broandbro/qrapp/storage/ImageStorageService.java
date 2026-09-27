@@ -11,10 +11,11 @@ public interface ImageStorageService {
      * Uploads a raw image to the storage backend and returns the public URL.
      *
      * @param imageBytes  Raw image bytes (PNG, JPEG, etc.)
-     * @param menuItemId  Menu item identifier used for path generation
+     * @param menuItemId  Menu item identifier
+     * @param locationId  Location identifier for organizing images by location
      * @return Public URL where the image can be accessed
      */
-    String uploadMenuItemImage(byte[] imageBytes, Long menuItemId);
+    String uploadMenuItemImage(byte[] imageBytes, Long menuItemId, Long locationId);
 
     /**
      * Stores a non-menu image under a caller-supplied isolated folder.

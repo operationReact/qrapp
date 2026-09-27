@@ -28,9 +28,8 @@ db_username        = "broandbro"
 # CloudWatch – STRONGLY RECOMMENDED: set your email to receive alarm notifications
 alarm_email = "your-email@example.com"
 
-# ── Shared media bucket ───────────────────────────────────────────────────────
-# Created once in dev and shared by all environments (dev, prod).
-# This bucket stores AI-generated menu item images.
-media_bucket_name = "broandbro-menu-images-shared"
+# ── Media bucket ──────────────────────────────────────────────────────────────
+# Must match the bucket name configured in application-prod.yml
+media_bucket_name = "broandbro-prod-root-bucket"
 
 

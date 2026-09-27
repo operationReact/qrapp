@@ -121,7 +121,7 @@ public class MenuItemImageGenerationService {
 
             log.info("[ImgGen] AI image received ({} KB). Uploading to storage...", imageBytes.length / 1024);
 
-            String imageUrl = imageStorageService.uploadMenuItemImage(imageBytes, menuItemId);
+            String imageUrl = imageStorageService.uploadMenuItemImage(imageBytes, menuItemId, menuItem.getLocation().getId());
 
             menuItem.setImageUrl(imageUrl);
             menuItem.setAiGeneratedImage(true);
@@ -194,6 +194,7 @@ public class MenuItemImageGenerationService {
         final String categoryName;
         final Boolean isVeg;
         final String description;
+        final Long locationId;
         {
             MenuItem menuItem = menuRepository.findById(menuItemId)
                     .orElseThrow(() -> new IllegalArgumentException("MenuItem not found: " + menuItemId));
@@ -201,6 +202,7 @@ public class MenuItemImageGenerationService {
             categoryName = menuItem.getCategory() != null ? menuItem.getCategory().getName() : null;
             isVeg        = menuItem.getIsVeg();
             description  = menuItem.getDescription();
+            locationId   = menuItem.getLocation().getId();
         }
 
         // Fire all generation tasks in parallel on the dedicated thread pool
@@ -209,7 +211,7 @@ public class MenuItemImageGenerationService {
                     log.info("[ImgGen] ▶ Starting parallel option {}/{} for menuItemId={}", i + 1, cappedCount, menuItemId);
                     byte[] imageBytes = imageGenerationService.generateFoodImage(
                             itemName, categoryName, isVeg, description, additionalPrompt);
-                    String url = imageStorageService.uploadMenuItemImage(imageBytes, menuItemId);
+                    String url = imageStorageService.uploadMenuItemImage(imageBytes, menuItemId, locationId);
                     log.info("[ImgGen] ✔ Completed option {}/{} for menuItemId={} url={}", i + 1, cappedCount, menuItemId, url);
                     return url;
                 }, imageGenerationExecutor)
