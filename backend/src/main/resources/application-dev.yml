@@ -21,6 +21,7 @@ spring:
     import:
       - "optional:aws-parameterstore:/broandbro/backend/dev?prefix=app.parameter-store."
       - "optional:aws-parameterstore:/broandbro/backend/dev/whatsapp?prefix=app.parameter-store.whatsapp."
+      - "optional:aws-parameterstore:/broandbro/backend/dev/openai?prefix=app.parameter-store.openai."
 
   datasource:
     url: ${SPRING_DATASOURCE_URL:${app.parameter-store.database.url}}
