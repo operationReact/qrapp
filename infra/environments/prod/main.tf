@@ -49,9 +49,9 @@ provider "aws" {
   }
 }
 
-# ── Shared media bucket (AI-generated menu item images) ──────────────────────
-# This bucket is created by dev/main.tf and shared across ALL environments.
-# Prod looks it up via data source so we can reference its ARN without re-creating.
+# ── Production media bucket (AI-generated menu item images) ──────────────────
+# Prod looks up its existing media bucket via data source so we can reference
+# its ARN without re-creating it in this stack.
 data "aws_s3_bucket" "media" {
   bucket = var.media_bucket_name
 }
