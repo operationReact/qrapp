@@ -23,5 +23,5 @@ db_username        = "broandbro"
 alarm_email = ""
 
 # ── Media bucket ──────────────────────────────────────────────────────────────
-# Matches application bucket configured in application-prod.yml
-media_bucket_name = "broandbro-prod-root-bucket"
+# Shared media bucket used by all environments
+media_bucket_name = "broandbro-menu-images-shared"
