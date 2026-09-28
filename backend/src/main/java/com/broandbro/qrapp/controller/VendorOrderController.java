@@ -25,7 +25,6 @@ import java.util.Optional;
  */
 @RestController
 @RequestMapping({"/api/v1/vendor-orders", "/api/v1/shop-orders"})
-@CrossOrigin(origins = "*")
 public class VendorOrderController {
     private final VendorOrderService vendorOrderService;
     private final LocationAccessService locationAccessService;

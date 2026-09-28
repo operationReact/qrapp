@@ -12,9 +12,6 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
 
-    @Value("${app.cors.allowed-origins:}")
-    private String allowedOrigins;
-
     /** Directory where uploaded menu-item images are stored at runtime. */
     @Value("${app.upload.dir:uploads}")
     private String uploadDir;
@@ -29,17 +26,11 @@ public class WebConfig implements WebMvcConfigurer {
             .addResourceLocations("file:" + absoluteUploadPath + "/");
     }
 
-    @Override
+@Override
     public void addCorsMappings(CorsRegistry registry) {
-        List<String> originList = CorsOrigins.resolve(allowedOrigins);
-
-        registry
-            .addMapping("/**")
-            .allowedOrigins(originList.toArray(new String[0]))
-            .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
-            .allowedHeaders("*")
-            .exposedHeaders("Content-Disposition")
-            .allowCredentials(true)
-            .maxAge(3600);
+        // CORS is configured in SecurityConfig.java (Spring Security configuration)
+        // Using addCorsMappings here alongside Security's CorsConfigurationSource causes conflicts
+        // when allowCredentials=true and allowedOrigins contains wildcards.
+        // Spring Security's CORS takes precedence; this method is disabled to avoid duplication.
     }
 }

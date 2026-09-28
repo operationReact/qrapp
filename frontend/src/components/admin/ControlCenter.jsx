@@ -174,16 +174,24 @@ function Shell({ title, description, children, showLocationContext = true }) {
 function ErrorState({ error }) { return error ? <p className="rounded-[10px] border border-[var(--cc-error)]/20 bg-[var(--cc-error-bg)] p-4 text-sm text-[var(--cc-error)]">Unable to load this data. {error.message}</p> : null; }
 
 function ManagementCard({ to, title, count, description, theme }) {
+  const isBadge = typeof count === "string";
   return (
-    <Link to={to} className="flex min-h-[92px] items-start gap-2 rounded-[14px] border border-[var(--cc-border)] bg-[var(--cc-card)] p-2.5 shadow-[0_1px_3px_rgba(0,0,0,0.05)] transition duration-150 hover:-translate-y-px hover:border-[var(--cc-primary)]/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--cc-primary)]/30 min-[360px]:min-h-[100px] min-[360px]:gap-2.5 min-[360px]:p-3 md:min-h-[96px] md:max-h-[108px]">
-      <div className="flex size-12 shrink-0 items-center justify-center rounded-[12px] overflow-hidden bg-[#F8F8FA]">
+    <Link to={to} className="flex min-h-[92px] items-start gap-2.5 rounded-[14px] border border-[var(--cc-border)] bg-[var(--cc-card)] p-2.5 shadow-[0_1px_3px_rgba(0,0,0,0.05)] transition duration-150 hover:-translate-y-px hover:border-[var(--cc-primary)]/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--cc-primary)]/30 min-[360px]:min-h-[100px] min-[360px]:gap-3 min-[360px]:p-3 md:min-h-[96px] md:max-h-[108px]">
+      <div className="flex size-10 shrink-0 items-center justify-center rounded-[12px] overflow-hidden bg-[#F8F8FA] min-[360px]:size-11 min-[390px]:size-12">
         <ControlCenterThumbnail theme={theme} className="size-full" />
       </div>
       <div className="min-w-0 flex-1">
-        <div className="flex min-w-0 items-start justify-between gap-1.5">
-          <p className="min-w-0 flex-1 text-[13px] font-semibold leading-[16px] text-[var(--cc-text)] [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2] [overflow-wrap:anywhere] [overflow:hidden]">{title}</p>
-          <p className={typeof count === "string" ? "shrink-0 rounded-full bg-[var(--cc-primary-light)] px-2 py-1 text-[10px] font-semibold leading-3 text-[var(--cc-primary-dark)]" : "shrink-0 text-xl font-bold leading-6 text-[var(--cc-text)]"}>{count ?? 0}</p>
-        </div>
+        {isBadge ? (
+          <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+            <p className="min-w-0 text-[13px] font-semibold leading-[16px] text-[var(--cc-text)]">{title}</p>
+            <span className="shrink-0 rounded-full bg-[var(--cc-primary-light)] px-2 py-0.5 text-[10px] font-semibold leading-3 text-[var(--cc-primary-dark)]">{count}</span>
+          </div>
+        ) : (
+          <div className="flex min-w-0 items-start justify-between gap-1.5">
+            <p className="min-w-0 flex-1 text-[13px] font-semibold leading-[16px] text-[var(--cc-text)] [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2] [overflow-wrap:break-word] [overflow:hidden]">{title}</p>
+            <p className="shrink-0 text-xl font-bold leading-6 text-[var(--cc-text)]">{count ?? 0}</p>
+          </div>
+        )}
         <p className="mt-1.5 line-clamp-3 min-w-0 text-[10px] leading-[14px] text-[var(--cc-muted-text)] [overflow-wrap:anywhere]">{description} <span aria-hidden="true">→</span></p>
       </div>
     </Link>
@@ -215,7 +223,7 @@ export function ControlCenterOverview() {
     {
       label: "Security & Configuration",
       cards: [
-        { to: "/admin/control-center/access", title: "Access Management", count: "Configured", theme: "access", description: "Manage roles" },
+        { to: "/admin/control-center/access", title: "Access", count: "Configured", theme: "access", description: "Manage roles" },
         { to: "/admin/control-center/payments", title: "Payment Management", count: enabledPayments, theme: "payments", description: "Configure payment methods" },
       ],
     },

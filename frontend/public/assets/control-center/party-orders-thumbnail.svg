@@ -1,43 +1,65 @@
 <svg viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="grad-party" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#d97706;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#f59e0b;stop-opacity:1" />
+    <linearGradient id="po-cal-front" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fef08a"/>
+      <stop offset="100%" stop-color="#f59e0b"/>
     </linearGradient>
-    <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
-      <feDropShadow dx="0" dy="8" stdDeviation="6" flood-opacity="0.15"/>
+    <linearGradient id="po-cal-side" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#b45309"/>
+    </linearGradient>
+    <linearGradient id="po-cake-body" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fda4af"/>
+      <stop offset="100%" stop-color="#e11d48"/>
+    </linearGradient>
+    <linearGradient id="po-cake-top" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#fecdd3"/>
+    </linearGradient>
+    <radialGradient id="po-balloon-blue" cx="35%" cy="28%" r="80%">
+      <stop offset="0%" stop-color="#bfdbfe"/>
+      <stop offset="55%" stop-color="#3b82f6"/>
+      <stop offset="100%" stop-color="#1d4ed8"/>
+    </radialGradient>
+    <radialGradient id="po-balloon-orange" cx="35%" cy="28%" r="80%">
+      <stop offset="0%" stop-color="#fed7aa"/>
+      <stop offset="55%" stop-color="#f97316"/>
+      <stop offset="100%" stop-color="#c2410c"/>
+    </radialGradient>
+    <filter id="ds" x="-60%" y="-60%" width="220%" height="220%">
+      <feDropShadow dx="0" dy="5" stdDeviation="5" flood-opacity="0.22"/>
+    </filter>
+    <filter id="blurSoft" x="-100%" y="-100%" width="300%" height="300%">
+      <feGaussianBlur stdDeviation="7"/>
     </filter>
   </defs>
-  <rect width="256" height="256" fill="none"/>
-  <g opacity="0.08">
-    <circle cx="128" cy="140" r="110" fill="url(#grad-party)"/>
+  <ellipse cx="128" cy="206" rx="82" ry="10" fill="#7c2d12" opacity="0.14" filter="url(#blurSoft)"/>
+  <circle cx="66" cy="60" r="16" fill="url(#po-balloon-orange)"/>
+  <path d="M66 76 L63 92" stroke="#c2410c" stroke-width="1.5" opacity="0.6" fill="none"/>
+  <ellipse cx="60" cy="54" rx="5" ry="3.5" fill="#fff" opacity="0.5"/>
+  <circle cx="98" cy="46" r="14" fill="url(#po-balloon-blue)"/>
+  <path d="M98 60 L96 92" stroke="#1d4ed8" stroke-width="1.5" opacity="0.6" fill="none"/>
+  <ellipse cx="93" cy="41" rx="4.5" ry="3" fill="#fff" opacity="0.5"/>
+  <circle cx="185" cy="58" r="15" fill="url(#po-balloon-orange)"/>
+  <path d="M185 73 L188 92" stroke="#c2410c" stroke-width="1.5" opacity="0.6" fill="none"/>
+  <ellipse cx="179" cy="52" rx="5" ry="3.5" fill="#fff" opacity="0.5"/>
+  <g filter="url(#ds)">
+    <rect x="70" y="92" width="116" height="80" rx="8" fill="url(#po-cal-front)"/>
+    <rect x="70" y="92" width="116" height="20" fill="url(#po-cal-side)"/>
   </g>
-  <!-- Calendar -->
-  <rect x="75" y="90" width="106" height="75" rx="4" fill="#f59e0b" opacity="0.85" filter="url(#shadow)"/>
-  <!-- Calendar header line -->
-  <line x1="80" y1="115" x2="180" y2="115" stroke="#d97706" stroke-width="2" opacity="0.7"/>
-  <!-- Balloons (string top) -->
-  <circle cx="90" cy="75" r="5" fill="#f97316" opacity="0.8"/>
-  <circle cx="110" cy="68" r="5" fill="#3b82f6" opacity="0.8"/>
-  <circle cx="130" cy="70" r="5" fill="#f97316" opacity="0.8"/>
-  <circle cx="150" cy="65" r="5" fill="#3b82f6" opacity="0.8"/>
-  <circle cx="170" cy="75" r="5" fill="#f97316" opacity="0.8"/>
-  <!-- Balloon strings -->
-  <line x1="90" y1="80" x2="85" y2="115" stroke="#f97316" stroke-width="1" opacity="0.6"/>
-  <line x1="110" y1="73" x2="108" y2="115" stroke="#3b82f6" stroke-width="1" opacity="0.6"/>
-  <line x1="130" y1="75" x2="128" y2="115" stroke="#f97316" stroke-width="1" opacity="0.6"/>
-  <line x1="150" y1="70" x2="148" y2="115" stroke="#3b82f6" stroke-width="1" opacity="0.6"/>
-  <line x1="170" y1="80" x2="171" y2="115" stroke="#f97316" stroke-width="1" opacity="0.6"/>
-  <!-- Cake -->
-  <ellipse cx="128" cy="140" rx="35" ry="12" fill="#ec4899" opacity="0.75"/>
-  <rect x="105" y="130" width="46" height="12" fill="#ec4899" opacity="0.8"/>
-  <!-- Candle -->
-  <rect x="123" y="120" width="10" height="12" fill="#ca8a04" opacity="0.85"/>
-  <!-- Flame -->
-  <path d="M 128 115 Q 125 110 128 105 Q 131 110 128 115" fill="#fbbf24" opacity="0.9"/>
-  <!-- Confetti -->
-  <circle cx="95" cy="125" r="2" fill="#fbbf24" opacity="0.7"/>
-  <circle cx="155" cy="120" r="2" fill="#fbbf24" opacity="0.7"/>
-  <circle cx="100" cy="155" r="1.5" fill="#fbbf24" opacity="0.6"/>
-  <circle cx="160" cy="155" r="1.5" fill="#fbbf24" opacity="0.6"/>
+  <line x1="80" y1="130" x2="176" y2="130" stroke="#b45309" stroke-width="2" opacity="0.5"/>
+  <circle cx="92" cy="150" r="3" fill="#b45309" opacity="0.5"/>
+  <circle cx="112" cy="150" r="3" fill="#b45309" opacity="0.5"/>
+  <circle cx="132" cy="150" r="3" fill="#e11d48" opacity="0.7"/>
+  <circle cx="152" cy="150" r="3" fill="#b45309" opacity="0.5"/>
+  <g filter="url(#ds)">
+    <path d="M96 182 Q96 168 128 168 Q160 168 160 182 L160 200 L96 200 Z" fill="url(#po-cake-body)"/>
+    <ellipse cx="128" cy="182" rx="32" ry="9" fill="url(#po-cake-top)"/>
+  </g>
+  <rect x="122" y="150" width="10" height="16" rx="2" fill="#fbbf24"/>
+  <path d="M127 148 Q123 142 127 136 Q131 142 127 148" fill="#fb923c"/>
+  <circle cx="86" cy="160" r="2.5" fill="#fbbf24" opacity="0.8"/>
+  <circle cx="172" cy="150" r="2.5" fill="#3b82f6" opacity="0.8"/>
+  <circle cx="90" cy="196" r="2" fill="#fbbf24" opacity="0.7"/>
+  <circle cx="168" cy="196" r="2" fill="#f472b6" opacity="0.7"/>
 </svg>
