@@ -25,7 +25,7 @@ import {
 import { getAdminOrder, updateOrderStatusAdmin } from "@/services/order-service";
 import { cn, isOrderPaid, formatAge } from "@/lib/utils";
 import { parseApiError, getBusinessErrorMessage } from "@/lib/api-error-parser";
-import { useMarkOrderAsPaid, useUpdateOrderStatus } from "@/hooks/useOrderMutations";
+import { useMarkOrderAsPaid } from "@/hooks/useOrderMutations";
 
 const STATUS_META = {
   ORDER_PLACED: { label: "New", color: "#7C3AED", dot: "bg-[#7C3AED]" },
@@ -313,7 +313,7 @@ export function KitchenQueueOrderDetailPanel({
 
   // Fetch order details
   const { data: order, isLoading, error } = useQuery({
-    queryKey: ["orders", "admin", orderId],
+    queryKey: ["orders", "admin", orderId, { locationId }],
     queryFn: () => getAdminOrder(orderId, locationId),
     enabled: isOpen && !!orderId,
   });
@@ -376,11 +376,6 @@ export function KitchenQueueOrderDetailPanel({
   if (!isOpen) return null;
 
   const paid = order && isOrderPaid(order);
-  const canHandOver =
-    order?.status === "READY" &&
-    paid &&
-    FORWARD_ACTIONS[order.status]?.target === "COMPLETED";
-
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -488,7 +483,7 @@ export function KitchenQueueOrderDetailPanel({
                       <button
                         type="button"
                         onClick={() => setPaymentDialogOpen(true)}
-                        disabled={updateMutation.isPending}
+                        disabled={paymentMutation.isPending}
                         className="w-full flex items-center justify-between px-4 py-2.5 text-sm font-semibold rounded-lg transition-colors bg-green-100 text-green-700 hover:bg-green-200 disabled:opacity-50"
                       >
                         <span>Mark as Paid</span>
@@ -571,7 +566,7 @@ export function KitchenQueueOrderDetailPanel({
         targetStatus={targetStatus}
         isBackward={isBackwardMove}
         onConfirm={handleStageConfirm}
-        isLoading={updateMutation.isPending}
+        isLoading={stageMutation.isPending}
       />
 
       <PaymentConfirmationDialog
@@ -579,7 +574,7 @@ export function KitchenQueueOrderDetailPanel({
         onOpenChange={setPaymentDialogOpen}
         order={order}
         onConfirm={handleMarkAsPaid}
-        isLoading={updateMutation.isPending}
+        isLoading={paymentMutation.isPending}
       />
     </>
   );
