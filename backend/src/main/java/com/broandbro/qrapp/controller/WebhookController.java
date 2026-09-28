@@ -34,44 +34,71 @@ public class WebhookController {
     public ResponseEntity<?> handleWebhook(@RequestBody String payload,
                                            @RequestHeader(value = "X-Razorpay-Signature", required = false) String signature) {
 
-        log.info("[Webhook] Received Razorpay webhook | hasSignature: {} | secretConfigured: {}", 
-                 (signature != null && !signature.isBlank()),
-                 (webhookSecret != null && !webhookSecret.isBlank()));
-
-        // If a webhook secret is configured, verify signature
+        log.info("[Webhook] ========== WEBHOOK RECEIVED ==========");
+        log.info("[Webhook] Payload length: {} bytes", payload.length());
+        log.info("[Webhook] Payload: {}", payload);
+        log.info("[Webhook] Signature header present: {}", (signature != null && !signature.isBlank()));
+        log.info("[Webhook] Webhook secret configured: {}", (webhookSecret != null && !webhookSecret.isBlank()));
+        
         if (webhookSecret != null && !webhookSecret.isBlank()) {
+            log.info("[Webhook] Signature verification ENABLED");
             if (signature == null || signature.isBlank()) {
-                log.warn("[Webhook] Missing webhook signature");
+                log.error("[Webhook] REJECTED: Missing webhook signature");
+                log.error("[Webhook] ← RESPONSE: 400 Bad Request (missing signature)");
                 return ResponseEntity.badRequest().build();
             }
 
             try {
                 String computed = computeHmacSHA256(payload, webhookSecret);
+                log.info("[Webhook] Computed signature: {}", computed);
+                log.info("[Webhook] Received signature: {}", signature);
                 if (!computed.equals(signature)) {
-                    log.warn("[Webhook] Invalid webhook signature | computed: {} | received: {}", computed, signature);
+                    log.error("[Webhook] REJECTED: Invalid webhook signature");
+                    log.error("[Webhook] ← RESPONSE: 401 Unauthorized (signature mismatch)");
                     return ResponseEntity.status(401).build();
                 }
-                log.info("[Webhook] Signature verified successfully");
+                log.info("[Webhook] ✓ Signature verified successfully");
             } catch (Exception e) {
-                log.error("[Webhook] Error verifying webhook signature", e);
+                log.error("[Webhook] REJECTED: Error verifying webhook signature", e);
+                log.error("[Webhook] ← RESPONSE: 500 Internal Server Error (signature verification failed)");
                 return ResponseEntity.status(500).build();
             }
         } else {
-            log.warn("[Webhook] No webhook secret configured - signature verification skipped");
+            log.warn("[Webhook] ⚠ No webhook secret configured - signature verification SKIPPED");
         }
 
         // Best-effort parse to extract razorpay_order_id using regex
+        log.info("[Webhook] Attempting to extract razorpay_order_id from payload...");
         String razorpayOrderId = extractRazorpayOrderId(payload);
         if (razorpayOrderId == null) {
-            log.warn("[Webhook] Could not extract razorpay_order_id from payload: {}", payload);
+            log.error("[Webhook] REJECTED: Could not extract razorpay_order_id from payload");
+            log.error("[Webhook] Payload was: {}", payload);
+            log.error("[Webhook] ← RESPONSE: 400 Bad Request (razorpay_order_id not found in payload)");
             return ResponseEntity.badRequest().build();
         }
 
-        log.info("[Webhook] Extracted razorpay_order_id: {}", razorpayOrderId);
-        orderService.markOrderPaidByRazorpayOrderId(razorpayOrderId);
-        log.info("[Webhook] Order marked as PAID for razorpay_order_id: {}", razorpayOrderId);
-
-        return ResponseEntity.ok().build();
+        log.info("[Webhook] ✓ Extracted razorpay_order_id: {}", razorpayOrderId);
+        
+        try {
+            log.info("[Webhook] Calling orderService.markOrderPaidByRazorpayOrderId({})", razorpayOrderId);
+            orderService.markOrderPaidByRazorpayOrderId(razorpayOrderId);
+            log.info("[Webhook] ✓ Order marked as PAID for razorpay_order_id: {}", razorpayOrderId);
+            log.info("[Webhook] ========== WEBHOOK PROCESSED SUCCESSFULLY ==========");
+            log.info("[Webhook] ← RESPONSE: 200 OK (order payment confirmed)");
+            return ResponseEntity.ok().build();
+        } catch (IllegalArgumentException e) {
+            log.error("[Webhook] REJECTED: Order not found for razorpayOrderId: {}", razorpayOrderId);
+            log.error("[Webhook] Exception: {}", e.getMessage());
+            log.error("[Webhook] ← RESPONSE: 404 Not Found (order does not exist)");
+            return ResponseEntity.status(404).build();
+        } catch (Exception e) {
+            log.error("[Webhook] ERROR: Exception while marking order as PAID for razorpay_order_id: {}", razorpayOrderId);
+            log.error("[Webhook] Exception type: {}", e.getClass().getName());
+            log.error("[Webhook] Exception message: {}", e.getMessage());
+            log.error("[Webhook] Exception details:", e);
+            log.error("[Webhook] ← RESPONSE: 500 Internal Server Error (database/service error)");
+            return ResponseEntity.status(500).build();
+        }
     }
 
     private String computeHmacSHA256(String data, String secretKey) throws Exception {
