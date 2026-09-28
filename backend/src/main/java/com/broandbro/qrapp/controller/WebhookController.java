@@ -34,7 +34,9 @@ public class WebhookController {
     public ResponseEntity<?> handleWebhook(@RequestBody String payload,
                                            @RequestHeader(value = "X-Razorpay-Signature", required = false) String signature) {
 
-        log.info("[Webhook] Received Razorpay webhook");
+        log.info("[Webhook] Received Razorpay webhook | hasSignature: {} | secretConfigured: {}", 
+                 (signature != null && !signature.isBlank()),
+                 (webhookSecret != null && !webhookSecret.isBlank()));
 
         // If a webhook secret is configured, verify signature
         if (webhookSecret != null && !webhookSecret.isBlank()) {
@@ -46,7 +48,7 @@ public class WebhookController {
             try {
                 String computed = computeHmacSHA256(payload, webhookSecret);
                 if (!computed.equals(signature)) {
-                    log.warn("[Webhook] Invalid webhook signature");
+                    log.warn("[Webhook] Invalid webhook signature | computed: {} | received: {}", computed, signature);
                     return ResponseEntity.status(401).build();
                 }
                 log.info("[Webhook] Signature verified successfully");
