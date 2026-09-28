@@ -1,24 +1,53 @@
 <svg viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="grad-users" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#9333ea;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#3b82f6;stop-opacity:1" />
+    <radialGradient id="head-purple" cx="35%" cy="28%" r="80%">
+      <stop offset="0%" stop-color="#ddd6fe"/>
+      <stop offset="50%" stop-color="#9333ea"/>
+      <stop offset="100%" stop-color="#5b21b6"/>
+    </radialGradient>
+    <linearGradient id="body-purple" x1="10%" y1="0%" x2="90%" y2="100%">
+      <stop offset="0%" stop-color="#a78bfa"/>
+      <stop offset="100%" stop-color="#6d28d9"/>
     </linearGradient>
-    <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
-      <feDropShadow dx="0" dy="8" stdDeviation="6" flood-opacity="0.15"/>
+    <radialGradient id="head-blue" cx="35%" cy="28%" r="80%">
+      <stop offset="0%" stop-color="#bfdbfe"/>
+      <stop offset="50%" stop-color="#3b82f6"/>
+      <stop offset="100%" stop-color="#1d4ed8"/>
+    </radialGradient>
+    <linearGradient id="body-blue" x1="10%" y1="0%" x2="90%" y2="100%">
+      <stop offset="0%" stop-color="#60a5fa"/>
+      <stop offset="100%" stop-color="#1e40af"/>
+    </linearGradient>
+    <radialGradient id="head-pink" cx="35%" cy="28%" r="80%">
+      <stop offset="0%" stop-color="#fbcfe8"/>
+      <stop offset="50%" stop-color="#ec4899"/>
+      <stop offset="100%" stop-color="#be185d"/>
+    </radialGradient>
+    <linearGradient id="body-pink" x1="10%" y1="0%" x2="90%" y2="100%">
+      <stop offset="0%" stop-color="#f472b6"/>
+      <stop offset="100%" stop-color="#9d174d"/>
+    </linearGradient>
+    <filter id="ds" x="-60%" y="-60%" width="220%" height="220%">
+      <feDropShadow dx="0" dy="5" stdDeviation="5" flood-opacity="0.22"/>
+    </filter>
+    <filter id="blurSoft" x="-100%" y="-100%" width="300%" height="300%">
+      <feGaussianBlur stdDeviation="7"/>
     </filter>
   </defs>
-  <rect width="256" height="256" fill="none"/>
-  <g opacity="0.08">
-    <circle cx="128" cy="140" r="120" fill="url(#grad-users)"/>
+  <ellipse cx="128" cy="198" rx="76" ry="11" fill="#1e1033" opacity="0.14" filter="url(#blurSoft)"/>
+  <g filter="url(#ds)">
+    <path d="M52 192 Q52 142 88 142 Q102 142 102 158 L96 192 Z" fill="url(#body-purple)"/>
+    <circle cx="76" cy="110" r="27" fill="url(#head-purple)"/>
   </g>
-  <!-- Left person (purple) -->
-  <circle cx="85" cy="90" r="25" fill="#7c3aed" filter="url(#shadow)"/>
-  <path d="M 70 130 Q 70 115 85 115 Q 100 115 100 130 L 95 150 Q 85 158 75 150 Z" fill="#7c3aed" opacity="0.85"/>
-  <!-- Center person (blue, larger) -->
-  <circle cx="128" cy="100" r="30" fill="#3b82f6" filter="url(#shadow)"/>
-  <path d="M 105 155 Q 105 130 128 130 Q 151 130 151 155 L 145 180 Q 128 188 111 180 Z" fill="#3b82f6" opacity="0.9"/>
-  <!-- Right person (pink) -->
-  <circle cx="171" cy="92" r="24" fill="#ec4899" filter="url(#shadow)"/>
-  <path d="M 158 135 Q 158 118 171 118 Q 184 118 184 135 L 180 150 Q 171 157 162 150 Z" fill="#ec4899" opacity="0.8"/>
+  <ellipse cx="67" cy="99" rx="9" ry="6.5" fill="#ffffff" opacity="0.4"/>
+  <g filter="url(#ds)">
+    <path d="M93 196 Q93 136 128 136 Q163 136 163 196 Z" fill="url(#body-blue)"/>
+    <circle cx="128" cy="100" r="33" fill="url(#head-blue)"/>
+  </g>
+  <ellipse cx="117" cy="87" rx="10.5" ry="7.5" fill="#ffffff" opacity="0.45"/>
+  <g filter="url(#ds)">
+    <path d="M154 192 Q154 142 180 142 Q194 142 204 158 L198 192 Z" fill="url(#body-pink)"/>
+    <circle cx="180" cy="112" r="26" fill="url(#head-pink)"/>
+  </g>
+  <ellipse cx="171" cy="101" rx="8.5" ry="6" fill="#ffffff" opacity="0.4"/>
 </svg>

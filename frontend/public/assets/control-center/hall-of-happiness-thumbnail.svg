@@ -1,37 +1,50 @@
 <svg viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="grad-hoh" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#db2777;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#ec4899;stop-opacity:1" />
+    <linearGradient id="hoh-frame-pink" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f9a8d4"/>
+      <stop offset="100%" stop-color="#be185d"/>
     </linearGradient>
-    <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
-      <feDropShadow dx="0" dy="8" stdDeviation="6" flood-opacity="0.15"/>
+    <linearGradient id="hoh-frame-blue" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#7dd3fc"/>
+      <stop offset="100%" stop-color="#0369a1"/>
+    </linearGradient>
+    <linearGradient id="hoh-frame-purple" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#d8b4fe"/>
+      <stop offset="100%" stop-color="#7e22ce"/>
+    </linearGradient>
+    <radialGradient id="hoh-heart" cx="35%" cy="25%" r="85%">
+      <stop offset="0%" stop-color="#fda4af"/>
+      <stop offset="45%" stop-color="#ec4899"/>
+      <stop offset="100%" stop-color="#9d174d"/>
+    </radialGradient>
+    <filter id="ds" x="-60%" y="-60%" width="220%" height="220%">
+      <feDropShadow dx="0" dy="5" stdDeviation="5" flood-opacity="0.22"/>
+    </filter>
+    <filter id="blurSoft" x="-100%" y="-100%" width="300%" height="300%">
+      <feGaussianBlur stdDeviation="7"/>
     </filter>
   </defs>
-  <rect width="256" height="256" fill="none"/>
-  <g opacity="0.08">
-    <circle cx="128" cy="140" r="110" fill="url(#grad-hoh)"/>
+  <ellipse cx="128" cy="206" rx="76" ry="10" fill="#500724" opacity="0.14" filter="url(#blurSoft)"/>
+  <g filter="url(#ds)" transform="rotate(-9 88 118)">
+    <rect x="60" y="88" width="56" height="66" rx="6" fill="url(#hoh-frame-pink)"/>
+    <rect x="67" y="95" width="42" height="52" rx="2" fill="#fff1f5" opacity="0.85"/>
   </g>
-  <!-- Left photo frame (pink) -->
-  <rect x="70" y="90" width="40" height="50" rx="2" fill="#db2777" opacity="0.85" filter="url(#shadow)" stroke="#ec4899" stroke-width="2"/>
-  <rect x="74" y="94" width="32" height="42" fill="#fbbf24" opacity="0.7"/>
-  <!-- Middle photo frame (blue) -->
-  <rect x="118" y="100" width="40" height="50" rx="2" fill="#0891b2" opacity="0.8" filter="url(#shadow)" stroke="#06b6d4" stroke-width="2"/>
-  <rect x="122" y="104" width="32" height="42" fill="#38bdf8" opacity="0.6"/>
-  <!-- Right photo frame (purple) -->
-  <rect x="166" y="90" width="40" height="50" rx="2" fill="#a855f7" opacity="0.75" filter="url(#shadow)" stroke="#d946ef" stroke-width="2"/>
-  <rect x="170" y="94" width="32" height="42" fill="#d8b4fe" opacity="0.6"/>
-  <!-- Heart (center, large) -->
-  <path d="M 128 145 L 115 130 Q 108 122 108 115 Q 108 105 115 105 Q 122 105 128 112 Q 134 105 141 105 Q 148 105 148 115 Q 148 122 135 130 Z" fill="#db2777" opacity="0.95" filter="url(#shadow)"/>
-  <!-- Heart shine -->
-  <path d="M 115 135 L 105 145 L 128 155 Z" fill="#ec4899" opacity="0.8"/>
-  <!-- Celebration sparkles/stars -->
-  <circle cx="70" cy="70" r="3" fill="#fbbf24" opacity="0.75"/>
-  <circle cx="200" cy="75" r="3" fill="#fbbf24" opacity="0.75"/>
-  <circle cx="90" cy="165" r="2" fill="#fbbf24" opacity="0.6"/>
-  <circle cx="175" cy="160" r="2" fill="#fbbf24" opacity="0.6"/>
-  <!-- Small sparkle accents -->
-  <circle cx="140" cy="75" r="1.5" fill="#fbbf24" opacity="0.7"/>
-  <circle cx="115" cy="175" r="1.5" fill="#fbbf24" opacity="0.7"/>
-  <circle cx="155" cy="175" r="1.5" fill="#fbbf24" opacity="0.7"/>
+  <g filter="url(#ds)" transform="rotate(7 168 122)">
+    <rect x="140" y="92" width="56" height="66" rx="6" fill="url(#hoh-frame-blue)"/>
+    <rect x="147" y="99" width="42" height="52" rx="2" fill="#e0f2fe" opacity="0.85"/>
+  </g>
+  <g filter="url(#ds)" transform="rotate(-3 128 150)">
+    <rect x="100" y="118" width="56" height="66" rx="6" fill="url(#hoh-frame-purple)"/>
+    <rect x="107" y="125" width="42" height="52" rx="2" fill="#f5f0ff" opacity="0.85"/>
+  </g>
+  <g filter="url(#ds)">
+    <path d="M128 150 L108 128 C98 117 100 100 114 96 C122 94 128 100 128 108 C128 100 134 94 142 96 C156 100 158 117 148 128 Z" fill="url(#hoh-heart)"/>
+  </g>
+  <ellipse cx="114" cy="106" rx="7" ry="5" fill="#ffe4ec" opacity="0.6"/>
+  <circle cx="52" cy="58" r="4" fill="#fbbf24" opacity="0.8"/>
+  <circle cx="204" cy="66" r="4" fill="#fbbf24" opacity="0.8"/>
+  <circle cx="74" cy="196" r="3" fill="#fbbf24" opacity="0.7"/>
+  <circle cx="184" cy="190" r="3" fill="#fbbf24" opacity="0.7"/>
+  <path d="M180 42 l2.5 6 6 2.5 -6 2.5 -2.5 6 -2.5 -6 -6 -2.5 6 -2.5Z" fill="#fde68a" opacity="0.85"/>
+  <path d="M46 90 l2 5 5 2 -5 2 -2 5 -2 -5 -5 -2 5 -2Z" fill="#fde68a" opacity="0.8"/>
 </svg>

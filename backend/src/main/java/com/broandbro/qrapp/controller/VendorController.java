@@ -10,7 +10,6 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import java.util.List;
 @RestController
 @RequestMapping({"/api/v1/vendors", "/api/v1/shops"})
-@CrossOrigin(origins = "*")
 public class VendorController {
     private final VendorService vendorService;
     public VendorController(VendorService vendorService) {
