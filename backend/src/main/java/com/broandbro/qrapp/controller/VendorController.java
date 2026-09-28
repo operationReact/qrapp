@@ -71,5 +71,15 @@ public class VendorController {
     }
     public static class StatusRequest {
         public boolean active;
+
+        public StatusRequest() {}
+
+        public boolean isActive() {
+            return active;
+        }
+
+        public void setActive(boolean active) {
+            this.active = active;
+        }
     }
 }

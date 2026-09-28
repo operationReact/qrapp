@@ -420,6 +420,12 @@ body {
   padding-bottom: calc(1rem + var(--app-safe-bottom));
 }
 
+/* Keep the development query inspector clear of mobile safe areas. */
+.tsqd-open-btn-container {
+  bottom: calc(12px + env(safe-area-inset-bottom, 0px)) !important;
+  right: 12px !important;
+}
+
 /* Tighter grid for premium spacing */
 @media (min-width: 1024px) {
   .premium-grid {

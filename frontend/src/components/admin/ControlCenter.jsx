@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useLocation, useNavigate, useSearch } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { Bell, Building2, CalendarDays, Check, ChevronDown, CreditCard, Eye, EyeOff, Globe2, Heart, IndianRupee, KeyRound, MapPin, Menu, MoreHorizontal, MoreVertical, Plus, Search, ShieldCheck, Store, Trash2, UserRound, Users, UsersRound, Wallet } from "lucide-react";
+import { Bell, Building2, Check, ChevronDown, Eye, EyeOff, Globe2, IndianRupee, KeyRound, MapPin, Menu, MoreHorizontal, MoreVertical, Plus, Search, ShieldCheck, Trash2, UserRound, Wallet } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,6 +22,7 @@ import { partyOrdersOptions } from "@/query/options/party-orders";
 import { adminHallOfHappinessOptions } from "@/query/options/admin-hall-of-happiness";
 import { adminCreateUserOptions, adminCustomerCompaniesOptions, adminLocationsOptions, adminLocationsPageOptions, adminUsersOptions, adminVendorsOptions, assignCustomerCompany, createAdminLocation, createAdminUser, createManagementResource, deleteAdminLocation, grantUserLocation, revokeUserLocation, updateAdminLocation, updateCustomerCompany, updateUserRole, userLocationsOptions } from "@/query/options/management";
 import { baseURL } from "@/services";
+import { ControlCenterThumbnail } from "@/components/admin/ControlCenterThumbnail";
 
 const primaryNavigation = [
   { to: "/admin/control-center", label: "Overview", roles: [ROLE.SUPER_ADMIN] },
@@ -46,12 +47,12 @@ function ControlCenterHeader() {
   const { dashboard } = useAdminDashboard();
   const notifCount = Math.min((dashboard?.delayedOrders ?? 0) + (dashboard?.placedOrders ?? 0), 9);
   return (
-    <header className="sticky top-0 z-40 border-b border-[var(--cc-divider)] bg-white">
-      <div className="mx-auto flex h-14 min-w-0 max-w-[1280px] items-center justify-between px-4 md:h-16 md:px-6">
+    <header className="sticky top-0 z-40 w-full border-b border-[var(--cc-divider)] bg-white">
+      <div className="mx-auto grid h-14 w-full max-w-[1280px] grid-cols-[44px_minmax(0,1fr)_44px] items-center px-3 min-[360px]:px-3.5 min-[390px]:px-4 md:h-16 md:px-6">
         <button type="button" onClick={toggleSidebar} aria-label="Open menu" className="grid size-11 shrink-0 place-items-center rounded-[10px] text-[var(--cc-text)] transition-colors hover:bg-[var(--cc-primary-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--cc-primary)]/30">
           <Menu className="size-5" strokeWidth={1.9} aria-hidden="true" />
         </button>
-        <h1 className="min-w-0 truncate text-[18px] font-semibold leading-6 text-[var(--cc-text)]">Control Center</h1>
+        <h1 className="min-w-0 text-center text-[18px] font-semibold leading-6 text-[var(--cc-text)]">Control Center</h1>
         <button type="button" aria-label="Notifications" className="relative grid size-11 shrink-0 place-items-center rounded-[10px] text-[var(--cc-text)] transition-colors hover:bg-[var(--cc-primary-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--cc-primary)]/30">
           <Bell className="size-5" strokeWidth={1.9} aria-hidden="true" />
           {notifCount > 0 && <span className="absolute top-1.5 right-1.5 flex size-4 items-center justify-center rounded-full bg-[var(--cc-primary)] text-[9px] font-bold leading-none text-white">{notifCount > 9 ? "9+" : notifCount}</span>}
@@ -87,15 +88,15 @@ function ControlCenterNavigation() {
   }, [moreOpen]);
 
   return (
-    <nav aria-label="Control Center navigation" className="relative z-30 mx-auto min-w-0 max-w-[1200px] px-4 py-3 md:px-6">
-      <div className="flex h-[42px] min-w-0 items-center gap-1 rounded-full border border-[var(--cc-border)] bg-white p-1">
+    <nav aria-label="Control Center navigation" className="relative z-30 mx-auto w-full min-w-0 max-w-[1200px] box-border px-3 py-3 min-[360px]:px-3.5 min-[390px]:px-4 md:px-6">
+      <div className="flex min-h-11 w-full min-w-0 items-center gap-0.5 rounded-full border border-[var(--cc-border)] bg-white p-1 min-[360px]:gap-1">
         {visiblePrimary.map(({ to, label }) => {
           const active = pathname === to;
-          return <Link key={to} to={to} className={`flex min-w-0 flex-1 items-center justify-center rounded-full px-2 text-xs font-semibold transition-colors sm:px-3 sm:text-[13px] ${active ? "bg-[#24211F] text-white" : "text-[#24211F] hover:bg-[var(--cc-primary-light)]"}`}>{label}</Link>;
+          return <Link key={to} to={to} className={`flex min-h-10 min-w-0 flex-1 items-center justify-center rounded-full px-1 text-[11px] font-semibold transition-colors min-[360px]:px-2 min-[360px]:text-xs sm:px-3 sm:text-[13px] ${active ? "bg-[#24211F] text-white" : "text-[#24211F] hover:bg-[var(--cc-primary-light)]"}`}>{label}</Link>;
         })}
         {visibleMore.length > 0 && (
           <div ref={moreRef} className="relative min-w-0 flex-1">
-            <button type="button" aria-haspopup="menu" aria-expanded={moreOpen} onClick={() => setMoreOpen((current) => !current)} className={`flex h-10 w-full items-center justify-center gap-1 rounded-full px-2 text-xs font-semibold transition-colors sm:px-3 sm:text-[13px] ${moreActive || moreOpen ? "bg-[#24211F] text-white" : "text-[#24211F] hover:bg-[var(--cc-primary-light)]"}`}>
+            <button type="button" aria-haspopup="menu" aria-expanded={moreOpen} onClick={() => setMoreOpen((current) => !current)} className={`flex min-h-10 w-full min-w-0 items-center justify-center gap-0.5 rounded-full px-1 text-[11px] font-semibold transition-colors min-[360px]:gap-1 min-[360px]:px-2 min-[360px]:text-xs sm:px-3 sm:text-[13px] ${moreActive || moreOpen ? "bg-[#24211F] text-white" : "text-[#24211F] hover:bg-[var(--cc-primary-light)]"}`}>
               <span>More</span>
               <MoreHorizontal className="size-4" strokeWidth={2} aria-hidden="true" />
             </button>
@@ -120,7 +121,7 @@ function ControlCenterLocationContext() {
     isLoading,
   } = useActiveLocation();
   const activeId = String(activeLocation?.id || "");
-  return <div className="mx-auto min-w-0 max-w-[1280px] px-4 pt-2 md:px-6">
+  return <div className="mx-auto w-full min-w-0 max-w-[1280px] box-border px-3 pt-2 min-[360px]:px-3.5 min-[390px]:px-4 md:px-6">
     <label className="relative block max-w-xs">
       <span className="sr-only">Active location</span>
       <MapPin className="pointer-events-none absolute left-3 top-1/2 z-10 size-4 -translate-y-1/2 text-[var(--cc-primary)]" aria-hidden="true" />
@@ -153,11 +154,11 @@ function ControlCenterLocationContext() {
 
 function Shell({ title, description, children, showLocationContext = true }) {
   return (
-    <main className="admin-control-center min-h-screen w-full min-w-0 max-w-[100vw] bg-[var(--cc-page)] pb-10 text-[var(--cc-text)]">
+    <main className="admin-control-center box-border min-h-screen w-full min-w-0 max-w-[100vw] bg-[var(--cc-page)] pb-10 text-[var(--cc-text)]">
       <ControlCenterHeader />
       {showLocationContext && <ControlCenterLocationContext />}
       <ControlCenterNavigation />
-      <div className="mx-auto min-w-0 max-w-[100vw] space-y-5 px-4 md:max-w-[1200px] md:px-6">
+      <div className="mx-auto w-full min-w-0 max-w-[100vw] space-y-5 px-3 min-[360px]:px-3.5 min-[390px]:px-4 md:max-w-[1200px] md:px-6">
         {title && (
           <div>
             <h2 className="text-[22px] font-bold leading-7 text-[var(--cc-text)]">{title}</h2>
@@ -171,33 +172,32 @@ function Shell({ title, description, children, showLocationContext = true }) {
 }
 
 function ErrorState({ error }) { return error ? <p className="rounded-[10px] border border-[var(--cc-error)]/20 bg-[var(--cc-error-bg)] p-4 text-sm text-[var(--cc-error)]">Unable to load this data. {error.message}</p> : null; }
-function ManagementCard({ to, icon, title, count, description }) {
-  const Icon = icon;
-  const isStatus = typeof count === "string";
+
+function ManagementCard({ to, title, count, description, theme }) {
   return (
-    <Link to={to} className="flex h-[clamp(96px,28vw,108px)] min-h-[96px] max-h-[108px] items-start gap-2.5 rounded-[14px] border border-[var(--cc-border)] bg-[var(--cc-card)] p-3 shadow-[0_1px_3px_rgba(0,0,0,0.05)] transition duration-150 hover:-translate-y-px hover:border-[var(--cc-primary)]/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--cc-primary)]/30">
-      <div className="grid size-8 shrink-0 place-items-center rounded-[10px] bg-[var(--cc-primary-light)] text-[var(--cc-primary)]">
-        <Icon className="size-4" strokeWidth={1.9} aria-hidden="true" />
+    <Link to={to} className="flex min-h-[92px] items-start gap-2 rounded-[14px] border border-[var(--cc-border)] bg-[var(--cc-card)] p-2.5 shadow-[0_1px_3px_rgba(0,0,0,0.05)] transition duration-150 hover:-translate-y-px hover:border-[var(--cc-primary)]/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--cc-primary)]/30 min-[360px]:min-h-[100px] min-[360px]:gap-2.5 min-[360px]:p-3 md:min-h-[96px] md:max-h-[108px]">
+      <div className="flex size-12 shrink-0 items-center justify-center rounded-[12px] overflow-hidden bg-[#F8F8FA]">
+        <ControlCenterThumbnail theme={theme} className="size-full" />
       </div>
       <div className="min-w-0 flex-1">
-        <div className="flex items-baseline justify-between gap-2">
-          <p className="min-w-0 truncate text-[13px] font-semibold leading-[18px] text-[var(--cc-text)]">{title}</p>
-          <p className={isStatus ? "shrink-0 rounded-full bg-[var(--cc-primary-light)] px-2 py-1 text-[10px] font-semibold leading-3 text-[var(--cc-primary-dark)]" : "shrink-0 text-xl font-bold leading-6 text-[var(--cc-text)]"}>{count ?? 0}</p>
+        <div className="flex min-w-0 items-start justify-between gap-1.5">
+          <p className="min-w-0 flex-1 text-[13px] font-semibold leading-[16px] text-[var(--cc-text)] [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2] [overflow-wrap:anywhere] [overflow:hidden]">{title}</p>
+          <p className={typeof count === "string" ? "shrink-0 rounded-full bg-[var(--cc-primary-light)] px-2 py-1 text-[10px] font-semibold leading-3 text-[var(--cc-primary-dark)]" : "shrink-0 text-xl font-bold leading-6 text-[var(--cc-text)]"}>{count ?? 0}</p>
         </div>
-        <p className="mt-1 line-clamp-2 text-[10px] leading-[14px] text-[var(--cc-muted-text)]">{description} <span aria-hidden="true">→</span></p>
+        <p className="mt-1.5 line-clamp-3 min-w-0 text-[10px] leading-[14px] text-[var(--cc-muted-text)] [overflow-wrap:anywhere]">{description} <span aria-hidden="true">→</span></p>
       </div>
     </Link>
   );
 }
 
 export function ControlCenterOverview() {
-  const { data: users = [] } = useQuery(adminUsersOptions());
-  const { data: locations = [] } = useQuery(adminLocationsOptions());
-  const { data: companies = [] } = useQuery(adminCustomerCompaniesOptions());
-  const { data: vendors = [] } = useQuery(adminVendorsOptions());
-  const { data: partyOrders = [] } = useQuery(partyOrdersOptions);
-  const { data: hallData } = useQuery(adminHallOfHappinessOptions({ page: 0, size: 100 }));
-  const { data: paymentConfig } = useQuery(paymentConfigOptions);
+  const { data: users = [], error: usersError } = useQuery(adminUsersOptions());
+  const { data: locations = [], error: locationsError } = useQuery(adminLocationsOptions());
+  const { data: companies = [], error: companiesError } = useQuery(adminCustomerCompaniesOptions());
+  const { data: vendors = [], error: vendorsError } = useQuery(adminVendorsOptions());
+  const { data: partyOrders = [], error: partyOrdersError } = useQuery(partyOrdersOptions);
+  const { data: hallData, error: hallError } = useQuery(adminHallOfHappinessOptions({ page: 0, size: 100 }));
+  const { data: paymentConfig, error: paymentError } = useQuery(paymentConfigOptions);
   const hallPhotos = hallData?.content || [];
   const pendingHall = hallPhotos.filter((photo) => ["CUSTOMER_UPLOAD", "PENDING", "PENDING_REVIEW"].includes(photo.status)).length;
   const enabledPayments = [paymentConfig?.walletEnabled, paymentConfig?.razorpayEnabled, paymentConfig?.payAtStallEnabled].filter(Boolean).length;
@@ -206,39 +206,46 @@ export function ControlCenterOverview() {
     {
       label: "Organization",
       cards: [
-        { to: "/admin/control-center/users", title: "Users", count: users.length, icon: Users, description: "Manage internal accounts and access" },
-        { to: "/admin/control-center/locations", title: "Locations", count: locations.length, icon: Building2, description: "Configure operating locations" },
-        { to: "/admin/control-center/customer-companies", title: "Customer Companies", count: companies.length, icon: UsersRound, description: "Manage company assignments" },
-        { to: "/admin/vendors", title: "Vendors", count: vendors.length, icon: Store, description: "Manage vendors and costs" },
+        { to: "/admin/control-center/users", title: "Users", count: users.length, theme: "users", description: "Manage internal accounts and access" },
+        { to: "/admin/control-center/locations", title: "Locations", count: locations.length, theme: "locations", description: "Configure operating locations" },
+        { to: "/admin/control-center/customer-companies", title: "Customer Companies", count: companies.length, theme: "customerCompanies", description: "Manage company assignments" },
+        { to: "/admin/vendors", title: "Vendors", count: vendors.length, theme: "vendors", description: "Manage vendors and costs" },
       ],
     },
     {
       label: "Security & Configuration",
       cards: [
-        { to: "/admin/control-center/access", title: "Access Management", count: "Configured", icon: KeyRound, description: "Manage roles" },
-        { to: "/admin/control-center/payments", title: "Payment Management", count: enabledPayments, icon: CreditCard, description: "Configure payment methods" },
+        { to: "/admin/control-center/access", title: "Access Management", count: "Configured", theme: "access", description: "Manage roles" },
+        { to: "/admin/control-center/payments", title: "Payment Management", count: enabledPayments, theme: "payments", description: "Configure payment methods" },
       ],
     },
     {
       label: "Operations",
       cards: [
-        { to: "/admin/party-orders", title: "Party Orders", count: partyOrders.filter((order) => !["COMPLETED", "CANCELLED"].includes(order.status)).length, icon: CalendarDays, description: "Review Party/Event orders" },
-        { to: "/admin/hall-of-happiness", title: "Hall of Happiness", count: pendingHall, icon: Heart, description: pendingHall ? "Pending review" : "No pending reviews" },
+        { to: "/admin/party-orders", title: "Party Orders", count: partyOrders.filter((order) => !["COMPLETED", "CANCELLED"].includes(order.status)).length, theme: "partyOrders", description: "Review Party/Event orders" },
+        { to: "/admin/hall-of-happiness", title: "Hall of Happiness", count: pendingHall, theme: "hallOfHappiness", description: pendingHall ? "Pending review" : "No pending reviews" },
       ],
     },
   ];
 
+  const errors = [usersError, locationsError, companiesError, vendorsError, partyOrdersError, hallError, paymentError].filter(Boolean);
+
   return <Shell title="Control Center" description="Manage your Bro & Bro operations." showLocationContext={false}>
-    <div className="space-y-6">
-      {groups.map((group) => (
-        <section key={group.label} className="space-y-2.5" aria-labelledby={`control-center-${group.label}`}>
-            <h3 id={`control-center-${group.label}`} className="text-[10px] font-bold leading-[14px] uppercase tracking-[0.08em] text-[var(--cc-muted-text)]">{group.label}</h3>
-            <div className={`grid grid-cols-2 gap-2.5 ${group.label === "Organization" ? "lg:grid-cols-4" : "lg:grid-cols-2 xl:grid-cols-4"}`}>
-            {group.cards.map((card) => <ManagementCard key={card.to} {...card} />)}
-          </div>
-        </section>
-      ))}
-    </div>
+   {errors.length > 0 && (
+     <div className="rounded-[10px] border border-[var(--cc-error)]/20 bg-[var(--cc-error-bg)] p-4 text-sm text-[var(--cc-error)]">
+       ⚠️ Some dashboard data failed to load. Please refresh the page if counts are missing.
+     </div>
+   )}
+   <div className="space-y-6">
+     {groups.map((group) => (
+       <section key={group.label} className="space-y-2.5" aria-labelledby={`control-center-${group.label}`}>
+           <h3 id={`control-center-${group.label}`} className="text-[10px] font-bold leading-[14px] uppercase tracking-[0.08em] text-[var(--cc-muted-text)]">{group.label}</h3>
+           <div className={`grid grid-cols-2 gap-2.5 ${group.label === "Organization" ? "lg:grid-cols-4" : "lg:grid-cols-2 xl:grid-cols-4"}`}>
+           {group.cards.map((card) => <ManagementCard key={card.to} {...card} />)}
+         </div>
+       </section>
+     ))}
+   </div>
   </Shell>;
 }
 

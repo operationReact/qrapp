@@ -1,0 +1,37 @@
+<svg viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="grad-hoh" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#db2777;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#ec4899;stop-opacity:1" />
+    </linearGradient>
+    <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="8" stdDeviation="6" flood-opacity="0.15"/>
+    </filter>
+  </defs>
+  <rect width="256" height="256" fill="none"/>
+  <g opacity="0.08">
+    <circle cx="128" cy="140" r="110" fill="url(#grad-hoh)"/>
+  </g>
+  <!-- Left photo frame (pink) -->
+  <rect x="70" y="90" width="40" height="50" rx="2" fill="#db2777" opacity="0.85" filter="url(#shadow)" stroke="#ec4899" stroke-width="2"/>
+  <rect x="74" y="94" width="32" height="42" fill="#fbbf24" opacity="0.7"/>
+  <!-- Middle photo frame (blue) -->
+  <rect x="118" y="100" width="40" height="50" rx="2" fill="#0891b2" opacity="0.8" filter="url(#shadow)" stroke="#06b6d4" stroke-width="2"/>
+  <rect x="122" y="104" width="32" height="42" fill="#38bdf8" opacity="0.6"/>
+  <!-- Right photo frame (purple) -->
+  <rect x="166" y="90" width="40" height="50" rx="2" fill="#a855f7" opacity="0.75" filter="url(#shadow)" stroke="#d946ef" stroke-width="2"/>
+  <rect x="170" y="94" width="32" height="42" fill="#d8b4fe" opacity="0.6"/>
+  <!-- Heart (center, large) -->
+  <path d="M 128 145 L 115 130 Q 108 122 108 115 Q 108 105 115 105 Q 122 105 128 112 Q 134 105 141 105 Q 148 105 148 115 Q 148 122 135 130 Z" fill="#db2777" opacity="0.95" filter="url(#shadow)"/>
+  <!-- Heart shine -->
+  <path d="M 115 135 L 105 145 L 128 155 Z" fill="#ec4899" opacity="0.8"/>
+  <!-- Celebration sparkles/stars -->
+  <circle cx="70" cy="70" r="3" fill="#fbbf24" opacity="0.75"/>
+  <circle cx="200" cy="75" r="3" fill="#fbbf24" opacity="0.75"/>
+  <circle cx="90" cy="165" r="2" fill="#fbbf24" opacity="0.6"/>
+  <circle cx="175" cy="160" r="2" fill="#fbbf24" opacity="0.6"/>
+  <!-- Small sparkle accents -->
+  <circle cx="140" cy="75" r="1.5" fill="#fbbf24" opacity="0.7"/>
+  <circle cx="115" cy="175" r="1.5" fill="#fbbf24" opacity="0.7"/>
+  <circle cx="155" cy="175" r="1.5" fill="#fbbf24" opacity="0.7"/>
+</svg>
