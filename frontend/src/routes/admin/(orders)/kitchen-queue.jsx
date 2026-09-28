@@ -122,14 +122,14 @@ function StatusChip({ status, delayed }) {
   const meta = STATUS_META[status];
   if (!meta) return null;
   return (
-    <span className="inline-flex items-center gap-1.5">
+    <span className="flex min-w-0 flex-wrap items-center gap-1.5">
       {delayed && (
-        <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-red-600">
+        <span className="inline-flex shrink-0 items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-red-600">
           <AlertTriangle size={12} aria-hidden="true" />
           Delayed
         </span>
       )}
-      <span className={cn("inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide", meta.chip.split(" ").pop())}>
+      <span className={cn("inline-flex shrink-0 items-center gap-1 text-[10px] font-bold uppercase tracking-wide", meta.chip.split(" ").pop())}>
         <span className={cn("size-1.5 rounded-full", meta.dot)} aria-hidden="true" />
         {meta.label}
       </span>
@@ -148,7 +148,7 @@ function OrderCard({ order, onAction, onExpand, isPending, onPayment }) {
   return (
     <article
       className={cn(
-        "border-l-4 rounded-[14px] border border-[#E8E2DD] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.04)] transition-all hover:shadow-[0_4px_12px_rgba(0,0,0,0.06)] cursor-pointer",
+        "box-border w-full min-w-0 max-w-full border-l-4 rounded-[14px] border border-[#E8E2DD] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.04)] transition-all hover:shadow-[0_4px_12px_rgba(0,0,0,0.06)] cursor-pointer",
         delayed ? "border-l-[#DC2626] bg-[#FEF2F2]" : meta?.rail,
         isPending && "opacity-70",
       )}
@@ -163,14 +163,15 @@ function OrderCard({ order, onAction, onExpand, isPending, onPayment }) {
       }}
     >
       <div className="p-3.5 sm:p-4">
-        <header className="flex items-center justify-between gap-3">
-          <div className="min-w-0">
-            <div className="flex min-w-0 items-center gap-2">
-              <h2 className="shrink-0 text-base font-extrabold leading-tight tracking-tight text-[#171717]">
-                {formatOrderNumber(order)}
-              </h2>
-              <StatusChip status={status} delayed={delayed} />
-            </div>
+        <header className="flex min-w-0 items-start gap-2">
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1">
+            <h2
+              className="min-w-0 max-w-full flex-[1_1_8rem] truncate text-base font-extrabold leading-tight tracking-tight text-[#171717]"
+              title={formatOrderNumber(order)}
+            >
+              {formatOrderNumber(order)}
+            </h2>
+            <StatusChip status={status} delayed={delayed} />
           </div>
 
           <div
@@ -185,7 +186,7 @@ function OrderCard({ order, onAction, onExpand, isPending, onPayment }) {
           </div>
         </header>
 
-        <section className="mt-3" aria-label="Order items">
+        <section className="mt-3 min-w-0" aria-label="Order items">
           <ul className="space-y-1.5">
             {(order.items ?? []).slice(0, 3).map((item, index) => (
               <li key={`${order.id}-${index}-${item.itemId ?? "item"}`} className="flex items-start gap-2">
@@ -207,7 +208,7 @@ function OrderCard({ order, onAction, onExpand, isPending, onPayment }) {
           </ul>
         </section>
 
-        <div className="mt-3 flex items-center gap-2 border-t border-[#EEE9E5] pt-3">
+        <div className="mt-3 flex min-w-0 items-center gap-2 border-t border-[#EEE9E5] pt-3">
           <span className="min-w-0 flex-1 truncate text-xs text-[#6B6B6B]">
             {order.userName || "Guest"}
           </span>
@@ -227,7 +228,7 @@ function OrderCard({ order, onAction, onExpand, isPending, onPayment }) {
         </div>
 
         {/* Action buttons */}
-        <div className="mt-3 space-y-2">
+        <div className="mt-3 min-w-0 space-y-2">
           {/* Mark as Paid button for unpaid READY orders */}
           {!paid && order.status === "READY" && onPayment && (
             <button
@@ -271,16 +272,16 @@ function OrderCard({ order, onAction, onExpand, isPending, onPayment }) {
               ) : (
                 <ActionIcon weight="bold" className="size-[18px]" aria-hidden="true" />
               )}
-              <span className="flex-1 text-left">{isPending ? "Updating…" : nextAction.label}</span>
+              <span className="min-w-0 flex-1 break-words text-left">{isPending ? "Updating…" : nextAction.label}</span>
               {!isPending && <ArrowRight size={18} aria-hidden="true" />}
             </button>
           )}
 
           {/* Helper text for disabled hand over */}
           {order.status === "READY" && !paid && (
-            <p className="text-xs text-amber-600 bg-amber-50 px-2.5 py-1.5 rounded-lg flex items-center gap-1">
+            <p className="flex min-w-0 items-start gap-1 rounded-lg bg-amber-50 px-2.5 py-1.5 text-xs text-amber-600">
               <AlertTriangle size={12} aria-hidden="true" />
-              <span>Payment required before hand over</span>
+              <span className="min-w-0 break-words">Payment required before hand over</span>
             </p>
           )}
         </div>
@@ -408,9 +409,9 @@ function KitchenQueuePage() {
     : `No ${PRIMARY_FILTERS.find((filter) => filter.key === activeFilter)?.label ?? ""} orders`;
 
   return (
-    <div className="flex h-[calc(100dvh-3.5rem)] min-h-0 flex-col bg-[#f7f6f3]">
-      <header className="sticky top-0 z-20 shrink-0 border-b border-[#E8E2DD] bg-white/95 px-4 py-2.5 backdrop-blur sm:px-6">
-        <div className="flex h-[52px] items-center justify-between gap-3">
+    <div className="flex h-[calc(100dvh-3.5rem)] min-h-0 w-full min-w-0 max-w-full flex-col bg-[#f7f6f3]">
+      <header className="sticky top-0 z-20 min-w-0 max-w-full shrink-0 border-b border-[#E8E2DD] bg-white/95 px-4 py-2.5 backdrop-blur sm:px-6">
+        <div className="flex h-[52px] min-w-0 items-center justify-between gap-3">
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <h1 className="text-lg font-bold tracking-tight text-[#171717]">Kitchen</h1>
@@ -437,12 +438,12 @@ function KitchenQueuePage() {
           </button>
         </div>
 
-        <div className="mt-1">
+        <div className="mt-1 min-w-0">
           <LocationSelector header className="h-10 min-h-10 w-full rounded-[10px] shadow-none" />
         </div>
 
         {/* Active/Completed Tabs */}
-        <div className="mt-2 flex gap-1 border-b border-[#E8E2DD]">
+        <div className="mt-2 flex min-w-0 gap-1 border-b border-[#E8E2DD]">
           <button
             type="button"
             onClick={() => setActiveTab("active")}
@@ -478,7 +479,7 @@ function KitchenQueuePage() {
         {/* Status Filter Nav - Only show on Active tab */}
         {activeTab === "active" && (
           <>
-            <nav className="mt-2 flex gap-2 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label="Kitchen order status">
+            <nav className="mt-2 flex min-w-0 max-w-full gap-2 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label="Kitchen order status">
           {PRIMARY_FILTERS.map((filter) => (
             <button
               key={filter.key}
@@ -506,7 +507,7 @@ function KitchenQueuePage() {
           ))}
         </nav>
 
-        <div className="mt-2 flex justify-end">
+        <div className="mt-2 flex min-w-0 max-w-full justify-end">
           <button
             type="button"
             onClick={() => {
@@ -516,7 +517,7 @@ function KitchenQueuePage() {
             aria-label="Filter kitchen orders"
             aria-expanded={filterOpen}
             className={cn(
-              "inline-flex min-h-11 items-center gap-1.5 rounded-xl border px-3 text-xs font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF2438]/30",
+              "inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center gap-1.5 rounded-xl border px-3 text-xs font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF2438]/30",
               paymentFilter !== "ALL"
                 ? "border-[#171717] bg-[#171717] text-white"
                 : "border-[#E8E2DD] bg-white text-[#6B6B6B]",
@@ -579,7 +580,7 @@ function KitchenQueuePage() {
         </Drawer>
       </header>
 
-      <main className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-4 py-4 pb-[calc(1rem+env(safe-area-inset-bottom))] [touch-action:pan-y] sm:px-6 sm:py-5">
+      <main className="min-h-0 min-w-0 w-full max-w-full flex-1 overflow-y-auto overscroll-y-contain px-4 py-4 pb-[calc(1rem+env(safe-area-inset-bottom))] [touch-action:pan-y] sm:px-6 sm:py-5">
         {activeTab === "active" ? (
           <>
             {isError && (
@@ -619,7 +620,7 @@ function KitchenQueuePage() {
                 </p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 items-start gap-2.5 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+              <div className="grid min-w-0 grid-cols-1 items-start gap-2.5 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
                 {paymentFilteredOrders.map((order) => (
                   <OrderCard
                     key={order.id}

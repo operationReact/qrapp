@@ -39,11 +39,10 @@ public class AdminController {
         // Kitchen queue action — available to KITCHEN_STAFF within their location scope.
         User user = requireUser(authentication);
         Optional<List<Long>> scope = locationAccessService.resolveDashboardLocationScope(user, locationId);
-        orderService.assertOrderWithinScope(id, scope);
         AdminOrderUpdateRequest updateRequest = new AdminOrderUpdateRequest();
         updateRequest.setStatus(req.getStatus());
         updateRequest.setReason(req.getReason());
-        return ResponseEntity.ok(orderService.updateAdminOrder(id, updateRequest, authentication.getName()));
+        return ResponseEntity.ok(orderService.updateAdminOrder(id, updateRequest, authentication.getName(), scope));
     }
 
     @GetMapping("/orders")

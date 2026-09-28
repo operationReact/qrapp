@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { updateOrderStatusAdmin } from "@/services/order-service";
+import { updateAdminOrder, updateOrderStatusAdmin } from "@/services/order-service";
 import { parseApiError, getBusinessErrorMessage } from "@/lib/api-error-parser";
 
 /**
@@ -12,7 +12,7 @@ export function useMarkOrderAsPaid(locationId, onSuccess) {
 
   return useMutation({
     mutationFn: (orderId) =>
-      updateOrderStatusAdmin(orderId, { paymentStatus: "PAID" }, locationId),
+      updateAdminOrder(orderId, { paymentStatus: "PAID" }, locationId),
     onError: (error) => {
       const parsedError = parseApiError(error);
       const message = parsedError.isBusinessError

@@ -568,9 +568,16 @@ public class OrderService {
         if (locationScope == null || locationScope.isEmpty()) {
             return;
         }
-        List<Long> ids = locationScope.get();
         Order order = orderRepo.findById(orderId)
                 .orElseThrow(() -> new IllegalArgumentException("Order not found: " + orderId));
+        assertOrderWithinScope(order, locationScope);
+    }
+
+    private void assertOrderWithinScope(Order order, Optional<List<Long>> locationScope) {
+        if (locationScope == null || locationScope.isEmpty()) {
+            return;
+        }
+        List<Long> ids = locationScope.get();
         Long locationId = order.getLocation() != null ? order.getLocation().getId() : null;
         if (locationId == null || !ids.contains(locationId)) {
             throw new AccessDeniedException("location_access_denied");
@@ -586,8 +593,17 @@ public class OrderService {
 
     @Transactional
     public AdminOrderResponse updateAdminOrder(Long orderId, AdminOrderUpdateRequest request, String actor) {
+        return updateAdminOrder(orderId, request, actor, Optional.empty());
+    }
+
+    @Transactional
+    public AdminOrderResponse updateAdminOrder(Long orderId,
+                                               AdminOrderUpdateRequest request,
+                                               String actor,
+                                               Optional<List<Long>> locationScope) {
         Order order = orderRepo.findById(orderId)
                 .orElseThrow(() -> new IllegalArgumentException("Order not found: " + orderId));
+        assertOrderWithinScope(order, locationScope);
 
         boolean hasStatusChange = request != null && request.getStatus() != null && !request.getStatus().isBlank();
         boolean hasNoteChange = request != null && request.getAdminNote() != null;
@@ -654,7 +670,8 @@ public class OrderService {
                     order.getGrandTotal(), order.getPaymentMethod(), normalizedActor, now);
         }
 
-        return getAdminOrder(orderId);
+        return buildAdminOrderResponses(List.of(order)).stream().findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Order not found: " + orderId));
     }
 
     @Transactional
