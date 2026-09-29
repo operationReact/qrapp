@@ -49,6 +49,8 @@ public class AdminOrderResponse {
         private double subtotal;
         private String imageUrl;
         private Boolean isVeg;
+        /** Menu category name (e.g. "Breads", "Beverages") — reuses the already-eager-fetched Category. */
+        private String category;
     }
 
     @Data

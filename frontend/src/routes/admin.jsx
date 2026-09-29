@@ -12,13 +12,16 @@ import { SidebarIcon } from "@phosphor-icons/react";
 import { RoleGuard } from "@/components/RoleGuard";
 import { CAN_ACCESS_ADMIN, isKitchenStaffOnly } from "@/lib/roles";
 import { useAuth } from "@/context/AuthContext";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/admin")({
   component: AdminLayout,
 });
 
-// ── Compact sub-page header (hamburger left, bell right) ──────────────────────
-function SubPageHeader() {
+// ── Compact sub-page header (hamburger left, optional centered title, bell right) ──
+// Reused across all admin sub-pages. Pages that need a visible page title (e.g.
+// Kitchen Queue) pass `title`; pages that render their own in-body title keep it blank.
+function SubPageHeader({ title }) {
   const { toggleSidebar } = useSidebar();
   const { dashboard } = useAdminDashboard();
   const notifCount = Math.min(
@@ -28,7 +31,7 @@ function SubPageHeader() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-[var(--cc-divider)] bg-white">
-      <div className="flex h-14 items-center justify-between px-4 md:h-16 md:px-6">
+      <div className={cn("flex h-14 items-center px-4 md:h-16 md:px-6", title ? "justify-between gap-2" : "justify-between")}>
         {/* hamburger */}
         <Button
           size="icon"
@@ -39,6 +42,12 @@ function SubPageHeader() {
         >
           <SidebarIcon />
         </Button>
+
+        {title && (
+          <h1 className="min-w-0 flex-1 truncate text-center text-[16px] font-bold leading-6 text-[var(--cc-text)] md:text-[18px]">
+            {title}
+          </h1>
+        )}
 
         {/* bell — only shows badge when there are real alerts */}
         <Button
@@ -67,6 +76,7 @@ function AdminLayout() {
   // Control Center renders its own compact 64px header (menu + title + bell)
   // so it doesn't stack with this generic sub-page header.
   const isControlCenter = pathname.startsWith("/admin/control-center");
+  const isKitchenQueue = pathname.startsWith("/admin/kitchen-queue");
   const hideGenericHeader = isDashboard || isControlCenter;
 
   // KITCHEN_STAFF are confined to the Kitchen Queue — bounce them there.
@@ -81,7 +91,7 @@ function AdminLayout() {
           <SidebarProvider>
             <AdminSidebar />
             <SidebarInset className="min-w-0 bg-[var(--cc-page)]">
-              {!hideGenericHeader && <SubPageHeader />}
+              {!hideGenericHeader && <SubPageHeader title={isKitchenQueue ? "Kitchen Queue" : undefined} />}
               <div className="min-h-0 flex-1 flex flex-col">
                 <Outlet />
               </div>
