@@ -11,6 +11,7 @@ import {
   Filter,
   LoaderCircle,
   RefreshCw,
+  Image as ImageIcon,
 } from "lucide-react";
 import { LocationSelector } from "@/components/LocationSelector";
 import { liveOrdersAdminOptions } from "@/query/options/orders";
@@ -37,6 +38,7 @@ import { KitchenQueueOrderDetailPanel } from "@/components/admin/kitchen-queue/O
 import { CompletedOrdersView } from "@/components/admin/kitchen-queue/CompletedOrdersView";
 import { useMarkOrderAsPaid } from "@/hooks/useOrderMutations";
 import { parseApiError, getBusinessErrorMessage } from "@/lib/api-error-parser";
+import { baseURL } from "@/services";
 
 const STATUS_META = {
   PLACED: {
@@ -118,6 +120,36 @@ function VegDot({ isVeg }) {
   );
 }
 
+function OrderItemImage({ item }) {
+  const [failed, setFailed] = useState(false);
+  const imageUrl = item.imageUrl
+    ? item.imageUrl.startsWith("http")
+      ? item.imageUrl
+      : `${baseURL}${item.imageUrl}`
+    : null;
+
+  if (!imageUrl || failed) {
+    return (
+      <span
+        className="grid size-10 shrink-0 place-items-center rounded-lg border border-[#E8E2DD] bg-[#F8F6F3] text-[#A39B94]"
+        aria-label={`No image available for ${item.name || "menu item"}`}
+      >
+        <ImageIcon size={17} aria-hidden="true" />
+      </span>
+    );
+  }
+
+  return (
+    <img
+      src={imageUrl}
+      alt={item.name || "Menu item"}
+      loading="lazy"
+      className="size-10 shrink-0 rounded-lg border border-[#E8E2DD] object-cover"
+      onError={() => setFailed(true)}
+    />
+  );
+}
+
 function StatusChip({ status, delayed }) {
   const meta = STATUS_META[status];
   if (!meta) return null;
@@ -149,7 +181,7 @@ function OrderCard({ order, onAction, onExpand, isPending, onPayment }) {
     <article
       className={cn(
         "box-border w-full min-w-0 max-w-full border-l-4 rounded-[14px] border border-[#E8E2DD] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.04)] transition-all hover:shadow-[0_4px_12px_rgba(0,0,0,0.06)] cursor-pointer",
-        delayed ? "border-l-[#DC2626] bg-[#FEF2F2]" : meta?.rail,
+        delayed ? "border-l-[#DC2626]" : meta?.rail,
         isPending && "opacity-70",
       )}
       aria-busy={isPending}
@@ -163,33 +195,33 @@ function OrderCard({ order, onAction, onExpand, isPending, onPayment }) {
       }}
     >
       <div className="p-3.5 sm:p-4">
-        <header className="flex min-w-0 items-start gap-2">
-          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1">
-            <h2
-              className="min-w-0 max-w-full flex-[1_1_8rem] truncate text-base font-extrabold leading-tight tracking-tight text-[#171717]"
-              title={formatOrderNumber(order)}
-            >
-              {formatOrderNumber(order)}
-            </h2>
-            <StatusChip status={status} delayed={delayed} />
-          </div>
-
-          <div
-            className={cn(
-              "flex shrink-0 items-center gap-1 text-xs font-bold tabular-nums",
-              delayed ? "text-[#DC2626]" : "text-[#6B6B6B]",
-            )}
-            aria-label={`${formatAge(order.stageAgeMinutes)} in current stage`}
+        <header className="min-w-0 space-y-1.5">
+          <h2
+            className="min-w-0 max-w-full truncate text-[13px] font-extrabold leading-tight tracking-tight text-[#171717]"
+            title={formatOrderNumber(order)}
           >
-            <Clock3 size={14} aria-hidden="true" />
-            {formatAge(order.stageAgeMinutes)}
+            {formatOrderNumber(order)}
+          </h2>
+          <div className="flex min-w-0 items-center justify-between gap-2">
+            <StatusChip status={status} delayed={delayed} />
+            <div
+              className={cn(
+                "flex shrink-0 items-center gap-1 text-xs font-bold tabular-nums",
+                delayed ? "text-[#DC2626]" : "text-[#6B6B6B]",
+              )}
+              aria-label={`${formatAge(order.stageAgeMinutes)} in current stage`}
+            >
+              <Clock3 size={14} aria-hidden="true" />
+              {formatAge(order.stageAgeMinutes)}
+            </div>
           </div>
         </header>
 
         <section className="mt-3 min-w-0" aria-label="Order items">
           <ul className="space-y-1.5">
             {(order.items ?? []).slice(0, 3).map((item, index) => (
-              <li key={`${order.id}-${index}-${item.itemId ?? "item"}`} className="flex items-start gap-2">
+              <li key={`${order.id}-${index}-${item.itemId ?? "item"}`} className="flex min-w-0 items-start gap-2">
+                <OrderItemImage item={item} />
                 <span className="min-w-[1.5rem] text-sm font-extrabold tabular-nums text-[#171717]">
                   {item.quantity}×
                 </span>
@@ -209,12 +241,13 @@ function OrderCard({ order, onAction, onExpand, isPending, onPayment }) {
         </section>
 
         <div className="mt-3 flex min-w-0 items-center gap-2 border-t border-[#EEE9E5] pt-3">
-          <span className="min-w-0 flex-1 truncate text-xs text-[#6B6B6B]">
+          <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-[#171717]">
             {order.userName || "Guest"}
           </span>
           <span className="shrink-0 text-sm font-bold tabular-nums text-[#171717]">
             {formatCurrency(order.total)}
           </span>
+          <span className="shrink-0 text-[#D8D2CC]" aria-hidden="true">·</span>
           <span
             className={cn(
               "shrink-0 text-[10px] font-bold uppercase tracking-wide",
@@ -238,7 +271,7 @@ function OrderCard({ order, onAction, onExpand, isPending, onPayment }) {
                 onPayment(order.id);
               }}
               disabled={isPending}
-              className="w-full flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-[13px] font-bold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500/40 active:scale-[.99] disabled:cursor-not-allowed bg-green-100 text-green-700 hover:bg-green-200 active:bg-green-300 disabled:opacity-70"
+              className="min-h-11 w-full flex items-center justify-center gap-2 rounded-[22px] px-4 py-3 text-[13px] font-bold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500/40 active:scale-[.99] disabled:cursor-not-allowed bg-green-100 text-green-700 hover:bg-green-200 active:bg-green-300 disabled:opacity-70"
               aria-label={`Mark ${formatOrderNumber(order)} as paid`}
               aria-busy={isPending}
             >
@@ -256,12 +289,10 @@ function OrderCard({ order, onAction, onExpand, isPending, onPayment }) {
               }}
               disabled={isPending || (order.status === "READY" && !paid)}
               className={cn(
-                "w-full flex items-center gap-2 rounded-xl px-4 py-3 text-[13px] font-bold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 active:scale-[.99] disabled:cursor-not-allowed",
+                "min-h-11 w-full flex items-center gap-2 rounded-[22px] px-4 py-3 text-[13px] font-bold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 active:scale-[.99] disabled:cursor-not-allowed",
                 order.status === "READY" && !paid
                   ? "bg-gray-100 text-gray-500 cursor-not-allowed"
-                  : delayed
-                    ? "bg-red-600 text-white hover:bg-red-700 active:bg-red-800"
-                    : meta?.action,
+                  : meta?.action,
               )}
               aria-label={`${nextAction.label} for ${formatOrderNumber(order)}`}
               aria-busy={isPending}
@@ -413,15 +444,14 @@ function KitchenQueuePage() {
       <header className="sticky top-0 z-20 min-w-0 max-w-full shrink-0 border-b border-[#E8E2DD] bg-white/95 px-4 py-2.5 backdrop-blur sm:px-6">
         <div className="flex h-[52px] min-w-0 items-center justify-between gap-3">
           <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <h1 className="text-lg font-bold tracking-tight text-[#171717]">Kitchen</h1>
-              <span className="sr-only">Kitchen Queue</span>
-              <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-[#16A34A]">
+            <div className="flex items-center gap-1.5">
+              <span className="text-sm font-bold tracking-tight text-[#171717]">Kitchen</span>
+              <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-[#16A34A]">
                 <span className="size-1.5 rounded-full bg-[#16A34A]" aria-hidden="true" />
                 Live
               </span>
             </div>
-            <p className="text-[11px] font-medium text-[#6B6B6B]" aria-live="polite">
+            <p className="mt-0.5 text-[11px] font-medium text-[#6B6B6B]" aria-live="polite">
               {isFetching && !isLoading ? "Updating…" : `${orders.length} active`}
               {delayedOrders.length > 0 && ` · ${delayedOrders.length} delayed`}
             </p>
@@ -478,56 +508,59 @@ function KitchenQueuePage() {
 
         {/* Status Filter Nav - Only show on Active tab */}
         {activeTab === "active" && (
-          <>
-            <nav className="mt-2 flex min-w-0 max-w-full gap-2 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-label="Kitchen order status">
-          {PRIMARY_FILTERS.map((filter) => (
+          <div className="mt-2 flex min-w-0 max-w-full items-center gap-2">
+            <nav
+              className="flex min-w-0 flex-1 gap-2 overflow-x-auto pb-0.5 pr-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+              aria-label="Kitchen order status"
+            >
+              {PRIMARY_FILTERS.map((filter) => (
+                <button
+                  key={filter.key}
+                  type="button"
+                  onClick={() => setActiveFilter(filter.key)}
+                  aria-pressed={activeFilter === filter.key}
+                  className={cn(
+                    "flex h-11 min-w-[64px] shrink-0 flex-col items-center justify-center rounded-xl border px-3 py-1.5 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF2438]/30 active:scale-[.98]",
+                    activeFilter === filter.key
+                      ? "border-[#171717] bg-[#171717] text-white"
+                      : filter.key === "PLACED"
+                        ? "border-[#E9D5FF] bg-[#F5F3FF] text-[#7C3AED]"
+                        : filter.key === "PREPARING"
+                          ? "border-[#FED7AA] bg-[#FFF7E6] text-[#EA580C]"
+                          : filter.key === "READY"
+                            ? "border-[#BBF7D0] bg-[#ECFDF3] text-[#16A34A]"
+                            : filter.key === "DELAYED"
+                              ? "border-[#FECACA] bg-[#FEF2F2] text-[#DC2626]"
+                              : "border-[#E8E2DD] bg-white text-[#171717]",
+                  )}
+                >
+                  <span className="text-sm font-bold leading-none tabular-nums">{isLoading ? "—" : counts[filter.key]}</span>
+                  <span className="mt-1 text-[10px] font-bold uppercase tracking-wide leading-none">{filter.label}</span>
+                </button>
+              ))}
+            </nav>
+
             <button
-              key={filter.key}
               type="button"
-              onClick={() => setActiveFilter(filter.key)}
-              aria-pressed={activeFilter === filter.key}
+              onClick={() => {
+                setDraftPaymentFilter(paymentFilter);
+                setFilterOpen(true);
+              }}
+              aria-label="Filter kitchen orders"
+              aria-expanded={filterOpen}
               className={cn(
-                "flex h-[52px] min-w-[72px] shrink-0 flex-col items-center justify-center rounded-xl border px-3 py-2 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF2438]/30 active:scale-[.98]",
-                activeFilter === filter.key
+                "inline-flex h-11 shrink-0 items-center justify-center gap-1.5 rounded-xl border px-3 text-xs font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF2438]/30",
+                paymentFilter !== "ALL"
                   ? "border-[#171717] bg-[#171717] text-white"
-                  : filter.key === "PLACED"
-                    ? "border-[#E9D5FF] bg-[#F5F3FF] text-[#7C3AED]"
-                    : filter.key === "PREPARING"
-                      ? "border-[#FED7AA] bg-[#FFF7E6] text-[#EA580C]"
-                      : filter.key === "READY"
-                        ? "border-[#BBF7D0] bg-[#ECFDF3] text-[#16A34A]"
-                        : filter.key === "DELAYED"
-                          ? "border-[#FECACA] bg-[#FEF2F2] text-[#DC2626]"
-                          : "border-[#E8E2DD] bg-white text-[#171717]",
+                  : "border-[#E8E2DD] bg-white text-[#6B6B6B]",
               )}
             >
-              <span className="text-base font-bold leading-none tabular-nums">{isLoading ? "—" : counts[filter.key]}</span>
-              <span className="mt-1 text-[10px] font-bold uppercase tracking-wide">{filter.label}</span>
+              <Filter size={15} aria-hidden="true" />
+              <span className="hidden min-[380px]:inline">
+                Filter{paymentFilter !== "ALL" && ` · ${paymentFilter === "PAID" ? "Paid" : "Unpaid"}`}
+              </span>
             </button>
-          ))}
-        </nav>
-
-        <div className="mt-2 flex min-w-0 max-w-full justify-end">
-          <button
-            type="button"
-            onClick={() => {
-              setDraftPaymentFilter(paymentFilter);
-              setFilterOpen(true);
-            }}
-            aria-label="Filter kitchen orders"
-            aria-expanded={filterOpen}
-            className={cn(
-              "inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center gap-1.5 rounded-xl border px-3 text-xs font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF2438]/30",
-              paymentFilter !== "ALL"
-                ? "border-[#171717] bg-[#171717] text-white"
-                : "border-[#E8E2DD] bg-white text-[#6B6B6B]",
-            )}
-          >
-            <Filter size={15} aria-hidden="true" />
-            Filter{paymentFilter !== "ALL" && ` · ${paymentFilter === "PAID" ? "Paid" : "Unpaid"}`}
-          </button>
-        </div>
-          </>
+          </div>
         )}
 
         <Drawer open={filterOpen} onOpenChange={setFilterOpen}>
