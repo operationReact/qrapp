@@ -5,12 +5,17 @@ import { toast } from "sonner";
 import {
   AlertTriangle,
   ArrowRight,
+  Building2,
   CheckCircle2,
+  ChefHat,
   CircleAlert,
   Clock3,
   Filter,
   LoaderCircle,
+  MapPin,
   RefreshCw,
+  User,
+  Wallet,
   Image as ImageIcon,
 } from "lucide-react";
 import { LocationSelector } from "@/components/LocationSelector";
@@ -45,22 +50,25 @@ const STATUS_META = {
     label: "New",
     rail: "border-l-[#7C3AED]",
     dot: "bg-[#7C3AED]",
-    chip: "border-[#E9D5FF] bg-[#F5F3FF] text-[#7C3AED]",
-    action: "bg-[#7C3AED] text-white hover:bg-[#6D28D9] active:bg-[#5B21B6]",
+    badge: "border-[#E9D5FF] bg-[#F5F3FF] text-[#7C3AED]",
+    filter: "border-[#E9D5FF] bg-[#F5F3FF] text-[#7C3AED]",
+    action: "bg-gradient-to-r from-[#8B5CF6] to-[#6D28D9] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.28),0_10px_18px_rgba(109,40,217,0.24)] hover:brightness-[1.04] active:brightness-95",
   },
   PREPARING: {
     label: "Cooking",
     rail: "border-l-[#EA580C]",
     dot: "bg-[#EA580C]",
-    chip: "border-[#FED7AA] bg-[#FFF7E6] text-[#EA580C]",
-    action: "bg-[#EA580C] text-white hover:bg-[#C2410C] active:bg-[#9A3412]",
+    badge: "border-[#FED7AA] bg-[#FFF7E6] text-[#EA580C]",
+    filter: "border-[#FED7AA] bg-[#FFF7E6] text-[#EA580C]",
+    action: "bg-gradient-to-r from-[#F97316] to-[#EA580C] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.28),0_12px_24px_rgba(234,88,12,0.24)] hover:brightness-[1.04] active:brightness-95",
   },
   READY: {
     label: "Ready",
     rail: "border-l-[#16A34A]",
     dot: "bg-[#16A34A]",
-    chip: "border-[#BBF7D0] bg-[#ECFDF3] text-[#16A34A]",
-    action: "bg-[#16A34A] text-white hover:bg-[#15803D] active:bg-[#166534]",
+    badge: "border-[#BBF7D0] bg-[#ECFDF3] text-[#16A34A]",
+    filter: "border-[#BBF7D0] bg-[#ECFDF3] text-[#16A34A]",
+    action: "bg-gradient-to-r from-[#22C55E] to-[#16A34A] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.28),0_12px_24px_rgba(22,163,74,0.24)] hover:brightness-[1.04] active:brightness-95",
   },
 };
 
@@ -77,6 +85,14 @@ const PRIMARY_FILTERS = [
   { key: "READY", label: "Ready" },
   { key: "DELAYED", label: "Delayed" },
 ];
+
+const FILTER_META = {
+  ALL: "border-[#191919] bg-[#191919] text-white",
+  PLACED: "border-[#E9D5FF] bg-[#F5F3FF] text-[#7C3AED]",
+  PREPARING: "border-[#FED7AA] bg-[#FFF7E6] text-[#EA580C]",
+  READY: "border-[#BBF7D0] bg-[#ECFDF3] text-[#16A34A]",
+  DELAYED: "border-[#FECACA] bg-[#FEF2F2] text-[#DC2626]",
+};
 
 const PAYMENT_FILTERS = [
   { key: "ALL", label: "All" },
@@ -105,17 +121,18 @@ function formatOrderNumber(order) {
   return String(value).startsWith("#") ? String(value) : `#${value}`;
 }
 
-function VegDot({ isVeg }) {
+function VegDot({ isVeg, overlay = false }) {
   return (
     <span
       className={cn(
-        "mt-0.5 inline-flex size-3.5 shrink-0 items-center justify-center rounded-[4px] border-2",
+        "inline-flex shrink-0 items-center justify-center rounded-[6px] border-2 bg-white",
+        overlay ? "size-4" : "mt-0.5 size-3.5",
         isVeg ? "border-emerald-600" : "border-red-500",
       )}
       role="img"
       aria-label={isVeg ? "Vegetarian item" : "Non-vegetarian item"}
     >
-      <span className={cn("size-1.5 rounded-full", isVeg ? "bg-emerald-600" : "bg-red-500")} />
+      <span className={cn("rounded-full", overlay ? "size-2" : "size-1.5", isVeg ? "bg-emerald-600" : "bg-red-500")} />
     </span>
   );
 }
@@ -128,44 +145,52 @@ function OrderItemImage({ item }) {
       : `${baseURL}${item.imageUrl}`
     : null;
 
-  if (!imageUrl || failed) {
-    return (
-      <span
-        className="grid size-10 shrink-0 place-items-center rounded-lg border border-[#E8E2DD] bg-[#F8F6F3] text-[#A39B94]"
-        aria-label={`No image available for ${item.name || "menu item"}`}
-      >
-        <ImageIcon size={17} aria-hidden="true" />
-      </span>
-    );
-  }
-
   return (
-    <img
-      src={imageUrl}
-      alt={item.name || "Menu item"}
-      loading="lazy"
-      className="size-10 shrink-0 rounded-lg border border-[#E8E2DD] object-cover"
-      onError={() => setFailed(true)}
-    />
+    <span className="relative inline-flex size-16 shrink-0">
+      {!imageUrl || failed ? (
+        <span
+          className="grid size-16 shrink-0 place-items-center rounded-2xl border border-[#E8E2DD] bg-[#F4F0EB] text-[#A39B94] shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]"
+          aria-label={`No image available for ${item.name || "menu item"}`}
+        >
+          <ImageIcon size={20} aria-hidden="true" />
+        </span>
+      ) : (
+        <img
+          src={imageUrl}
+          alt=""
+          loading="lazy"
+          className="size-16 shrink-0 rounded-2xl border border-[#E8E2DD] object-cover shadow-[0_6px_16px_rgba(15,23,42,0.12)]"
+          onError={() => setFailed(true)}
+        />
+      )}
+      <span className="absolute -bottom-1 -right-1 rounded-[6px] shadow-[0_2px_6px_rgba(15,23,42,0.18)]">
+        <VegDot isVeg={item.isVeg} overlay />
+      </span>
+    </span>
   );
 }
 
-function StatusChip({ status, delayed }) {
+function StatusChip({ status, delayed, stageAgeMinutes }) {
   const meta = STATUS_META[status];
   if (!meta) return null;
   return (
-    <span className="flex min-w-0 flex-wrap items-center gap-1.5">
+    <div className="flex min-w-0 flex-wrap items-center gap-2">
+      <span
+        className={cn(
+          "inline-flex min-w-0 shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em]",
+          meta.badge,
+        )}
+      >
+        <span className={cn("size-1.5 rounded-full", meta.dot)} aria-hidden="true" />
+        {meta.label}
+      </span>
       {delayed && (
-        <span className="inline-flex shrink-0 items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-red-600">
+        <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-[#FECACA] bg-[#FEF2F2] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-[#DC2626]">
           <AlertTriangle size={12} aria-hidden="true" />
           Delayed
         </span>
       )}
-      <span className={cn("inline-flex shrink-0 items-center gap-1 text-[10px] font-bold uppercase tracking-wide", meta.chip.split(" ").pop())}>
-        <span className={cn("size-1.5 rounded-full", meta.dot)} aria-hidden="true" />
-        {meta.label}
-      </span>
-    </span>
+    </div>
   );
 }
 
@@ -180,7 +205,7 @@ function OrderCard({ order, onAction, onExpand, isPending, onPayment }) {
   return (
     <article
       className={cn(
-        "box-border w-full min-w-0 max-w-full border-l-4 rounded-[14px] border border-[#E8E2DD] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.04)] transition-all hover:shadow-[0_4px_12px_rgba(0,0,0,0.06)] cursor-pointer",
+        "box-border w-full min-w-0 max-w-full cursor-pointer rounded-[18px] border border-[#E8E2DD] border-l-4 bg-[#FAF9F7] shadow-[0_1px_2px_rgba(15,23,42,0.03),0_10px_24px_rgba(15,23,42,0.06)] transition-all hover:-translate-y-0.5 hover:shadow-[0_1px_2px_rgba(15,23,42,0.04),0_18px_34px_rgba(15,23,42,0.08)]",
         delayed ? "border-l-[#DC2626]" : meta?.rail,
         isPending && "opacity-70",
       )}
@@ -189,46 +214,62 @@ function OrderCard({ order, onAction, onExpand, isPending, onPayment }) {
       role="button"
       tabIndex={0}
       onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
           onExpand(order.id);
         }
       }}
     >
-      <div className="p-3.5 sm:p-4">
-        <header className="min-w-0 space-y-1.5">
-          <h2
-            className="min-w-0 max-w-full truncate text-[13px] font-extrabold leading-tight tracking-tight text-[#171717]"
-            title={formatOrderNumber(order)}
-          >
-            {formatOrderNumber(order)}
-          </h2>
-          <div className="flex min-w-0 items-center justify-between gap-2">
-            <StatusChip status={status} delayed={delayed} />
+      <div className="space-y-3.5 p-3.5 sm:p-4">
+        <header className="min-w-0 space-y-2.5">
+          <div className="flex min-w-0 items-start justify-between gap-3">
+            <h2
+              className="min-w-0 max-w-full truncate text-[14px] font-extrabold leading-tight tracking-[0.01em] text-[#171717]"
+              title={formatOrderNumber(order)}
+            >
+              {formatOrderNumber(order)}
+            </h2>
             <div
               className={cn(
-                "flex shrink-0 items-center gap-1 text-xs font-bold tabular-nums",
-                delayed ? "text-[#DC2626]" : "text-[#6B6B6B]",
+                "inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold tabular-nums shadow-[inset_0_1px_0_rgba(255,255,255,0.65)]",
+                delayed
+                  ? "border-[#FECACA] bg-[#FEF2F2] text-[#DC2626]"
+                  : "border-[#E8E2DD] bg-white text-[#5B5753]",
               )}
-              aria-label={`${formatAge(order.stageAgeMinutes)} in current stage`}
+              aria-label={delayed ? `Delayed, ${formatAge(order.stageAgeMinutes)} in current stage` : `${formatAge(order.stageAgeMinutes)} in current stage`}
             >
-              <Clock3 size={14} aria-hidden="true" />
-              {formatAge(order.stageAgeMinutes)}
+              {delayed ? <AlertTriangle size={12} aria-hidden="true" /> : <Clock3 size={12} aria-hidden="true" />}
+              {delayed ? "Delayed" : formatAge(order.stageAgeMinutes)}
+              {delayed && (
+                <>
+                  <span aria-hidden="true">•</span>
+                  <Clock3 size={12} aria-hidden="true" />
+                  {formatAge(order.stageAgeMinutes)}
+                </>
+              )}
             </div>
           </div>
+
+          <StatusChip status={status} delayed={delayed} stageAgeMinutes={order.stageAgeMinutes} />
         </header>
 
-        <section className="mt-3 min-w-0" aria-label="Order items">
-          <ul className="space-y-1.5">
+        <section className="min-w-0 space-y-2" aria-label="Order items">
+          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#8A8580]">Items</p>
+          <ul className="space-y-2.5">
             {(order.items ?? []).slice(0, 3).map((item, index) => (
-              <li key={`${order.id}-${index}-${item.itemId ?? "item"}`} className="flex min-w-0 items-start gap-2">
+              <li key={`${order.id}-${index}-${item.itemId ?? "item"}`} className="flex min-w-0 items-center gap-3">
                 <OrderItemImage item={item} />
-                <span className="min-w-[1.5rem] text-sm font-extrabold tabular-nums text-[#171717]">
-                  {item.quantity}×
-                </span>
-                <VegDot isVeg={item.isVeg} />
-                <span className="min-w-0 flex-1 break-words text-sm font-semibold leading-snug text-[#171717]">
-                  {item.name || "Menu item"}
-                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <VegDot isVeg={item.isVeg} />
+                    <span className="shrink-0 text-[13px] font-extrabold tabular-nums text-[#171717]">
+                      {item.quantity}×
+                    </span>
+                    <span className="min-w-0 flex-1 truncate text-[13px] font-semibold leading-snug text-[#171717]">
+                      {item.name || "Menu item"}
+                    </span>
+                  </div>
+                </div>
               </li>
             ))}
             {(order.items ?? []).length > 3 && (
@@ -240,28 +281,31 @@ function OrderCard({ order, onAction, onExpand, isPending, onPayment }) {
           </ul>
         </section>
 
-        <div className="mt-3 flex min-w-0 items-center gap-2 border-t border-[#EEE9E5] pt-3">
-          <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-[#171717]">
-            {order.userName || "Guest"}
-          </span>
-          <span className="shrink-0 text-sm font-bold tabular-nums text-[#171717]">
-            {formatCurrency(order.total)}
-          </span>
-          <span className="shrink-0 text-[#D8D2CC]" aria-hidden="true">·</span>
-          <span
-            className={cn(
-              "shrink-0 text-[10px] font-bold uppercase tracking-wide",
-              paid
-                ? "text-[#16A34A]"
-                : "text-[#D97706]",
-            )}
-          >
-            {paid ? "Paid" : "Unpaid"}
-          </span>
-        </div>
+        <section className="grid min-w-0 grid-cols-2 gap-3 rounded-[16px] border border-[#EEE9E5] bg-white/80 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]">
+          <div className="min-w-0">
+            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#8A8580]">Customer</p>
+            <p className="mt-1 truncate text-[13px] font-semibold text-[#171717]">
+              {order.userName || "Guest"}
+            </p>
+          </div>
+          <div className="min-w-0 text-right">
+            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#8A8580]">Amount</p>
+            <p className="mt-1 text-[15px] font-extrabold tabular-nums text-[#171717]">
+              {formatCurrency(order.total)}
+            </p>
+            <p
+              className={cn(
+                "mt-1 text-[10px] font-bold uppercase tracking-[0.16em]",
+                paid ? "text-[#16A34A]" : "text-[#D97706]",
+              )}
+            >
+              {paid ? "Paid" : "Pending"}
+            </p>
+          </div>
+        </section>
 
         {/* Action buttons */}
-        <div className="mt-3 min-w-0 space-y-2">
+        <div className="min-w-0 space-y-2.5">
           {/* Mark as Paid button for unpaid READY orders */}
           {!paid && order.status === "READY" && onPayment && (
             <button
@@ -271,7 +315,7 @@ function OrderCard({ order, onAction, onExpand, isPending, onPayment }) {
                 onPayment(order.id);
               }}
               disabled={isPending}
-              className="min-h-11 w-full flex items-center justify-center gap-2 rounded-[22px] px-4 py-3 text-[13px] font-bold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500/40 active:scale-[.99] disabled:cursor-not-allowed bg-green-100 text-green-700 hover:bg-green-200 active:bg-green-300 disabled:opacity-70"
+              className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-[24px] border border-[#BBF7D0] bg-gradient-to-r from-[#F0FDF4] to-[#DCFCE7] px-4 py-3 text-[13px] font-bold text-[#15803D] shadow-[inset_0_1px_0_rgba(255,255,255,0.75),0_8px_18px_rgba(34,197,94,0.14)] transition-all hover:brightness-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500/40 active:scale-[.98] disabled:cursor-not-allowed disabled:opacity-70"
               aria-label={`Mark ${formatOrderNumber(order)} as paid`}
               aria-busy={isPending}
             >
@@ -289,7 +333,7 @@ function OrderCard({ order, onAction, onExpand, isPending, onPayment }) {
               }}
               disabled={isPending || (order.status === "READY" && !paid)}
               className={cn(
-                "min-h-11 w-full flex items-center gap-2 rounded-[22px] px-4 py-3 text-[13px] font-bold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 active:scale-[.99] disabled:cursor-not-allowed",
+                "flex min-h-[46px] w-full items-center gap-2 rounded-[24px] px-4 py-3 text-[13px] font-bold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 active:scale-[.98] disabled:cursor-not-allowed",
                 order.status === "READY" && !paid
                   ? "bg-gray-100 text-gray-500 cursor-not-allowed"
                   : meta?.action,
@@ -310,7 +354,7 @@ function OrderCard({ order, onAction, onExpand, isPending, onPayment }) {
 
           {/* Helper text for disabled hand over */}
           {order.status === "READY" && !paid && (
-            <p className="flex min-w-0 items-start gap-1 rounded-lg bg-amber-50 px-2.5 py-1.5 text-xs text-amber-600">
+            <p className="flex min-w-0 items-start gap-1 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
               <AlertTriangle size={12} aria-hidden="true" />
               <span className="min-w-0 break-words">Payment required before hand over</span>
             </p>
@@ -323,7 +367,7 @@ function OrderCard({ order, onAction, onExpand, isPending, onPayment }) {
 
 function QueueSkeleton() {
   return (
-    <div className="rounded-[14px] border border-[#E8E2DD] bg-white p-3.5 shadow-[0_2px_8px_rgba(0,0,0,0.04)]" aria-hidden="true">
+    <div className="rounded-[18px] border border-[#E8E2DD] bg-[#FAF9F7] p-3.5 shadow-[0_1px_2px_rgba(15,23,42,0.03),0_10px_24px_rgba(15,23,42,0.06)]" aria-hidden="true">
       <div className="flex items-center justify-between gap-4">
         <div className="space-y-2">
           <div className="h-5 w-20 animate-pulse rounded-md bg-[#F0ECE8]" />
@@ -440,75 +484,82 @@ function KitchenQueuePage() {
     : `No ${PRIMARY_FILTERS.find((filter) => filter.key === activeFilter)?.label ?? ""} orders`;
 
   return (
-    <div className="flex h-[calc(100dvh-3.5rem)] min-h-0 w-full min-w-0 max-w-full flex-col bg-[#f7f6f3]">
-      <header className="sticky top-0 z-20 min-w-0 max-w-full shrink-0 border-b border-[#E8E2DD] bg-white/95 px-4 py-2.5 backdrop-blur sm:px-6">
-        <div className="flex h-[52px] min-w-0 items-center justify-between gap-3">
-          <div className="min-w-0">
-            <div className="flex items-center gap-1.5">
-              <span className="text-sm font-bold tracking-tight text-[#171717]">Kitchen</span>
-              <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-[#16A34A]">
-                <span className="size-1.5 rounded-full bg-[#16A34A]" aria-hidden="true" />
-                Live
+    <div className="flex h-[calc(100dvh-3.5rem)] min-h-0 w-full min-w-0 max-w-full flex-col overflow-x-hidden bg-[#F5F1EB]">
+      <header className="sticky top-0 z-20 min-w-0 max-w-full shrink-0 border-b border-[#ECE4DB] bg-[#F5F1EB]/95 px-3.5 py-3 backdrop-blur sm:px-4">
+        <div className="space-y-3">
+          <div className="flex min-w-0 items-center justify-between gap-3 rounded-[20px] border border-white/70 bg-white/90 px-3.5 py-3 shadow-[0_8px_28px_rgba(15,23,42,0.06)]">
+            <div className="flex min-w-0 items-center gap-3">
+              <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-[#FFE8CC] to-[#FFD3A3] text-[#B45309] shadow-[inset_0_1px_0_rgba(255,255,255,0.6),0_6px_14px_rgba(180,83,9,0.16)]">
+                <ChefHat size={22} aria-hidden="true" />
               </span>
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-[15px] font-bold tracking-tight text-[#171717]">Kitchen</span>
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-[#BBF7D0] bg-[#F0FDF4] px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.16em] text-[#16A34A]">
+                    <span className="relative flex size-1.5">
+                      <span className="absolute inline-flex size-full animate-ping rounded-full bg-[#16A34A] opacity-60" aria-hidden="true" />
+                      <span className="relative inline-flex size-1.5 rounded-full bg-[#16A34A]" aria-hidden="true" />
+                    </span>
+                    Live
+                  </span>
+                </div>
+                <p className="mt-1 text-[11px] font-semibold text-[#5B5753]" aria-live="polite">
+                  {isFetching && !isLoading ? "Updating…" : `${orders.length} active`}
+                  {delayedOrders.length > 0 && ` · ${delayedOrders.length} delayed`}
+                </p>
+                <p className="mt-0.5 text-[11px] text-[#8A8580]">Real-time order preparation</p>
+              </div>
             </div>
-            <p className="mt-0.5 text-[11px] font-medium text-[#6B6B6B]" aria-live="polite">
-              {isFetching && !isLoading ? "Updating…" : `${orders.length} active`}
-              {delayedOrders.length > 0 && ` · ${delayedOrders.length} delayed`}
-            </p>
-          </div>
-          <button
+            <button
             type="button"
             onClick={() => refetch()}
             disabled={isFetching}
-            className="grid size-10 shrink-0 place-items-center rounded-xl border border-[#E8E2DD] bg-white text-[#6B6B6B] transition-colors hover:bg-[#F8F6F3] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF2438]/30 active:scale-95 disabled:opacity-50"
+            className="grid size-10 shrink-0 place-items-center rounded-2xl border border-[#E8E2DD] bg-[#FAF9F7] text-[#6B6B6B] shadow-[inset_0_1px_0_rgba(255,255,255,0.7)] transition-all hover:bg-white hover:shadow-[0_8px_20px_rgba(15,23,42,0.08)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF2438]/30 active:scale-95 disabled:opacity-50"
             aria-label={isFetching ? "Updating kitchen queue" : "Refresh kitchen queue"}
             title={isFetching ? "Updating…" : "Refresh queue"}
-          >
+            >
             <RefreshCw size={17} className={cn(isFetching && "animate-spin")} aria-hidden="true" />
-          </button>
-        </div>
+            </button>
+          </div>
 
-        <div className="mt-1 min-w-0">
-          <LocationSelector header className="h-10 min-h-10 w-full rounded-[10px] shadow-none" />
-        </div>
+          <div className="flex min-w-0 items-center gap-2.5 rounded-[20px] border border-white/70 bg-white/90 p-3 shadow-[0_8px_28px_rgba(15,23,42,0.06)]">
+            <span className="grid size-10 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-[#EDE9FE] to-[#DDD6FE] text-[#6D28D9] shadow-[inset_0_1px_0_rgba(255,255,255,0.65),0_6px_14px_rgba(109,40,217,0.14)]">
+              <Building2 size={18} aria-hidden="true" />
+            </span>
+            <LocationSelector header className="h-auto min-h-11 flex-1 rounded-[14px] border-none bg-transparent p-0 shadow-none" />
+          </div>
 
-        {/* Active/Completed Tabs */}
-        <div className="mt-2 flex min-w-0 gap-1 border-b border-[#E8E2DD]">
-          <button
+          {/* Active/Completed Tabs */}
+          <div className="flex min-w-0 rounded-full border border-[#E8E2DD] bg-white/80 p-1 shadow-[0_6px_20px_rgba(15,23,42,0.04)]">
+            <button
             type="button"
             onClick={() => setActiveTab("active")}
             className={cn(
-              "min-h-10 px-4 text-sm font-bold transition-colors relative",
+              "flex h-10 flex-1 items-center justify-center rounded-full px-4 text-sm font-bold transition-all",
               activeTab === "active"
-                ? "text-[#171717]"
-                : "text-[#6B6B6B] hover:text-[#171717]"
+                ? "bg-[#171717] text-white shadow-[0_8px_16px_rgba(23,23,23,0.18)]"
+                : "bg-[#F5F1EB] text-[#6B6B6B] hover:text-[#171717]",
             )}
-          >
-            Active
-            {activeTab === "active" && (
-              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#171717]" aria-hidden="true" />
-            )}
-          </button>
-          <button
+            >
+            Active{orders.length > 0 && ` (${orders.length})`}
+            </button>
+            <button
             type="button"
             onClick={() => setActiveTab("completed")}
             className={cn(
-              "min-h-10 px-4 text-sm font-bold transition-colors relative",
+              "flex h-10 flex-1 items-center justify-center rounded-full px-4 text-sm font-bold transition-all",
               activeTab === "completed"
-                ? "text-[#171717]"
-                : "text-[#6B6B6B] hover:text-[#171717]"
+                ? "bg-[#171717] text-white shadow-[0_8px_16px_rgba(23,23,23,0.18)]"
+                : "bg-[#F5F1EB] text-[#6B6B6B] hover:text-[#171717]",
             )}
-          >
+            >
             Completed
-            {activeTab === "completed" && (
-              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#171717]" aria-hidden="true" />
-            )}
-          </button>
-        </div>
+            </button>
+          </div>
 
-        {/* Status Filter Nav - Only show on Active tab */}
-        {activeTab === "active" && (
-          <div className="mt-2 flex min-w-0 max-w-full items-center gap-2">
+          {/* Status Filter Nav - Only show on Active tab */}
+          {activeTab === "active" && (
+            <div className="flex min-w-0 max-w-full items-center gap-2">
             <nav
               className="flex min-w-0 flex-1 gap-2 overflow-x-auto pb-0.5 pr-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
               aria-label="Kitchen order status"
@@ -520,22 +571,14 @@ function KitchenQueuePage() {
                   onClick={() => setActiveFilter(filter.key)}
                   aria-pressed={activeFilter === filter.key}
                   className={cn(
-                    "flex h-11 min-w-[64px] shrink-0 flex-col items-center justify-center rounded-xl border px-3 py-1.5 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF2438]/30 active:scale-[.98]",
+                    "flex h-14 min-w-[76px] shrink-0 flex-col items-center justify-center rounded-[20px] border px-3 py-2 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF2438]/30 active:scale-[.98]",
                     activeFilter === filter.key
-                      ? "border-[#171717] bg-[#171717] text-white"
-                      : filter.key === "PLACED"
-                        ? "border-[#E9D5FF] bg-[#F5F3FF] text-[#7C3AED]"
-                        : filter.key === "PREPARING"
-                          ? "border-[#FED7AA] bg-[#FFF7E6] text-[#EA580C]"
-                          : filter.key === "READY"
-                            ? "border-[#BBF7D0] bg-[#ECFDF3] text-[#16A34A]"
-                            : filter.key === "DELAYED"
-                              ? "border-[#FECACA] bg-[#FEF2F2] text-[#DC2626]"
-                              : "border-[#E8E2DD] bg-white text-[#171717]",
+                      ? "border-[#171717] bg-[#171717] text-white shadow-[0_10px_20px_rgba(23,23,23,0.18)]"
+                      : FILTER_META[filter.key],
                   )}
                 >
-                  <span className="text-sm font-bold leading-none tabular-nums">{isLoading ? "—" : counts[filter.key]}</span>
-                  <span className="mt-1 text-[10px] font-bold uppercase tracking-wide leading-none">{filter.label}</span>
+                  <span className="text-base font-bold leading-none tabular-nums">{isLoading ? "—" : counts[filter.key]}</span>
+                  <span className="mt-1 text-[10px] font-bold uppercase tracking-[0.16em] leading-none">{filter.label}</span>
                 </button>
               ))}
             </nav>
@@ -549,10 +592,10 @@ function KitchenQueuePage() {
               aria-label="Filter kitchen orders"
               aria-expanded={filterOpen}
               className={cn(
-                "inline-flex h-11 shrink-0 items-center justify-center gap-1.5 rounded-xl border px-3 text-xs font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF2438]/30",
+                "inline-flex h-14 shrink-0 items-center justify-center gap-1.5 rounded-[20px] border px-3 text-xs font-bold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF2438]/30",
                 paymentFilter !== "ALL"
-                  ? "border-[#171717] bg-[#171717] text-white"
-                  : "border-[#E8E2DD] bg-white text-[#6B6B6B]",
+                  ? "border-[#171717] bg-[#171717] text-white shadow-[0_10px_20px_rgba(23,23,23,0.18)]"
+                  : "border-[#E8E2DD] bg-white text-[#6B6B6B] shadow-[0_8px_18px_rgba(15,23,42,0.05)]",
               )}
             >
               <Filter size={15} aria-hidden="true" />
@@ -560,8 +603,9 @@ function KitchenQueuePage() {
                 Filter{paymentFilter !== "ALL" && ` · ${paymentFilter === "PAID" ? "Paid" : "Unpaid"}`}
               </span>
             </button>
-          </div>
-        )}
+            </div>
+          )}
+        </div>
 
         <Drawer open={filterOpen} onOpenChange={setFilterOpen}>
           <DrawerContent className="rounded-t-[20px] px-5 pb-[env(safe-area-inset-bottom)]">
@@ -613,7 +657,7 @@ function KitchenQueuePage() {
         </Drawer>
       </header>
 
-      <main className="min-h-0 min-w-0 w-full max-w-full flex-1 overflow-y-auto overscroll-y-contain px-4 py-4 pb-[calc(1rem+env(safe-area-inset-bottom))] [touch-action:pan-y] sm:px-6 sm:py-5">
+      <main className="min-h-0 min-w-0 w-full max-w-full flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain px-3.5 py-3.5 pb-[calc(1rem+env(safe-area-inset-bottom))] [touch-action:pan-y] sm:px-4 sm:py-4">
         {activeTab === "active" ? (
           <>
             {isError && (
@@ -636,7 +680,7 @@ function KitchenQueuePage() {
             )}
 
             {isLoading ? (
-              <div className="grid grid-cols-1 gap-2.5 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
                 {Array.from({ length: 4 }, (_, index) => <QueueSkeleton key={index} />)}
               </div>
             ) : paymentFilteredOrders.length === 0 ? (
@@ -653,7 +697,7 @@ function KitchenQueuePage() {
                 </p>
               </div>
             ) : (
-              <div className="grid min-w-0 grid-cols-1 items-start gap-2.5 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+              <div className="grid min-w-0 grid-cols-1 items-start gap-3 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
                 {paymentFilteredOrders.map((order) => (
                   <OrderCard
                     key={order.id}

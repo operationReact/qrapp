@@ -87,9 +87,14 @@ public class MenuItem {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
-    @OneToOne(mappedBy = "menuItem", fetch = FetchType.LAZY)
-    @JsonIgnore
-    private MenuItemImage image;
+    // NOTE: The legacy DB-blob image association (MenuItemImage, owning side has
+    // @JoinColumn menu_item_id) was intentionally removed from this entity. It was
+    // a unidirectional/mappedBy @OneToOne(LAZY) that Hibernate cannot proxy without
+    // bytecode enhancement, so it was forcing an extra synchronous SELECT against
+    // menu_item_image for every single menu item on every menu load (a severe N+1
+    // that dominated /menu response time). Nothing in the codebase ever read this
+    // field (MenuItemImageService/Controller already query MenuItemImageRepository
+    // directly by menuItemId), so removing it is behavior-neutral.
 
     // ============================================================================
     // AI IMAGE GENERATION FIELDS

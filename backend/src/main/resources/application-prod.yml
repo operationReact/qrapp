@@ -31,6 +31,11 @@ spring:
       keepalive-time: ${SPRING_DATASOURCE_HIKARI_KEEPALIVE_TIME:30000}
       connection-test-query: SELECT 1
       connection-init-sql: "SET statement_timeout = '8s'"
+      # See application-dev.yml for rationale: keeps idle pooled connections
+      # alive at the OS/socket level so they aren't silently dropped, which
+      # otherwise stalls the next request for the full connection-timeout.
+      data-source-properties:
+        tcpKeepAlive: true
 
   flyway:
     enabled: ${SPRING_FLYWAY_ENABLED:true}
