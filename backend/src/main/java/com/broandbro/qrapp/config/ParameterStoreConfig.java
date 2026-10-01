@@ -99,6 +99,7 @@ public class ParameterStoreConfig {
 
         log.info("Razorpay Key: {}", razorpayKey != null ? "✅ LOADED" : "❌ NOT FOUND");
         log.info("Razorpay Secret: {}", razorpaySecret != null ? "✅ LOADED" : "❌ NOT FOUND");
+        log.info("Razorpay Webhook Secret: {}", razorpayWebhookSecret != null ? "✅ LOADED" : "❌ NOT FOUND");
 
         log.info("S3 Enabled: {}", s3Enabled != null ? "✅ LOADED" : "❌ NOT FOUND");
         log.info("S3 Bucket: {}", s3BucketName != null ? "✅ LOADED" : "❌ NOT FOUND");

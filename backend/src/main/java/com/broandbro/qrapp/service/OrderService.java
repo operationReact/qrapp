@@ -682,6 +682,12 @@ public class OrderService {
        log.info("[PaymentGateway] Marking order PAID via Razorpay | orderId={} orderNumber={} razorpayOrderId={}",
                order.getId(), order.getOrderNumber(), razorpayOrderId);
 
+       if ("PAID".equalsIgnoreCase(order.getPaymentStatus())) {
+           log.info("[PaymentGateway] Order already PAID; duplicate Razorpay success event is idempotent | orderId={}",
+                   order.getId());
+           return;
+       }
+
        order.setPaymentStatus("PAID");
        order.setPaymentMethod(PaymentMethod.RAZORPAY);
        orderRepo.save(order);

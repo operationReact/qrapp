@@ -119,7 +119,10 @@ jobs:
 
           RAZORPAY_KEY=$(get_optional_parameter "/broandbro/backend/prod/razorpay/key")
           RAZORPAY_SECRET=$(get_optional_parameter "/broandbro/backend/prod/razorpay/secret")
-          RAZORPAY_WEBHOOK_SECRET=$(get_optional_parameter "/broandbro/backend/prod/razorpay/webhookSecret")
+          RAZORPAY_WEBHOOK_SECRET=$(aws ssm get-parameter \
+            --name "/broandbro/backend/prod/razorpay/webhookSecret" \
+            --with-decryption \
+            --query "Parameter.Value" --output text --region us-east-1)
 
           WHATSAPP_WEBHOOK_VERIFY_TOKEN=$(get_optional_parameter "/broandbro/backend/prod/whatsapp/webhookVerifyToken")
           WHATSAPP_APP_SECRET=$(get_optional_parameter "/broandbro/backend/prod/whatsapp/appSecret")
@@ -156,6 +159,12 @@ jobs:
             fi
           done
           echo "✅ WhatsApp configuration present"
+
+          if [ -z "$RAZORPAY_WEBHOOK_SECRET" ]; then
+            echo "❌ RAZORPAY_WEBHOOK_SECRET not found in SSM for prod. Aborting deploy." >&2
+            exit 1
+          fi
+          echo "✅ Razorpay webhook configuration present"
 
       # Step 6: Fetch EC2 host from SSM (populated by Terraform)
       - name: Get EC2 host from SSM

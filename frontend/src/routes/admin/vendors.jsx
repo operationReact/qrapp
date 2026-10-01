@@ -39,7 +39,9 @@ function VendorsPage() {
     queryFn: () => getMenu({ locationId: activeLocationId }),
     enabled: Boolean(activeLocationId),
   });
-  const vendors = useMemo(() => vendorsQuery.data || [], [vendorsQuery.data]);
+  // .filter(Boolean) guards against any null/undefined entries in the API
+  // response so a bad row can never crash the render (e.g. vendor.id lookups below).
+  const vendors = useMemo(() => (vendorsQuery.data || []).filter(Boolean), [vendorsQuery.data]);
   const selected = vendors.find((vendor) => vendor.id === selectedId) || vendors[0] || null;
   const filtered = useMemo(() => vendors.filter((vendor) => {
     const text = `${vendor.vendorName} ${vendor.phoneNumber} ${vendor.address || ""}`.toLowerCase();
@@ -50,7 +52,7 @@ function VendorsPage() {
     mutationFn: () => editing ? updateVendor(selected.id, form) : createVendor(form),
     onSuccess: (vendor) => {
       queryClient.invalidateQueries({ queryKey: ["vendors"] });
-      setSelectedId(vendor.id);
+      if (vendor?.id != null) setSelectedId(vendor.id);
       setShowForm(false);
       toast.success(editing ? "Vendor updated" : "Vendor created");
     },
