@@ -153,9 +153,12 @@ public class ComboServiceImpl implements ComboService {
     }
 
     @Override
-    @Cacheable(cacheNames = "combos", key = "'public'")
-    public List<ComboCardResponse> getPublicCombos() {
-        return comboRepo.findAllPublic().stream()
+    @Cacheable(cacheNames = "combos", key = "'public:' + #locationId")
+    public List<ComboCardResponse> getPublicCombos(Long locationId) {
+        List<Combo> combos = locationId != null
+                ? comboRepo.findAllPublicByLocation(locationId)
+                : comboRepo.findAllPublic();
+        return combos.stream()
                 .map(this::toCardResponse)
                 .collect(Collectors.toList());
     }
@@ -364,12 +367,21 @@ public class ComboServiceImpl implements ComboService {
         var avail = availabilityService.computeAvailability(c);
         List<String> names = c.getItems().stream()
                 .map(i -> i.getMenuItem().getName()).collect(Collectors.toList());
+        // By construction all of a combo's items share one location, so the
+        // first item's location is authoritative for the combo as a whole.
+        Long locationId = c.getItems().stream()
+                .map(i -> i.getMenuItem().getLocation())
+                .filter(java.util.Objects::nonNull)
+                .map(com.broandbro.qrapp.entity.Location::getId)
+                .findFirst()
+                .orElse(null);
         return new ComboCardResponse(
                 c.getId(), c.getComboName(), c.getComboPrice(), c.getOriginalPrice(),
                 c.getSavingsPercentage(),
                 Boolean.TRUE.equals(c.getIsFeatured()),
                 Boolean.TRUE.equals(c.getIsPreorderEligible()),
-                avail, c.getComboType(), c.getImageUrl(), c.getTimeSlot(), names
+                avail, c.getComboType(), c.getImageUrl(), c.getTimeSlot(), names,
+                locationId
         );
     }
 

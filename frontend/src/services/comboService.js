@@ -5,8 +5,10 @@ const getActiveLocationId = () =>
   getEffectiveLocationId();
 
 // ── Public (customer-facing) ───────────────────────────────────────────────
-export const getPublicCombos = () =>
-  apiClient.get("/api/combos").then((r) => r.data);
+export const getPublicCombos = (locationId = getActiveLocationId()) =>
+  apiClient
+    .get("/api/combos", { params: locationId != null ? { locationId } : {} })
+    .then((r) => r.data);
 
 // ── Analytics ──────────────────────────────────────────────────────────────
 export const getComboAnalyticsSummary = (locationId = getActiveLocationId()) =>

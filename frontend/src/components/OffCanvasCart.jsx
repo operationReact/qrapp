@@ -1,5 +1,6 @@
 import { useCart } from "../context/CartContext";
-import { useLocation } from "@tanstack/react-router";
+import { useLocation as useRouterLocation } from "@tanstack/react-router";
+import { useLocation as useAppLocation } from "@/context/LocationContext";
 import { Button } from "./ui/button";
 import CartItem from "./shared/CartItem";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "./ui/sheet";
@@ -30,6 +31,7 @@ import { Badge } from "./ui/badge";
 
 // ── Smart upsell: ONE section, session-gated to prevent infinite loops ────────
 function SmartUpsellSection({ cart, addItem, decreaseItem, isOpen }) {
+  const { activeLocationId } = useAppLocation();
   const cartItemsKey = cart.map((i) => `${i.id}:${i.quantity}`).sort().join(",");
   const cartTotal    = cart.reduce((s, i) => s + Number(i.price) * i.quantity, 0);
   const itemIds      = cart.map((i) => i.id);
@@ -51,8 +53,8 @@ function SmartUpsellSection({ cart, addItem, decreaseItem, isOpen }) {
 
   // ── Priority 1: Complete Your Meal ────────────────────────────────────────
   const { data: meal, isLoading: mealLoading, isError: mealError } = useQuery({
-    queryKey: ["complete-meal", cartItemsKey],
-    queryFn:  () => getMealRecommendation({ cartItemIds: itemIds, cartTotal }),
+    queryKey: ["complete-meal", activeLocationId, cartItemsKey],
+    queryFn:  () => getMealRecommendation({ cartItemIds: itemIds, cartTotal, locationId: activeLocationId }),
     enabled:  isOpen && cart.length > 0 && !upsellDone,
     staleTime: 1000 * 60 * 3,
     retry:    false,
@@ -61,8 +63,8 @@ function SmartUpsellSection({ cart, addItem, decreaseItem, isOpen }) {
 
   // ── Priority 2: Frequently Bought Together ────────────────────────────────
   const { data: bundle, isLoading: bundleLoading, isError: bundleError } = useQuery({
-    queryKey: ["v1-recommended-bundle", cartItemsKey],
-    queryFn:  () => getRecommendedBundle({ cartItemIds: itemIds, cartTotal }),
+    queryKey: ["v1-recommended-bundle", activeLocationId, cartItemsKey],
+    queryFn:  () => getRecommendedBundle({ cartItemIds: itemIds, cartTotal, locationId: activeLocationId }),
     enabled:  isOpen && cart.length > 0 && !upsellDone && !mealLoading && !hasMeal,
     staleTime: 1000 * 60 * 3,
     retry:    false,
@@ -71,9 +73,9 @@ function SmartUpsellSection({ cart, addItem, decreaseItem, isOpen }) {
 
   // ── Priority 3: General recommendations ──────────────────────────────────
   const { data: recsData, isLoading: recsLoading } = useQuery({
-    queryKey: ["cart-recommendations", itemIds.slice().sort().join(",")],
+    queryKey: ["cart-recommendations", activeLocationId, itemIds.slice().sort().join(",")],
     queryFn:  () =>
-      getCartRecommendations({ itemIds, categoryIds, cartTotal, maxResults: 5 }),
+      getCartRecommendations({ itemIds, categoryIds, cartTotal, maxResults: 5, locationId: activeLocationId }),
     enabled:
       isOpen && cart.length > 0 && !upsellDone &&
       !mealLoading && !hasMeal && !bundleLoading && !hasBundle,
@@ -97,6 +99,9 @@ function SmartUpsellSection({ cart, addItem, decreaseItem, isOpen }) {
             name:     item.itemName,
             imageUrl: item.imageUrl ?? undefined,
             price:    Number(item.price),
+            // Backend scopes these candidates to the cart's own location —
+            // tag the item so CartContext.addItem's location guard applies.
+            locationId: activeLocationId,
           }),
         );
       setUpsellDone(true); // stop the recommendation loop
@@ -118,6 +123,7 @@ function SmartUpsellSection({ cart, addItem, decreaseItem, isOpen }) {
             name:     item.itemName,
             imageUrl: item.imageUrl ?? undefined,
             price:    Number(item.price),
+            locationId: activeLocationId,
           }),
         );
       setUpsellDone(true); // stop the recommendation loop
@@ -239,7 +245,7 @@ function SmartUpsellSection({ cart, addItem, decreaseItem, isOpen }) {
                     {inCart.quantity}
                   </span>
                   <button
-                    onClick={() => addItem({ id: s.itemId, name: s.itemName, imageUrl: s.imageUrl, price: s.price })}
+                    onClick={() => addItem({ id: s.itemId, name: s.itemName, imageUrl: s.imageUrl, price: s.price, locationId: activeLocationId })}
                     className="px-2.5 py-1.5 text-primary hover:bg-primary/10 transition-colors font-bold text-base leading-none"
                     aria-label="Increase quantity"
                   >
@@ -250,7 +256,7 @@ function SmartUpsellSection({ cart, addItem, decreaseItem, isOpen }) {
                   <Button
                   size="sm"
                   variant="branded-secondary"
-                  onClick={() => addItem({ id: s.itemId, name: s.itemName, imageUrl: s.imageUrl, price: s.price })}
+                  onClick={() => addItem({ id: s.itemId, name: s.itemName, imageUrl: s.imageUrl, price: s.price, locationId: activeLocationId })}
                   className=""
                   aria-label={`Add ${s.itemName}`}
                 >
@@ -431,7 +437,7 @@ function DesktopCart({ open, onClose }) {
 
 export default function OffCanvasCart() {
   const { openDrawer, drawerOpen, closeDrawer } = useCart();
-  const location = useLocation();
+  const location = useRouterLocation();
   const { isAdmin } = useAuth();
   const isMobile = useIsMobile();
   const navigate = useNavigate();

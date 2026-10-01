@@ -186,8 +186,8 @@ function CartPage() {
     isLoading: mealLoading,
     isError: mealError,
   } = useQuery({
-    queryKey: ["complete-meal", cartItemsKey],
-    queryFn: () => getMealRecommendation({ cartItemIds, cartTotal: total }),
+    queryKey: ["complete-meal", activeLocationId, cartItemsKey],
+    queryFn: () => getMealRecommendation({ cartItemIds, cartTotal: total, locationId: activeLocationId }),
     enabled: cart.length > 0,
     staleTime: 1000 * 60 * 3,
     retry: false,
@@ -199,8 +199,8 @@ function CartPage() {
     isLoading: bundleLoading,
     isError: bundleError,
   } = useQuery({
-    queryKey: ["v1-recommended-bundle", cartItemsKey],
-    queryFn: () => getRecommendedBundle({ cartItemIds, cartTotal: total }),
+    queryKey: ["v1-recommended-bundle", activeLocationId, cartItemsKey],
+    queryFn: () => getRecommendedBundle({ cartItemIds, cartTotal: total, locationId: activeLocationId }),
     enabled: cart.length > 0 && !mealLoading && !hasMeal,
     staleTime: 1000 * 60 * 3,
     retry: false,
@@ -229,6 +229,10 @@ function CartPage() {
             name: item.itemName,
             imageUrl: item.imageUrl ?? undefined,
             price: Number(item.price),
+            // Backend already scopes "Complete Your Meal" candidates to the
+            // cart's own location (RecommendationEngineService) — tag the
+            // item so CartContext.addItem's location guard still applies.
+            locationId: activeLocationId,
           }),
         );
       setMealAdded(true);
@@ -251,6 +255,7 @@ function CartPage() {
             name: item.itemName,
             imageUrl: item.imageUrl ?? undefined,
             price: Number(item.price),
+            locationId: activeLocationId,
           }),
         );
       setBundleAdded(true);
@@ -360,6 +365,28 @@ function CartPage() {
 
     if (cart.length === 0) {
       alert("Your cart is empty.");
+      return;
+    }
+
+    // Guard: cart must belong to the currently active location. If the
+    // location dropdown was changed and the cart somehow still carries
+    // items scoped to a different location, block checkout rather than
+    // submit a cross-location order.
+    if (!activeLocationId) {
+      alert("Please select a location before checkout.");
+      return;
+    }
+    const mismatchedItems = cart.filter(
+      (i) => i?.locationId != null && String(i.locationId) !== String(activeLocationId),
+    );
+    if (mismatchedItems.length > 0) {
+      console.warn("[cart] checkout blocked — location mismatch", {
+        activeLocationId,
+        mismatchedItemIds: mismatchedItems.map((i) => i.id),
+      });
+      alert(
+        "Your cart belongs to a different location. Please switch to the correct location.",
+      );
       return;
     }
 
