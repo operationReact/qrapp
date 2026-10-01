@@ -601,6 +601,7 @@ public class MenuController {
             .id(item.getId())
             .name(item.getName())
             .description(item.getDescription())
+            .locationId(item.getLocation() != null ? item.getLocation().getId() : null)
             .price(price)                          // from MenuItemSellingPriceHistory
             .imageUrl(item.getImageUrl())
             .isVeg(item.getIsVeg())

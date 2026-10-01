@@ -35,6 +35,19 @@ public interface ComboRepository extends JpaRepository<Combo, Long>, JpaSpecific
     @Query("SELECT c FROM Combo c WHERE c.deletedAt IS NULL AND c.isActive = true AND c.status = com.broandbro.qrapp.enums.ComboStatus.ACTIVE ORDER BY c.displayPriority DESC, c.id ASC")
     List<Combo> findAllPublic();
 
+    /**
+     * Non-deleted, ACTIVE-status combos for public display, restricted to combos
+     * whose items all belong to the given location. A combo is attributed to a
+     * location through its menu items (by construction all of a combo's items
+     * share one location), so this keeps the customer-facing combo list
+     * location-scoped the same way the menu itself is.
+     */
+    @Query("SELECT DISTINCT c FROM Combo c JOIN c.items ci JOIN ci.menuItem mi " +
+           "WHERE c.deletedAt IS NULL AND c.isActive = true AND c.status = com.broandbro.qrapp.enums.ComboStatus.ACTIVE " +
+           "AND mi.location.id = :locationId " +
+           "ORDER BY c.displayPriority DESC, c.id ASC")
+    List<Combo> findAllPublicByLocation(@Param("locationId") Long locationId);
+
     /** Count by status (non-deleted). */
     long countByStatusAndDeletedAtIsNull(ComboStatus status);
 

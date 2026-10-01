@@ -16,12 +16,15 @@ import {
 } from "@phosphor-icons/react";
 import { baseURL } from "@/services";
 import { useCart } from "@/context/CartContext";
+import { useLocation } from "@/context/LocationContext";
 import QuantitySelector from "@/components/QuantitySelector";
 import { Badge } from "./ui/badge";
 
 // ── Combo → cart item shape ────────────────────────────────────────────────
 // Combos are not menu items, so we give them a prefixed id to avoid
 // collisions and mark them with isCombo=true for downstream awareness.
+// `locationId` comes straight from the backend (combo.locationId, derived
+// from the combo's menu items) — never assumed on the frontend.
 function toCartItem(combo) {
   return {
     id: `combo_${combo.id}`,
@@ -30,6 +33,7 @@ function toCartItem(combo) {
     imageUrl: combo.thumbnailUrl ?? null,
     isCombo: true,
     description: combo.itemNames?.join(", ") ?? "",
+    locationId: combo.locationId ?? null,
   };
 }
 
@@ -157,12 +161,13 @@ function ComboCard({ combo }) {
 
 // ── Drawer ─────────────────────────────────────────────────────────────────
 export default function CombosDrawer({ open, onOpenChange }) {
+  const { activeLocationId } = useLocation();
   const {
     data: combos = [],
     isLoading,
     isError,
   } = useQuery({
-    ...publicCombosOptions,
+    ...publicCombosOptions(activeLocationId),
     enabled: open,
   });
 

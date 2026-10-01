@@ -14,11 +14,14 @@ const storedLocationId = () => {
   return getEffectiveLocationId();
 };
 
-export const publicCombosOptions = queryOptions({
-  queryKey: ["combos", "public"],
-  queryFn: getPublicCombos,
-  staleTime: 1000 * 60 * 5,
-});
+export const publicCombosOptions = (activeLocationId) => {
+  const locationId = activeLocationId !== undefined ? activeLocationId : storedLocationId();
+  return queryOptions({
+    queryKey: ["combos", "public", locationId ?? null],
+    queryFn: () => getPublicCombos(locationId ?? undefined),
+    staleTime: 1000 * 60 * 5,
+  });
+};
 
 export const comboSummaryOptions = (activeLocationId) => {
   const locationId = activeLocationId !== undefined ? activeLocationId : storedLocationId();

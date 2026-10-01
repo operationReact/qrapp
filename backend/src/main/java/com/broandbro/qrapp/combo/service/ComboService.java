@@ -25,7 +25,7 @@ public interface ComboService {
             Pageable pageable, Long locationId);
 
     /** Public-facing: returns only active, non-deleted combos ordered by displayPriority. */
-    List<ComboCardResponse> getPublicCombos();
+    List<ComboCardResponse> getPublicCombos(Long locationId);
 
     ComboResponse updateStatus(Long id, ComboStatusUpdateRequest request, String updatedBy, Long locationId);
 

@@ -151,6 +151,7 @@ export default function BuildYourOwnComboDrawer({ open, onOpenChange }) {
       imageUrl: item.imageUrl,
       categoryId: item.category?.id ?? item.categoryId,
       category: item.category,
+      locationId: item.locationId,
     });
   };
 

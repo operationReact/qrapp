@@ -94,11 +94,13 @@ function AuthenticatedRoot() {
 function RootComponent() {
   return (
     <TooltipProvider>
-      <CartProvider>
-        <AuthProvider>
-          <LocationProvider><AuthenticatedRoot /></LocationProvider>
-        </AuthProvider>
-      </CartProvider>
+      <AuthProvider>
+        <LocationProvider>
+          <CartProvider>
+            <AuthenticatedRoot />
+          </CartProvider>
+        </LocationProvider>
+      </AuthProvider>
     </TooltipProvider>
   );
 }

@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -16,7 +17,9 @@ import java.util.List;
  * Public (unauthenticated) combo listing endpoint.
  *
  * <pre>
- * GET /api/combos   → list of active combo cards for customer-facing UI
+ * GET /api/combos?locationId={id}   → list of active combo cards for customer-facing UI,
+ *                                      scoped to the given location (combos from other
+ *                                      locations are never returned).
  * </pre>
  */
 @RestController
@@ -28,9 +31,10 @@ public class ComboPublicController {
     private final ComboService comboService;
 
     @GetMapping
-    @Operation(summary = "Get all active combos for the menu page")
-    public ResponseEntity<List<ComboCardResponse>> getPublicCombos() {
-        return ResponseEntity.ok(comboService.getPublicCombos());
+    @Operation(summary = "Get all active combos for the menu page, scoped to a location")
+    public ResponseEntity<List<ComboCardResponse>> getPublicCombos(
+            @RequestParam(required = false) Long locationId) {
+        return ResponseEntity.ok(comboService.getPublicCombos(locationId));
     }
 }
 

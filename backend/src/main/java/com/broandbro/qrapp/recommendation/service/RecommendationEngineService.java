@@ -103,12 +103,18 @@ public class RecommendationEngineService {
         String resolvedBy = "NONE";
 
         // ── P1: Manual item→item mappings ─────────────────────────────────────
+        // IMPORTANT: admin-curated mappings are not inherently location-scoped,
+        // so a target item belonging to a DIFFERENT location must never be
+        // suggested — doing so would let the frontend add a cross-location
+        // item into the customer's active cart.
         if (!cartItemIds.isEmpty()) {
             for (ItemRecommendation r : manualRecRepo.findBySourceItemIds(cartItemIds)) {
-                Long tid = r.getTargetItem().getId();
-                if (!cartItemSet.contains(tid) && !pool.containsKey(tid)) {
+                MenuItem target = r.getTargetItem();
+                Long tid = target.getId();
+                if (!cartItemSet.contains(tid) && !pool.containsKey(tid)
+                        && belongsToLocation(target, resolvedLocationId)) {
                     pool.put(tid, new ScoredCandidate(
-                            buildSuggestion(r.getTargetItem(), RecommendationSource.MANUAL, null, null),
+                            buildSuggestion(target, RecommendationSource.MANUAL, null, null),
                             TIER_MANUAL));
                     if (pool.size() >= poolSize) break;
                 }
@@ -119,10 +125,12 @@ public class RecommendationEngineService {
         // ── P2: Accepted co-occurrence auto suggestions ───────────────────────
         if (pool.size() < poolSize && !cartItemIds.isEmpty()) {
             for (AutoSuggestion s : autoSuggRepo.findAcceptedByItemIds(cartItemIds)) {
-                Long tid = s.getItemB().getId();
-                if (!cartItemSet.contains(tid) && !pool.containsKey(tid)) {
+                MenuItem target = s.getItemB();
+                Long tid = target.getId();
+                if (!cartItemSet.contains(tid) && !pool.containsKey(tid)
+                        && belongsToLocation(target, resolvedLocationId)) {
                     pool.put(tid, new ScoredCandidate(
-                            buildSuggestion(s.getItemB(), RecommendationSource.AUTO, null, null),
+                            buildSuggestion(target, RecommendationSource.AUTO, null, null),
                             TIER_AUTO));
                     if (pool.size() >= poolSize) break;
                 }
@@ -137,10 +145,12 @@ public class RecommendationEngineService {
             outer:
             for (UpsellRule rule : upsellRuleRepo.findMatchingRules(safeItemIds, safeCatIds, cartTotal)) {
                 for (UpsellRuleTarget t : rule.getTargets()) {
-                    Long tid = t.getItem().getId();
-                    if (!cartItemSet.contains(tid) && !pool.containsKey(tid)) {
+                    MenuItem target = t.getItem();
+                    Long tid = target.getId();
+                    if (!cartItemSet.contains(tid) && !pool.containsKey(tid)
+                            && belongsToLocation(target, resolvedLocationId)) {
                         pool.put(tid, new ScoredCandidate(
-                                buildSuggestion(t.getItem(), RecommendationSource.UPSELL,
+                                buildSuggestion(target, RecommendationSource.UPSELL,
                                         rule.getRewardValue(), rule.getRewardType().name()),
                                 TIER_UPSELL));
                         if (pool.size() >= poolSize) break outer;
@@ -205,6 +215,17 @@ public class RecommendationEngineService {
                 .suggestions(suggestions)
                 .resolvedBy(resolvedBy)
                 .build();
+    }
+
+    /**
+     * True if the candidate item belongs to the resolved cart location.
+     * When {@code locationId} can't be resolved (no cart items / no location
+     * on the item), the candidate is rejected rather than risk suggesting —
+     * and letting the frontend add — a cross-location item.
+     */
+    private static boolean belongsToLocation(MenuItem item, Long locationId) {
+        if (locationId == null || item == null || item.getLocation() == null) return false;
+        return locationId.equals(item.getLocation().getId());
     }
 
     // ── Classification scoring ────────────────────────────────────────────────

@@ -13,6 +13,7 @@ public record ComboCardResponse(
         com.broandbro.qrapp.enums.ComboType comboType,
         String thumbnailUrl,
         com.broandbro.qrapp.enums.TimeSlot timeSlot,
-        java.util.List<String> itemNames  // compact: just display names
+        java.util.List<String> itemNames,  // compact: just display names
+        Long locationId  // combo's owning location, derived from its menu items
 ) {}
 

@@ -33,6 +33,13 @@ public class MenuItemResponse {
     private String description;
 
     /**
+     * Location this menu item belongs to. Authoritative source for the
+     * location-scoped cart on the frontend — used to validate that an item
+     * being added to the cart matches the customer's active location.
+     */
+    private Long locationId;
+
+    /**
      * Resolved current selling price (from MenuItemSellingPriceHistory).
      * Null if no active price record exists.
      */
