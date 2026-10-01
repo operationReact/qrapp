@@ -15,10 +15,9 @@ import software.amazon.awssdk.services.s3.S3Client;
  * When aws.s3.enabled=false (local dev), a no-op dummy client is NOT needed —
  * S3ImageStorageService checks the flag before every call.
  *
- * When aws.s3.enabled=true the access-key and secret-key MUST be supplied
- * (via AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY env vars).
- * A missing or blank credential fails fast at startup with a clear message
- * rather than producing a 403/credential error at upload time.
+ * When aws.s3.enabled=true and both access-key and secret-key are supplied,
+ * static credentials are used. Otherwise the default AWS credential chain is
+ * used (e.g. the EC2 instance IAM role in prod).
  */
 @Configuration
 @Slf4j
