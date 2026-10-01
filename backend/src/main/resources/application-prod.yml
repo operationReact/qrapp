@@ -53,7 +53,7 @@ spring:
 razorpay:
   key: ${app.parameter-store.razorpay.key}
   secret: ${app.parameter-store.razorpay.secret}
-  webhookSecret: ${app.parameter-store.razorpay.webhookSecret:}
+  webhookSecret: ${app.parameter-store.razorpay.webhookSecret:${RAZORPAY_WEBHOOK_SECRET:}}
 
 aws:
   s3:
