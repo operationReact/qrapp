@@ -11,6 +11,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Switch } from "@/components/ui/switch";
 import {
   Field,
@@ -18,7 +31,14 @@ import {
   FieldDescription,
   FieldLabel,
 } from "@/components/ui/field";
-import { ImageIcon, TrashIcon, UploadSimpleIcon, SparkleIcon } from "@phosphor-icons/react";
+import {
+  CheckIcon,
+  CaretUpDownIcon,
+  ImageIcon,
+  TrashIcon,
+  UploadSimpleIcon,
+  SparkleIcon,
+} from "@phosphor-icons/react";
 import { useAuth } from "@/context/AuthContext";
 import { useLocation as useActiveLocation } from "@/context/LocationContext";
 import { canSelectAllLocations } from "@/lib/roles";
@@ -45,6 +65,75 @@ const VISUAL_VARIANTS = [
   "ORANGE_FOOD",
   "DARK_LUXURY",
 ];
+
+const isValidHttpUrl = (value) => {
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
+};
+
+function CategoryPicker({ categories, value, onChange }) {
+  const [open, setOpen] = useState(false);
+  const selectedCategory = categories.find((category) => category.name === value);
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className="flex h-[50px] w-full max-w-full items-center justify-between gap-2 rounded-[13px] border border-[#E6E0DB] bg-[#FFFCF9] px-3.5 text-left text-[15px] font-medium text-[#77716D] shadow-none outline-none transition focus-visible:border-[#FF2438] focus-visible:ring-2 focus-visible:ring-[#FF2438]/20"
+        >
+          <span className={selectedCategory ? "truncate text-[#2B2928]" : "truncate"}>
+            {selectedCategory?.name ?? value ?? "Select category…"}
+          </span>
+          <CaretUpDownIcon className="size-4 shrink-0 text-[#9A918B]" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent
+        align="start"
+        className="w-[var(--anchor-width)] max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-[13px] border-[#E6E0DB] bg-[#FFFCF9] p-0"
+      >
+        <Command>
+          <CommandInput placeholder="Search categories…" className="h-10 text-sm" />
+          <CommandList>
+            <CommandEmpty className="py-5 text-center text-sm text-[#77716D]">
+              No categories found.
+            </CommandEmpty>
+            <CommandGroup>
+              {categories.map((category) => (
+                <CommandItem
+                  key={category.id}
+                  value={category.name}
+                  onSelect={() => {
+                    onChange(category.name);
+                    setOpen(false);
+                  }}
+                  className="min-h-11 cursor-pointer rounded-[10px] px-3 text-sm data-[selected=true]:bg-[#FF2438]/10 data-[selected=true]:text-[#D91E31]"
+                >
+                  <CheckIcon
+                    className={`mr-2 size-4 shrink-0 ${
+                      category.name === value ? "opacity-100" : "opacity-0"
+                    }`}
+                  />
+                  <span className="truncate">{category.name}</span>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+CategoryPicker.propTypes = {
+  categories: PropTypes.arrayOf(PropTypes.object).isRequired,
+  value: PropTypes.string.isRequired,
+  onChange: PropTypes.func.isRequired,
+};
 
 function toLocalDateTimeInput(iso) {
   if (!iso) return "";
@@ -87,6 +176,7 @@ export default function HomeCampaignForm({
   const [startsAt, setStartsAt] = useState(toLocalDateTimeInput(initialData?.startsAt));
   const [endsAt, setEndsAt] = useState(toLocalDateTimeInput(initialData?.endsAt));
   const [pendingImageFile, setPendingImageFile] = useState(null);
+  const [targetError, setTargetError] = useState("");
 
   const fileInputRef = useRef(null);
   const mobileFileInputRef = useRef(null);
@@ -117,6 +207,10 @@ export default function HomeCampaignForm({
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!title.trim()) return;
+    if (targetType === "EXTERNAL" && !isValidHttpUrl(targetId.trim())) {
+      setTargetError("Enter a valid http:// or https:// URL.");
+      return;
+    }
     onSubmit(buildPayload(), { imageFile: pendingImageFile });
   };
 
@@ -391,63 +485,131 @@ export default function HomeCampaignForm({
         </FieldContent>
       </Field>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <Field>
-          <FieldLabel htmlFor="hc-target-type">Tap action</FieldLabel>
-          <FieldContent>
-            <Select
-              value={targetType}
-              onValueChange={setTargetType}
-            >
-              <SelectTrigger
-                id="hc-target-type"
-                className="h-[50px] w-full max-w-full rounded-[13px] border-[#E6E0DB] bg-[#FFFCF9] px-3.5 text-[15px] font-medium text-[#77716D] shadow-none focus-visible:border-[#FF2438] focus-visible:ring-2 focus-visible:ring-[#FF2438]/20"
+      <section className="space-y-3 rounded-2xl border border-[#E6E0DB] bg-[#FFFCF9]/70 p-4 sm:p-5">
+        <div>
+          <h2 className="text-sm font-semibold text-[#2B2928]">Tap Behavior</h2>
+          <p className="mt-1 text-xs leading-5 text-[#77716D]">
+            Choose what happens when customers tap this campaign.
+          </p>
+        </div>
+
+        <div className={targetType === "NONE" || targetType === "PARTY_ORDER" ? "grid grid-cols-1" : "grid grid-cols-1 gap-3 sm:grid-cols-2"}>
+          <Field>
+            <FieldLabel htmlFor="hc-target-type">Tap action</FieldLabel>
+            <FieldContent>
+              <Select
+                value={targetType}
+                onValueChange={(value) => {
+                  setTargetType(value);
+                  setTargetError("");
+                }}
               >
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="max-w-[calc(100vw-1.5rem)] border-[#E6E0DB] bg-[#FFFCF9] p-1">
-                {TARGET_TYPE_OPTIONS.map((t) => (
-                  <SelectItem
-                    key={t.value}
-                    value={t.value}
-                    className="min-h-11 rounded-[10px] px-3 py-2.5 text-sm data-[selected]:font-semibold data-[selected]:text-primary data-[highlighted]:bg-primary/10 data-[highlighted]:text-primary"
+                <SelectTrigger
+                  id="hc-target-type"
+                  className="h-[50px] w-full max-w-full rounded-[13px] border-[#E6E0DB] bg-[#FFFCF9] px-3.5 text-[15px] font-medium text-[#77716D] shadow-none focus-visible:border-[#FF2438] focus-visible:ring-2 focus-visible:ring-[#FF2438]/20"
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="max-w-[calc(100vw-1.5rem)] border-[#E6E0DB] bg-[#FFFCF9] p-1">
+                  {TARGET_TYPE_OPTIONS.map((t) => (
+                    <SelectItem
+                      key={t.value}
+                      value={t.value}
+                      className="min-h-11 rounded-[10px] px-3 py-2.5 text-sm data-[selected]:font-semibold data-[selected]:text-primary data-[highlighted]:bg-primary/10 data-[highlighted]:text-primary"
+                    >
+                      {t.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </FieldContent>
+          </Field>
+
+          {targetType === "CATEGORY" && (
+            <Field>
+              <FieldLabel htmlFor="hc-target-category">Category</FieldLabel>
+              <FieldContent>
+                <CategoryPicker
+                  categories={categories}
+                  value={targetId}
+                  onChange={setTargetId}
+                />
+              </FieldContent>
+            </Field>
+          )}
+
+          {targetType === "COMBO" && (
+            <Field>
+              <FieldLabel htmlFor="hc-target-combo">Combo destination</FieldLabel>
+              <FieldContent>
+                <Select
+                  value={targetId === "byoc" ? "byoc" : "combos"}
+                  onValueChange={(value) => setTargetId(value === "byoc" ? "byoc" : "")}
+                >
+                  <SelectTrigger
+                    id="hc-target-combo"
+                    className="h-[50px] w-full max-w-full rounded-[13px] border-[#E6E0DB] bg-[#FFFCF9] px-3.5 text-[15px] font-medium text-[#77716D] shadow-none focus-visible:border-[#FF2438] focus-visible:ring-2 focus-visible:ring-[#FF2438]/20"
                   >
-                    {t.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </FieldContent>
-        </Field>
-        <Field>
-          <FieldLabel htmlFor="hc-target-id">
-            {targetType === "CATEGORY" ? "Category" : targetType === "EXTERNAL" ? "URL" : targetType === "COMBO" ? "\"byoc\" for Build Your Own, blank for Combos" : "Target value"}
-          </FieldLabel>
-          <FieldContent>
-            {targetType === "CATEGORY" ? (
-              <select
-                id="hc-target-id"
-                value={targetId}
-                onChange={(e) => setTargetId(e.target.value)}
-                className="h-9 w-full rounded-md border bg-background px-2 text-sm"
-              >
-                <option value="">Select category…</option>
-                {categories.map((c) => (
-                  <option key={c.id} value={c.name}>{c.name}</option>
-                ))}
-              </select>
-            ) : (
-              <Input
-                id="hc-target-id"
-                value={targetId}
-                onChange={(e) => setTargetId(e.target.value)}
-                disabled={targetType === "NONE" || targetType === "PARTY_ORDER"}
-                placeholder={targetType === "EXTERNAL" ? "https://…" : ""}
-              />
-            )}
-          </FieldContent>
-        </Field>
-      </div>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="max-w-[calc(100vw-1.5rem)] border-[#E6E0DB] bg-[#FFFCF9] p-1">
+                    <SelectItem value="combos" className="min-h-11 rounded-[10px] px-3 text-sm data-[selected]:font-semibold data-[selected]:text-primary">
+                      Combos
+                    </SelectItem>
+                    <SelectItem value="byoc" className="min-h-11 rounded-[10px] px-3 text-sm data-[selected]:font-semibold data-[selected]:text-primary">
+                      Build Your Own
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </FieldContent>
+            </Field>
+          )}
+
+          {targetType === "EXTERNAL" && (
+            <Field>
+              <FieldLabel htmlFor="hc-target-url">URL</FieldLabel>
+              <FieldContent>
+                <Input
+                  id="hc-target-url"
+                  type="url"
+                  value={targetId}
+                  onChange={(e) => {
+                    setTargetId(e.target.value);
+                    setTargetError("");
+                  }}
+                  onBlur={() => {
+                    if (targetId.trim() && !isValidHttpUrl(targetId.trim())) {
+                      setTargetError("Enter a valid http:// or https:// URL.");
+                    }
+                  }}
+                  placeholder="https://example.com"
+                  aria-invalid={Boolean(targetError)}
+                  className={targetError ? "border-destructive focus-visible:ring-destructive/20" : ""}
+                />
+                {targetError && <p className="mt-1 text-xs text-destructive">{targetError}</p>}
+              </FieldContent>
+            </Field>
+          )}
+
+          {(targetType === "MENU_ITEM" || targetType === "CAMPAIGN") && (
+            <Field>
+              <FieldLabel htmlFor="hc-target-reserved">Target</FieldLabel>
+              <FieldContent>
+                <Input
+                  id="hc-target-reserved"
+                  value={targetId}
+                  disabled
+                  placeholder="Target configuration coming soon"
+                  className="bg-muted/40 text-muted-foreground"
+                />
+                <p className="mt-1 text-xs text-[#77716D]">
+                  Coming soon — customer navigation is not implemented yet.
+                </p>
+              </FieldContent>
+            </Field>
+          )}
+        </div>
+      </section>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Field>
