@@ -1,5 +1,5 @@
 -- =============================================================================
--- V103__consolidate_home_campaigns_into_hero.sql
+-- V104__consolidate_home_campaigns_into_hero.sql
 -- Course-correction: the customer Home page no longer renders a separate
 -- "discovery rail" or "exclusive for you" promotion rail — those duplicated
 -- the real Category system and cluttered the page. All promotional/business

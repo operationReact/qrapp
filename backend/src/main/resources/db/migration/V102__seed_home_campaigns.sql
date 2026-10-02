@@ -1,5 +1,5 @@
 -- =============================================================================
--- V101__seed_home_campaigns.sql
+-- V102__seed_home_campaigns.sql
 -- Seeds the Home page campaign content that previously lived as hard-coded
 -- React data (frontend/src/components/DealsSection.jsx) so the customer Home
 -- page becomes fully API/CMS-driven out of the box. All rows are GLOBAL
