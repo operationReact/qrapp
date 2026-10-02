@@ -125,6 +125,12 @@ jobs:
           WHATSAPP_PHONE_NUMBER_ID=$(get_optional_parameter "/broandbro/backend/prod/whatsapp/phoneNumberId")
           WHATSAPP_ACCESS_TOKEN=$(get_optional_parameter "/broandbro/backend/prod/whatsapp/accessToken")
 
+          for VARIABLE in DB_URL DB_USERNAME DB_PASSWORD OPENAI_API_KEY RAZORPAY_KEY RAZORPAY_SECRET RAZORPAY_WEBHOOK_SECRET WHATSAPP_WEBHOOK_VERIFY_TOKEN WHATSAPP_APP_SECRET WHATSAPP_PHONE_NUMBER_ID WHATSAPP_ACCESS_TOKEN; do
+            if [ -n "${!VARIABLE}" ]; then
+              printf '::add-mask::%s\n' "${!VARIABLE}"
+            fi
+          done
+
           # Store in environment for next step
           echo "DB_URL=$DB_URL" >> $GITHUB_ENV
           echo "DB_USERNAME=$DB_USERNAME" >> $GITHUB_ENV
@@ -328,9 +334,6 @@ jobs:
             sudo systemctl reload nginx
             sudo ss -ltn '( sport = :443 )' | grep -q LISTEN
             echo "HTTPS is listening on port 443"
-            curl --fail --silent --show-error --retry 10 --retry-delay 5 \
-              "https://api.broandbro.in/api/payment/config" > /dev/null
-            echo "Production API HTTPS smoke test passed"
 
             # Wait up to 90s for healthy startup (prod needs a bit more time)
             for i in $(seq 1 18); do
@@ -339,10 +342,18 @@ jobs:
               echo "[$i/18] Service status: $STATUS"
               if [ "$STATUS" = "active" ]; then
                 echo "✅ broandbro started successfully"
-                exit 0
+                break
               fi
             done
-            echo "❌ Service failed to start" && sudo journalctl -u broandbro -n 50 --no-pager && exit 1
+            if [ "$STATUS" != "active" ]; then
+              echo "❌ Service failed to start"
+              sudo journalctl -u broandbro -n 50 --no-pager
+              exit 1
+            fi
+
+            curl --fail --silent --show-error --retry 10 --retry-delay 5 \
+              "https://api.broandbro.in/api/payment/config" > /dev/null
+            echo "Production API HTTPS smoke test passed"
           ENDSSH
 
       # ── 10. Cleanup ───────────────────────────────────────────────────────────
