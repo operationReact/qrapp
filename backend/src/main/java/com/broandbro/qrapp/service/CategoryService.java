@@ -6,6 +6,7 @@ import com.broandbro.qrapp.entity.User;
 import com.broandbro.qrapp.exception.FileTooLargeException;
 import com.broandbro.qrapp.exception.InvalidImageException;
 import com.broandbro.qrapp.prompt.FoodImagePromptBuilder;
+import com.broandbro.qrapp.prompt.CategoryImagePromptBuilder;
 import com.broandbro.qrapp.repository.CategoryRepository;
 import com.broandbro.qrapp.repository.LocationRepository;
 import com.broandbro.qrapp.repository.MenuRepository;
@@ -41,6 +42,7 @@ public class CategoryService {
     private final ImageStorageService imageStorage;
     private final ImageGenerationService imageGenerationService;
     private final FoodImagePromptBuilder promptBuilder;
+    private final CategoryImagePromptBuilder categoryPromptBuilder;
 
     @Cacheable(cacheNames = "categories", key = "#locationId", sync = true)
     public List<Category> getAllCategories(Long locationId) {
@@ -137,11 +139,11 @@ public class CategoryService {
                 .orElseThrow(() -> new RuntimeException("Category not found: " + id));
 
         String categoryName = category.getName();
-        String prompt = promptBuilder.buildFoodImagePrompt(categoryName, categoryName, null, null, additionalPrompt);
+        String prompt = categoryPromptBuilder.buildCategoryFoodImagePrompt(categoryName, category.getDescription(), additionalPrompt);
         byte[] imageBytes = imageGenerationService.generateFoodImage(categoryName, categoryName, null, null, additionalPrompt);
 
         String folder = "categories/" + category.getId() + "/ai";
-        ImageStorageService.StoredImage stored = imageStorage.uploadImageWithKey(imageBytes, folder, "image/png");
+        ImageStorageService.StoredImage stored = imageStorage.uploadImageWithKey(imageBytes, folder, "image/jpeg");
 
         return new CategoryImageOption(category.getId(), stored.url(), prompt);
     }

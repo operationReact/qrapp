@@ -3,6 +3,9 @@ package com.broandbro.qrapp.campaign.controller;
 import com.broandbro.qrapp.campaign.dto.HomeCampaignRequest;
 import com.broandbro.qrapp.campaign.dto.HomeCampaignResponse;
 import com.broandbro.qrapp.campaign.service.HomeCampaignService;
+import com.broandbro.qrapp.campaign.service.CampaignImageGenerationService;
+import com.broandbro.qrapp.dto.openai.ImageGenerationRequest;
+import com.broandbro.qrapp.dto.openai.ImageGenerationOptionsResponse;
 import com.broandbro.qrapp.entity.User;
 import com.broandbro.qrapp.service.LocationAccessService;
 import com.broandbro.qrapp.service.UserService;
@@ -36,6 +39,7 @@ import java.util.Optional;
 public class HomeCampaignAdminController {
 
     private final HomeCampaignService campaignService;
+    private final CampaignImageGenerationService campaignImageGenerationService;
     private final LocationAccessService locationAccessService;
     private final UserService userService;
 
@@ -145,6 +149,43 @@ public class HomeCampaignAdminController {
                                                             Authentication auth) {
         User user = requireUser(auth);
         return ResponseEntity.ok(campaignService.removeImage(id, mobile, auth.getName(), resolveScope(user, locationId)));
+    }
+
+    @PostMapping("/{id}/generate-image")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Generate AI hero image for a campaign")
+    public ResponseEntity<ImageGenerationOptionsResponse> generateImage(@PathVariable Long id,
+                                                                        @RequestBody(required = false) ImageGenerationRequest request,
+                                                                        @RequestParam(required = false) Long locationId,
+                                                                        Authentication auth) {
+        User user = requireUser(auth);
+        String creativeDirection = (request != null) ? request.getCreativeDirection() : null;
+        
+        java.util.List<String> urls = campaignImageGenerationService.generateImageOptions(id, creativeDirection, user);
+        
+        ImageGenerationOptionsResponse response = ImageGenerationOptionsResponse.builder()
+                .campaignId(id)
+                .imageUrls(urls)
+                .build();
+        
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/{id}/apply-generated-image")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Apply a generated AI image to a campaign")
+    public ResponseEntity<HomeCampaignResponse> applyGeneratedImage(@PathVariable Long id,
+                                                                    @RequestBody Map<String, Object> body,
+                                                                    @RequestParam(required = false) Long locationId,
+                                                                    Authentication auth) {
+        User user = requireUser(auth);
+        String imageUrl = (String) body.get("imageUrl");
+        @SuppressWarnings("unchecked")
+        java.util.List<String> allUrls = (java.util.List<String>) body.get("allGeneratedUrls");
+        
+        campaignImageGenerationService.applyGeneratedImage(id, imageUrl, allUrls, user);
+        
+        return ResponseEntity.ok(campaignService.getById(id, resolveScope(user, locationId)));
     }
 
     // ── Helpers ─────────────────────────────────────────────────────────────
