@@ -246,9 +246,9 @@ export const Route = createFileRoute("/(auth)/register")({
                 </FieldContent>
               </Field>
               <Field>
-                <FieldLabel>Date of Birth</FieldLabel>
+                <FieldLabel>Birth Date</FieldLabel>
                 <FieldContent>
-                  <RegistrationPurposeControl type="date" label="Date of Birth">
+                  <RegistrationPurposeControl type="date" label="Birth Date">
                     <Input
                       type="date"
                       value={dateOfBirth}
