@@ -8,12 +8,14 @@ import { Field, FieldContent, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import {
   CaretLeftIcon,
-  WhatsappLogo,
+  PhoneIcon,
   LockIcon,
   UserPlusIcon,
 } from "@phosphor-icons/react";
 import { PasswordInput } from "@/components/ui/password-input";
+import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { useAuth } from "@/context/AuthContext";
+import { Separator } from "@/components/ui/separator";
 
 export const Route = createFileRoute("/(auth)/login")({
   component: function UserLogin() {
@@ -46,147 +48,134 @@ export const Route = createFileRoute("/(auth)/login")({
     };
 
     return (
-      <div className="w-full min-h-screen bg-[#FFF9F3] flex flex-col overflow-x-hidden">
-        {/* ═══════════════════════════════════════════════════════════
-            HEADER — Compact top bar with back button and logo
-            ═══════════════════════════════════════════════════════════ */}
-        <header className="flex items-center h-14 px-4 bg-[#FFFDF9] border-b border-[var(--cc-border)]/30">
+      <div className="min-h-screen bg-[var(--cc-page)] flex flex-col">
+        {/* NAVIGATION */}
+        <nav className="px-4 py-3 sm:px-6 sm:py-4">
           <Link
             className={buttonVariants({
-              size: "icon-sm",
+              size: "sm",
               variant: "ghost",
               className: "text-[var(--cc-secondary-text)]",
             })}
             to="/"
             title="Back To Menu"
-            aria-label="Back to menu"
           >
-            <CaretLeftIcon weight="bold" size={20} />
+            <CaretLeftIcon weight="bold" size={18} />
+            <span>Back to Menu</span>
           </Link>
-          <div className="flex-1 flex justify-center pointer-events-none">
-            <img
-              src="/logo.svg"
-              alt="Bro & Bro"
-              className="h-8 object-contain"
-            />
-          </div>
-          <div className="w-10" />
-        </header>
+        </nav>
 
-        {/* ═══════════════════════════════════════════════════════════
-            MAIN CONTENT — Scrollable page container
-            ═══════════════════════════════════════════════════════════ */}
-        <main className="flex-1 w-full flex flex-col px-4 pt-2">
-          <div className="w-full max-w-sm mx-auto flex flex-col">
-            {/* ─────────────────────────────────────────────────────
-                HERO SECTION — Premium branded card
-                ───────────────────────────────────────────────────── */}
-            <div className="relative w-full mt-2 mb-0 rounded-2xl overflow-hidden bg-[var(--cc-page)] shadow-sm h-48">
-              {/* Hero Image Background */}
+        {/* MAIN CONTENT */}
+        <div className="flex-1 flex flex-col items-center justify-center px-4 sm:px-6 pb-8 sm:pb-12">
+          <div className="w-full max-w-md">
+            {/* BRANDING */}
+            <div className="mb-6 sm:mb-8 text-center">
               <img
-                src="/login-banner.jpg"
-                alt=""
-                className="absolute inset-0 w-full h-full object-cover"
+                src="/logo.svg"
+                alt="Bro & Bro"
+                className="h-10 sm:h-12 mx-auto mb-4"
               />
-
-              {/* Optional subtle overlay for text readability */}
-              <div className="absolute inset-0 bg-gradient-to-r from-black/20 via-transparent to-transparent" />
-
-              {/* Hero Text Content */}
-              <div className="absolute inset-0 flex flex-col justify-end p-5 text-white">
-                <h1 className="text-2xl font-bold leading-snug tracking-tight mb-1">
-                  Your Easy
-                  <br />
-                  Access to
-                  <br />
-                  <span className="text-red-400">Delicious</span>
-                  {" "}
-                  <span className="text-red-400">Meals</span>
-                </h1>
-                <p className="text-xs font-normal opacity-90 leading-snug">
-                  Fresh food. Great taste.
-                </p>
-              </div>
             </div>
 
-            {/* ─────────────────────────────────────────────────────
-                LOGIN CARD — Elevated white form container
-                ───────────────────────────────────────────────────── */}
-            <div className="relative w-full -mt-4 rounded-3xl bg-white p-6 shadow-md border border-black/4 z-10">
+            {/* HERO HEADLINE */}
+            <div className="mb-8 sm:mb-10 text-center">
+              <h1 className="text-3xl sm:text-4xl font-bold leading-tight text-[var(--cc-text)] mb-2">
+                Your Easy Access
+              </h1>
+              <h1 className="text-3xl sm:text-4xl font-bold leading-tight text-[var(--cc-primary)] mb-4">
+                To Delicious Meals
+              </h1>
+              <p className="text-sm sm:text-base text-[var(--cc-secondary-text)] leading-relaxed">
+                Fresh food. Great taste.
+                <br />
+                Happier moments.
+              </p>
+            </div>
+
+            {/* HERO IMAGE */}
+            <div className="mb-8 sm:mb-10 -mx-4 sm:mx-0">
+              <img
+                src="/login-banner.jpg"
+                alt="Your Easy Access To Delicious Meals"
+                className="w-screen sm:w-full sm:rounded-3xl overflow-hidden aspect-video object-cover"
+              />
+            </div>
+
+            {/* LOGIN CARD */}
+            <div className="bg-[var(--cc-card)] rounded-3xl p-6 sm:p-8 shadow-sm">
               {/* Card Header */}
               <div className="mb-6">
-                <h2 className="text-2xl font-bold text-[var(--cc-text)] tracking-tight mb-1">
+                <h2 className="text-2xl sm:text-3xl font-bold text-[var(--cc-text)]">
                   Welcome back
                 </h2>
-                <p className="text-sm text-[var(--cc-secondary-text)]">
+                <p className="text-sm sm:text-base text-[var(--cc-secondary-text)] mt-1">
                   Login to your account
                 </p>
               </div>
 
               {/* Error Message */}
               {(loginMutation.isError || noToken) && (
-                <div className="mb-4 rounded-lg border border-[var(--cc-error)]/20 bg-[var(--cc-error-bg)] px-3 py-2 text-xs text-[var(--cc-error)]">
+                <div className="mb-4 rounded-xl border border-[var(--cc-error)]/20 bg-[var(--cc-error-bg)] px-4 py-3 text-sm text-[var(--cc-error)]">
                   {noToken
                     ? "No token returned from server"
-                    : "Invalid WhatsApp number or password"}
+                    : "Invalid phone or password"}
                 </div>
               )}
 
               {/* Login Form */}
-              <form onSubmit={submit} className="space-y-4">
-                {/* WhatsApp Number Field */}
-                <div>
-                  <label
-                    htmlFor="identifier"
-                    className="block text-xs font-semibold text-[var(--cc-text)] mb-2"
-                  >
-                    WhatsApp Number
-                  </label>
-                  <div className="relative flex items-center bg-white border border-[#E7E2DE] rounded-2xl h-13 px-3.5 focus-within:border-[var(--cc-primary)] focus-within:ring-1 focus-within:ring-[var(--cc-primary)]/30 transition-all">
-                    <WhatsappLogo size={18} className="text-[var(--cc-secondary-text)] flex-shrink-0" />
-                    <input
-                      ref={firstFormField}
-                      id="identifier"
-                      type="tel"
-                      inputMode="tel"
-                      autocomplete="tel"
-                      value={identifier}
-                      onChange={(e) => setIdentifier(e.target.value)}
-                      required
-                      placeholder="Enter your WhatsApp number"
-                      className="flex-1 ml-2.5 bg-transparent outline-none text-sm placeholder:text-[#B5A9A1] text-[var(--cc-text)] leading-tight"
-                    />
-                  </div>
-                </div>
+              <form onSubmit={submit} className="space-y-5">
+                {/* Phone/Username Field */}
+                <Field>
+                  <FieldLabel htmlFor="identifier" className="text-sm font-medium text-[var(--cc-text)]">
+                    Phone Number / Username
+                  </FieldLabel>
+                  <FieldContent>
+                    <InputGroup className="h-11 sm:h-12">
+                      <div className="flex items-center justify-center pl-3 text-[var(--cc-secondary-text)]">
+                        <PhoneIcon size={20} weight="regular" />
+                      </div>
+                      <InputGroupInput
+                        ref={firstFormField}
+                        value={identifier}
+                        onChange={(e) => setIdentifier(e.target.value)}
+                        required
+                        placeholder="e.g. 1234567890 or admin"
+                        name="identifier"
+                        id="identifier"
+                        className="text-base sm:text-base"
+                      />
+                    </InputGroup>
+                  </FieldContent>
+                </Field>
 
                 {/* Password Field */}
-                <div>
-                  <label
-                    htmlFor="password"
-                    className="block text-xs font-semibold text-[var(--cc-text)] mb-2"
-                  >
+                <Field>
+                  <FieldLabel htmlFor="password" className="text-sm font-medium text-[var(--cc-text)]">
                     Password
-                  </label>
-                  <div className="relative flex items-center bg-white border border-[#E7E2DE] rounded-2xl h-13 px-3.5 focus-within:border-[var(--cc-primary)] focus-within:ring-1 focus-within:ring-[var(--cc-primary)]/30 transition-all group">
-                    <LockIcon size={18} className="text-[var(--cc-secondary-text)] flex-shrink-0" />
-                    <PasswordInput
-                      id="password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                      name="password"
-                      autocomplete="current-password"
-                      placeholder="Enter your password"
-                      className="h-13 border-0 bg-transparent shadow-none ring-0 focus-visible:ring-0 px-0 pl-2.5 text-sm placeholder:text-[#B5A9A1]"
-                    />
-                  </div>
-                </div>
+                  </FieldLabel>
+                  <FieldContent>
+                    <div className="relative">
+                      <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center text-[var(--cc-secondary-text)] pointer-events-none z-10">
+                        <LockIcon size={20} weight="regular" />
+                      </div>
+                      <PasswordInput
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        className="h-11 sm:h-12 pl-10"
+                        required
+                        name="password"
+                        id="password"
+                        placeholder="Enter your password"
+                      />
+                    </div>
+                  </FieldContent>
+                </Field>
 
                 {/* Forgot Password Link */}
                 <div className="flex justify-end pt-1">
                   <Link
                     to="/forget-password"
-                    className="text-xs font-medium text-[var(--cc-primary)] hover:text-[var(--cc-primary-dark)] transition-colors"
+                    className="text-sm font-medium text-[var(--cc-primary)] hover:text-[var(--cc-primary-dark)] transition-colors"
                   >
                     Forgot Password?
                   </Link>
@@ -195,19 +184,20 @@ export const Route = createFileRoute("/(auth)/login")({
                 {/* Sign In Button */}
                 <Button
                   type="submit"
+                  size="lg"
                   disabled={loginMutation.isPending}
-                  className="w-full h-13 mt-3.5 text-sm font-bold bg-[var(--cc-primary)] hover:bg-[var(--cc-primary-dark)] text-white rounded-2xl transition-colors"
+                  className="w-full h-12 sm:h-13 text-base font-semibold bg-[var(--cc-primary)] hover:bg-[var(--cc-primary-dark)] text-white rounded-xl transition-all"
                 >
                   {loginMutation.isPending ? "Signing in..." : "Sign In"}
                 </Button>
 
-                {/* OR Divider */}
-                <div className="flex items-center gap-2.5 my-5">
-                  <div className="flex-1 h-px bg-[var(--cc-border)]" />
-                  <span className="text-xs font-semibold text-[var(--cc-secondary-text)]">
+                {/* Divider */}
+                <div className="flex items-center gap-3 my-6">
+                  <Separator className="flex-1 bg-[var(--cc-border)]" />
+                  <span className="text-xs sm:text-sm text-[var(--cc-secondary-text)] font-medium">
                     OR
                   </span>
-                  <div className="flex-1 h-px bg-[var(--cc-border)]" />
+                  <Separator className="flex-1 bg-[var(--cc-border)]" />
                 </div>
 
                 {/* Create Account Button */}
@@ -215,82 +205,90 @@ export const Route = createFileRoute("/(auth)/login")({
                   to="/register"
                   className={buttonVariants({
                     variant: "outline",
+                    size: "lg",
                     className:
-                      "w-full h-12 text-sm font-semibold border-2 border-[var(--cc-primary)] text-[var(--cc-primary)] hover:bg-[var(--cc-primary-light)] rounded-2xl transition-colors",
+                      "w-full h-12 sm:h-13 text-base font-semibold border-2 border-[var(--cc-primary)] text-[var(--cc-primary)] hover:bg-[var(--cc-primary-light)] rounded-xl transition-all",
                   })}
                 >
-                  <UserPlusIcon size={16} weight="regular" />
+                  <UserPlusIcon size={20} weight="regular" />
                   Create Account
                 </Link>
               </form>
             </div>
           </div>
-        </main>
+        </div>
 
-        {/* ═══════════════════════════════════════════════════════════
-            FOOTER — Compact secondary branding
-            ═══════════════════════════════════════════════════════════ */}
-        <footer className="w-full border-t border-[var(--cc-border)]/50 bg-white mt-8 px-4 py-6">
-          <div className="w-full max-w-sm mx-auto">
-            {/* Brand Section */}
-            <div className="mb-5">
-              <img
-                src="/logo.svg"
-                alt="Bro & Bro"
-                className="h-7 mb-2 object-contain"
-              />
-              <p className="text-xs font-semibold text-[var(--cc-secondary-text)] mb-1">
-                FOOD COURT
-              </p>
-              <p className="text-xs leading-relaxed text-[var(--cc-muted-text)]">
-                Technology-enabled food destinations for corporate communities.
-              </p>
-            </div>
-
-            {/* Contact Info */}
-            <div className="space-y-2 mb-5 pb-5 border-b border-[var(--cc-border)]/50">
-              <p className="text-xs text-[var(--cc-secondary-text)]">
-                📍 Pragati Nagar, Hyderabad
-              </p>
-              <a
-                href="mailto:support@broandbro.com"
-                className="text-xs text-[var(--cc-primary)] hover:text-[var(--cc-primary-dark)] transition-colors block"
-              >
-                📧 support@broandbro.com
-              </a>
-              <a
-                href="tel:+919876543210"
-                className="text-xs text-[var(--cc-primary)] hover:text-[var(--cc-primary-dark)] transition-colors block"
-              >
-                📞 +91 9876 543 210
-              </a>
-            </div>
-
-            {/* Value Props — Mobile Compact */}
-            <div className="grid grid-cols-3 gap-3">
-              <div className="text-center">
-                <p className="text-xs text-[var(--cc-secondary-text)]">
-                  ✓ Fresh Food
+        {/* FOOTER */}
+        <div className="border-t border-[var(--cc-border)] bg-white px-4 sm:px-6 py-8 sm:py-10 mt-auto">
+          <div className="max-w-4xl mx-auto">
+            {/* Footer Content */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
+              {/* Brand Info */}
+              <div className="sm:col-span-2 lg:col-span-1">
+                <img
+                  src="/logo.svg"
+                  alt="Bro & Bro"
+                  className="h-8 mb-3"
+                />
+                <p className="text-xs sm:text-sm text-[var(--cc-secondary-text)]">
+                  FOOD COURT
+                </p>
+                <p className="text-xs sm:text-sm text-[var(--cc-muted-text)] mt-2 leading-relaxed">
+                  Fresh, quality food delivered to your door
                 </p>
               </div>
-              <div className="text-center">
-                <p className="text-xs text-[var(--cc-secondary-text)]">
-                  ✓ Multiple Cuisines
+
+              {/* Contact Info */}
+              <div>
+                <p className="text-xs sm:text-sm font-semibold text-[var(--cc-text)] mb-3">
+                  Contact
                 </p>
+                <div className="space-y-2">
+                  <p className="text-xs sm:text-sm text-[var(--cc-secondary-text)]">
+                    Pragati Nagar, Hyderabad
+                  </p>
+                  <a
+                    href="mailto:support@broandbro.com"
+                    className="text-xs sm:text-sm text-[var(--cc-primary)] hover:text-[var(--cc-primary-dark)] transition-colors block"
+                  >
+                    support@broandbro.com
+                  </a>
+                  <a
+                    href="tel:+919876543210"
+                    className="text-xs sm:text-sm text-[var(--cc-primary)] hover:text-[var(--cc-primary-dark)] transition-colors block"
+                  >
+                    +91 9876 543 210
+                  </a>
+                </div>
               </div>
-              <div className="text-center">
-                <p className="text-xs text-[var(--cc-secondary-text)]">
-                  ✓ Great Experience
+
+              {/* Value Indicators */}
+              <div>
+                <p className="text-xs sm:text-sm font-semibold text-[var(--cc-text)] mb-3">
+                  Why Us
                 </p>
+                <div className="space-y-2">
+                  <p className="text-xs sm:text-sm text-[var(--cc-secondary-text)]">
+                    ✓ Fresh Food
+                  </p>
+                  <p className="text-xs sm:text-sm text-[var(--cc-secondary-text)]">
+                    ✓ Multiple Cuisines
+                  </p>
+                  <p className="text-xs sm:text-sm text-[var(--cc-secondary-text)]">
+                    ✓ Great Experience
+                  </p>
+                </div>
               </div>
             </div>
 
             {/* Copyright */}
-            <p className="text-xs text-[var(--cc-muted-text)] text-center mt-5">
-              © 2024 Bro & Bro. All rights reserved.
-            </p>
+            <div className="border-t border-[var(--cc-border)] mt-6 sm:mt-8 pt-6 sm:pt-8">
+              <p className="text-xs sm:text-sm text-[var(--cc-muted-text)] text-center">
+                © 2024 Bro & Bro. All rights reserved.
+              </p>
+            </div>
           </div>
-        </footer>
+        </div>
       </div>
     );
   },
