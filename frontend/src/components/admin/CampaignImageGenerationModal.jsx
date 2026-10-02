@@ -1,19 +1,17 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   Dialog,
-  DialogTitle,
   DialogContent,
-  DialogActions,
-  TextField,
-  Button,
-  CircularProgress,
-  Box,
-  Alert,
-  Image,
-  Typography,
-  Stack,
-  Paper,
-} from '@mui/material';
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Loader2 } from 'lucide-react';
 import { generateCampaignImagePreview, applyCampaignImage } from '../../services/campaignImageService';
 
 /**
@@ -117,124 +115,115 @@ export default function CampaignImageGenerationModal({
   };
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
-      <DialogTitle>Generate Campaign Hero Image</DialogTitle>
+    <Dialog open={open} onOpenChange={handleClose}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Generate Campaign Hero Image</DialogTitle>
+          <DialogDescription>
+            Create an AI-generated hero billboard image for "{campaignName}"
+          </DialogDescription>
+        </DialogHeader>
 
-      <DialogContent sx={{ pt: 2 }}>
-        <Stack spacing={3}>
-          {error && <Alert severity="error">{error}</Alert>}
+        <div className="space-y-4 py-4">
+          {error && (
+            <Alert variant="destructive">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
 
           {/* Current image display */}
           {currentImageUrl && !generatedImageUrl && (
-            <Paper sx={{ p: 2, bgcolor: '#f5f5f5' }}>
-              <Typography variant="body2" color="textSecondary" gutterBottom>
-                Current Image
-              </Typography>
-              <Box
-                sx={{
-                  width: '100%',
-                  height: 200,
+            <div className="rounded-lg border bg-muted p-3">
+              <Label className="text-xs font-semibold">Current Image</Label>
+              <div
+                className="w-full h-32 bg-muted rounded-lg mt-2"
+                style={{
                   backgroundImage: `url(${currentImageUrl})`,
                   backgroundSize: 'cover',
                   backgroundPosition: 'center',
-                  borderRadius: 1,
-                  mt: 1,
                 }}
               />
-            </Paper>
+            </div>
           )}
 
           {/* Creative direction input */}
-          <TextField
-            label="Creative Direction (Optional)"
-            placeholder="e.g., 'warm lighting, vibrant colors, close-up shot'"
-            multiline
-            rows={3}
-            fullWidth
-            value={creativeDirection}
-            onChange={(e) => setCreativeDirection(e.target.value)}
-            disabled={isGenerating || isApplying}
-            helperText="Optional hints to guide the AI image generation"
-          />
+          <div className="space-y-2">
+            <Label htmlFor="creative-direction">Creative Direction (Optional)</Label>
+            <Input
+              id="creative-direction"
+              placeholder="e.g., 'warm lighting, vibrant colors, close-up shot'"
+              value={creativeDirection}
+              onChange={(e) => setCreativeDirection(e.target.value)}
+              disabled={isGenerating || isApplying}
+              className="min-h-20"
+            />
+            <p className="text-xs text-muted-foreground">
+              Optional hints to guide the AI image generation
+            </p>
+          </div>
 
           {/* Generated image preview */}
           {generatedImageUrl && (
-            <Paper sx={{ p: 2, bgcolor: '#f5f5f5' }}>
-              <Typography variant="body2" color="textSecondary" gutterBottom>
-                Generated Preview
-              </Typography>
-              <Box
-                sx={{
-                  width: '100%',
-                  height: 200,
+            <div className="rounded-lg border bg-muted p-3">
+              <Label className="text-xs font-semibold">Generated Preview</Label>
+              <div
+                className="w-full h-40 bg-muted rounded-lg mt-2"
+                style={{
                   backgroundImage: `url(${generatedImageUrl})`,
                   backgroundSize: 'cover',
                   backgroundPosition: 'center',
-                  borderRadius: 1,
-                  mt: 1,
-                  position: 'relative',
                 }}
               />
               {generatedPrompt && (
-                <Typography
-                  variant="caption"
-                  color="textSecondary"
-                  sx={{
-                    mt: 1,
-                    display: 'block',
-                    maxHeight: 80,
-                    overflow: 'auto',
-                    p: 1,
-                    bgcolor: 'white',
-                    borderRadius: 1,
-                    fontSize: '0.75rem',
-                  }}
-                >
-                  <strong>Prompt used:</strong> {generatedPrompt}
-                </Typography>
+                <details className="mt-2 text-xs">
+                  <summary className="cursor-pointer font-semibold text-muted-foreground">
+                    View prompt
+                  </summary>
+                  <p className="mt-2 p-2 bg-background rounded text-muted-foreground">
+                    {generatedPrompt}
+                  </p>
+                </details>
               )}
-            </Paper>
+            </div>
           )}
-        </Stack>
-      </DialogContent>
+        </div>
 
-      <DialogActions>
-        <Button onClick={handleClose} disabled={isGenerating || isApplying}>
-          Cancel
-        </Button>
-
-        {!generatedImageUrl && (
-          <Button
-            onClick={handleGenerate}
-            variant="contained"
-            disabled={isGenerating || isApplying}
-            startIcon={isGenerating && <CircularProgress size={20} />}
-          >
-            {isGenerating ? 'Generating...' : 'Generate Preview'}
+        <DialogFooter className="gap-2">
+          <Button variant="outline" onClick={handleClose} disabled={isGenerating || isApplying}>
+            Cancel
           </Button>
-        )}
 
-        {generatedImageUrl && (
-          <>
+          {!generatedImageUrl && (
             <Button
               onClick={handleGenerate}
               disabled={isGenerating || isApplying}
-              startIcon={isGenerating && <CircularProgress size={20} />}
             >
-              {isGenerating ? 'Regenerating...' : 'Regenerate'}
+              {isGenerating && <Loader2 className="size-4 mr-2 animate-spin" />}
+              {isGenerating ? 'Generating...' : 'Generate Preview'}
             </Button>
-            <Button
-              onClick={handleApplyImage}
-              variant="contained"
-              color="success"
-              disabled={isGenerating || isApplying}
-              startIcon={isApplying && <CircularProgress size={20} />}
-            >
-              {isApplying ? 'Applying...' : 'Use This Image'}
-            </Button>
-          </>
-        )}
-      </DialogActions>
+          )}
+
+          {generatedImageUrl && (
+            <>
+              <Button
+                variant="outline"
+                onClick={handleGenerate}
+                disabled={isGenerating || isApplying}
+              >
+                {isGenerating && <Loader2 className="size-4 mr-2 animate-spin" />}
+                {isGenerating ? 'Regenerating...' : 'Regenerate'}
+              </Button>
+              <Button
+                onClick={handleApplyImage}
+                disabled={isGenerating || isApplying}
+              >
+                {isApplying && <Loader2 className="size-4 mr-2 animate-spin" />}
+                {isApplying ? 'Applying...' : 'Use This Image'}
+              </Button>
+            </>
+          )}
+        </DialogFooter>
+      </DialogContent>
     </Dialog>
   );
 }

@@ -1,19 +1,18 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   Dialog,
-  DialogTitle,
   DialogContent,
-  DialogActions,
-  TextField,
-  Button,
-  CircularProgress,
-  Box,
-  Alert,
-  Typography,
-  Stack,
-  Paper,
-  Avatar,
-} from '@mui/material';
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Avatar } from '@/components/ui/avatar';
+import { Loader2 } from 'lucide-react';
 import { generateCategoryImagePreview, applyCategoryImage } from '../../services/categoryImageService';
 
 /**
@@ -117,144 +116,132 @@ export default function CategoryImageGenerationModal({
   };
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
-      <DialogTitle>Generate Category Image</DialogTitle>
+    <Dialog open={open} onOpenChange={handleClose}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Generate Category Image</DialogTitle>
+          <DialogDescription>
+            Create an AI-generated food photograph for the "{categoryName}" category
+          </DialogDescription>
+        </DialogHeader>
 
-      <DialogContent sx={{ pt: 2 }}>
-        <Stack spacing={3}>
+        <div className="space-y-4 py-4">
           {/* Category name display */}
-          <Paper sx={{ p: 2, bgcolor: '#f5f5f5', display: 'flex', alignItems: 'center', gap: 2 }}>
+          <div className="rounded-lg border bg-muted p-3 flex items-center gap-3">
             {currentImageUrl && (
               <Avatar
+                className="w-14 h-14"
                 src={currentImageUrl}
-                sx={{ width: 60, height: 60 }}
                 onError={(e) => {
                   e.target.style.display = 'none';
                 }}
               />
             )}
             <div>
-              <Typography variant="body2" color="textSecondary">
-                Category
-              </Typography>
-              <Typography variant="subtitle1" fontWeight="bold">
-                {categoryName}
-              </Typography>
+              <Label className="text-xs font-semibold">Category</Label>
+              <p className="font-semibold">{categoryName}</p>
             </div>
-          </Paper>
+          </div>
 
-          {error && <Alert severity="error">{error}</Alert>}
+          {error && (
+            <Alert variant="destructive">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
 
           {/* Current image display */}
           {currentImageUrl && !generatedImageUrl && (
-            <Paper sx={{ p: 2, bgcolor: '#f5f5f5' }}>
-              <Typography variant="body2" color="textSecondary" gutterBottom>
-                Current Image
-              </Typography>
-              <Box
-                sx={{
-                  width: '100%',
-                  height: 200,
+            <div className="rounded-lg border bg-muted p-3">
+              <Label className="text-xs font-semibold">Current Image</Label>
+              <div
+                className="w-full h-32 bg-muted rounded-lg mt-2"
+                style={{
                   backgroundImage: `url(${currentImageUrl})`,
                   backgroundSize: 'cover',
                   backgroundPosition: 'center',
-                  borderRadius: 1,
-                  mt: 1,
                 }}
               />
-            </Paper>
+            </div>
           )}
 
           {/* Additional prompt input */}
-          <TextField
-            label="Creative Direction (Optional)"
-            placeholder="e.g., 'vibrant spices, aromatic steam, close-up shot'"
-            multiline
-            rows={3}
-            fullWidth
-            value={additionalPrompt}
-            onChange={(e) => setAdditionalPrompt(e.target.value)}
-            disabled={isGenerating || isApplying}
-            helperText="Optional hints to guide the AI food photography"
-          />
+          <div className="space-y-2">
+            <Label htmlFor="additional-prompt">Creative Direction (Optional)</Label>
+            <Input
+              id="additional-prompt"
+              placeholder="e.g., 'vibrant spices, aromatic steam, close-up shot'"
+              value={additionalPrompt}
+              onChange={(e) => setAdditionalPrompt(e.target.value)}
+              disabled={isGenerating || isApplying}
+              className="min-h-20"
+            />
+            <p className="text-xs text-muted-foreground">
+              Optional hints to guide the AI food photography
+            </p>
+          </div>
 
           {/* Generated image preview */}
           {generatedImageUrl && (
-            <Paper sx={{ p: 2, bgcolor: '#f5f5f5' }}>
-              <Typography variant="body2" color="textSecondary" gutterBottom>
-                Generated Preview
-              </Typography>
-              <Box
-                sx={{
-                  width: '100%',
-                  height: 200,
+            <div className="rounded-lg border bg-muted p-3">
+              <Label className="text-xs font-semibold">Generated Preview</Label>
+              <div
+                className="w-full h-40 bg-muted rounded-lg mt-2"
+                style={{
                   backgroundImage: `url(${generatedImageUrl})`,
                   backgroundSize: 'cover',
                   backgroundPosition: 'center',
-                  borderRadius: 1,
-                  mt: 1,
                 }}
               />
               {generatedPrompt && (
-                <Typography
-                  variant="caption"
-                  color="textSecondary"
-                  sx={{
-                    mt: 1,
-                    display: 'block',
-                    maxHeight: 80,
-                    overflow: 'auto',
-                    p: 1,
-                    bgcolor: 'white',
-                    borderRadius: 1,
-                    fontSize: '0.75rem',
-                  }}
-                >
-                  <strong>Prompt used:</strong> {generatedPrompt}
-                </Typography>
+                <details className="mt-2 text-xs">
+                  <summary className="cursor-pointer font-semibold text-muted-foreground">
+                    View prompt
+                  </summary>
+                  <p className="mt-2 p-2 bg-background rounded text-muted-foreground">
+                    {generatedPrompt}
+                  </p>
+                </details>
               )}
-            </Paper>
+            </div>
           )}
-        </Stack>
-      </DialogContent>
+        </div>
 
-      <DialogActions>
-        <Button onClick={handleClose} disabled={isGenerating || isApplying}>
-          Cancel
-        </Button>
-
-        {!generatedImageUrl && (
-          <Button
-            onClick={handleGenerate}
-            variant="contained"
-            disabled={isGenerating || isApplying}
-            startIcon={isGenerating && <CircularProgress size={20} />}
-          >
-            {isGenerating ? 'Generating...' : 'Generate Preview'}
+        <DialogFooter className="gap-2">
+          <Button variant="outline" onClick={handleClose} disabled={isGenerating || isApplying}>
+            Cancel
           </Button>
-        )}
 
-        {generatedImageUrl && (
-          <>
+          {!generatedImageUrl && (
             <Button
               onClick={handleGenerate}
               disabled={isGenerating || isApplying}
-              startIcon={isGenerating && <CircularProgress size={20} />}
             >
-              {isGenerating ? 'Regenerating...' : 'Regenerate'}
+              {isGenerating && <Loader2 className="size-4 mr-2 animate-spin" />}
+              {isGenerating ? 'Generating...' : 'Generate Preview'}
             </Button>
-            <Button
-              onClick={handleApplyImage}
-              variant="contained"
-              color="success"
-              disabled={isGenerating || isApplying}
-              startIcon={isApplying && <CircularProgress size={20} />}
-            >
-              {isApplying ? 'Applying...' : 'Use This Image'}
-            </Button>
-          </>
-        )}
-      </DialogActions>
+          )}
+
+          {generatedImageUrl && (
+            <>
+              <Button
+                variant="outline"
+                onClick={handleGenerate}
+                disabled={isGenerating || isApplying}
+              >
+                {isGenerating && <Loader2 className="size-4 mr-2 animate-spin" />}
+                {isGenerating ? 'Regenerating...' : 'Regenerate'}
+              </Button>
+              <Button
+                onClick={handleApplyImage}
+                disabled={isGenerating || isApplying}
+              >
+                {isApplying && <Loader2 className="size-4 mr-2 animate-spin" />}
+                {isApplying ? 'Applying...' : 'Use This Image'}
+              </Button>
+            </>
+          )}
+        </DialogFooter>
+      </DialogContent>
     </Dialog>
   );
 }
