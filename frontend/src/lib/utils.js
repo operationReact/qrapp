@@ -12,6 +12,14 @@ export function formatDate(dateString) {
   });
 }
 
+export function formatCurrency(value) {
+  const amount = Number(value ?? 0);
+  return `₹${new Intl.NumberFormat("en-IN", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(Number.isFinite(amount) ? amount : 0)}`;
+}
+
 /**
  * Determines whether an order should be displayed as "Paid" in the admin UI.
  *
@@ -39,4 +47,3 @@ export function isOrderPaid(order) {
   if (method === "RAZORPAY" || method === "WALLET") return true;
   return false;
 }
-

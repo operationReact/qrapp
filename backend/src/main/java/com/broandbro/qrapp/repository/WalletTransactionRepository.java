@@ -45,9 +45,9 @@ public interface WalletTransactionRepository extends JpaRepository<WalletTransac
               AND tx.type = :type
               AND tx.status = :status
             """)
-    Long sumAmountByWalletIdAndTypeAndStatus(@Param("walletId") Long walletId,
-                                             @Param("type") TransactionType type,
-                                             @Param("status") TransactionStatus status);
+    java.math.BigDecimal sumAmountByWalletIdAndTypeAndStatus(@Param("walletId") Long walletId,
+                                                             @Param("type") TransactionType type,
+                                                             @Param("status") TransactionStatus status);
 
     long countByWallet_IdAndTypeAndStatus(Long walletId, TransactionType type, TransactionStatus status);
 
@@ -57,8 +57,8 @@ public interface WalletTransactionRepository extends JpaRepository<WalletTransac
             WHERE tx.wallet.id = :walletId
               AND tx.status = :status
             """)
-    Long sumAmountByWalletIdAndStatus(@Param("walletId") Long walletId,
-                                      @Param("status") TransactionStatus status);
+    java.math.BigDecimal sumAmountByWalletIdAndStatus(@Param("walletId") Long walletId,
+                                                      @Param("status") TransactionStatus status);
 
     @Query("""
             SELECT MAX(tx.createdAt)

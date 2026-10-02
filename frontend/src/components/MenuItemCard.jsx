@@ -8,7 +8,7 @@ import {
   ClockIcon,
   CalendarCheckIcon,
 } from "@phosphor-icons/react";
-import { cn } from "@/lib/utils";
+import { cn, formatCurrency } from "@/lib/utils";
 import QuantitySelector from "./QuantitySelector";
 import CustomerPreOrderDialog from "./CustomerPreOrderDialog";
 
@@ -174,7 +174,7 @@ export default function MenuItemCard({
                   "text-muted-foreground line-through decoration-muted-foreground/60",
               )}
             >
-              ₹{item.price?.toFixed(0) ?? "—"}
+              {item.price != null ? formatCurrency(item.price) : "—"}
             </span>
 
             {isUnavailable ? (

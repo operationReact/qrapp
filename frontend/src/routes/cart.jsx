@@ -27,6 +27,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useQuery } from "@tanstack/react-query";
 import { createOrder } from "@/services/order-service";
 import { paymentConfigOptions } from "@/query/options/orders";
+import { formatCurrency } from "@/lib/utils";
 import { getCurrentUser } from "@/services/auth-service";
 import { walletGetBalance } from "@/services/wallet-service";
 import { getRecommendedMenu } from "@/services/menu-service";
@@ -688,7 +689,7 @@ function CartPage() {
                       🎉 You Save
                     </span>
                     <span className="text-sm font-bold text-emerald-700">
-                      ₹{discount.toFixed(0)}
+                      {formatCurrency(discount)}
                       {liveAppliedPromotion && (
                         <span className="ml-1 text-[10px] font-normal text-emerald-600">
                           · {liveAppliedPromotion.code ?? "offer"}
@@ -716,7 +717,7 @@ function CartPage() {
                     Total
                   </div>
                   <div className="font-bold text-xl">
-                    ₹{totalAfterDiscount.toFixed(0)}
+                    {formatCurrency(totalAfterDiscount)}
                   </div>
                 </div>
 
@@ -890,10 +891,10 @@ function CartPage() {
                     disabled={submitting}
                     className="sm:w-1/2 h-full max-w-2xs font-medium!"
                   >
-                    Place Order ₹
+                    Place Order{" "}
                     {discount > 0
-                      ? totalAfterDiscount.toFixed(0)
-                      : total.toFixed(0)}
+                      ? formatCurrency(totalAfterDiscount)
+                      : formatCurrency(total)}
                     <ChevronRight className="size-5" />
                   </Button>
                 </div>

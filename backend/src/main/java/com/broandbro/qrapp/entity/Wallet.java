@@ -2,6 +2,7 @@ package com.broandbro.qrapp.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import java.math.BigDecimal;
 
 @Entity
 @Table(name = "wallets")
@@ -19,7 +20,6 @@ public class Wallet {
     @JoinColumn(name = "user_id", nullable = false, unique = true)
     private User user;
 
-    @Column(nullable = false)
-    private Long balance; // store in paise/cents (smallest currency unit)
+    @Column(nullable = false, precision = 19, scale = 2)
+    private BigDecimal balance;
 }
-

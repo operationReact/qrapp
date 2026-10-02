@@ -24,6 +24,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.UUID;
 
 @Service
@@ -41,7 +43,7 @@ public class WalletService {
     public Wallet getOrCreateWallet(User user) {
         User currentUser = validateCurrentUser(user);
         return walletRepository.findByUserId(currentUser.getId()).orElseGet(() -> {
-            Wallet wallet = Wallet.builder().user(user).balance(0L).build();
+            Wallet wallet = Wallet.builder().user(user).balance(BigDecimal.ZERO.setScale(2)).build();
             return walletRepository.save(wallet);
         });
     }
@@ -55,9 +57,9 @@ public class WalletService {
     public WalletOverviewResponse getOverview(User user) {
         Wallet wallet = getOrCreateWallet(user);
         Long walletId = wallet.getId();
-        Long totalCredited = txRepository.sumAmountByWalletIdAndTypeAndStatus(walletId, TransactionType.CREDIT, TransactionStatus.SUCCESS);
-        Long totalDebited = txRepository.sumAmountByWalletIdAndTypeAndStatus(walletId, TransactionType.DEBIT, TransactionStatus.SUCCESS);
-        Long pendingAmount = txRepository.sumAmountByWalletIdAndStatus(walletId, TransactionStatus.PENDING);
+        BigDecimal totalCredited = txRepository.sumAmountByWalletIdAndTypeAndStatus(walletId, TransactionType.CREDIT, TransactionStatus.SUCCESS);
+        BigDecimal totalDebited = txRepository.sumAmountByWalletIdAndTypeAndStatus(walletId, TransactionType.DEBIT, TransactionStatus.SUCCESS);
+        BigDecimal pendingAmount = txRepository.sumAmountByWalletIdAndStatus(walletId, TransactionStatus.PENDING);
         long successfulCreditsCount = txRepository.countByWallet_IdAndTypeAndStatus(walletId, TransactionType.CREDIT, TransactionStatus.SUCCESS);
         long successfulDebitsCount = txRepository.countByWallet_IdAndTypeAndStatus(walletId, TransactionType.DEBIT, TransactionStatus.SUCCESS);
 
@@ -80,15 +82,16 @@ public class WalletService {
     @Transactional
     public CreateRazorpayOrderResponse createRazorpayOrder(User user, CreateRazorpayOrderRequest req) {
         User currentUser = validateCurrentUser(user);
-        long amountRupees = validateAmount(req.getAmount()); // frontend sends rupees
+        BigDecimal amountRupees = BigDecimal.valueOf(validateAmount(req.getAmount())).setScale(2);
         String receipt = "wallet_" + currentUser.getId();
         // Razorpay API requires paise → multiply by 100 here only
-        String orderId = razorpayService.createOrder(amountRupees * 100, "INR", receipt);
+        long amountPaise = amountRupees.movePointRight(2).longValueExact();
+        String orderId = razorpayService.createOrder(amountPaise, "INR", receipt);
 
         Wallet wallet = getOrCreateWallet(currentUser);
         WalletTransaction transaction = WalletTransaction.builder()
                 .wallet(wallet)
-                .amount(amountRupees)   // store as rupees
+                .amount(amountRupees)
                 .type(TransactionType.CREDIT)
                 .status(TransactionStatus.PENDING)
                 .providerOrderId(orderId)
@@ -99,7 +102,7 @@ public class WalletService {
         return new CreateRazorpayOrderResponse(
                 orderId,
                 razorpayService.getKeyId(),
-                amountRupees * 100,  // return paise so Razorpay checkout renders correctly
+                amountPaise,
                 "INR"
         );
     }
@@ -133,7 +136,7 @@ public class WalletService {
         }
 
         Wallet wallet = pending.getWallet();
-        wallet.setBalance(wallet.getBalance() + pending.getAmount());
+        wallet.setBalance(wallet.getBalance().add(pending.getAmount()));
         walletRepository.save(wallet);
 
         pending.setStatus(TransactionStatus.SUCCESS);
@@ -145,9 +148,9 @@ public class WalletService {
     }
 
     @Transactional(readOnly = true)
-    public void ensureSufficientBalance(User user, long amount) {
+    public void ensureSufficientBalance(User user, BigDecimal amount) {
         Wallet wallet = getOrCreateWallet(user);
-        if (wallet.getBalance() < amount) {
+        if (wallet.getBalance().compareTo(amount) < 0) {
             throw new InsufficientBalanceException("Insufficient balance");
         }
     }
@@ -159,7 +162,7 @@ public class WalletService {
     }
 
     @Transactional
-    public void payForOrder(User user, Long orderId, long amount) {
+    public void payForOrder(User user, Long orderId, BigDecimal amount) {
         Wallet wallet = getOrCreateWallet(user);
         executeWalletDebit(user, wallet, validateAmount(amount), orderId, "Order #" + orderId + " paid from wallet");
     }
@@ -169,12 +172,12 @@ public class WalletService {
         // Annotation-driven cache eviction only.
     }
 
-    private void executeWalletDebit(User user, Wallet wallet, long amount, Long orderId, String description) {
-        if (wallet.getBalance() < amount) {
+    private void executeWalletDebit(User user, Wallet wallet, BigDecimal amount, Long orderId, String description) {
+        if (wallet.getBalance().compareTo(amount) < 0) {
             throw new InsufficientBalanceException("Insufficient balance");
         }
 
-        wallet.setBalance(wallet.getBalance() - amount);
+        wallet.setBalance(wallet.getBalance().subtract(amount));
         walletRepository.save(wallet);
 
         WalletTransaction transaction = WalletTransaction.builder()
@@ -196,6 +199,13 @@ public class WalletService {
             throw new IllegalArgumentException("User authentication required");
         }
         return user;
+    }
+
+    private BigDecimal validateAmount(BigDecimal amount) {
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Amount must be greater than zero");
+        }
+        return amount.setScale(2, RoundingMode.HALF_UP);
     }
 
     private long validateAmount(Long amount) {

@@ -1,15 +1,15 @@
 package com.broandbro.qrapp.dto;
 
 import java.time.Instant;
+import java.math.BigDecimal;
 
 public record WalletOverviewResponse(
-        Long balance,
-        Long totalCredited,
-        Long totalDebited,
-        Long pendingAmount,
+        BigDecimal balance,
+        BigDecimal totalCredited,
+        BigDecimal totalDebited,
+        BigDecimal pendingAmount,
         long successfulCreditsCount,
         long successfulDebitsCount,
         Instant lastTransactionAt
 ) {
 }
-

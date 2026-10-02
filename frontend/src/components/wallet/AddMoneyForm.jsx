@@ -4,6 +4,20 @@ import { walletCreateOrder, walletVerifyPayment } from "@/services/wallet-servic
 import { cn } from "@/lib/utils";
 
 const QUICK_AMOUNTS = [100, 250, 500, 1000, 2000];
+const MIN_TOP_UP_AMOUNT = 100;
+
+function getApiErrorMessage(error, fallback) {
+  const responseData = error?.response?.data;
+  if (typeof responseData === "string" && responseData.trim()) return responseData;
+  if (responseData?.message) return responseData.message;
+  if (responseData?.errors?.length) {
+    return responseData.errors
+      .map((item) => item.defaultMessage || item.message)
+      .filter(Boolean)
+      .join(", ");
+  }
+  return error?.message || fallback;
+}
 
 function useToast() {
   const [message, setMessage] = useState(null);
@@ -57,8 +71,14 @@ export default function AddMoneyForm({ className, onSuccess, onError }) {
 
   async function handleAddMoney() {
     const amountRupees = Number(amount);
-    if (!Number.isFinite(amountRupees) || amountRupees < 1) {
-      toast.show("Enter at least ₹1 to add money");
+    if (
+      !Number.isFinite(amountRupees) ||
+      !Number.isInteger(amountRupees) ||
+      amountRupees < MIN_TOP_UP_AMOUNT
+    ) {
+      const message = `Enter a whole amount of at least ₹${MIN_TOP_UP_AMOUNT}`;
+      setError(message);
+      toast.show(message);
       return;
     }
 
@@ -119,11 +139,9 @@ export default function AddMoneyForm({ className, onSuccess, onError }) {
       rzp.open();
     } catch (err) {
       console.error("wallet top-up failed", err);
-      setError(
-        typeof err?.response?.data === "string"
-          ? err.response.data
-          : err?.message || "Unable to add money right now.",
-      );
+      const message = getApiErrorMessage(err, "Unable to add money right now.");
+      setError(message);
+      toast.show(message);
     } finally {
       setAdding(false);
     }
@@ -149,10 +167,14 @@ export default function AddMoneyForm({ className, onSuccess, onError }) {
         <div className="mt-2 flex flex-col gap-3">
           <input
             type="number"
-            min="1"
+            min={MIN_TOP_UP_AMOUNT}
+            step="1"
             inputMode="numeric"
             value={amount}
-            onChange={(event) => setAmount(event.target.value)}
+            onChange={(event) => {
+              setAmount(event.target.value);
+              setError(null);
+            }}
             className="w-full rounded-lg border-2 border-gray-200 px-4 py-3 text-base outline-none transition focus:border-[#F3CE4D]"
             placeholder="Amount (₹)"
           />

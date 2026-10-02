@@ -5,6 +5,7 @@ import com.broandbro.qrapp.enums.TransactionType;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 
 @Entity
@@ -23,8 +24,8 @@ public class WalletTransaction {
     @JoinColumn(name = "wallet_id", nullable = false)
     private Wallet wallet;
 
-    @Column(nullable = false)
-    private Long amount; // smallest currency unit (paise)
+    @Column(nullable = false, precision = 19, scale = 2)
+    private BigDecimal amount;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -46,8 +47,8 @@ public class WalletTransaction {
     @Column(name = "description", length = 255)
     private String description;
 
-    @Column(name = "balance_after")
-    private Long balanceAfter;
+    @Column(name = "balance_after", precision = 19, scale = 2)
+    private BigDecimal balanceAfter;
 
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
@@ -57,4 +58,3 @@ public class WalletTransaction {
         if (createdAt == null) createdAt = Instant.now();
     }
 }
-
