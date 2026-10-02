@@ -81,7 +81,7 @@ export const Route = createFileRoute("/(auth)/login")({
             {/* ─────────────────────────────────────────────────────
                 HERO SECTION — Premium branded card
                 ───────────────────────────────────────────────────── */}
-            <div className="relative w-full mt-2 mb-0 rounded-2xl overflow-hidden bg-gradient-to-r from-pink-400 to-pink-300 h-48">
+            <div className="relative w-full mt-2 mb-0 rounded-2xl overflow-hidden bg-[var(--cc-page)] shadow-sm h-48">
               {/* Hero Image Background */}
               <img
                 src="/login-banner.jpg"
@@ -89,17 +89,21 @@ export const Route = createFileRoute("/(auth)/login")({
                 className="absolute inset-0 w-full h-full object-cover"
               />
 
-              {/* Overlay for better text contrast */}
-              <div className="absolute inset-0 bg-gradient-to-r from-black/25 via-transparent to-transparent" />
+              {/* Optional subtle overlay for text readability */}
+              <div className="absolute inset-0 bg-gradient-to-r from-black/20 via-transparent to-transparent" />
 
               {/* Hero Text Content */}
-              <div className="absolute inset-0 flex flex-col justify-end p-5 text-white max-w-xs">
-                <h1 className="text-xl font-bold leading-tight tracking-tight mb-2">
-                  Your Easy Access to
+              <div className="absolute inset-0 flex flex-col justify-end p-5 text-white">
+                <h1 className="text-2xl font-bold leading-snug tracking-tight mb-1">
+                  Your Easy
                   <br />
-                  <span className="text-white">Delicious Meals</span>
+                  Access to
+                  <br />
+                  <span className="text-red-400">Delicious</span>
+                  {" "}
+                  <span className="text-red-400">Meals</span>
                 </h1>
-                <p className="text-xs font-normal opacity-95 leading-snug">
+                <p className="text-xs font-normal opacity-90 leading-snug">
                   Fresh food. Great taste.
                 </p>
               </div>
