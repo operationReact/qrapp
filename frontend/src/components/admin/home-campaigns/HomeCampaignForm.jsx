@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import { useRef, useState } from "react";
 import PropTypes from "prop-types";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,7 @@ import {
   FieldDescription,
   FieldLabel,
 } from "@/components/ui/field";
-import { ImageIcon, TrashIcon, UploadSimpleIcon, SparklesIcon } from "@phosphor-icons/react";
+import { ImageIcon, TrashIcon, UploadSimpleIcon, SparkleIcon } from "@phosphor-icons/react";
 import { useAuth } from "@/context/AuthContext";
 import { useLocation as useActiveLocation } from "@/context/LocationContext";
 import { canSelectAllLocations } from "@/lib/roles";
@@ -198,7 +198,7 @@ export default function HomeCampaignForm({
                 onClick={() => onOpenAIModal(initialData.id, initialData.title)}
                 className="gap-1.5"
               >
-                <SparklesIcon className="size-4" />
+                <SparkleIcon className="size-4" />
                 Generate with AI
               </Button>
             )}
