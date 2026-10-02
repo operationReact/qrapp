@@ -1,7 +1,7 @@
 import { apiClient } from "./index";
 
-export const getHallOfHappiness = ({ page = 0, size = 8 } = {}) =>
-  apiClient.get("/api/hall-of-happiness", { params: { page, size } }).then((r) => r.data);
+export const getHallOfHappiness = ({ page = 0, size = 8, locationId } = {}) =>
+  apiClient.get("/api/hall-of-happiness", { params: { page, size, locationId } }).then((r) => r.data);
 
 export const getMyHallOfHappinessPhotos = ({ page = 0, size = 50 } = {}) =>
   apiClient.get("/api/hall-of-happiness/my", { params: { page, size } }).then((r) => r.data);
@@ -35,3 +35,14 @@ export const runHallPhotoAction = (id, action) =>
   (action === "remove"
     ? apiClient.delete(`/api/admin/hall-of-happiness/photos/${id}`)
     : apiClient.post(`/api/admin/hall-of-happiness/photos/${id}/${action}`)).then((r) => r.data);
+
+export const createCuratedHallPhoto = ({ file, caption, eventLabel, description, locationId, global }) => {
+  const form = new FormData();
+  form.append("file", file);
+  if (caption) form.append("caption", caption);
+  if (eventLabel) form.append("eventLabel", eventLabel);
+  if (description) form.append("description", description);
+  if (locationId) form.append("locationId", locationId);
+  form.append("global", String(Boolean(global)));
+  return apiClient.post("/api/admin/hall-of-happiness/curated", form).then((r) => r.data);
+};

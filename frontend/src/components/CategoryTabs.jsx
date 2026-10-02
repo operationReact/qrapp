@@ -8,17 +8,27 @@ import {
   resolveCategoryIcon,
 } from "@/lib/categoryIconResolver";
 
-function CategoryImage({ category }) {
-  const [failed, setFailed] = useState(false);
-  const resolved = resolveCategoryIcon(category);
+function CategoryTile({ resolved, failed, onError }) {
+  const usePhoto = resolved.isPhoto && !failed;
   return (
     <img
-      src={failed ? resolved.fallbackSrc || FALLBACK_ICON_SRC : resolved.src}
+      src={usePhoto ? resolved.src : failed ? resolved.fallbackSrc || FALLBACK_ICON_SRC : resolved.src}
       alt=""
       loading="lazy"
       decoding="async"
+      onError={onError}
+      className={usePhoto ? "size-full object-cover" : "size-[30px]"}
+    />
+  );
+}
+
+function CategoryTileImage({ resolved }) {
+  const [failed, setFailed] = useState(false);
+  return (
+    <CategoryTile
+      resolved={resolved}
+      failed={failed}
       onError={() => setFailed(true)}
-      className="size-[30px]"
     />
   );
 }
@@ -38,6 +48,8 @@ export default function CategoryTabs({ categories, active }) {
           const catName = getCategoryName(category);
           const isActive = active === catName;
           const isAllActive = isActive && catName.toLowerCase() === "all";
+          const resolved = resolveCategoryIcon(category);
+          const isPhoto = resolved.isPhoto;
           return (
           <a
             href={`/#${catName}`}
@@ -52,11 +64,13 @@ export default function CategoryTabs({ categories, active }) {
             })}
           >
             <span className={cn(
-              "grid h-[50px] w-[50px] place-items-center rounded-[16px] bg-[#f4f7fb] text-[29px] shadow-[0_4px_10px_rgba(41,47,67,0.05)] transition-colors md:hidden",
-              isActive && !isAllActive && "bg-primary text-primary-foreground shadow-[0_7px_16px_rgba(241,32,70,0.22)]",
+              "grid h-[50px] w-[50px] place-items-center overflow-hidden rounded-[16px] text-[29px] shadow-[0_4px_10px_rgba(41,47,67,0.05)] transition-colors md:hidden",
+              isPhoto ? "bg-muted" : "bg-[#f4f7fb]",
+              isActive && !isAllActive && !isPhoto && "bg-primary text-primary-foreground shadow-[0_7px_16px_rgba(241,32,70,0.22)]",
+              isActive && isPhoto && "ring-2 ring-primary ring-offset-2",
               isAllActive && "border border-primary/20 bg-primary/10 text-primary shadow-none",
             )}>
-              <CategoryImage category={category} />
+              <CategoryTileImage resolved={resolved} />
             </span>
             <span className="h-7 max-w-[72px] overflow-hidden text-center text-[12px] leading-[14px] whitespace-normal [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">
               {catName}

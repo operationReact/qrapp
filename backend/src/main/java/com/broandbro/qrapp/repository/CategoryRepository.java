@@ -12,6 +12,9 @@ import java.util.Optional;
 public interface CategoryRepository extends JpaRepository<Category, Long> {
     List<Category> findByLocationIdAndIsDeletedFalse(Long locationId);
 
+    /** Active categories ordered for customer-facing display (admin-controlled order, then name). */
+    List<Category> findByLocationIdAndIsDeletedFalseOrderByDisplayOrderAscNameAsc(Long locationId);
+
     /** All soft-deleted categories (for the admin trash view). */
     List<Category> findByLocationIdAndIsDeletedTrue(Long locationId);
 

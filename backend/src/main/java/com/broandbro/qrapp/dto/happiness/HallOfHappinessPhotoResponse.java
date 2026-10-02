@@ -19,14 +19,22 @@ public record HallOfHappinessPhotoResponse(
         String customerName,
         String customerPhone,
         Instant createdAt,
-        Instant publishedAt
+        Instant publishedAt,
+        String sourceType,
+        String eventLabel,
+        String description,
+        Long locationId,
+        String locationName,
+        boolean global
 ) {
     public static HallOfHappinessPhotoResponse forCustomer(HallOfHappinessPhoto photo) {
         return create(photo, null, null);
     }
 
     public static HallOfHappinessPhotoResponse forAdmin(HallOfHappinessPhoto photo) {
-        return create(photo, photo.getPartyOrder().getUserName(), photo.getPartyOrder().getUserPhone());
+        String customerName = photo.getPartyOrder() == null ? null : photo.getPartyOrder().getUserName();
+        String customerPhone = photo.getPartyOrder() == null ? null : photo.getPartyOrder().getUserPhone();
+        return create(photo, customerName, customerPhone);
     }
 
     private static HallOfHappinessPhotoResponse create(
@@ -34,9 +42,9 @@ public record HallOfHappinessPhotoResponse(
         return new HallOfHappinessPhotoResponse(
                 photo.getId(),
                 photo.getSubmission() == null ? null : photo.getSubmission().getId(),
-                photo.getPartyOrder().getId(),
-                photo.getPartyOrder().getEventType(),
-                photo.getPartyOrder().getEventDateTime(),
+                photo.getPartyOrder() == null ? null : photo.getPartyOrder().getId(),
+                photo.getPartyOrder() == null ? null : photo.getPartyOrder().getEventType(),
+                photo.getPartyOrder() == null ? null : photo.getPartyOrder().getEventDateTime(),
                 photo.getImageUrl(),
                 photo.getThumbnailUrl(),
                 photo.getCaption(),
@@ -46,6 +54,12 @@ public record HallOfHappinessPhotoResponse(
                 customerName,
                 customerPhone,
                 photo.getCreatedAt(),
-                photo.getPublishedAt());
+                photo.getPublishedAt(),
+                photo.getSourceType().name(),
+                photo.getEventLabel(),
+                photo.getDescription(),
+                photo.getLocation() == null ? null : photo.getLocation().getId(),
+                photo.getLocation() == null ? null : photo.getLocation().getName(),
+                photo.isGlobal());
     }
 }

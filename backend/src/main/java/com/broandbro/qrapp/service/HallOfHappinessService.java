@@ -4,14 +4,17 @@ import com.broandbro.qrapp.dto.happiness.HallOfHappinessPhotoResponse;
 import com.broandbro.qrapp.dto.happiness.HallOfHappinessPhotoUpdateRequest;
 import com.broandbro.qrapp.entity.HallOfHappinessPhoto;
 import com.broandbro.qrapp.entity.HallOfHappinessSubmission;
+import com.broandbro.qrapp.entity.Location;
 import com.broandbro.qrapp.entity.PartyOrder;
 import com.broandbro.qrapp.entity.User;
 import com.broandbro.qrapp.enums.HallOfHappinessConsentStatus;
 import com.broandbro.qrapp.enums.HallOfHappinessPhotoStatus;
+import com.broandbro.qrapp.enums.HallOfHappinessSourceType;
 import com.broandbro.qrapp.enums.HallOfHappinessSubmissionStatus;
 import com.broandbro.qrapp.enums.PartyOrderStatus;
 import com.broandbro.qrapp.repository.HallOfHappinessPhotoRepository;
 import com.broandbro.qrapp.repository.HallOfHappinessSubmissionRepository;
+import com.broandbro.qrapp.repository.LocationRepository;
 import com.broandbro.qrapp.repository.PartyOrderRepository;
 import com.broandbro.qrapp.repository.UserRepository;
 import com.broandbro.qrapp.storage.ImageStorageService;
@@ -59,6 +62,7 @@ public class HallOfHappinessService {
     private final HallOfHappinessSubmissionRepository submissionRepository;
     private final ImageStorageService imageStorageService;
     private final LocationAccessService locationAccessService;
+    private final LocationRepository locationRepository;
 
     public HallOfHappinessService(
             HallOfHappinessPhotoRepository photoRepository,
@@ -66,18 +70,30 @@ public class HallOfHappinessService {
             UserRepository userRepository,
             HallOfHappinessSubmissionRepository submissionRepository,
             ImageStorageService imageStorageService,
-            LocationAccessService locationAccessService) {
+            LocationAccessService locationAccessService,
+            LocationRepository locationRepository) {
         this.photoRepository = photoRepository;
         this.partyOrderRepository = partyOrderRepository;
         this.userRepository = userRepository;
         this.submissionRepository = submissionRepository;
         this.imageStorageService = imageStorageService;
         this.locationAccessService = locationAccessService;
+        this.locationRepository = locationRepository;
     }
 
     @Transactional(readOnly = true)
     public void requireAdminPhotoAccess(Long id, User user) {
         HallOfHappinessPhoto photo = requirePhoto(id);
+        if (photo.getSourceType() == HallOfHappinessSourceType.ADMIN_CURATED) {
+            if (photo.isGlobal()) {
+                return;
+            }
+            if (photo.getLocation() == null || photo.getLocation().getId() == null) {
+                throw new AccessDeniedException("location_access_denied");
+            }
+            locationAccessService.requireLocationAccess(user, photo.getLocation().getId());
+            return;
+        }
         if (photo.getSubmission() == null) {
             throw new IllegalArgumentException("legacy_photo_not_moderatable");
         }
@@ -88,20 +104,32 @@ public class HallOfHappinessService {
         locationAccessService.requireLocationAccess(user, photo.getPartyOrder().getLocation().getId());
     }
 
-    @Cacheable(cacheNames = "hallOfHappiness", key = "#phone + ':' + #page + ':' + #size", sync = true)
+    @Cacheable(cacheNames = "hallOfHappiness",
+            key = "(#locationId == null ? 'global' : #locationId) + ':' + #page + ':' + #size", sync = true)
     @Transactional(readOnly = true)
-    public Page<HallOfHappinessPhotoResponse> publishedFeed(String phone, int page, int size) {
+    public Page<HallOfHappinessPhotoResponse> publishedFeed(Long locationId, int page, int size) {
         PageRequest request = PageRequest.of(safePage(page), safeSize(size));
-        User customer = customer(phone);
-        if (customer.getDefaultLocation() == null || customer.getDefaultLocation().getId() == null) {
-            return Page.empty(request);
+        if (locationId == null) {
+            return photoRepository.findPublished(
+                            HallOfHappinessPhotoStatus.PUBLISHED,
+                            HallOfHappinessConsentStatus.GRANTED,
+                            request)
+                    .map(HallOfHappinessPhotoResponse::forCustomer);
         }
+        requireActiveLocation(locationId);
         return photoRepository.findPublishedForLocation(
                         HallOfHappinessPhotoStatus.PUBLISHED,
                         HallOfHappinessConsentStatus.GRANTED,
-                        customer.getDefaultLocation().getId(),
+                        locationId,
                         request)
                 .map(HallOfHappinessPhotoResponse::forCustomer);
+    }
+
+    private void requireActiveLocation(Long locationId) {
+        Location location = locationRepository.findById(locationId).orElse(null);
+        if (location == null || !Boolean.TRUE.equals(location.getActive())) {
+            throw new IllegalArgumentException("location_not_found");
+        }
     }
 
     @Transactional(readOnly = true)
@@ -180,6 +208,68 @@ public class HallOfHappinessService {
                 .toList();
     }
 
+    @CacheEvict(cacheNames = "hallOfHappiness", allEntries = true)
+    @Transactional
+    public HallOfHappinessPhotoResponse createCuratedPhoto(
+            MultipartFile file, String caption, String eventLabel, String description,
+            Long locationId, boolean global, String adminUsername) {
+        if (!global && locationId == null) {
+            throw new IllegalArgumentException("location_required_unless_global");
+        }
+        validateFile(file);
+        User admin = adminUser(adminUsername);
+        Location location = global ? null : requireLocation(locationId);
+        if (global) {
+            // GLOBAL curated content is visible at every location — reserved for
+            // SUPER_ADMIN, matching the same global-content privilege model used
+            // for Home campaigns.
+            locationAccessService.requireSuperAdmin(admin);
+        } else {
+            locationAccessService.requireLocationAccess(admin, location.getId());
+        }
+        byte[] image = optimize(file, 1600, 0.86);
+        byte[] thumbnail = optimize(image, 720, 0.80);
+        String folder = "hall-of-happiness/curated/" + (global ? "global" : locationFolder(location));
+        String imageUrl = imageStorageService.uploadImage(image, folder + "/original", "image/jpeg");
+        String thumbnailUrl = imageStorageService.uploadImage(thumbnail, folder + "/thumbnail", "image/jpeg");
+        HallOfHappinessPhoto photo = HallOfHappinessPhoto.builder()
+                .sourceType(HallOfHappinessSourceType.ADMIN_CURATED)
+                .location(location)
+                .global(global)
+                .eventLabel(trimToNull(eventLabel, 160))
+                .description(trimToNull(description, 500))
+                .imageUrl(imageUrl)
+                .thumbnailUrl(thumbnailUrl)
+                .caption(trimCaption(caption))
+                .status(HallOfHappinessPhotoStatus.APPROVED)
+                .consentStatus(HallOfHappinessConsentStatus.GRANTED)
+                .consentGrantedAt(Instant.now())
+                .createdBy("ADMIN:" + adminUsername)
+                .moderatedBy(adminUsername)
+                .build();
+        return HallOfHappinessPhotoResponse.forAdmin(photoRepository.save(photo));
+    }
+
+    private User adminUser(String phone) {
+        return userRepository.findByPhone(phone)
+                .orElseThrow(() -> new IllegalArgumentException("admin_not_found"));
+    }
+
+    private Location requireLocation(Long locationId) {
+        return locationRepository.findById(locationId)
+                .orElseThrow(() -> new IllegalArgumentException("location_not_found"));
+    }
+
+    private String trimToNull(String value, int maxLength) {
+        if (value == null) return null;
+        String trimmed = value.trim();
+        if (trimmed.isEmpty()) return null;
+        if (trimmed.length() > maxLength) {
+            throw new IllegalArgumentException("value_too_long");
+        }
+        return trimmed;
+    }
+
     @Transactional(readOnly = true)
     public Page<HallOfHappinessPhotoResponse> adminSearch(
             HallOfHappinessPhotoStatus status,
@@ -213,9 +303,36 @@ public class HallOfHappinessService {
         if (photo.getStatus() == HallOfHappinessPhotoStatus.REMOVED) {
             throw new IllegalStateException("photo_removed");
         }
-        photo.setCaption(trimCaption(request.caption()));
+        if (request.caption() != null) {
+            photo.setCaption(trimCaption(request.caption()));
+        }
         if (request.displayOrder() != null) {
             photo.setDisplayOrder(Math.max(0, request.displayOrder()));
+        }
+        if (photo.getSourceType() == HallOfHappinessSourceType.ADMIN_CURATED) {
+            if (request.eventLabel() != null) {
+                photo.setEventLabel(trimToNull(request.eventLabel(), 160));
+            }
+            if (request.description() != null) {
+                photo.setDescription(trimToNull(request.description(), 500));
+            }
+            if (Boolean.TRUE.equals(request.global()) && !photo.isGlobal()) {
+                // Reassigning to GLOBAL grants cross-location visibility — reserve
+                // this escalation for SUPER_ADMIN, same as curated creation.
+                locationAccessService.requireSuperAdmin(adminUser(adminUsername));
+            }
+            if (request.global() != null) {
+                photo.setGlobal(request.global());
+            }
+            if (request.locationId() != null) {
+                // Changing the target location is itself a privileged action: the
+                // admin must be authorized for the NEW location, not just the one
+                // the photo currently belongs to (already checked by
+                // requireAdminPhotoAccess before this method is invoked).
+                Location newLocation = requireLocation(request.locationId());
+                locationAccessService.requireLocationAccess(adminUser(adminUsername), newLocation.getId());
+                photo.setLocation(newLocation);
+            }
         }
         photo.setModeratedBy(adminUsername);
         return HallOfHappinessPhotoResponse.forAdmin(photoRepository.save(photo));
@@ -361,6 +478,9 @@ public class HallOfHappinessService {
         return photoRepository.save(HallOfHappinessPhoto.builder()
                 .partyOrder(order)
                 .submission(submission)
+                .sourceType(HallOfHappinessSourceType.CUSTOMER)
+                .location(order.getLocation())
+                .eventLabel(order.getEventType())
                 .customerId(customer.getId())
                 .imageUrl(imageUrl)
                 .thumbnailUrl(thumbnailUrl)
@@ -381,7 +501,11 @@ public class HallOfHappinessService {
     }
 
     private String locationFolder(PartyOrder order) {
-        String locationName = order.getLocation() == null ? null : order.getLocation().getName();
+        return locationFolder(order.getLocation());
+    }
+
+    private String locationFolder(Location location) {
+        String locationName = location == null ? null : location.getName();
         if (locationName == null || locationName.isBlank()) {
             return "unknown-location";
         }

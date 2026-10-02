@@ -17,10 +17,11 @@ public interface HallOfHappinessPhotoRepository extends JpaRepository<HallOfHapp
 
     @Query("""
             SELECT photo FROM HallOfHappinessPhoto photo
-            JOIN FETCH photo.partyOrder order
+            LEFT JOIN FETCH photo.partyOrder order
             WHERE photo.status = :status
               AND photo.consentStatus = :consent
-              AND order.status = com.broandbro.qrapp.enums.PartyOrderStatus.COMPLETED
+              AND photo.global = TRUE
+              AND (order IS NULL OR order.status = com.broandbro.qrapp.enums.PartyOrderStatus.COMPLETED)
             ORDER BY photo.displayOrder ASC, photo.publishedAt DESC, photo.id DESC
             """)
     Page<HallOfHappinessPhoto> findPublished(
@@ -30,11 +31,12 @@ public interface HallOfHappinessPhotoRepository extends JpaRepository<HallOfHapp
 
     @Query("""
             SELECT photo FROM HallOfHappinessPhoto photo
-            JOIN FETCH photo.partyOrder order
+            LEFT JOIN FETCH photo.partyOrder order
+            LEFT JOIN photo.location loc
             WHERE photo.status = :status
               AND photo.consentStatus = :consent
-              AND order.status = com.broandbro.qrapp.enums.PartyOrderStatus.COMPLETED
-              AND order.location.id = :locationId
+              AND (order IS NULL OR order.status = com.broandbro.qrapp.enums.PartyOrderStatus.COMPLETED)
+              AND (photo.global = TRUE OR loc.id = :locationId)
             ORDER BY photo.displayOrder ASC, photo.publishedAt DESC, photo.id DESC
             """)
     Page<HallOfHappinessPhoto> findPublishedForLocation(
@@ -55,17 +57,21 @@ public interface HallOfHappinessPhotoRepository extends JpaRepository<HallOfHapp
 
     @Query("""
             SELECT photo FROM HallOfHappinessPhoto photo
-            JOIN FETCH photo.partyOrder order
+            LEFT JOIN FETCH photo.partyOrder order
+            LEFT JOIN photo.location loc
             WHERE (:status IS NULL OR photo.status = :status)
               AND (:consent IS NULL OR photo.consentStatus = :consent)
               AND (:orderId IS NULL OR order.id = :orderId)
               AND (:customerId IS NULL OR photo.customerId = :customerId)
-              AND photo.submission IS NOT NULL
-              AND order.eventDateTime >= :fromDate
-              AND order.eventDateTime < :toDate
-              AND (:allLocations = TRUE OR order.location.id IN :locationIds)
+              AND (photo.submission IS NOT NULL
+                   OR photo.sourceType = com.broandbro.qrapp.enums.HallOfHappinessSourceType.ADMIN_CURATED)
+              AND (order IS NULL OR (order.eventDateTime >= :fromDate AND order.eventDateTime < :toDate))
+              AND (:allLocations = TRUE OR photo.global = TRUE
+                   OR (order IS NOT NULL AND order.location.id IN :locationIds)
+                   OR (order IS NULL AND loc.id IN :locationIds))
               AND (:searchPattern = '' OR
                    LOWER(COALESCE(photo.caption, '')) LIKE :searchPattern OR
+                   LOWER(COALESCE(photo.eventLabel, '')) LIKE :searchPattern OR
                    LOWER(COALESCE(order.eventType, '')) LIKE :searchPattern OR
                    LOWER(COALESCE(order.userName, '')) LIKE :searchPattern OR
                    LOWER(COALESCE(order.userPhone, '')) LIKE :searchPattern)

@@ -76,6 +76,7 @@ import { Route as AdmingrowthComboOpportunitiesRouteImport } from './routes/admi
 import { Route as AdmingrowthCategoryPairingsRouteImport } from './routes/admin/(growth)/category-pairings'
 import { Route as AdmingrowthAutoSuggestionsRouteImport } from './routes/admin/(growth)/auto-suggestions'
 import { Route as AdmincouponsCouponsRouteImport } from './routes/admin/(coupons)/coupons'
+import { Route as AdminmenuHomeContentIndexRouteImport } from './routes/admin/(menu)/home-content/index'
 import { Route as AdminmenuCombosIndexRouteImport } from './routes/admin/(menu)/combos/index'
 import { Route as AdminmenuComboCampaignsIndexRouteImport } from './routes/admin/(menu)/combo-campaigns/index'
 import { Route as AdminmenuCombosEditRouteImport } from './routes/admin/(menu)/combos/edit'
@@ -433,6 +434,12 @@ const AdmincouponsCouponsRoute = AdmincouponsCouponsRouteImport.update({
   path: '/coupons',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminmenuHomeContentIndexRoute =
+  AdminmenuHomeContentIndexRouteImport.update({
+    id: '/(menu)/home-content/',
+    path: '/home-content/',
+    getParentRoute: () => AdminRoute,
+  } as any)
 const AdminmenuCombosIndexRoute = AdminmenuCombosIndexRouteImport.update({
   id: '/(menu)/combos/',
   path: '/combos/',
@@ -527,6 +534,7 @@ export interface FileRoutesByFullPath {
   '/admin/combos/edit': typeof AdminmenuCombosEditRoute
   '/admin/combo-campaigns/': typeof AdminmenuComboCampaignsIndexRoute
   '/admin/combos/': typeof AdminmenuCombosIndexRoute
+  '/admin/home-content/': typeof AdminmenuHomeContentIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -599,6 +607,7 @@ export interface FileRoutesByTo {
   '/admin/combos/edit': typeof AdminmenuCombosEditRoute
   '/admin/combo-campaigns': typeof AdminmenuComboCampaignsIndexRoute
   '/admin/combos': typeof AdminmenuCombosIndexRoute
+  '/admin/home-content': typeof AdminmenuHomeContentIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -673,6 +682,7 @@ export interface FileRoutesById {
   '/admin/(menu)/combos/edit': typeof AdminmenuCombosEditRoute
   '/admin/(menu)/combo-campaigns/': typeof AdminmenuComboCampaignsIndexRoute
   '/admin/(menu)/combos/': typeof AdminmenuCombosIndexRoute
+  '/admin/(menu)/home-content/': typeof AdminmenuHomeContentIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -748,6 +758,7 @@ export interface FileRouteTypes {
     | '/admin/combos/edit'
     | '/admin/combo-campaigns/'
     | '/admin/combos/'
+    | '/admin/home-content/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -820,6 +831,7 @@ export interface FileRouteTypes {
     | '/admin/combos/edit'
     | '/admin/combo-campaigns'
     | '/admin/combos'
+    | '/admin/home-content'
   id:
     | '__root__'
     | '/'
@@ -893,6 +905,7 @@ export interface FileRouteTypes {
     | '/admin/(menu)/combos/edit'
     | '/admin/(menu)/combo-campaigns/'
     | '/admin/(menu)/combos/'
+    | '/admin/(menu)/home-content/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -1396,6 +1409,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdmincouponsCouponsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/(menu)/home-content/': {
+      id: '/admin/(menu)/home-content/'
+      path: '/home-content'
+      fullPath: '/admin/home-content/'
+      preLoaderRoute: typeof AdminmenuHomeContentIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/(menu)/combos/': {
       id: '/admin/(menu)/combos/'
       path: '/combos'
@@ -1472,6 +1492,7 @@ interface AdminRouteChildren {
   AdminmenuCombosEditRoute: typeof AdminmenuCombosEditRoute
   AdminmenuComboCampaignsIndexRoute: typeof AdminmenuComboCampaignsIndexRoute
   AdminmenuCombosIndexRoute: typeof AdminmenuCombosIndexRoute
+  AdminmenuHomeContentIndexRoute: typeof AdminmenuHomeContentIndexRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
@@ -1520,6 +1541,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminmenuCombosEditRoute: AdminmenuCombosEditRoute,
   AdminmenuComboCampaignsIndexRoute: AdminmenuComboCampaignsIndexRoute,
   AdminmenuCombosIndexRoute: AdminmenuCombosIndexRoute,
+  AdminmenuHomeContentIndexRoute: AdminmenuHomeContentIndexRoute,
 }
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)

@@ -12,7 +12,7 @@ import {
   DrawerTitle,
 } from "@/components/ui/drawer";
 
-export function LocationSelector({ className = "", home = false, header = false, allowAllLocations = false }) {
+export function LocationSelector({ className = "", home = false, header = false, overlay = false, allowAllLocations = false }) {
   const {
     activeLocation,
     availableLocations,
@@ -30,9 +30,9 @@ export function LocationSelector({ className = "", home = false, header = false,
   if (error) {
     return (
       <Button
-        variant={header ? "ghost" : "outline"}
+        variant={overlay ? "ghost" : header ? "ghost" : "outline"}
         size="lg"
-        className={`touch-manipulation ${header ? "min-h-10 rounded-xl border border-border/70 bg-card px-3 text-[12px]" : "min-h-11"} ${className}`}
+        className={`touch-manipulation ${overlay ? "min-h-10 rounded-xl border border-white/25 bg-black/25 px-3 text-[12px] text-white backdrop-blur-sm hover:bg-black/35 hover:text-white" : header ? "min-h-10 rounded-xl border border-border/70 bg-card px-3 text-[12px]" : "min-h-11"} ${className}`}
         onClick={() => refetch()}
       >
         <RefreshCw className="size-4" /> Retry
@@ -43,7 +43,7 @@ export function LocationSelector({ className = "", home = false, header = false,
   if (isLoading) {
     return (
       <div
-        className={`${header ? "h-10 w-[168px] rounded-xl" : "h-11 w-44 rounded-xl"} animate-pulse bg-zinc-100 ${className}`}
+        className={`${header ? "h-10 w-[168px] rounded-xl" : "h-11 w-44 rounded-xl"} animate-pulse ${overlay ? "bg-white/15" : "bg-zinc-100"} ${className}`}
         aria-label="Loading locations"
       />
     );
@@ -54,9 +54,9 @@ export function LocationSelector({ className = "", home = false, header = false,
       <button
         type="button"
         onClick={() => refetch()}
-        className={`touch-manipulation relative flex min-h-10 min-w-0 items-center gap-2 rounded-xl border border-border/70 bg-card px-3 text-[12px] font-bold text-foreground ${className}`}
+        className={`touch-manipulation relative flex min-h-10 min-w-0 items-center gap-2 rounded-xl border px-3 text-[12px] font-bold ${overlay ? "border-white/25 bg-black/25 text-white backdrop-blur-sm" : "border-border/70 bg-card text-foreground"} ${className}`}
       >
-        <MapPin className="size-4 shrink-0 text-primary" aria-hidden="true" />
+        <MapPin className={`size-4 shrink-0 ${overlay ? "text-white" : "text-primary"}`} aria-hidden="true" />
         <span className="truncate">Location</span>
       </button>
     );
@@ -64,7 +64,9 @@ export function LocationSelector({ className = "", home = false, header = false,
 
   const locationName = activeLocation?.name || activeLocation?.title || "Location";
 
-  const triggerClass = `touch-manipulation relative flex min-w-0 items-center gap-2 border border-border/80 bg-card px-3 text-left ${header ? "min-h-11 w-full rounded-xl shadow-sm" : home ? "min-h-12 rounded-2xl shadow-[0_2px_10px_rgba(42,35,30,0.04)]" : "min-h-11 rounded-xl"} ${className}`;
+  const triggerClass = overlay
+    ? `touch-manipulation relative flex min-w-0 items-center gap-2 rounded-xl border border-white/25 bg-black/30 px-3 py-1.5 text-left backdrop-blur-sm ${className}`
+    : `touch-manipulation relative flex min-w-0 items-center gap-2 border border-border/80 bg-card px-3 text-left ${header ? "min-h-11 w-full rounded-xl shadow-sm" : home ? "min-h-12 rounded-2xl shadow-[0_2px_10px_rgba(42,35,30,0.04)]" : "min-h-11 rounded-xl"} ${className}`;
 
   return (
     <Drawer open={open} onOpenChange={setOpen}>
@@ -76,17 +78,17 @@ export function LocationSelector({ className = "", home = false, header = false,
           aria-expanded={open}
         >
           {isAllLocations
-            ? <Globe className="size-[17px] shrink-0 text-primary" aria-hidden="true" />
-            : <MapPin className="size-[17px] shrink-0 text-primary" aria-hidden="true" />}
+            ? <Globe className={`size-[17px] shrink-0 ${overlay ? "text-white" : "text-primary"}`} aria-hidden="true" />
+            : <MapPin className={`size-[17px] shrink-0 ${overlay ? "text-white" : "text-primary"}`} aria-hidden="true" />}
           <span className="min-w-0 flex-1 leading-tight">
-            <span className={`block font-semibold uppercase tracking-[0.06em] text-muted-foreground ${header ? "text-[9px]" : "text-[10px]"}`}>
-              {header ? "Deliver to" : "Delivering to"}
+            <span className={`block font-semibold uppercase tracking-[0.06em] ${overlay ? "text-white/70" : "text-muted-foreground"} ${header || overlay ? "text-[9px]" : "text-[10px]"}`}>
+              {header || overlay ? "Deliver to" : "Delivering to"}
             </span>
-            <span className={`block truncate font-bold text-foreground text-[13px]`}>
+            <span className={`block truncate font-bold text-[13px] ${overlay ? "text-white drop-shadow-sm" : "text-foreground"}`}>
               {locationName}
             </span>
           </span>
-          <ChevronDown className="size-3.5 shrink-0 text-primary" aria-hidden="true" />
+          <ChevronDown className={`size-3.5 shrink-0 ${overlay ? "text-white/80" : "text-primary"}`} aria-hidden="true" />
         </button>
       </DrawerTrigger>
       <DrawerContent className="mx-auto w-full max-w-md max-h-[min(80vh,80dvh)] overscroll-contain rounded-t-2xl pb-[env(safe-area-inset-bottom)] [touch-action:pan-y]">

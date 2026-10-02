@@ -161,7 +161,10 @@ export function getCategoryDisplayName(category) {
 
 function resolveExplicitOverride(category) {
   if (!category || typeof category !== "object") return null;
-  const raw = category.iconUrl || category.iconImageUrl || category.icon || category.iconName || category.iconKey || category.thumbnailUrl;
+  // `imageUrl` is the real, rich food-photography image (manual upload or
+  // admin-accepted AI generation) and always takes priority over any other
+  // icon override when present.
+  const raw = category.imageUrl || category.iconUrl || category.iconImageUrl || category.icon || category.iconName || category.iconKey || category.thumbnailUrl;
   if (typeof raw !== "string" || !raw.trim()) return null;
   const value = raw.trim();
   if (isUrlLike(value)) return { kind: "image", src: value };
@@ -179,10 +182,12 @@ export function resolveCategoryIcon(category) {
   const categoryName = getCategoryDisplayName(category);
   const semanticKey = resolveCategoryIconKey(categoryName);
   const override = resolveExplicitOverride(category);
+  const isPhoto = Boolean(category?.imageUrl);
 
   if (override?.kind === "image") {
     return {
       kind: "image",
+      isPhoto,
       src: override.src,
       key: override.key || semanticKey || FALLBACK_ICON_KEY,
       fallbackSrc: getCategoryIconSrc(semanticKey),
@@ -192,6 +197,7 @@ export function resolveCategoryIcon(category) {
   const key = semanticKey || FALLBACK_ICON_KEY;
   return {
     kind: "image",
+    isPhoto: false,
     key,
     src: getCategoryIconSrc(key),
     fallbackSrc: FALLBACK_ICON_SRC,

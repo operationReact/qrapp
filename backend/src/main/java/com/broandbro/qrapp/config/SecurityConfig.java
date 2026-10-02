@@ -138,6 +138,7 @@ public class SecurityConfig {
                                 "/categories/**",
                                 "/api/combos",
                                 "/api/combo-campaigns",
+                                "/api/home/campaigns",
                                 "/orders/pre-order/items"
                         ).permitAll()
 

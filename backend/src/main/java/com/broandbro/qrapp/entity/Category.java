@@ -32,4 +32,19 @@ public class Category {
 
     @Column(name = "is_deleted", nullable = false)
     private Boolean isDeleted = false;
+
+    /** Optional premium food-photography image. Falls back to the client-side icon resolver when null. */
+    @Column(name = "image_url", columnDefinition = "TEXT")
+    private String imageUrl;
+
+    /** Storage key for {@link #imageUrl}, used for clean deletion/replacement. */
+    @Column(name = "image_key", columnDefinition = "TEXT")
+    private String imageKey;
+
+    @Column(name = "display_order", nullable = false)
+    private Integer displayOrder = 0;
+
+    /** TRUE when {@link #imageUrl} was produced via the admin-triggered AI generation flow. */
+    @Column(name = "ai_generated_image", nullable = false)
+    private Boolean aiGeneratedImage = false;
 }
