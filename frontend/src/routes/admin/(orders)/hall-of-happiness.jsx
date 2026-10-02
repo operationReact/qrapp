@@ -1,7 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { ConfettiIcon, PlusIcon } from "@phosphor-icons/react";
+import { ConfettiIcon, PlusIcon, ArrowLeftIcon, DotsThreeVerticalIcon, HeartIcon } from "@phosphor-icons/react";
 import { adminHallOfHappinessOptions } from "@/query/options/admin-hall-of-happiness";
 import { adminLocationsOptions } from "@/query/options/management";
 import { useLocation as useActiveLocation } from "@/context/LocationContext";
@@ -13,6 +13,12 @@ import {
   updateAdminHallPhoto,
 } from "@/services/hall-of-happiness-service";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { KPIStrip } from "@/components/admin/hall-of-happiness/KPIStrip";
 import { SearchToolbar } from "@/components/admin/hall-of-happiness/SearchToolbar";
@@ -28,6 +34,7 @@ export const Route = createFileRoute("/admin/(orders)/hall-of-happiness")({
 });
 
 function HallOfHappinessAdminPage() {
+  const navigate = useNavigate();
   const client = useQueryClient();
   const { user } = useAuth();
   const { activeLocationId } = useActiveLocation();
@@ -158,26 +165,74 @@ function HallOfHappinessAdminPage() {
 
   return (
     <div className="admin-control-center min-h-screen bg-[var(--cc-page)] pb-10 text-[var(--cc-text)]">
-      {/* Header */}
-      <div className="mx-auto max-w-[1400px] px-4 pt-6 pb-4 md:px-6 border-b border-[var(--cc-border)]">
-        <div className="flex items-start gap-3">
-          <div className="grid size-10 place-items-center rounded-xl bg-[var(--cc-primary-light)] text-[var(--cc-primary)]">
-            <ConfettiIcon size={25} weight="duotone" />
+      {/* Compact Header */}
+      <div className="sticky top-0 z-30 border-b border-[var(--cc-border)] bg-white">
+        <div className="mx-auto max-w-[1400px] px-4 py-3 md:px-6">
+          {/* Header Container - Responsive flex layout */}
+          <div className="flex items-center justify-between gap-3 md:gap-4">
+            {/* Left Section: Back Button + Icon + Title/Subtitle */}
+            <div className="flex items-center gap-2 md:gap-3 min-w-0 flex-1">
+              {/* Back Button */}
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                onClick={() => navigate({ to: "/admin" })}
+                aria-label="Go back to admin"
+                className="shrink-0 text-[var(--cc-text)] hover:bg-[var(--cc-primary-light)] rounded-lg"
+              >
+                <ArrowLeftIcon size={20} />
+              </Button>
+
+              {/* Icon - Heart in container */}
+              <div className="grid size-9 shrink-0 place-items-center rounded-lg bg-[var(--cc-primary-light)]">
+                <HeartIcon size={18} weight="fill" className="text-[var(--cc-primary)]" />
+              </div>
+
+              {/* Title & Subtitle */}
+              <div className="min-w-0 flex-1">
+                <h1 className="text-lg font-bold leading-tight text-[var(--cc-text)] truncate whitespace-nowrap md:text-xl">
+                  Hall of Happiness
+                </h1>
+                <p className="text-xs text-[var(--cc-secondary-text)] leading-tight hidden sm:block">
+                  Memories & celebrations
+                </p>
+              </div>
+            </div>
+
+            {/* Right Section: Add Memory Button + More Menu */}
+            <div className="flex items-center gap-2 md:gap-3 shrink-0">
+              {/* Add Memory Button - Pill shaped */}
+              <Button
+                onClick={() => setAddMemoryOpen(true)}
+                className="bg-[var(--cc-primary)] hover:bg-[var(--cc-primary-dark)] text-white font-medium rounded-full px-4 md:px-6 h-10 md:h-11 text-sm md:text-base whitespace-nowrap"
+              >
+                <PlusIcon size={16} weight="bold" />
+                <span className="hidden xs:inline ml-1">Add Memory</span>
+              </Button>
+
+              {/* More Menu */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label="More options"
+                    className="text-[var(--cc-text)] hover:bg-[var(--cc-primary-light)] rounded-lg"
+                  >
+                    <DotsThreeVerticalIcon size={18} />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>
+                    Scroll to Top
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate({ to: "/admin" })}>
+                    Back to Admin
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
-          <div className="flex-1">
-            <h1 className="text-2xl font-bold tracking-tight md:text-[28px]">❤️ Hall of Happiness</h1>
-            <p className="mt-1 text-sm text-[var(--cc-secondary-text)]">
-              Real moments from Bro & Bro
-            </p>
-          </div>
-          <Button
-            onClick={() => setAddMemoryOpen(true)}
-            className="bg-[var(--cc-primary)] hover:bg-[var(--cc-primary-dark)]"
-            size="sm"
-          >
-            <PlusIcon size={16} />
-            Add Memory
-          </Button>
         </div>
       </div>
 
