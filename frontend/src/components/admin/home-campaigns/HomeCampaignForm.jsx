@@ -4,6 +4,13 @@ import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import {
   Field,
@@ -388,16 +395,28 @@ export default function HomeCampaignForm({
         <Field>
           <FieldLabel htmlFor="hc-target-type">Tap action</FieldLabel>
           <FieldContent>
-            <select
-              id="hc-target-type"
+            <Select
               value={targetType}
-              onChange={(e) => setTargetType(e.target.value)}
-              className="h-9 w-full rounded-md border bg-background px-2 text-sm"
+              onValueChange={setTargetType}
             >
-              {TARGET_TYPE_OPTIONS.map((t) => (
-                <option key={t.value} value={t.value}>{t.label}</option>
-              ))}
-            </select>
+              <SelectTrigger
+                id="hc-target-type"
+                className="h-[50px] w-full max-w-full rounded-[13px] border-[#E6E0DB] bg-[#FFFCF9] px-3.5 text-[15px] font-medium text-[#77716D] shadow-none focus-visible:border-[#FF2438] focus-visible:ring-2 focus-visible:ring-[#FF2438]/20"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="max-w-[calc(100vw-1.5rem)] border-[#E6E0DB] bg-[#FFFCF9] p-1">
+                {TARGET_TYPE_OPTIONS.map((t) => (
+                  <SelectItem
+                    key={t.value}
+                    value={t.value}
+                    className="min-h-11 rounded-[10px] px-3 py-2.5 text-sm data-[selected]:font-semibold data-[selected]:text-primary data-[highlighted]:bg-primary/10 data-[highlighted]:text-primary"
+                  >
+                    {t.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </FieldContent>
         </Field>
         <Field>
