@@ -142,7 +142,13 @@ resource "aws_iam_role_policy" "media_s3" {
           "s3:GetObject",
           "s3:DeleteObject"
         ]
-        Resource = "${var.media_bucket_arn}/locations/menu-images/*"
+        Resource = [
+          "${var.media_bucket_arn}/locations/menu-images/*",
+          "${var.media_bucket_arn}/hall-of-happiness/*",
+          "${var.media_bucket_arn}/menu-items/*",
+          "${var.media_bucket_arn}/campaigns/*",
+          "${var.media_bucket_arn}/categories/*"
+        ]
       },
       {
         # EC2 pulls its own deploy JAR from S3 instead of receiving it via SCP.
@@ -159,7 +165,7 @@ resource "aws_iam_role_policy" "media_s3" {
         Resource = var.media_bucket_arn
         Condition = {
           StringLike = {
-            "s3:prefix" = ["locations/menu-images/*", "deploy/${var.environment}/*"]
+            "s3:prefix" = ["locations/menu-images/*", "hall-of-happiness/*", "menu-items/*", "campaigns/*", "categories/*", "deploy/${var.environment}/*"]
           }
         }
       }
