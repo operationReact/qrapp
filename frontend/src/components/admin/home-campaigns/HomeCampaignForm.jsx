@@ -79,6 +79,7 @@ export default function HomeCampaignForm({
   const [isActive, setIsActive] = useState(initialData?.isActive ?? true);
   const [startsAt, setStartsAt] = useState(toLocalDateTimeInput(initialData?.startsAt));
   const [endsAt, setEndsAt] = useState(toLocalDateTimeInput(initialData?.endsAt));
+  const [pendingImageFile, setPendingImageFile] = useState(null);
 
   const fileInputRef = useRef(null);
   const mobileFileInputRef = useRef(null);
@@ -88,10 +89,7 @@ export default function HomeCampaignForm({
       ? [...BASE_TYPE_OPTIONS, { value: type, label: `${type} (legacy, read-only)` }]
       : BASE_TYPE_OPTIONS;
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!title.trim()) return;
-    onSubmit({
+  const buildPayload = () => ({
       type,
       locationId: locationId === "" ? null : Number(locationId),
       badge: badge.trim() || null,
@@ -107,7 +105,21 @@ export default function HomeCampaignForm({
       isActive,
       startsAt: startsAt ? new Date(startsAt).toISOString() : null,
       endsAt: endsAt ? new Date(endsAt).toISOString() : null,
-    });
+  });
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!title.trim()) return;
+    onSubmit(buildPayload(), { imageFile: pendingImageFile });
+  };
+
+  const handleGenerateWithAI = () => {
+    if (!title.trim() || !onOpenAIModal) return;
+    if (initialData?.id) {
+      onOpenAIModal(initialData.id, initialData.title);
+      return;
+    }
+    onOpenAIModal({ data: buildPayload() });
   };
 
   return (
@@ -261,9 +273,50 @@ export default function HomeCampaignForm({
         </div>
       )}
       {!initialData?.id && (
-        <p className="rounded-lg border border-dashed p-3 text-xs text-muted-foreground">
-          Save the campaign first to unlock image upload.
-        </p>
+        <div className="space-y-2">
+          <Label>Campaign image</Label>
+          <div className="flex flex-wrap items-center gap-2 rounded-lg border border-dashed p-3">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              className="hidden"
+              onChange={(e) => {
+                setPendingImageFile(e.target.files?.[0] ?? null);
+                e.target.value = "";
+              }}
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => fileInputRef.current?.click()}
+              className="gap-1.5"
+            >
+              <UploadSimpleIcon className="size-4" />
+              Upload Image
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleGenerateWithAI}
+              disabled={!onOpenAIModal}
+              className="gap-1.5"
+            >
+              <SparkleIcon className="size-4" />
+              Generate with AI
+            </Button>
+            {pendingImageFile && (
+              <span className="text-xs text-muted-foreground">
+                {pendingImageFile.name}
+              </span>
+            )}
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Upload an image now, or save this campaign draft to generate a hero image with AI.
+          </p>
+        </div>
       )}
 
       <div className="grid grid-cols-2 gap-3">

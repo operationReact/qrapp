@@ -72,6 +72,8 @@ export default function HomeContentPage() {
   const [aiGenerationState, setAiGenerationState] = useState({
     campaignId: null,
     campaignName: null,
+    locationId: null,
+    currentImageUrl: null,
   });
 
   const { data: campaigns = [], isLoading } = useQuery(
@@ -82,11 +84,29 @@ export default function HomeContentPage() {
     queryClient.invalidateQueries({ queryKey: ["home-campaigns"] });
 
   const createMut = useMutation({
-    mutationFn: createHomeCampaign,
-    onSuccess: () => {
+    mutationFn: ({ data }) => createHomeCampaign(data),
+    onSuccess: (created, variables) => {
       invalidate();
       setCreateOpen(false);
-      toast.success("Campaign created");
+      if (variables.meta?.aiGeneration) {
+        setAiGenerationState({
+          campaignId: created.id,
+          campaignName: created.title,
+          locationId: created.locationId,
+          currentImageUrl: created.imageUrl,
+        });
+        setAiModalOpen(true);
+        toast.success("Campaign draft created");
+      } else {
+        if (variables.meta?.imageFile) {
+          uploadImageMut.mutate({
+            id: created.id,
+            file: variables.meta.imageFile,
+            options: { mobile: false },
+          });
+        }
+        toast.success("Campaign created");
+      }
     },
     onError: (e) => toast.error(e?.response?.data?.message || "Failed to create campaign"),
   });
@@ -153,8 +173,20 @@ export default function HomeContentPage() {
     statusMut.mutate({ id: campaign.id, isActive: active });
   };
 
-  const handleOpenAIModal = (campaignId, campaignName) => {
-    setAiGenerationState({ campaignId, campaignName });
+  const handleOpenAIModal = (campaignIdOrDraft, campaignName) => {
+    if (typeof campaignIdOrDraft === "object") {
+      createMut.mutate({
+        data: campaignIdOrDraft.data,
+        meta: { aiGeneration: true },
+      });
+      return;
+    }
+    setAiGenerationState({
+      campaignId: campaignIdOrDraft,
+      campaignName,
+      locationId: editTarget?.locationId ?? null,
+      currentImageUrl: editTarget?.imageUrl ?? null,
+    });
     setAiModalOpen(true);
   };
 
@@ -310,8 +342,9 @@ export default function HomeContentPage() {
             </DialogDescription>
           </DialogHeader>
           <HomeCampaignForm
-            onSubmit={(data) => createMut.mutate(data)}
+            onSubmit={(data, meta) => createMut.mutate({ data, meta })}
             submitting={createMut.isPending}
+            onOpenAIModal={handleOpenAIModal}
           />
         </DialogContent>
       </Dialog>
@@ -375,13 +408,13 @@ export default function HomeContentPage() {
       </Dialog>
 
       {/* AI Image Generation Modal */}
-      {editTarget && (
+      {aiModalOpen && (
         <CampaignImageGenerationModal
           open={aiModalOpen}
           campaignId={aiGenerationState.campaignId}
           campaignName={aiGenerationState.campaignName}
-          locationId={editTarget.locationId}
-          currentImageUrl={editTarget.imageUrl}
+          locationId={aiGenerationState.locationId}
+          currentImageUrl={aiGenerationState.currentImageUrl}
           onClose={() => setAiModalOpen(false)}
           onImageApplied={handleAIImageApplied}
         />

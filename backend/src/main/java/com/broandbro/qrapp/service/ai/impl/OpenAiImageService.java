@@ -53,8 +53,25 @@ public class OpenAiImageService implements ImageGenerationService {
                                     String description, String additionalPrompt) {
 
         String prompt = promptBuilder.buildFoodImagePrompt(menuItemName, categoryName, isVeg, description, additionalPrompt);
+        return generateImageInternal(prompt, menuItemName, props.getImageSize());
+    }
+
+    @Override
+    @Retryable(
+            retryFor = {OpenAiImageGenerationException.class},
+            maxAttemptsExpression = "#{@openAiProperties.maxRetries}",
+            backoff = @Backoff(delay = 2000, multiplier = 2.0, maxDelay = 30000)
+    )
+    public byte[] generateImageFromPrompt(String prompt, String size) {
+        if (prompt == null || prompt.isBlank()) {
+            throw new OpenAiImageGenerationException("Image prompt must not be blank");
+        }
+        return generateImageInternal(prompt, "custom image", size);
+    }
+
+    private byte[] generateImageInternal(String prompt, String subject, String size) {
         log.info("[OpenAI] Starting image generation for '{}' (category={}) | model={} | prompt={}",
-                menuItemName, categoryName, props.getImageModel(), prompt);
+                subject, "custom", props.getImageModel(), prompt);
 
         // gpt-image-1 always returns b64_json and does NOT accept response_format.
         // dall-e-2 / dall-e-3 require response_format="b64_json" to get base64 back.
@@ -64,13 +81,13 @@ public class OpenAiImageService implements ImageGenerationService {
                 .model(props.getImageModel())
                 .prompt(prompt)
                 .n(1)
-                .size(props.getImageSize())                          // 1024x1024
+                .size(size == null || size.isBlank() ? props.getImageSize() : size)
                 .quality(isGptImage ? props.getImageQuality() : null) // "low" for gpt-image-1
                 .responseFormat(isGptImage ? null : "b64_json")
                 .build();
 
         log.info("[OpenAI] Request → model={} quality={} size={}",
-                props.getImageModel(), props.getImageQuality(), props.getImageSize());
+                props.getImageModel(), props.getImageQuality(), request.getSize());
 
         Instant start = Instant.now();
 
@@ -96,27 +113,27 @@ public class OpenAiImageService implements ImageGenerationService {
                     .block(Duration.ofSeconds(props.getReadTimeoutSeconds()));
 
             long latencyMs = Duration.between(start, Instant.now()).toMillis();
-            log.info("[OpenAI] Image generated for '{}' in {}ms", menuItemName, latencyMs);
+            log.info("[OpenAI] Image generated for '{}' in {}ms", subject, latencyMs);
 
             if (response != null && response.getUsage() != null) {
                 OpenAiImageResponse.Usage u = response.getUsage();
                 log.info("[OpenAI] Tokens used – total={} (input={} output={}) for '{}'",
-                        u.getTotalTokens(), u.getInputTokens(), u.getOutputTokens(), menuItemName);
+                        u.getTotalTokens(), u.getInputTokens(), u.getOutputTokens(), subject);
             }
 
-            return decodeBase64Image(response, menuItemName);
+            return decodeBase64Image(response, subject);
 
         } catch (OpenAiImageGenerationException e) {
             throw e;
         } catch (WebClientResponseException e) {
             if (e.getStatusCode() == HttpStatus.TOO_MANY_REQUESTS) {
-                log.warn("[OpenAI] Rate limit hit for '{}'. Will retry.", menuItemName);
+                log.warn("[OpenAI] Rate limit hit for '{}'. Will retry.", subject);
                 throw new OpenAiImageGenerationException("OpenAI rate limit exceeded", e);
             }
-            log.error("[OpenAI] HTTP error for '{}': {}", menuItemName, e.getMessage());
+            log.error("[OpenAI] HTTP error for '{}': {}", subject, e.getMessage());
             throw new OpenAiImageGenerationException("OpenAI HTTP error: " + e.getMessage(), e);
         } catch (Exception e) {
-            log.error("[OpenAI] Unexpected error for '{}': {}", menuItemName, e.getMessage(), e);
+            log.error("[OpenAI] Unexpected error for '{}': {}", subject, e.getMessage(), e);
             throw new OpenAiImageGenerationException("Unexpected error calling OpenAI: " + e.getMessage(), e);
         }
     }

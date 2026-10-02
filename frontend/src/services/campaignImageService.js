@@ -1,4 +1,4 @@
-import axios from 'axios';
+import { apiClient } from './index';
 
 /**
  * Service for AI-generated campaign hero billboard images.
@@ -16,20 +16,28 @@ const API_BASE = '/api/admin/home-campaigns';
  * @param {string} creativeDirection - Optional creative direction hint
  * @returns {Promise<{imageUrls: string[], imagePrompt: string}>}
  */
-export async function generateCampaignImagePreview(campaignId, locationId, creativeDirection = null) {
+export async function generateCampaignImagePreview(
+  campaignId,
+  locationId,
+  creativeDirection = null,
+  previousGeneratedUrls = [],
+) {
   const url = `${API_BASE}/${campaignId}/generate-image`;
-  const params = new URLSearchParams({ locationId });
+  const params = locationId ? { locationId } : {};
 
-  const body = creativeDirection ? { creativeDirection } : {};
+  const body = {
+    ...(creativeDirection ? { creativeDirection } : {}),
+    ...(previousGeneratedUrls.length > 0 ? { previousGeneratedUrls } : {}),
+  };
 
-  const response = await axios.post(url, body, {
-    params: Object.fromEntries(params),
+  const response = await apiClient.post(url, body, {
+    params,
     timeout: 60000, // Allow up to 60 seconds for AI image generation
   });
 
   return {
-    imageUrls: [response.data.imageUrl],
-    imagePrompt: response.data.prompt,
+    imageUrls: response.data.imageUrls || [],
+    imagePrompt: response.data.imagePrompt,
   };
 }
 
@@ -46,17 +54,15 @@ export async function generateCampaignImagePreview(campaignId, locationId, creat
  */
 export async function applyCampaignImage(campaignId, locationId, imageUrl, previousGeneratedUrl = null) {
   const url = `${API_BASE}/${campaignId}/apply-generated-image`;
-  const params = new URLSearchParams({ locationId });
+  const params = locationId ? { locationId } : {};
 
   const body = {
     imageUrl,
+    allGeneratedUrls: [imageUrl, ...(previousGeneratedUrl ? [previousGeneratedUrl] : [])],
   };
-  if (previousGeneratedUrl) {
-    body.previousGeneratedUrl = previousGeneratedUrl;
-  }
 
-  const response = await axios.post(url, body, {
-    params: Object.fromEntries(params),
+  const response = await apiClient.post(url, body, {
+    params,
   });
 
   return response.data;
