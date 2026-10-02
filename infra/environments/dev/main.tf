@@ -147,7 +147,9 @@ resource "aws_s3_bucket_policy" "media" {
         Resource = [
           "${aws_s3_bucket.media.arn}/menu-items/*",
           "${aws_s3_bucket.media.arn}/locations/menu-images/*",
-          "${aws_s3_bucket.media.arn}/hall-of-happiness/*"
+          "${aws_s3_bucket.media.arn}/hall-of-happiness/*",
+          "${aws_s3_bucket.media.arn}/campaigns/*",
+          "${aws_s3_bucket.media.arn}/categories/*"
         ]
       },
       {

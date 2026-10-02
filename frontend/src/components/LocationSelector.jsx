@@ -82,7 +82,7 @@ export function LocationSelector({ className = "", home = false, header = false,
             : <MapPin className={`size-[17px] shrink-0 ${overlay ? "text-white" : "text-primary"}`} aria-hidden="true" />}
           <span className="min-w-0 flex-1 leading-tight">
             <span className={`block font-semibold uppercase tracking-[0.06em] ${overlay ? "text-white/70" : "text-muted-foreground"} ${header || overlay ? "text-[9px]" : "text-[10px]"}`}>
-              {header || overlay ? "Deliver to" : "Delivering to"}
+              {header || overlay ? "Ordering From" : "Ordering from"}
             </span>
             <span className={`block truncate font-bold text-[13px] ${overlay ? "text-white drop-shadow-sm" : "text-foreground"}`}>
               {locationName}

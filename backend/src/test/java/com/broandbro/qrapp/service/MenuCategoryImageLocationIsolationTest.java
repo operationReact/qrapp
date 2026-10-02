@@ -49,7 +49,8 @@ class MenuCategoryImageLocationIsolationTest {
                 categories, mock(MenuRepository.class), locations, mock(LocationAccessService.class),
                 mock(com.broandbro.qrapp.storage.ImageStorageService.class),
                 mock(com.broandbro.qrapp.service.ai.ImageGenerationService.class),
-                mock(com.broandbro.qrapp.prompt.FoodImagePromptBuilder.class));
+                mock(com.broandbro.qrapp.prompt.FoodImagePromptBuilder.class),
+                mock(com.broandbro.qrapp.prompt.CategoryImagePromptBuilder.class));
 
         assertThat(service.getAllCategories(1L)).extracting(Category::getLocation)
                 .containsOnly(pragati);
@@ -70,7 +71,8 @@ class MenuCategoryImageLocationIsolationTest {
                 categories, mock(MenuRepository.class), locations, mock(LocationAccessService.class),
                 mock(com.broandbro.qrapp.storage.ImageStorageService.class),
                 mock(com.broandbro.qrapp.service.ai.ImageGenerationService.class),
-                mock(com.broandbro.qrapp.prompt.FoodImagePromptBuilder.class));
+                mock(com.broandbro.qrapp.prompt.FoodImagePromptBuilder.class),
+                mock(com.broandbro.qrapp.prompt.CategoryImagePromptBuilder.class));
 
         assertThat(service.getCategoryById(2L, 10L)).isEmpty();
     }
