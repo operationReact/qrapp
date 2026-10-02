@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   CheckCircleIcon,
   XCircleIcon,
@@ -7,6 +7,8 @@ import {
   EyeIcon,
   PencilSimpleIcon,
   WarningCircleIcon,
+  ImageIcon,
+  XIcon,
 } from "@phosphor-icons/react";
 import {
   Dialog,
@@ -39,6 +41,11 @@ export function MemoryDetailView({ open, onOpenChange, submission, onAction, onE
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState(0);
   const [error, setError] = useState("");
   const [imageFailed, setImageFailed] = useState(false);
+  
+  // Image replacement state
+  const [newImageFile, setNewImageFile] = useState(null);
+  const [newImagePreview, setNewImagePreview] = useState(null);
+  const fileInputRef = useRef(null);
 
   // Handle responsive behavior
   useEffect(() => {
@@ -77,6 +84,7 @@ export function MemoryDetailView({ open, onOpenChange, submission, onAction, onE
 
   // Track dirty state (unsaved changes)
   const isDirty =
+    newImageFile !== null ||
     formState.caption !== (photo.caption || "") ||
     formState.order !== (photo.displayOrder ?? 0) ||
     (canEditLocation && formState.locationId !== (photo.locationId || "")) ||
@@ -91,8 +99,40 @@ export function MemoryDetailView({ open, onOpenChange, submission, onAction, onE
     onAction({ id: photo.id, name: actionName });
   };
 
-  const handleEdit = () => {
-    if (!isDirty) return;
+  const handleImageSelect = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      setError("Use a JPEG, PNG, or WEBP photo.");
+      return;
+    }
+
+    // Validate file size
+    if (file.size > 5 * 1024 * 1024) {
+      setError("Photo must be up to 5 MB.");
+      return;
+    }
+
+    setNewImageFile(file);
+    setNewImagePreview(URL.createObjectURL(file));
+    setError("");
+  };
+
+  const clearImageSelection = () => {
+    setNewImageFile(null);
+    if (newImagePreview) {
+      URL.revokeObjectURL(newImagePreview);
+    }
+    setNewImagePreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const handleEdit = async () => {
+    if (!isDirty && !newImageFile) return;
     setError("");
     
     const payload = {
@@ -113,7 +153,27 @@ export function MemoryDetailView({ open, onOpenChange, submission, onAction, onE
       payload.eventLabel = formState.eventLabel;
     }
 
-    onEdit({ id: photo.id, payload });
+    // Handle image replacement
+    if (newImageFile) {
+      try {
+        const reader = new FileReader();
+        reader.onload = () => {
+          // Extract base64 without data URL prefix
+          const base64 = reader.result.split(",")[1];
+          payload.imageBase64 = base64;
+          payload.fileName = newImageFile.name;
+          onEdit({ id: photo.id, payload });
+        };
+        reader.onerror = () => {
+          setError("Failed to read image file.");
+        };
+        reader.readAsDataURL(newImageFile);
+      } catch (err) {
+        setError("Failed to process image.");
+      }
+    } else {
+      onEdit({ id: photo.id, payload });
+    }
   };
 
   const currentLocation = locations.find(loc => String(loc.id) === String(formState.locationId));
@@ -150,8 +210,24 @@ export function MemoryDetailView({ open, onOpenChange, submission, onAction, onE
         {/* MEDIA SECTION */}
         <div className="space-y-3">
           <h3 className="text-sm font-semibold text-[var(--cc-text)]">Media</h3>
+           
+          {/* Image Display or New Image Preview */}
           <div className="relative aspect-video bg-[var(--cc-page)] rounded-lg overflow-hidden">
-            {imageFailed ? (
+            {newImagePreview ? (
+              <>
+                <img
+                  src={newImagePreview}
+                  alt="New image preview"
+                  className="h-full w-full object-cover"
+                />
+                <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+                  <div className="text-center text-white">
+                    <p className="text-sm font-semibold">New Image</p>
+                    <p className="text-xs mt-1 opacity-90">Not yet saved</p>
+                  </div>
+                </div>
+              </>
+            ) : imageFailed ? (
               <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
                 Image unavailable
               </div>
@@ -176,6 +252,44 @@ export function MemoryDetailView({ open, onOpenChange, submission, onAction, onE
             )}
           </div>
 
+          {/* Replace Image / Clear New Image Buttons */}
+          <div className="flex gap-2">
+            {!newImagePreview && curated && (
+              <>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  onChange={handleImageSelect}
+                  className="hidden"
+                  disabled={actionPending}
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={actionPending}
+                  className="flex-1"
+                >
+                  <ImageIcon size={16} className="mr-2" />
+                  Replace Image
+                </Button>
+              </>
+            )}
+            {newImagePreview && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={clearImageSelection}
+                disabled={actionPending}
+                className="flex-1"
+              >
+                <XIcon size={16} className="mr-2" />
+                Clear New Image
+              </Button>
+            )}
+          </div>
+
           {/* Photo Navigation */}
           {submission.photos.length > 1 && (
             <div className="flex gap-2 overflow-x-auto pb-2">
@@ -185,6 +299,7 @@ export function MemoryDetailView({ open, onOpenChange, submission, onAction, onE
                   onClick={() => {
                     setSelectedPhotoIndex(idx);
                     setError("");
+                    clearImageSelection();
                   }}
                   className={`flex-shrink-0 h-16 w-16 rounded-lg overflow-hidden border-2 transition ${
                     idx === selectedPhotoIndex

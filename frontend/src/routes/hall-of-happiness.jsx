@@ -6,6 +6,7 @@ import { hallOfHappinessOptions } from "@/query/options/hall-of-happiness";
 import { useAuth } from "@/context/AuthContext";
 import { useLocation as useActiveLocation } from "@/context/LocationContext";
 import { Skeleton } from "@/components/ui/skeleton";
+import { CustomerMemoryDetailView } from "@/components/hall-of-happiness/CustomerMemoryDetailView";
 
 export const Route = createFileRoute("/hall-of-happiness")({
   component: HallOfHappinessPage,
@@ -19,6 +20,9 @@ const SOURCE_BADGES = {
 function HallOfHappinessPage() {
   const { user } = useAuth();
   const { activeLocationId } = useActiveLocation();
+  const [selectedMemory, setSelectedMemory] = useState(null);
+  const [detailOpen, setDetailOpen] = useState(false);
+
   const query = useQuery(hallOfHappinessOptions({
     size: 24,
     locationId: activeLocationId,
@@ -26,60 +30,81 @@ function HallOfHappinessPage() {
   }));
   const photos = query.data?.content || [];
 
+  const handleMemoryClick = (photo) => {
+    setSelectedMemory(photo);
+    setDetailOpen(true);
+  };
+
   return (
-    <main className="container-premium py-6 md:py-10">
-      <Link to="/" className="mb-6 inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground">
-        <ArrowLeftIcon size={18} /> Back to home
-      </Link>
-      <div className="mb-7">
-        <p className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-rose-600">
-          <HeartIcon size={13} weight="fill" /> Memories we made together
-        </p>
-        <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">
-          Bro &amp; Bro{" "}
-          <span className="bg-gradient-to-r from-rose-600 to-amber-500 bg-clip-text text-transparent">Hall of Happiness</span>
-        </h1>
-        <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-          A collection of real moments and celebrations brought to life by Bro &amp; Bro.
-        </p>
-      </div>
-      {query.isError && (
-        <div className="mb-4 flex items-center gap-2 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-          <WarningCircleIcon size={20} weight="duotone" /> Happiness memories are temporarily unavailable.
+    <>
+      <main className="container-premium py-6 md:py-10">
+        <Link to="/" className="mb-6 inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground">
+          <ArrowLeftIcon size={18} /> Back to home
+        </Link>
+        <div className="mb-7">
+          <p className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-rose-600">
+            <HeartIcon size={13} weight="fill" /> Memories we made together
+          </p>
+          <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">
+            Bro &amp; Bro{" "}
+            <span className="bg-gradient-to-r from-rose-600 to-amber-500 bg-clip-text text-transparent">Hall of Happiness</span>
+          </h1>
+          <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
+            A collection of real moments and celebrations brought to life by Bro &amp; Bro.
+          </p>
         </div>
-      )}
-      {query.isLoading && (
-        <div className="mb-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {Array.from({ length: 8 }).map((_, index) => (
-            <Skeleton key={index} className="aspect-[4/5] rounded-[24px]" />
-          ))}
-        </div>
-      )}
-      {!query.isLoading && photos.length > 0 && (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {photos.map((photo) => (
-            <GalleryPhoto key={photo.id} photo={photo} />
-          ))}
-        </div>
-      )}
-      {!query.isLoading && photos.length === 0 && (
-        <div className="rounded-[24px] border border-dashed border-border bg-muted/30 p-12 text-center">
-          <ConfettiIcon size={34} weight="duotone" className="mx-auto mb-3 text-rose-400" />
-          <p className="font-medium">Hall of Happiness</p>
-          <p className="mt-1 text-sm text-muted-foreground">Memories from our Bro &amp; Bro celebrations will appear here.</p>
-        </div>
-      )}
-    </main>
+        {query.isError && (
+          <div className="mb-4 flex items-center gap-2 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+            <WarningCircleIcon size={20} weight="duotone" /> Happiness memories are temporarily unavailable.
+          </div>
+        )}
+        {query.isLoading && (
+          <div className="mb-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {Array.from({ length: 8 }).map((_, index) => (
+              <Skeleton key={index} className="aspect-[4/5] rounded-[24px]" />
+            ))}
+          </div>
+        )}
+        {!query.isLoading && photos.length > 0 && (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {photos.map((photo) => (
+              <GalleryPhoto 
+                key={photo.id} 
+                photo={photo}
+                onClick={() => handleMemoryClick(photo)}
+              />
+            ))}
+          </div>
+        )}
+        {!query.isLoading && photos.length === 0 && (
+          <div className="rounded-[24px] border border-dashed border-border bg-muted/30 p-12 text-center">
+            <ConfettiIcon size={34} weight="duotone" className="mx-auto mb-3 text-rose-400" />
+            <p className="font-medium">Hall of Happiness</p>
+            <p className="mt-1 text-sm text-muted-foreground">Memories from our Bro &amp; Bro celebrations will appear here.</p>
+          </div>
+        )}
+      </main>
+
+      {/* Memory Detail View */}
+      <CustomerMemoryDetailView 
+        open={detailOpen} 
+        onOpenChange={setDetailOpen}
+        memory={selectedMemory}
+      />
+    </>
   );
 }
 
-function GalleryPhoto({ photo }) {
+function GalleryPhoto({ photo, onClick }) {
   const [failed, setFailed] = useState(false);
   const title = photo.caption || photo.description || photo.eventLabel || photo.eventType || "A happy celebration";
   const badge = SOURCE_BADGES[photo.sourceType];
   const Icon = badge?.icon;
   return (
-    <article className="group overflow-hidden rounded-[24px] bg-neutral-900 shadow-sm">
+    <article 
+      className="group overflow-hidden rounded-[24px] bg-neutral-900 shadow-sm cursor-pointer transition hover:shadow-md"
+      onClick={onClick}
+    >
       <div className="relative aspect-[4/5]">
         {failed ? (
           <div className="flex h-full items-center justify-center bg-muted p-4 text-center text-xs text-muted-foreground">

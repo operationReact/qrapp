@@ -333,9 +333,75 @@ public class HallOfHappinessService {
                 locationAccessService.requireLocationAccess(adminUser(adminUsername), newLocation.getId());
                 photo.setLocation(newLocation);
             }
+            // Handle image replacement (base64 encoded data)
+            if (request.imageBase64() != null && !request.imageBase64().isEmpty()) {
+                try {
+                    // Decode base64 image
+                    byte[] imageData = java.util.Base64.getDecoder().decode(request.imageBase64());
+                    
+                    // Validate file type and size
+                    if (imageData.length > MAX_FILE_SIZE) {
+                        throw new IllegalArgumentException("image_too_large");
+                    }
+                    validateImageType(imageData);
+                    
+                    // Delete old images
+                    try {
+                        imageStorageService.deleteImageByUrl(photo.getImageUrl());
+                        imageStorageService.deleteImageByUrl(photo.getThumbnailUrl());
+                    } catch (Exception ex) {
+                        // Log but don't fail the operation
+                        System.err.println("Failed to delete old images: " + ex.getMessage());
+                    }
+                    
+                    // Generate and upload new images
+                    String folder = "hall-of-happiness/" + photo.getId();
+                    byte[] image = optimize(imageData, 1920, 0.85);
+                    byte[] thumbnail = optimize(imageData, 720, 0.80);
+                    
+                    String imageUrl = imageStorageService.uploadImage(image, folder + "/original", "image/jpeg");
+                    String thumbnailUrl = imageStorageService.uploadImage(thumbnail, folder + "/thumbnail", "image/jpeg");
+                    
+                    photo.setImageUrl(imageUrl);
+                    photo.setThumbnailUrl(thumbnailUrl);
+                } catch (IllegalArgumentException ex) {
+                    throw ex;
+                } catch (Exception ex) {
+                    throw new IllegalArgumentException("image_processing_failed", ex);
+                }
+            }
         }
         photo.setModeratedBy(adminUsername);
         return HallOfHappinessPhotoResponse.forAdmin(photoRepository.save(photo));
+    }
+    
+    private void validateImageType(byte[] imageData) {
+        // Check magic bytes for JPEG, PNG, WEBP
+        if (imageData.length < 4) {
+            throw new IllegalArgumentException("unsupported_image_type");
+        }
+        
+        // JPEG: FF D8 FF
+        if (imageData[0] == (byte) 0xFF && imageData[1] == (byte) 0xD8 && imageData[2] == (byte) 0xFF) {
+            return;
+        }
+        // PNG: 89 50 4E 47
+        if (imageData[0] == (byte) 0x89 && imageData[1] == (byte) 0x50 && 
+            imageData[2] == (byte) 0x4E && imageData[3] == (byte) 0x47) {
+            return;
+        }
+        // WEBP: RIFF ... WEBP
+        if (imageData[0] == (byte) 0x52 && imageData[1] == (byte) 0x49 && 
+            imageData[2] == (byte) 0x46 && imageData[3] == (byte) 0x46) {
+            if (imageData.length >= 12) {
+                if (imageData[8] == (byte) 0x57 && imageData[9] == (byte) 0x45 &&
+                    imageData[10] == (byte) 0x42 && imageData[11] == (byte) 0x50) {
+                    return;
+                }
+            }
+        }
+        
+        throw new IllegalArgumentException("unsupported_image_type");
     }
 
     @CacheEvict(cacheNames = "hallOfHappiness", allEntries = true)
