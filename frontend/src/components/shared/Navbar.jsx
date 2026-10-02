@@ -34,7 +34,7 @@ import { LocationSelector } from "@/components/LocationSelector";
 import PropTypes from "prop-types";
 import { cn } from "@/lib/utils";
 
-export default function Navbar({ homeHeader = false }) {
+export default function Navbar({ homeHeader = false, immersive = false }) {
   const { cart, openDrawer, closeDrawer } = useCart();
   const { user, setUser, isAdmin } = useAuth();
   const navigate = useNavigate();
@@ -96,9 +96,12 @@ export default function Navbar({ homeHeader = false }) {
 
   return (
     <header className={cn(
-      "sticky top-0 z-40 border-b border-border",
+      immersive
+        ? "lg:sticky lg:top-0 lg:z-40 lg:border-b lg:border-border"
+        : "sticky top-0 z-40 border-b border-border",
       homeHeader ? "bg-background" : "bg-background/95 backdrop-blur",
     )}>
+      {!immersive && (
       <div className={`container-premium flex items-center justify-between gap-2 py-1.5 md:gap-3 md:py-3 lg:hidden ${homeHeader ? "home-navbar" : ""}`}>
         {homeHeader ? (
           <>
@@ -175,6 +178,7 @@ export default function Navbar({ homeHeader = false }) {
           </>
         )}
       </div>
+      )}
 
       <div className="hidden lg:block">
         <div className="container-premium flex min-h-[72px] items-center justify-between gap-3 py-4">
@@ -339,4 +343,5 @@ export default function Navbar({ homeHeader = false }) {
 
 Navbar.propTypes = {
   homeHeader: PropTypes.bool,
+  immersive: PropTypes.bool,
 };

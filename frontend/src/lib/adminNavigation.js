@@ -1,6 +1,6 @@
 import {
   BowlFoodIcon, CalendarCheckIcon, ChartBarIcon, ChartLineUpIcon, CubeIcon,
-  ForkKnifeIcon, KeyIcon, LightningIcon, ListPlusIcon, MagicWandIcon,
+  ForkKnifeIcon, ImageIcon, KeyIcon, LightningIcon, ListPlusIcon, MagicWandIcon,
   QueueIcon, ShieldCheckIcon, SlidersIcon, SparkleIcon, TerminalWindowIcon,
   TicketIcon, TrophyIcon, UsersThreeIcon, UserCircleIcon, ShoppingCartSimpleIcon,
   StorefrontIcon,
@@ -18,6 +18,7 @@ export const ADMIN_NAVIGATION = [
     { to: "/admin/combos", label: "Combos", icon: CubeIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN] },
     { to: "/admin/classification", label: "Recommendation Setup", icon: ForkKnifeIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN] },
     { to: "/admin/combo-campaigns", label: "BYOC Campaigns", icon: SparkleIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN] },
+    { to: "/admin/home-content", label: "Home Content", icon: ImageIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN] },
   ] },
   { section: "Operations", items: [
     { to: "/admin/vendors", label: "Vendor Management", icon: StorefrontIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN, ROLE.MANAGER] },

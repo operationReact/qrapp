@@ -146,7 +146,8 @@ resource "aws_s3_bucket_policy" "media" {
         Action    = ["s3:GetObject"]
         Resource = [
           "${aws_s3_bucket.media.arn}/menu-items/*",
-          "${aws_s3_bucket.media.arn}/locations/menu-images/*"
+          "${aws_s3_bucket.media.arn}/locations/menu-images/*",
+          "${aws_s3_bucket.media.arn}/hall-of-happiness/*"
         ]
       },
       {

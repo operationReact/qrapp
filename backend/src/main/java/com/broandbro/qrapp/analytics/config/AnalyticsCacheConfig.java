@@ -56,7 +56,7 @@ public class AnalyticsCacheConfig {
     public CacheManager cacheManager() {
         CaffeineCacheManager manager = new CaffeineCacheManager(
                 "walletBalance", "menu", "menuRecommended", "categories", "hallOfHappiness",
-                "combos", "signatureProducts");  // Combo & Signature Product caches
+                "combos", "signatureProducts", "homeCampaigns");  // Combo & Signature Product caches
         manager.setCaffeine(Caffeine.newBuilder()
                 .maximumSize(500)
                 .expireAfterWrite(60, TimeUnit.SECONDS)
@@ -65,6 +65,9 @@ public class AnalyticsCacheConfig {
         manager.registerCustomCache("menuRecommended", buildCache(15));
         manager.registerCustomCache("categories", buildCache(600));
         manager.registerCustomCache("hallOfHappiness", buildCache(120));
+        // Short TTL so scheduled campaign start/end windows still appear/disappear
+        // automatically even if an admin mutation is somehow missed by @CacheEvict.
+        manager.registerCustomCache("homeCampaigns", buildCache(30));
         return manager;
     }
 

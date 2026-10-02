@@ -7,12 +7,15 @@ import com.broandbro.qrapp.service.UserService;
 import com.broandbro.qrapp.repository.MenuRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import jakarta.validation.Valid;
 import java.util.List;
+import java.util.Map;
 import org.springframework.security.core.Authentication;
 
 @RestController
@@ -88,6 +91,78 @@ public class CategoryController {
         }
         categoryService.deleteCategory(locationId, id, currentUser(authentication));
         return ResponseEntity.noContent().build();
+    }
+
+    @PatchMapping("/{id}/order")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPERUSER', 'SUPER_ADMIN', 'MANAGER')")
+    public ResponseEntity<Category> reorderCategory(
+            @PathVariable Long id,
+            @RequestParam Long locationId,
+            @RequestBody Map<String, Integer> body,
+            Authentication authentication) {
+        Integer displayOrder = body.get("displayOrder");
+        if (displayOrder == null) {
+            return ResponseEntity.badRequest().build();
+        }
+        Category updated = categoryService.reorderCategory(locationId, id, displayOrder, currentUser(authentication));
+        return ResponseEntity.ok(updated);
+    }
+
+    // ── Category image management (manual upload + admin-accepted AI) ──────────
+
+    @PostMapping(value = "/{id}/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPERUSER', 'SUPER_ADMIN', 'MANAGER')")
+    public ResponseEntity<Category> uploadImage(
+            @PathVariable Long id,
+            @RequestParam Long locationId,
+            @RequestPart("image") MultipartFile image,
+            Authentication authentication) {
+        Category updated = categoryService.uploadCategoryImage(locationId, id, image, currentUser(authentication));
+        return ResponseEntity.ok(updated);
+    }
+
+    @DeleteMapping("/{id}/image")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPERUSER', 'SUPER_ADMIN', 'MANAGER')")
+    public ResponseEntity<Category> removeImage(
+            @PathVariable Long id,
+            @RequestParam Long locationId,
+            Authentication authentication) {
+        Category updated = categoryService.removeCategoryImage(locationId, id, currentUser(authentication));
+        return ResponseEntity.ok(updated);
+    }
+
+    /**
+     * Synchronously generates a single AI image option for the admin to preview.
+     * Nothing is persisted until {@code POST /{id}/apply-generated-image} is called.
+     */
+    @PostMapping("/{id}/generate-image")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPERUSER', 'SUPER_ADMIN', 'MANAGER')")
+    public ResponseEntity<CategoryService.CategoryImageOption> generateImage(
+            @PathVariable Long id,
+            @RequestParam Long locationId,
+            @RequestBody(required = false) Map<String, String> body,
+            Authentication authentication) {
+        String additionalPrompt = body != null ? body.get("additionalPrompt") : null;
+        CategoryService.CategoryImageOption option =
+                categoryService.generateImageOption(locationId, id, additionalPrompt, currentUser(authentication));
+        return ResponseEntity.ok(option);
+    }
+
+    @PostMapping("/{id}/apply-generated-image")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPERUSER', 'SUPER_ADMIN', 'MANAGER')")
+    public ResponseEntity<Category> applyGeneratedImage(
+            @PathVariable Long id,
+            @RequestParam Long locationId,
+            @RequestBody Map<String, String> body,
+            Authentication authentication) {
+        String imageUrl = body.get("imageUrl");
+        String previousGeneratedUrl = body.get("previousGeneratedUrl");
+        if (imageUrl == null || imageUrl.isBlank()) {
+            return ResponseEntity.badRequest().build();
+        }
+        Category updated = categoryService.applyGeneratedImage(
+                locationId, id, imageUrl, previousGeneratedUrl, currentUser(authentication));
+        return ResponseEntity.ok(updated);
     }
 
     private com.broandbro.qrapp.entity.User currentUser(Authentication authentication) {

@@ -23,3 +23,33 @@ export const getDeletedCategories = (locationId) =>
 
 export const restoreCategory = (id, locationId) =>
   apiClient.patch(`/admin/categories/${id}/restore`, null, { params: { locationId } }).then((r) => r.data);
+
+export const reorderCategory = (id, displayOrder, locationId) =>
+  apiClient.patch(`/categories/${id}/order`, { displayOrder }, { params: { locationId } }).then((r) => r.data);
+
+export const uploadCategoryImage = (id, file, locationId) => {
+  const fd = new FormData();
+  fd.append("image", file);
+  return apiClient
+    .post(`/categories/${id}/image`, fd, { params: { locationId } })
+    .then((r) => r.data);
+};
+
+export const removeCategoryImage = (id, locationId) =>
+  apiClient.delete(`/categories/${id}/image`, { params: { locationId } }).then((r) => r.data);
+
+/** Synchronously generates ONE AI image option for admin preview. Nothing is persisted yet. */
+export const generateCategoryImage = (id, locationId, additionalPrompt) =>
+  apiClient
+    .post(`/categories/${id}/generate-image`, additionalPrompt ? { additionalPrompt } : {}, { params: { locationId } })
+    .then((r) => r.data);
+
+/** Persists a previously generated preview image as the category's image. */
+export const applyGeneratedCategoryImage = (id, locationId, imageUrl, previousGeneratedUrl) =>
+  apiClient
+    .post(
+      `/categories/${id}/apply-generated-image`,
+      { imageUrl, previousGeneratedUrl },
+      { params: { locationId } },
+    )
+    .then((r) => r.data);

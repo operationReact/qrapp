@@ -1,0 +1,435 @@
+import { useRef, useState } from "react";
+import PropTypes from "prop-types";
+import { useQuery } from "@tanstack/react-query";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import {
+  Field,
+  FieldContent,
+  FieldDescription,
+  FieldLabel,
+} from "@/components/ui/field";
+import { ImageIcon, TrashIcon, UploadSimpleIcon } from "@phosphor-icons/react";
+import { useAuth } from "@/context/AuthContext";
+import { useLocation as useActiveLocation } from "@/context/LocationContext";
+import { canSelectAllLocations } from "@/lib/roles";
+import { adminLocationsOptions } from "@/query/options/management";
+import { categoriesOptions } from "@/query/options/menu";
+
+const BASE_TYPE_OPTIONS = [{ value: "HERO", label: "Hero billboard" }];
+
+const TARGET_TYPE_OPTIONS = [
+  { value: "NONE", label: "No action" },
+  { value: "CATEGORY", label: "Jump to category" },
+  { value: "COMBO", label: "Open Combos / BYOC" },
+  { value: "PARTY_ORDER", label: "Open Party Order form" },
+  { value: "EXTERNAL", label: "Open external link" },
+  { value: "MENU_ITEM", label: "Menu item (reserved)" },
+  { value: "CAMPAIGN", label: "Campaign (reserved)" },
+];
+
+const VISUAL_VARIANTS = [
+  "",
+  "GREEN_DEAL",
+  "RED_PARTY",
+  "PURPLE_PREMIUM",
+  "ORANGE_FOOD",
+  "DARK_LUXURY",
+];
+
+function toLocalDateTimeInput(iso) {
+  if (!iso) return "";
+  return new Date(iso).toISOString().slice(0, 16);
+}
+
+/**
+ * Create/edit form for a Home campaign. Image upload only becomes available
+ * once the campaign has been saved (the backend keys uploaded images under
+ * `home-campaigns/{id}`), mirroring the existing Location photo upload flow.
+ */
+export default function HomeCampaignForm({
+  initialData,
+  onSubmit,
+  submitting,
+  onUploadImage,
+  onRemoveImage,
+  uploadingImage,
+}) {
+  const { user } = useAuth();
+  const { activeLocationId } = useActiveLocation();
+  const canGlobal = canSelectAllLocations(user);
+  const { data: locations = [] } = useQuery(adminLocationsOptions());
+  const { data: categories = [] } = useQuery(categoriesOptions(activeLocationId));
+
+  const [type, setType] = useState(initialData?.type ?? "HERO");
+  const [locationId, setLocationId] = useState(
+    initialData ? (initialData.locationId ?? "") : (canGlobal ? "" : String(activeLocationId ?? "")),
+  );
+  const [badge, setBadge] = useState(initialData?.badge ?? "");
+  const [title, setTitle] = useState(initialData?.title ?? "");
+  const [subtitle, setSubtitle] = useState(initialData?.subtitle ?? "");
+  const [ctaLabel, setCtaLabel] = useState(initialData?.ctaLabel ?? "");
+  const [targetType, setTargetType] = useState(initialData?.targetType ?? "NONE");
+  const [targetId, setTargetId] = useState(initialData?.targetId ?? "");
+  const [visualVariant, setVisualVariant] = useState(initialData?.visualVariant ?? "");
+  const [displayOrder, setDisplayOrder] = useState(initialData?.displayOrder ?? 0);
+  const [isActive, setIsActive] = useState(initialData?.isActive ?? true);
+  const [startsAt, setStartsAt] = useState(toLocalDateTimeInput(initialData?.startsAt));
+  const [endsAt, setEndsAt] = useState(toLocalDateTimeInput(initialData?.endsAt));
+
+  const fileInputRef = useRef(null);
+  const mobileFileInputRef = useRef(null);
+
+  const typeOptions =
+    type && !BASE_TYPE_OPTIONS.some((t) => t.value === type)
+      ? [...BASE_TYPE_OPTIONS, { value: type, label: `${type} (legacy, read-only)` }]
+      : BASE_TYPE_OPTIONS;
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!title.trim()) return;
+    onSubmit({
+      type,
+      locationId: locationId === "" ? null : Number(locationId),
+      badge: badge.trim() || null,
+      title: title.trim(),
+      subtitle: subtitle.trim() || null,
+      ctaLabel: ctaLabel.trim() || null,
+      imageUrl: initialData?.imageUrl ?? null,
+      mobileImageUrl: initialData?.mobileImageUrl ?? null,
+      targetType,
+      targetId: targetId.trim() || null,
+      visualVariant: visualVariant || null,
+      displayOrder: Number(displayOrder) || 0,
+      isActive,
+      startsAt: startsAt ? new Date(startsAt).toISOString() : null,
+      endsAt: endsAt ? new Date(endsAt).toISOString() : null,
+    });
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-5 px-1">
+      {/* Live preview — a lightweight stand-in for the immersive Hero slide
+          (billboard image + gradient scrim + badge/title/subtitle/CTA). */}
+      <div className="rounded-lg border bg-muted/30 p-3">
+        <p className="mb-2 text-xs font-medium text-muted-foreground">
+          Live preview
+        </p>
+        <div className="relative h-36 w-full max-w-[320px] overflow-hidden rounded-xl bg-zinc-800">
+          {initialData?.mobileImageUrl || initialData?.imageUrl ? (
+            <img
+              src={initialData?.mobileImageUrl || initialData?.imageUrl}
+              alt=""
+              className="absolute inset-0 h-full w-full object-cover"
+            />
+          ) : null}
+          <div
+            className="absolute inset-0"
+            style={{
+              background:
+                "linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.35) 45%, rgba(0,0,0,0.05) 65%, rgba(0,0,0,0.35) 100%)",
+            }}
+          />
+          <div className="absolute inset-x-0 bottom-3 px-3">
+            {badge && (
+              <span className="mb-1.5 inline-block rounded-md bg-primary px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wide text-primary-foreground shadow">
+                {badge}
+              </span>
+            )}
+            <h3 className="max-w-[80%] text-lg font-extrabold leading-none text-white drop-shadow">
+              {title || "Campaign title"}
+            </h3>
+            {subtitle && (
+              <p className="mt-1 max-w-[80%] text-xs font-semibold text-white/90 drop-shadow">
+                {subtitle}
+              </p>
+            )}
+            {ctaLabel && (
+              <span className="mt-2 inline-block rounded-full bg-amber-400 px-3 py-1 text-[11px] font-bold text-zinc-900 shadow">
+                {ctaLabel}
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {initialData?.id && (
+        <div className="space-y-2">
+          <Label>Campaign image</Label>
+          <div className="flex flex-wrap items-center gap-2">
+            {initialData.imageUrl && (
+              <img
+                src={initialData.imageUrl}
+                alt=""
+                className="h-16 w-16 rounded-lg object-cover"
+              />
+            )}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) onUploadImage(file, { mobile: false });
+                e.target.value = "";
+              }}
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={uploadingImage}
+              onClick={() => fileInputRef.current?.click()}
+              className="gap-1.5"
+            >
+              <UploadSimpleIcon className="size-4" />
+              {initialData.imageUrl ? "Replace" : "Upload"}
+            </Button>
+            {initialData.imageUrl && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                className="text-destructive hover:text-destructive"
+                onClick={() => onRemoveImage({ mobile: false })}
+              >
+                <TrashIcon className="size-4" />
+              </Button>
+            )}
+          </div>
+
+          <Label className="mt-2">Mobile image (optional, used by the hero)</Label>
+          <div className="flex flex-wrap items-center gap-2">
+            {initialData.mobileImageUrl && (
+              <img
+                src={initialData.mobileImageUrl}
+                alt=""
+                className="h-16 w-16 rounded-lg object-cover"
+              />
+            )}
+            <input
+              ref={mobileFileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) onUploadImage(file, { mobile: true });
+                e.target.value = "";
+              }}
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={uploadingImage}
+              onClick={() => mobileFileInputRef.current?.click()}
+              className="gap-1.5"
+            >
+              <ImageIcon className="size-4" />
+              {initialData.mobileImageUrl ? "Replace" : "Upload"}
+            </Button>
+            {initialData.mobileImageUrl && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                className="text-destructive hover:text-destructive"
+                onClick={() => onRemoveImage({ mobile: true })}
+              >
+                <TrashIcon className="size-4" />
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
+      {!initialData?.id && (
+        <p className="rounded-lg border border-dashed p-3 text-xs text-muted-foreground">
+          Save the campaign first to unlock image upload.
+        </p>
+      )}
+
+      <div className="grid grid-cols-2 gap-3">
+        <Field>
+          <FieldLabel htmlFor="hc-type">Rail *</FieldLabel>
+          <FieldContent>
+            <select
+              id="hc-type"
+              value={type}
+              onChange={(e) => setType(e.target.value)}
+              className="h-9 w-full rounded-md border bg-background px-2 text-sm"
+            >
+              {typeOptions.map((t) => (
+                <option key={t.value} value={t.value}>{t.label}</option>
+              ))}
+            </select>
+          </FieldContent>
+        </Field>
+
+        <Field>
+          <FieldLabel htmlFor="hc-location">Location *</FieldLabel>
+          <FieldContent>
+            <select
+              id="hc-location"
+              value={locationId}
+              disabled={!canGlobal && !!initialData}
+              onChange={(e) => setLocationId(e.target.value)}
+              className="h-9 w-full rounded-md border bg-background px-2 text-sm"
+            >
+              {canGlobal && <option value="">🌐 Global (all locations)</option>}
+              {locations.map((loc) => (
+                <option key={loc.id} value={loc.id}>{loc.name}</option>
+              ))}
+            </select>
+          </FieldContent>
+        </Field>
+      </div>
+
+      <Field>
+        <FieldLabel htmlFor="hc-title">Title *</FieldLabel>
+        <FieldContent>
+          <Input id="hc-title" value={title} onChange={(e) => setTitle(e.target.value)} required placeholder="BIRYANI FEST" />
+        </FieldContent>
+      </Field>
+
+      <div className="grid grid-cols-2 gap-3">
+        <Field>
+          <FieldLabel htmlFor="hc-badge">Badge</FieldLabel>
+          <FieldContent>
+            <Input id="hc-badge" value={badge} onChange={(e) => setBadge(e.target.value)} placeholder="UP TO 70% OFF" />
+          </FieldContent>
+        </Field>
+        <Field>
+          <FieldLabel htmlFor="hc-cta">CTA label</FieldLabel>
+          <FieldContent>
+            <Input id="hc-cta" value={ctaLabel} onChange={(e) => setCtaLabel(e.target.value)} placeholder="Order Now" />
+          </FieldContent>
+        </Field>
+      </div>
+
+      <Field>
+        <FieldLabel htmlFor="hc-subtitle">Subtitle</FieldLabel>
+        <FieldContent>
+          <Input id="hc-subtitle" value={subtitle} onChange={(e) => setSubtitle(e.target.value)} placeholder="Biryani & Specials" />
+        </FieldContent>
+      </Field>
+
+      <div className="grid grid-cols-2 gap-3">
+        <Field>
+          <FieldLabel htmlFor="hc-target-type">Tap action</FieldLabel>
+          <FieldContent>
+            <select
+              id="hc-target-type"
+              value={targetType}
+              onChange={(e) => setTargetType(e.target.value)}
+              className="h-9 w-full rounded-md border bg-background px-2 text-sm"
+            >
+              {TARGET_TYPE_OPTIONS.map((t) => (
+                <option key={t.value} value={t.value}>{t.label}</option>
+              ))}
+            </select>
+          </FieldContent>
+        </Field>
+        <Field>
+          <FieldLabel htmlFor="hc-target-id">
+            {targetType === "CATEGORY" ? "Category" : targetType === "EXTERNAL" ? "URL" : targetType === "COMBO" ? "\"byoc\" for Build Your Own, blank for Combos" : "Target value"}
+          </FieldLabel>
+          <FieldContent>
+            {targetType === "CATEGORY" ? (
+              <select
+                id="hc-target-id"
+                value={targetId}
+                onChange={(e) => setTargetId(e.target.value)}
+                className="h-9 w-full rounded-md border bg-background px-2 text-sm"
+              >
+                <option value="">Select category…</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.name}>{c.name}</option>
+                ))}
+              </select>
+            ) : (
+              <Input
+                id="hc-target-id"
+                value={targetId}
+                onChange={(e) => setTargetId(e.target.value)}
+                disabled={targetType === "NONE" || targetType === "PARTY_ORDER"}
+                placeholder={targetType === "EXTERNAL" ? "https://…" : ""}
+              />
+            )}
+          </FieldContent>
+        </Field>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <Field>
+          <FieldLabel htmlFor="hc-visual">Visual style</FieldLabel>
+          <FieldContent>
+            <select
+              id="hc-visual"
+              value={visualVariant}
+              onChange={(e) => setVisualVariant(e.target.value)}
+              className="h-9 w-full rounded-md border bg-background px-2 text-sm"
+            >
+              <option value="">Auto</option>
+              {VISUAL_VARIANTS.filter(Boolean).map((v) => (
+                <option key={v} value={v}>{v}</option>
+              ))}
+            </select>
+          </FieldContent>
+        </Field>
+        <Field>
+          <FieldLabel htmlFor="hc-order">Display order</FieldLabel>
+          <FieldContent>
+            <Input
+              id="hc-order"
+              type="number"
+              value={displayOrder}
+              onChange={(e) => setDisplayOrder(e.target.value)}
+            />
+          </FieldContent>
+        </Field>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <Field>
+          <FieldLabel htmlFor="hc-starts">Starts at</FieldLabel>
+          <FieldContent>
+            <Input id="hc-starts" type="datetime-local" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} />
+          </FieldContent>
+        </Field>
+        <Field>
+          <FieldLabel htmlFor="hc-ends">Ends at</FieldLabel>
+          <FieldContent>
+            <Input id="hc-ends" type="datetime-local" value={endsAt} onChange={(e) => setEndsAt(e.target.value)} />
+          </FieldContent>
+        </Field>
+      </div>
+
+      <Field orientation="horizontal">
+        <FieldLabel htmlFor="hc-active">Active</FieldLabel>
+        <FieldContent>
+          <FieldDescription>Inactive campaigns never appear on the customer Home page.</FieldDescription>
+        </FieldContent>
+        <Switch id="hc-active" checked={isActive} onCheckedChange={setIsActive} />
+      </Field>
+
+      <div className="flex justify-end gap-2 pt-2">
+        <Button type="submit" disabled={submitting || !title.trim()}>
+          {submitting ? "Saving…" : initialData ? "Update Campaign" : "Create Campaign"}
+        </Button>
+      </div>
+    </form>
+  );
+}
+
+HomeCampaignForm.propTypes = {
+  initialData: PropTypes.object,
+  onSubmit: PropTypes.func.isRequired,
+  submitting: PropTypes.bool,
+  onUploadImage: PropTypes.func,
+  onRemoveImage: PropTypes.func,
+  uploadingImage: PropTypes.bool,
+};

@@ -40,13 +40,16 @@ class MenuCategoryImageLocationIsolationTest {
         CategoryRepository categories = mock(CategoryRepository.class);
         LocationRepository locations = mock(LocationRepository.class);
         when(locations.findById(1L)).thenReturn(Optional.of(pragati));
-        when(categories.findByLocationIdAndIsDeletedFalse(1L))
+        when(categories.findByLocationIdAndIsDeletedFalseOrderByDisplayOrderAscNameAsc(1L))
                 .thenReturn(List.of(category(10L, "Biryani", pragati)));
         when(categories.findByLocationIdAndNameAndIsDeletedFalse(1L, "Biryani"))
                 .thenReturn(Optional.of(category(10L, "Biryani", pragati)));
 
         CategoryService service = new CategoryService(
-                categories, mock(MenuRepository.class), locations, mock(LocationAccessService.class));
+                categories, mock(MenuRepository.class), locations, mock(LocationAccessService.class),
+                mock(com.broandbro.qrapp.storage.ImageStorageService.class),
+                mock(com.broandbro.qrapp.service.ai.ImageGenerationService.class),
+                mock(com.broandbro.qrapp.prompt.FoodImagePromptBuilder.class));
 
         assertThat(service.getAllCategories(1L)).extracting(Category::getLocation)
                 .containsOnly(pragati);
@@ -64,7 +67,10 @@ class MenuCategoryImageLocationIsolationTest {
                 .thenReturn(Optional.empty());
 
         CategoryService service = new CategoryService(
-                categories, mock(MenuRepository.class), locations, mock(LocationAccessService.class));
+                categories, mock(MenuRepository.class), locations, mock(LocationAccessService.class),
+                mock(com.broandbro.qrapp.storage.ImageStorageService.class),
+                mock(com.broandbro.qrapp.service.ai.ImageGenerationService.class),
+                mock(com.broandbro.qrapp.prompt.FoodImagePromptBuilder.class));
 
         assertThat(service.getCategoryById(2L, 10L)).isEmpty();
     }

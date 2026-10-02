@@ -1,26 +1,30 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { ArrowLeftIcon, HeartIcon, WarningCircleIcon } from "@phosphor-icons/react";
+import { ArrowLeftIcon, CameraIcon, ConfettiIcon, HeartIcon, SparkleIcon, WarningCircleIcon } from "@phosphor-icons/react";
 import { hallOfHappinessOptions } from "@/query/options/hall-of-happiness";
 import { useAuth } from "@/context/AuthContext";
+import { useLocation as useActiveLocation } from "@/context/LocationContext";
 import { Skeleton } from "@/components/ui/skeleton";
-import { STATIC_HAPPINESS_PHOTOS } from "@/components/HallOfHappinessSection";
 
 export const Route = createFileRoute("/hall-of-happiness")({
   component: HallOfHappinessPage,
 });
 
+const SOURCE_BADGES = {
+  CUSTOMER: { label: "Customer Memory", icon: CameraIcon },
+  ADMIN_CURATED: { label: "Bro & Bro Curated", icon: SparkleIcon },
+};
+
 function HallOfHappinessPage() {
   const { user } = useAuth();
+  const { activeLocationId } = useActiveLocation();
   const query = useQuery(hallOfHappinessOptions({
     size: 24,
+    locationId: activeLocationId,
     enabled: Boolean(user?.token),
   }));
-  const photos = [
-    ...STATIC_HAPPINESS_PHOTOS,
-    ...(query.data?.content || []),
-  ];
+  const photos = query.data?.content || [];
 
   return (
     <main className="container-premium py-6 md:py-10">
@@ -28,10 +32,15 @@ function HallOfHappinessPage() {
         <ArrowLeftIcon size={18} /> Back to home
       </Link>
       <div className="mb-7">
-        <p className="mb-1 text-xs font-semibold uppercase tracking-[0.16em] text-rose-500">Celebrations worth remembering</p>
-        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">❤️ Bro &amp; Bro Hall of Happiness</h1>
+        <p className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-rose-600">
+          <HeartIcon size={13} weight="fill" /> Memories we made together
+        </p>
+        <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">
+          Bro &amp; Bro{" "}
+          <span className="bg-gradient-to-r from-rose-600 to-amber-500 bg-clip-text text-transparent">Hall of Happiness</span>
+        </h1>
         <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-          A collection of joyful moments from celebrations brought to life by Bro &amp; Bro.
+          A collection of real moments and celebrations brought to life by Bro &amp; Bro.
         </p>
       </div>
       {query.isError && (
@@ -41,19 +50,22 @@ function HallOfHappinessPage() {
       )}
       {query.isLoading && (
         <div className="mb-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <Skeleton className="aspect-[4/3] rounded-2xl" />
+          {Array.from({ length: 8 }).map((_, index) => (
+            <Skeleton key={index} className="aspect-[4/5] rounded-[24px]" />
+          ))}
         </div>
       )}
-      {photos.length ? (
+      {!query.isLoading && photos.length > 0 && (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {photos.map((photo) => (
             <GalleryPhoto key={photo.id} photo={photo} />
           ))}
         </div>
-      ) : (
-        <div className="rounded-2xl border border-dashed border-border bg-muted/30 p-12 text-center">
-          <HeartIcon size={34} weight="duotone" className="mx-auto mb-3 text-rose-400" />
-          <p className="font-medium">❤️ Hall of Happiness</p>
+      )}
+      {!query.isLoading && photos.length === 0 && (
+        <div className="rounded-[24px] border border-dashed border-border bg-muted/30 p-12 text-center">
+          <ConfettiIcon size={34} weight="duotone" className="mx-auto mb-3 text-rose-400" />
+          <p className="font-medium">Hall of Happiness</p>
           <p className="mt-1 text-sm text-muted-foreground">Memories from our Bro &amp; Bro celebrations will appear here.</p>
         </div>
       )}
@@ -63,12 +75,14 @@ function HallOfHappinessPage() {
 
 function GalleryPhoto({ photo }) {
   const [failed, setFailed] = useState(false);
-  const title = photo.caption || photo.eventType || "A happy celebration";
+  const title = photo.caption || photo.description || photo.eventLabel || photo.eventType || "A happy celebration";
+  const badge = SOURCE_BADGES[photo.sourceType];
+  const Icon = badge?.icon;
   return (
-    <article className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm">
-      <div className="relative">
+    <article className="group overflow-hidden rounded-[24px] bg-neutral-900 shadow-sm">
+      <div className="relative aspect-[4/5]">
         {failed ? (
-          <div className="flex aspect-[4/3] items-center justify-center bg-muted p-4 text-center text-xs text-muted-foreground">
+          <div className="flex h-full items-center justify-center bg-muted p-4 text-center text-xs text-muted-foreground">
             This memory is temporarily unavailable.
           </div>
         ) : (
@@ -78,17 +92,22 @@ function GalleryPhoto({ photo }) {
             loading="lazy"
             decoding="async"
             onError={() => setFailed(true)}
-            className="aspect-[4/3] w-full object-cover"
+            className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
           />
         )}
-        {!failed && photo.caption && (
-          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 to-transparent px-3 pb-3 pt-8 text-sm font-medium text-white">
-            {photo.caption}
-          </div>
+        {!failed && (
+          <>
+            <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+            {badge && (
+              <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-white/15 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-white backdrop-blur-sm">
+                <Icon size={11} weight="fill" /> {badge.label}
+              </span>
+            )}
+            <div className="absolute inset-x-0 bottom-0 px-4 pb-4 pt-8 text-sm font-semibold text-white">
+              {title}
+            </div>
+          </>
         )}
-      </div>
-      <div className="p-3">
-        <p className="truncate text-sm font-semibold">{title}</p>
       </div>
     </article>
   );

@@ -16,7 +16,7 @@ import { usePreferences } from "@/context/PreferencesContext";
 import MobileMenu from "../components/shared/MobileMenu";
 import { useLocation } from "@tanstack/react-router";
 import { useLocation as useActiveLocation } from "@/context/LocationContext";
-import DealsSection from "@/components/DealsSection";
+import ImmersiveHomeHero from "@/components/home/ImmersiveHomeHero";
 import HallOfHappinessSection from "@/components/HallOfHappinessSection";
 import React from "react";
 import { BowlFoodIcon, CaretRightIcon } from "@phosphor-icons/react";
@@ -125,7 +125,7 @@ function MenuPage() {
 
   return (
     <div className="page-shell bg-background pb-mobile-nav! lg:pb-[initial]!">
-      <Navbar homeHeader />
+      <Navbar homeHeader immersive />
       <MobileMenu />
       {/* Backend offline banner (non-technical user friendly) */}
       {offline && (
@@ -148,8 +148,22 @@ function MenuPage() {
         </div>
       )}
 
+      {/* Immersive hero — one continuous visual canvas (mobile-first). Location,
+          logo, search and veg/non-veg controls are layered on top of the hero
+          image/carousel itself, not stacked in separate white cards. */}
+      <div className="lg:hidden">
+        <ImmersiveHomeHero
+          locationId={activeLocationId}
+          onSearch={setSearchQuery}
+          vegFilter={vegFilter}
+          onVegFilterChange={handleSegmentedFilterChange}
+        />
+      </div>
+
       <div className="container-premium home-controls flex flex-col gap-2 py-1.5 md:gap-2 md:py-2">
-        <div className="flex w-full items-center gap-2">
+        {/* Desktop keeps its existing dedicated search + filter row above the
+            menu; the immersive hero is a mobile-first experience. */}
+        <div className="hidden w-full items-center gap-2 lg:flex">
           <div className="min-w-0 flex-1">
             <SearchBar
               home
@@ -166,8 +180,6 @@ function MenuPage() {
         <div className="container-premium -mx-[0.875rem] mt-1 w-auto px-0 md:mx-0 md:w-auto md:px-0">
           <CategoryTabs categories={categories} active={category} />
         </div>
-
-        <DealsSection />
       </div>
       <HallOfHappinessSection />
 

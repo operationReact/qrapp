@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
@@ -8,6 +8,10 @@ import {
   BowlFoodIcon,
   MagnifyingGlassIcon,
   ArrowCounterClockwiseIcon,
+  UploadSimpleIcon,
+  SparkleIcon,
+  CaretUpIcon,
+  CaretDownIcon,
 } from "@phosphor-icons/react";
 
 import {
@@ -37,10 +41,153 @@ import {
   deleteCategory,
   getDeletedCategories,
   restoreCategory,
+  reorderCategory,
+  uploadCategoryImage,
+  removeCategoryImage,
+  generateCategoryImage,
+  applyGeneratedCategoryImage,
 } from "@/services/category-service";
 import { getDeletedMenuItems, restoreMenuItem } from "@/services/menu-service";
 import { categoriesOptions, menuOptions } from "@/query/options/menu";
 import { useLocation as useActiveLocation } from "@/context/LocationContext";
+
+/**
+ * Per-category image cell: shows the current image (or a placeholder),
+ * lets the admin upload a file or generate one with AI. AI generation always
+ * produces a preview first — nothing is saved until the admin explicitly
+ * accepts it, and generation only ever runs on this admin-triggered action
+ * (never while a customer is browsing the Home page).
+ */
+function CategoryImageCell({ category, activeLocationId, onChanged }) {
+  const fileInputRef = useRef(null);
+  const [preview, setPreview] = useState(null); // { imageUrl, prompt }
+
+  const uploadMut = useMutation({
+    mutationFn: (file) => uploadCategoryImage(category.id, file, activeLocationId),
+    onSuccess: (updated) => {
+      onChanged(updated);
+      toast.success("Image uploaded");
+    },
+    onError: (err) => toast.error(err?.response?.data?.message || "Failed to upload image"),
+  });
+
+  const removeMut = useMutation({
+    mutationFn: () => removeCategoryImage(category.id, activeLocationId),
+    onSuccess: (updated) => {
+      onChanged(updated);
+      toast.success("Image removed");
+    },
+    onError: () => toast.error("Failed to remove image"),
+  });
+
+  const generateMut = useMutation({
+    mutationFn: () => generateCategoryImage(category.id, activeLocationId),
+    onSuccess: (res) => setPreview({ imageUrl: res.imageUrl, prompt: res.prompt }),
+    onError: (err) => toast.error(err?.response?.data?.message || "AI generation failed"),
+  });
+
+  const applyMut = useMutation({
+    mutationFn: () => applyGeneratedCategoryImage(category.id, activeLocationId, preview.imageUrl, preview.imageUrl),
+    onSuccess: (updated) => {
+      onChanged(updated);
+      setPreview(null);
+      toast.success("AI image applied");
+    },
+    onError: () => toast.error("Failed to apply image"),
+  });
+
+  return (
+    <div className="flex items-center gap-2">
+      <div className="size-10 shrink-0 overflow-hidden rounded-md bg-muted">
+        {category.imageUrl ? (
+          <img src={category.imageUrl} alt="" className="size-full object-cover" />
+        ) : (
+          <div className="flex size-full items-center justify-center text-muted-foreground">
+            <BowlFoodIcon size={16} />
+          </div>
+        )}
+      </div>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) uploadMut.mutate(file);
+          e.target.value = "";
+        }}
+      />
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon-sm"
+        title="Upload image"
+        disabled={uploadMut.isPending}
+        onClick={() => fileInputRef.current?.click()}
+      >
+        <UploadSimpleIcon size={14} />
+      </Button>
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon-sm"
+        title="Generate with AI"
+        disabled={generateMut.isPending}
+        onClick={() => generateMut.mutate()}
+      >
+        <SparkleIcon size={14} className={generateMut.isPending ? "animate-pulse" : ""} />
+      </Button>
+      {category.imageUrl && (
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-sm"
+          title="Remove image"
+          className="text-muted-foreground hover:text-destructive"
+          disabled={removeMut.isPending}
+          onClick={() => removeMut.mutate()}
+        >
+          <TrashIcon size={14} />
+        </Button>
+      )}
+
+      {/* AI preview-then-accept dialog */}
+      <Dialog open={!!preview} onOpenChange={(v) => !v && setPreview(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>AI image preview — {category.name}</DialogTitle>
+            <DialogDescription>
+              Review the generated image before it is saved to this category.
+            </DialogDescription>
+          </DialogHeader>
+          {preview && (
+            <>
+              <img src={preview.imageUrl} alt="" className="aspect-square w-full rounded-lg object-cover" />
+              <div className="flex justify-end gap-2 pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={generateMut.isPending}
+                  onClick={() => generateMut.mutate()}
+                >
+                  Regenerate
+                </Button>
+                <Button type="button" variant="ghost" size="sm" onClick={() => setPreview(null)}>
+                  Cancel
+                </Button>
+                <Button type="button" size="sm" disabled={applyMut.isPending} onClick={() => applyMut.mutate()}>
+                  {applyMut.isPending ? "Saving…" : "Use Image"}
+                </Button>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
 
 export default function CategoriesManageModal({
   open,
@@ -78,9 +225,10 @@ export default function CategoriesManageModal({
     return acc;
   }, {});
 
-  const sortedCategories = [...categories].sort((a, b) =>
-    (a.name || "").localeCompare(b.name || ""),
-  );
+  // Categories already arrive ordered by displayOrder (then name) from the
+  // backend — preserve that order here so the up/down reorder controls make
+  // sense, rather than re-sorting alphabetically.
+  const sortedCategories = categories;
 
   const knownNames = sortedCategories.map((c) => c.name);
 
@@ -89,6 +237,25 @@ export default function CategoriesManageModal({
         c.name?.toLowerCase().includes(search.trim().toLowerCase()),
       )
     : sortedCategories;
+
+  const reorderMutation = useMutation({
+    mutationFn: ({ id, displayOrder }) => reorderCategory(id, displayOrder, activeLocationId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["categories", activeLocationId] });
+    },
+    onError: () => toast.error("Failed to reorder category"),
+  });
+
+  const moveCategory = (index, direction) => {
+    const targetIndex = index + direction;
+    if (targetIndex < 0 || targetIndex >= filtered.length) return;
+    const current = filtered[index];
+    const target = filtered[targetIndex];
+    const currentOrder = current.displayOrder ?? index;
+    const targetOrder = target.displayOrder ?? targetIndex;
+    reorderMutation.mutate({ id: current.id, displayOrder: targetOrder });
+    reorderMutation.mutate({ id: target.id, displayOrder: currentOrder });
+  };
 
   const createMutation = useMutation({
     mutationFn: (name) => createCategory({ name }, activeLocationId),
@@ -255,7 +422,7 @@ export default function CategoriesManageModal({
                 </div>
               ) : (
                 <ul className="flex flex-col gap-1.5">
-                  {filtered.map((cat) => {
+                  {filtered.map((cat, index) => {
                     const name = cat.name ?? cat;
                     const id = cat.id ?? name;
                     const count = counts[name] ?? 0;
@@ -264,13 +431,37 @@ export default function CategoriesManageModal({
                         key={id}
                         className="flex items-center gap-3 p-2.5 rounded-md border border-border bg-card"
                       >
-                        <div
-                          className={cn(
-                            "size-8 rounded-md flex items-center justify-center bg-primary/10 text-primary shrink-0",
-                          )}
-                        >
-                          <TagIcon size={14} weight="bold" />
+                        <div className="flex shrink-0 flex-col">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon-sm"
+                            className="h-5"
+                            disabled={index === 0 || reorderMutation.isPending}
+                            onClick={() => moveCategory(index, -1)}
+                            aria-label={`Move ${name} up`}
+                          >
+                            <CaretUpIcon size={12} />
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon-sm"
+                            className="h-5"
+                            disabled={index === filtered.length - 1 || reorderMutation.isPending}
+                            onClick={() => moveCategory(index, 1)}
+                            aria-label={`Move ${name} down`}
+                          >
+                            <CaretDownIcon size={12} />
+                          </Button>
                         </div>
+                        <CategoryImageCell
+                          category={cat}
+                          activeLocationId={activeLocationId}
+                          onChanged={() =>
+                            queryClient.invalidateQueries({ queryKey: ["categories", activeLocationId] })
+                          }
+                        />
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium truncate">{name}</p>
                           <p className="text-[11px] text-muted-foreground">

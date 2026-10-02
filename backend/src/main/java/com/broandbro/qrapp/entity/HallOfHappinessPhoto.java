@@ -2,6 +2,7 @@ package com.broandbro.qrapp.entity;
 
 import com.broandbro.qrapp.enums.HallOfHappinessConsentStatus;
 import com.broandbro.qrapp.enums.HallOfHappinessPhotoStatus;
+import com.broandbro.qrapp.enums.HallOfHappinessSourceType;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -25,15 +26,40 @@ public class HallOfHappinessPhoto {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "party_order_id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "party_order_id")
     private PartyOrder partyOrder;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "source_type", nullable = false, length = 20)
+    @Builder.Default
+    private HallOfHappinessSourceType sourceType = HallOfHappinessSourceType.CUSTOMER;
+
+    /** Location this memory belongs to (used directly for ADMIN_CURATED; backfilled from
+     * the party order's location for CUSTOMER memories so the feed doesn't need a join). */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "location_id")
+    private Location location;
+
+    /** Global memories are shown across all locations regardless of {@link #location}. */
+    @Column(name = "is_global", nullable = false)
+    @Builder.Default
+    private boolean global = false;
+
+    /** Human-friendly event context for memories without a party order, e.g. "Team Celebration". */
+    @Column(name = "event_label", length = 160)
+    private String eventLabel;
+
+    /** Optional longer description, mainly used for admin-curated memories. */
+    @Column(length = 500)
+    private String description;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "submission_id")
     private HallOfHappinessSubmission submission;
 
-    @Column(name = "customer_id", nullable = false)
+    /** Null for ADMIN_CURATED memories, which have no submitting customer. */
+    @Column(name = "customer_id")
     private Long customerId;
 
     @Column(name = "image_url", nullable = false, length = 1000)

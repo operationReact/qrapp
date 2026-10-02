@@ -38,10 +38,10 @@ public class HallOfHappinessController {
 
     @GetMapping("/api/hall-of-happiness")
     public Page<HallOfHappinessPhotoResponse> feed(
+            @RequestParam(required = false) Long locationId,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "8") int size,
-            Principal principal) {
-        return service.publishedFeed(principal.getName(), page, size);
+            @RequestParam(defaultValue = "8") int size) {
+        return service.publishedFeed(locationId, page, size);
     }
 
     @GetMapping("/api/hall-of-happiness/my")
@@ -87,14 +87,30 @@ public class HallOfHappinessController {
             @RequestParam(required = false) LocalDate fromDate,
             @RequestParam(required = false) LocalDate toDate,
             @RequestParam(required = false) String search,
+            @RequestParam(required = false) Long locationId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             Principal principal) {
         User user = userService.findByPhone(principal.getName()).orElseThrow();
-        Optional<List<Long>> scope = locationAccessService.resolveDashboardLocationScope(user, null);
+        Optional<List<Long>> scope = locationAccessService.resolveDashboardLocationScope(user, locationId);
         List<Long> locationIds = scope.orElse(List.of(-1L));
         return service.adminSearch(status, consent, orderId, customerId, fromDate, toDate,
                 search, scope.isEmpty(), locationIds, page, size);
+    }
+
+    @PostMapping(value = "/api/admin/hall-of-happiness/curated", consumes = "multipart/form-data")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN', 'SUPERUSER', 'MANAGER')")
+    public ResponseEntity<HallOfHappinessPhotoResponse> createCurated(
+            @RequestPart("file") MultipartFile file,
+            @RequestParam(required = false) String caption,
+            @RequestParam(required = false) String eventLabel,
+            @RequestParam(required = false) String description,
+            @RequestParam(required = false) Long locationId,
+            @RequestParam(defaultValue = "false") boolean global,
+            Principal principal) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(
+                service.createCuratedPhoto(file, caption, eventLabel, description, locationId, global,
+                        principal.getName()));
     }
 
     @PatchMapping("/api/admin/hall-of-happiness/photos/{id}")

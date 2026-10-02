@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import {
+  CameraIcon,
   CheckCircleIcon,
   ConfettiIcon,
   CaretLeftIcon,
@@ -10,33 +11,52 @@ import {
   ImageIcon,
   MagnifyingGlassIcon,
   PencilSimpleIcon,
+  PlusIcon,
   ProhibitIcon,
+  SparkleIcon,
   TrashIcon,
   XCircleIcon,
 } from "@phosphor-icons/react";
 import { adminHallOfHappinessOptions } from "@/query/options/admin-hall-of-happiness";
+import { adminLocationsOptions } from "@/query/options/management";
+import { useLocation as useActiveLocation } from "@/context/LocationContext";
+import { useAuth } from "@/context/AuthContext";
+import { canSelectAllLocations } from "@/lib/roles";
 import {
+  createCuratedHallPhoto,
   runHallPhotoAction,
   updateAdminHallPhoto,
 } from "@/services/hall-of-happiness-service";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin/(orders)/hall-of-happiness")({
   component: HallOfHappinessAdminPage,
 });
 
+const SOURCE_LABELS = {
+  CUSTOMER: { label: "Customer Memory", icon: CameraIcon },
+  ADMIN_CURATED: { label: "Bro & Bro Curated", icon: SparkleIcon },
+};
+
 function HallOfHappinessAdminPage() {
   const client = useQueryClient();
+  const { user } = useAuth();
+  const canGlobal = canSelectAllLocations(user);
+  const { data: locations = [] } = useQuery(adminLocationsOptions());
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("");
   const [consent, setConsent] = useState("");
   const [orderId, setOrderId] = useState("");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
+  const [locationFilter, setLocationFilter] = useState("");
   const [page, setPage] = useState(0);
+  const [addOpen, setAddOpen] = useState(false);
   const params = {
     ...(search.trim() ? { search: search.trim() } : {}),
     ...(status ? { status } : {}),
@@ -44,6 +64,7 @@ function HallOfHappinessAdminPage() {
     ...(orderId ? { orderId } : {}),
     ...(fromDate ? { fromDate } : {}),
     ...(toDate ? { toDate } : {}),
+    ...(locationFilter ? { locationId: locationFilter } : {}),
     page,
     size: 30,
   };
@@ -71,19 +92,24 @@ function HallOfHappinessAdminPage() {
           <div>
             <h1 className="text-2xl font-bold tracking-tight md:text-[28px]">❤️ Hall of Happiness</h1>
             <p className="mt-1.5 text-[13px] text-[var(--cc-secondary-text)]">
-              Review and publish customer-submitted Party/Event memories.
+              Review customer memories and publish curated Bro &amp; Bro moments.
             </p>
           </div>
-          <span className="ml-auto rounded-full bg-[var(--cc-warning-bg)] px-3 py-1.5 text-xs font-semibold text-[var(--cc-warning)]">
-            Pending Review: {photos.filter((photo) => ["CUSTOMER_UPLOAD", "PENDING", "PENDING_REVIEW"].includes(photo.status)).length}
-          </span>
+          <div className="ml-auto flex items-center gap-2">
+            <span className="rounded-full bg-[var(--cc-warning-bg)] px-3 py-1.5 text-xs font-semibold text-[var(--cc-warning)]">
+              Pending Review: {photos.filter((photo) => ["CUSTOMER_UPLOAD", "PENDING", "PENDING_REVIEW"].includes(photo.status)).length}
+            </span>
+            <Button size="sm" onClick={() => setAddOpen(true)}>
+              <PlusIcon /> Add Memory
+            </Button>
+          </div>
         </div>
       </div>
 
       <div className="mx-auto max-w-[1200px] space-y-5 px-4 pb-8 md:px-6">
         <StatusSummary photos={photos} activeStatus={status} onSelect={setStatus} />
 
-        <div className="grid gap-3 md:grid-cols-[minmax(260px,1fr)_auto_auto_auto_auto_auto] md:items-end">
+        <div className="grid gap-3 md:grid-cols-[minmax(260px,1fr)_auto_auto_auto_auto_auto_auto] md:items-end">
           <InputGroup className="w-full max-w-sm">
             <InputGroupAddon><MagnifyingGlassIcon weight="bold" /></InputGroupAddon>
             <InputGroupInput value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search order, customer, event, description…" />
@@ -95,6 +121,12 @@ function HallOfHappinessAdminPage() {
           <select value={consent} onChange={(event) => setConsent(event.target.value)} className="h-10 rounded-lg border bg-background px-3 text-sm" aria-label="Consent">
             <option value="">All consent</option>
             {["PENDING", "GRANTED", "REVOKED"].map((value) => <option key={value} value={value}>{consentLabel(value)}</option>)}
+          </select>
+          <select value={locationFilter} onChange={(event) => setLocationFilter(event.target.value)} className="h-10 rounded-lg border bg-background px-3 text-sm" aria-label="Location">
+            <option value="">{canGlobal ? "All Locations" : "My Locations"}</option>
+            {locations.map((loc) => (
+              <option key={loc.id} value={loc.id}>{loc.name}</option>
+            ))}
           </select>
           <label className="grid gap-1 text-xs font-medium text-muted-foreground">
             From Date
@@ -144,7 +176,104 @@ function HallOfHappinessAdminPage() {
           </div>
         )}
       </div>
+      <AddMemoryDialog open={addOpen} onOpenChange={setAddOpen} onCreated={refresh} />
     </>
+  );
+}
+
+function AddMemoryDialog({ open, onOpenChange, onCreated }) {
+  const { activeLocationId } = useActiveLocation();
+  const { user } = useAuth();
+  const canGlobal = canSelectAllLocations(user);
+  const { data: locations = [] } = useQuery(adminLocationsOptions());
+  const [file, setFile] = useState(null);
+  const [preview, setPreview] = useState(null);
+  const [caption, setCaption] = useState("");
+  const [eventLabel, setEventLabel] = useState("");
+  const [description, setDescription] = useState("");
+  const [global, setGlobal] = useState(false);
+  const [locationId, setLocationId] = useState(activeLocationId ? String(activeLocationId) : "");
+
+  const create = useMutation({
+    mutationFn: () => createCuratedHallPhoto({ file, caption, eventLabel, description, locationId, global }),
+    onSuccess: () => {
+      toast.success("Memory added. Approve and publish it to show it on Home.");
+      reset();
+      onOpenChange(false);
+      onCreated();
+    },
+    onError: () => toast.error("Could not add this memory. Please try again."),
+  });
+
+  const reset = () => {
+    setFile(null);
+    setPreview(null);
+    setCaption("");
+    setEventLabel("");
+    setDescription("");
+    setGlobal(false);
+  };
+
+  const chooseFile = (event) => {
+    const selected = event.target.files?.[0];
+    if (!selected) return;
+    if (!["image/jpeg", "image/png", "image/webp"].includes(selected.type) || selected.size > 5 * 1024 * 1024) {
+      toast.error("Use a JPEG, PNG, or WEBP photo up to 5 MB.");
+      return;
+    }
+    setFile(selected);
+    setPreview(URL.createObjectURL(selected));
+  };
+
+  const canSubmit = Boolean(file) && (global || locationId);
+
+  return (
+    <Dialog open={open} onOpenChange={(next) => { if (!next) reset(); onOpenChange(next); }}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Add Curated Memory</DialogTitle>
+          <DialogDescription>Directly publish a Bro &amp; Bro curated celebration photo.</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          {preview ? (
+            <img src={preview} alt="Preview" className="h-48 w-full rounded-[16px] object-cover" />
+          ) : (
+            <label className="flex h-48 cursor-pointer flex-col items-center justify-center gap-2 rounded-[16px] border border-dashed text-sm text-muted-foreground">
+              <ImageIcon size={28} />
+              Choose a photo
+              <Input type="file" accept="image/jpeg,image/png,image/webp" onChange={chooseFile} className="sr-only" />
+            </label>
+          )}
+          <Input value={caption} maxLength={240} onChange={(e) => setCaption(e.target.value)} placeholder="Caption (shown on the memory card)" />
+          <Input value={eventLabel} maxLength={160} onChange={(e) => setEventLabel(e.target.value)} placeholder="Event / client name (optional)" />
+          <Input value={description} maxLength={500} onChange={(e) => setDescription(e.target.value)} placeholder="Description (optional)" />
+          <div className="flex items-center gap-3">
+            <select
+              value={locationId}
+              disabled={global}
+              onChange={(e) => setLocationId(e.target.value)}
+              className="h-10 flex-1 rounded-lg border bg-background px-3 text-sm disabled:opacity-50"
+            >
+              <option value="">Select location</option>
+              {locations.map((loc) => (
+                <option key={loc.id} value={loc.id}>{loc.name}</option>
+              ))}
+            </select>
+            {canGlobal && (
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" checked={global} onChange={(e) => setGlobal(e.target.checked)} /> Global
+              </label>
+            )}
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={create.isPending}>Cancel</Button>
+          <Button onClick={() => create.mutate()} disabled={!canSubmit || create.isPending}>
+            {create.isPending ? "Adding…" : "Add Memory"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -156,10 +285,12 @@ function groupBySubmission(photos) {
       groups.set(key, {
         key,
         submissionId: photo.submissionId,
+        sourceType: photo.sourceType,
         photos: [],
         customerName: photo.customerName,
         orderId: photo.orderId,
         eventType: photo.eventType,
+        eventLabel: photo.eventLabel,
         eventDateTime: photo.eventDateTime,
         createdAt: photo.createdAt,
         consentStatus: photo.consentStatus,
@@ -228,18 +359,23 @@ function SubmissionReviewCard({ submission, action, edit }) {
   const status = overallStatus(submission.photos);
   const publishedAt = submission.photos.find((photo) => photo.publishedAt)?.publishedAt;
   const [open, setOpen] = useState(false);
+  const curated = submission.sourceType === "ADMIN_CURATED";
   return (
     <section className="rounded-[16px] border border-[var(--cc-border)] bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3 border-b pb-4">
         <div>
           <p className="font-semibold">
-            Submission #{submission.submissionId || "legacy"} · Order #{submission.orderId}
+            {curated ? (
+              <span className="inline-flex items-center gap-1.5"><SparkleIcon size={15} weight="fill" className="text-amber-500" /> Bro &amp; Bro Curated</span>
+            ) : (
+              <>Submission #{submission.submissionId || "legacy"} · Order #{submission.orderId}</>
+            )}
           </p>
           <p className="text-sm text-muted-foreground">
-            {submission.customerName || "Customer"} · {submission.eventType || "Party/Event"}
+            {curated ? (submission.eventLabel || "Curated memory") : `${submission.customerName || "Customer"} · ${submission.eventType || "Party/Event"}`}
           </p>
           <p className="text-xs text-muted-foreground">
-            Event: {formatDate(submission.eventDateTime)} · Submitted: {formatDate(submission.createdAt)}
+            {curated ? `Added: ${formatDate(submission.createdAt)}` : `Event: ${formatDate(submission.eventDateTime)} · Submitted: ${formatDate(submission.createdAt)}`}
             {publishedAt ? ` · Published: ${formatDate(publishedAt)}` : ""}
           </p>
         </div>
@@ -257,9 +393,9 @@ function SubmissionReviewCard({ submission, action, edit }) {
       {submission.photos.length > 3 && <span className="text-xs font-semibold text-muted-foreground">+{submission.photos.length - 3}</span>}
       </div>
       <Button className="h-11 w-full rounded-[10px] bg-[var(--cc-primary)] text-sm font-semibold text-white hover:bg-[var(--cc-primary-dark)]" onClick={() => setOpen(true)}>
-        Review Submission
+        Review {curated ? "Memory" : "Submission"}
       </Button>
-      <Dialog open={open} onOpenChange={setOpen}><DialogContent className="max-h-[calc(100vh-32px)] max-w-4xl overflow-y-auto rounded-[20px] border-[var(--cc-border)] bg-white"><DialogHeader><DialogTitle>Review Submission</DialogTitle><DialogDescription>{submission.customerName || "Customer"} · {submission.eventType || "Party/Event"} · Order #{submission.orderId}</DialogDescription></DialogHeader><div className="grid gap-4 md:grid-cols-2">
+      <Dialog open={open} onOpenChange={setOpen}><DialogContent className="max-h-[calc(100vh-32px)] max-w-4xl overflow-y-auto rounded-[20px] border-[var(--cc-border)] bg-white"><DialogHeader><DialogTitle>Review {curated ? "Memory" : "Submission"}</DialogTitle><DialogDescription>{curated ? (submission.eventLabel || "Curated memory") : `${submission.customerName || "Customer"} · ${submission.eventType || "Party/Event"} · Order #${submission.orderId}`}</DialogDescription></DialogHeader><div className="grid gap-4 md:grid-cols-2">
           {submission.photos.map((photo) => (
             <PhotoReviewCard key={photo.id} photo={photo} action={action} edit={edit} />
           ))}
@@ -301,9 +437,17 @@ function PhotoReviewCard({ photo, action, edit }) {
       <div className="space-y-3 p-4">
         <div className="flex items-start justify-between gap-2">
           <div>
-            <p className="font-semibold">{photo.eventType || "Party/Event"} · Order #{photo.orderId}</p>
+            <p className="font-semibold">
+              {photo.sourceType === "ADMIN_CURATED"
+                ? (photo.eventLabel || photo.locationName || "Curated Memory")
+                : <>{photo.eventType || "Party/Event"} · Order #{photo.orderId}</>}
+            </p>
             {photo.submissionId && <p className="text-xs text-muted-foreground">Submission #{photo.submissionId}</p>}
-            <p className="text-xs text-muted-foreground">{photo.customerName || "Customer"} · Consent: {photo.consentStatus}</p>
+            <p className="text-xs text-muted-foreground">
+              {photo.sourceType === "ADMIN_CURATED"
+                ? (photo.global ? "Global" : photo.locationName || "Location")
+                : `${photo.customerName || "Customer"} · Consent: ${photo.consentStatus}`}
+            </p>
           </div>
           <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${photo.status === "PENDING_REVIEW" || photo.status === "PENDING" ? "bg-[var(--cc-warning-bg)] text-[var(--cc-warning)]" : photo.status === "APPROVED" ? "bg-[var(--cc-success-bg)] text-[var(--cc-success)]" : photo.status === "PUBLISHED" ? "bg-[var(--cc-info-bg)] text-[var(--cc-info)]" : "bg-[var(--cc-error-bg)] text-[var(--cc-error)]"}`}>{statusLabel(photo.status)}</span>
         </div>
