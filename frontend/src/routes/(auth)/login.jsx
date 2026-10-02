@@ -4,10 +4,20 @@ import { Link } from "@tanstack/react-router";
 import { useMutation } from "@tanstack/react-query";
 import { loginUser } from "@/services/auth-service";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { Field, FieldContent, FieldLabel } from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
-import { CaretLeftIcon } from "@phosphor-icons/react";
+import {
+  Field,
+  FieldContent,
+  FieldLabel,
+  FieldSeparator,
+} from "@/components/ui/field";
+import { CaretLeftIcon, WhatsappLogoIcon } from "@phosphor-icons/react";
 import { PasswordInput } from "@/components/ui/password-input";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from "@/components/ui/input-group";
+import { RegistrationPurposeControl } from "@/components/registration-purpose-control";
 import { useAuth } from "@/context/AuthContext";
 
 export const Route = createFileRoute("/(auth)/login")({
@@ -76,33 +86,62 @@ export const Route = createFileRoute("/(auth)/login")({
                   : "Invalid phone or password"}
               </div>
             )}
-            <form onSubmit={submit} className="space-y-4">
-              <Field>
-                <FieldLabel htmlFor="identifier">Phone Number / Username</FieldLabel>
+            <form onSubmit={submit} className="space-y-5 font-sans">
+              <Field className="gap-2">
+                <FieldLabel
+                  htmlFor="identifier"
+                  className="text-[13px] font-semibold text-[#2B2928]"
+                >
+                  WhatsApp Number
+                </FieldLabel>
                 <FieldContent>
-                  <Input
-                    ref={firstFormField}
-                    value={identifier}
-                    onChange={(e) => setIdentifier(e.target.value)}
-                    required
-                    placeholder="e.g. 1234567890 or admin"
-                    className="h-10"
-                    name="identifier"
-                    id="identifier"
-                  />
+                  <InputGroup className="h-[52px] rounded-[14px] border-[#E6E0DB] bg-[#FFFCF9] shadow-none transition-[border-color,box-shadow] focus-within:!border-[#FF2438] focus-within:!ring-2 focus-within:!ring-[#FF2438]/20">
+                    <InputGroupInput
+                      ref={firstFormField}
+                      value={identifier}
+                      onChange={(e) => setIdentifier(e.target.value)}
+                      required
+                      placeholder="9123456789"
+                      name="identifier"
+                      id="identifier"
+                      className="h-full rounded-none border-0 bg-transparent px-3.5 py-0 text-[15px] font-medium text-[#77716D] shadow-none outline-none placeholder:text-[#77716D] placeholder:font-medium focus-visible:border-0 focus-visible:ring-0"
+                    />
+                    <InputGroupAddon
+                      align="inline-start"
+                      className="pl-3.5 pr-0 text-[#6E9A85]"
+                    >
+                      <WhatsappLogoIcon
+                        size={18}
+                        weight="duotone"
+                        aria-hidden
+                        className="text-[#6E9A85]"
+                      />
+                    </InputGroupAddon>
+                  </InputGroup>
                 </FieldContent>
               </Field>
-              <Field>
-                <FieldLabel htmlFor="password">Password</FieldLabel>
+              <Field className="gap-2">
+                <FieldLabel
+                  htmlFor="password"
+                  className="text-[13px] font-semibold text-[#2B2928]"
+                >
+                  Password
+                </FieldLabel>
                 <FieldContent>
-                  <PasswordInput
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="h-10"
-                    required
-                    name="password"
-                    id="password"
-                  />
+                  <RegistrationPurposeControl
+                    type="password"
+                    label="Password"
+                    className="[&>svg]:text-[#8E7670]"
+                  >
+                    <PasswordInput
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="h-[52px] rounded-[14px] border-[#E6E0DB] bg-[#FFFCF9] shadow-none transition-[border-color,box-shadow] focus-within:!border-[#FF2438] focus-within:!ring-2 focus-within:!ring-[#FF2438]/20 [&>input]:h-full [&>input]:rounded-none [&>input]:border-0 [&>input]:bg-transparent [&>input]:py-0 [&>input]:text-[15px] [&>input]:font-medium [&>input]:text-[#77716D] [&>input]:shadow-none [&>input]:outline-none [&>input]:placeholder:text-[#77716D] [&>input]:placeholder:font-medium [&>input]:focus-visible:border-0 [&>input]:focus-visible:ring-0 [&>button]:mr-1 [&>button]:size-9"
+                      required
+                      name="password"
+                      id="password"
+                    />
+                  </RegistrationPurposeControl>
                 </FieldContent>
               </Field>
               <Link
@@ -110,7 +149,8 @@ export const Route = createFileRoute("/(auth)/login")({
                 className={buttonVariants({
                   variant: "link",
                   size: "sm",
-                  className: "mt-0 mr-0 ml-auto flex! w-fit justify-end",
+                  className:
+                    "-mt-2 mr-0 ml-auto flex! w-fit justify-end text-[13px] font-medium",
                 })}
               >
                 Forgot Password?
@@ -124,11 +164,13 @@ export const Route = createFileRoute("/(auth)/login")({
                   {loginMutation.isPending ? "Signing in..." : "Sign In"}
                 </Button>
 
+                <FieldSeparator>OR</FieldSeparator>
+
                 <Link
                   to="/register"
                   className={buttonVariants({ variant: "ghost", size: "lg" })}
                 >
-                  Create An Account
+                  Create Account
                 </Link>
               </div>
             </form>
