@@ -36,7 +36,8 @@ export function MemoryDetailView({ open, onOpenChange, submission, onAction, onE
     order: 0,
     locationId: "",
     description: "",
-    eventLabel: ""
+    eventLabel: "",
+    global: false
   });
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState(0);
   const [error, setError] = useState("");
@@ -65,7 +66,8 @@ export function MemoryDetailView({ open, onOpenChange, submission, onAction, onE
         order: photo.displayOrder ?? 0,
         locationId: photo.locationId || "",
         description: photo.description || "",
-        eventLabel: photo.eventLabel || ""
+        eventLabel: photo.eventLabel || "",
+        global: photo.global ?? false
       });
       setError("");
       setImageFailed(false);
@@ -88,6 +90,7 @@ export function MemoryDetailView({ open, onOpenChange, submission, onAction, onE
     formState.caption !== (photo.caption || "") ||
     formState.order !== (photo.displayOrder ?? 0) ||
     (canEditLocation && formState.locationId !== (photo.locationId || "")) ||
+    (canEditLocation && formState.global !== (photo.global ?? false)) ||
     (canEditDescription && formState.description !== (photo.description || "")) ||
     (canEditEventLabel && formState.eventLabel !== (photo.eventLabel || ""));
 
@@ -140,9 +143,12 @@ export function MemoryDetailView({ open, onOpenChange, submission, onAction, onE
       displayOrder: Number(formState.order),
     };
 
-    // Include location for curated photos
-    if (canEditLocation && formState.locationId) {
-      payload.locationId = Number(formState.locationId);
+    // Include location and global for curated photos
+    if (canEditLocation) {
+      if (formState.locationId) {
+        payload.locationId = Number(formState.locationId);
+      }
+      payload.global = formState.global;
     }
 
     // Include description and event label for curated photos
@@ -168,7 +174,7 @@ export function MemoryDetailView({ open, onOpenChange, submission, onAction, onE
           setError("Failed to read image file.");
         };
         reader.readAsDataURL(newImageFile);
-      } catch (err) {
+      } catch {
         setError("Failed to process image.");
       }
     } else {
@@ -381,29 +387,52 @@ export function MemoryDetailView({ open, onOpenChange, submission, onAction, onE
         {canEditLocation && (
           <div className="space-y-4 border-t border-[var(--cc-border)] pt-4">
             <h3 className="text-sm font-semibold text-[var(--cc-text)]">Location</h3>
-            <div>
-              <label className="text-sm font-medium text-muted-foreground block mb-2">
-                Location
-              </label>
-              <select
-                value={formState.locationId}
-                onChange={(e) => setFormState(prev => ({ ...prev, locationId: e.target.value }))}
-                className="w-full h-10 rounded-lg border border-[var(--cc-border)] bg-white px-3 text-sm"
-                disabled={actionPending}
-              >
-                <option value="">Select a location...</option>
-                {locations.map((loc) => (
-                  <option key={loc.id} value={loc.id}>
-                    {loc.name}
-                  </option>
-                ))}
-              </select>
-              {formState.locationId && currentLocation && (
-                <p className="text-xs text-muted-foreground mt-2">
-                  Selected: <span className="font-medium">{currentLocationName}</span>
+            
+            {/* Global Toggle */}
+            <div className="flex items-center justify-between p-3 rounded-lg border border-[var(--cc-border)] bg-[var(--cc-page)]">
+              <div className="flex flex-col gap-1">
+                <label className="text-sm font-medium text-[var(--cc-text)]">
+                  Global Visibility
+                </label>
+                <p className="text-xs text-muted-foreground">
+                  Show this memory across all locations
                 </p>
-              )}
+              </div>
+              <input
+                type="checkbox"
+                checked={formState.global}
+                onChange={(e) => setFormState(prev => ({ ...prev, global: e.target.checked, locationId: e.target.checked ? "" : prev.locationId }))}
+                disabled={actionPending}
+                className="w-5 h-5 cursor-pointer"
+              />
             </div>
+
+            {/* Location Selector - hidden when global */}
+            {!formState.global && (
+              <div>
+                <label className="text-sm font-medium text-muted-foreground block mb-2">
+                  Location
+                </label>
+                <select
+                  value={formState.locationId}
+                  onChange={(e) => setFormState(prev => ({ ...prev, locationId: e.target.value }))}
+                  className="w-full h-10 rounded-lg border border-[var(--cc-border)] bg-white px-3 text-sm"
+                  disabled={actionPending}
+                >
+                  <option value="">Select a location...</option>
+                  {locations.map((loc) => (
+                    <option key={loc.id} value={loc.id}>
+                      {loc.name}
+                    </option>
+                  ))}
+                </select>
+                {formState.locationId && currentLocation && (
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Selected: <span className="font-medium">{currentLocationName}</span>
+                  </p>
+                )}
+              </div>
+            )}
           </div>
         )}
 
