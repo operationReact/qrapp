@@ -212,7 +212,7 @@ export function MemoryDetailView({ open, onOpenChange, submission, onAction, onE
         </div>
       )}
 
-      <div className="px-4 md:px-0 space-y-6">
+      <div className="px-4 md:px-0 pb-20 md:pb-0 space-y-6">
         {/* MEDIA SECTION */}
         <div className="space-y-3">
           <h3 className="text-sm font-semibold text-[var(--cc-text)]">Media</h3>
@@ -599,7 +599,7 @@ export function MemoryDetailView({ open, onOpenChange, submission, onAction, onE
 
       {/* Sticky Footer with Action Buttons - Mobile */}
       {isMobile && (
-        <div className="border-t border-[var(--cc-border)] p-4 flex gap-3 mt-6">
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-[var(--cc-border)] p-4 flex gap-3">
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
@@ -645,7 +645,7 @@ export function MemoryDetailView({ open, onOpenChange, submission, onAction, onE
   if (isMobile) {
     return (
       <Drawer open={open} onOpenChange={onOpenChange}>
-        <DrawerContent className="overflow-y-auto max-h-[90vh]">
+        <DrawerContent className="max-h-[85vh]">
           {content}
         </DrawerContent>
       </Drawer>
