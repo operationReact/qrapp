@@ -645,8 +645,10 @@ export function MemoryDetailView({ open, onOpenChange, submission, onAction, onE
   if (isMobile) {
     return (
       <Drawer open={open} onOpenChange={onOpenChange}>
-        <DrawerContent className="max-h-[85vh]">
-          {content}
+        <DrawerContent className="flex flex-col max-h-[85vh]">
+          <div className="flex-1 overflow-y-auto">
+            {content}
+          </div>
         </DrawerContent>
       </Drawer>
     );
