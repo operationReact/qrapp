@@ -27,6 +27,7 @@ import CompleteMealCard from "@/components/CompleteMealCard";
 import { baseURL } from "@/services";
 import { ShoppingBagIcon } from "@phosphor-icons/react";
 import { Badge } from "./ui/badge";
+import { formatCurrency } from "@/lib/utils";
 
 
 // ── Smart upsell: ONE section, session-gated to prevent infinite loops ────────
@@ -339,7 +340,7 @@ function CartContent({ onClose, isOpen }) {
               🎉 You Save
             </span>
             <span className="text-sm font-bold text-emerald-700">
-              ₹{discount.toFixed(0)}
+              {formatCurrency(discount)}
               {appliedPromotion && (
                 <span className="ml-1 text-[10px] font-normal text-emerald-600">
                   · {appliedPromotion.code ?? "offer"}
@@ -368,7 +369,7 @@ function CartContent({ onClose, isOpen }) {
             </svg>
             Total
           </div>
-          <div className="font-bold text-xl">₹{totalAfterDiscount.toFixed(0)}</div>
+          <div className="font-bold text-xl">{formatCurrency(totalAfterDiscount)}</div>
         </div>
 
         <Button

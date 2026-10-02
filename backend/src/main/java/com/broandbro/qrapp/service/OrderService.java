@@ -48,6 +48,8 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -403,36 +405,15 @@ public class OrderService {
         return response;
     }
 
-    @Transactional(readOnly = true)
-    public long calculateAmountForItems(List<CreateOrderRequest.Item> items) {
-        if (items == null || items.isEmpty()) {
-            return 0L;
-        }
-
-        Map<Long, Integer> quantityByItemId = items.stream()
-                .filter(item -> item.getItemId() != null && item.getQuantity() > 0)
-                .collect(Collectors.toMap(CreateOrderRequest.Item::getItemId, CreateOrderRequest.Item::getQuantity, Integer::sum));
-
-        if (quantityByItemId.isEmpty()) {
-            return 0L;
-        }
-
-        double total = menuRepository.findAllById(quantityByItemId.keySet()).stream()
-                .mapToDouble(item -> pricingService.getCurrentSellingPrice(item.getId()).doubleValue() * quantityByItemId.getOrDefault(item.getId(), 0))
-                .sum();
-        // Return rupees (whole number). Paise conversion only happens for Razorpay (see calculateAmountForOrder).
-        return Math.round(total);
-    }
-
     /**
-     * Calculate total amount in paise (smallest currency unit) for Razorpay.
-     * Razorpay requires paise – do NOT use this for wallet debits.
+     * Converts the final persisted order total to Razorpay's smallest currency
+     * unit. The caller must provide the already-discounted grand total.
      */
-    public int calculateAmountForOrder(Long orderId) {
-        double total = orderItemRepo.calculateOrderTotal(orderId);
-
-        if (total <= 0.0) return 0;
-        return (int) Math.round(total * 100);
+    public int calculateAmountForOrder(BigDecimal grandTotal) {
+        if (grandTotal == null || grandTotal.compareTo(BigDecimal.ZERO) <= 0) return 0;
+        return grandTotal.setScale(2, RoundingMode.HALF_UP)
+                .movePointRight(2)
+                .intValueExact();
     }
 
     @Transactional(readOnly = true)

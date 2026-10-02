@@ -1,5 +1,6 @@
 package com.broandbro.qrapp.service;
 
+import java.math.BigDecimal;
 import com.broandbro.qrapp.config.LegalProperties;
 import com.broandbro.qrapp.dto.RegisterRequest;
 import com.broandbro.qrapp.dto.CreateUserRequest;
@@ -92,7 +93,7 @@ public class UserService {
         // Create wallet for new user
         Wallet wallet = Wallet.builder()
                 .user(u)
-                .balance(0L)  // Start with 0 balance
+                .balance(BigDecimal.ZERO)  // Start with 0 balance
                 .build();
         walletRepository.save(wallet);
 
@@ -125,7 +126,7 @@ public class UserService {
         user = userRepository.save(user);
         userLocationAccessRepository.save(UserLocationAccess.builder()
                 .user(user).location(location).active(true).build());
-        walletRepository.save(Wallet.builder().user(user).balance(0L).build());
+        walletRepository.save(Wallet.builder().user(user).balance(BigDecimal.ZERO).build());
         return toResponse(user);
     }
 
@@ -216,7 +217,7 @@ public class UserService {
             userLocationAccessRepository.save(UserLocationAccess.builder()
                     .user(user).location(user.getDefaultLocation()).active(true).build());
         }
-        walletRepository.save(Wallet.builder().user(user).balance(0L).build());
+        walletRepository.save(Wallet.builder().user(user).balance(BigDecimal.ZERO).build());
         byte[] tokenBytes = new byte[24];
         random.nextBytes(tokenBytes);
         String token = Base64.getUrlEncoder().withoutPadding().encodeToString(tokenBytes);

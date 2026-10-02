@@ -56,15 +56,11 @@ public class OrderController {
                     .body(Map.of("error", "Pay at Stall is not available at this time."));
         }
 
-        long amountForWallet = paymentMethod == PaymentMethod.WALLET
-                ? service.calculateAmountForItems(req.getItems())
-                : 0L;
-        if (paymentMethod == PaymentMethod.WALLET) {
-            walletService.ensureSufficientBalance(currentUser, amountForWallet);
-        }
-
         OrderService.CreateOrderResult result = service.createOrder(req, currentUser);
         Order order = result.order();
+        BigDecimal payableAmount = order.getGrandTotal() != null
+                ? order.getGrandTotal().setScale(2, RoundingMode.HALF_UP)
+                : BigDecimal.ZERO.setScale(2);
         java.util.List<String> awardedCoupons = result.awardedCoupons();
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("orderId", order.getId());
@@ -79,15 +75,16 @@ public class OrderController {
         }
 
         if (paymentMethod == PaymentMethod.WALLET) {
-            walletService.payForOrder(currentUser, order.getId(), amountForWallet);
+            walletService.ensureSufficientBalance(currentUser, payableAmount);
+            walletService.payForOrder(currentUser, order.getId(), payableAmount);
             service.markOrderPaidByWallet(order.getId());
             body.put("paymentStatus", "PAID");
-            body.put("amount", amountForWallet);
+            body.put("amount", payableAmount);
             if (!awardedCoupons.isEmpty()) body.put("awardedCoupons", awardedCoupons);
             return ResponseEntity.status(HttpStatus.CREATED).body(body);
         }
 
-        int amount = service.calculateAmountForOrder(order.getId());
+        int amount = service.calculateAmountForOrder(payableAmount);
 
         Map<String, Object> payment = paymentService.createRazorpayOrder(order.getId(), amount);
         body.put("paymentStatus", order.getPaymentStatus());
@@ -134,24 +131,12 @@ public class OrderController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
-        // Build item list to calculate wallet amount if needed
-        List<CreateOrderRequest.Item> itemsForCalc = req.getItems().stream().map(i -> {
-            CreateOrderRequest.Item item = new CreateOrderRequest.Item();
-            item.setItemId(i.getItemId());
-            item.setQuantity(i.getQuantity());
-            return item;
-        }).toList();
-
-        long amountForWallet = paymentMethod == PaymentMethod.WALLET
-                ? service.calculateAmountForItems(itemsForCalc)
-                : 0L;
-        if (paymentMethod == PaymentMethod.WALLET) {
-            walletService.ensureSufficientBalance(currentUser, amountForWallet);
-        }
-
         log.info("[PRE-ORDER] Calling service.createPreOrder ...");
         OrderService.CreateOrderResult result = service.createPreOrder(req, currentUser);
         Order order = result.order();
+        BigDecimal payableAmount = order.getGrandTotal() != null
+                ? order.getGrandTotal().setScale(2, RoundingMode.HALF_UP)
+                : BigDecimal.ZERO.setScale(2);
         log.info("[PRE-ORDER] Order created — orderId={} orderNumber={} grandTotal={} paymentStatus={}",
                 order.getId(), order.getOrderNumber(), order.getGrandTotal(), order.getPaymentStatus());
 
@@ -162,20 +147,19 @@ public class OrderController {
         body.put("paymentMethod", paymentMethod);
 
         if (paymentMethod == PaymentMethod.WALLET) {
-            walletService.payForOrder(currentUser, order.getId(), amountForWallet);
+            walletService.ensureSufficientBalance(currentUser, payableAmount);
+            walletService.payForOrder(currentUser, order.getId(), payableAmount);
             service.markOrderPaidByWallet(order.getId());
             body.put("paymentStatus", "PAID");
-            body.put("amount", amountForWallet);
-            log.info("[PRE-ORDER] Wallet payment complete — orderId={} amount={}", order.getId(), amountForWallet);
+            body.put("amount", payableAmount);
+            log.info("[PRE-ORDER] Wallet payment complete — orderId={} amount={}", order.getId(), payableAmount);
             return ResponseEntity.status(HttpStatus.CREATED).body(body);
         }
 
         // Razorpay — derive paise directly from the already-computed grandTotal;
         // avoids the native-SQL query that cannot see unflushed inserts in this tx.
-        BigDecimal grandTotal = order.getGrandTotal() != null ? order.getGrandTotal() : BigDecimal.ZERO;
-        int amount = grandTotal.multiply(BigDecimal.valueOf(100))
-                .setScale(0, RoundingMode.HALF_UP)
-                .intValue();
+        BigDecimal grandTotal = payableAmount;
+        int amount = service.calculateAmountForOrder(grandTotal);
 
         log.info("[PRE-ORDER] Initiating Razorpay order — orderId={} amountPaise={} (₹{})",
                 order.getId(), amount, grandTotal);

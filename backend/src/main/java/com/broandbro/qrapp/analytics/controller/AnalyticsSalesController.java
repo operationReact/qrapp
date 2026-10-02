@@ -11,7 +11,6 @@ import com.broandbro.qrapp.time.BusinessTime;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.constraints.PastOrPresent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -62,7 +61,7 @@ public class AnalyticsSalesController {
             @Parameter(description = "Start date (yyyy-MM-dd), inclusive")
             @RequestParam(required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
-            @PastOrPresent LocalDate from,
+            LocalDate from,
 
             @Parameter(description = "End date (yyyy-MM-dd), inclusive")
             @RequestParam(required = false)
@@ -201,6 +200,10 @@ public class AnalyticsSalesController {
         }
         if (from.plusDays(365).isBefore(to)) {
             throw new IllegalArgumentException("Date range must not exceed 365 days");
+        }
+        LocalDate today = BusinessTime.today();
+        if (from.isAfter(today) || to.isAfter(today)) {
+            throw new IllegalArgumentException("Analytics dates cannot be in the future");
         }
     }
 

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import QuantityUpdater from "./QuantityUpdater";
 import { baseURL } from "@/services";
-import { cn } from "@/lib/utils";
+import { cn, formatCurrency } from "@/lib/utils";
 
 // Map known tag names → badge label + colour
 const TAG_BADGE_MAP = {
@@ -90,7 +90,7 @@ export default function CartItem({ item, removeItem, addItem, decreaseItem }) {
         )}
 
         <div className={cn("text-xs text-muted-foreground", !badge && "mt-0.5")}>
-          ₹{item.price}
+          {formatCurrency(item.price)}
         </div>
         <button
           onClick={() => removeItem(item.id)}
@@ -102,7 +102,7 @@ export default function CartItem({ item, removeItem, addItem, decreaseItem }) {
 
       <div className="gap-0 justify-self-end grid place-items-end">
         <div className="text-right text-sm font-semibold mb-1.5">
-          ₹{(Number(item.price || 0) * Number(item.quantity || 0)).toFixed(0)}
+          {formatCurrency(Number(item.price || 0) * Number(item.quantity || 0))}
         </div>
         <QuantityUpdater
           qty={item.quantity}
