@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   CheckCircleIcon,
   XCircleIcon,
@@ -6,6 +6,7 @@ import {
   TrashIcon,
   EyeIcon,
   PencilSimpleIcon,
+  WarningCircleIcon,
 } from "@phosphor-icons/react";
 import {
   Dialog,
@@ -14,21 +15,53 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerDescription,
+  DrawerHeader,
+  DrawerTitle,
+} from "@/components/ui/drawer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-export function MemoryDetailView({ open, onOpenChange, submission, onAction, onEdit, actionPending }) {
-  const [editingCaption, setEditingCaption] = useState("");
-  const [editingOrder, setEditingOrder] = useState("");
+export function MemoryDetailView({ open, onOpenChange, submission, onAction, onEdit, actionPending, locations = [] }) {
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  
+  // Edit form state - consolidated to avoid cascading renders
+  const [formState, setFormState] = useState({
+    caption: "",
+    order: 0,
+    locationId: "",
+    description: "",
+    eventLabel: ""
+  });
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState(0);
   const [error, setError] = useState("");
+  const [imageFailed, setImageFailed] = useState(false);
 
-  React.useEffect(() => {
+  // Handle responsive behavior
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  // Initialize form state when modal opens
+  useEffect(() => {
     if (open && submission?.photos[selectedPhotoIndex]) {
       const photo = submission.photos[selectedPhotoIndex];
-      setEditingCaption(photo.caption || "");
-      setEditingOrder(photo.displayOrder ?? 0);
+      setFormState({
+        caption: photo.caption || "",
+        order: photo.displayOrder ?? 0,
+        locationId: photo.locationId || "",
+        description: photo.description || "",
+        eventLabel: photo.eventLabel || ""
+      });
       setError("");
+      setImageFailed(false);
     }
   }, [open, submission, selectedPhotoIndex]);
 
@@ -36,7 +69,19 @@ export function MemoryDetailView({ open, onOpenChange, submission, onAction, onE
 
   const photo = submission.photos[selectedPhotoIndex];
   const curated = submission.sourceType === "ADMIN_CURATED";
-  const [imageFailed, setImageFailed] = useState(false);
+
+  // Determine which fields are editable
+  const canEditLocation = curated;
+  const canEditEventLabel = curated;
+  const canEditDescription = curated;
+
+  // Track dirty state (unsaved changes)
+  const isDirty =
+    formState.caption !== (photo.caption || "") ||
+    formState.order !== (photo.displayOrder ?? 0) ||
+    (canEditLocation && formState.locationId !== (photo.locationId || "")) ||
+    (canEditDescription && formState.description !== (photo.description || "")) ||
+    (canEditEventLabel && formState.eventLabel !== (photo.eventLabel || ""));
 
   const handleAction = (actionName) => {
     if (["reject", "remove", "unpublish"].includes(actionName)) {
@@ -47,32 +92,64 @@ export function MemoryDetailView({ open, onOpenChange, submission, onAction, onE
   };
 
   const handleEdit = () => {
+    if (!isDirty) return;
     setError("");
-    onEdit({ id: photo.id, payload: { caption: editingCaption, displayOrder: Number(editingOrder) } });
+    
+    const payload = {
+      caption: formState.caption,
+      displayOrder: Number(formState.order),
+    };
+
+    // Include location for curated photos
+    if (canEditLocation && formState.locationId) {
+      payload.locationId = Number(formState.locationId);
+    }
+
+    // Include description and event label for curated photos
+    if (canEditDescription) {
+      payload.description = formState.description;
+    }
+    if (canEditEventLabel) {
+      payload.eventLabel = formState.eventLabel;
+    }
+
+    onEdit({ id: photo.id, payload });
   };
 
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto rounded-[20px]">
-        <DialogHeader>
-          <DialogTitle>
-            {curated ? "Curated Memory" : "Review Submission"}
-          </DialogTitle>
-          <DialogDescription>
-            {curated
-              ? submission.eventLabel || "Bro & Bro Memory"
-              : `${submission.customerName || "Customer"} · ${submission.eventType || "Party/Event"} · Order #${submission.orderId}`}
-          </DialogDescription>
-        </DialogHeader>
+  const currentLocation = locations.find(loc => String(loc.id) === String(formState.locationId));
+  const currentLocationName = currentLocation?.name || photo.locationName || "—";
 
-        {error && (
-          <div className="rounded-lg border border-[var(--cc-error)]/20 bg-[var(--cc-error-bg)] p-3 text-sm text-[var(--cc-error)]">
-            {error}
+  const ContentComponent = isMobile ? DrawerContent : DialogContent;
+  const HeaderComponent = isMobile ? DrawerHeader : DialogHeader;
+  const TitleComponent = isMobile ? DrawerTitle : DialogTitle;
+  const DescriptionComponent = isMobile ? DrawerDescription : DialogDescription;
+
+  const content = (
+    <>
+      <HeaderComponent>
+        <TitleComponent>
+          {curated ? "Edit Curated Memory" : "Review Submission"}
+        </TitleComponent>
+        <DescriptionComponent>
+          {curated
+            ? submission.eventLabel || "Bro & Bro Memory"
+            : `${submission.customerName || "Customer"} · ${submission.eventType || "Party/Event"} · Order #${submission.orderId}`}
+        </DescriptionComponent>
+      </HeaderComponent>
+
+      {error && (
+        <div className="mx-4 md:mx-0 rounded-lg border border-[var(--cc-error)]/20 bg-[var(--cc-error-bg)] p-3 text-sm text-[var(--cc-error)]">
+          <div className="flex gap-2">
+            <WarningCircleIcon size={16} className="shrink-0 mt-0.5" />
+            <div>{error}</div>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* Image Viewer */}
+      <div className="px-4 md:px-0 pb-20 md:pb-0 space-y-6">
+        {/* MEDIA SECTION */}
         <div className="space-y-3">
+          <h3 className="text-sm font-semibold text-[var(--cc-text)]">Media</h3>
           <div className="relative aspect-video bg-[var(--cc-page)] rounded-lg overflow-hidden">
             {imageFailed ? (
               <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
@@ -101,7 +178,7 @@ export function MemoryDetailView({ open, onOpenChange, submission, onAction, onE
 
           {/* Photo Navigation */}
           {submission.photos.length > 1 && (
-            <div className="flex gap-2 overflow-x-auto">
+            <div className="flex gap-2 overflow-x-auto pb-2">
               {submission.photos.map((p, idx) => (
                 <button
                   key={p.id}
@@ -126,9 +203,123 @@ export function MemoryDetailView({ open, onOpenChange, submission, onAction, onE
           )}
         </div>
 
-        {/* Metadata Section */}
+        {/* EDITABLE FIELDS SECTION */}
         <div className="space-y-4 border-t border-[var(--cc-border)] pt-4">
-          {/* Status */}
+          <h3 className="text-sm font-semibold text-[var(--cc-text)]">Memory Details</h3>
+
+          {/* Caption */}
+          <div>
+            <label className="text-sm font-medium text-muted-foreground block mb-2">
+              Caption
+            </label>
+            <Input
+              value={formState.caption}
+              onChange={(e) => setFormState(prev => ({ ...prev, caption: e.target.value }))}
+              placeholder="Add or edit caption"
+              maxLength={240}
+              className="h-10"
+              disabled={actionPending}
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              {formState.caption.length}/240
+            </p>
+          </div>
+
+          {/* Description - only for curated */}
+          {canEditDescription && (
+            <div>
+              <label className="text-sm font-medium text-muted-foreground block mb-2">
+                Description
+              </label>
+              <textarea
+                value={formState.description}
+                onChange={(e) => setFormState(prev => ({ ...prev, description: e.target.value }))}
+                placeholder="Optional description or admin notes"
+                maxLength={500}
+                rows={3}
+                className="w-full rounded-lg border border-[var(--cc-border)] bg-white px-3 py-2 text-sm"
+                disabled={actionPending}
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                {formState.description.length}/500
+              </p>
+            </div>
+          )}
+
+          {/* Display Order */}
+          <div>
+            <label className="text-sm font-medium text-muted-foreground block mb-2">
+              Display Order
+            </label>
+            <Input
+              type="number"
+              value={formState.order}
+              onChange={(e) => setFormState(prev => ({ ...prev, order: e.target.value }))}
+              min="0"
+              className="h-10"
+              disabled={actionPending}
+            />
+          </div>
+        </div>
+
+        {/* LOCATION SECTION - only for curated */}
+        {canEditLocation && (
+          <div className="space-y-4 border-t border-[var(--cc-border)] pt-4">
+            <h3 className="text-sm font-semibold text-[var(--cc-text)]">Location</h3>
+            <div>
+              <label className="text-sm font-medium text-muted-foreground block mb-2">
+                Location
+              </label>
+              <select
+                value={formState.locationId}
+                onChange={(e) => setFormState(prev => ({ ...prev, locationId: e.target.value }))}
+                className="w-full h-10 rounded-lg border border-[var(--cc-border)] bg-white px-3 text-sm"
+                disabled={actionPending}
+              >
+                <option value="">Select a location...</option>
+                {locations.map((loc) => (
+                  <option key={loc.id} value={loc.id}>
+                    {loc.name}
+                  </option>
+                ))}
+              </select>
+              {formState.locationId && currentLocation && (
+                <p className="text-xs text-muted-foreground mt-2">
+                  Selected: <span className="font-medium">{currentLocationName}</span>
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* EVENT LABEL - only for curated */}
+        {canEditEventLabel && (
+          <div className="space-y-4 border-t border-[var(--cc-border)] pt-4">
+            <h3 className="text-sm font-semibold text-[var(--cc-text)]">Event Label</h3>
+            <div>
+              <label className="text-sm font-medium text-muted-foreground block mb-2">
+                Event Label
+              </label>
+              <Input
+                value={formState.eventLabel}
+                onChange={(e) => setFormState(prev => ({ ...prev, eventLabel: e.target.value }))}
+                placeholder="e.g., Team Celebration, Client Visit"
+                maxLength={160}
+                className="h-10"
+                disabled={actionPending}
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                {formState.eventLabel.length}/160
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* PUBLICATION SECTION */}
+        <div className="space-y-4 border-t border-[var(--cc-border)] pt-4">
+          <h3 className="text-sm font-semibold text-[var(--cc-text)]">Publication</h3>
+          
+          {/* Status Badge */}
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium text-muted-foreground">Status</span>
             <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
@@ -144,81 +335,16 @@ export function MemoryDetailView({ open, onOpenChange, submission, onAction, onE
             </span>
           </div>
 
-          {/* Source & Consent */}
-          {!curated && (
-            <>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Customer</span>
-                <span className="font-medium text-[var(--cc-text)]">{photo.customerName || "—"}</span>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Consent</span>
-                <span className="font-medium text-[var(--cc-text)]">{photo.consentStatus || "—"}</span>
-              </div>
-            </>
-          )}
-
-          {curated && (
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Location</span>
-              <span className="font-medium text-[var(--cc-text)]">
-                {photo.global ? "Global" : photo.locationName || "—"}
-              </span>
-            </div>
-          )}
-
-          {/* Caption Editor */}
-          <div>
-            <label className="text-sm font-medium text-muted-foreground block mb-2">
-              Caption
-            </label>
-            <Input
-              value={editingCaption}
-              onChange={(e) => setEditingCaption(e.target.value)}
-              placeholder="Add or edit caption"
-              className="h-10"
-              disabled={actionPending}
-            />
-          </div>
-
-          {/* Display Order */}
-          <div>
-            <label className="text-sm font-medium text-muted-foreground block mb-2">
-              Display Order
-            </label>
-            <Input
-              type="number"
-              value={editingOrder}
-              onChange={(e) => setEditingOrder(e.target.value)}
-              min="0"
-              className="h-10"
-              disabled={actionPending}
-            />
-          </div>
-
-          {/* Save Metadata */}
-          <Button
-            variant="outline"
-            className="w-full"
-            onClick={handleEdit}
-            disabled={actionPending}
-          >
-            <PencilSimpleIcon size={16} />
-            Save Changes
-          </Button>
-        </div>
-
-        {/* Actions */}
-        <div className="border-t border-[var(--cc-border)] pt-4 space-y-2">
+          {/* Workflow Actions */}
           <div className="flex flex-wrap gap-2">
             {(photo.status === "PENDING_REVIEW" ||
               photo.status === "PENDING" ||
               photo.status === "UNPUBLISHED") && (
               <Button
                 size="sm"
-                variant="outline"
                 onClick={() => handleAction("approve")}
                 disabled={actionPending}
+                className="bg-[var(--cc-success)] hover:bg-[var(--cc-success)]/90 text-white"
               >
                 <CheckCircleIcon size={16} />
                 Approve
@@ -243,6 +369,7 @@ export function MemoryDetailView({ open, onOpenChange, submission, onAction, onE
                 size="sm"
                 onClick={() => handleAction("publish")}
                 disabled={actionPending}
+                className="bg-[var(--cc-info)] hover:bg-[var(--cc-info)]/90 text-white"
               >
                 <CheckCircleIcon size={16} />
                 Publish
@@ -259,19 +386,132 @@ export function MemoryDetailView({ open, onOpenChange, submission, onAction, onE
                 Unpublish
               </Button>
             )}
-            {photo.status !== "REMOVED" && (
-              <Button
-                size="icon"
-                variant="ghost"
-                className="text-destructive"
-                onClick={() => handleAction("remove")}
-                disabled={actionPending}
-              >
-                <TrashIcon size={17} />
-              </Button>
+          </div>
+        </div>
+
+        {/* SYSTEM INFORMATION SECTION */}
+        <div className="space-y-4 border-t border-[var(--cc-border)] pt-4">
+          <h3 className="text-sm font-semibold text-[var(--cc-text)]">System Information</h3>
+          
+          <div className="space-y-2 text-sm">
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">Source</span>
+              <span className="font-medium text-[var(--cc-text)]">
+                {photo.sourceType === "ADMIN_CURATED" ? "Admin Curated" : "Customer Upload"}
+              </span>
+            </div>
+
+            {!curated && (
+              <>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Customer</span>
+                  <span className="font-medium text-[var(--cc-text)]">{photo.customerName || "—"}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Consent</span>
+                  <span className="font-medium text-[var(--cc-text)]">{photo.consentStatus || "—"}</span>
+                </div>
+              </>
+            )}
+
+            {!canEditLocation && (
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Location</span>
+                <span className="font-medium text-[var(--cc-text)]">
+                  {photo.global ? "Global" : photo.locationName || "—"}
+                </span>
+              </div>
+            )}
+
+            {photo.orderId && (
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Order</span>
+                <span className="font-medium text-[var(--cc-text)]">#{photo.orderId}</span>
+              </div>
             )}
           </div>
         </div>
+
+        {/* DANGER ZONE */}
+        <div className="space-y-4 border-t border-[var(--cc-border)] pt-4">
+          <h3 className="text-sm font-semibold text-[var(--cc-error)]">Danger Zone</h3>
+          <p className="text-xs text-muted-foreground">
+            This action permanently removes the memory and cannot be undone.
+          </p>
+          {photo.status !== "REMOVED" && (
+            <Button
+              size="sm"
+              variant="destructive"
+              onClick={() => handleAction("remove")}
+              disabled={actionPending}
+              className="w-full"
+            >
+              <TrashIcon size={16} />
+              Delete Memory
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {/* Sticky Footer with Action Buttons - Mobile */}
+      {isMobile && (
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-[var(--cc-border)] p-4 flex gap-3">
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={actionPending || isDirty}
+            className="flex-1"
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleEdit}
+            disabled={!isDirty || actionPending}
+            className="flex-1 bg-[var(--cc-primary)] hover:bg-[var(--cc-primary-dark)] text-white"
+          >
+            <PencilSimpleIcon size={16} />
+            Save Changes
+          </Button>
+        </div>
+      )}
+
+      {/* Desktop Footer */}
+      {!isMobile && (
+        <div className="flex gap-3 pt-4 border-t border-[var(--cc-border)]">
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={actionPending || isDirty}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleEdit}
+            disabled={!isDirty || actionPending}
+            className="bg-[var(--cc-primary)] hover:bg-[var(--cc-primary-dark)] text-white ml-auto"
+          >
+            <PencilSimpleIcon size={16} />
+            Save Changes
+          </Button>
+        </div>
+      )}
+    </>
+  );
+
+  if (isMobile) {
+    return (
+      <Drawer open={open} onOpenChange={onOpenChange}>
+        <DrawerContent className="max-h-[85vh]">
+          {content}
+        </DrawerContent>
+      </Drawer>
+    );
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto rounded-[20px]">
+        {content}
       </DialogContent>
     </Dialog>
   );

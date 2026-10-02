@@ -325,6 +325,7 @@ function HallOfHappinessAdminPage() {
           onAction={action.mutate}
           onEdit={edit.mutate}
           actionPending={action.isPending || edit.isPending}
+          locations={locations}
         />
       )}
 
