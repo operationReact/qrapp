@@ -125,6 +125,12 @@ jobs:
           WHATSAPP_PHONE_NUMBER_ID=$(get_optional_parameter "/broandbro/backend/prod/whatsapp/phoneNumberId")
           WHATSAPP_ACCESS_TOKEN=$(get_optional_parameter "/broandbro/backend/prod/whatsapp/accessToken")
 
+          for VARIABLE in DB_URL DB_USERNAME DB_PASSWORD OPENAI_API_KEY RAZORPAY_KEY RAZORPAY_SECRET RAZORPAY_WEBHOOK_SECRET WHATSAPP_WEBHOOK_VERIFY_TOKEN WHATSAPP_APP_SECRET WHATSAPP_PHONE_NUMBER_ID WHATSAPP_ACCESS_TOKEN; do
+            if [ -n "${!VARIABLE}" ]; then
+              printf '::add-mask::%s\n' "${!VARIABLE}"
+            fi
+          done
+
           # Store in environment for next step
           echo "DB_URL=$DB_URL" >> $GITHUB_ENV
           echo "DB_USERNAME=$DB_USERNAME" >> $GITHUB_ENV
@@ -328,21 +334,39 @@ jobs:
             sudo systemctl reload nginx
             sudo ss -ltn '( sport = :443 )' | grep -q LISTEN
             echo "HTTPS is listening on port 443"
-            curl --fail --silent --show-error --retry 10 --retry-delay 5 \
-              "https://api.broandbro.in/api/payment/config" > /dev/null
-            echo "Production API HTTPS smoke test passed"
 
-            # Wait up to 90s for healthy startup (prod needs a bit more time)
-            for i in $(seq 1 18); do
-              sleep 5
-              STATUS=$(sudo systemctl is-active broandbro 2>/dev/null || echo "inactive")
-              echo "[$i/18] Service status: $STATUS"
-              if [ "$STATUS" = "active" ]; then
-                echo "✅ broandbro started successfully"
-                exit 0
+            # Type=simple becomes active before Spring Boot is ready to serve HTTP.
+            READY=false
+            DEADLINE=$((SECONDS + 180))
+            while [ "$SECONDS" -lt "$DEADLINE" ]; do
+              STATUS=$(sudo systemctl is-active broandbro 2>/dev/null || true)
+              HTTP_STATUS=$(curl --silent --show-error --output /dev/null \
+                --write-out '%{http_code}' --connect-timeout 2 --max-time 5 \
+                "http://127.0.0.1:8080/api/payment/config" || true)
+              echo "Service status: $STATUS; local API HTTP status: $HTTP_STATUS"
+              if [ "$STATUS" = "active" ] && [ "$HTTP_STATUS" = "200" ]; then
+                READY=true
+                echo "✅ broandbro is serving HTTP requests"
+                break
               fi
+              sleep 5
             done
-            echo "❌ Service failed to start" && sudo journalctl -u broandbro -n 50 --no-pager && exit 1
+            if [ "$READY" != "true" ]; then
+              echo "❌ Backend did not become HTTP-ready within 180 seconds"
+              sudo journalctl -u broandbro -n 100 --no-pager || true
+              sudo ss -ltn '( sport = :8080 or sport = :443 )' || true
+              exit 1
+            fi
+
+            if ! curl --fail --silent --show-error --retry 10 --retry-delay 5 \
+              --connect-timeout 5 --max-time 10 \
+              "https://api.broandbro.in/api/payment/config" > /dev/null; then
+              echo "❌ Production HTTPS smoke test failed after local API readiness"
+              sudo journalctl -u broandbro -n 100 --no-pager || true
+              sudo ss -ltn '( sport = :8080 or sport = :443 )' || true
+              exit 1
+            fi
+            echo "Production API HTTPS smoke test passed"
           ENDSSH
 
       # ── 10. Cleanup ───────────────────────────────────────────────────────────
