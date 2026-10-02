@@ -198,37 +198,37 @@ export default function HomeContentPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background pb-32">
+    <div className="min-h-screen w-full min-w-0 overflow-x-hidden bg-background pb-32">
       <AdminHeader
         title="Home Content"
         subtitle="Manage the customer Home page hero billboard, discovery tiles and promotion cards"
         className="sr-only"
       />
 
-      <div className="px-4 pb-6 pt-4 space-y-4 md:space-y-6">
+      <div className="mx-auto w-full min-w-0 max-w-screen-2xl space-y-4 px-3 pb-24 pt-3 sm:px-4 sm:pb-6 sm:pt-4 md:space-y-6">
         {/* KPI strip */}
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="grid min-w-0 grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
           {[
             { label: "Total", value: campaigns.length },
             { label: "Active", value: campaigns.filter((c) => c.isActive).length },
             { label: "Hero slides", value: campaigns.filter((c) => c.type === "HERO").length },
             { label: "Global", value: campaigns.filter((c) => c.locationId == null).length },
           ].map((k) => (
-            <div key={k.label} className="rounded-lg bg-card p-4">
-              <p className="text-sm font-medium text-primary">{k.label}</p>
-              <p className="text-2xl font-semibold">{k.value}</p>
+            <div key={k.label} className="min-w-0 rounded-lg bg-card p-3 sm:p-4">
+              <p className="truncate text-xs font-medium text-primary sm:text-sm">{k.label}</p>
+              <p className="mt-0.5 text-xl font-semibold leading-none sm:mt-1 sm:text-2xl">{k.value}</p>
             </div>
           ))}
         </div>
 
         <div>
-          <div className="flex items-center justify-between mb-4">
+          <div className="mb-3 flex flex-col gap-3 sm:mb-4 sm:flex-row sm:items-center sm:justify-between">
             <h2 className="text-base font-semibold">All Campaigns</h2>
             <Button
               onClick={() => setCreateOpen(true)}
               size="sm"
               variant="branded-secondary"
-              className="gap-1.5"
+              className="w-full gap-1.5 sm:w-auto"
             >
               <PlusIcon className="size-4" />
               New Campaign
@@ -238,7 +238,7 @@ export default function HomeContentPage() {
           {isLoading ? (
             <p className="text-sm text-muted-foreground">Loading…</p>
           ) : campaigns.length === 0 ? (
-            <Empty className="border bg-white">
+            <Empty className="min-w-0 border bg-white px-4">
               <EmptyHeader>
                 <EmptyMedia variant="icon">
                   <SparkleIcon />
@@ -249,8 +249,9 @@ export default function HomeContentPage() {
               </EmptyHeader>
             </Empty>
           ) : (
-            <div className="rounded-lg border bg-card overflow-hidden">
-              <Table>
+            <>
+              <div className="hidden overflow-hidden rounded-lg border bg-card md:block">
+                <Table className="min-w-[760px]">
                 <TableHeader>
                   <TableRow>
                     <TableHead>Title</TableHead>
@@ -326,15 +327,90 @@ export default function HomeContentPage() {
                     </TableRow>
                   ))}
                 </TableBody>
-              </Table>
-            </div>
+                </Table>
+              </div>
+
+              <div className="space-y-3 md:hidden">
+                {campaigns.map((c) => (
+                  <article key={c.id} className="min-w-0 rounded-lg border bg-card p-3">
+                    <div className="flex min-w-0 items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <h3 className="break-words text-sm font-semibold">{c.title}</h3>
+                        {c.subtitle && (
+                          <p className="mt-0.5 break-words text-xs text-muted-foreground">
+                            {c.subtitle}
+                          </p>
+                        )}
+                      </div>
+                      <Badge className="shrink-0" variant="outline">
+                        {RAIL_LABEL[c.type] ?? c.type}
+                      </Badge>
+                    </div>
+
+                    <div className="mt-3 grid min-w-0 grid-cols-2 gap-2 text-xs">
+                      <div className="min-w-0">
+                        <p className="text-muted-foreground">Location</p>
+                        <p className="break-words font-medium">
+                          {c.locationId == null ? "🌐 Global" : c.locationName ?? c.locationId}
+                        </p>
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-muted-foreground">Date range</p>
+                        <p className="break-words font-medium">
+                          {formatDate(c.startsAt)} – {formatDate(c.endsAt)}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t pt-3">
+                      <div className="flex min-w-0 items-center gap-2">
+                        <Switch
+                          checked={c.isActive}
+                          onCheckedChange={(v) => handleToggle(c, v)}
+                        />
+                        <Badge variant={c.isActive ? "default" : "secondary"}>
+                          {c.isActive ? "Active" : "Inactive"}
+                        </Badge>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          onClick={() => duplicateMut.mutate(c.id)}
+                          title="Duplicate"
+                        >
+                          <CopySimpleIcon className="size-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          onClick={() => setEditTarget(c)}
+                          title="Edit"
+                        >
+                          <PencilSimpleIcon className="size-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          className="text-destructive hover:text-destructive"
+                          onClick={() => setDeleteTarget(c)}
+                          title="Delete"
+                        >
+                          <TrashIcon className="size-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </>
           )}
         </div>
       </div>
 
       {/* Create dialog */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-h-[90vh] w-[calc(100%-1rem)] max-w-2xl overflow-y-auto p-4 sm:p-6">
           <DialogHeader>
             <DialogTitle>New Home Campaign</DialogTitle>
             <DialogDescription>
@@ -354,7 +430,7 @@ export default function HomeContentPage() {
         open={!!editTarget}
         onOpenChange={(v) => !v && setEditTarget(null)}
       >
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-h-[90vh] w-[calc(100%-1rem)] max-w-2xl overflow-y-auto p-4 sm:p-6">
           <DialogHeader>
             <DialogTitle>Edit Campaign</DialogTitle>
             <DialogDescription>Update content, scheduling and targeting.</DialogDescription>
@@ -384,7 +460,7 @@ export default function HomeContentPage() {
         open={!!deleteTarget}
         onOpenChange={(v) => !v && setDeleteTarget(null)}
       >
-        <DialogContent>
+        <DialogContent className="w-[calc(100%-1rem)] p-4 sm:p-6">
           <DialogHeader>
             <DialogTitle>Delete Campaign</DialogTitle>
             <DialogDescription>

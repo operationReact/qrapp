@@ -12,7 +12,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2 } from 'lucide-react';
-import { generateCampaignImagePreview, applyCampaignImage } from '../../services/campaignImageService';
+import {
+  generateCampaignImagePreview,
+  applyCampaignImage,
+} from "@/services/campaignImageService";
 
 /**
  * Modal for AI-generated campaign hero billboard image preview and application.
@@ -117,7 +120,7 @@ export default function CampaignImageGenerationModal({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-h-[90vh] w-[calc(100%-1rem)] max-w-lg overflow-y-auto p-4 sm:p-6">
         <DialogHeader>
           <DialogTitle>Generate Campaign Hero Image</DialogTitle>
           <DialogDescription>

@@ -309,7 +309,7 @@ export default function HomeCampaignForm({
             </Button>
             {pendingImageFile && (
               <span className="text-xs text-muted-foreground">
-                {pendingImageFile.name}
+                <span className="min-w-0 max-w-full truncate">{pendingImageFile.name}</span>
               </span>
             )}
           </div>
@@ -319,7 +319,7 @@ export default function HomeCampaignForm({
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Field>
           <FieldLabel htmlFor="hc-type">Rail *</FieldLabel>
           <FieldContent>
@@ -362,7 +362,7 @@ export default function HomeCampaignForm({
         </FieldContent>
       </Field>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Field>
           <FieldLabel htmlFor="hc-badge">Badge</FieldLabel>
           <FieldContent>
@@ -384,7 +384,7 @@ export default function HomeCampaignForm({
         </FieldContent>
       </Field>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Field>
           <FieldLabel htmlFor="hc-target-type">Tap action</FieldLabel>
           <FieldContent>
@@ -430,7 +430,7 @@ export default function HomeCampaignForm({
         </Field>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Field>
           <FieldLabel htmlFor="hc-visual">Visual style</FieldLabel>
           <FieldContent>
@@ -460,7 +460,7 @@ export default function HomeCampaignForm({
         </Field>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Field>
           <FieldLabel htmlFor="hc-starts">Starts at</FieldLabel>
           <FieldContent>
@@ -475,7 +475,10 @@ export default function HomeCampaignForm({
         </Field>
       </div>
 
-      <Field orientation="horizontal">
+      <Field
+        orientation="horizontal"
+        className="flex-col! items-start gap-3 sm:flex-row! sm:items-center"
+      >
         <FieldLabel htmlFor="hc-active">Active</FieldLabel>
         <FieldContent>
           <FieldDescription>Inactive campaigns never appear on the customer Home page.</FieldDescription>
