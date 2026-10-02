@@ -13,7 +13,6 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,12 +21,14 @@ export function MemoryDetailView({ open, onOpenChange, submission, onAction, onE
   const [editingCaption, setEditingCaption] = useState("");
   const [editingOrder, setEditingOrder] = useState("");
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState(0);
+  const [error, setError] = useState("");
 
   React.useEffect(() => {
     if (open && submission?.photos[selectedPhotoIndex]) {
       const photo = submission.photos[selectedPhotoIndex];
       setEditingCaption(photo.caption || "");
       setEditingOrder(photo.displayOrder ?? 0);
+      setError("");
     }
   }, [open, submission, selectedPhotoIndex]);
 
@@ -41,10 +42,12 @@ export function MemoryDetailView({ open, onOpenChange, submission, onAction, onE
     if (["reject", "remove", "unpublish"].includes(actionName)) {
       if (!window.confirm(`Confirm ${actionName} for this photo?`)) return;
     }
+    setError("");
     onAction({ id: photo.id, name: actionName });
   };
 
   const handleEdit = () => {
+    setError("");
     onEdit({ id: photo.id, payload: { caption: editingCaption, displayOrder: Number(editingOrder) } });
   };
 
@@ -61,6 +64,12 @@ export function MemoryDetailView({ open, onOpenChange, submission, onAction, onE
               : `${submission.customerName || "Customer"} · ${submission.eventType || "Party/Event"} · Order #${submission.orderId}`}
           </DialogDescription>
         </DialogHeader>
+
+        {error && (
+          <div className="rounded-lg border border-[var(--cc-error)]/20 bg-[var(--cc-error-bg)] p-3 text-sm text-[var(--cc-error)]">
+            {error}
+          </div>
+        )}
 
         {/* Image Viewer */}
         <div className="space-y-3">
@@ -96,7 +105,10 @@ export function MemoryDetailView({ open, onOpenChange, submission, onAction, onE
               {submission.photos.map((p, idx) => (
                 <button
                   key={p.id}
-                  onClick={() => setSelectedPhotoIndex(idx)}
+                  onClick={() => {
+                    setSelectedPhotoIndex(idx);
+                    setError("");
+                  }}
                   className={`flex-shrink-0 h-16 w-16 rounded-lg overflow-hidden border-2 transition ${
                     idx === selectedPhotoIndex
                       ? "border-[var(--cc-primary)]"
@@ -165,6 +177,7 @@ export function MemoryDetailView({ open, onOpenChange, submission, onAction, onE
               onChange={(e) => setEditingCaption(e.target.value)}
               placeholder="Add or edit caption"
               className="h-10"
+              disabled={actionPending}
             />
           </div>
 
@@ -179,6 +192,7 @@ export function MemoryDetailView({ open, onOpenChange, submission, onAction, onE
               onChange={(e) => setEditingOrder(e.target.value)}
               min="0"
               className="h-10"
+              disabled={actionPending}
             />
           </div>
 

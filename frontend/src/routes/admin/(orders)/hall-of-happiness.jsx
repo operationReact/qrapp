@@ -87,14 +87,35 @@ function HallOfHappinessAdminPage() {
   const action = useMutation({
     mutationFn: ({ id, name }) => runHallPhotoAction(id, name),
     onSuccess: refresh,
-    onError: () => toast.error(`Failed to ${name} photo`),
+    onError: (error, { name }) => {
+      if (error.response?.data?.message === "photo_removed") {
+        toast.warning("This photo has been removed. Refreshing...");
+        setTimeout(() => {
+          refresh();
+          setSelectedSubmission(null);
+        }, 500);
+      } else {
+        toast.error(`Failed to ${name} photo. Please try again.`);
+      }
+    },
   });
 
   // Edit photo metadata
   const edit = useMutation({
     mutationFn: ({ id, payload }) => updateAdminHallPhoto(id, payload),
     onSuccess: refresh,
-    onError: () => toast.error("Failed to save changes"),
+    onError: (error) => {
+      // Check if photo was removed
+      if (error.response?.data?.message === "photo_removed") {
+        toast.warning("This photo has been removed. Refreshing...");
+        setTimeout(() => {
+          refresh();
+          setSelectedSubmission(null);
+        }, 500);
+      } else {
+        toast.error("Failed to save changes. Please try again.");
+      }
+    },
   });
 
   // Create curated photo
