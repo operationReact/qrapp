@@ -8,11 +8,14 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2 } from 'lucide-react';
-import { generateCampaignImagePreview, applyCampaignImage } from '../../services/campaignImageService';
+import {
+  generateCampaignImagePreview,
+  applyCampaignImage,
+} from "@/services/campaignImageService";
 
 /**
  * Modal for AI-generated campaign hero billboard image preview and application.
@@ -59,6 +62,7 @@ export default function CampaignImageGenerationModal({
         campaignId,
         locationId,
         creativeDirection || null,
+        generatedImageUrl ? [generatedImageUrl] : [],
       );
 
       // Store previous URL for cleanup on regenerate
@@ -116,7 +120,7 @@ export default function CampaignImageGenerationModal({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-h-[90vh] w-[calc(100%-1rem)] max-w-lg overflow-y-auto p-4 sm:p-6">
         <DialogHeader>
           <DialogTitle>Generate Campaign Hero Image</DialogTitle>
           <DialogDescription>
@@ -149,16 +153,17 @@ export default function CampaignImageGenerationModal({
           {/* Creative direction input */}
           <div className="space-y-2">
             <Label htmlFor="creative-direction">Creative Direction (Optional)</Label>
-            <Input
+            <Textarea
               id="creative-direction"
-              placeholder="e.g., 'warm lighting, vibrant colors, close-up shot'"
+              placeholder="e.g., warm lighting, vibrant colors, appetizing food"
               value={creativeDirection}
               onChange={(e) => setCreativeDirection(e.target.value)}
               disabled={isGenerating || isApplying}
-              className="min-h-20"
+              maxLength={300}
+              className="min-h-20 resize-none"
             />
             <p className="text-xs text-muted-foreground">
-              Optional hints to guide the AI image generation
+              Keep it short. AI creates the artwork only; campaign text stays in the UI.
             </p>
           </div>
 
@@ -167,7 +172,7 @@ export default function CampaignImageGenerationModal({
             <div className="rounded-lg border bg-muted p-3">
               <Label className="text-xs font-semibold">Generated Preview</Label>
               <div
-                className="w-full h-40 bg-muted rounded-lg mt-2"
+                className="mt-2 aspect-video w-full overflow-hidden rounded-lg bg-muted"
                 style={{
                   backgroundImage: `url(${generatedImageUrl})`,
                   backgroundSize: 'cover',
@@ -218,7 +223,7 @@ export default function CampaignImageGenerationModal({
                 disabled={isGenerating || isApplying}
               >
                 {isApplying && <Loader2 className="size-4 mr-2 animate-spin" />}
-                {isApplying ? 'Applying...' : 'Use This Image'}
+                {isApplying ? 'Applying...' : 'Use Image'}
               </Button>
             </>
           )}

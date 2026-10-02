@@ -7,6 +7,7 @@ import com.broandbro.qrapp.campaign.service.CampaignImageGenerationService;
 import com.broandbro.qrapp.dto.openai.ImageGenerationRequest;
 import com.broandbro.qrapp.dto.openai.ImageGenerationOptionsResponse;
 import com.broandbro.qrapp.entity.User;
+import com.broandbro.qrapp.prompt.CampaignImagePromptBuilder;
 import com.broandbro.qrapp.service.LocationAccessService;
 import com.broandbro.qrapp.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -40,6 +41,7 @@ public class HomeCampaignAdminController {
 
     private final HomeCampaignService campaignService;
     private final CampaignImageGenerationService campaignImageGenerationService;
+    private final CampaignImagePromptBuilder campaignImagePromptBuilder;
     private final LocationAccessService locationAccessService;
     private final UserService userService;
 
@@ -155,17 +157,23 @@ public class HomeCampaignAdminController {
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Generate AI hero image for a campaign")
     public ResponseEntity<ImageGenerationOptionsResponse> generateImage(@PathVariable Long id,
-                                                                        @RequestBody(required = false) ImageGenerationRequest request,
+                                                                        @Valid @RequestBody(required = false) ImageGenerationRequest request,
                                                                         @RequestParam(required = false) Long locationId,
                                                                         Authentication auth) {
         User user = requireUser(auth);
         String creativeDirection = (request != null) ? request.getCreativeDirection() : null;
+        java.util.List<String> previousGeneratedUrls = request != null
+                ? request.getPreviousGeneratedUrls() : java.util.List.of();
         
-        java.util.List<String> urls = campaignImageGenerationService.generateImageOptions(id, creativeDirection, user);
+        java.util.List<String> urls = campaignImageGenerationService.generateImageOptions(
+                id, creativeDirection, previousGeneratedUrls, user);
+        HomeCampaignResponse campaign = campaignService.getById(id, resolveScope(user, locationId));
         
         ImageGenerationOptionsResponse response = ImageGenerationOptionsResponse.builder()
                 .campaignId(id)
                 .imageUrls(urls)
+                .imagePrompt(campaignImagePromptBuilder.buildCampaignHeroPrompt(
+                        campaign.title(), campaign.badge(), null, creativeDirection))
                 .build();
         
         return ResponseEntity.ok(response);

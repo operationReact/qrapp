@@ -31,8 +31,16 @@ public interface ImageGenerationService {
     }
 
     /**
+     * Generates an image from a fully composed prompt for non-menu use cases.
+     *
+     * @param prompt the complete artwork prompt
+     * @param size provider-supported image dimensions
+     * @return raw image bytes
+     */
+    byte[] generateImageFromPrompt(String prompt, String size);
+
+    /**
      * Returns the name of the underlying provider (e.g. "openai", "stability").
      */
     String getProviderName();
 }
-

@@ -41,6 +41,8 @@ import java.util.stream.IntStream;
 @RequiredArgsConstructor
 public class CampaignImageGenerationService {
 
+    private static final String HERO_IMAGE_SIZE = "1536x1024";
+
     private final HomeCampaignRepository campaignRepository;
     private final ImageGenerationService imageGenerationService;
     private final ImageStorageService imageStorageService;
@@ -59,7 +61,8 @@ public class CampaignImageGenerationService {
      * @throws OpenAiImageGenerationException on generation/storage failure
      * @throws org.springframework.security.access.AccessDeniedException if auth fails
      */
-    public List<String> generateImageOptions(Long campaignId, String creativeDirection, User actor) {
+    public List<String> generateImageOptions(Long campaignId, String creativeDirection,
+                                             List<String> previousGeneratedUrls, User actor) {
         log.info("[CampaignImgGen] Generation requested for campaignId={} hasCreativeDirection={}", 
                  campaignId, creativeDirection != null && !creativeDirection.isBlank());
 
@@ -75,6 +78,19 @@ public class CampaignImageGenerationService {
             locationAccessService.requireSuperAdmin(actor);
         }
 
+        if (previousGeneratedUrls != null) {
+            previousGeneratedUrls.stream()
+                    .filter(url -> url != null && !url.isBlank())
+                    .forEach(url -> {
+                        try {
+                            imageStorageService.deleteImageByUrl(url);
+                        } catch (RuntimeException e) {
+                            log.warn("[CampaignImgGen] Could not clean up previous preview {}: {}",
+                                    url, e.getMessage());
+                        }
+                    });
+        }
+
         // Build prompt
         String prompt = promptBuilder.buildCampaignHeroPrompt(
                 campaign.getTitle(),
@@ -87,17 +103,16 @@ public class CampaignImageGenerationService {
 
         try {
             // Generate image bytes
-            byte[] imageBytes = imageGenerationService.generateFoodImage(
-                    campaign.getTitle(),
-                    campaign.getBadge(),
-                    null // not a veg/non-veg decision
+            byte[] imageBytes = imageGenerationService.generateImageFromPrompt(
+                    prompt,
+                    HERO_IMAGE_SIZE
             );
 
             log.info("[CampaignImgGen] AI image received ({} KB). Uploading to storage...", imageBytes.length / 1024);
 
             // Upload to S3
             String folder = buildStorageFolder(campaign);
-            String imageUrl = imageStorageService.uploadImage(imageBytes, folder, "image/jpeg");
+            String imageUrl = imageStorageService.uploadImage(imageBytes, folder, "image/png");
 
             log.info("[CampaignImgGen] SUCCESS for campaignId={}. URL={}", campaignId, imageUrl);
 

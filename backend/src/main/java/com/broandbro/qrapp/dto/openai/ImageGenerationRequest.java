@@ -3,6 +3,7 @@ package com.broandbro.qrapp.dto.openai;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
+import jakarta.validation.constraints.Size;
 
 /**
  * Request body for campaign/category image generation endpoints.
@@ -17,6 +18,7 @@ public class ImageGenerationRequest {
      * Optional creative direction hint from admin.
      * Example: "warm golden lighting, luxurious presentation"
      */
+    @Size(max = 300, message = "creativeDirection must be at most 300 characters")
     private String creativeDirection;
     
     /**

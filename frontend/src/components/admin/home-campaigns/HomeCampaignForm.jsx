@@ -4,6 +4,13 @@ import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import {
   Field,
@@ -79,6 +86,7 @@ export default function HomeCampaignForm({
   const [isActive, setIsActive] = useState(initialData?.isActive ?? true);
   const [startsAt, setStartsAt] = useState(toLocalDateTimeInput(initialData?.startsAt));
   const [endsAt, setEndsAt] = useState(toLocalDateTimeInput(initialData?.endsAt));
+  const [pendingImageFile, setPendingImageFile] = useState(null);
 
   const fileInputRef = useRef(null);
   const mobileFileInputRef = useRef(null);
@@ -88,10 +96,7 @@ export default function HomeCampaignForm({
       ? [...BASE_TYPE_OPTIONS, { value: type, label: `${type} (legacy, read-only)` }]
       : BASE_TYPE_OPTIONS;
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!title.trim()) return;
-    onSubmit({
+  const buildPayload = () => ({
       type,
       locationId: locationId === "" ? null : Number(locationId),
       badge: badge.trim() || null,
@@ -107,7 +112,21 @@ export default function HomeCampaignForm({
       isActive,
       startsAt: startsAt ? new Date(startsAt).toISOString() : null,
       endsAt: endsAt ? new Date(endsAt).toISOString() : null,
-    });
+  });
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!title.trim()) return;
+    onSubmit(buildPayload(), { imageFile: pendingImageFile });
+  };
+
+  const handleGenerateWithAI = () => {
+    if (!title.trim() || !onOpenAIModal) return;
+    if (initialData?.id) {
+      onOpenAIModal(initialData.id, initialData.title);
+      return;
+    }
+    onOpenAIModal({ data: buildPayload() });
   };
 
   return (
@@ -261,12 +280,53 @@ export default function HomeCampaignForm({
         </div>
       )}
       {!initialData?.id && (
-        <p className="rounded-lg border border-dashed p-3 text-xs text-muted-foreground">
-          Save the campaign first to unlock image upload.
-        </p>
+        <div className="space-y-2">
+          <Label>Campaign image</Label>
+          <div className="flex flex-wrap items-center gap-2 rounded-lg border border-dashed p-3">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              className="hidden"
+              onChange={(e) => {
+                setPendingImageFile(e.target.files?.[0] ?? null);
+                e.target.value = "";
+              }}
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => fileInputRef.current?.click()}
+              className="gap-1.5"
+            >
+              <UploadSimpleIcon className="size-4" />
+              Upload Image
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleGenerateWithAI}
+              disabled={!onOpenAIModal}
+              className="gap-1.5"
+            >
+              <SparkleIcon className="size-4" />
+              Generate with AI
+            </Button>
+            {pendingImageFile && (
+              <span className="text-xs text-muted-foreground">
+                <span className="min-w-0 max-w-full truncate">{pendingImageFile.name}</span>
+              </span>
+            )}
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Upload an image now, or save this campaign draft to generate a hero image with AI.
+          </p>
+        </div>
       )}
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Field>
           <FieldLabel htmlFor="hc-type">Rail *</FieldLabel>
           <FieldContent>
@@ -309,7 +369,7 @@ export default function HomeCampaignForm({
         </FieldContent>
       </Field>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Field>
           <FieldLabel htmlFor="hc-badge">Badge</FieldLabel>
           <FieldContent>
@@ -331,20 +391,32 @@ export default function HomeCampaignForm({
         </FieldContent>
       </Field>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Field>
           <FieldLabel htmlFor="hc-target-type">Tap action</FieldLabel>
           <FieldContent>
-            <select
-              id="hc-target-type"
+            <Select
               value={targetType}
-              onChange={(e) => setTargetType(e.target.value)}
-              className="h-9 w-full rounded-md border bg-background px-2 text-sm"
+              onValueChange={setTargetType}
             >
-              {TARGET_TYPE_OPTIONS.map((t) => (
-                <option key={t.value} value={t.value}>{t.label}</option>
-              ))}
-            </select>
+              <SelectTrigger
+                id="hc-target-type"
+                className="h-[50px] w-full max-w-full rounded-[13px] border-[#E6E0DB] bg-[#FFFCF9] px-3.5 text-[15px] font-medium text-[#77716D] shadow-none focus-visible:border-[#FF2438] focus-visible:ring-2 focus-visible:ring-[#FF2438]/20"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="max-w-[calc(100vw-1.5rem)] border-[#E6E0DB] bg-[#FFFCF9] p-1">
+                {TARGET_TYPE_OPTIONS.map((t) => (
+                  <SelectItem
+                    key={t.value}
+                    value={t.value}
+                    className="min-h-11 rounded-[10px] px-3 py-2.5 text-sm data-[selected]:font-semibold data-[selected]:text-primary data-[highlighted]:bg-primary/10 data-[highlighted]:text-primary"
+                  >
+                    {t.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </FieldContent>
         </Field>
         <Field>
@@ -377,7 +449,7 @@ export default function HomeCampaignForm({
         </Field>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Field>
           <FieldLabel htmlFor="hc-visual">Visual style</FieldLabel>
           <FieldContent>
@@ -407,7 +479,7 @@ export default function HomeCampaignForm({
         </Field>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Field>
           <FieldLabel htmlFor="hc-starts">Starts at</FieldLabel>
           <FieldContent>
@@ -422,7 +494,10 @@ export default function HomeCampaignForm({
         </Field>
       </div>
 
-      <Field orientation="horizontal">
+      <Field
+        orientation="horizontal"
+        className="flex-col! items-start gap-3 sm:flex-row! sm:items-center"
+      >
         <FieldLabel htmlFor="hc-active">Active</FieldLabel>
         <FieldContent>
           <FieldDescription>Inactive campaigns never appear on the customer Home page.</FieldDescription>
