@@ -1,5 +1,5 @@
 -- =============================================================================
--- V102__add_category_image_fields.sql
+-- V103__add_category_image_fields.sql
 -- Enhances the Category model with an optional rich food image (manual upload
 -- or admin-accepted AI generation) and an explicit display order, while
 -- keeping the existing client-side icon resolver as the automatic fallback
