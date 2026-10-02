@@ -40,6 +40,7 @@ import {
 } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import HomeCampaignForm from "@/components/admin/home-campaigns/HomeCampaignForm";
+import CampaignImageGenerationModal from "@/components/admin/CampaignImageGenerationModal";
 import {
   Empty,
   EmptyDescription,
@@ -67,6 +68,11 @@ export default function HomeContentPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [editTarget, setEditTarget] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [aiModalOpen, setAiModalOpen] = useState(false);
+  const [aiGenerationState, setAiGenerationState] = useState({
+    campaignId: null,
+    campaignName: null,
+  });
 
   const { data: campaigns = [], isLoading } = useQuery(
     homeCampaignAdminListOptions(),
@@ -145,6 +151,18 @@ export default function HomeContentPage() {
 
   const handleToggle = (campaign, active) => {
     statusMut.mutate({ id: campaign.id, isActive: active });
+  };
+
+  const handleOpenAIModal = (campaignId, campaignName) => {
+    setAiGenerationState({ campaignId, campaignName });
+    setAiModalOpen(true);
+  };
+
+  const handleAIImageApplied = (updated) => {
+    setAiModalOpen(false);
+    setEditTarget(updated);
+    invalidate();
+    toast.success("Campaign image generated and applied");
   };
 
   return (
@@ -320,6 +338,9 @@ export default function HomeContentPage() {
               onRemoveImage={(options) =>
                 removeImageMut.mutate({ id: editTarget.id, options })
               }
+              onOpenAIModal={(campaignId, campaignName) =>
+                handleOpenAIModal(campaignId, campaignName)
+              }
             />
           )}
         </DialogContent>
@@ -352,6 +373,19 @@ export default function HomeContentPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* AI Image Generation Modal */}
+      {editTarget && (
+        <CampaignImageGenerationModal
+          open={aiModalOpen}
+          campaignId={aiGenerationState.campaignId}
+          campaignName={aiGenerationState.campaignName}
+          locationId={editTarget.locationId}
+          currentImageUrl={editTarget.imageUrl}
+          onClose={() => setAiModalOpen(false)}
+          onImageApplied={handleAIImageApplied}
+        />
+      )}
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import React, { useRef, useState } from "react";
 import PropTypes from "prop-types";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,7 @@ import {
   FieldDescription,
   FieldLabel,
 } from "@/components/ui/field";
-import { ImageIcon, TrashIcon, UploadSimpleIcon } from "@phosphor-icons/react";
+import { ImageIcon, TrashIcon, UploadSimpleIcon, SparklesIcon } from "@phosphor-icons/react";
 import { useAuth } from "@/context/AuthContext";
 import { useLocation as useActiveLocation } from "@/context/LocationContext";
 import { canSelectAllLocations } from "@/lib/roles";
@@ -56,6 +56,7 @@ export default function HomeCampaignForm({
   onUploadImage,
   onRemoveImage,
   uploadingImage,
+  onOpenAIModal,
 }) {
   const { user } = useAuth();
   const { activeLocationId } = useActiveLocation();
@@ -188,6 +189,19 @@ export default function HomeCampaignForm({
               <UploadSimpleIcon className="size-4" />
               {initialData.imageUrl ? "Replace" : "Upload"}
             </Button>
+            {onOpenAIModal && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={uploadingImage}
+                onClick={() => onOpenAIModal(initialData.id, initialData.title)}
+                className="gap-1.5"
+              >
+                <SparklesIcon className="size-4" />
+                Generate with AI
+              </Button>
+            )}
             {initialData.imageUrl && (
               <Button
                 type="button"
@@ -432,4 +446,5 @@ HomeCampaignForm.propTypes = {
   onUploadImage: PropTypes.func,
   onRemoveImage: PropTypes.func,
   uploadingImage: PropTypes.bool,
+  onOpenAIModal: PropTypes.func,
 };
