@@ -117,7 +117,7 @@ export default function ImmersiveHomeHero({
 
   const plugin = useMemo(
     () => Autoplay({
-      delay: 3000,
+      delay: 4000,
       playOnInit: true,
       stopOnInteraction: false,
       stopOnMouseEnter: false,
