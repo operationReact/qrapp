@@ -112,24 +112,51 @@ export const CELEBRATION_INTENSITIES = Object.freeze({
 
 export const CELEBRATION_PRESETS = Object.freeze({
   HALL_OF_HAPPINESS_CELEBRATION: Object.freeze({
-    animations: Object.freeze(["CONFETTI", "WAVE_FLOW"]),
+    animations: Object.freeze(["CONFETTI", "WAVE_FLOW", "PARTY_ICONS"]),
     intensity: "BOLD",
+    // Keeps text clear: waves hug the top/bottom edges, confetti and icons stay in edge bands.
+    layout: "BANDED",
+    confettiShapes: Object.freeze(["strip", "circle", "diamond", "star", "rect"]),
     waves: Object.freeze([
-      { id: "primary", stops: ["#f43f5e", "#f59e0b", "#e11d48", "#f43f5e"], strokeWidth: 7, bottom: 18, height: 72, durationSeconds: 7.5, reverse: false, flip: false, opacity: 0.36 },
-      { id: "complement", stops: ["#f59e0b", "#fb923c", "#ec4899", "#f59e0b"], strokeWidth: 6, bottom: 0, height: 62, durationSeconds: 10.5, reverse: true, flip: true, opacity: 0.32 },
-      { id: "highlight", stops: ["#fff7ed", "#fde68a", "#fecdd3", "#fff7ed"], strokeWidth: 3, bottom: 34, height: 54, durationSeconds: 13, reverse: false, flip: false, opacity: 0.45 },
+      { id: "primary", stops: ["#f43f5e", "#f59e0b", "#e11d48", "#f43f5e"], strokeWidth: 2.5, bottom: 70, height: 26, durationSeconds: 11, reverse: false, flip: false, opacity: 0.26 },
+      { id: "complement", stops: ["#f59e0b", "#fb923c", "#ec4899", "#f59e0b"], strokeWidth: 2, bottom: 0, height: 26, durationSeconds: 14, reverse: true, flip: true, opacity: 0.22 },
     ]),
     confettiDurationRangeSeconds: Object.freeze([4, 8]),
     confettiOpacityRange: Object.freeze([0.45, 0.9]),
     burstCycleSeconds: 6,
     colors: Object.freeze(["#e11d48", "#f59e0b", "#fb7185", "#fbbf24", "#f97316", "#ec4899", "#fda4af"]),
+    partyIcons: Object.freeze([
+      { kind: "popper", left: 1.5, top: 0, size: 16, duration: 4.6, delay: -1.2, color: "#e11d48", opacity: 0.8 },
+      { kind: "star", left: 95, top: 0, size: 12, duration: 3.8, delay: -2.4, color: "#f59e0b", opacity: 0.85 },
+      { kind: "balloon", left: 72, top: 0, size: 14, duration: 5.6, delay: -0.6, color: "#ec4899", opacity: 0.7 },
+      { kind: "burst", left: 38, top: 70, size: 11, duration: 3.4, delay: -1.8, color: "#fbbf24", opacity: 0.85 },
+      { kind: "ribbon", left: 12, top: 72, size: 16, duration: 4.2, delay: -3.1, color: "#f97316", opacity: 0.65 },
+    ]),
+  }),
+  HALL_OF_HAPPINESS_GALLERY_CELEBRATION: Object.freeze({
+    animations: Object.freeze(["CONFETTI", "PARTY_ICONS"]),
+    intensity: "BOLD",
+    waves: Object.freeze([]),
+    confettiDurationRangeSeconds: Object.freeze([4.5, 8.5]),
+    confettiOpacityRange: Object.freeze([0.5, 0.95]),
+    burstCycleSeconds: 6.5,
+    colors: Object.freeze(["#e11d48", "#f59e0b", "#fb7185", "#fbbf24", "#f97316", "#ec4899", "#fda4af"]),
+    partyIcons: Object.freeze([
+      { kind: "popper", left: 80, top: 36, size: 24, duration: 4.6, delay: -1.2, color: "#e11d48", opacity: 0.8 },
+      { kind: "star", left: 88, top: 8, size: 16, duration: 3.8, delay: -2.4, color: "#f59e0b", opacity: 0.85 },
+      { kind: "balloon", left: 93, top: 52, size: 22, duration: 5.6, delay: -0.6, color: "#ec4899", opacity: 0.75 },
+      { kind: "ribbon", left: 46, top: 84, size: 20, duration: 4.2, delay: -3.1, color: "#f97316", opacity: 0.7 },
+      { kind: "burst", left: 24, top: 80, size: 16, duration: 3.4, delay: -1.8, color: "#fbbf24", opacity: 0.85 },
+      { kind: "heart", left: 72, top: 82, size: 14, duration: 5, delay: -2.9, color: "#fb7185", opacity: 0.75 },
+    ]),
   }),
 });
 
-export function getCelebrationPreset(name) {
+export function getCelebrationPreset(name, intensityOverride) {
   const preset = CELEBRATION_PRESETS[name];
   if (!preset) return null;
-  const intensity = CELEBRATION_INTENSITIES[preset.intensity] ?? CELEBRATION_INTENSITIES.MEDIUM;
+  const intensity = CELEBRATION_INTENSITIES[intensityOverride ?? preset.intensity]
+    ?? CELEBRATION_INTENSITIES.MEDIUM;
   return { ...preset, ...intensity };
 }
 
@@ -139,6 +166,8 @@ const CONFETTI_SHAPES = ["rect", "strip", "circle", "diamond"];
 export function createConfettiParticles(preset, seed = 20240611) {
   const [minDuration, maxDuration] = preset.confettiDurationRangeSeconds;
   const [minOpacity, maxOpacity] = preset.confettiOpacityRange;
+  const shapes = preset.confettiShapes ?? CONFETTI_SHAPES;
+  const banded = preset.layout === "BANDED";
   let state = seed;
   const next = () => {
     state = (state * 1664525 + 1013904223) % 4294967296;
@@ -156,7 +185,8 @@ export function createConfettiParticles(preset, seed = 20240611) {
       burst,
       left: ((index + 0.15 + next() * 0.7) / preset.confettiCount) * 100,
       size: 5 + Math.round(next() * 5),
-      shape: CONFETTI_SHAPES[index % CONFETTI_SHAPES.length],
+      shape: shapes[index % shapes.length],
+      band: banded ? (index % 2 === 0 ? "top" : "bottom") : null,
       color: preset.colors[Math.floor(next() * preset.colors.length)],
       opacity: Number((minOpacity + next() * (maxOpacity - minOpacity)).toFixed(2)),
       duration,

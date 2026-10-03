@@ -1,8 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
-import { ArrowLeftIcon, ArrowRightIcon, CameraIcon, ConfettiIcon, HeartIcon, SparkleIcon, WarningCircleIcon } from "@phosphor-icons/react";
+import { useQuery, useQueries } from "@tanstack/react-query";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { ArrowLeftIcon, ArrowRightIcon, CameraIcon, ConfettiIcon, SparkleIcon, WarningCircleIcon } from "@phosphor-icons/react";
 import { hallOfHappinessOptions } from "@/query/options/hall-of-happiness";
+import { myPartyOrdersOptions } from "@/query/options/party-orders";
+import { getHallOfHappinessEligibility } from "@/services/hall-of-happiness-service";
+import CelebrationAmbientLayer from "@/components/home/CelebrationAmbientLayer";
+import CustomerHallPhotoUpload from "@/components/CustomerHallPhotoUpload";
 import { useAuth } from "@/context/AuthContext";
 import { useLocation as useActiveLocation } from "@/context/LocationContext";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -17,11 +21,54 @@ const SOURCE_BADGES = {
   ADMIN_CURATED: { label: "Bro & Bro Curated", icon: SparkleIcon },
 };
 
+function useIsDesktop() {
+  const [matches, setMatches] = useState(
+    () => typeof window !== "undefined" && window.matchMedia("(min-width: 1024px)").matches,
+  );
+  useEffect(() => {
+    const media = window.matchMedia("(min-width: 1024px)");
+    const onChange = (event) => setMatches(event.matches);
+    media.addEventListener("change", onChange);
+    return () => media.removeEventListener("change", onChange);
+  }, []);
+  return matches;
+}
+
+function useEligibleHallOrder(enabled) {
+  const ordersQuery = useQuery({ ...myPartyOrdersOptions, enabled });
+  const completed = useMemo(
+    () => (ordersQuery.data || []).filter((order) => order.status === "COMPLETED").slice(0, 5),
+    [ordersQuery.data],
+  );
+  const eligibility = useQueries({
+    queries: completed.map((order) => ({
+      queryKey: ["hall-of-happiness", "eligibility", order.id],
+      queryFn: () => getHallOfHappinessEligibility(order.id),
+      staleTime: 60_000,
+    })),
+  });
+  const index = eligibility.findIndex((result) => result.data?.eligible);
+  return index >= 0 ? completed[index] : null;
+}
+
 function HallOfHappinessPage() {
   const { user } = useAuth();
   const { activeLocationId } = useActiveLocation();
   const [selectedMemory, setSelectedMemory] = useState(null);
   const [detailOpen, setDetailOpen] = useState(false);
+  const [submitOpen, setSubmitOpen] = useState(false);
+  const headerRef = useRef(null);
+  const [headerVisible, setHeaderVisible] = useState(true);
+  const eligibleOrder = useEligibleHallOrder(Boolean(user?.token));
+  const isDesktop = useIsDesktop();
+
+  useEffect(() => {
+    const node = headerRef.current;
+    if (!node || typeof IntersectionObserver === "undefined") return undefined;
+    const observer = new IntersectionObserver(([entry]) => setHeaderVisible(entry.isIntersecting), { threshold: 0.05 });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
 
   const query = useQuery(hallOfHappinessOptions({
     size: 24,
@@ -37,44 +84,62 @@ function HallOfHappinessPage() {
 
   return (
     <>
-      <main className="container-premium py-6 md:py-10">
-        <Link to="/" className="mb-6 inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground">
-          <ArrowLeftIcon size={18} /> Back to home
-        </Link>
-        <div className="mb-7">
-          <p className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-rose-600">
-            <HeartIcon size={13} weight="fill" /> Memories we made together
-          </p>
-          <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">
-            Bro &amp; Bro{" "}
-            <span className="bg-gradient-to-r from-rose-600 to-amber-500 bg-clip-text text-transparent">Hall of Happiness</span>
-          </h1>
-          <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-            A collection of real moments and celebrations brought to life by Bro &amp; Bro.
-          </p>
+      <main className="mx-auto w-full max-w-7xl overflow-x-clip px-4 py-4 sm:px-6 md:py-10 lg:px-8">
+        <div ref={headerRef} className="relative isolate">
+          <CelebrationAmbientLayer
+            presetName="HALL_OF_HAPPINESS_GALLERY_CELEBRATION"
+            intensity={isDesktop ? "MEDIUM" : "BOLD"}
+            active={headerVisible}
+            className="celebration-layer-page"
+          />
+          <div className="relative z-10 pb-4 pt-0.5 sm:pb-6">
+            <Link to="/" className="mb-2 inline-flex min-h-11 items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary">
+              <ArrowLeftIcon size={18} /> Back to home
+            </Link>
+            <h1 className="whitespace-nowrap text-[clamp(1.0625rem,5.4vw,1.25rem)] font-bold leading-tight tracking-tight sm:text-3xl">
+              <span className="text-foreground">Bro &amp; Bro</span>
+              <span aria-hidden="true" className="mx-1.5 font-normal text-muted-foreground/60">·</span>
+              <span className="bg-gradient-to-r from-rose-600 to-amber-500 bg-clip-text text-transparent">Hall of Happiness</span>
+            </h1>
+            <p className="mt-1 text-xs leading-snug text-muted-foreground sm:text-sm">Real moments. Real celebrations.</p>
+          </div>
         </div>
         <section
           aria-labelledby="hall-invitation-title"
-          className="mb-5 flex min-w-0 flex-col gap-3 rounded-2xl border border-rose-100 bg-gradient-to-r from-rose-50/90 to-amber-50/80 p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:gap-5 sm:p-5"
+          className="relative mb-4 flex min-w-0 flex-col gap-3 overflow-hidden rounded-[20px] border border-rose-100 bg-gradient-to-br from-rose-50/90 to-amber-50/80 p-4 shadow-sm sm:mb-5 sm:flex-row sm:items-center sm:justify-between sm:gap-5 sm:p-5"
         >
           <div className="min-w-0">
             <h2 id="hall-invitation-title" className="text-base font-semibold leading-tight text-foreground sm:text-lg">
-              Want to be part of the Hall of Happiness?
+              Want to be part of Hall of Happiness?
             </h2>
-            <p className="mt-1.5 max-w-3xl text-xs leading-relaxed text-muted-foreground sm:text-sm">
-              Celebrate with Bro &amp; Bro. Place a Party or Bulk Order of ₹1,499+ through our app, share your celebration memories, and you could be featured in our Hall of Happiness. Submissions require your consent and are reviewed before publication.
+            <p className="mt-1.5 max-w-xl text-[13px] leading-snug text-muted-foreground sm:text-sm">
+              Place a Party or Bulk Order of ₹1,499+ and share your celebration memories with us.
             </p>
           </div>
-          <Link
-            to="/new-party-order"
-            className="inline-flex shrink-0 items-center justify-center gap-1.5 self-start rounded-xl bg-primary px-3.5 py-2.5 text-xs font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90 sm:self-center sm:text-sm"
-          >
-            Plan Your Celebration <ArrowRightIcon size={14} weight="bold" />
-          </Link>
+          {eligibleOrder ? (
+            <button
+              type="button"
+              onClick={() => setSubmitOpen(true)}
+              className="inline-flex min-h-11 shrink-0 items-center justify-center gap-1.5 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            >
+              Share My Memories <ArrowRightIcon size={14} weight="bold" />
+            </button>
+          ) : (
+            <Link
+              to="/new-party-order"
+              className="inline-flex min-h-11 shrink-0 items-center justify-center gap-1.5 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            >
+              Plan Your Celebration <ArrowRightIcon size={14} weight="bold" />
+            </Link>
+          )}
         </section>
+        {eligibleOrder && (
+          <CustomerHallPhotoUpload order={eligibleOrder} hidden open={submitOpen} onOpenChange={setSubmitOpen} />
+        )}
         {query.isError && (
           <div className="mb-4 flex items-center gap-2 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
             <WarningCircleIcon size={20} weight="duotone" /> Happiness memories are temporarily unavailable.
+            <button type="button" onClick={() => query.refetch()} className="ml-auto min-h-11 font-semibold underline">Retry</button>
           </div>
         )}
         {query.isLoading && (

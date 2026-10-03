@@ -556,6 +556,29 @@ body {
 .celebration-confetti-diamond { border-radius: 1px; clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); }
 .celebration-confetti-burst { animation-name: celebrationConfettiBurst; }
 
+.celebration-icon {
+  position: absolute;
+  display: block;
+  line-height: 0;
+  opacity: var(--icon-opacity, 0.8);
+  will-change: transform;
+  animation: celebrationIconFloat var(--icon-duration, 4s) ease-in-out var(--icon-delay, 0s) infinite alternate;
+}
+
+.celebration-icon svg { display: block; }
+
+.celebration-layer-page {
+  -webkit-mask-image: none;
+  mask-image: none;
+  --celebration-fall: 150px;
+}
+
+@keyframes celebrationIconFloat {
+  from { transform: translate3d(0, -3px, 0) rotate(calc(var(--icon-tilt, 4deg) * -1)) scale(0.96); }
+  to { transform: translate3d(0, 3px, 0) rotate(var(--icon-tilt, 4deg)) scale(1.04); }
+}
+
+.celebration-layer[data-active="false"] .celebration-icon,
 .celebration-layer[data-active="false"] .celebration-wave,
 .celebration-layer[data-active="false"] .celebration-wave svg,
 .celebration-layer[data-active="false"] .celebration-confetti {
@@ -639,6 +662,12 @@ body {
     animation: none !important;
     opacity: 1;
     transform: none;
+  }
+
+  .celebration-icon {
+    animation: none !important;
+    transform: none;
+    opacity: calc(var(--icon-opacity, 0.8) * 0.6);
   }
 
   .celebration-wave,

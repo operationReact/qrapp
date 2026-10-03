@@ -89,3 +89,12 @@ test("style presets resolve defaults and custom values override them", () => {
   assert.equal(custom.ctaTypographyPreset, "BEBAS_NEUE_BOLD");
   assert.equal(custom.titleTypographyPreset, "PLAYFAIR_DISPLAY_BOLD");
 });
+
+test("gallery celebration preset combines confetti with party icons", () => {
+  const preset = getCelebrationPreset("HALL_OF_HAPPINESS_GALLERY_CELEBRATION");
+  assert.deepEqual([...preset.animations], ["CONFETTI", "PARTY_ICONS"]);
+  assert.ok(preset.confettiCount >= 24 && preset.confettiCount <= 36);
+  assert.ok(preset.partyIcons.length >= 3 && preset.partyIcons.length <= 6);
+  const medium = getCelebrationPreset("HALL_OF_HAPPINESS_GALLERY_CELEBRATION", "MEDIUM");
+  assert.ok(medium.confettiCount < preset.confettiCount);
+});

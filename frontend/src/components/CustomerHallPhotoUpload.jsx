@@ -72,8 +72,10 @@ function SubmittedPhotoThumbnail({ photo }) {
   );
 }
 
-export default function CustomerHallPhotoUpload({ order }) {
-  const [open, setOpen] = useState(false);
+export default function CustomerHallPhotoUpload({ order, hidden = false, open: controlledOpen, onOpenChange }) {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = controlledOpen ?? internalOpen;
+  const setOpen = onOpenChange ?? setInternalOpen;
   const [draftPhotos, setDraftPhotos] = useState([]);
   const [consent, setConsent] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -173,13 +175,14 @@ export default function CustomerHallPhotoUpload({ order }) {
   if (eligibilityQuery.isLoading) return null;
   if (!eligibilityQuery.data?.eligible && submittedPhotos.length === 0) return null;
   const showInvitation =
+    !hidden &&
     Boolean(eligibilityQuery.data?.eligible) &&
     !eligibilityQuery.data?.invitationDismissed &&
     !eligibilityQuery.data?.invitationAccepted &&
     !eligibilityQuery.data?.invitationSeen;
 
   return (
-    <div className="col-span-2 w-full min-w-0 rounded-lg border border-rose-200 bg-rose-50/50 p-3">
+    <div className={hidden ? "hidden" : "col-span-2 w-full min-w-0 rounded-lg border border-rose-200 bg-rose-50/50 p-3"}>
       <Dialog
         open={showInvitation}
         onOpenChange={(nextOpen) => {
