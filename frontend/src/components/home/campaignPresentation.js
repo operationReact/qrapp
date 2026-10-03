@@ -102,6 +102,72 @@ export const STYLE_PRESETS = Object.freeze({
 });
 Object.values(STYLE_PRESETS).forEach(Object.freeze);
 
+// Reusable ambient presentation presets for non-campaign sections. Kept apart from
+// ANIMATION_OPTIONS because these loop continuously and are not persisted campaign values.
+export const CELEBRATION_INTENSITIES = Object.freeze({
+  SUBTLE: { confettiCount: 14, burstCount: 0, opacity: 0.7 },
+  MEDIUM: { confettiCount: 22, burstCount: 5, opacity: 1 },
+  BOLD: { confettiCount: 32, burstCount: 8, opacity: 1 },
+});
+
+export const CELEBRATION_PRESETS = Object.freeze({
+  HALL_OF_HAPPINESS_CELEBRATION: Object.freeze({
+    animations: Object.freeze(["CONFETTI", "WAVE_FLOW"]),
+    intensity: "BOLD",
+    waves: Object.freeze([
+      { id: "primary", stops: ["#f43f5e", "#f59e0b", "#e11d48", "#f43f5e"], strokeWidth: 7, bottom: 18, height: 72, durationSeconds: 7.5, reverse: false, flip: false, opacity: 0.36 },
+      { id: "complement", stops: ["#f59e0b", "#fb923c", "#ec4899", "#f59e0b"], strokeWidth: 6, bottom: 0, height: 62, durationSeconds: 10.5, reverse: true, flip: true, opacity: 0.32 },
+      { id: "highlight", stops: ["#fff7ed", "#fde68a", "#fecdd3", "#fff7ed"], strokeWidth: 3, bottom: 34, height: 54, durationSeconds: 13, reverse: false, flip: false, opacity: 0.45 },
+    ]),
+    confettiDurationRangeSeconds: Object.freeze([4, 8]),
+    confettiOpacityRange: Object.freeze([0.45, 0.9]),
+    burstCycleSeconds: 6,
+    colors: Object.freeze(["#e11d48", "#f59e0b", "#fb7185", "#fbbf24", "#f97316", "#ec4899", "#fda4af"]),
+  }),
+});
+
+export function getCelebrationPreset(name) {
+  const preset = CELEBRATION_PRESETS[name];
+  if (!preset) return null;
+  const intensity = CELEBRATION_INTENSITIES[preset.intensity] ?? CELEBRATION_INTENSITIES.MEDIUM;
+  return { ...preset, ...intensity };
+}
+
+const CONFETTI_SHAPES = ["rect", "strip", "circle", "diamond"];
+
+// Deterministic so the same particles render on every mount and never reshuffle.
+export function createConfettiParticles(preset, seed = 20240611) {
+  const [minDuration, maxDuration] = preset.confettiDurationRangeSeconds;
+  const [minOpacity, maxOpacity] = preset.confettiOpacityRange;
+  let state = seed;
+  const next = () => {
+    state = (state * 1664525 + 1013904223) % 4294967296;
+    return state / 4294967296;
+  };
+  // Burst particles share one cycle and a tight delay window, so a small group
+  // drifts further together every few seconds instead of everything looping evenly.
+  const burstEvery = Math.max(1, Math.floor(preset.confettiCount / Math.max(preset.burstCount, 1)));
+  return Array.from({ length: preset.confettiCount }, (_, index) => {
+    const burst = preset.burstCount > 0 && index % burstEvery === 0
+      && index / burstEvery < preset.burstCount;
+    const duration = burst ? preset.burstCycleSeconds : minDuration + next() * (maxDuration - minDuration);
+    return {
+      id: index,
+      burst,
+      left: ((index + 0.15 + next() * 0.7) / preset.confettiCount) * 100,
+      size: 5 + Math.round(next() * 5),
+      shape: CONFETTI_SHAPES[index % CONFETTI_SHAPES.length],
+      color: preset.colors[Math.floor(next() * preset.colors.length)],
+      opacity: Number((minOpacity + next() * (maxOpacity - minOpacity)).toFixed(2)),
+      duration,
+      delay: burst ? -(next() * 0.9) : -next() * duration,
+      drift: Math.round((next() - 0.5) * (burst ? 70 : 40)),
+      rotation: Math.round(next() * 360),
+      spin: Math.round((next() > 0.5 ? 1 : -1) * (180 + next() * 360)),
+    };
+  });
+}
+
 export function getTypographyPreset(value) {
   return TYPOGRAPHY_PRESETS[value] ?? DEFAULT_TYPOGRAPHY;
 }

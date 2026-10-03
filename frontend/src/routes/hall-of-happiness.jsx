@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { ArrowLeftIcon, CameraIcon, ConfettiIcon, HeartIcon, SparkleIcon, WarningCircleIcon } from "@phosphor-icons/react";
+import { ArrowLeftIcon, ArrowRightIcon, CameraIcon, ConfettiIcon, HeartIcon, SparkleIcon, WarningCircleIcon } from "@phosphor-icons/react";
 import { hallOfHappinessOptions } from "@/query/options/hall-of-happiness";
 import { useAuth } from "@/context/AuthContext";
 import { useLocation as useActiveLocation } from "@/context/LocationContext";
@@ -53,6 +53,25 @@ function HallOfHappinessPage() {
             A collection of real moments and celebrations brought to life by Bro &amp; Bro.
           </p>
         </div>
+        <section
+          aria-labelledby="hall-invitation-title"
+          className="mb-5 flex min-w-0 flex-col gap-3 rounded-2xl border border-rose-100 bg-gradient-to-r from-rose-50/90 to-amber-50/80 p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:gap-5 sm:p-5"
+        >
+          <div className="min-w-0">
+            <h2 id="hall-invitation-title" className="text-base font-semibold leading-tight text-foreground sm:text-lg">
+              Want to be part of the Hall of Happiness?
+            </h2>
+            <p className="mt-1.5 max-w-3xl text-xs leading-relaxed text-muted-foreground sm:text-sm">
+              Celebrate with Bro &amp; Bro. Place a Party or Bulk Order of ₹1,499+ through our app, share your celebration memories, and you could be featured in our Hall of Happiness. Submissions require your consent and are reviewed before publication.
+            </p>
+          </div>
+          <Link
+            to="/new-party-order"
+            className="inline-flex shrink-0 items-center justify-center gap-1.5 self-start rounded-xl bg-primary px-3.5 py-2.5 text-xs font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90 sm:self-center sm:text-sm"
+          >
+            Plan Your Celebration <ArrowRightIcon size={14} weight="bold" />
+          </Link>
+        </section>
         {query.isError && (
           <div className="mb-4 flex items-center gap-2 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
             <WarningCircleIcon size={20} weight="duotone" /> Happiness memories are temporarily unavailable.

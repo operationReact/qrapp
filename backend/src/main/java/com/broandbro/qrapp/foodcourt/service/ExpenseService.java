@@ -76,7 +76,17 @@ public class ExpenseService {
     @Transactional(readOnly = true)
     public List<ExpenseResponse> list(UUID foodCourtId, LocalDate from, LocalDate to) {
         requireFoodCourt(foodCourtId);
-        return expenseRepository.findByFoodCourtAndRange(foodCourtId, from, to).stream()
+        List<Expense> expenses;
+        if (from == null && to == null) {
+            expenses = expenseRepository.findByFoodCourt(foodCourtId);
+        } else if (from == null) {
+            expenses = expenseRepository.findByFoodCourtTo(foodCourtId, to);
+        } else if (to == null) {
+            expenses = expenseRepository.findByFoodCourtFrom(foodCourtId, from);
+        } else {
+            expenses = expenseRepository.findByFoodCourtAndRange(foodCourtId, from, to);
+        }
+        return expenses.stream()
                 .map(this::toResponse).toList();
     }
 

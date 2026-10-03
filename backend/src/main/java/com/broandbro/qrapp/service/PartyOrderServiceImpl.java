@@ -57,6 +57,7 @@ public class PartyOrderServiceImpl implements PartyOrderService {
                 .numberOfPeople(req.numberOfPeople())
                 .venue(req.venue())
                 .eventType(req.eventType())
+                .orderType(req.orderType() == null ? "PARTY" : req.orderType())
                 .specialNotes(req.specialNotes())
                 .budgetAmount(req.budgetAmount())
                 .status(PartyOrderStatus.NEW)

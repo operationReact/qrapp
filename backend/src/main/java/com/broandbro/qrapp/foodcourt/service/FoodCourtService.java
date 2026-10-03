@@ -163,7 +163,7 @@ public class FoodCourtService {
                 .filter(lease -> lease.getStatus() == LeaseStatus.ACTIVE)
                 .map(lease -> lease.getMonthlyRent() == null ? BigDecimal.ZERO : lease.getMonthlyRent())
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
-        BigDecimal expenses = nz(expenseRepository.sumByFoodCourtAndRange(id, from, to));
+        BigDecimal expenses = nz(sumExpenses(id, from, to));
         BigDecimal grossSpread = contractedRent.subtract(landlordLease);
         return new FoodCourtDashboardResponse(
                 fc.getId(), fc.getName(), totalStalls, occupied, vacant, occupancyRate,
@@ -192,7 +192,7 @@ public class FoodCourtService {
         BigDecimal billed = nz(rentInvoiceRepository.sumBilledForPeriod(id, year, month));
         BigDecimal collected = nz(rentInvoiceRepository.sumCollectedForPeriod(id, year, month));
         BigDecimal outstanding = nz(rentInvoiceRepository.sumOutstandingByFoodCourt(id));
-        BigDecimal expenses = nz(expenseRepository.sumByFoodCourtAndRange(id, from, to));
+        BigDecimal expenses = nz(sumExpenses(id, from, to));
         BigDecimal deposits = nz(depositRepository.sumHeldByFoodCourt(id));
         BigDecimal net = collected.subtract(expenses);
         return new FoodCourtFinancialReportResponse(
@@ -217,5 +217,18 @@ public class FoodCourtService {
 
     private BigDecimal nz(BigDecimal value) {
         return value == null ? BigDecimal.ZERO : value;
+    }
+
+    private BigDecimal sumExpenses(UUID foodCourtId, LocalDate from, LocalDate to) {
+        if (from == null && to == null) {
+            return expenseRepository.sumByFoodCourt(foodCourtId);
+        }
+        if (from == null) {
+            return expenseRepository.sumByFoodCourtTo(foodCourtId, to);
+        }
+        if (to == null) {
+            return expenseRepository.sumByFoodCourtFrom(foodCourtId, from);
+        }
+        return expenseRepository.sumByFoodCourtAndRange(foodCourtId, from, to);
     }
 }
