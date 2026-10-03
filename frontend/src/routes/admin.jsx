@@ -77,6 +77,7 @@ function AdminLayout() {
   // so it doesn't stack with this generic sub-page header.
   const isControlCenter = pathname.startsWith("/admin/control-center");
   const isKitchenQueue = pathname.startsWith("/admin/kitchen-queue");
+  const isFoodCourt = pathname.startsWith("/admin/food-court");
   const hideGenericHeader = isDashboard || isControlCenter;
 
   // KITCHEN_STAFF are confined to the Kitchen Queue — bounce them there.
@@ -91,7 +92,7 @@ function AdminLayout() {
           <SidebarProvider>
             <AdminSidebar />
             <SidebarInset className="min-w-0 bg-[var(--cc-page)]">
-              {!hideGenericHeader && <SubPageHeader title={isKitchenQueue ? "Kitchen Queue" : undefined} />}
+              {!hideGenericHeader && <SubPageHeader title={isKitchenQueue ? "Kitchen Queue" : isFoodCourt ? "Food Court Management" : undefined} />}
               <div className="min-h-0 flex-1 flex flex-col">
                 <Outlet />
               </div>

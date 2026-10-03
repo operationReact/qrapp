@@ -30,6 +30,13 @@ public interface RentInvoiceRepository extends JpaRepository<RentInvoice, UUID> 
                                                @Param("year") Integer year,
                                                @Param("month") Integer month);
 
+    @Query("""
+            SELECT i FROM RentInvoice i
+            WHERE i.foodCourtId = :foodCourtId
+            ORDER BY i.periodYear DESC, i.periodMonth DESC, i.dueDate ASC
+            """)
+    List<RentInvoice> findAllByFoodCourt(@Param("foodCourtId") UUID foodCourtId);
+
     @Query("SELECT i FROM RentInvoice i WHERE i.stallLeaseId = :leaseId ORDER BY i.periodYear DESC, i.periodMonth DESC")
     List<RentInvoice> findByStallLease(@Param("leaseId") UUID leaseId);
 

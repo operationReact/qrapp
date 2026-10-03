@@ -1,12 +1,17 @@
-export const foodCourtKeys = {
+﻿export const foodCourtKeys = {
   all: ["food-court"],
   list: () => [...foodCourtKeys.all, "list"],
-  summary: (id, month) => [...foodCourtKeys.all, "summary", id, month],
+  dashboard: (id, month) => [...foodCourtKeys.all, "dashboard", id, month],
   stalls: (id) => [...foodCourtKeys.all, "stalls", id],
   tenants: (id) => [...foodCourtKeys.all, "tenants", id],
   leases: (id) => [...foodCourtKeys.all, "leases", id],
-  rents: (id, month) => [...foodCourtKeys.all, "rents", id, month],
+  rents: (id, month) => [...foodCourtKeys.all, "rents", id, month ?? "all"],
+  payments: (id, invoiceId) => [...foodCourtKeys.all, "payments", id, invoiceId],
+  adjustments: (id, invoiceId) => [...foodCourtKeys.all, "adjustments", id, invoiceId],
   deposits: (id) => [...foodCourtKeys.all, "deposits", id],
   expenses: (id, month) => [...foodCourtKeys.all, "expenses", id, month],
   actionItems: (id) => [...foodCourtKeys.all, "action-items", id],
+  landlords: (id) => [...foodCourtKeys.all, "landlords", id],
+  propertyLeases: (id) => [...foodCourtKeys.all, "property-leases", id],
+  landlordRent: (id, month) => [...foodCourtKeys.all, "landlord-rent", id, month],
 };
