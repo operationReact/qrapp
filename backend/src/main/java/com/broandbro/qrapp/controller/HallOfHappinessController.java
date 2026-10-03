@@ -2,6 +2,7 @@ package com.broandbro.qrapp.controller;
 
 import com.broandbro.qrapp.dto.happiness.HallOfHappinessPhotoResponse;
 import com.broandbro.qrapp.dto.happiness.HallOfHappinessPhotoUpdateRequest;
+import com.broandbro.qrapp.dto.happiness.HallOfHappinessEligibilityResponse;
 import com.broandbro.qrapp.enums.HallOfHappinessConsentStatus;
 import com.broandbro.qrapp.enums.HallOfHappinessPhotoStatus;
 import com.broandbro.qrapp.service.HallOfHappinessService;
@@ -58,6 +59,18 @@ public class HallOfHappinessController {
         return service.customerOrderPhotos(orderId, principal.getName());
     }
 
+    @GetMapping("/api/hall-of-happiness/my/orders/{orderId}/eligibility")
+    public HallOfHappinessEligibilityResponse eligibility(
+            @PathVariable Long orderId, Principal principal) {
+        return service.eligibility(orderId, principal.getName());
+    }
+
+    @PostMapping("/api/hall-of-happiness/my/orders/{orderId}/invitation/{action}")
+    public HallOfHappinessEligibilityResponse invitation(
+            @PathVariable Long orderId, @PathVariable String action, Principal principal) {
+        return service.markInvitation(orderId, principal.getName(), action);
+    }
+
     @PostMapping(value = "/api/hall-of-happiness/my/orders/{orderId}/photos",
             consumes = "multipart/form-data")
     public ResponseEntity<List<HallOfHappinessPhotoResponse>> uploadCustomerPhotos(
@@ -75,6 +88,12 @@ public class HallOfHappinessController {
     public HallOfHappinessPhotoResponse withdrawCustomerPhoto(
             @PathVariable Long id, Principal principal) {
         return service.withdrawCustomerPhoto(id, principal.getName());
+    }
+
+    @PatchMapping("/api/hall-of-happiness/my/{id}/consent")
+    public HallOfHappinessPhotoResponse updateConsent(
+            @PathVariable Long id, @RequestParam boolean granted, Principal principal) {
+        return service.setConsent(id, principal.getName(), granted);
     }
 
     @GetMapping("/api/admin/hall-of-happiness")

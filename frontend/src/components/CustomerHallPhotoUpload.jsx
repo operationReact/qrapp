@@ -23,7 +23,12 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { myHallOrderPhotosOptions } from "@/query/options/my-hall-order-photos";
-import { uploadHallPhotosForOrder, withdrawHallPhoto } from "@/services/hall-of-happiness-service";
+import {
+  getHallOfHappinessEligibility,
+  markHallInvitation,
+  uploadHallPhotosForOrder,
+  withdrawHallPhoto,
+} from "@/services/hall-of-happiness-service";
 import { toast } from "sonner";
 
 const MAX_PHOTOS = 5;
@@ -67,12 +72,20 @@ function SubmittedPhotoThumbnail({ photo }) {
   );
 }
 
-export default function CustomerHallPhotoUpload({ order }) {
-  const [open, setOpen] = useState(false);
+export default function CustomerHallPhotoUpload({ order, hidden = false, open: controlledOpen, onOpenChange }) {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = controlledOpen ?? internalOpen;
+  const setOpen = onOpenChange ?? setInternalOpen;
   const [draftPhotos, setDraftPhotos] = useState([]);
   const [consent, setConsent] = useState(false);
   const [progress, setProgress] = useState(0);
   const queryClient = useQueryClient();
+  const eligibilityQuery = useQuery({
+    queryKey: ["hall-of-happiness", "eligibility", order.id],
+    queryFn: () => getHallOfHappinessEligibility(order.id),
+    enabled: order.status === "COMPLETED",
+    staleTime: 60_000,
+  });
   const photosQuery = useQuery(myHallOrderPhotosOptions(order.id, order.status === "COMPLETED"));
   const submittedPhotos = photosQuery.data || [];
   const photoCount = submittedPhotos.length;
@@ -82,6 +95,14 @@ export default function CustomerHallPhotoUpload({ order }) {
   );
 
   useEffect(() => () => previews.forEach(({ url }) => URL.revokeObjectURL(url)), [previews]);
+
+  const invitation = useMutation({
+    mutationFn: (action) => markHallInvitation(order.id, action),
+    onSuccess: (data) => {
+      queryClient.setQueryData(["hall-of-happiness", "eligibility", order.id], data);
+    },
+    onError: () => toast.error("Unable to update the invitation right now."),
+  });
 
   const upload = useMutation({
     mutationFn: () => uploadHallPhotosForOrder({
@@ -151,9 +172,58 @@ export default function CustomerHallPhotoUpload({ order }) {
   };
 
   if (order.status !== "COMPLETED") return null;
+  if (eligibilityQuery.isLoading) return null;
+  if (!eligibilityQuery.data?.eligible && submittedPhotos.length === 0) return null;
+  const showInvitation =
+    !hidden &&
+    Boolean(eligibilityQuery.data?.eligible) &&
+    !eligibilityQuery.data?.invitationDismissed &&
+    !eligibilityQuery.data?.invitationAccepted &&
+    !eligibilityQuery.data?.invitationSeen;
 
   return (
-    <div className="col-span-2 w-full rounded-lg border border-rose-200 bg-rose-50/50 p-3">
+    <div className={hidden ? "hidden" : "col-span-2 w-full min-w-0 rounded-lg border border-rose-200 bg-rose-50/50 p-3"}>
+      <Dialog
+        open={showInvitation}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen && !invitation.isPending) invitation.mutate("dismissed");
+        }}
+      >
+        <DialogContent
+          className="w-[calc(100vw-32px)] max-w-md rounded-2xl p-5 sm:p-6"
+          onOpenAutoFocus={() => {
+            invitation.mutate("seen");
+          }}
+        >
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <HeartIcon className="text-rose-500" weight="fill" />
+              Make your celebration a memory
+            </DialogTitle>
+            <DialogDescription>
+              Place a Party or Bulk Order of ₹1,499 or more and you can get featured on the Bro &amp; Bro Hall of Happiness.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex-col-reverse gap-2 sm:flex-row">
+            <Button
+              variant="ghost"
+              onClick={() => invitation.mutate("dismissed")}
+              disabled={invitation.isPending}
+            >
+              Maybe Later
+            </Button>
+            <Button
+              onClick={() => {
+                invitation.mutate("accepted");
+                setOpen(true);
+              }}
+              disabled={invitation.isPending}
+            >
+              Add My Memories
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <HeartIcon size={20} weight="duotone" className="text-rose-500" />

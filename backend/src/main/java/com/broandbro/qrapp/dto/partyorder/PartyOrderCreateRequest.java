@@ -28,6 +28,9 @@ public record PartyOrderCreateRequest(
         @Size(max = 50)
         String eventType,
 
+        @Pattern(regexp = "PARTY|BULK", message = "Order type must be PARTY or BULK")
+        String orderType,
+
         /** Special requirements, dietary notes, etc. */
         @Size(max = 2000)
         String specialNotes,
@@ -35,4 +38,15 @@ public record PartyOrderCreateRequest(
         /** Optional customer budget hint. */
         @DecimalMin(value = "0.0", inclusive = false, message = "Budget must be positive if provided")
         BigDecimal budgetAmount
-) {}
+) {
+    public PartyOrderCreateRequest(
+            LocalDateTime eventDateTime,
+            Integer numberOfPeople,
+            List<String> menuItems,
+            String venue,
+            String eventType,
+            String specialNotes,
+            BigDecimal budgetAmount) {
+        this(eventDateTime, numberOfPeople, menuItems, venue, eventType, "PARTY", specialNotes, budgetAmount);
+    }
+}

@@ -487,7 +487,207 @@ body {
 .campaign-effect-subtitle { animation-delay: 120ms; }
 .campaign-effect-cta { animation-delay: 220ms; }
 
+@keyframes hallHeaderRise {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes hallHeaderFade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Celebration ambient layer: confetti + wave flow (shared preset, CSS only) */
+.celebration-layer {
+  --celebration-fall: 60px;
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  contain: layout paint style;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+}
+
+@media (min-width: 640px) {
+  .celebration-layer { --celebration-fall: 120px; }
+}
+
+.celebration-wave {
+  position: absolute;
+  left: 0;
+  width: 200%;
+  height: 56%;
+  opacity: calc(var(--wave-opacity, 0.2) * var(--celebration-opacity, 1));
+  will-change: transform;
+  animation: celebrationWaveFlow var(--wave-duration, 12s) linear infinite var(--wave-direction, normal);
+}
+
+.celebration-wave svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  animation: celebrationWaveBob 4.6s ease-in-out infinite alternate;
+}
+
+.celebration-wave-back { bottom: 2%; }
+.celebration-wave-front { bottom: 14%; }
+
+.celebration-confetti {
+  position: absolute;
+  top: 0;
+  display: block;
+  border-radius: 1px;
+  opacity: 0;
+  will-change: transform, opacity;
+  animation-name: celebrationConfettiFall;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+.celebration-confetti-circle { border-radius: 9999px; }
+.celebration-confetti-diamond { border-radius: 1px; clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); }
+.celebration-confetti-burst { animation-name: celebrationConfettiBurst; }
+.celebration-confetti-star { border-radius: 0; clip-path: polygon(50% 0, 62% 38%, 100% 38%, 69% 60%, 80% 100%, 50% 75%, 20% 100%, 31% 60%, 0 38%, 38% 38%); }
+
+/* Banded layout: particles stay in thin bands above/below the text line. */
+.celebration-layer-banded { --celebration-fall: 10px; }
+.celebration-confetti-band-bottom { top: calc(100% - 14px); }
+
+.celebration-icon {
+  position: absolute;
+  display: block;
+  line-height: 0;
+  opacity: var(--icon-opacity, 0.8);
+  will-change: transform;
+  animation: celebrationIconFloat var(--icon-duration, 4s) ease-in-out var(--icon-delay, 0s) infinite alternate;
+}
+
+.celebration-icon svg { display: block; }
+
+.celebration-layer-page {
+  -webkit-mask-image: none;
+  mask-image: none;
+  --celebration-fall: 150px;
+}
+
+@keyframes celebrationIconFloat {
+  from { transform: translate3d(0, -3px, 0) rotate(calc(var(--icon-tilt, 4deg) * -1)) scale(0.96); }
+  to { transform: translate3d(0, 3px, 0) rotate(var(--icon-tilt, 4deg)) scale(1.04); }
+}
+
+.celebration-layer[data-active="false"] .celebration-icon,
+.celebration-layer[data-active="false"] .celebration-wave,
+.celebration-layer[data-active="false"] .celebration-wave svg,
+.celebration-layer[data-active="false"] .celebration-confetti {
+  animation-play-state: paused;
+}
+
+@keyframes celebrationWaveFlow {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(-50%, 0, 0); }
+}
+
+@keyframes celebrationWaveBob {
+  from { transform: translate3d(0, -3px, 0); }
+  to { transform: translate3d(0, 3px, 0); }
+}
+
+@keyframes celebrationConfettiFall {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, -12px, 0) rotate(var(--confetti-rotation, 0deg));
+  }
+  10% { opacity: var(--confetti-opacity, 0.7); }
+  88% { opacity: var(--confetti-opacity, 0.7); }
+  100% {
+    opacity: 0;
+    transform: translate3d(var(--confetti-drift, 0px), var(--celebration-fall), 0)
+      rotate(calc(var(--confetti-rotation, 0deg) + var(--confetti-spin, 360deg)));
+  }
+}
+
+/* Moves quickly during the first part of a long cycle, then rests, so a small
+   group visibly bursts every few seconds. */
+@keyframes celebrationConfettiBurst {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, -10px, 0) rotate(var(--confetti-rotation, 0deg));
+  }
+  6% { opacity: var(--confetti-opacity, 0.8); }
+  48% { opacity: var(--confetti-opacity, 0.8); }
+  62%, 100% {
+    opacity: 0;
+    transform: translate3d(calc(var(--confetti-drift, 0px) * 1.6), calc(var(--celebration-fall) * 1.1), 0)
+      rotate(calc(var(--confetti-rotation, 0deg) + var(--confetti-spin, 360deg) * 1.5));
+  }
+}
+
+.hall-header-title-pending,
+.hall-header-separator-pending,
+.hall-header-accent-pending,
+.hall-header-view-all-pending {
+  opacity: 0;
+}
+
+.hall-header-title {
+  display: inline-block;
+  animation: hallHeaderRise 350ms cubic-bezier(.22, 1, .36, 1) both;
+}
+
+.hall-header-separator {
+  animation: hallHeaderFade 350ms ease-out 50ms both;
+}
+
+.hall-header-accent {
+  display: inline-block;
+  animation: hallHeaderRise 400ms cubic-bezier(.22, 1, .36, 1) 60ms both;
+}
+
+.hall-header-view-all {
+  animation: hallHeaderRise 350ms cubic-bezier(.22, 1, .36, 1) 110ms both;
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .hall-header-title-pending,
+  .hall-header-separator-pending,
+  .hall-header-accent-pending,
+  .hall-header-view-all-pending,
+  .hall-header-title,
+  .hall-header-separator,
+  .hall-header-accent,
+  .hall-header-view-all {
+    animation: none !important;
+    opacity: 1;
+    transform: none;
+  }
+
+  .celebration-icon {
+    animation: none !important;
+    transform: none;
+    opacity: calc(var(--icon-opacity, 0.8) * 0.6);
+  }
+
+  .celebration-wave,
+  .celebration-wave svg {
+    animation: none !important;
+    transform: none;
+  }
+
+  .celebration-confetti {
+    animation: none !important;
+    opacity: calc(var(--confetti-opacity, 0.7) * 0.5);
+    transform: translate3d(var(--confetti-drift, 0px), calc(var(--celebration-fall) * 0.45), 0)
+      rotate(var(--confetti-rotation, 0deg));
+  }
+
   .campaign-presentation *,
   .campaign-presentation::before,
   .campaign-presentation::after {

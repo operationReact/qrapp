@@ -68,6 +68,10 @@ public class PartyOrder {
     @Column(name = "event_type", length = 50)
     private String eventType;
 
+    @Column(name = "order_type", nullable = false, length = 20)
+    @Builder.Default
+    private String orderType = "PARTY";
+
     /** Any special requirements — serving staff, dietary restrictions, etc. */
     @Column(name = "special_notes", columnDefinition = "TEXT")
     private String specialNotes;
@@ -170,6 +174,15 @@ public class PartyOrder {
     @Column(name = "user_responded_at")
     private Instant userRespondedAt;
 
+    @Column(name = "hall_invitation_seen_at")
+    private Instant hallInvitationSeenAt;
+
+    @Column(name = "hall_invitation_dismissed_at")
+    private Instant hallInvitationDismissedAt;
+
+    @Column(name = "hall_invitation_accepted_at")
+    private Instant hallInvitationAcceptedAt;
+
     // ── Audit ─────────────────────────────────────────────────────────────────
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -195,4 +208,3 @@ public class PartyOrder {
         updatedAt = Instant.now();
     }
 }
-

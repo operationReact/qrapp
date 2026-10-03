@@ -192,6 +192,15 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/analytics/**")
                         .hasAnyRole("ADMIN", "SUPERUSER", "SUPER_ADMIN", "MANAGER")
 
+                        // Food Court Management — admin console roles. Per-food-court
+                        // scoping (and finer food-court roles) are enforced server-side in
+                        // the controllers/services via FoodCourtAccessService, so MANAGER
+                        // is not blocked here at the URL layer.
+                        .requestMatchers("/api/v1/food-courts/**")
+                        .hasAnyRole("ADMIN", "SUPERUSER", "SUPER_ADMIN", "MANAGER",
+                                "FOODCOURT_SUPER_ADMIN", "FOODCOURT_ADMIN", "FOODCOURT_MANAGER",
+                                "FOODCOURT_FINANCE", "FOODCOURT_OPERATIONS", "FOODCOURT_VIEWER")
+
                         // Allow wallet endpoints to pass through (controller will handle auth)
                         .requestMatchers("/api/wallet/**").permitAll()
 

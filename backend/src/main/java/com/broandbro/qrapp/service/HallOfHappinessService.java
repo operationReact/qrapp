@@ -2,6 +2,7 @@ package com.broandbro.qrapp.service;
 
 import com.broandbro.qrapp.dto.happiness.HallOfHappinessPhotoResponse;
 import com.broandbro.qrapp.dto.happiness.HallOfHappinessPhotoUpdateRequest;
+import com.broandbro.qrapp.dto.happiness.HallOfHappinessEligibilityResponse;
 import com.broandbro.qrapp.entity.HallOfHappinessPhoto;
 import com.broandbro.qrapp.entity.HallOfHappinessSubmission;
 import com.broandbro.qrapp.entity.Location;
@@ -38,6 +39,7 @@ import javax.imageio.ImageIO;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.math.BigDecimal;
 import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
@@ -55,6 +57,7 @@ public class HallOfHappinessService {
     private static final int MAX_CAPTION_LENGTH = 60;
     private static final String CURRENT_TERMS_VERSION = "hall-of-happiness-v1";
     private static final int MAX_PAGE_SIZE = 50;
+    private static final BigDecimal MINIMUM_ORDER_VALUE = BigDecimal.valueOf(1499);
 
     private final HallOfHappinessPhotoRepository photoRepository;
     private final PartyOrderRepository partyOrderRepository;
@@ -148,9 +151,61 @@ public class HallOfHappinessService {
         if (!customer.getId().equals(order.getUserId())) {
             throw new AccessDeniedException("party_order_access_denied");
         }
+
         return photoRepository.findForCustomerOrder(orderId, customer.getId()).stream()
                 .map(HallOfHappinessPhotoResponse::forCustomer)
                 .toList();
+    }
+
+    @Transactional
+    public HallOfHappinessEligibilityResponse eligibility(Long orderId, String phone) {
+        User customer = customer(phone);
+        PartyOrder order = partyOrderRepository.findById(orderId)
+                .orElseThrow(() -> new IllegalArgumentException("party_order_not_found"));
+        if (!customer.getId().equals(order.getUserId())) {
+            throw new AccessDeniedException("party_order_access_denied");
+        }
+        BigDecimal value = orderValue(order);
+        boolean completed = order.getStatus() == PartyOrderStatus.COMPLETED;
+        boolean supportedType = "PARTY".equalsIgnoreCase(order.getOrderType())
+                || "BULK".equalsIgnoreCase(order.getOrderType());
+        boolean eligible = supportedType && completed && value.compareTo(MINIMUM_ORDER_VALUE) >= 0;
+        String reason = !supportedType ? "order_type_not_eligible"
+                : !completed ? "order_not_completed"
+                : value.compareTo(MINIMUM_ORDER_VALUE) < 0 ? "minimum_order_value_not_met" : null;
+        boolean submitted = photoRepository.countByPartyOrderIdAndCustomerId(orderId, customer.getId()) > 0;
+        return new HallOfHappinessEligibilityResponse(
+                eligible && !submitted, reason, orderId, order.getOrderType(),
+                MINIMUM_ORDER_VALUE, value, submitted,
+                order.getHallInvitationSeenAt() != null,
+                order.getHallInvitationDismissedAt() != null,
+                order.getHallInvitationAcceptedAt() != null);
+    }
+
+    @Transactional
+    public HallOfHappinessEligibilityResponse markInvitation(
+            Long orderId, String phone, String action) {
+        User customer = customer(phone);
+        PartyOrder order = partyOrderRepository.findById(orderId)
+                .orElseThrow(() -> new IllegalArgumentException("party_order_not_found"));
+        if (!customer.getId().equals(order.getUserId())) {
+            throw new AccessDeniedException("party_order_access_denied");
+        }
+        Instant now = Instant.now();
+        switch (action.toLowerCase(Locale.ROOT)) {
+            case "seen" -> order.setHallInvitationSeenAt(now);
+            case "dismissed" -> {
+                order.setHallInvitationSeenAt(now);
+                order.setHallInvitationDismissedAt(now);
+            }
+            case "accepted" -> {
+                order.setHallInvitationSeenAt(now);
+                order.setHallInvitationAcceptedAt(now);
+            }
+            default -> throw new IllegalArgumentException("invalid_invitation_action");
+        }
+        partyOrderRepository.save(order);
+        return eligibility(orderId, phone);
     }
 
     @CacheEvict(cacheNames = "hallOfHappiness", allEntries = true)
@@ -175,6 +230,10 @@ public class HallOfHappinessService {
         PartyOrder order = requireCompletedOrder(orderId);
         if (!customer.getId().equals(order.getUserId())) {
             throw new AccessDeniedException("party_order_access_denied");
+        }
+        HallOfHappinessEligibilityResponse eligibility = eligibility(orderId, phone);
+        if (!eligibility.eligible()) {
+            throw new IllegalArgumentException(eligibility.reason());
         }
         if (captions == null || captions.size() != files.size()) {
             throw new IllegalArgumentException("photo_description_required");
@@ -526,6 +585,16 @@ public class HallOfHappinessService {
         }
 
         return order;
+    }
+
+    private BigDecimal orderValue(PartyOrder order) {
+        if (order.getEstimatedTotalAmount() != null) {
+            return order.getEstimatedTotalAmount();
+        }
+        if (order.getEstimatedAmount() != null) {
+            return order.getEstimatedAmount();
+        }
+        return BigDecimal.ZERO;
     }
 
     private User customer(String phone) {
