@@ -104,7 +104,14 @@ public class RentService {
     @Transactional(readOnly = true)
     public List<RentInvoiceResponse> listInvoices(UUID foodCourtId, Integer year, Integer month) {
         requireFoodCourt(foodCourtId);
-        return invoiceRepository.findByFoodCourtAndPeriod(foodCourtId, year, month).stream()
+        // Branch instead of binding nullable params: PostgreSQL cannot infer the type of an untyped NULL.
+        List<RentInvoice> rows = (year != null && month != null)
+                ? invoiceRepository.findByFoodCourtAndPeriod(foodCourtId, year, month)
+                : invoiceRepository.findAllByFoodCourt(foodCourtId).stream()
+                        .filter(i -> (year == null || year.equals(i.getPeriodYear()))
+                                && (month == null || month.equals(i.getPeriodMonth())))
+                        .toList();
+        return rows.stream()
                 .map(this::toResponse).toList();
     }
 

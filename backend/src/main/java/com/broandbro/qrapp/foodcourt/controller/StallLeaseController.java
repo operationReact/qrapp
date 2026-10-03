@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -75,7 +76,7 @@ public class StallLeaseController extends FoodCourtBaseController {
     @Operation(summary = "Terminate a stall lease, freeing the stall")
     public ResponseEntity<StallLeaseResponse> terminate(@PathVariable UUID foodCourtId, @PathVariable UUID leaseId,
                                                         @RequestParam(required = false)
-                                                        LocalDate endDate, Authentication auth) {
+                                                        @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate, Authentication auth) {
         requireAccess(auth, foodCourtId);
         return ResponseEntity.ok(leaseService.terminate(foodCourtId, leaseId, endDate, actor(auth)));
     }

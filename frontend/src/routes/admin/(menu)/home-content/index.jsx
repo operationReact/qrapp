@@ -216,7 +216,7 @@ export default function HomeContentPage() {
   return (
     <div className="min-h-screen w-full min-w-0 overflow-x-hidden bg-background pb-32">
       <AdminHeader
-        title="Home Content"
+        title="Customer Home Content"
         subtitle="Manage the customer Home page hero billboard, discovery tiles and promotion cards"
         className="sr-only"
       />

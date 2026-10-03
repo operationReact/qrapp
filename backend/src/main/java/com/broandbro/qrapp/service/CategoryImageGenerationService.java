@@ -4,6 +4,7 @@ import com.broandbro.qrapp.entity.Category;
 import com.broandbro.qrapp.entity.User;
 import com.broandbro.qrapp.exception.OpenAiImageGenerationException;
 import com.broandbro.qrapp.prompt.CategoryImagePromptBuilder;
+import com.broandbro.qrapp.prompt.CategoryImageQuality;
 import com.broandbro.qrapp.repository.CategoryRepository;
 import com.broandbro.qrapp.service.ai.ImageGenerationService;
 import com.broandbro.qrapp.storage.ImageStorageService;
@@ -81,7 +82,7 @@ public class CategoryImageGenerationService {
 
             // Upload to S3
             String folder = "categories/" + categoryId;
-            String imageUrl = imageStorageService.uploadImage(imageBytes, folder, "image/jpeg");
+            String imageUrl = imageStorageService.uploadImage(imageBytes, folder, CategoryImageQuality.detectContentType(imageBytes));
 
             log.info("[CategoryImgGen] SUCCESS for categoryId={}. URL={}", categoryId, imageUrl);
 
@@ -153,3 +154,4 @@ public class CategoryImageGenerationService {
         }
     }
 }
+

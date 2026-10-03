@@ -1,147 +1,86 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+﻿import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 import * as api from "./api";
 import { foodCourtKeys } from "./keys";
 
-// Normalises the many shapes an API might return (array, { data }, { content },
-// { items }) into a plain array so panels can always map safely.
-function toArray(payload) {
+// The API returns plain arrays; tolerate wrapped payloads defensively.
+const toArray = (payload) => {
   if (Array.isArray(payload)) return payload;
-  if (!payload || typeof payload !== "object") return [];
-  if (Array.isArray(payload.data)) return payload.data;
-  if (Array.isArray(payload.content)) return payload.content;
-  if (Array.isArray(payload.items)) return payload.items;
+  if (payload && typeof payload === "object") {
+    for (const key of ["content", "data", "items"]) {
+      if (Array.isArray(payload[key])) return payload[key];
+    }
+  }
   return [];
-}
+};
 
-export function useFoodCourts() {
-  return useQuery({
-    queryKey: foodCourtKeys.list(),
-    queryFn: api.getFoodCourts,
-    select: toArray,
+const listQuery = (key, fn, enabled) => ({
+  queryKey: key,
+  queryFn: fn,
+  enabled,
+  select: toArray,
+  staleTime: 30_000,
+});
+
+export const useFoodCourts = () =>
+  useQuery(listQuery(foodCourtKeys.list(), api.getFoodCourts, true));
+
+export const useDashboard = (id, month) =>
+  useQuery({
+    queryKey: foodCourtKeys.dashboard(id, month),
+    queryFn: () => api.getDashboard(id, month),
+    enabled: Boolean(id),
+    staleTime: 30_000,
   });
+
+export const useStalls = (id) => useQuery(listQuery(foodCourtKeys.stalls(id), () => api.getStalls(id), Boolean(id)));
+export const useTenants = (id) => useQuery(listQuery(foodCourtKeys.tenants(id), () => api.getTenants(id), Boolean(id)));
+export const useLeases = (id) => useQuery(listQuery(foodCourtKeys.leases(id), () => api.getLeases(id), Boolean(id)));
+export const useRents = (id, month) =>
+  useQuery(listQuery(foodCourtKeys.rents(id, month), () => api.getRents(id, month), Boolean(id)));
+export const useDeposits = (id) =>
+  useQuery(listQuery(foodCourtKeys.deposits(id), () => api.getDeposits(id), Boolean(id)));
+export const useExpenses = (id, month) =>
+  useQuery(listQuery(foodCourtKeys.expenses(id, month), () => api.getExpenses(id, month), Boolean(id)));
+export const useActionItems = (id) =>
+  useQuery(listQuery(foodCourtKeys.actionItems(id), () => api.getActionItems(id), Boolean(id)));
+export const useLandlords = (id) =>
+  useQuery(listQuery(foodCourtKeys.landlords(id), () => api.getLandlords(id), Boolean(id)));
+export const usePropertyLeases = (id) =>
+  useQuery(listQuery(foodCourtKeys.propertyLeases(id), () => api.getPropertyLeases(id), Boolean(id)));
+export const useLandlordRent = (id, month) =>
+  useQuery(listQuery(foodCourtKeys.landlordRent(id, month), () => api.getLandlordRent(id, month), Boolean(id)));
+export const useRentPayments = (id, invoiceId) =>
+  useQuery(
+    listQuery(foodCourtKeys.payments(id, invoiceId), () => api.getRentPayments(id, invoiceId), Boolean(id && invoiceId)),
+  );
+export const useRentAdjustments = (id, invoiceId) =>
+  useQuery(
+    listQuery(foodCourtKeys.adjustments(id, invoiceId), () => api.getRentAdjustments(id, invoiceId), Boolean(id && invoiceId)),
+  );
+
+export function errorMessage(error, fallback = "Something went wrong. Please try again.") {
+  const data = error?.response?.data;
+  const raw = data?.message || data?.error || data?.detail;
+  if (typeof raw === "string" && raw) return raw.replace(/_/g, " ");
+  if (data?.errors && typeof data.errors === "object") {
+    const first = Object.values(data.errors)[0];
+    if (typeof first === "string") return first;
+  }
+  return fallback;
 }
 
-export function useFoodCourtSummary(foodCourtId, month) {
-  return useQuery({
-    queryKey: foodCourtKeys.summary(foodCourtId, month),
-    queryFn: () => api.getFoodCourtSummary(foodCourtId, month),
-    enabled: Boolean(foodCourtId),
-    retry: false,
-  });
-}
-
-export function useStalls(foodCourtId) {
-  return useQuery({
-    queryKey: foodCourtKeys.stalls(foodCourtId),
-    queryFn: () => api.getStalls(foodCourtId),
-    enabled: Boolean(foodCourtId),
-    select: toArray,
-  });
-}
-
-export function useTenants(foodCourtId) {
-  return useQuery({
-    queryKey: foodCourtKeys.tenants(foodCourtId),
-    queryFn: () => api.getTenants(foodCourtId),
-    enabled: Boolean(foodCourtId),
-    select: toArray,
-  });
-}
-
-export function useLeases(foodCourtId) {
-  return useQuery({
-    queryKey: foodCourtKeys.leases(foodCourtId),
-    queryFn: () => api.getLeases(foodCourtId),
-    enabled: Boolean(foodCourtId),
-    select: toArray,
-  });
-}
-
-export function useRents(foodCourtId, month) {
-  return useQuery({
-    queryKey: foodCourtKeys.rents(foodCourtId, month),
-    queryFn: () => api.getRents(foodCourtId, month),
-    enabled: Boolean(foodCourtId),
-    select: toArray,
-  });
-}
-
-export function useDeposits(foodCourtId) {
-  return useQuery({
-    queryKey: foodCourtKeys.deposits(foodCourtId),
-    queryFn: () => api.getDeposits(foodCourtId),
-    enabled: Boolean(foodCourtId),
-    select: toArray,
-  });
-}
-
-export function useExpenses(foodCourtId, month) {
-  return useQuery({
-    queryKey: foodCourtKeys.expenses(foodCourtId, month),
-    queryFn: () => api.getExpenses(foodCourtId, month),
-    enabled: Boolean(foodCourtId),
-    select: toArray,
-  });
-}
-
-export function useActionItems(foodCourtId) {
-  return useQuery({
-    queryKey: foodCourtKeys.actionItems(foodCourtId),
-    queryFn: () => api.getActionItems(foodCourtId),
-    enabled: Boolean(foodCourtId),
-    select: toArray,
-  });
-}
-
-export function useRecordRentPayment(foodCourtId, month) {
+// Any write can change counts, rent and balances on several screens, so every
+// mutation refreshes the whole Food Court cache instead of hand-picking keys.
+export function useFcMutation(mutationFn, { success, failure } = {}) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ rentId, payload }) =>
-      api.recordRentPayment(foodCourtId, rentId, payload),
+    mutationFn,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: foodCourtKeys.rents(foodCourtId, month) });
-      queryClient.invalidateQueries({ queryKey: foodCourtKeys.summary(foodCourtId, month) });
-      toast.success("Payment recorded");
+      queryClient.invalidateQueries({ queryKey: foodCourtKeys.all });
+      if (success) toast.success(success);
     },
-    onError: () => toast.error("Unable to record payment"),
-  });
-}
-
-export function useCreateExpense(foodCourtId, month) {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (payload) => api.createExpense(foodCourtId, payload),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: foodCourtKeys.expenses(foodCourtId, month) });
-      queryClient.invalidateQueries({ queryKey: foodCourtKeys.summary(foodCourtId, month) });
-      toast.success("Expense added");
-    },
-    onError: () => toast.error("Unable to add expense"),
-  });
-}
-
-export function useCreateActionItem(foodCourtId) {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (payload) => api.createActionItem(foodCourtId, payload),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: foodCourtKeys.actionItems(foodCourtId) });
-      toast.success("Action item created");
-    },
-    onError: () => toast.error("Unable to create action item"),
-  });
-}
-
-export function useUpdateActionItemStatus(foodCourtId) {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({ actionItemId, status }) =>
-      api.updateActionItemStatus(foodCourtId, actionItemId, status),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: foodCourtKeys.actionItems(foodCourtId) });
-    },
-    onError: () => toast.error("Unable to update action item"),
+    onError: (error) => toast.error(errorMessage(error, failure)),
   });
 }
