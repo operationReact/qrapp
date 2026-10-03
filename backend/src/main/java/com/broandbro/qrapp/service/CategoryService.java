@@ -14,6 +14,7 @@ import com.broandbro.qrapp.service.ai.ImageGenerationService;
 import com.broandbro.qrapp.storage.ImageStorageService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import com.broandbro.qrapp.prompt.CategoryImageQuality;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.cache.annotation.CacheEvict;
@@ -252,3 +253,4 @@ public class CategoryService {
         return location;
     }
 }
+
