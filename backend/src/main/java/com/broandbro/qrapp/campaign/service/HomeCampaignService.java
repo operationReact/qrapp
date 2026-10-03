@@ -25,6 +25,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.time.Instant;
 import java.util.List;
 import java.util.Locale;
@@ -57,6 +59,7 @@ public class HomeCampaignService {
     @Transactional
     @CacheEvict(cacheNames = "homeCampaigns", allEntries = true)
     public HomeCampaignResponse create(HomeCampaignRequest req, User actor, String actorName) {
+        validateCampaignRequest(req);
         Location location = resolveLocationForWrite(req.locationId(), actor);
         HomeCampaign campaign = HomeCampaign.builder()
                 .location(location)
@@ -70,6 +73,12 @@ public class HomeCampaignService {
                 .targetType(req.targetType() == null ? HomeCampaignTargetType.NONE : req.targetType())
                 .targetId(req.targetId())
                 .visualVariant(req.visualVariant())
+                .stylePreset(req.stylePreset())
+                .titleTypographyPreset(req.titleTypographyPreset())
+                .subtitleTypographyPreset(req.subtitleTypographyPreset())
+                .ctaTypographyPreset(req.ctaTypographyPreset())
+                .animationPreset(req.animationPreset())
+                .animationIntensity(req.animationIntensity())
                 .displayOrder(req.displayOrder() == null ? 0 : req.displayOrder())
                 .isActive(req.isActive() == null || req.isActive())
                 .startsAt(req.startsAt())
@@ -86,6 +95,7 @@ public class HomeCampaignService {
     @CacheEvict(cacheNames = "homeCampaigns", allEntries = true)
     public HomeCampaignResponse update(Long id, HomeCampaignRequest req, User actor, String actorName,
                                         Optional<List<Long>> locationScope) {
+        validateCampaignRequest(req);
         HomeCampaign campaign = findActiveInScope(id, locationScope);
         Location location = resolveLocationForWrite(req.locationId(), actor);
         campaign.setLocation(location);
@@ -99,6 +109,12 @@ public class HomeCampaignService {
         campaign.setTargetType(req.targetType() == null ? HomeCampaignTargetType.NONE : req.targetType());
         campaign.setTargetId(req.targetId());
         campaign.setVisualVariant(req.visualVariant());
+        campaign.setStylePreset(req.stylePreset());
+        campaign.setTitleTypographyPreset(req.titleTypographyPreset());
+        campaign.setSubtitleTypographyPreset(req.subtitleTypographyPreset());
+        campaign.setCtaTypographyPreset(req.ctaTypographyPreset());
+        campaign.setAnimationPreset(req.animationPreset());
+        campaign.setAnimationIntensity(req.animationIntensity());
         if (req.displayOrder() != null) campaign.setDisplayOrder(req.displayOrder());
         if (req.isActive() != null) campaign.setIsActive(req.isActive());
         campaign.setStartsAt(req.startsAt());
@@ -141,6 +157,12 @@ public class HomeCampaignService {
                 .targetType(source.getTargetType())
                 .targetId(source.getTargetId())
                 .visualVariant(source.getVisualVariant())
+                .stylePreset(source.getStylePreset())
+                .titleTypographyPreset(source.getTitleTypographyPreset())
+                .subtitleTypographyPreset(source.getSubtitleTypographyPreset())
+                .ctaTypographyPreset(source.getCtaTypographyPreset())
+                .animationPreset(source.getAnimationPreset())
+                .animationIntensity(source.getAnimationIntensity())
                 .displayOrder(source.getDisplayOrder())
                 .isActive(false)
                 .startsAt(source.getStartsAt())
@@ -225,6 +247,37 @@ public class HomeCampaignService {
             imageStorage.deleteLocationImageByKey(key);
         } else if (url != null) {
             imageStorage.deleteImageByUrl(url);
+        }
+    }
+
+    private void validateCampaignRequest(HomeCampaignRequest req) {
+        HomeCampaignTargetType targetType = req.targetType() == null
+                ? HomeCampaignTargetType.NONE : req.targetType();
+        String targetId = req.targetId() == null ? "" : req.targetId().trim();
+
+        if (req.startsAt() != null && req.endsAt() != null && !req.endsAt().isAfter(req.startsAt())) {
+            throw new IllegalArgumentException("ends_at_must_be_after_starts_at");
+        }
+        if ((targetType == HomeCampaignTargetType.CATEGORY
+                || targetType == HomeCampaignTargetType.COMBO
+                || targetType == HomeCampaignTargetType.EXTERNAL)
+                && targetId.isBlank()) {
+            throw new IllegalArgumentException("target_id_required");
+        }
+        if (targetType == HomeCampaignTargetType.COMBO
+                && !Set.of("combos", "byoc").contains(targetId)) {
+            throw new IllegalArgumentException("invalid_combo_target");
+        }
+        if (targetType == HomeCampaignTargetType.EXTERNAL) {
+            try {
+                URI uri = new URI(targetId);
+                if (!Set.of("http", "https").contains(uri.getScheme())
+                        || uri.getHost() == null) {
+                    throw new IllegalArgumentException("invalid_external_target");
+                }
+            } catch (URISyntaxException e) {
+                throw new IllegalArgumentException("invalid_external_target", e);
+            }
         }
     }
 
@@ -332,6 +385,9 @@ public class HomeCampaignService {
                 c.getBadge(), c.getTitle(), c.getSubtitle(), c.getCtaLabel(),
                 c.getImageUrl(), c.getMobileImageUrl(),
                 c.getTargetType(), c.getTargetId(), c.getVisualVariant(),
+                c.getStylePreset(),
+                c.getTitleTypographyPreset(), c.getSubtitleTypographyPreset(),
+                c.getCtaTypographyPreset(), c.getAnimationPreset(), c.getAnimationIntensity(),
                 c.getDisplayOrder(), c.getIsActive(), c.getStartsAt(), c.getEndsAt(),
                 c.getCreatedBy(), c.getCreatedAt(), c.getUpdatedAt()
         );

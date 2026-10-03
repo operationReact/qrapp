@@ -7,6 +7,8 @@ import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
+  SelectGroup,
+  SelectLabel,
   SelectItem,
   SelectTrigger,
   SelectValue,
@@ -44,8 +46,16 @@ import { useLocation as useActiveLocation } from "@/context/LocationContext";
 import { canSelectAllLocations } from "@/lib/roles";
 import { adminLocationsOptions } from "@/query/options/management";
 import { categoriesOptions } from "@/query/options/menu";
-
-const BASE_TYPE_OPTIONS = [{ value: "HERO", label: "Hero billboard" }];
+import CampaignPresentation from "@/components/home/CampaignPresentationView";
+import {
+  ANIMATION_OPTIONS,
+  ANIMATION_INTENSITIES,
+  PLACEMENT_OPTIONS,
+  STYLE_PRESETS,
+  TYPOGRAPHY_PRESETS,
+  getEffectiveCampaignStyle,
+  getAnimationLabel,
+} from "@/components/home/campaignPresentation";
 
 const TARGET_TYPE_OPTIONS = [
   { value: "NONE", label: "No action" },
@@ -153,6 +163,7 @@ export default function HomeCampaignForm({
   onRemoveImage,
   uploadingImage,
   onOpenAIModal,
+  onCancel,
 }) {
   const { user } = useAuth();
   const { activeLocationId } = useActiveLocation();
@@ -171,20 +182,65 @@ export default function HomeCampaignForm({
   const [targetType, setTargetType] = useState(initialData?.targetType ?? "NONE");
   const [targetId, setTargetId] = useState(initialData?.targetId ?? "");
   const [visualVariant, setVisualVariant] = useState(initialData?.visualVariant ?? "");
+  const initialStyle = getEffectiveCampaignStyle(initialData ?? {});
+  const [stylePreset, setStylePreset] = useState(initialData?.stylePreset ?? "CUSTOM");
+  const [titleTypographyPreset, setTitleTypographyPreset] = useState(initialStyle.titleTypographyPreset ?? "MODERN");
+  const [subtitleTypographyPreset, setSubtitleTypographyPreset] = useState(initialStyle.subtitleTypographyPreset ?? "ELEGANT");
+  const [ctaTypographyPreset, setCtaTypographyPreset] = useState(initialStyle.ctaTypographyPreset ?? "IMPACT");
+  const [animationPreset, setAnimationPreset] = useState(initialStyle.animationPreset);
+  const [animationIntensity, setAnimationIntensity] = useState(initialStyle.animationIntensity);
   const [displayOrder, setDisplayOrder] = useState(initialData?.displayOrder ?? 0);
   const [isActive, setIsActive] = useState(initialData?.isActive ?? true);
   const [startsAt, setStartsAt] = useState(toLocalDateTimeInput(initialData?.startsAt));
   const [endsAt, setEndsAt] = useState(toLocalDateTimeInput(initialData?.endsAt));
   const [pendingImageFile, setPendingImageFile] = useState(null);
   const [targetError, setTargetError] = useState("");
+  const [scheduleError, setScheduleError] = useState("");
+  const [previewMode, setPreviewMode] = useState("mobile");
+  const [previewKey, setPreviewKey] = useState(0);
 
   const fileInputRef = useRef(null);
   const mobileFileInputRef = useRef(null);
 
   const typeOptions =
-    type && !BASE_TYPE_OPTIONS.some((t) => t.value === type)
-      ? [...BASE_TYPE_OPTIONS, { value: type, label: `${type} (legacy, read-only)` }]
-      : BASE_TYPE_OPTIONS;
+    type && !PLACEMENT_OPTIONS.some((t) => t.value === type)
+      ? [...PLACEMENT_OPTIONS, { value: type, label: `${type} (legacy, read-only)` }]
+      : PLACEMENT_OPTIONS;
+
+  const previewCampaign = {
+    ...initialData,
+    type,
+    badge,
+    title,
+    subtitle,
+    ctaLabel,
+    imageUrl: initialData?.imageUrl ?? null,
+    mobileImageUrl: initialData?.mobileImageUrl ?? null,
+    targetType,
+    targetId,
+    stylePreset,
+    titleTypographyPreset,
+    subtitleTypographyPreset,
+    ctaTypographyPreset,
+    animationPreset,
+    animationIntensity,
+  };
+
+  const markCustom = (setter) => (value) => {
+    setStylePreset("CUSTOM");
+    setter(value);
+  };
+
+  const applyStylePreset = (value) => {
+    setStylePreset(value);
+    const preset = STYLE_PRESETS[value];
+    if (!preset || value === "CUSTOM") return;
+    setTitleTypographyPreset(preset.titleTypographyPreset);
+    setSubtitleTypographyPreset(preset.subtitleTypographyPreset);
+    setCtaTypographyPreset(preset.ctaTypographyPreset);
+    setAnimationPreset(preset.animationPreset);
+    setAnimationIntensity(preset.animationIntensity);
+  };
 
   const buildPayload = () => ({
       type,
@@ -198,6 +254,12 @@ export default function HomeCampaignForm({
       targetType,
       targetId: targetId.trim() || null,
       visualVariant: visualVariant || null,
+      stylePreset,
+      titleTypographyPreset,
+      subtitleTypographyPreset,
+      ctaTypographyPreset,
+      animationPreset,
+      animationIntensity,
       displayOrder: Number(displayOrder) || 0,
       isActive,
       startsAt: startsAt ? new Date(startsAt).toISOString() : null,
@@ -211,6 +273,11 @@ export default function HomeCampaignForm({
       setTargetError("Enter a valid http:// or https:// URL.");
       return;
     }
+    if (startsAt && endsAt && new Date(endsAt) <= new Date(startsAt)) {
+      setScheduleError("End date and time must be after the start date and time.");
+      return;
+    }
+    setScheduleError("");
     onSubmit(buildPayload(), { imageFile: pendingImageFile });
   };
 
@@ -224,51 +291,54 @@ export default function HomeCampaignForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5 px-1">
-      {/* Live preview — a lightweight stand-in for the immersive Hero slide
-          (billboard image + gradient scrim + badge/title/subtitle/CTA). */}
-      <div className="rounded-lg border bg-muted/30 p-3">
-        <p className="mb-2 text-xs font-medium text-muted-foreground">
-          Live preview
-        </p>
-        <div className="relative h-36 w-full max-w-[320px] overflow-hidden rounded-xl bg-zinc-800">
-          {initialData?.mobileImageUrl || initialData?.imageUrl ? (
-            <img
-              src={initialData?.mobileImageUrl || initialData?.imageUrl}
-              alt=""
-              className="absolute inset-0 h-full w-full object-cover"
-            />
-          ) : null}
-          <div
-            className="absolute inset-0"
-            style={{
-              background:
-                "linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.35) 45%, rgba(0,0,0,0.05) 65%, rgba(0,0,0,0.35) 100%)",
-            }}
-          />
-          <div className="absolute inset-x-0 bottom-3 px-3">
-            {badge && (
-              <span className="mb-1.5 inline-block rounded-md bg-primary px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wide text-primary-foreground shadow">
-                {badge}
-              </span>
-            )}
-            <h3 className="max-w-[80%] text-lg font-extrabold leading-none text-white drop-shadow">
-              {title || "Campaign title"}
-            </h3>
-            {subtitle && (
-              <p className="mt-1 max-w-[80%] text-xs font-semibold text-white/90 drop-shadow">
-                {subtitle}
-              </p>
-            )}
-            {ctaLabel && (
-              <span className="mt-2 inline-block rounded-full bg-amber-400 px-3 py-1 text-[11px] font-bold text-zinc-900 shadow">
-                {ctaLabel}
-              </span>
-            )}
+    <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col [&_[data-slot=input]]:min-h-11">
+      <div className="min-h-0 min-w-0 flex-1 space-y-4 overflow-x-hidden overflow-y-auto overscroll-contain px-1 pb-2 sm:space-y-5 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(320px,400px)] lg:items-start lg:gap-6 lg:space-y-0">
+      <aside className="min-w-0 rounded-xl border bg-muted/20 p-3 lg:sticky lg:top-0">
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <div>
+            <p className="text-sm font-semibold">Live Preview</p>
+            <p className="text-xs text-muted-foreground">{type === "HERO" ? "Hero Billboard" : type}</p>
+          </div>
+          <div className="flex rounded-lg border bg-background p-0.5" aria-label="Preview mode">
+            {["mobile", "desktop"].map((mode) => (
+              <button
+                key={mode}
+                type="button"
+                className={`min-h-9 rounded-md px-2.5 text-xs font-medium capitalize ${
+                  previewMode === mode ? "bg-primary text-primary-foreground" : "text-muted-foreground"
+                }`}
+                aria-pressed={previewMode === mode}
+                onClick={() => setPreviewMode(mode)}
+              >
+                {mode}
+              </button>
+            ))}
           </div>
         </div>
-      </div>
+        <div className="aspect-[4/3] w-full overflow-hidden rounded-xl sm:aspect-video">
+          <CampaignPresentation
+            key={previewKey}
+            campaign={previewCampaign}
+            preview
+            previewMode={previewMode}
+            replayKey={previewKey}
+            className="h-full"
+          />
+        </div>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="mt-2 w-full"
+          onClick={() => setPreviewKey((key) => key + 1)}
+        >
+          Replay Animation: {getAnimationLabel(animationPreset)}
+        </Button>
+      </aside>
 
+      <div className="min-w-0 space-y-4">
+      <div className="border-t pt-4">
+        <p className="mb-3 text-sm font-semibold">Media</p>
       {initialData?.id && (
         <div className="space-y-2">
           <Label>Campaign image</Label>
@@ -297,7 +367,7 @@ export default function HomeCampaignForm({
               size="sm"
               disabled={uploadingImage}
               onClick={() => fileInputRef.current?.click()}
-              className="gap-1.5"
+              className="min-h-11 gap-1.5"
             >
               <UploadSimpleIcon className="size-4" />
               {initialData.imageUrl ? "Replace" : "Upload"}
@@ -309,7 +379,7 @@ export default function HomeCampaignForm({
                 size="sm"
                 disabled={uploadingImage}
                 onClick={() => onOpenAIModal(initialData.id, initialData.title)}
-                className="gap-1.5"
+                className="min-h-11 gap-1.5"
               >
                 <SparkleIcon className="size-4" />
                 Generate with AI
@@ -354,7 +424,7 @@ export default function HomeCampaignForm({
               size="sm"
               disabled={uploadingImage}
               onClick={() => mobileFileInputRef.current?.click()}
-              className="gap-1.5"
+              className="min-h-11 gap-1.5"
             >
               <ImageIcon className="size-4" />
               {initialData.mobileImageUrl ? "Replace" : "Upload"}
@@ -392,7 +462,7 @@ export default function HomeCampaignForm({
               variant="outline"
               size="sm"
               onClick={() => fileInputRef.current?.click()}
-              className="gap-1.5"
+              className="min-h-11 gap-1.5"
             >
               <UploadSimpleIcon className="size-4" />
               Upload Image
@@ -419,47 +489,61 @@ export default function HomeCampaignForm({
           </p>
         </div>
       )}
+      </div>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Field>
-          <FieldLabel htmlFor="hc-type">Rail *</FieldLabel>
+          <FieldLabel htmlFor="hc-type">Placement *</FieldLabel>
           <FieldContent>
-            <select
-              id="hc-type"
-              value={type}
-              onChange={(e) => setType(e.target.value)}
-              className="h-9 w-full rounded-md border bg-background px-2 text-sm"
-            >
-              {typeOptions.map((t) => (
-                <option key={t.value} value={t.value}>{t.label}</option>
-              ))}
-            </select>
+            <Select value={type} onValueChange={setType}>
+              <SelectTrigger
+                id="hc-type"
+                className="h-9 w-full max-w-full"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="max-w-[calc(100vw-1.5rem)]">
+                {typeOptions.map((t) => (
+                  <SelectItem key={t.value} value={t.value} className="min-h-10">
+                    {t.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <FieldDescription>Choose where this campaign appears on the customer Home page.</FieldDescription>
           </FieldContent>
         </Field>
 
         <Field>
           <FieldLabel htmlFor="hc-location">Location *</FieldLabel>
           <FieldContent>
-            <select
-              id="hc-location"
-              value={locationId}
+            <Select
+              value={locationId || "__GLOBAL__"}
+              onValueChange={(value) => setLocationId(value === "__GLOBAL__" ? "" : value)}
               disabled={!canGlobal && !!initialData}
-              onChange={(e) => setLocationId(e.target.value)}
-              className="h-9 w-full rounded-md border bg-background px-2 text-sm"
             >
-              {canGlobal && <option value="">🌐 Global (all locations)</option>}
-              {locations.map((loc) => (
-                <option key={loc.id} value={loc.id}>{loc.name}</option>
-              ))}
-            </select>
+              <SelectTrigger id="hc-location" className="h-9 w-full max-w-full">
+                <SelectValue placeholder="Select a location" />
+              </SelectTrigger>
+              <SelectContent className="max-w-[calc(100vw-1.5rem)]">
+                {canGlobal && <SelectItem value="__GLOBAL__">Global (all locations)</SelectItem>}
+                {locations.map((loc) => (
+                  <SelectItem key={loc.id} value={String(loc.id)}>
+                    {loc.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </FieldContent>
         </Field>
       </div>
-
+      <div className="border-t pt-4">
+        <p className="mb-3 text-sm font-semibold">Content</p>
       <Field>
         <FieldLabel htmlFor="hc-title">Title *</FieldLabel>
         <FieldContent>
-          <Input id="hc-title" value={title} onChange={(e) => setTitle(e.target.value)} required placeholder="BIRYANI FEST" />
+          <Input id="hc-title" value={title} onChange={(e) => setTitle(e.target.value)} required maxLength={60} placeholder="BIRYANI FEST" />
+          <FieldDescription>{title.length}/60 characters</FieldDescription>
         </FieldContent>
       </Field>
 
@@ -467,13 +551,13 @@ export default function HomeCampaignForm({
         <Field>
           <FieldLabel htmlFor="hc-badge">Badge</FieldLabel>
           <FieldContent>
-            <Input id="hc-badge" value={badge} onChange={(e) => setBadge(e.target.value)} placeholder="UP TO 70% OFF" />
+            <Input id="hc-badge" value={badge} onChange={(e) => setBadge(e.target.value)} maxLength={30} placeholder="UP TO 70% OFF" />
           </FieldContent>
         </Field>
         <Field>
           <FieldLabel htmlFor="hc-cta">CTA label</FieldLabel>
           <FieldContent>
-            <Input id="hc-cta" value={ctaLabel} onChange={(e) => setCtaLabel(e.target.value)} placeholder="Order Now" />
+            <Input id="hc-cta" value={ctaLabel} onChange={(e) => setCtaLabel(e.target.value)} maxLength={20} placeholder="Order Now" />
           </FieldContent>
         </Field>
       </div>
@@ -481,9 +565,126 @@ export default function HomeCampaignForm({
       <Field>
         <FieldLabel htmlFor="hc-subtitle">Subtitle</FieldLabel>
         <FieldContent>
-          <Input id="hc-subtitle" value={subtitle} onChange={(e) => setSubtitle(e.target.value)} placeholder="Biryani & Specials" />
+          <Input id="hc-subtitle" value={subtitle} onChange={(e) => setSubtitle(e.target.value)} maxLength={100} placeholder="Biryani & Specials" />
+          <FieldDescription>{subtitle.length}/100 characters</FieldDescription>
         </FieldContent>
       </Field>
+      </div>
+
+      <div className="border-t pt-4">
+        <div className="mb-3">
+          <p className="text-sm font-semibold">Campaign Style</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Start with a curated style or customize each presentation setting.
+          </p>
+        </div>
+        <Field>
+          <FieldLabel htmlFor="hc-style-preset">Style preset</FieldLabel>
+          <FieldContent>
+            <Select value={stylePreset} onValueChange={applyStylePreset}>
+              <SelectTrigger id="hc-style-preset" className="h-11 w-full max-w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="max-w-[calc(100vw-1.5rem)]">
+                {Object.entries(STYLE_PRESETS).map(([preset, option]) => (
+                  <SelectItem key={preset} value={preset} className="min-h-11">
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </FieldContent>
+        </Field>
+
+        {stylePreset !== "CUSTOM" ? (
+          <div className="mt-2 flex flex-col gap-2 rounded-lg bg-muted/50 px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-xs text-muted-foreground">
+              {STYLE_PRESETS[stylePreset]?.label} applies matched typography, animation, and{" "}
+              {STYLE_PRESETS[stylePreset]?.animationIntensity?.toLowerCase()} intensity.
+            </p>
+            <Button type="button" variant="outline" size="sm" onClick={() => setStylePreset("CUSTOM")} className="min-h-10 shrink-0">
+              Customize
+            </Button>
+          </div>
+        ) : (
+          <div className="mt-3 space-y-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              {[
+                ["Title", titleTypographyPreset, setTitleTypographyPreset, "hc-title-style"],
+                ["Subtitle", subtitleTypographyPreset, setSubtitleTypographyPreset, "hc-subtitle-style"],
+                ["CTA", ctaTypographyPreset, setCtaTypographyPreset, "hc-cta-style"],
+              ].map(([label, value, setter, id]) => (
+                <Field key={id}>
+                  <FieldLabel htmlFor={id}>{label} Style</FieldLabel>
+                  <FieldContent>
+                    <Select value={value} onValueChange={markCustom(setter)}>
+                      <SelectTrigger id={id} className="h-11 w-full max-w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="max-w-[calc(100vw-1.5rem)]">
+                        {Object.entries(TYPOGRAPHY_PRESETS).map(([preset, option]) => (
+                          <SelectItem key={preset} value={preset} className="min-h-11">
+                            <span style={{ fontFamily: option.cssFamily, fontWeight: option.weight }}>
+                              {option.label}
+                            </span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </FieldContent>
+                </Field>
+              ))}
+            </div>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <Field>
+                <FieldLabel htmlFor="hc-animation">Animation preset</FieldLabel>
+                <FieldContent>
+                  <Select value={animationPreset} onValueChange={markCustom(setAnimationPreset)}>
+                    <SelectTrigger id="hc-animation" className="h-11 w-full max-w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="max-w-[calc(100vw-1.5rem)]">
+                      {["Subtle", "Premium", "Cinematic", "Dynamic"].map((group) => (
+                        <SelectGroup key={group}>
+                          <SelectLabel>{group}</SelectLabel>
+                          {ANIMATION_OPTIONS.filter((option) => option.group === group).map((option) => (
+                            <SelectItem key={option.value} value={option.value} className="min-h-11">
+                              <span className="flex flex-col">
+                                <span className="font-medium">{option.label}</span>
+                                <span className="text-xs text-muted-foreground">{option.description}</span>
+                              </span>
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </FieldContent>
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="hc-animation-intensity">Animation intensity</FieldLabel>
+                <FieldContent>
+                  <Select value={animationIntensity} onValueChange={markCustom(setAnimationIntensity)}>
+                    <SelectTrigger id="hc-animation-intensity" className="h-11 w-full max-w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="max-w-[calc(100vw-1.5rem)]">
+                      {ANIMATION_INTENSITIES.map((option) => (
+                        <SelectItem key={option.value} value={option.value} className="min-h-11">
+                          <span className="flex flex-col">
+                            <span className="font-medium">{option.label}</span>
+                            <span className="text-xs text-muted-foreground">{option.description}</span>
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </FieldContent>
+              </Field>
+            </div>
+          </div>
+        )}
+      </div>
 
       <section className="space-y-3 rounded-2xl border border-[#E6E0DB] bg-[#FFFCF9]/70 p-4 sm:p-5">
         <div>
@@ -495,7 +696,7 @@ export default function HomeCampaignForm({
 
         <div className={targetType === "NONE" || targetType === "PARTY_ORDER" ? "grid grid-cols-1" : "grid grid-cols-1 gap-3 sm:grid-cols-2"}>
           <Field>
-            <FieldLabel htmlFor="hc-target-type">Tap action</FieldLabel>
+            <FieldLabel htmlFor="hc-target-type">Tap Behavior</FieldLabel>
             <FieldContent>
               <Select
                 value={targetType}
@@ -522,6 +723,7 @@ export default function HomeCampaignForm({
                   ))}
                 </SelectContent>
               </Select>
+              <FieldDescription>Choose what happens when customers tap this campaign.</FieldDescription>
             </FieldContent>
           </Field>
 
@@ -615,17 +817,17 @@ export default function HomeCampaignForm({
         <Field>
           <FieldLabel htmlFor="hc-visual">Visual style</FieldLabel>
           <FieldContent>
-            <select
-              id="hc-visual"
-              value={visualVariant}
-              onChange={(e) => setVisualVariant(e.target.value)}
-              className="h-9 w-full rounded-md border bg-background px-2 text-sm"
-            >
-              <option value="">Auto</option>
-              {VISUAL_VARIANTS.filter(Boolean).map((v) => (
-                <option key={v} value={v}>{v}</option>
-              ))}
-            </select>
+            <Select value={visualVariant || "__AUTO__"} onValueChange={(value) => setVisualVariant(value === "__AUTO__" ? "" : value)}>
+              <SelectTrigger id="hc-visual" className="h-9 w-full max-w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="max-w-[calc(100vw-1.5rem)]">
+                <SelectItem value="__AUTO__">Auto</SelectItem>
+                {VISUAL_VARIANTS.filter(Boolean).map((v) => (
+                  <SelectItem key={v} value={v}>{v}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </FieldContent>
         </Field>
         <Field>
@@ -655,6 +857,7 @@ export default function HomeCampaignForm({
           </FieldContent>
         </Field>
       </div>
+      {scheduleError && <p className="text-sm text-destructive" role="alert">{scheduleError}</p>}
 
       <Field
         orientation="horizontal"
@@ -667,8 +870,15 @@ export default function HomeCampaignForm({
         <Switch id="hc-active" checked={isActive} onCheckedChange={setIsActive} />
       </Field>
 
-      <div className="flex justify-end gap-2 pt-2">
-        <Button type="submit" disabled={submitting || !title.trim()}>
+      </div>
+      </div>
+      <div className="sticky bottom-0 flex shrink-0 flex-col-reverse gap-2 border-t bg-popover/95 px-1 pt-3 backdrop-blur sm:flex-row sm:justify-end">
+        {onCancel && (
+          <Button type="button" variant="outline" onClick={onCancel} className="w-full sm:w-auto">
+            Cancel
+          </Button>
+        )}
+        <Button type="submit" disabled={submitting || !title.trim()} className="w-full sm:w-auto">
           {submitting ? "Saving…" : initialData ? "Update Campaign" : "Create Campaign"}
         </Button>
       </div>
@@ -684,4 +894,5 @@ HomeCampaignForm.propTypes = {
   onRemoveImage: PropTypes.func,
   uploadingImage: PropTypes.bool,
   onOpenAIModal: PropTypes.func,
+  onCancel: PropTypes.func,
 };

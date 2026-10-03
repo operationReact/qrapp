@@ -4,6 +4,7 @@ import com.broandbro.qrapp.campaign.entity.HomeCampaign;
 import com.broandbro.qrapp.campaign.repository.HomeCampaignRepository;
 import com.broandbro.qrapp.entity.User;
 import com.broandbro.qrapp.exception.OpenAiImageGenerationException;
+import com.broandbro.qrapp.enums.HomeCampaignType;
 import com.broandbro.qrapp.prompt.CampaignImagePromptBuilder;
 import com.broandbro.qrapp.service.LocationAccessService;
 import com.broandbro.qrapp.service.ai.ImageGenerationService;
@@ -42,6 +43,7 @@ import java.util.stream.IntStream;
 public class CampaignImageGenerationService {
 
     private static final String HERO_IMAGE_SIZE = "1536x1024";
+    private static final String CARD_IMAGE_SIZE = "1024x1024";
 
     private final HomeCampaignRepository campaignRepository;
     private final ImageGenerationService imageGenerationService;
@@ -92,10 +94,11 @@ public class CampaignImageGenerationService {
         }
 
         // Build prompt
-        String prompt = promptBuilder.buildCampaignHeroPrompt(
+        String prompt = promptBuilder.buildCampaignPrompt(
                 campaign.getTitle(),
                 campaign.getBadge(),
                 null, // categoryName (not applicable for campaigns)
+                campaign.getType(),
                 creativeDirection
         );
 
@@ -105,7 +108,7 @@ public class CampaignImageGenerationService {
             // Generate image bytes
             byte[] imageBytes = imageGenerationService.generateImageFromPrompt(
                     prompt,
-                    HERO_IMAGE_SIZE
+                    campaign.getType() == HomeCampaignType.HERO ? HERO_IMAGE_SIZE : CARD_IMAGE_SIZE
             );
 
             log.info("[CampaignImgGen] AI image received ({} KB). Uploading to storage...", imageBytes.length / 1024);

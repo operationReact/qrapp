@@ -1,0 +1,64 @@
+ALTER TABLE home_campaigns
+    ADD COLUMN IF NOT EXISTS style_preset VARCHAR(40),
+    ADD COLUMN IF NOT EXISTS animation_intensity VARCHAR(40);
+
+ALTER TABLE home_campaigns
+    ALTER COLUMN title_typography_preset TYPE VARCHAR(40),
+    ALTER COLUMN subtitle_typography_preset TYPE VARCHAR(40),
+    ALTER COLUMN cta_typography_preset TYPE VARCHAR(40),
+    ALTER COLUMN animation_preset TYPE VARCHAR(40),
+    ALTER COLUMN animation_intensity TYPE VARCHAR(40);
+
+ALTER TABLE home_campaigns
+    DROP CONSTRAINT IF EXISTS chk_home_campaign_title_typography,
+    DROP CONSTRAINT IF EXISTS chk_home_campaign_subtitle_typography,
+    DROP CONSTRAINT IF EXISTS chk_home_campaign_cta_typography,
+    DROP CONSTRAINT IF EXISTS chk_home_campaign_animation;
+
+ALTER TABLE home_campaigns
+    ADD CONSTRAINT chk_home_campaign_style_preset
+        CHECK (style_preset IS NULL OR style_preset IN (
+            'CUSTOM','ROYAL_FEAST','MODERN_GOURMET','HOT_DEAL','FESTIVE_GLOW',
+            'FRESH_DELICIOUS','GRAND_CELEBRATION','STREET_FOOD','NEW_ARRIVAL',
+            'MIDNIGHT_CRAVINGS','FAMILY_FEAST','WEEKEND_VIBES','CHEFS_SPECIAL',
+            'FLASH_DROP','ELEGANT_MOMENTS','BRO_AND_BRO_SIGNATURE'
+        )),
+    ADD CONSTRAINT chk_home_campaign_animation_intensity
+        CHECK (animation_intensity IS NULL OR animation_intensity IN ('SUBTLE','MEDIUM','BOLD')),
+    ADD CONSTRAINT chk_home_campaign_title_typography
+        CHECK (title_typography_preset IS NULL OR title_typography_preset IN (
+            'MODERN','PREMIUM','FRESH','ELEGANT','IMPACT','FRIENDLY','MINIMAL','EDITORIAL',
+            'POPPINS_BOLD','POPPINS_MEDIUM','POPPINS_SEMIBOLD','MONTSERRAT_BOLD',
+            'MONTSERRAT_SEMIBOLD','MONTSERRAT_EXTRABOLD','PLAYFAIR_DISPLAY_BOLD',
+            'DM_SANS_REGULAR','DM_SANS_MEDIUM','DM_SANS_BOLD','LORA_REGULAR','LORA_MEDIUM',
+            'RALEWAY_REGULAR','NUNITO_SANS_MEDIUM','NUNITO_SANS_BOLD','NUNITO_SANS_EXTRABOLD',
+            'MANROPE_SEMIBOLD','OSWALD_BOLD','BEBAS_NEUE_BOLD',
+            'CORMORANT_GARAMOND_SEMIBOLD','CORMORANT_GARAMOND_BOLD'
+        )),
+    ADD CONSTRAINT chk_home_campaign_subtitle_typography
+        CHECK (subtitle_typography_preset IS NULL OR subtitle_typography_preset IN (
+            'MODERN','PREMIUM','FRESH','ELEGANT','IMPACT','FRIENDLY','MINIMAL','EDITORIAL',
+            'POPPINS_BOLD','POPPINS_MEDIUM','POPPINS_SEMIBOLD','MONTSERRAT_BOLD',
+            'MONTSERRAT_SEMIBOLD','MONTSERRAT_EXTRABOLD','PLAYFAIR_DISPLAY_BOLD',
+            'DM_SANS_REGULAR','DM_SANS_MEDIUM','DM_SANS_BOLD','LORA_REGULAR','LORA_MEDIUM',
+            'RALEWAY_REGULAR','NUNITO_SANS_MEDIUM','NUNITO_SANS_BOLD','NUNITO_SANS_EXTRABOLD',
+            'MANROPE_SEMIBOLD','OSWALD_BOLD','BEBAS_NEUE_BOLD',
+            'CORMORANT_GARAMOND_SEMIBOLD','CORMORANT_GARAMOND_BOLD'
+        )),
+    ADD CONSTRAINT chk_home_campaign_cta_typography
+        CHECK (cta_typography_preset IS NULL OR cta_typography_preset IN (
+            'MODERN','PREMIUM','FRESH','ELEGANT','IMPACT','FRIENDLY','MINIMAL','EDITORIAL',
+            'POPPINS_BOLD','POPPINS_MEDIUM','POPPINS_SEMIBOLD','MONTSERRAT_BOLD',
+            'MONTSERRAT_SEMIBOLD','MONTSERRAT_EXTRABOLD','PLAYFAIR_DISPLAY_BOLD',
+            'DM_SANS_REGULAR','DM_SANS_MEDIUM','DM_SANS_BOLD','LORA_REGULAR','LORA_MEDIUM',
+            'RALEWAY_REGULAR','NUNITO_SANS_MEDIUM','NUNITO_SANS_BOLD','NUNITO_SANS_EXTRABOLD',
+            'MANROPE_SEMIBOLD','OSWALD_BOLD','BEBAS_NEUE_BOLD',
+            'CORMORANT_GARAMOND_SEMIBOLD','CORMORANT_GARAMOND_BOLD'
+        )),
+    ADD CONSTRAINT chk_home_campaign_animation
+        CHECK (animation_preset IS NULL OR animation_preset IN (
+            'NONE','SOFT_FADE','SLIDE_UP','PREMIUM_REVEAL','CINEMATIC_ZOOM','OFFER_PULSE',
+            'CINEMATIC_DRIFT','PARALLAX_DEPTH','LUXURY_REVEAL','GLASS_REVEAL','LIGHT_SWEEP',
+            'SPOTLIGHT_REVEAL','DEPTH_ZOOM','SPLIT_REVEAL','MASK_REVEAL','FLOATING_CONTENT',
+            'STAGGERED_REVEAL','FOOD_FOCUS','GOLDEN_SWEEP','LIQUID_REVEAL','DYNAMIC'
+        ));

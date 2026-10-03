@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..700;1,400..700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Cormorant+Garamond:wght@600;700&family=DM+Sans:wght@400;500;600;700&family=Instrument+Sans:ital,wght@0,400..700;1,400..700&family=Lora:wght@400;500;600&family=Manrope:wght@600&family=Montserrat:wght@600;700;800&family=Nunito+Sans:wght@500;700;800&family=Oswald:wght@700&family=Playfair+Display:wght@700&family=Poppins:wght@500;600;700&family=Raleway:wght@400&display=swap");
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
@@ -329,6 +329,172 @@ body {
   font-optical-sizing: auto;
   font-style: normal;
   position: relative;
+}
+
+@keyframes campaignFade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes campaignSlideUp {
+  from { opacity: 0; transform: translate3d(0, 18px, 0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+
+@keyframes campaignZoom {
+  from { transform: scale(1); }
+  to { transform: scale(1.06); }
+}
+
+@keyframes campaignPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.035); }
+}
+
+.campaign-animation-fade {
+  animation: campaignFade 700ms ease-out both;
+}
+
+.campaign-animation-slide-up {
+  animation: campaignSlideUp 650ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.campaign-animation-background {
+  animation: campaignZoom 8s ease-out both;
+}
+
+.campaign-animation-badge {
+  animation: campaignFade 400ms ease-out 120ms both;
+}
+
+.campaign-animation-title {
+  animation: campaignSlideUp 550ms cubic-bezier(0.22, 1, 0.36, 1) 120ms both;
+}
+
+.campaign-animation-subtitle {
+  animation: campaignFade 500ms ease-out 260ms both;
+}
+
+.campaign-animation-cta {
+  animation: campaignFade 500ms ease-out 380ms both;
+}
+
+.campaign-animation-pulse {
+  animation: campaignPulse 900ms ease-in-out 250ms 1 both;
+}
+
+.campaign-presentation {
+  --campaign-duration: 700ms;
+  --campaign-distance: 14px;
+  --campaign-scale: 1.04;
+}
+
+.campaign-presentation[data-animation-intensity="SUBTLE"] {
+  --campaign-duration: 950ms;
+  --campaign-distance: 8px;
+  --campaign-scale: 1.025;
+}
+
+.campaign-presentation[data-animation-intensity="BOLD"] {
+  --campaign-duration: 560ms;
+  --campaign-distance: 22px;
+  --campaign-scale: 1.07;
+}
+
+@keyframes campaignEffectFade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes campaignEffectSlide {
+  from { opacity: 0; transform: translate3d(0, var(--campaign-distance), 0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+
+@keyframes campaignEffectDrift {
+  from { opacity: 0; transform: translate3d(0, 10px, 0) scale(.99); }
+  to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+}
+
+@keyframes campaignEffectGlass {
+  from { opacity: 0; transform: translate3d(0, var(--campaign-distance), 0); filter: blur(3px); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); filter: blur(0); }
+}
+
+@keyframes campaignEffectSweep {
+  from { opacity: .35; transform: translateX(-12%); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes campaignEffectPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(var(--campaign-scale)); }
+}
+
+@keyframes campaignEffectBackground {
+  from { transform: scale(1); }
+  to { transform: scale(var(--campaign-scale)); }
+}
+
+.campaign-effect-fade,
+.campaign-effect-premium,
+.campaign-effect-luxury,
+.campaign-effect-spotlight,
+.campaign-effect-focus,
+.campaign-effect-mask,
+.campaign-effect-split,
+.campaign-effect-stagger,
+.campaign-effect-liquid,
+.campaign-effect-dynamic {
+  animation: campaignEffectFade var(--campaign-duration) ease-out both;
+}
+
+.campaign-effect-slide,
+.campaign-effect-float {
+  animation: campaignEffectSlide var(--campaign-duration) cubic-bezier(.22, 1, .36, 1) both;
+}
+
+.campaign-effect-drift,
+.campaign-effect-parallax,
+.campaign-effect-zoom {
+  animation: campaignEffectDrift var(--campaign-duration) ease-out both;
+}
+
+.campaign-effect-glass {
+  animation: campaignEffectGlass var(--campaign-duration) ease-out both;
+}
+
+.campaign-effect-pulse {
+  animation: campaignEffectPulse var(--campaign-duration) ease-in-out 180ms 1 both;
+}
+
+.campaign-effect-background {
+  animation: campaignEffectBackground calc(var(--campaign-duration) * 8) ease-out both;
+}
+
+.campaign-effect-sweep,
+.campaign-effect-golden {
+  animation: campaignEffectSweep var(--campaign-duration) ease-out both;
+}
+
+.campaign-effect-badge,
+.campaign-effect-title,
+.campaign-effect-subtitle,
+.campaign-effect-cta {
+  animation: campaignEffectSlide var(--campaign-duration) cubic-bezier(.22, 1, .36, 1) both;
+}
+
+.campaign-effect-subtitle { animation-delay: 120ms; }
+.campaign-effect-cta { animation-delay: 220ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  .campaign-presentation *,
+  .campaign-presentation::before,
+  .campaign-presentation::after {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+  }
 }
 
 .bg-gradient-wallet:before {

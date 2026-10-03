@@ -3,6 +3,10 @@ package com.broandbro.qrapp.campaign.entity;
 import com.broandbro.qrapp.entity.Location;
 import com.broandbro.qrapp.enums.HomeCampaignTargetType;
 import com.broandbro.qrapp.enums.HomeCampaignType;
+import com.broandbro.qrapp.enums.HomeCampaignAnimationPreset;
+import com.broandbro.qrapp.enums.HomeCampaignAnimationIntensity;
+import com.broandbro.qrapp.enums.HomeCampaignStylePreset;
+import com.broandbro.qrapp.enums.HomeCampaignTypographyPreset;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -67,6 +71,30 @@ public class HomeCampaign {
 
     @Column(name = "visual_variant", length = 30)
     private String visualVariant;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "style_preset", length = 40)
+    private HomeCampaignStylePreset stylePreset;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "title_typography_preset", length = 40)
+    private HomeCampaignTypographyPreset titleTypographyPreset;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "subtitle_typography_preset", length = 40)
+    private HomeCampaignTypographyPreset subtitleTypographyPreset;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "cta_typography_preset", length = 40)
+    private HomeCampaignTypographyPreset ctaTypographyPreset;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "animation_preset", length = 40)
+    private HomeCampaignAnimationPreset animationPreset;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "animation_intensity", length = 40)
+    private HomeCampaignAnimationIntensity animationIntensity;
 
     @Column(name = "display_order", nullable = false)
     @Builder.Default

@@ -2,7 +2,12 @@ package com.broandbro.qrapp.campaign.dto;
 
 import com.broandbro.qrapp.enums.HomeCampaignTargetType;
 import com.broandbro.qrapp.enums.HomeCampaignType;
+import com.broandbro.qrapp.enums.HomeCampaignAnimationPreset;
+import com.broandbro.qrapp.enums.HomeCampaignAnimationIntensity;
+import com.broandbro.qrapp.enums.HomeCampaignStylePreset;
+import com.broandbro.qrapp.enums.HomeCampaignTypographyPreset;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
 import java.time.Instant;
@@ -22,6 +27,7 @@ public record HomeCampaignRequest(
         @Size(max = 100)
         String badge,
 
+        @NotBlank(message = "title is required")
         @Size(max = 150)
         String title,
 
@@ -41,6 +47,18 @@ public record HomeCampaignRequest(
 
         @Size(max = 30)
         String visualVariant,
+
+        HomeCampaignStylePreset stylePreset,
+
+        HomeCampaignTypographyPreset titleTypographyPreset,
+
+        HomeCampaignTypographyPreset subtitleTypographyPreset,
+
+        HomeCampaignTypographyPreset ctaTypographyPreset,
+
+        HomeCampaignAnimationPreset animationPreset,
+
+        HomeCampaignAnimationIntensity animationIntensity,
 
         Integer displayOrder,
 

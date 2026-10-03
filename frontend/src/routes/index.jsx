@@ -17,6 +17,7 @@ import MobileMenu from "../components/shared/MobileMenu";
 import { useLocation } from "@tanstack/react-router";
 import { useLocation as useActiveLocation } from "@/context/LocationContext";
 import ImmersiveHomeHero from "@/components/home/ImmersiveHomeHero";
+import HomeCampaignRails from "@/components/home/HomeCampaignRails";
 import HallOfHappinessSection from "@/components/HallOfHappinessSection";
 import React from "react";
 import { BowlFoodIcon, CaretRightIcon } from "@phosphor-icons/react";
@@ -159,6 +160,12 @@ function MenuPage() {
           onVegFilterChange={handleSegmentedFilterChange}
         />
       </div>
+      <div className="hidden lg:block">
+        <ImmersiveHomeHero
+          locationId={activeLocationId}
+          showOverlayControls={false}
+        />
+      </div>
 
       <div className="container-premium home-controls flex flex-col gap-2 py-1.5 md:gap-2 md:py-2">
         {/* Desktop keeps its existing dedicated search + filter row above the
@@ -181,6 +188,7 @@ function MenuPage() {
           <CategoryTabs categories={categories} active={category} />
         </div>
       </div>
+      <HomeCampaignRails locationId={activeLocationId} />
       <HallOfHappinessSection />
 
       <main className="container-premium py-2 md:py-4 lg:py-5">
