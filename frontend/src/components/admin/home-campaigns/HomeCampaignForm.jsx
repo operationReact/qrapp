@@ -153,6 +153,7 @@ export default function HomeCampaignForm({
   onRemoveImage,
   uploadingImage,
   onOpenAIModal,
+  onCancel,
 }) {
   const { user } = useAuth();
   const { activeLocationId } = useActiveLocation();
@@ -224,7 +225,8 @@ export default function HomeCampaignForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5 px-1">
+    <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+      <div className="min-h-0 min-w-0 flex-1 space-y-4 overflow-x-hidden overflow-y-auto overscroll-contain px-1 pb-2 sm:space-y-5">
       {/* Live preview — a lightweight stand-in for the immersive Hero slide
           (billboard image + gradient scrim + badge/title/subtitle/CTA). */}
       <div className="rounded-lg border bg-muted/30 p-3">
@@ -424,16 +426,21 @@ export default function HomeCampaignForm({
         <Field>
           <FieldLabel htmlFor="hc-type">Rail *</FieldLabel>
           <FieldContent>
-            <select
-              id="hc-type"
-              value={type}
-              onChange={(e) => setType(e.target.value)}
-              className="h-9 w-full rounded-md border bg-background px-2 text-sm"
-            >
-              {typeOptions.map((t) => (
-                <option key={t.value} value={t.value}>{t.label}</option>
-              ))}
-            </select>
+            <Select value={type} onValueChange={setType}>
+              <SelectTrigger
+                id="hc-type"
+                className="h-9 w-full max-w-full"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="max-w-[calc(100vw-1.5rem)]">
+                {typeOptions.map((t) => (
+                  <SelectItem key={t.value} value={t.value} className="min-h-10">
+                    {t.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </FieldContent>
         </Field>
 
@@ -667,8 +674,14 @@ export default function HomeCampaignForm({
         <Switch id="hc-active" checked={isActive} onCheckedChange={setIsActive} />
       </Field>
 
-      <div className="flex justify-end gap-2 pt-2">
-        <Button type="submit" disabled={submitting || !title.trim()}>
+      </div>
+      <div className="sticky bottom-0 flex shrink-0 flex-col-reverse gap-2 border-t bg-popover/95 px-1 pt-3 backdrop-blur sm:flex-row sm:justify-end">
+        {onCancel && (
+          <Button type="button" variant="outline" onClick={onCancel} className="w-full sm:w-auto">
+            Cancel
+          </Button>
+        )}
+        <Button type="submit" disabled={submitting || !title.trim()} className="w-full sm:w-auto">
           {submitting ? "Saving…" : initialData ? "Update Campaign" : "Create Campaign"}
         </Button>
       </div>
@@ -684,4 +697,5 @@ HomeCampaignForm.propTypes = {
   onRemoveImage: PropTypes.func,
   uploadingImage: PropTypes.bool,
   onOpenAIModal: PropTypes.func,
+  onCancel: PropTypes.func,
 };

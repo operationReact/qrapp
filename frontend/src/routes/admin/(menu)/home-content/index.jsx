@@ -430,8 +430,8 @@ export default function HomeContentPage() {
         open={!!editTarget}
         onOpenChange={(v) => !v && setEditTarget(null)}
       >
-        <DialogContent className="max-h-[90vh] w-[calc(100%-1rem)] max-w-2xl overflow-y-auto p-4 sm:p-6">
-          <DialogHeader>
+        <DialogContent className="flex h-[min(calc(100dvh-24px),720px)] max-h-[calc(100dvh-24px)] min-h-0 w-[calc(100vw-24px)] max-w-[520px] flex-col gap-4 overflow-hidden p-4 sm:p-6">
+          <DialogHeader className="shrink-0">
             <DialogTitle>Edit Campaign</DialogTitle>
             <DialogDescription>Update content, scheduling and targeting.</DialogDescription>
           </DialogHeader>
@@ -450,6 +450,7 @@ export default function HomeContentPage() {
               onOpenAIModal={(campaignId, campaignName) =>
                 handleOpenAIModal(campaignId, campaignName)
               }
+              onCancel={() => setEditTarget(null)}
             />
           )}
         </DialogContent>
