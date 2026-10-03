@@ -1,9 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import PropTypes from "prop-types";
 import Autoplay from "embla-carousel-autoplay";
 import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { CaretRightIcon } from "@phosphor-icons/react";
 import {
   Carousel,
   CarouselContent,
@@ -15,7 +14,7 @@ import { LocationSelector } from "@/components/LocationSelector";
 import SearchBar from "@/components/shared/SearchBar";
 import SegmentedFilter from "@/components/SegmentedFilter";
 import { homeCampaignFeedOptions } from "@/query/options/home-campaigns";
-import { runCampaignAction, isCampaignActionable } from "./campaignActions";
+import CampaignPresentation from "./CampaignPresentationView";
 import { cn } from "@/lib/utils";
 import CombosDrawer from "@/components/CombosDrawer";
 import BuildYourOwnComboDrawer from "@/components/BuildYourOwnComboDrawer";
@@ -72,57 +71,30 @@ function HeroDots({ count }) {
   );
 }
 
-function HeroSlide({ campaign, handlers }) {
-  const actionable = isCampaignActionable(campaign);
-  const bg = campaign.mobileImageUrl || campaign.imageUrl || FALLBACK_IMAGE;
+function HeroSlide({ campaign, handlers, index }) {
+  const { api } = useCarousel();
+  const subscribe = useCallback((onStoreChange) => {
+    if (!api) return () => {};
+    api.on("select", onStoreChange);
+    api.on("reInit", onStoreChange);
+    return () => {
+      api.off("select", onStoreChange);
+      api.off("reInit", onStoreChange);
+    };
+  }, [api]);
+  const getSnapshot = useCallback(
+    () => (api ? api.selectedScrollSnap() === index : index === 0),
+    [api, index],
+  );
+  const active = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 
   return (
-    <div className="relative h-full w-full overflow-hidden">
-      <img
-        src={bg}
-        alt=""
-        aria-hidden
-        draggable="false"
-        className="absolute inset-0 h-full w-full object-cover"
-      />
-      {/* Persistent legibility scrim */}
-      <div
-        className="absolute inset-0"
-        style={{
-          background:
-            "linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.35) 45%, rgba(0,0,0,0.05) 65%, rgba(0,0,0,0.35) 100%)",
-        }}
-      />
-      {(campaign.badge || campaign.title) && (
-        <div className="absolute inset-x-0 bottom-9 z-10 px-4">
-          {campaign.badge && (
-            <span className="mb-2 inline-block rounded-md bg-primary px-2.5 py-1 text-[11px] font-extrabold uppercase tracking-wide text-primary-foreground shadow-lg">
-              {campaign.badge}
-            </span>
-          )}
-          {campaign.title && (
-            <h2 className="max-w-[75%] text-3xl font-extrabold leading-none text-white drop-shadow-lg sm:text-4xl">
-              {campaign.title}
-            </h2>
-          )}
-          {campaign.subtitle && (
-            <p className="mt-1.5 max-w-[75%] text-sm font-semibold text-white/90 drop-shadow">
-              {campaign.subtitle}
-            </p>
-          )}
-          {campaign.ctaLabel && actionable && (
-            <Button
-              size="sm"
-              className="mt-3 rounded-full bg-amber-400 font-bold text-zinc-900 shadow-lg hover:bg-amber-300"
-              onClick={() => runCampaignAction(campaign, handlers)}
-            >
-              {campaign.ctaLabel}
-              <CaretRightIcon weight="bold" />
-            </Button>
-          )}
-        </div>
-      )}
-    </div>
+    <CampaignPresentation
+      campaign={{ ...campaign, isActive: active }}
+      handlers={handlers}
+      fallbackImage={FALLBACK_IMAGE}
+      eager
+    />
   );
 }
 
@@ -137,13 +109,19 @@ export default function ImmersiveHomeHero({
   onSearch,
   vegFilter,
   onVegFilterChange,
+  showOverlayControls = true,
 }) {
   const { data } = useQuery(homeCampaignFeedOptions(locationId));
   const heroCampaigns = data?.hero ?? [];
   const slides = heroCampaigns.length > 0 ? heroCampaigns : [{ id: "fallback", title: null }];
 
   const plugin = useMemo(
-    () => Autoplay({ delay: 5000, stopOnInteraction: true }),
+    () => Autoplay({
+      delay: 3000,
+      playOnInit: true,
+      stopOnInteraction: false,
+      stopOnMouseEnter: false,
+    }),
     [],
   );
 
@@ -209,34 +187,38 @@ export default function ImmersiveHomeHero({
 
       <Carousel
         opts={{ loop: heroCampaigns.length > 1 }}
-        plugins={heroCampaigns.length > 1 ? [plugin] : []}
+        plugins={[plugin]}
         className="absolute inset-0 h-full"
       >
         <CarouselContent className="ml-0 h-full">
-          {slides.map((campaign) => (
+          {slides.map((campaign, index) => (
             <CarouselItem key={campaign.id} className="h-full pl-0">
-              <HeroSlide campaign={campaign} handlers={handlers} />
+              <HeroSlide campaign={campaign} handlers={handlers} index={index} />
             </CarouselItem>
           ))}
         </CarouselContent>
         <HeroDots count={slides.length} />
       </Carousel>
 
-      {/* Overlay header — location (opposite: logo) */}
-      <div className="absolute inset-x-0 top-0 z-20 flex items-center justify-between gap-2 p-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
-        <LocationSelector overlay className="min-w-0 flex-1" />
-        <Link to="/" className="shrink-0 rounded-xl bg-white/95 p-1.5 shadow-md" aria-label="BRO & BRO">
-          <img src="/bro-logo.png" alt="BRO & BRO" className="h-7 w-7 object-contain" />
-        </Link>
-      </div>
+      {showOverlayControls && (
+        <>
+          {/* Overlay header — location (opposite: logo) */}
+          <div className="absolute inset-x-0 top-0 z-20 flex items-center justify-between gap-2 p-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
+            <LocationSelector overlay className="min-w-0 flex-1" />
+            <Link to="/" className="shrink-0 rounded-xl bg-white/95 p-1.5 shadow-md" aria-label="BRO & BRO">
+              <img src="/bro-logo.png" alt="BRO & BRO" className="h-7 w-7 object-contain" />
+            </Link>
+          </div>
 
-      {/* Overlay search + dietary filter */}
-      <div className="absolute inset-x-0 top-[60px] z-20 flex items-center gap-2 px-3">
-        <div className="min-w-0 flex-1">
-          <SearchBar home onSearch={onSearch} />
-        </div>
-        <SegmentedFilter compact value={vegFilter} onChange={onVegFilterChange} />
-      </div>
+          {/* Overlay search + dietary filter */}
+          <div className="absolute inset-x-0 top-[60px] z-20 flex items-center gap-2 px-3">
+            <div className="min-w-0 flex-1">
+              <SearchBar home onSearch={onSearch} />
+            </div>
+            <SegmentedFilter compact value={vegFilter} onChange={onVegFilterChange} />
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -246,4 +228,5 @@ ImmersiveHomeHero.propTypes = {
   onSearch: PropTypes.func,
   vegFilter: PropTypes.string,
   onVegFilterChange: PropTypes.func,
+  showOverlayControls: PropTypes.bool,
 };

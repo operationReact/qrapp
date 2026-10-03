@@ -39,8 +39,13 @@ import {
   SparkleIcon,
 } from "@phosphor-icons/react";
 import { toast } from "sonner";
+import { useLocation as useActiveLocation } from "@/context/LocationContext";
 import HomeCampaignForm from "@/components/admin/home-campaigns/HomeCampaignForm";
 import CampaignImageGenerationModal from "@/components/admin/CampaignImageGenerationModal";
+import {
+  getAnimationLabel,
+  getPlacementLabel,
+} from "@/components/home/campaignPresentation";
 import {
   Empty,
   EmptyDescription,
@@ -61,10 +66,19 @@ function formatDate(d) {
   });
 }
 
-const RAIL_LABEL = { HERO: "Hero", DISCOVERY: "Discovery", PROMOTION: "Promotion" };
+function getLifecycleStatus(campaign) {
+  if (!campaign.isActive) {
+    return campaign.imageUrl || campaign.mobileImageUrl ? "Disabled" : "Draft";
+  }
+  const now = Date.now();
+  if (campaign.startsAt && new Date(campaign.startsAt).getTime() > now) return "Scheduled";
+  if (campaign.endsAt && new Date(campaign.endsAt).getTime() < now) return "Expired";
+  return "Active";
+}
 
 export default function HomeContentPage() {
   const queryClient = useQueryClient();
+  const { activeLocationId } = useActiveLocation();
   const [createOpen, setCreateOpen] = useState(false);
   const [editTarget, setEditTarget] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
@@ -77,7 +91,7 @@ export default function HomeContentPage() {
   });
 
   const { data: campaigns = [], isLoading } = useQuery(
-    homeCampaignAdminListOptions(),
+    homeCampaignAdminListOptions(activeLocationId),
   );
 
   const invalidate = () =>
@@ -112,7 +126,7 @@ export default function HomeContentPage() {
   });
 
   const updateMut = useMutation({
-    mutationFn: ({ id, data }) => updateHomeCampaign(id, data),
+    mutationFn: ({ id, data }) => updateHomeCampaign(id, data, activeLocationId),
     onSuccess: (updated) => {
       invalidate();
       setEditTarget(updated);
@@ -122,7 +136,7 @@ export default function HomeContentPage() {
   });
 
   const statusMut = useMutation({
-    mutationFn: ({ id, isActive }) => setHomeCampaignActive(id, isActive),
+    mutationFn: ({ id, isActive }) => setHomeCampaignActive(id, isActive, activeLocationId),
     onSuccess: () => {
       invalidate();
       toast.success("Status updated");
@@ -131,7 +145,7 @@ export default function HomeContentPage() {
   });
 
   const deleteMut = useMutation({
-    mutationFn: deleteHomeCampaign,
+    mutationFn: (id) => deleteHomeCampaign(id, activeLocationId),
     onSuccess: () => {
       invalidate();
       setDeleteTarget(null);
@@ -141,7 +155,7 @@ export default function HomeContentPage() {
   });
 
   const duplicateMut = useMutation({
-    mutationFn: duplicateHomeCampaign,
+    mutationFn: (id) => duplicateHomeCampaign(id, activeLocationId),
     onSuccess: () => {
       invalidate();
       toast.success("Campaign duplicated as an inactive draft");
@@ -150,7 +164,8 @@ export default function HomeContentPage() {
   });
 
   const uploadImageMut = useMutation({
-    mutationFn: ({ id, file, options }) => uploadHomeCampaignImage(id, file, options),
+    mutationFn: ({ id, file, options }) =>
+      uploadHomeCampaignImage(id, file, { ...options, locationId: activeLocationId }),
     onSuccess: (updated) => {
       invalidate();
       setEditTarget(updated);
@@ -160,7 +175,8 @@ export default function HomeContentPage() {
   });
 
   const removeImageMut = useMutation({
-    mutationFn: ({ id, options }) => removeHomeCampaignImage(id, options),
+    mutationFn: ({ id, options }) =>
+      removeHomeCampaignImage(id, { ...options, locationId: activeLocationId }),
     onSuccess: (updated) => {
       invalidate();
       setEditTarget(updated);
@@ -254,11 +270,13 @@ export default function HomeContentPage() {
                 <Table className="min-w-[760px]">
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Title</TableHead>
-                    <TableHead>Rail</TableHead>
+                    <TableHead>Campaign</TableHead>
+                    <TableHead>Placement</TableHead>
                     <TableHead>Location</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Date Range</TableHead>
+                    <TableHead>Animation</TableHead>
+                    <TableHead>Last updated</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -266,7 +284,19 @@ export default function HomeContentPage() {
                   {campaigns.map((c) => (
                     <TableRow key={c.id}>
                       <TableCell>
-                        <div className="font-medium">{c.title}</div>
+                        <div className="flex items-center gap-2">
+                          {c.imageUrl ? (
+                            <img src={c.imageUrl} alt="" className="size-10 shrink-0 rounded-md object-cover" loading="lazy" />
+                          ) : (
+                            <div className="size-10 shrink-0 rounded-md bg-muted" aria-hidden />
+                          )}
+                          <div className="min-w-0">
+                            <div className="truncate font-medium">{c.title}</div>
+                            <p className="text-xs text-muted-foreground">
+                              {c.targetType === "NONE" ? "No tap action" : c.targetType}
+                            </p>
+                          </div>
+                        </div>
                         {c.subtitle && (
                           <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">
                             {c.subtitle}
@@ -274,7 +304,7 @@ export default function HomeContentPage() {
                         )}
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline">{RAIL_LABEL[c.type] ?? c.type}</Badge>
+                        <Badge variant="outline">{getPlacementLabel(c.type)}</Badge>
                       </TableCell>
                       <TableCell>
                         <span className="text-xs text-muted-foreground">
@@ -288,7 +318,7 @@ export default function HomeContentPage() {
                             onCheckedChange={(v) => handleToggle(c, v)}
                           />
                           <Badge variant={c.isActive ? "default" : "secondary"}>
-                            {c.isActive ? "Active" : "Inactive"}
+                            {getLifecycleStatus(c)}
                           </Badge>
                         </div>
                       </TableCell>
@@ -296,6 +326,14 @@ export default function HomeContentPage() {
                         <span className="text-xs text-muted-foreground">
                           {formatDate(c.startsAt)} – {formatDate(c.endsAt)}
                         </span>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-xs text-muted-foreground">
+                          {getAnimationLabel(c.animationPreset)}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-xs text-muted-foreground">{formatDate(c.updatedAt)}</span>
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center justify-end gap-2">
@@ -343,7 +381,7 @@ export default function HomeContentPage() {
                         )}
                       </div>
                       <Badge className="shrink-0" variant="outline">
-                        {RAIL_LABEL[c.type] ?? c.type}
+                        {getPlacementLabel(c.type)}
                       </Badge>
                     </div>
 
@@ -360,6 +398,18 @@ export default function HomeContentPage() {
                           {formatDate(c.startsAt)} – {formatDate(c.endsAt)}
                         </p>
                       </div>
+                      <div className="min-w-0">
+                        <p className="text-muted-foreground">Animation</p>
+                        <p className="break-words font-medium">{getAnimationLabel(c.animationPreset)}</p>
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-muted-foreground">Tap behavior</p>
+                        <p className="break-words font-medium">{c.targetType === "NONE" ? "None" : c.targetType}</p>
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-muted-foreground">Updated</p>
+                        <p className="break-words font-medium">{formatDate(c.updatedAt)}</p>
+                      </div>
                     </div>
 
                     <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t pt-3">
@@ -369,7 +419,7 @@ export default function HomeContentPage() {
                           onCheckedChange={(v) => handleToggle(c, v)}
                         />
                         <Badge variant={c.isActive ? "default" : "secondary"}>
-                          {c.isActive ? "Active" : "Inactive"}
+                          {getLifecycleStatus(c)}
                         </Badge>
                       </div>
                       <div className="flex shrink-0 items-center gap-1">
@@ -410,8 +460,8 @@ export default function HomeContentPage() {
 
       {/* Create dialog */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="max-h-[90vh] w-[calc(100%-1rem)] max-w-2xl overflow-y-auto p-4 sm:p-6">
-          <DialogHeader>
+        <DialogContent className="flex h-[min(calc(100dvh-24px),720px)] max-h-[calc(100dvh-24px)] min-h-0 w-[calc(100vw-24px)] max-w-[520px] flex-col gap-4 overflow-hidden p-4 sm:p-6 lg:max-w-[1100px]">
+          <DialogHeader className="shrink-0">
             <DialogTitle>New Home Campaign</DialogTitle>
             <DialogDescription>
               Configure a hero slide, discovery tile or promotion card for the customer Home page.
@@ -421,6 +471,7 @@ export default function HomeContentPage() {
             onSubmit={(data, meta) => createMut.mutate({ data, meta })}
             submitting={createMut.isPending}
             onOpenAIModal={handleOpenAIModal}
+            onCancel={() => setCreateOpen(false)}
           />
         </DialogContent>
       </Dialog>
@@ -430,7 +481,7 @@ export default function HomeContentPage() {
         open={!!editTarget}
         onOpenChange={(v) => !v && setEditTarget(null)}
       >
-        <DialogContent className="flex h-[min(calc(100dvh-24px),720px)] max-h-[calc(100dvh-24px)] min-h-0 w-[calc(100vw-24px)] max-w-[520px] flex-col gap-4 overflow-hidden p-4 sm:p-6">
+        <DialogContent className="flex h-[min(calc(100dvh-24px),720px)] max-h-[calc(100dvh-24px)] min-h-0 w-[calc(100vw-24px)] max-w-[520px] flex-col gap-4 overflow-hidden p-4 sm:p-6 lg:max-w-[1100px]">
           <DialogHeader className="shrink-0">
             <DialogTitle>Edit Campaign</DialogTitle>
             <DialogDescription>Update content, scheduling and targeting.</DialogDescription>

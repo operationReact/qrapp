@@ -1,6 +1,7 @@
 package com.broandbro.qrapp.prompt;
 
 import com.broandbro.qrapp.exception.InvalidPromptException;
+import com.broandbro.qrapp.enums.HomeCampaignType;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -41,14 +42,22 @@ public class CampaignImagePromptBuilder {
      */
     public String buildCampaignHeroPrompt(String campaignTitle, String badge,
                                          String categoryName, String creativeDirection) {
+        return buildCampaignPrompt(campaignTitle, badge, categoryName,
+                HomeCampaignType.HERO, creativeDirection);
+    }
+
+    public String buildCampaignPrompt(String campaignTitle, String badge,
+                                      String categoryName, HomeCampaignType type,
+                                      String creativeDirection) {
         validateInputs(campaignTitle);
 
         // Build prompt components
         StringBuilder prompt = new StringBuilder();
 
         // Main instruction
-        prompt.append("Create a premium food-delivery campaign hero image for: ");
-        prompt.append(campaignTitle.trim()).append(". ");
+        prompt.append("Create premium food-delivery campaign artwork for a ");
+        prompt.append(type == HomeCampaignType.HERO ? "hero billboard" : "discovery or promotion card");
+        prompt.append(". ");
 
         // Context
         if (badge != null && !badge.isBlank()) {
@@ -61,7 +70,9 @@ public class CampaignImagePromptBuilder {
         // Core visual requirements
         prompt.append("Visual composition: ");
         prompt.append("Premium food-photography artwork. ");
-        prompt.append("Landscape hero format (16:9 or wider). ");
+        prompt.append(type == HomeCampaignType.HERO
+                ? "Landscape hero format (16:9 or wider). "
+                : "Flexible card format with a centered, crop-safe focal point. ");
         prompt.append("Appetizing realistic food as the primary focal point. ");
         prompt.append("Cinematic premium lighting, warm and inviting. ");
         prompt.append("Rich, natural colour palette with depth. ");

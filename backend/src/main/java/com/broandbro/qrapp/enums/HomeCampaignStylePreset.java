@@ -1,0 +1,20 @@
+package com.broandbro.qrapp.enums;
+
+public enum HomeCampaignStylePreset {
+    CUSTOM,
+    ROYAL_FEAST,
+    MODERN_GOURMET,
+    HOT_DEAL,
+    FESTIVE_GLOW,
+    FRESH_DELICIOUS,
+    GRAND_CELEBRATION,
+    STREET_FOOD,
+    NEW_ARRIVAL,
+    MIDNIGHT_CRAVINGS,
+    FAMILY_FEAST,
+    WEEKEND_VIBES,
+    CHEFS_SPECIAL,
+    FLASH_DROP,
+    ELEGANT_MOMENTS,
+    BRO_AND_BRO_SIGNATURE
+}

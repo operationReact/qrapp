@@ -13,7 +13,8 @@
     "test:category-icons":  "node --test src/lib/categoryIconResolver.test.js",
     "test:roles":  "node --test src/lib/roles.test.js",
     "test:all-locations":  "node --test src/lib/allLocations.test.js",
-    "test:location-code":  "node --test src/lib/locationCode.test.js"
+    "test:location-code":  "node --test src/lib/locationCode.test.js",
+    "test:campaign-presentation": "node --test src/components/home/campaignPresentation.test.js"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.1",

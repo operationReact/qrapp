@@ -120,15 +120,15 @@ export default function CampaignImageGenerationModal({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-h-[90vh] w-[calc(100%-1rem)] max-w-lg overflow-y-auto p-4 sm:p-6">
-        <DialogHeader>
+      <DialogContent className="flex h-[min(calc(100dvh-24px),720px)] max-h-[calc(100dvh-24px)] min-h-0 w-[calc(100vw-24px)] max-w-[520px] flex-col gap-4 overflow-hidden p-4 sm:p-6">
+        <DialogHeader className="shrink-0">
           <DialogTitle>Generate Campaign Hero Image</DialogTitle>
           <DialogDescription>
             Create an AI-generated hero billboard image for "{campaignName}"
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-4">
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain py-2">
           {error && (
             <Alert variant="destructive">
               <AlertDescription>{error}</AlertDescription>
@@ -193,7 +193,7 @@ export default function CampaignImageGenerationModal({
           )}
         </div>
 
-        <DialogFooter className="gap-2">
+        <DialogFooter className="sticky bottom-0 shrink-0 gap-2 border-t bg-popover/95 pt-3 backdrop-blur">
           <Button variant="outline" onClick={handleClose} disabled={isGenerating || isApplying}>
             Cancel
           </Button>

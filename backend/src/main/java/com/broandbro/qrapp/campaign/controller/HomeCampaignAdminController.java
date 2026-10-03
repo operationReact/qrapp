@@ -172,8 +172,8 @@ public class HomeCampaignAdminController {
         ImageGenerationOptionsResponse response = ImageGenerationOptionsResponse.builder()
                 .campaignId(id)
                 .imageUrls(urls)
-                .imagePrompt(campaignImagePromptBuilder.buildCampaignHeroPrompt(
-                        campaign.title(), campaign.badge(), null, creativeDirection))
+                .imagePrompt(campaignImagePromptBuilder.buildCampaignPrompt(
+                        campaign.title(), campaign.badge(), null, campaign.type(), creativeDirection))
                 .build();
         
         return ResponseEntity.ok(response);

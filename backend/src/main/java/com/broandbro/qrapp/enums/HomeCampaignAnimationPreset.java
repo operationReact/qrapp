@@ -1,0 +1,25 @@
+package com.broandbro.qrapp.enums;
+
+public enum HomeCampaignAnimationPreset {
+    NONE,
+    SOFT_FADE,
+    SLIDE_UP,
+    PREMIUM_REVEAL,
+    CINEMATIC_ZOOM,
+    OFFER_PULSE,
+    CINEMATIC_DRIFT,
+    PARALLAX_DEPTH,
+    LUXURY_REVEAL,
+    GLASS_REVEAL,
+    LIGHT_SWEEP,
+    SPOTLIGHT_REVEAL,
+    DEPTH_ZOOM,
+    SPLIT_REVEAL,
+    MASK_REVEAL,
+    FLOATING_CONTENT,
+    STAGGERED_REVEAL,
+    FOOD_FOCUS,
+    GOLDEN_SWEEP,
+    LIQUID_REVEAL,
+    DYNAMIC
+}
