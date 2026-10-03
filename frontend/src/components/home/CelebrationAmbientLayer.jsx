@@ -115,7 +115,7 @@ function CelebrationAmbientLayer({ presetName, active, intensity, className = ""
       aria-hidden="true"
       data-testid="celebration-ambient-layer"
       data-active={active ? "true" : "false"}
-      className={`celebration-layer ${className}`.trim()}
+      className={`celebration-layer${preset.layout === "BANDED" ? " celebration-layer-banded" : ""} ${className}`.trim()}
       style={{ "--celebration-opacity": preset.opacity }}
     >
       {preset.animations.includes("WAVE_FLOW") &&
@@ -126,7 +126,7 @@ function CelebrationAmbientLayer({ presetName, active, intensity, className = ""
         particles.map((particle) => (
           <span
             key={particle.id}
-            className={`celebration-confetti celebration-confetti-${particle.shape}${particle.burst ? " celebration-confetti-burst" : ""}`}
+            className={`celebration-confetti celebration-confetti-${particle.shape}${particle.burst ? " celebration-confetti-burst" : ""}${particle.band ? ` celebration-confetti-band-${particle.band}` : ""}`}
             style={{
               left: `${particle.left.toFixed(2)}%`,
               width: particle.shape === "strip" ? Math.max(3, particle.size - 3) : particle.size,

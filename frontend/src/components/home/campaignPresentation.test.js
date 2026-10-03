@@ -47,13 +47,15 @@ test("placement and animation presets retain the supported values", () => {
 
 test("Hall of Happiness celebration preset combines confetti and layered wave flow", () => {
   const preset = getCelebrationPreset("HALL_OF_HAPPINESS_CELEBRATION");
-  assert.deepEqual(preset.animations, ["CONFETTI", "WAVE_FLOW"]);
+  assert.deepEqual([...preset.animations], ["CONFETTI", "WAVE_FLOW", "PARTY_ICONS"]);
   assert.equal(preset.intensity, "BOLD");
   assert.equal(getCelebrationPreset("UNKNOWN"), null);
-  assert.equal(preset.waves.length, 3);
-  assert.equal(new Set(preset.waves.map((wave) => wave.durationSeconds)).size, 3);
+  assert.equal(preset.waves.length, 2);
+  assert.ok(preset.waves.every((wave) => wave.opacity <= 0.3 && wave.strokeWidth <= 3));
+  assert.ok(preset.partyIcons.length >= 3 && preset.partyIcons.length <= 5);
+  assert.equal(new Set(preset.waves.map((wave) => wave.durationSeconds)).size, 2);
   assert.ok(preset.waves.some((wave) => wave.reverse));
-  assert.ok(preset.confettiCount >= 28 && preset.confettiCount <= 36);
+  assert.ok(preset.confettiCount >= 24 && preset.confettiCount <= 32);
 });
 
 test("confetti particles are deterministic, bounded and desynchronised", () => {
@@ -70,8 +72,9 @@ test("confetti particles are deterministic, bounded and desynchronised", () => {
   }
   assert.deepEqual(
     [...new Set(first.map((particle) => particle.shape))].sort(),
-    ["circle", "diamond", "rect", "strip"],
+    ["circle", "diamond", "rect", "star", "strip"],
   );
+  assert.deepEqual([...new Set(first.map((particle) => particle.band))].sort(), ["bottom", "top"]);
   const bursts = first.filter((particle) => particle.burst);
   assert.equal(bursts.length, preset.burstCount);
   assert.ok(bursts.every((particle) => particle.duration === preset.burstCycleSeconds));
