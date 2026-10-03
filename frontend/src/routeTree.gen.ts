@@ -75,6 +75,7 @@ import { Route as AdmingrowthItemRecommendationsRouteImport } from './routes/adm
 import { Route as AdmingrowthComboOpportunitiesRouteImport } from './routes/admin/(growth)/combo-opportunities'
 import { Route as AdmingrowthCategoryPairingsRouteImport } from './routes/admin/(growth)/category-pairings'
 import { Route as AdmingrowthAutoSuggestionsRouteImport } from './routes/admin/(growth)/auto-suggestions'
+import { Route as AdminfoodcourtFoodCourtRouteImport } from './routes/admin/(foodcourt)/food-court'
 import { Route as AdmincouponsCouponsRouteImport } from './routes/admin/(coupons)/coupons'
 import { Route as AdminmenuHomeContentIndexRouteImport } from './routes/admin/(menu)/home-content/index'
 import { Route as AdminmenuCombosIndexRouteImport } from './routes/admin/(menu)/combos/index'
@@ -429,6 +430,11 @@ const AdmingrowthAutoSuggestionsRoute =
     path: '/auto-suggestions',
     getParentRoute: () => AdminRoute,
   } as any)
+const AdminfoodcourtFoodCourtRoute = AdminfoodcourtFoodCourtRouteImport.update({
+  id: '/(foodcourt)/food-court',
+  path: '/food-court',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdmincouponsCouponsRoute = AdmincouponsCouponsRouteImport.update({
   id: '/(coupons)/coupons',
   path: '/coupons',
@@ -495,6 +501,7 @@ export interface FileRoutesByFullPath {
   '/categories/$categoryId': typeof CategoriesCategoryIdRoute
   '/admin/': typeof AdminIndexRoute
   '/admin/coupons': typeof AdmincouponsCouponsRoute
+  '/admin/food-court': typeof AdminfoodcourtFoodCourtRoute
   '/admin/auto-suggestions': typeof AdmingrowthAutoSuggestionsRoute
   '/admin/category-pairings': typeof AdmingrowthCategoryPairingsRoute
   '/admin/combo-opportunities': typeof AdmingrowthComboOpportunitiesRoute
@@ -568,6 +575,7 @@ export interface FileRoutesByTo {
   '/categories/$categoryId': typeof CategoriesCategoryIdRoute
   '/admin': typeof AdminIndexRoute
   '/admin/coupons': typeof AdmincouponsCouponsRoute
+  '/admin/food-court': typeof AdminfoodcourtFoodCourtRoute
   '/admin/auto-suggestions': typeof AdmingrowthAutoSuggestionsRoute
   '/admin/category-pairings': typeof AdmingrowthCategoryPairingsRoute
   '/admin/combo-opportunities': typeof AdmingrowthComboOpportunitiesRoute
@@ -643,6 +651,7 @@ export interface FileRoutesById {
   '/categories/$categoryId': typeof CategoriesCategoryIdRoute
   '/admin/': typeof AdminIndexRoute
   '/admin/(coupons)/coupons': typeof AdmincouponsCouponsRoute
+  '/admin/(foodcourt)/food-court': typeof AdminfoodcourtFoodCourtRoute
   '/admin/(growth)/auto-suggestions': typeof AdmingrowthAutoSuggestionsRoute
   '/admin/(growth)/category-pairings': typeof AdmingrowthCategoryPairingsRoute
   '/admin/(growth)/combo-opportunities': typeof AdmingrowthComboOpportunitiesRoute
@@ -719,6 +728,7 @@ export interface FileRouteTypes {
     | '/categories/$categoryId'
     | '/admin/'
     | '/admin/coupons'
+    | '/admin/food-court'
     | '/admin/auto-suggestions'
     | '/admin/category-pairings'
     | '/admin/combo-opportunities'
@@ -792,6 +802,7 @@ export interface FileRouteTypes {
     | '/categories/$categoryId'
     | '/admin'
     | '/admin/coupons'
+    | '/admin/food-court'
     | '/admin/auto-suggestions'
     | '/admin/category-pairings'
     | '/admin/combo-opportunities'
@@ -866,6 +877,7 @@ export interface FileRouteTypes {
     | '/categories/$categoryId'
     | '/admin/'
     | '/admin/(coupons)/coupons'
+    | '/admin/(foodcourt)/food-court'
     | '/admin/(growth)/auto-suggestions'
     | '/admin/(growth)/category-pairings'
     | '/admin/(growth)/combo-opportunities'
@@ -1402,6 +1414,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdmingrowthAutoSuggestionsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/(foodcourt)/food-court': {
+      id: '/admin/(foodcourt)/food-court'
+      path: '/food-court'
+      fullPath: '/admin/food-court'
+      preLoaderRoute: typeof AdminfoodcourtFoodCourtRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/(coupons)/coupons': {
       id: '/admin/(coupons)/coupons'
       path: '/coupons'
@@ -1453,6 +1472,7 @@ interface AdminRouteChildren {
   AdminVendorsRoute: typeof AdminVendorsRoute
   AdminIndexRoute: typeof AdminIndexRoute
   AdmincouponsCouponsRoute: typeof AdmincouponsCouponsRoute
+  AdminfoodcourtFoodCourtRoute: typeof AdminfoodcourtFoodCourtRoute
   AdmingrowthAutoSuggestionsRoute: typeof AdmingrowthAutoSuggestionsRoute
   AdmingrowthCategoryPairingsRoute: typeof AdmingrowthCategoryPairingsRoute
   AdmingrowthComboOpportunitiesRoute: typeof AdmingrowthComboOpportunitiesRoute
@@ -1501,6 +1521,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminVendorsRoute: AdminVendorsRoute,
   AdminIndexRoute: AdminIndexRoute,
   AdmincouponsCouponsRoute: AdmincouponsCouponsRoute,
+  AdminfoodcourtFoodCourtRoute: AdminfoodcourtFoodCourtRoute,
   AdmingrowthAutoSuggestionsRoute: AdmingrowthAutoSuggestionsRoute,
   AdmingrowthCategoryPairingsRoute: AdmingrowthCategoryPairingsRoute,
   AdmingrowthComboOpportunitiesRoute: AdmingrowthComboOpportunitiesRoute,
