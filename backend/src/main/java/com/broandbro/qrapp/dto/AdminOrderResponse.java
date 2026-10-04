@@ -51,6 +51,8 @@ public class AdminOrderResponse {
         private Boolean isVeg;
         /** Menu category name (e.g. "Breads", "Beverages") — reuses the already-eager-fetched Category. */
         private String category;
+        /** Category image used as a fallback when the item has no image of its own. */
+        private String categoryImageUrl;
     }
 
     @Data

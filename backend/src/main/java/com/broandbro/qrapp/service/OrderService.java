@@ -818,6 +818,7 @@ public class OrderService {
                 itemSummary.setImageUrl(menuItem.getImageUrl());
                 itemSummary.setIsVeg(menuItem.getIsVeg());
                 itemSummary.setCategory(menuItem.getCategory() != null ? menuItem.getCategory().getName() : null);
+                itemSummary.setCategoryImageUrl(menuItem.getCategory() != null ? menuItem.getCategory().getImageUrl() : null);
                 double subtotal = unitPrice * orderItem.getQuantity();
                 itemSummary.setSubtotal(subtotal);
                 total += subtotal;
