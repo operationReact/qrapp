@@ -99,8 +99,6 @@ export default function HallOfHappinessSection() {
   }));
   const photos = query.data?.content || [];
 
-  if (!configQuery.isLoading && configQuery.data?.enabled === false) return null;
-
   useEffect(() => {
     const section = sectionRef.current;
     if (!section) return undefined;
@@ -115,6 +113,8 @@ export default function HallOfHappinessSection() {
     observer.observe(section);
     return () => observer.disconnect();
   }, []);
+
+  if (!configQuery.isLoading && configQuery.data?.enabled === false) return null;
 
   return (
     <section
