@@ -71,7 +71,7 @@ public class InvoiceService {
                             location == null ? null : location.getAddress()))
                     .supplierState(firstNonBlank(configuration.getState(),
                             location == null ? null : location.getStateUt()))
-                    .supplierStateCode(firstNonBlank(configuration.getStateCode(),
+                    .supplierStateCode(firstValidStateCode(configuration.getStateCode(),
                             location == null ? null : location.getSupplierStateCode()))
                     .customerPhone(order.getPhone())
                     .taxableAmount(taxable)
@@ -419,7 +419,7 @@ public class InvoiceService {
             Invoice invoice, Order order, List<OrderItem> items, Map<Long, MenuItem> menuItems) {
         if (taxCalculationService == null
                 || nonZero(invoice.getTotalTax(), order.getTax()).compareTo(BigDecimal.ZERO) > 0
-                || items.size() != 1) {
+                || items.isEmpty()) {
             return null;
         }
         MenuItem menuItem = menuItems.get(items.get(0).getItemId());
@@ -429,6 +429,13 @@ public class InvoiceService {
                 || menuItem.getTaxProfile().getGstRate().compareTo(BigDecimal.ZERO) <= 0) {
             return null;
         }
+        boolean sameProfile = items.stream()
+                .map(item -> menuItems.get(item.getItemId()))
+                .allMatch(item -> item != null && item.getTaxProfile() != null
+                        && java.util.Objects.equals(item.getTaxProfile().getTaxType(),
+                        menuItem.getTaxProfile().getTaxType())
+                        && item.getTaxProfile().getGstRate().compareTo(menuItem.getTaxProfile().getGstRate()) == 0);
+        if (!sameProfile) return null;
         BigDecimal customerTotal = MoneyService.amount(invoice.getGrandTotal());
         BigDecimal divisor = BigDecimal.ONE.add(menuItem.getTaxProfile().getGstRate()
                 .divide(BigDecimal.valueOf(100), 8, MoneyService.ROUNDING));
@@ -466,6 +473,17 @@ public class InvoiceService {
 
     private static String firstNonBlank(String value, String fallback) {
         return safeText(value, fallback);
+    }
+
+    private static String firstValidStateCode(String preferred, String fallback) {
+        String preferredCode = validStateCode(preferred);
+        return preferredCode != null ? preferredCode : validStateCode(fallback);
+    }
+
+    private static String validStateCode(String value) {
+        if (value == null || value.isBlank()) return null;
+        String normalized = value.trim();
+        return normalized.matches("\\d{1,2}") ? normalized : null;
     }
 
     private static BigDecimal sum(List<OrderItem> items, java.util.function.Function<OrderItem, BigDecimal> getter) {
