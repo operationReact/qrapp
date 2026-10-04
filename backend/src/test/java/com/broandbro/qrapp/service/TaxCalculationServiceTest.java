@@ -61,4 +61,22 @@ class TaxCalculationServiceTest {
         assertEquals(new BigDecimal("0.00"), result.totalTax());
         assertEquals(new BigDecimal("99.99"), result.totalAmount());
     }
+
+    @Test
+    void calculatesInclusivePriceWithoutIncreasingCustomerPrice() {
+        TaxProfile profile = TaxProfile.builder()
+                .taxType(TaxType.INTRA_STATE)
+                .gstRate(new BigDecimal("5"))
+                .cgstRate(new BigDecimal("2.5"))
+                .sgstRate(new BigDecimal("2.5"))
+                .active(true)
+                .build();
+
+        TaxCalculationService.TaxCalculationResult result =
+                service.calculateInclusive(new BigDecimal("105"), profile);
+
+        assertEquals(new BigDecimal("100.00"), result.taxableAmount());
+        assertEquals(new BigDecimal("5.00"), result.totalTax());
+        assertEquals(new BigDecimal("105.00"), result.totalAmount());
+    }
 }
