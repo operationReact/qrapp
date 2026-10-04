@@ -74,7 +74,17 @@ function InvoiceManagement() {
   });
   const upload = useMutation({
     mutationFn: ({ type, file }) => uploadInvoiceAsset(type, file),
-    onSuccess: (data) => setForm((current) => ({ ...current, ...data })),
+    onSuccess: (data, variables) => {
+      const fields = {
+        logo: ["logoAssetUrl", "logoAssetKey"],
+        signature: ["signatureAssetUrl", "signatureAssetKey"],
+        "payment-qr": ["paymentQrAssetUrl", "paymentQrAssetKey"],
+      }[variables.type] || [];
+      setForm((current) => fields.reduce(
+        (next, field) => ({ ...next, ...(data?.[field] ? { [field]: data[field] } : {}) }),
+        current,
+      ));
+    },
     onError: (error) => toast.error(error.response?.data?.message || "Could not upload invoice asset"),
   });
 

@@ -90,29 +90,21 @@ public class InvoiceService {
                                     Invoice invoice, InvoiceConfiguration config, boolean continued) throws IOException {
         Color primary = color(config.getPrimaryColor(), "#171717");
         Color accent = color(config.getAccentColor(), "#B8893C");
-        fillRect(content, 42, 746, 511, 52, primary);
-        drawAsset(document, content, config.getLogoAssetKey(), 52, 756, 68, 32);
-        drawText(content, truncate(safeText(config.getBusinessName(), ""), 32), 136, 782, 13, true, Color.WHITE);
-        drawText(content, truncate(safeText(config.getTradeName(), ""), 42),
-                136, 766, 8, false, new Color(224, 224, 224));
-        drawLine(content, 375, 756, 375, 788, new Color(255, 255, 255), 0.35f);
-        drawText(content, truncate(continued ? "TAX INVOICE (CONTINUED)"
-                        : safeText(config.getInvoiceTitle(), ""), 22),
-                397, 783, 13, true, accent);
-        drawText(content, "Invoice No", 397, 766, 7, true, new Color(224, 224, 224));
-        drawText(content, safeText(invoice.getInvoiceNumber(), "-"), 455, 766, 8, false, Color.WHITE);
-        drawText(content, "Invoice Date", 397, 753, 7, true, new Color(224, 224, 224));
-        drawText(content, safeText(String.valueOf(invoice.getInvoiceDate()), "-"), 455, 753, 8, false, Color.WHITE);
-        drawLine(content, 42, 738, 553, 738, accent, 1.1f);
+        float brandX = config.getLogoAssetKey() == null || config.getLogoAssetKey().isBlank() ? 42 : 154;
+        drawAsset(document, content, config.getLogoAssetKey(), 42, 758, 92, 34);
+        drawText(content, "BRO & BRO", brandX, 789, 19, true, primary);
+        drawText(content, safeText(config.getTradeName(), ""), brandX, 770, 9, false, Color.DARK_GRAY);
+        drawTextRight(content, continued ? "TAX INVOICE (CONTINUED)"
+                        : safeText(config.getInvoiceTitle(), "TAX INVOICE"),
+                "Invoice No: " + safeText(invoice.getInvoiceNumber(), "-"),
+                "Invoice Date: " + safeText(String.valueOf(invoice.getInvoiceDate()), "-"),
+                553, 789, primary);
+        drawLine(content, 42, 744, 553, 744, accent, 1.1f);
         return 710;
     }
 
     private float drawPartyDetails(PDPageContentStream content, Invoice invoice,
                                    InvoiceConfiguration config, float y) throws IOException {
-        fillRect(content, 42, y - 112, 238, 112, new Color(250, 248, 244));
-        fillRect(content, 310, y - 112, 243, 112, new Color(250, 248, 244));
-        drawLine(content, 42, y - 112, 280, y - 112, new Color(225, 220, 213), 0.5f);
-        drawLine(content, 310, y - 112, 553, y - 112, new Color(225, 220, 213), 0.5f);
         drawSectionLabel(content, "FROM / SOLD BY", 42, y);
         drawSectionLabel(content, "BILL TO", 310, y);
         float leftY = y - 20;
@@ -150,75 +142,77 @@ public class InvoiceService {
 
     private float drawItemTable(PDPageContentStream content, List<OrderItem> items,
                                 Map<Long, String> itemNames,
+                                BigDecimal fallbackTaxable,
+                                BigDecimal fallbackTotal,
                                 InvoiceConfiguration config, float y) throws IOException {
         drawSectionLabel(content, "ITEM DETAILS", 42, y);
         float top = y - 16;
         float[] columns = {42, 245, 315, 385, 430, 490, 553};
-        Color headerColor = color(config.getPrimaryColor(), "#171717");
-        fillRect(content, columns[0], top - 22, columns[6] - columns[0], 22, headerColor);
-        drawText(content, "DESCRIPTION", columns[0] + 7, top - 15, 8, true, Color.WHITE);
-        drawText(content, "HSN/SAC", columns[1] + 7, top - 15, 8, true, Color.WHITE);
-        drawText(content, "GST", columns[2] + 7, top - 15, 8, true, Color.WHITE);
-        drawText(content, "QTY", columns[3] + 7, top - 15, 8, true, Color.WHITE);
-        drawText(content, "UNIT RATE", columns[4] + 5, top - 15, 8, true, Color.WHITE);
-        drawText(content, "AMOUNT", columns[5] + 5, top - 15, 8, true, Color.WHITE);
+        fillRect(content, columns[0], top - 22, columns[6] - columns[0], 22, new Color(245, 242, 237));
+        drawTableText(content, "DESCRIPTION", columns[0] + 7, top - 15, 8, true);
+        drawTableText(content, "HSN/SAC", columns[1] + 7, top - 15, 8, true);
+        drawTableText(content, "GST", columns[2] + 7, top - 15, 8, true);
+        drawTableText(content, "QTY", columns[3] + 7, top - 15, 8, true);
+        drawTableText(content, "UNIT RATE", columns[4] + 5, top - 15, 8, true);
+        drawTableText(content, "AMOUNT", columns[5] + 5, top - 15, 8, true);
         drawTableBorders(content, columns, top - 22, top - 22 - Math.max(1, items.size()) * 21);
         float rowY = top - 37;
         for (OrderItem item : items) {
             String description = itemNames.getOrDefault(item.getItemId(), "Item " + item.getItemId());
+            BigDecimal taxable = nonZero(item.getTaxableAmount(), items.size() == 1 ? fallbackTaxable : BigDecimal.ZERO);
+            BigDecimal customerTotal = nonZero(item.getTotalCustomerPrice(),
+                    items.size() == 1 ? fallbackTotal : BigDecimal.ZERO);
             String rate = item.getQuantity() == 0 ? "0.00"
-                    : money(MoneyService.amount(item.getTaxableAmount())
+                    : money(MoneyService.amount(taxable)
                     .divide(BigDecimal.valueOf(item.getQuantity()), 2, MoneyService.ROUNDING));
-            if (((int) ((top - 37 - rowY) / 21)) % 2 == 1) {
-                fillRect(content, columns[0], rowY - 8, columns[6] - columns[0], 21, new Color(252, 251, 249));
-            }
             drawTableText(content, truncate(description, 32), columns[0] + 7, rowY, 8, false);
             drawTableText(content, Boolean.TRUE.equals(config.getShowHsnSac())
                     ? safeText(item.getHsnSac(), "-") : "-", columns[1] + 7, rowY, 8, false);
             drawTableText(content, rate(item.getGstRate()), columns[2] + 7, rowY, 8, false);
             drawTableText(content, String.valueOf(item.getQuantity()), columns[3] + 7, rowY, 8, false);
             drawTableText(content, "INR " + rate, columns[4] + 5, rowY, 8, false);
-            drawTableText(content, "INR " + money(item.getTotalCustomerPrice()), columns[5] + 5, rowY, 8, false);
-            drawLine(content, columns[0], rowY - 10, columns[6], rowY - 10,
-                    new Color(232, 228, 222), 0.35f);
+            drawTableText(content, "INR " + money(customerTotal), columns[5] + 5, rowY, 8, false);
             rowY -= 21;
         }
         return top - 22 - Math.max(1, items.size()) * 21 - 24;
     }
 
     private float drawTotals(PDDocument document, PDPageContentStream content, Invoice invoice,
-                             Order order,
+                             Order order, List<OrderItem> items,
                              InvoiceConfiguration config, float y) throws IOException {
         BigDecimal taxableAmount = nonZero(invoice.getTaxableAmount(),
-                fallbackTaxableAmount(order));
-        BigDecimal totalTax = nonZero(invoice.getTotalTax(), order.getTax());
+                nonZero(sum(items, OrderItem::getTaxableAmount),
+                        fallbackTaxableAmount(order)));
+        BigDecimal totalTax = nonZero(invoice.getTotalTax(),
+                nonZero(sum(items, OrderItem::getTotalTax), order.getTax()));
+        BigDecimal cgstAmount = nonZero(invoice.getCgstAmount(),
+                sum(items, OrderItem::getCgstAmount));
+        BigDecimal sgstAmount = nonZero(invoice.getSgstAmount(),
+                sum(items, OrderItem::getSgstAmount));
+        if (cgstAmount.compareTo(BigDecimal.ZERO) == 0 && sgstAmount.compareTo(BigDecimal.ZERO) == 0) {
+            cgstAmount = intraStateTaxComponent(totalTax, invoice.getIgstAmount());
+            sgstAmount = totalTax.subtract(cgstAmount);
+        }
         float boxTop = y;
-        fillRect(content, 42, boxTop - 75, 218, 88, new Color(250, 248, 244));
-        fillRect(content, 320, boxTop - 98, 233, 111, new Color(250, 248, 244));
         drawSectionLabel(content, "PAYMENT SUMMARY", 42, boxTop);
         drawTableText(content, "Payment mode", 42, boxTop - 20, 8, true);
         drawTableText(content, "Amount", 180, boxTop - 20, 8, true);
         drawTableText(content, safeText(invoice.getPaymentMethod(), "Pending"), 42, boxTop - 38, 8, false);
         drawTableText(content, "INR " + money(invoice.getGrandTotal()), 180, boxTop - 38, 8, false);
         drawLine(content, 42, boxTop - 48, 260, boxTop - 48, new Color(225, 220, 213), 0.6f);
-        drawText(content, "TOTAL", 42, boxTop - 63, 8, true,
-                color(config.getAccentColor(), "#B8893C"));
-        drawText(content, "INR " + money(invoice.getGrandTotal()), 180, boxTop - 63, 8, true,
-                color(config.getAccentColor(), "#B8893C"));
+        drawTableText(content, "TOTAL", 42, boxTop - 63, 8, true);
+        drawTableText(content, "INR " + money(invoice.getGrandTotal()), 180, boxTop - 63, 8, true);
 
         drawSectionLabel(content, "GST BREAKUP", 320, boxTop);
         drawTableText(content, "Taxable amount", 320, boxTop - 20, 8, false);
         drawTableText(content, "INR " + money(taxableAmount), 480, boxTop - 20, 8, false);
         drawTableText(content, "CGST", 320, boxTop - 38, 8, false);
-        drawTableText(content, "INR " + money(nonZero(invoice.getCgstAmount(), BigDecimal.ZERO)), 480, boxTop - 38, 8, false);
+        drawTableText(content, "INR " + money(cgstAmount), 480, boxTop - 38, 8, false);
         drawTableText(content, "SGST", 320, boxTop - 56, 8, false);
-        drawTableText(content, "INR " + money(nonZero(invoice.getSgstAmount(),
-                totalTax.subtract(nonZero(invoice.getCgstAmount(), BigDecimal.ZERO)))), 480, boxTop - 56, 8, false);
+        drawTableText(content, "INR " + money(sgstAmount), 480, boxTop - 56, 8, false);
         drawLine(content, 320, boxTop - 66, 553, boxTop - 66, new Color(225, 220, 213), 0.6f);
-        drawText(content, "TOTAL", 320, boxTop - 84, 10, true,
-                color(config.getAccentColor(), "#B8893C"));
-        drawText(content, "INR " + money(invoice.getGrandTotal()), 465, boxTop - 84, 10, true,
-                color(config.getAccentColor(), "#B8893C"));
+        drawTableText(content, "TOTAL", 320, boxTop - 84, 10, true);
+        drawTableText(content, "INR " + money(invoice.getGrandTotal()), 465, boxTop - 84, 10, true);
         if (Boolean.TRUE.equals(config.getShowPaymentQr())) {
             drawAsset(document, content, config.getPaymentQrAssetKey(), 465, boxTop - 185, 78, 78);
         }
@@ -266,6 +260,17 @@ public class InvoiceService {
         content.newLineAtOffset(x, y);
         content.showText(clean(text));
         content.endText();
+    }
+
+    private static void drawTextRight(PDPageContentStream content, String title, String number,
+                                      String date, float right, float y, Color color) throws IOException {
+        drawText(content, title, right - textWidth(title, 13, true), y, 13, true, color);
+        drawText(content, number, right - textWidth(number, 8, false), y - 22, 8, false, Color.DARK_GRAY);
+        drawText(content, date, right - textWidth(date, 8, false), y - 37, 8, false, Color.DARK_GRAY);
+    }
+
+    private static float textWidth(String text, float size, boolean bold) {
+        return clean(text).length() * size * (bold ? 0.56f : 0.52f);
     }
 
     private static float drawWrapped(PDPageContentStream content, String text, float x, float y,
@@ -342,7 +347,9 @@ public class InvoiceService {
             Map<Long, String> itemNames = menuRepository == null ? Map.of() : menuRepository.findAllById(
                     items.stream().map(OrderItem::getItemId).distinct().toList()).stream()
                     .collect(Collectors.toMap(MenuItem::getId, MenuItem::getName, (first, ignored) -> first));
-            y = drawItemTable(content, items, itemNames, config, y);
+            BigDecimal fallbackTaxable = nonZero(invoice.getTaxableAmount(), fallbackTaxableAmount(order));
+            y = drawItemTable(content, items, itemNames, fallbackTaxable,
+                    MoneyService.amount(invoice.getGrandTotal()), config, y);
             if (y < 330) {
                 content.close();
                 page = new PDPage(PDRectangle.A4);
@@ -350,7 +357,7 @@ public class InvoiceService {
                 content = new PDPageContentStream(document, page);
                 y = drawInvoiceHeader(document, content, invoice, config, true) - 28;
             }
-            y = drawTotals(document, content, invoice, order, config, y);
+            y = drawTotals(document, content, invoice, order, items, config, y);
             drawFooterAndSignature(document, content, config, y);
             content.close();
             document.save(output);
@@ -389,6 +396,14 @@ public class InvoiceService {
         if (order == null || order.getSubtotal() == null) return BigDecimal.ZERO;
         BigDecimal discount = MoneyService.amount(order.getCouponDiscount());
         return MoneyService.amount(order.getSubtotal().subtract(discount));
+    }
+
+    private static BigDecimal intraStateTaxComponent(BigDecimal totalTax, BigDecimal igst) {
+        if (totalTax == null || totalTax.compareTo(BigDecimal.ZERO) <= 0
+                || igst != null && igst.compareTo(BigDecimal.ZERO) > 0) {
+            return BigDecimal.ZERO;
+        }
+        return totalTax.divide(BigDecimal.valueOf(2), MoneyService.SCALE, MoneyService.ROUNDING);
     }
 
     private static String safeText(String value, String fallback) {
