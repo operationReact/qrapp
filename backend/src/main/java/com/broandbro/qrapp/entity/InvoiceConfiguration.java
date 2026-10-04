@@ -6,8 +6,7 @@ import lombok.*;
 import java.time.Instant;
 
 @Entity
-@Table(name = "invoice_configurations",
-        uniqueConstraints = @UniqueConstraint(name = "uk_invoice_configuration_location", columnNames = "location_id"))
+@Table(name = "invoice_configurations")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -17,9 +16,6 @@ public class InvoiceConfiguration {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-    @Column(name = "location_id", nullable = false)
-    private Long locationId;
 
     @Builder.Default
     @Column(nullable = false, length = 30)
