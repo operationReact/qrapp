@@ -119,7 +119,11 @@ public class SecurityConfig {
                         // The published customer gallery is intentionally public. Uploads,
                         // customer-owned data, and moderation remain protected by their
                         // controller mappings below.
-                        .requestMatchers(HttpMethod.GET, "/api/hall-of-happiness").permitAll()
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/hall-of-happiness",
+                                "/api/hall-of-happiness/config"
+                        ).permitAll()
 
                         // Swagger / OpenAPI
                         .requestMatchers(

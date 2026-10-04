@@ -19,6 +19,7 @@ public class PaymentService {
 
     private final OrderRepository orderRepo;
     private final RazorpayService razorpayService;
+    private final AppSettingService appSettingService;
 
     @PostConstruct
     private void postConstruct() {
@@ -29,6 +30,10 @@ public class PaymentService {
 
     public boolean isRazorpayEnabled() {
         return razorpayService.isEnabled();
+    }
+
+    public boolean isRazorpayEnabled(Long locationId) {
+        return appSettingService.isRazorpayEnabled(locationId, razorpayService.isEnabled());
     }
 
     public Map<String, Object> createRazorpayOrder(Long orderId, int amount) {

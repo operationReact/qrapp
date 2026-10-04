@@ -20,6 +20,8 @@ public class CreatePreOrderRequest {
 
     private PaymentMethod paymentMethod;
 
+    private Long locationId;
+
     @NotEmpty
     @Valid
     private List<Item> items;
@@ -47,4 +49,3 @@ public class CreatePreOrderRequest {
         private int quantity = 1;
     }
 }
-

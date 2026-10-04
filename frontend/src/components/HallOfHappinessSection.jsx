@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Autoplay from "embla-carousel-autoplay";
 import { ArrowRightIcon, CameraIcon, ConfettiIcon, HeartIcon, SparkleIcon, WarningCircleIcon } from "@phosphor-icons/react";
-import { hallOfHappinessOptions } from "@/query/options/hall-of-happiness";
+import { hallOfHappinessConfigOptions, hallOfHappinessOptions } from "@/query/options/hall-of-happiness";
 import { useLocation as useActiveLocation } from "@/context/LocationContext";
 import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -84,6 +84,7 @@ function HappinessCard({ photo, dominant }) {
 
 export default function HallOfHappinessSection() {
   const { activeLocationId } = useActiveLocation();
+  const configQuery = useQuery(hallOfHappinessConfigOptions(activeLocationId));
   const sectionRef = useRef(null);
   const [hasEnteredViewport, setHasEnteredViewport] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
@@ -112,6 +113,8 @@ export default function HallOfHappinessSection() {
     observer.observe(section);
     return () => observer.disconnect();
   }, []);
+
+  if (!configQuery.isLoading && configQuery.data?.enabled === false) return null;
 
   return (
     <section

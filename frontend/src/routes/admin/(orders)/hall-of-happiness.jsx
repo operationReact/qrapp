@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { ConfettiIcon, PlusIcon, ArrowLeftIcon, DotsThreeVerticalIcon, HeartIcon } from "@phosphor-icons/react";
 import { adminHallOfHappinessOptions } from "@/query/options/admin-hall-of-happiness";
+import { hallOfHappinessConfigOptions } from "@/query/options/hall-of-happiness";
 import { adminLocationsOptions } from "@/query/options/management";
 import { useLocation as useActiveLocation } from "@/context/LocationContext";
 import { useAuth } from "@/context/AuthContext";
@@ -11,8 +12,10 @@ import {
   createCuratedHallPhoto,
   runHallPhotoAction,
   updateAdminHallPhoto,
+  setHallOfHappinessEnabled,
 } from "@/services/hall-of-happiness-service";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -49,6 +52,12 @@ function HallOfHappinessAdminPage() {
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
   const [locationFilter, setLocationFilter] = useState("");
+  const configLocationId = locationFilter || activeLocationId;
+  const configQuery = useQuery(hallOfHappinessConfigOptions(configLocationId));
+  const configMutation = useMutation({
+    mutationFn: (enabled) => setHallOfHappinessEnabled(configLocationId, enabled),
+    onSuccess: () => client.invalidateQueries({ queryKey: ["hall-of-happiness", "config", configLocationId] }),
+  });
   const [page, setPage] = useState(0);
 
   // UI state
@@ -201,6 +210,35 @@ function HallOfHappinessAdminPage() {
 
             {/* Right Section: Add Memory Button + More Menu */}
             <div className="flex items-center gap-2 md:gap-3 shrink-0">
+              <label className="flex items-center gap-1.5 rounded-full border border-[var(--cc-border)] bg-[var(--cc-page)] px-2 py-2 text-xs font-semibold text-[var(--cc-text)]">
+                <span className="hidden sm:inline">Location</span>
+                <select
+                  aria-label="Select location"
+                  className="max-w-[8rem] bg-transparent text-xs outline-none"
+                  value={locationFilter}
+                  onChange={(event) => {
+                    setLocationFilter(event.target.value);
+                    setPage(0);
+                  }}
+                >
+                  <option value="">All locations</option>
+                  {locations.map((location) => (
+                    <option key={location.id} value={String(location.id)}>
+                      {location.name || location.title || `Location ${location.id}`}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {canGlobal && <label className="flex items-center gap-2 rounded-full border border-[var(--cc-border)] bg-[var(--cc-page)] px-2.5 py-2 text-xs font-semibold text-[var(--cc-text)] sm:px-3">
+                <span className="hidden sm:inline">Customer section</span>
+                <Switch
+                  checked={configQuery.data?.enabled !== false}
+                  onCheckedChange={(enabled) => configMutation.mutate(enabled)}
+                  disabled={!configLocationId || configQuery.isLoading || configMutation.isPending}
+                  aria-label="Enable Hall of Happiness on customer landing page"
+                  className="data-[checked]:bg-[var(--cc-primary)]"
+                />
+              </label>}
               {/* Add Memory Button - Pill shaped */}
               <Button
                 onClick={() => setAddMemoryOpen(true)}

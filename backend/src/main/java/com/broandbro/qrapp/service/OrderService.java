@@ -1058,6 +1058,12 @@ public class OrderService {
         order.setPriority(OrderPriority.NORMAL);
         order.setPreOrder(true);
         order.setScheduledAt(req.getScheduledAt());
+        if (req.getLocationId() != null) {
+            Location requestedLocation = locationRepository.findById(req.getLocationId())
+                    .orElseThrow(() -> new IllegalArgumentException("Location not found: " + req.getLocationId()));
+            if (user != null) locationAccessService.requireLocationAccess(user, req.getLocationId());
+            order.setLocation(requestedLocation);
+        }
         if (req.getCustomerNote() != null && !req.getCustomerNote().isBlank()) {
             order.setAdminNote(req.getCustomerNote());
         }

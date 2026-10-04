@@ -3,6 +3,12 @@ import { apiClient } from "./index";
 export const getHallOfHappiness = ({ page = 0, size = 8, locationId } = {}) =>
   apiClient.get("/api/hall-of-happiness", { params: { page, size, locationId } }).then((r) => r.data);
 
+export const getHallOfHappinessConfig = (locationId) =>
+  apiClient.get("/api/hall-of-happiness/config", { params: { locationId } }).then((r) => r.data);
+
+export const setHallOfHappinessEnabled = (locationId, enabled) =>
+  apiClient.patch("/api/admin/hall-of-happiness/config", { enabled }, { params: { locationId } }).then((r) => r.data);
+
 export const getMyHallOfHappinessPhotos = ({ page = 0, size = 50 } = {}) =>
   apiClient.get("/api/hall-of-happiness/my", { params: { page, size } }).then((r) => r.data);
 

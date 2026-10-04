@@ -51,9 +51,17 @@ public class OrderController {
         }
 
         // Guard: Pay at Stall must be enabled by admin
-        if (paymentMethod == PaymentMethod.PAY_AT_STALL && !appSettingService.isPayAtStallEnabled()) {
+        if (paymentMethod == PaymentMethod.PAY_AT_STALL && !appSettingService.isPayAtStallEnabled(req.getLocationId())) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(Map.of("error", "Pay at Stall is not available at this time."));
+        }
+        if (paymentMethod == PaymentMethod.WALLET && !appSettingService.isWalletEnabled(req.getLocationId())) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("error", "Wallet payments are not available at this location."));
+        }
+        if (paymentMethod == PaymentMethod.RAZORPAY && !paymentService.isRazorpayEnabled(req.getLocationId())) {
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                    .body(Map.of("error", "Online payment is not available at this location."));
         }
 
         OrderService.CreateOrderResult result = service.createOrder(req, currentUser);
@@ -117,13 +125,21 @@ public class OrderController {
                         .toList());
 
         // Fail fast — do not create an order record if the chosen payment gateway is unavailable
-        boolean razorpayEnabled = paymentService.isRazorpayEnabled();
+        boolean razorpayEnabled = paymentService.isRazorpayEnabled(req.getLocationId());
         log.info("[PRE-ORDER] razorpayEnabled={}", razorpayEnabled);
 
         if (paymentMethod == PaymentMethod.RAZORPAY && !razorpayEnabled) {
             log.warn("[PRE-ORDER] Aborting — Razorpay is not configured");
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
                     .body(Map.of("error", "Online payment is not available. Please contact support or try again later."));
+        }
+        if (paymentMethod == PaymentMethod.PAY_AT_STALL
+                && !appSettingService.isPayAtStallEnabled(req.getLocationId())) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Pay at Stall is not available at this location."));
+        }
+        if (paymentMethod == PaymentMethod.WALLET
+                && !appSettingService.isWalletEnabled(req.getLocationId())) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Wallet payments are not available at this location."));
         }
 
         if (paymentMethod == PaymentMethod.WALLET && currentUser == null) {

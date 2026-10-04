@@ -61,6 +61,9 @@ export async function createAdminLocation(payload, photo) {
 export async function updateAdminLocation(id, payload, photo) {
   return (await apiClient.put(`/api/admin/locations/${id}`, locationFormData(payload, photo))).data;
 }
+export async function setAdminLocationActive(id, active) {
+  return (await apiClient.patch(`/api/admin/locations/${id}/active`, null, { params: { active } })).data;
+}
 export async function removeAdminLocationPhoto(id) {
   return (await apiClient.delete(`/api/admin/locations/${id}/photo`)).data;
 }
@@ -73,8 +76,8 @@ export async function removeCustomerCompany(locationId, companyId) {
 }
 export async function updateUserRole(id, payload) { return (await apiClient.put(`/api/admin/users/${id}/role`, payload)).data; }
 export async function createAdminUser(payload) { return (await apiClient.post("/api/admin/users", payload)).data; }
-export async function grantUserLocation(userId, locationId) {
-  return (await apiClient.put(`/api/admin/users/${userId}/locations/${locationId}`, { active: true })).data;
+export async function grantUserLocation(userId, locationId, role) {
+  return (await apiClient.put(`/api/admin/users/${userId}/locations/${locationId}`, { active: true, role })).data;
 }
 export async function revokeUserLocation(userId, locationId) {
   return (await apiClient.delete(`/api/admin/users/${userId}/locations/${locationId}`)).data;
