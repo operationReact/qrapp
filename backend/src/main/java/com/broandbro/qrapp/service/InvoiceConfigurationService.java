@@ -18,9 +18,8 @@ public class InvoiceConfigurationService {
     private final ImageStorageService storage;
 
     @Transactional(readOnly = true)
-    public InvoiceConfiguration findForLocation(Long locationId) {
-        return repository.findByLocationId(locationId).orElseGet(() -> InvoiceConfiguration.builder()
-                .locationId(locationId)
+    public InvoiceConfiguration findGlobal() {
+        return repository.findTopByOrderByIdAsc().orElseGet(() -> InvoiceConfiguration.builder()
                 .businessName("Bro & Bro Hospitality LLP")
                 .invoiceTitle("TAX INVOICE")
                 .footerText("GOOD FOOD. GOOD MOOD. GOOD COMPANY.")
@@ -34,7 +33,7 @@ public class InvoiceConfigurationService {
     }
 
     @Transactional
-    public InvoiceConfiguration upload(Long locationId, String assetType, MultipartFile file) {
+    public InvoiceConfiguration upload(String assetType, MultipartFile file) {
         if (file == null || file.isEmpty()) throw new IllegalArgumentException("Invoice asset must not be empty");
         String normalizedAssetType = assetType == null ? "" : assetType.toLowerCase(Locale.ROOT);
         if (!normalizedAssetType.equals("logo")
@@ -49,9 +48,9 @@ public class InvoiceConfigurationService {
         }
         try {
             ImageStorageService.StoredImage stored = storage.uploadLocationImageWithKey(
-                    file.getBytes(), locationId, "invoice-" + normalizedAssetType, contentType);
-            InvoiceConfiguration config = repository.findByLocationId(locationId)
-                    .orElseGet(() -> InvoiceConfiguration.builder().locationId(locationId).build());
+                    file.getBytes(), 0L, "invoice-" + normalizedAssetType, contentType);
+            InvoiceConfiguration config = repository.findTopByOrderByIdAsc()
+                    .orElseGet(() -> InvoiceConfiguration.builder().build());
             switch (normalizedAssetType) {
                 case "logo" -> {
                     config.setLogoAssetUrl(stored.url());
@@ -73,7 +72,6 @@ public class InvoiceConfigurationService {
     }
 
     private void validate(InvoiceConfiguration config) {
-        if (config.getLocationId() == null) throw new IllegalArgumentException("Location is required");
         if (config.getInvoicePrefix() == null || config.getInvoicePrefix().isBlank()) {
             throw new IllegalArgumentException("Invoice prefix is required");
         }
