@@ -87,7 +87,7 @@ public class UserService {
         u = userRepository.save(u);
         if (u.getDefaultLocation() != null) {
             userLocationAccessRepository.save(UserLocationAccess.builder()
-                    .user(u).location(u.getDefaultLocation()).active(true).build());
+                    .user(u).location(u.getDefaultLocation()).active(true).role(UserRole.CUSTOMER).build());
         }
 
         // Create wallet for new user
@@ -125,7 +125,7 @@ public class UserService {
                 .termsAccepted(false).defaultLocation(location).build();
         user = userRepository.save(user);
         userLocationAccessRepository.save(UserLocationAccess.builder()
-                .user(user).location(location).active(true).build());
+                .user(user).location(location).active(true).role(role).build());
         walletRepository.save(Wallet.builder().user(user).balance(BigDecimal.ZERO).build());
         return toResponse(user);
     }
@@ -215,7 +215,8 @@ public class UserService {
         user = userRepository.save(user);
         if (user.getDefaultLocation() != null) {
             userLocationAccessRepository.save(UserLocationAccess.builder()
-                    .user(user).location(user.getDefaultLocation()).active(true).build());
+                    .user(user).location(user.getDefaultLocation()).active(true)
+                    .role(effectiveRole(user)).build());
         }
         walletRepository.save(Wallet.builder().user(user).balance(BigDecimal.ZERO).build());
         byte[] tokenBytes = new byte[24];
@@ -345,7 +346,8 @@ public class UserService {
                 user.setDefaultLocation(location);
                 if (userLocationAccessRepository.findByUserIdAndLocationId(user.getId(), location.getId()).isEmpty()) {
                     userLocationAccessRepository.save(UserLocationAccess.builder()
-                            .user(user).location(location).active(true).build());
+                            .user(user).location(location).active(true)
+                            .role(effectiveRole(user)).build());
                 }
             }
             if (req.getCustomerCompanyId() != null) {

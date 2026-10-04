@@ -1,5 +1,5 @@
 import { queryOptions } from "@tanstack/react-query";
-import { getHallOfHappiness, getMyHallOfHappinessPhotos } from "@/services/hall-of-happiness-service";
+import { getHallOfHappiness, getHallOfHappinessConfig, getMyHallOfHappinessPhotos } from "@/services/hall-of-happiness-service";
 import { getEffectiveLocationId } from "@/lib/activeLocationStore";
 
 export const hallOfHappinessOptions = ({ page = 0, size = 8, locationId, enabled = true } = {}) => {
@@ -13,6 +13,14 @@ export const hallOfHappinessOptions = ({ page = 0, size = 8, locationId, enabled
     refetchOnWindowFocus: true,
   });
 };
+
+export const hallOfHappinessConfigOptions = (locationId) =>
+  queryOptions({
+    queryKey: ["hall-of-happiness", "config", locationId],
+    queryFn: () => getHallOfHappinessConfig(locationId),
+    enabled: Boolean(locationId),
+    staleTime: 1000 * 30,
+  });
 
 export const myHallOfHappinessOptions = ({ page = 0, size = 50, enabled = true } = {}) =>
   queryOptions({

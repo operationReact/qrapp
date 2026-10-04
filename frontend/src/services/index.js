@@ -13,7 +13,6 @@ function isPrivateOrLocalHostname(hostname) {
   if (/^172\.(1[6-9]|2\d|3[0-1])\./.test(hostname)) return true;
   return hostname.endsWith(".local");
 }
-
 const resolvedBase = (() => {
   const fromEnv = import.meta.env.VITE_API_URL;
   if (fromEnv && fromEnv.trim() !== "") return fromEnv.trim();
@@ -49,6 +48,11 @@ apiClient.interceptors.request.use(
       if (creds && creds.token) {
         config.headers = config.headers || {};
         config.headers["Authorization"] = `Bearer ${creds.token}`;
+      }
+      const activeLocation = JSON.parse(localStorage.getItem("active-location") || "null");
+      if (activeLocation?.id) {
+        config.headers = config.headers || {};
+        config.headers["X-Location-Id"] = String(activeLocation.id);
       }
     } catch (e) {
       // ignore malformed localStorage

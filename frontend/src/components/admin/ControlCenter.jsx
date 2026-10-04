@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useLocation, useNavigate, useSearch } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { Bell, Building2, Check, ChevronDown, Eye, EyeOff, Globe2, IndianRupee, KeyRound, MapPin, Menu, MoreHorizontal, MoreVertical, Plus, Search, ShieldCheck, Trash2, UserRound, Wallet } from "lucide-react";
+import { Bell, Building2, Check, ChevronDown, Eye, EyeOff, IndianRupee, KeyRound, MapPin, Menu, MoreHorizontal, MoreVertical, Plus, Search, ShieldCheck, UserRound, Wallet } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,11 +16,11 @@ import { useLocation as useActiveLocation } from "@/context/LocationContext";
 import { hasRole, ROLE } from "@/lib/roles";
 import { useAuth } from "@/context/AuthContext";
 import { INDIA_STATES_AND_UTS, locationCodePreview } from "@/lib/indiaStates";
-import { adminSettingsOptions, paymentConfigOptions } from "@/query/options/orders";
-import { adminSetPayAtStall } from "@/services/order-service";
+import { paymentConfigOptions } from "@/query/options/orders";
+import { adminSetPaymentMethod, getAdminSettings } from "@/services/order-service";
 import { partyOrdersOptions } from "@/query/options/party-orders";
 import { adminHallOfHappinessOptions } from "@/query/options/admin-hall-of-happiness";
-import { adminCreateUserOptions, adminCustomerCompaniesOptions, adminLocationsOptions, adminLocationsPageOptions, adminUsersOptions, adminVendorsOptions, assignCustomerCompany, createAdminLocation, createAdminUser, createManagementResource, deleteAdminLocation, grantUserLocation, revokeUserLocation, updateAdminLocation, updateCustomerCompany, updateUserRole, userLocationsOptions } from "@/query/options/management";
+import { adminCreateUserOptions, adminCustomerCompaniesOptions, adminLocationsOptions, adminLocationsPageOptions, adminUsersOptions, adminVendorsOptions, assignCustomerCompany, createAdminLocation, createAdminUser, createManagementResource, deleteAdminLocation, grantUserLocation, revokeUserLocation, setAdminLocationActive, updateAdminLocation, updateCustomerCompany, updateUserRole, userLocationsOptions } from "@/query/options/management";
 import { baseURL } from "@/services";
 import { ControlCenterThumbnail } from "@/components/admin/ControlCenterThumbnail";
 
@@ -141,6 +141,7 @@ function ControlCenterLocationContext() {
             queryClient.invalidateQueries({ queryKey: ["admin-users"] });
             queryClient.invalidateQueries({ queryKey: ["admin-locations"] });
             queryClient.invalidateQueries({ queryKey: ["admin-customer-companies"] });
+            queryClient.invalidateQueries({ queryKey: ["payment", "config"] });
           }
         }}
         className="h-10 w-full appearance-none rounded-[10px] border border-[var(--cc-border)] bg-white px-10 pr-8 text-[13px] font-semibold text-[var(--cc-text)] outline-none transition focus-visible:border-[var(--cc-primary)] focus-visible:ring-2 focus-visible:ring-[var(--cc-primary)]/20 disabled:opacity-60"
@@ -305,25 +306,50 @@ function UserCreateDialog({ open, onOpenChange, form, setForm, roles, locations,
   </Dialog>;
 }
 
-function UserCard({ user }) {
+function UserAccessDialog({ user, open, onOpenChange, query }) {
+  const locations = query.data || [];
+  return <Dialog open={open} onOpenChange={onOpenChange}>
+    <DialogContent className="max-h-[calc(100vh-32px)] overflow-y-auto rounded-[20px] border border-[var(--cc-border)] bg-white p-5 shadow-[0_12px_40px_rgba(0,0,0,0.16)] sm:max-w-md">
+      <DialogHeader>
+        <DialogTitle className="text-lg font-semibold text-[var(--cc-text)]">User access</DialogTitle>
+        <DialogDescription className="text-sm text-[var(--cc-secondary-text)]">
+          Active locations authorized for {user?.name || user?.fullName || user?.username || "this user"}.
+        </DialogDescription>
+      </DialogHeader>
+      {query.isLoading && <p className="text-sm text-[var(--cc-muted-text)]">Loading access...</p>}
+      {query.error && <ErrorState error={query.error} />}
+      {!query.isLoading && !query.error && <div className="space-y-2">
+        {locations.map((item) => { const location = item.location || item; return <div key={location.id} className="flex min-h-11 items-center gap-2 rounded-[10px] border border-[var(--cc-border)] px-3 text-sm text-[var(--cc-text)]"><MapPin className="size-4 shrink-0 text-[var(--cc-primary)]" /><span className="flex-1">{location.name || location.title || `Location ${location.id}`}</span><span className="text-xs font-semibold text-[var(--cc-muted-text)]">{humanRole(item.role)}</span></div>; })}
+        {!locations.length && <p className="rounded-[10px] border border-dashed border-[var(--cc-border)] p-4 text-center text-sm text-[var(--cc-muted-text)]">No active location access assigned.</p>}
+      </div>}
+    </DialogContent>
+  </Dialog>;
+}
+
+function UserCard({ user, onViewAccess }) {
   const active = user.active ?? user.enabled ?? true;
   return <div className="flex min-h-[76px] items-center gap-3 rounded-[16px] border border-[var(--cc-border)] bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
     <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-[var(--cc-primary-light)] text-[var(--cc-primary)]"><UserRound className="size-5" /></div>
     <div className="min-w-0 flex-1"><p className="truncate text-[15px] font-semibold text-[var(--cc-text)]">{user.name || user.fullName || user.username || "Unnamed user"}</p><p className="truncate text-xs text-[var(--cc-secondary-text)]">{user.phone || user.whatsappNumber || user.email || "No phone number"}</p></div>
     <div className="hidden items-end gap-1.5 sm:flex sm:flex-col"><span className="rounded-full bg-[var(--cc-primary-light)] px-2.5 py-1 text-xs font-semibold text-[var(--cc-primary-dark)]">{humanRole(user.role || user.roles?.[0])}</span><span className={`text-xs ${active ? "text-[var(--cc-success)]" : "text-[var(--cc-muted-text)]"}`}>{active ? "Active" : "Inactive"}</span></div>
-    <DropdownMenu><DropdownMenuTrigger className="grid size-11 shrink-0 place-items-center rounded-[10px] text-[var(--cc-muted-text)] hover:bg-[var(--cc-primary-light)]" aria-label={`Actions for ${user.name || "user"}`}><MoreVertical className="size-5" /></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem>View access</DropdownMenuItem></DropdownMenuContent></DropdownMenu>
+    <DropdownMenu><DropdownMenuTrigger className="grid size-11 shrink-0 place-items-center rounded-[10px] text-[var(--cc-muted-text)] hover:bg-[var(--cc-primary-light)]" aria-label={`Actions for ${user.name || "user"}`}><MoreVertical className="size-5" /></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onClick={() => onViewAccess(user)}>View access</DropdownMenuItem></DropdownMenuContent></DropdownMenu>
   </div>;
 }
 
 export function ControlCenterUsers() {
-  const { data = [], isLoading, error } = useQuery(adminUsersOptions());
   const { data: options, isLoading: optionsLoading, error: optionsError } = useQuery(adminCreateUserOptions());
+  const [locationFilter, setLocationFilter] = useState("ALL");
+  const { data = [], isLoading, error } = useQuery(adminUsersOptions(
+    locationFilter === "ALL" ? undefined : { locationId: Number(locationFilter) },
+  ));
   const queryClient = useQueryClient();
   const [form, setForm] = useState({ name: "", phone: "", password: "", role: "", locationId: "" });
   const [createOpen, setCreateOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("ALL");
   const [statusFilter, setStatusFilter] = useState("ALL");
+  const [accessUser, setAccessUser] = useState(null);
+  const accessQuery = useQuery(userLocationsOptions(accessUser?.id, Boolean(accessUser)));
   const mutation = useMutation({
     mutationFn: () => createAdminUser({ ...form, name: form.name.trim(), phone: form.phone.trim(), locationId: Number(form.locationId) }),
     onSuccess: () => {
@@ -351,21 +377,22 @@ export function ControlCenterUsers() {
     const active = user.active ?? user.enabled ?? true;
     return (!query || name.includes(query) || phone.includes(query)) && (roleFilter === "ALL" || String(user.role || user.roles?.[0]) === roleFilter) && (statusFilter === "ALL" || (statusFilter === "ACTIVE" ? active : !active));
   });
-  return <Shell title="Users" description="Create and manage internal users.">
+  return <Shell title="Users" description="Create and manage internal users." showLocationContext={false}>
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div className="relative w-full sm:max-w-sm"><Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[var(--cc-muted-text)]" /><Input className="h-11 rounded-[10px] border-[var(--cc-border)] bg-white pl-10" placeholder="Search name or WhatsApp number" value={search} onChange={(event) => setSearch(event.target.value)} /></div><Button className="h-11 w-full rounded-[10px] bg-[var(--cc-primary)] text-sm font-semibold text-white hover:bg-[var(--cc-primary-dark)] sm:w-auto" onClick={() => setCreateOpen(true)}><Plus className="size-[18px]" /> Create User</Button></div>
-    <div className="grid grid-cols-2 gap-2 sm:max-w-md"><select className="h-11 rounded-[10px] border border-[var(--cc-border)] bg-white px-3 text-sm" value={roleFilter} onChange={(event) => setRoleFilter(event.target.value)}><option value="ALL">All Roles</option>{[...new Set(data.map((user) => user.role || user.roles?.[0]).filter(Boolean))].map((role) => <option key={role} value={role}>{humanRole(role)}</option>)}</select><select className="h-11 rounded-[10px] border border-[var(--cc-border)] bg-white px-3 text-sm" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}><option value="ALL">All Status</option><option value="ACTIVE">Active</option><option value="INACTIVE">Inactive</option></select></div>
-    {isLoading ? <p className="text-sm text-[var(--cc-muted-text)]">Loading users...</p> : <div className="grid gap-3 lg:grid-cols-2">{filteredUsers.map((user) => <UserCard key={user.id} user={user} />)}{!filteredUsers.length && <p className="rounded-[16px] border border-[var(--cc-border)] bg-white p-8 text-center text-sm text-[var(--cc-muted-text)] lg:col-span-2">No users match these filters.</p>}</div>}
+    <div className="grid grid-cols-1 gap-2 sm:max-w-2xl sm:grid-cols-3"><select aria-label="Filter users by location" className="h-11 rounded-[10px] border border-[var(--cc-border)] bg-white px-3 text-sm" value={locationFilter} onChange={(event) => setLocationFilter(event.target.value)}><option value="ALL">All Locations</option>{locations.map((location) => <option key={location.id} value={location.id}>{location.name}</option>)}</select><select className="h-11 rounded-[10px] border border-[var(--cc-border)] bg-white px-3 text-sm" value={roleFilter} onChange={(event) => setRoleFilter(event.target.value)}><option value="ALL">All Roles</option>{[...new Set(data.map((user) => user.role || user.roles?.[0]).filter(Boolean))].map((role) => <option key={role} value={role}>{humanRole(role)}</option>)}</select><select className="h-11 rounded-[10px] border border-[var(--cc-border)] bg-white px-3 text-sm" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}><option value="ALL">All Status</option><option value="ACTIVE">Active</option><option value="INACTIVE">Inactive</option></select></div>
+    {isLoading ? <p className="text-sm text-[var(--cc-muted-text)]">Loading users...</p> : <div className="grid gap-3 lg:grid-cols-2">{filteredUsers.map((user) => <UserCard key={user.id} user={user} onViewAccess={setAccessUser} />)}{!filteredUsers.length && <p className="rounded-[16px] border border-[var(--cc-border)] bg-white p-8 text-center text-sm text-[var(--cc-muted-text)] lg:col-span-2">No users match these filters.</p>}</div>}
     <ErrorState error={error} />
     <UserCreateDialog open={createOpen} onOpenChange={setCreateOpen} form={form} setForm={setForm} roles={roles} locations={locations} optionsLoading={optionsLoading} mutation={mutation} apiError={apiError} optionsError={optionsError} />
+    <UserAccessDialog user={accessUser} open={Boolean(accessUser)} onOpenChange={(open) => { if (!open) setAccessUser(null); }} query={accessQuery} />
   </Shell>;
 }
 
-function LocationCard({ location, onEdit, onDelete }) {
+function LocationCard({ location, onEdit, onDelete, onToggleActive }) {
   const active = location.active ?? true;
   return <div className="flex items-center gap-3 rounded-[16px] border border-[var(--cc-border)] bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
     <LocationThumbnail key={location.locationPhotoUrl || "location-pin"} url={location.locationPhotoUrl} locationId={location.id} name={location.name} />
     <div className="min-w-0 flex-1"><p className="break-words text-base font-semibold leading-5 text-[var(--cc-text)]">{location.name}</p><div className="mt-1 flex min-w-0 flex-wrap items-center gap-2"><span className={`shrink-0 rounded-full px-2 py-1 text-[10px] font-semibold ${active ? "bg-[var(--cc-success-bg)] text-[var(--cc-success)]" : "bg-[var(--cc-page)] text-[var(--cc-muted-text)]"}`}>{active ? "Active" : "Inactive"}</span><p className="break-all text-xs text-[#77716D]">{location.code || location.locationCode || "Generated on save"}</p></div><p className="mt-1 break-words text-[13px] leading-4 text-[var(--cc-secondary-text)]">{[location.addressLine1, location.city, location.stateUt, location.pinCode].filter(Boolean).join(", ") || location.address || "No address provided"}</p></div>
-    <DropdownMenu><DropdownMenuTrigger className="grid size-11 shrink-0 place-items-center rounded-[10px] text-[var(--cc-muted-text)] hover:bg-[var(--cc-primary-light)]" aria-label={`Actions for ${location.name}`}><MoreVertical className="size-5" /></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onClick={() => onEdit(location)}>Edit location</DropdownMenuItem><DropdownMenuItem onClick={() => onDelete(location)} className="text-[var(--cc-error)]">Delete location</DropdownMenuItem></DropdownMenuContent></DropdownMenu>
+    <DropdownMenu><DropdownMenuTrigger className="grid size-11 shrink-0 place-items-center rounded-[10px] text-[var(--cc-muted-text)] hover:bg-[var(--cc-primary-light)]" aria-label={`Actions for ${location.name}`}><MoreVertical className="size-5" /></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onClick={() => onEdit(location)}>Edit location</DropdownMenuItem><DropdownMenuItem onClick={() => onToggleActive(location)}>{active ? "Deactivate location" : "Activate location"}</DropdownMenuItem><DropdownMenuItem onClick={() => onDelete(location)} className="text-[var(--cc-error)]">Delete location</DropdownMenuItem></DropdownMenuContent></DropdownMenu>
   </div>;
 }
 
@@ -562,6 +589,16 @@ export function ControlCenterLocations() {
       toast.error(errorMessage);
     },
   });
+  const activeMutation = useMutation({
+    mutationFn: (location) => setAdminLocationActive(location.id, !Boolean(location.active)),
+    onSuccess: (_, location) => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "locations"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "users", "create-options"] });
+      queryClient.invalidateQueries({ queryKey: ["locations"] });
+      toast.success(`${location.name} ${location.active ? "deactivated" : "activated"}.`);
+    },
+    onError: (error) => toast.error(error?.response?.data?.message || error?.message || "Unable to update location status."),
+  });
   const apiError = mutation.error?.response?.status === 409
     ? mutation.error?.response?.data?.message || "Location code already exists. Please use a different code."
     : mutation.error?.response?.status === 403
@@ -576,7 +613,7 @@ export function ControlCenterLocations() {
       <div className="hidden min-w-0 sm:block"><LocationFilterFields filters={filters} locations={filterLocations} companies={companies} onChange={changeFilter} />{filterCount > 0 && <Button type="button" variant="outline" className="mt-3 h-9" onClick={clearFilters}>Clear filters</Button>}</div>
     </div>
     <Dialog open={filterOpen} onOpenChange={setFilterOpen}><DialogContent className="max-h-[90vh] w-[calc(100vw-32px)] max-w-[calc(100vw-32px)] overflow-y-auto rounded-[20px] p-5 sm:max-w-lg"><DialogHeader><DialogTitle>Filters</DialogTitle><DialogDescription>Filter authorized operating locations.</DialogDescription></DialogHeader><LocationFilterFields filters={filterDraft} locations={filterLocations} companies={companies} onChange={(patch) => setFilterDraft((current) => ({ ...current, ...patch, ...(patch.state && !filterLocations.some((location) => location.stateUt === patch.state && location.city === current.city) ? { city: "" } : {}) }))} /><div className="flex flex-col gap-2 sm:flex-row sm:justify-end"><Button type="button" variant="outline" className="h-11" onClick={clearFilters}>Clear</Button><Button type="button" className="h-11 bg-[var(--cc-primary)] text-white hover:bg-[var(--cc-primary-dark)]" onClick={() => { const next = { ...filterDraft, page: 0 }; setFilterDraft(next); commitFilters(next); setFilterOpen(false); }}>Apply Filters</Button></div></DialogContent></Dialog>
-    {isLoading ? <p className="text-sm text-[var(--cc-muted-text)]">Loading locations...</p> : <><div className="grid gap-3 lg:grid-cols-2">{data.map((location) => <LocationCard key={location.id} location={location} onEdit={(item) => { setEditingLocation(item); setLocationDialogOpen(true); }} onDelete={(item) => { setLocationToDelete(item); setDeleteConfirmOpen(true); }} />)}{!data.length && <div className="rounded-[16px] border border-[var(--cc-border)] bg-white p-8 text-center lg:col-span-2"><p className="text-sm text-[var(--cc-muted-text)]">{filters.search ? `No locations found for "${filters.search}".` : filterCount ? "No locations match your filters." : filters.status === "ACTIVE" ? "No active locations found." : "No locations found."}</p><Button type="button" variant="outline" className="mt-3 h-10" onClick={clearFilters}>Clear Filters</Button></div>}</div>{totalPages > 1 && <div className="flex items-center justify-center gap-3 pt-2"><Button type="button" variant="outline" className="h-10" disabled={filters.page === 0} onClick={() => changeFilter({ page: filters.page - 1 })}>Previous</Button><span className="text-xs text-[var(--cc-muted-text)]">Page {filters.page + 1} of {totalPages}</span><Button type="button" variant="outline" className="h-10" disabled={filters.page + 1 >= totalPages} onClick={() => changeFilter({ page: filters.page + 1 })}>Next</Button></div>}</>}
+    {isLoading ? <p className="text-sm text-[var(--cc-muted-text)]">Loading locations...</p> : <><div className="grid gap-3 lg:grid-cols-2">{data.map((location) => <LocationCard key={location.id} location={location} onEdit={(item) => { setEditingLocation(item); setLocationDialogOpen(true); }} onToggleActive={(item) => activeMutation.mutate(item)} onDelete={(item) => { setLocationToDelete(item); setDeleteConfirmOpen(true); }} />)}{!data.length && <div className="rounded-[16px] border border-[var(--cc-border)] bg-white p-8 text-center lg:col-span-2"><p className="text-sm text-[var(--cc-muted-text)]">{filters.search ? `No locations found for "${filters.search}".` : filterCount ? "No locations match your filters." : filters.status === "ACTIVE" ? "No active locations found." : "No locations found."}</p><Button type="button" variant="outline" className="mt-3 h-10" onClick={clearFilters}>Clear Filters</Button></div>}</div>{totalPages > 1 && <div className="flex items-center justify-center gap-3 pt-2"><Button type="button" variant="outline" className="h-10" disabled={filters.page === 0} onClick={() => changeFilter({ page: filters.page - 1 })}>Previous</Button><span className="text-xs text-[var(--cc-muted-text)]">Page {filters.page + 1} of {totalPages}</span><Button type="button" variant="outline" className="h-10" disabled={filters.page + 1 >= totalPages} onClick={() => changeFilter({ page: filters.page + 1 })}>Next</Button></div>}</>}
     <ErrorState error={error} />
     <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
       <DialogContent className="rounded-[20px] border border-[var(--cc-border)] bg-white p-5 shadow-[0_12px_40px_rgba(0,0,0,0.16)] sm:max-w-md">
@@ -751,7 +788,10 @@ export function CustomerCompanies() {
 }
 
 export function ControlCenterAccess() {
-  const { data: users = [], isLoading: usersLoading, error: usersError } = useQuery(adminUsersOptions());
+  const [locationFilter, setLocationFilter] = useState("ALL");
+  const { data: users = [], isLoading: usersLoading, error: usersError } = useQuery(adminUsersOptions(
+    locationFilter === "ALL" ? undefined : { locationId: Number(locationFilter) },
+  ));
   const { data: locations = [], isLoading: locationsLoading, error: locationsError } = useQuery(adminLocationsOptions());
   const { data: createOptions } = useQuery(adminCreateUserOptions());
   const [selectedId, setSelectedId] = useState(null);
@@ -759,8 +799,7 @@ export function ControlCenterAccess() {
   const [userPickerOpen, setUserPickerOpen] = useState(false);
   const selectedUser = users.find((item) => String(item.id) === String(selectedId)) || null;
   const assignedQuery = useQuery(userLocationsOptions(selectedUser?.id));
-  const [role, setRole] = useState("");
-  const [selectedLocations, setSelectedLocations] = useState([]);
+  const [locationRoles, setLocationRoles] = useState({});
   const [feedback, setFeedback] = useState(null);
   const queryClient = useQueryClient();
   const assignableRoles = createOptions?.roles || defaultAssignableRoles;
@@ -769,22 +808,28 @@ export function ControlCenterAccess() {
     if (!selectedUser) return;
     const timer = window.setTimeout(() => {
       setSelectedId(selectedUser.id);
-      setRole(assignableRoles.includes(selectedUser.role) ? selectedUser.role : assignableRoles[0] || "");
     }, 0);
     return () => window.clearTimeout(timer);
   }, [selectedUser, assignableRoles]);
   useEffect(() => {
-    const timer = window.setTimeout(() => setSelectedLocations((assignedQuery.data || []).map((item) => String(item.id))), 0);
+    const timer = window.setTimeout(() => {
+      setLocationRoles(Object.fromEntries((assignedQuery.data || []).map((item) => [
+        String(item.location?.id ?? item.id),
+        item.role || assignableRoles[0] || "",
+      ])));
+    }, 0);
     return () => window.clearTimeout(timer);
-  }, [assignedQuery.data]);
+  }, [assignedQuery.data, assignableRoles]);
+  useEffect(() => {
+    setFeedback(null);
+  }, [selectedUser?.id]);
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      const before = new Set((assignedQuery.data || []).map((item) => String(item.id)));
-      const after = new Set(selectedLocations);
-      await updateUserRole(selectedUser.id, { role });
+      const before = new Set((assignedQuery.data || []).map((item) => String(item.location?.id ?? item.id)));
+      const after = new Set(Object.keys(locationRoles));
       await Promise.all([
-        [...after].filter((id) => !before.has(id)).map((id) => grantUserLocation(selectedUser.id, id)),
+        [...after].map((id) => grantUserLocation(selectedUser.id, id, locationRoles[id])),
         [...before].filter((id) => !after.has(id)).map((id) => revokeUserLocation(selectedUser.id, id)),
       ].flat());
     },
@@ -797,14 +842,29 @@ export function ControlCenterAccess() {
   });
   const loading = usersLoading || locationsLoading;
   const canSave = Boolean(selectedUser) && !saveMutation.isPending && !assignedQuery.isLoading;
-  const toggleLocation = (id) => setSelectedLocations((current) => current.includes(String(id)) ? current.filter((value) => value !== String(id)) : [...current, String(id)]);
+  const toggleLocation = (id) => setLocationRoles((current) => {
+    const key = String(id);
+    if (current[key]) {
+      const next = { ...current };
+      delete next[key];
+      return next;
+    }
+    return { ...current, [key]: assignableRoles[0] || "" };
+  });
   const visibleUsers = users.filter((item) => `${item.name || item.fullName || item.username || ""} ${item.phone || item.email || ""}`.toLowerCase().includes(userSearch.trim().toLowerCase()));
+  const visibleLocations = locations;
   const userName = (item) => item?.name || item?.fullName || item?.username || item?.email || "Unnamed user";
   const userSecondary = (item) => item?.phone || item?.phoneNumber || item?.email || "";
 
-  return <Shell title="Access Management" description="Manage each user's role and authorized operating locations.">
+  return <Shell title="Access Management" description="Manage each user's role and authorized operating locations." showLocationContext={false}>
     <div className="grid gap-5 lg:grid-cols-[minmax(18rem,.8fr)_minmax(0,1.2fr)]">
       <section className="rounded-[16px] border border-[var(--cc-border)] bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
+        <label className="mb-4 block text-[11px] font-bold uppercase tracking-[0.06em] text-[#77716D]">Location
+          <select aria-label="Filter users by location" className="mt-2 h-11 w-full rounded-[10px] border border-[var(--cc-border)] bg-white px-3 text-sm font-semibold normal-case tracking-normal text-[var(--cc-text)]" value={locationFilter} onChange={(event) => { setLocationFilter(event.target.value); setSelectedId(null); setFeedback(null); }}>
+            <option value="ALL">All locations</option>
+            {locations.map((location) => <option key={location.id} value={String(location.id)}>{location.name || location.title || `Location ${location.id}`}</option>)}
+          </select>
+        </label>
         <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.06em] text-[#77716D]">Select User</p>
         <Popover open={userPickerOpen} onOpenChange={setUserPickerOpen}>
           <PopoverTrigger asChild>
@@ -867,8 +927,8 @@ export function ControlCenterAccess() {
       </section>
       {selectedUser && <section className="rounded-[16px] border border-[var(--cc-border)] bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.06)]"><p className="mb-4 text-[11px] font-bold uppercase tracking-[0.06em] text-[#77716D]">User Access</p>
         {loading && <p className="text-sm text-[var(--cc-muted-text)]">Loading access...</p>}
-        {selectedUser && !loading && <div className="space-y-5"><div><p className="text-base font-semibold text-[var(--cc-text)]">{selectedUser.name || selectedUser.fullName || selectedUser.username || selectedUser.email}</p><Field label="Role" icon={ShieldCheck}><select id="user-role" className="h-11 w-full rounded-[10px] border border-[var(--cc-border)] bg-white px-10 text-sm" value={role} onChange={(event) => setRole(event.target.value)}>{assignableRoles.map((value) => <option key={value} value={value}>{humanRole(value)}</option>)}</select></Field></div>
-          <fieldset><legend className="text-[11px] font-bold uppercase tracking-[0.06em] text-[#77716D]">Authorized Locations</legend><div className="mt-2 grid gap-2 sm:grid-cols-2">{locations.map((location) => { const checked = selectedLocations.includes(String(location.id)); return <label key={location.id} className={`flex min-h-11 cursor-pointer items-center gap-3 rounded-[10px] border px-3 text-sm ${checked ? "border-[var(--cc-primary)] bg-[var(--cc-primary-light)]" : "border-[var(--cc-border)]"}`}><input type="checkbox" className="size-4 accent-[var(--cc-primary)]" checked={checked} onChange={() => toggleLocation(location.id)} /><span>{location.name || location.title || `Location ${location.id}`}</span></label>; })}</div></fieldset>
+        {selectedUser && !loading && <div className="space-y-5"><div><p className="text-base font-semibold text-[var(--cc-text)]">{selectedUser.name || selectedUser.fullName || selectedUser.username || selectedUser.email}</p><p className="mt-1 text-xs text-[var(--cc-secondary-text)]">Current access</p><div className="mt-2 flex flex-wrap gap-2">{(assignedQuery.data || []).map((item) => { const location = item.location || item; return <span key={location.id} className="inline-flex items-center gap-1.5 rounded-full bg-[var(--cc-primary-light)] px-2.5 py-1 text-xs font-semibold text-[var(--cc-primary-dark)]"><MapPin className="size-3" />{location.name || location.title || `Location ${location.id}`}: {humanRole(item.role)}</span>; })}{!(assignedQuery.data || []).length && <span className="text-xs text-[var(--cc-muted-text)]">No active location access</span>}</div></div>
+          <fieldset><legend className="text-[11px] font-bold uppercase tracking-[0.06em] text-[#77716D]">Location Access and Role</legend><div className="mt-2 space-y-2">{visibleLocations.map((location) => { const key = String(location.id); const assigned = Boolean(locationRoles[key]); return <div key={location.id} className={`flex min-h-11 items-center gap-3 rounded-[10px] border px-3 text-sm ${assigned ? "border-[var(--cc-primary)] bg-[var(--cc-primary-light)]" : "border-[var(--cc-border)]"}`}><input type="checkbox" className="size-4 accent-[var(--cc-primary)]" checked={assigned} onChange={() => toggleLocation(location.id)} /><span className="min-w-0 flex-1 truncate">{location.name || location.title || `Location ${location.id}`}</span>{assigned && <select aria-label={`Role at ${location.name}`} className="h-9 rounded-[8px] border border-[var(--cc-border)] bg-white px-2 text-xs" value={locationRoles[key]} onChange={(event) => setLocationRoles((current) => ({ ...current, [key]: event.target.value }))}>{assignableRoles.map((value) => <option key={value} value={value}>{humanRole(value)}</option>)}</select>}</div>; })}</div></fieldset>
           <Button className="h-11 w-full rounded-[10px] bg-[var(--cc-primary)] font-semibold text-white hover:bg-[var(--cc-primary-dark)]" disabled={!canSave} onClick={() => { setFeedback(null); saveMutation.mutate(); }}>{saveMutation.isPending ? "Saving..." : <><Check className="size-4" /> Save Access</>}</Button>
           {feedback && <p role="status" className={feedback.type === "error" ? "text-sm text-[var(--cc-error)]" : "text-sm text-[var(--cc-success)]"}>{feedback.text}</p>}
         </div>}
@@ -898,24 +958,39 @@ function PaymentMethodRow({ icon, title, description, enabled, onToggle, readOnl
   );
 }
 
-// Payments tab — reuses the existing payment settings API/state 1:1
-// (adminSettingsOptions + adminSetPayAtStall + paymentConfigOptions, the same
-// hooks that power /admin/global-controls). No new payment API is introduced.
+// Payments tab — payment availability is stored independently for each location.
 export function ControlCenterPayments() {
   const queryClient = useQueryClient();
-  const { data: settings, isLoading: settingsLoading } = useQuery(adminSettingsOptions);
-  const { data: paymentConfig, isLoading: configLoading } = useQuery(paymentConfigOptions);
+  const { activeLocation } = useActiveLocation();
+  const { data: locations = [], isLoading: locationsLoading } = useQuery(adminLocationsOptions());
+  const [selectedLocationId, setSelectedLocationId] = useState("");
+  const locationId = selectedLocationId || (Number.isFinite(Number(activeLocation?.id)) ? String(activeLocation.id) : String(locations[0]?.id || ""));
+  const { data: settings, isLoading: settingsLoading, error: settingsError } = useQuery({
+    queryKey: ["admin", "settings", locationId],
+    enabled: Boolean(locationId),
+    queryFn: () => getAdminSettings(locationId),
+  });
   const payAtStall = settings?.payAtStallEnabled ?? false;
+  const toggle = (method, enabled) => adminSetPaymentMethod(method, locationId, enabled);
 
   const toggleMutation = useMutation({
-    mutationFn: (enabled) => adminSetPayAtStall(enabled),
+    mutationFn: ({ method, enabled }) => toggle(method, enabled),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: adminSettingsOptions.queryKey });
+      queryClient.invalidateQueries({ queryKey: ["admin", "settings", locationId] });
       queryClient.invalidateQueries({ queryKey: paymentConfigOptions.queryKey });
     },
   });
 
   return <Shell title="Payment Management" description="Configure available customer payment methods.">
+    <div className="flex items-center gap-3 rounded-[16px] border border-[var(--cc-border)] bg-white p-4">
+      <MapPin className="size-4 shrink-0 text-[var(--cc-primary)]" aria-hidden="true" />
+      <label className="flex min-w-0 flex-1 items-center gap-3 text-sm font-semibold text-[var(--cc-text)]">
+        <span className="shrink-0">Location</span>
+        <select className="h-10 min-w-0 flex-1 rounded-[10px] border border-[var(--cc-border)] bg-white px-3 text-sm" value={locationId} onChange={(event) => setSelectedLocationId(event.target.value)} disabled={locationsLoading}>
+          {locations.map((location) => <option key={location.id} value={String(location.id)}>{location.name || location.title || `Location ${location.id}`}</option>)}
+        </select>
+      </label>
+    </div>
     <Card className="rounded-[16px] border-[var(--cc-border)] bg-white shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
       <CardHeader className="border-b border-[var(--cc-divider)] py-4"><CardTitle className="text-[15px] font-semibold text-[var(--cc-text)]">Payment methods</CardTitle></CardHeader>
       <CardContent className="p-0">
@@ -923,15 +998,17 @@ export function ControlCenterPayments() {
           icon={Wallet}
           title="Valid Balance (Wallet)"
           description="Customer wallet balance payments"
-          enabled={configLoading ? null : paymentConfig?.walletEnabled}
-          readOnly
+          enabled={settingsLoading ? null : settings?.walletEnabled}
+          loading={settingsLoading}
+          onToggle={() => toggleMutation.mutate({ method: "wallet", enabled: !settings?.walletEnabled })}
         />
         <PaymentMethodRow
           icon={IndianRupee}
           title="Razorpay"
           description="Card, UPI & netbanking via Razorpay"
-          enabled={configLoading ? null : paymentConfig?.razorpayEnabled}
-          readOnly
+          enabled={settingsLoading ? null : settings?.razorpayEnabled}
+          loading={settingsLoading}
+          onToggle={() => toggleMutation.mutate({ method: "razorpay", enabled: !settings?.razorpayEnabled })}
         />
         <PaymentMethodRow
           icon={MapPin}
@@ -939,10 +1016,10 @@ export function ControlCenterPayments() {
           description="Order now, settle the bill at the counter"
           enabled={settingsLoading ? null : payAtStall}
           loading={toggleMutation.isPending}
-          onToggle={() => toggleMutation.mutate(!payAtStall)}
+          onToggle={() => toggleMutation.mutate({ method: "pay-at-stall", enabled: !payAtStall })}
         />
       </CardContent>
     </Card>
-    <ErrorState error={toggleMutation.error} />
+    <ErrorState error={settingsError || toggleMutation.error} />
   </Shell>;
 }

@@ -47,6 +47,24 @@ class SuperAdminLocationControllerTest {
 
     @Test
     @WithMockUser(roles = "SUPER_ADMIN")
+    void superAdminCanFilterUsersByLocation() throws Exception {
+        when(userService.findByPhone("user")).thenReturn(Optional.of(
+                User.builder().phone("user").role(UserRole.SUPER_ADMIN).build()));
+        when(userRepository.findAllByLocationId(3L)).thenReturn(List.of(
+                User.builder().id(2L).phone("9876543210").name("Location User")
+                        .role(UserRole.MANAGER).build()));
+
+        mockMvc.perform(get("/api/admin/users").param("locationId", "3"))
+                .andExpect(status().isOk())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers
+                        .jsonPath("$[0].name").value("Location User"));
+
+        verify(userRepository).findAllByLocationId(3L);
+        verify(userRepository, never()).findAll();
+    }
+
+    @Test
+    @WithMockUser(roles = "SUPER_ADMIN")
     void superAdminCanGrantAndRevokeAssignedLocation() throws Exception {
         User actor = User.builder().id(1L).phone("user").role(UserRole.SUPER_ADMIN).build();
         User target = User.builder().id(2L).phone("target").role(UserRole.MANAGER).build();
@@ -64,6 +82,23 @@ class SuperAdminLocationControllerTest {
         mockMvc.perform(delete("/api/admin/users/2/locations/3"))
                 .andExpect(status().isNoContent());
         verify(accessRepository).save(any(UserLocationAccess.class));
+    }
+
+    @Test
+    @WithMockUser(roles = "SUPER_ADMIN")
+    void superAdminCanDeactivateLocation() throws Exception {
+        User actor = User.builder().id(1L).phone("user").role(UserRole.SUPER_ADMIN).build();
+        Location location = Location.builder().id(3L).code("A").name("A").active(true).build();
+        when(userService.findByPhone("user")).thenReturn(Optional.of(actor));
+        when(locationRepository.findById(3L)).thenReturn(Optional.of(location));
+        when(locationRepository.save(any(Location.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        mockMvc.perform(patch("/api/admin/locations/3/active").param("active", "false"))
+                .andExpect(status().isOk())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers
+                        .jsonPath("$.active").value(false));
+
+        verify(locationRepository).save(argThat(saved -> !Boolean.TRUE.equals(saved.getActive())));
     }
 
     @Test

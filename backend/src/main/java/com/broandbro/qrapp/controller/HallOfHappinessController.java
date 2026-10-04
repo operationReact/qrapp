@@ -21,6 +21,7 @@ import java.security.Principal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import java.util.Map;
 
 @RestController
 public class HallOfHappinessController {
@@ -28,13 +29,29 @@ public class HallOfHappinessController {
     private final HallOfHappinessService service;
     private final LocationAccessService locationAccessService;
     private final UserService userService;
+    private final com.broandbro.qrapp.service.AppSettingService appSettingService;
 
     public HallOfHappinessController(HallOfHappinessService service,
                                      LocationAccessService locationAccessService,
-                                     UserService userService) {
+                                     UserService userService,
+                                     com.broandbro.qrapp.service.AppSettingService appSettingService) {
         this.service = service;
         this.locationAccessService = locationAccessService;
         this.userService = userService;
+        this.appSettingService = appSettingService;
+    }
+
+    @GetMapping("/api/hall-of-happiness/config")
+    public Map<String, Object> config(@RequestParam Long locationId) {
+        return Map.of("enabled", appSettingService.isHallOfHappinessEnabled(locationId));
+    }
+
+    @PatchMapping("/api/admin/hall-of-happiness/config")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    public Map<String, Object> updateConfig(@RequestParam Long locationId,
+                                             @RequestBody Map<String, Boolean> body) {
+        boolean enabled = Boolean.TRUE.equals(body.get("enabled"));
+        return Map.of("enabled", appSettingService.setHallOfHappinessEnabled(locationId, enabled));
     }
 
     @GetMapping("/api/hall-of-happiness")

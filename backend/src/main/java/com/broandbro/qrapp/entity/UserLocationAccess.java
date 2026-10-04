@@ -25,6 +25,11 @@ public class UserLocationAccess {
     @Builder.Default
     private Boolean active = true;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 30)
+    @Builder.Default
+    private UserRole role = UserRole.CUSTOMER;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 

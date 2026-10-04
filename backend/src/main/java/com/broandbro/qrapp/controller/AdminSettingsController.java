@@ -25,21 +25,35 @@ public class AdminSettingsController {
     private final PaymentService paymentService;
 
     @GetMapping
-    public ResponseEntity<Map<String, Object>> getSettings() {
+    public ResponseEntity<Map<String, Object>> getSettings(
+            @RequestParam(required = false) Long locationId) {
         return ResponseEntity.ok(Map.of(
-                "payAtStallEnabled",  appSettingService.isPayAtStallEnabled(),
-                "razorpayEnabled",    paymentService.isRazorpayEnabled()
+                "payAtStallEnabled", appSettingService.isPayAtStallEnabled(locationId),
+                "razorpayEnabled", appSettingService.isRazorpayEnabled(locationId, paymentService.isRazorpayEnabled()),
+                "walletEnabled", appSettingService.isWalletEnabled(locationId)
         ));
     }
 
-    @PatchMapping("/pay-at-stall")
-    public ResponseEntity<Map<String, Object>> togglePayAtStall(@RequestBody Map<String, Boolean> body) {
+    @PatchMapping("/{method}")
+    public ResponseEntity<Map<String, Object>> togglePayment(
+            @PathVariable String method, @RequestParam(required = false) Long locationId,
+            @RequestBody Map<String, Boolean> body) {
         boolean enabled = Boolean.TRUE.equals(body.get("enabled"));
-        appSettingService.setPayAtStallEnabled(enabled);
-        return ResponseEntity.ok(Map.of(
-                "payAtStallEnabled", enabled,
-                "message", "Pay at Stall has been " + (enabled ? "enabled" : "disabled")
-        ));
+        if (locationId == null) {
+            if (!"pay-at-stall".equals(method)) {
+                throw new org.springframework.web.server.ResponseStatusException(
+                        org.springframework.http.HttpStatus.BAD_REQUEST, "locationId_required");
+            }
+            appSettingService.setPayAtStallEnabled(enabled);
+            return ResponseEntity.ok(Map.of("enabled", enabled, "method", method));
+        }
+        switch (method) {
+            case "wallet" -> appSettingService.setWalletEnabled(locationId, enabled);
+            case "razorpay" -> appSettingService.setRazorpayEnabled(locationId, enabled);
+            case "pay-at-stall" -> appSettingService.setPayAtStallEnabled(locationId, enabled);
+            default -> throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.NOT_FOUND, "payment_method_not_found");
+        }
+        return ResponseEntity.ok(Map.of("enabled", enabled, "method", method));
     }
 }
-

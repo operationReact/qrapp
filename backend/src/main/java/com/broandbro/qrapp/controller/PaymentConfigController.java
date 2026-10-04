@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
@@ -27,18 +28,18 @@ public class PaymentConfigController {
     private final PaymentService paymentService;
 
     @GetMapping("/config")
-    public ResponseEntity<Map<String, Object>> getPaymentConfig() {
+    public ResponseEntity<Map<String, Object>> getPaymentConfig(
+            @RequestParam(required = false) Long locationId) {
         boolean payAtStall = false;
         try {
-            payAtStall = appSettingService.isPayAtStallEnabled();
+            payAtStall = appSettingService.isPayAtStallEnabled(locationId);
         } catch (Exception e) {
             log.warn("[PaymentConfig] Could not read pay_at_stall setting (table may not exist yet): {}", e.getMessage());
         }
         return ResponseEntity.ok(Map.of(
-                "razorpayEnabled",   paymentService.isRazorpayEnabled(),
-                "walletEnabled",     true,
+                "razorpayEnabled",   paymentService.isRazorpayEnabled(locationId),
+                "walletEnabled",     appSettingService.isWalletEnabled(locationId),
                 "payAtStallEnabled", payAtStall
         ));
     }
 }
-

@@ -116,13 +116,18 @@ export const getAdminPreOrderItems = () =>
 // ── Payment Config ────────────────────────────────────────────────────────────
 
 /** Public — returns { razorpayEnabled, walletEnabled, payAtStallEnabled } */
-export const getPaymentConfig = () =>
-  apiClient.get("/api/payment/config").then((r) => r.data);
+export const getPaymentConfig = (locationId) =>
+  apiClient.get("/api/payment/config", { params: locationId ? { locationId } : undefined }).then((r) => r.data);
 
 /** Admin — returns { payAtStallEnabled, razorpayEnabled } */
-export const getAdminSettings = () =>
-  apiClient.get("/admin/settings").then((r) => r.data);
+export const getAdminSettings = (locationId) =>
+  apiClient.get("/admin/settings", { params: { locationId } }).then((r) => r.data);
 
 /** Admin — toggle Pay at Stall on/off */
-export const adminSetPayAtStall = (enabled) =>
-  apiClient.patch("/admin/settings/pay-at-stall", { enabled }).then((r) => r.data);
+export const adminSetPayAtStall = (enabled, locationId) =>
+  apiClient.patch("/admin/settings/pay-at-stall", { enabled }, {
+    params: locationId ? { locationId } : undefined,
+  }).then((r) => r.data);
+
+export const adminSetPaymentMethod = (method, locationId, enabled) =>
+  apiClient.patch(`/admin/settings/${method}`, { enabled }, { params: { locationId } }).then((r) => r.data);

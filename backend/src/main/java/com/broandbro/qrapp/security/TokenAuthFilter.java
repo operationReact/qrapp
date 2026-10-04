@@ -2,6 +2,7 @@ package com.broandbro.qrapp.security;
 
 import com.broandbro.qrapp.entity.User;
 import com.broandbro.qrapp.service.UserService;
+import com.broandbro.qrapp.repository.UserLocationAccessRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -24,6 +25,7 @@ import com.broandbro.qrapp.entity.UserRole;
 @RequiredArgsConstructor
 public class TokenAuthFilter extends OncePerRequestFilter {
     private final UserService userService;
+    private final UserLocationAccessRepository accessRepository;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
@@ -45,6 +47,17 @@ public class TokenAuthFilter extends OncePerRequestFilter {
                     authorities.add(new SimpleGrantedAuthority("ROLE_SUPERUSER"));
                 }
                 UserRole role = u.getRole();
+                String locationHeader = request.getHeader("X-Location-Id");
+                if (!Boolean.TRUE.equals(u.getIsSuperUser())
+                        && locationHeader != null && locationHeader.matches("\\d+")) {
+                    role = accessRepository.findByUserIdAndLocationId(u.getId(), Long.valueOf(locationHeader))
+                            .filter(access -> Boolean.TRUE.equals(access.getActive())
+                                    && access.getLocation() != null
+                                    && Boolean.TRUE.equals(access.getLocation().getActive())
+                                    && access.getRole() != null)
+                            .map(com.broandbro.qrapp.entity.UserLocationAccess::getRole)
+                            .orElse(UserRole.CUSTOMER);
+                }
                 authorities.add(new SimpleGrantedAuthority(
                         "ROLE_" + (role == null ? UserRole.CUSTOMER : role).name()));
                 var auth = new UsernamePasswordAuthenticationToken(u.getPhone(), null, authorities);

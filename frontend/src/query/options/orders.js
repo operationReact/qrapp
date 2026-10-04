@@ -77,15 +77,19 @@ export const adminPreOrderItemsOptions = queryOptions({
 
 /** Public — no auth needed. Used in cart to show Pay at Stall option. */
 export const paymentConfigOptions = queryOptions({
-  queryKey: ["payment", "config"],
-  queryFn: getPaymentConfig,
+  queryKey: ["payment", "config", (() => {
+    try { return JSON.parse(localStorage.getItem("active-location") || "null")?.id || null; } catch { return null; }
+  })()],
+  queryFn: ({ queryKey }) => getPaymentConfig(queryKey[2]),
   staleTime: 1000 * 60,   // 1 min
   retry: 2,
 });
 
 /** Admin — payment + feature flag settings. */
 export const adminSettingsOptions = queryOptions({
-  queryKey: ["admin", "settings"],
-  queryFn: getAdminSettings,
+  queryKey: ["admin", "settings", (() => {
+    try { return JSON.parse(localStorage.getItem("active-location") || "null")?.id || null; } catch { return null; }
+  })()],
+  queryFn: ({ queryKey }) => getAdminSettings(queryKey[2]),
   staleTime: 1000 * 30,
 });

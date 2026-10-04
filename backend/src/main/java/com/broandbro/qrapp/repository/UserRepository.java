@@ -20,6 +20,18 @@ public interface UserRepository extends JpaRepository<User, Long> {
     List<User> findAll();
 
     @EntityGraph(attributePaths = {"defaultLocation", "customerCompany"})
+    @Query("""
+            SELECT DISTINCT u
+            FROM User u
+            LEFT JOIN UserLocationAccess access
+                ON access.user = u AND access.active = true
+            WHERE u.defaultLocation.id = :locationId
+               OR access.location.id = :locationId
+            ORDER BY u.name ASC, u.id ASC
+            """)
+    List<User> findAllByLocationId(@Param("locationId") Long locationId);
+
+    @EntityGraph(attributePaths = {"defaultLocation", "customerCompany"})
     Optional<User> findByToken(String token);
 
     /** Returns a page of user IDs — used by {@code UserPreferenceScheduler} for batched rebuilds. */

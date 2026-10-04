@@ -18,6 +18,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import java.util.List;
+import org.springframework.cache.annotation.CacheEvict;
 
 @RestController
 @RequestMapping("/api/admin")
@@ -100,6 +101,18 @@ public class SuperAdminLocationController {
                 .body(LocationResponse.from(locationPhotoService.replace(location, photo)));
     }
 
+    @PatchMapping("/locations/{id}/active")
+    @CacheEvict(cacheNames = {"menu", "menuRecommended"}, allEntries = true)
+    public LocationResponse setActive(
+            @PathVariable Long id,
+            @RequestParam boolean active,
+            org.springframework.security.core.Authentication authentication) {
+        authorize(authentication);
+        Location location = locationRepository.findById(id).orElseThrow();
+        location.setActive(active);
+        return LocationResponse.from(locationRepository.save(location));
+    }
+
     @PutMapping("/locations/{id}")
     public LocationResponse update(@PathVariable Long id, @Valid @RequestBody LocationRequest request,
                                    org.springframework.security.core.Authentication authentication) {
@@ -159,9 +172,14 @@ public class SuperAdminLocationController {
     }
 
     @GetMapping("/users")
-    public List<UserResponse> users(org.springframework.security.core.Authentication authentication) {
+    public List<UserResponse> users(
+            @RequestParam(required = false) Long locationId,
+            org.springframework.security.core.Authentication authentication) {
         authorize(authentication);
-        return userRepository.findAll().stream().map(this::userResponse).toList();
+        List<User> users = locationId == null
+                ? userRepository.findAll()
+                : userRepository.findAllByLocationId(locationId);
+        return users.stream().map(this::userResponse).toList();
     }
 
     @GetMapping("/users/create-options")
@@ -212,16 +230,22 @@ public class SuperAdminLocationController {
     }
 
     @GetMapping("/users/{userId}/locations")
-    public List<LocationResponse> userLocations(@PathVariable Long userId,
+    public List<UserLocationAccessResponse> userLocations(@PathVariable Long userId,
                                                 org.springframework.security.core.Authentication authentication) {
         User actor = authorize(authentication);
         User user = userRepository.findById(userId).orElseThrow();
-        accessService.requireNotSelf(actor, user);
-        return accessRepository.findByUserIdOrderByLocationNameAsc(userId).stream()
+                                                if (isSuperAdmin(user)) {
+                                                    return locationRepository.findByActiveTrueOrderByNameAsc().stream()
+                                                            .map(location -> new UserLocationAccessResponse(
+                                                                    LocationResponse.from(location), UserRole.SUPER_ADMIN)).toList();
+                                                }
+                                                accessService.requireNotSelf(actor, user);
+                                                return accessRepository.findByUserIdOrderByLocationNameAsc(userId).stream()
                 .filter(a -> Boolean.TRUE.equals(a.getActive())
                         && a.getLocation() != null
                         && Boolean.TRUE.equals(a.getLocation().getActive()))
-                .map(a -> LocationResponse.from(a.getLocation())).toList();
+                .map(a -> new UserLocationAccessResponse(
+                        LocationResponse.from(a.getLocation()), a.getRole())).toList();
     }
 
     @PutMapping("/users/{userId}/locations/{locationId}")
@@ -236,9 +260,16 @@ public class SuperAdminLocationController {
             throw new org.springframework.web.server.ResponseStatusException(
                     HttpStatus.CONFLICT, "location_inactive");
         }
+        UserRole assignmentRole = request.getRole() == UserRole.CUSTOMER && user.getRole() != UserRole.CUSTOMER
+                ? user.getRole() : request.getRole();
+        if (assignmentRole == UserRole.CUSTOMER || assignmentRole == UserRole.SUPER_ADMIN) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    HttpStatus.BAD_REQUEST, "role_not_assignable");
+        }
         UserLocationAccess access = accessRepository.findByUserIdAndLocationId(userId, locationId)
                 .orElseGet(() -> UserLocationAccess.builder().user(user).location(location).build());
         access.setActive(request.getActive());
+        access.setRole(assignmentRole);
         return LocationResponse.from(accessRepository.save(access).getLocation());
     }
 
@@ -258,6 +289,11 @@ public class SuperAdminLocationController {
         User actor = authentication == null ? null : userService.findByPhone(authentication.getName()).orElse(null);
         accessService.requireSuperAdmin(actor);
         return actor;
+    }
+
+    private boolean isSuperAdmin(User user) {
+        return user != null
+                && (user.getRole() == UserRole.SUPER_ADMIN || Boolean.TRUE.equals(user.getIsSuperUser()));
     }
 
     private UserResponse userResponse(User u) {

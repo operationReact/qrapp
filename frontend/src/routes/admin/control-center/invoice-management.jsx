@@ -1,8 +1,8 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Check, ImagePlus, Save, Upload } from "lucide-react";
+import { ArrowLeft, Check, ImagePlus, Save, Upload } from "lucide-react";
 import { RoleGuard } from "@/components/RoleGuard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -97,7 +97,7 @@ function InvoiceManagement() {
   return <main className="min-h-screen bg-[#F8F5F0] px-3 py-4 pb-24 text-[#24211F] sm:px-4 sm:py-6 md:px-8 md:pb-8">
     <div className="mx-auto max-w-6xl space-y-4 sm:space-y-6">
       <header className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
-        <div><p className="text-xs font-bold uppercase tracking-[0.18em] text-[#B8893C]">Super Admin</p>
+        <div><Link to="/admin/control-center" className="mb-3 inline-flex min-h-10 items-center gap-2 rounded-xl border border-[#E7E0D8] bg-white px-3 text-sm font-semibold text-[#5C554E] transition hover:border-[#B8893C] hover:text-[#24211F]"><ArrowLeft className="size-4" aria-hidden="true" />Back to Control Center</Link><p className="text-xs font-bold uppercase tracking-[0.18em] text-[#B8893C]">Super Admin</p>
           <h1 className="mt-1 text-2xl font-bold tracking-tight sm:text-3xl">Invoice Management</h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-[#756D64]">Configure the shared seller identity, brand presentation, and invoice details used across all locations.</p>
           </div>
