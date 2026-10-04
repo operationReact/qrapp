@@ -138,7 +138,16 @@ export default function ImmersiveHomeHero({
   };
 
   return (
-    <div className="relative isolate overflow-hidden rounded-b-3xl" style={{ height: "min(78vw, 560px)", minHeight: 420 }}>
+    <div className="relative isolate overflow-hidden rounded-b-3xl" style={{ 
+      height: (() => {
+        const w = window.innerWidth;
+        if (w < 1024) return "min(78vw, 560px)";
+        if (w < 1280) return "420px";
+        if (w < 1536) return "450px";
+        return "470px";
+      })(),
+      minHeight: 380 
+    }}>
       <CombosDrawer open={combosOpen} onOpenChange={setCombosOpen} />
       <BuildYourOwnComboDrawer open={byocOpen} onOpenChange={setByocOpen} />
 
@@ -202,16 +211,27 @@ export default function ImmersiveHomeHero({
 
       {showOverlayControls && (
         <>
-          {/* Overlay header — location (opposite: logo) */}
-          <div className="absolute inset-x-0 top-0 z-20 flex items-center justify-between gap-2 p-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
+          {/* Desktop: Unified premium control system in one row */}
+          <div className="hidden lg:block lg:absolute lg:inset-x-0 lg:top-1/2 lg:-translate-y-1/2 lg:z-20">
+            {/* Search + Filters: Desktop only, aligned in same row */}
+            <div className="flex items-center gap-3 max-w-5xl w-full px-3 mx-auto lg:max-w-5xl">
+              <div className="min-w-0 flex-1 lg:max-w-2xl">
+                <SearchBar home onSearch={onSearch} />
+              </div>
+              <SegmentedFilter compact value={vegFilter} onChange={onVegFilterChange} />
+            </div>
+          </div>
+
+          {/* Mobile only: Location, Search + Filters */}
+          <div className="lg:hidden absolute inset-x-0 top-0 z-20 flex items-center justify-between gap-2 p-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
             <LocationSelector overlay className="min-w-0 flex-1" />
             <Link to="/" className="shrink-0 rounded-xl bg-white/95 p-1.5 shadow-md" aria-label="BRO & BRO">
               <img src="/bro-logo.png" alt="BRO & BRO" className="h-7 w-7 object-contain" />
             </Link>
           </div>
 
-          {/* Overlay search + dietary filter */}
-          <div className="absolute inset-x-0 top-[60px] z-20 flex items-center gap-2 px-3">
+          {/* Mobile only: Search + Filters below header */}
+          <div className="lg:hidden absolute inset-x-0 top-[60px] z-20 flex items-center gap-2 px-3">
             <div className="min-w-0 flex-1">
               <SearchBar home onSearch={onSearch} />
             </div>

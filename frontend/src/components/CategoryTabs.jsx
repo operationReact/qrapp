@@ -58,13 +58,13 @@ export default function CategoryTabs({ categories, active }) {
               size: "sm",
               variant: "ghost",
               className: cn(
-                "group h-auto w-[74px] min-w-[74px] flex-col gap-0.5 rounded-2xl px-0 py-0 text-[13px] font-semibold leading-4 shadow-none touch-manipulation hover:bg-transparent md:h-9 md:w-auto md:min-w-fit md:flex-row md:gap-1.5 md:rounded-full md:px-3.5 md:py-2 md:text-xs",
+                 "group h-auto w-[74px] min-w-[74px] flex-col gap-0.5 rounded-2xl px-0 py-0 text-[13px] font-semibold leading-4 shadow-none touch-manipulation hover:bg-transparent md:h-auto md:w-auto md:min-w-fit md:flex-col md:gap-1 md:rounded-2xl md:px-0 md:py-0 md:text-xs lg:gap-1.5 lg:rounded-2xl",
                 isActive ? "text-primary" : "text-foreground",
               ),
             })}
           >
             <span className={cn(
-              "grid h-[50px] w-[50px] place-items-center overflow-hidden rounded-[16px] text-[29px] shadow-[0_4px_10px_rgba(41,47,67,0.05)] transition-colors md:hidden",
+              "grid place-items-center overflow-hidden rounded-[16px] text-[29px] shadow-[0_4px_10px_rgba(41,47,67,0.05)] transition-colors h-[50px] w-[50px] md:h-[60px] md:w-[60px] lg:h-[72px] lg:w-[72px]",
               isPhoto ? "bg-muted" : "bg-[#f4f7fb]",
               isActive && !isAllActive && !isPhoto && "bg-primary text-primary-foreground shadow-[0_7px_16px_rgba(241,32,70,0.22)]",
               isActive && isPhoto && "ring-2 ring-primary ring-offset-2",
@@ -72,7 +72,7 @@ export default function CategoryTabs({ categories, active }) {
             )}>
               <CategoryTileImage resolved={resolved} />
             </span>
-            <span className="h-7 max-w-[72px] overflow-hidden text-center text-[12px] leading-[14px] whitespace-normal [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">
+            <span className="h-7 max-w-[72px] overflow-hidden text-center text-[12px] leading-[14px] whitespace-normal md:max-w-[80px] lg:max-w-[90px] md:text-[12px] [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">
               {catName}
             </span>
           </a>

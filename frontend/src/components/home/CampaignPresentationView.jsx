@@ -83,14 +83,17 @@ export default function CampaignPresentation({
         )}
         style={{
           background:
-            "linear-gradient(to top, rgba(0,0,0,0.86) 0%, rgba(0,0,0,0.38) 45%, rgba(0,0,0,0.06) 68%, rgba(0,0,0,0.34) 100%)",
+             "linear-gradient(to top, rgba(0,0,0,0.42) 0%, rgba(0,0,0,0.14) 40%, rgba(0,0,0,0) 65%, rgba(0,0,0,0.08) 100%)",
         }}
       />
       <div
         className={cn(
-          "campaign-content absolute inset-x-0 bottom-9 z-10 px-4",
+          "campaign-content absolute inset-x-0 top-[58%] -translate-y-1/2 z-10 px-4 flex flex-col items-start lg:inset-x-auto lg:left-0 lg:right-auto lg:top-1/2 lg:-translate-y-1/2 lg:mx-0 lg:max-w-5xl lg:px-12",
           animation.effectClass,
         )}
+        style={{
+          maxWidth: window.innerWidth >= 1024 ? "560px" : "100%",
+        }}
       >
         {campaign?.badge && (
           <span
