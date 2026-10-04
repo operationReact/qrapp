@@ -12,3 +12,8 @@ export const uploadInvoiceAsset = (assetType, file) => {
   return apiClient.post(`/admin/invoice-configurations/assets/${assetType}`, form)
     .then((response) => response.data);
 };
+
+export const getInvoiceAssetPreview = (assetType) =>
+  apiClient.get(`/admin/invoice-configurations/assets/${assetType}`, {
+    responseType: "blob",
+  }).then((response) => URL.createObjectURL(response.data));

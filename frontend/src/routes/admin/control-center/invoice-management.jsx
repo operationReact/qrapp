@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { ROLE } from "@/lib/roles";
-import { getInvoiceConfiguration, saveInvoiceConfiguration, uploadInvoiceAsset } from "@/services/invoice-configuration-service";
+import { getInvoiceAssetPreview, getInvoiceConfiguration, saveInvoiceConfiguration, uploadInvoiceAsset } from "@/services/invoice-configuration-service";
 
 export const Route = createFileRoute("/admin/control-center/invoice-management")({
   component: () => <RoleGuard roles={ROLE.SUPER_ADMIN}><InvoiceManagement /></RoleGuard>,
@@ -189,5 +189,29 @@ function Toggle({ label, checked, onChange }) {
 }
 
 function AssetUpload({ label, type, value, onUpload }) {
-  return <div className="space-y-2"><p className="text-xs font-semibold text-[#5C554E]">{label}</p><div className="flex flex-col gap-3 sm:flex-row sm:items-center">{value ? <img src={value} alt={`${label} preview`} className="size-16 rounded-xl border border-[#E7E0D8] bg-white object-contain p-1" /> : <div className="grid size-16 shrink-0 place-items-center rounded-xl bg-[#F5F1EB] text-[#B8893C]"><ImagePlus className="size-5" /></div>}<label className="inline-flex min-h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-[#E7E0D8] px-3 py-2 text-xs font-semibold hover:bg-[#F8F5F0] sm:w-auto"><Upload className="size-3.5" /> Upload<input type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={(event) => event.target.files?.[0] && onUpload(event.target.files[0])} /></label></div></div>;
+  const [preview, setPreview] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    let objectUrl = "";
+    if (!value) {
+      setPreview("");
+      return undefined;
+    }
+    getInvoiceAssetPreview(type)
+      .then((url) => {
+        objectUrl = url;
+        if (active) setPreview(url);
+        else URL.revokeObjectURL(url);
+      })
+      .catch(() => {
+        if (active) setPreview("");
+      });
+    return () => {
+      active = false;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [type, value]);
+
+  return <div className="space-y-2"><p className="text-xs font-semibold text-[#5C554E]">{label}</p><div className="flex flex-col gap-3 sm:flex-row sm:items-center">{preview ? <img src={preview} alt={`${label} preview`} className="size-16 rounded-xl border border-[#E7E0D8] bg-white object-contain p-1" /> : <div className="grid size-16 shrink-0 place-items-center rounded-xl bg-[#F5F1EB] text-[#B8893C]"><ImagePlus className="size-5" /></div>}<label className="inline-flex min-h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-[#E7E0D8] px-3 py-2 text-xs font-semibold hover:bg-[#F8F5F0] sm:w-auto"><Upload className="size-3.5" /> Upload<input type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={(event) => event.target.files?.[0] && onUpload(event.target.files[0])} /></label></div></div>;
 }
