@@ -6,7 +6,6 @@ import Navbar from "../components/shared/Navbar";
 import SearchBar from "../components/shared/SearchBar";
 import CategoryTabs from "../components/CategoryTabs";
 import MenuItemCard from "../components/MenuItemCard";
-import SegmentedFilter from "@/components/SegmentedFilter";
 import {
   Carousel,
   CarouselContent,
@@ -126,7 +125,13 @@ function MenuPage() {
 
   return (
     <div className="page-shell bg-background pb-mobile-nav! lg:pb-[initial]!">
-      <Navbar homeHeader immersive />
+      <Navbar
+        homeHeader
+        immersive
+        onSearch={setSearchQuery}
+        vegFilter={vegFilter}
+        onVegFilterChange={handleSegmentedFilterChange}
+      />
       <MobileMenu />
       {/* Backend offline banner (non-technical user friendly) */}
       {offline && (
@@ -163,28 +168,16 @@ function MenuPage() {
       <div className="hidden lg:block">
         <ImmersiveHomeHero
           locationId={activeLocationId}
+          onSearch={setSearchQuery}
+          vegFilter={vegFilter}
+          onVegFilterChange={handleSegmentedFilterChange}
           showOverlayControls={false}
         />
       </div>
 
-      <div className="container-premium home-controls flex flex-col gap-2 py-1.5 md:gap-2 md:py-2">
-        {/* Desktop keeps its existing dedicated search + filter row above the
-            menu; the immersive hero is a mobile-first experience. */}
-        <div className="hidden w-full items-center gap-2 lg:flex">
-          <div className="min-w-0 flex-1">
-            <SearchBar
-              home
-              onSearch={setSearchQuery}
-            />
-          </div>
-          <SegmentedFilter
-            compact
-            value={vegFilter}
-            onChange={handleSegmentedFilterChange}
-          />
-        </div>
-
-        <div className="container-premium -mx-[0.875rem] mt-1 w-auto px-0 md:mx-0 md:w-auto md:px-0">
+      <div className="container-premium home-controls flex flex-col gap-2 py-1.5 md:gap-2 md:py-2 lg:gap-3 lg:py-2">
+        {/* Desktop search/filter is now inside the hero overlay; show categories only below hero */}
+        <div className="container-premium -mx-[0.875rem] w-auto px-0 md:mx-0 md:w-auto md:px-0">
           <CategoryTabs categories={categories} active={category} />
         </div>
       </div>
