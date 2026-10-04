@@ -14,8 +14,9 @@ import com.broandbro.qrapp.service.InventoryService;
 import com.broandbro.qrapp.service.PricingService;
 import com.broandbro.qrapp.service.LocationAccessService;
 import com.broandbro.qrapp.service.UserService;
+import com.broandbro.qrapp.service.TaxCalculationService;
 import com.broandbro.qrapp.repository.LocationRepository;
-import lombok.RequiredArgsConstructor;
+import com.broandbro.qrapp.repository.TaxProfileRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -56,7 +57,6 @@ import org.springframework.context.ApplicationEventPublisher;
 
 @RestController
 @RequestMapping("/menu")
-@RequiredArgsConstructor(onConstructor_ = @Autowired)
 public class MenuController {
 
     private static final Logger log = LoggerFactory.getLogger(MenuController.class);
@@ -77,6 +77,8 @@ public class MenuController {
     private final LocationAccessService locationAccessService;
     private final UserService userService;
     private final com.broandbro.qrapp.repository.VendorRepository vendorRepository;
+    private final TaxCalculationService taxCalculationService;
+    private final TaxProfileRepository taxProfileRepository;
 
     public MenuController(MenuRepository repo, CategoryRepository categoryRepository,
                           TagRepository tagRepository, InventoryService inventoryService,
@@ -85,7 +87,33 @@ public class MenuController {
                           LocationRepository locationRepository,
                           LocationAccessService locationAccessService, UserService userService) {
         this(repo, categoryRepository, tagRepository, inventoryService, pricingService, eventPublisher,
-                analyticsMenuItemRepo, locationRepository, locationAccessService, userService, null);
+                analyticsMenuItemRepo, locationRepository, locationAccessService, userService, null,
+                new TaxCalculationService(), null);
+    }
+
+    @Autowired
+    public MenuController(MenuRepository repo, CategoryRepository categoryRepository,
+                          TagRepository tagRepository, InventoryService inventoryService,
+                          PricingService pricingService, ApplicationEventPublisher eventPublisher,
+                          MenuItemAnalyticsRepository analyticsMenuItemRepo,
+                          LocationRepository locationRepository,
+                          LocationAccessService locationAccessService, UserService userService,
+                          com.broandbro.qrapp.repository.VendorRepository vendorRepository,
+                          TaxCalculationService taxCalculationService,
+                          TaxProfileRepository taxProfileRepository) {
+        this.repo = repo;
+        this.categoryRepository = categoryRepository;
+        this.tagRepository = tagRepository;
+        this.inventoryService = inventoryService;
+        this.pricingService = pricingService;
+        this.eventPublisher = eventPublisher;
+        this.analyticsMenuItemRepo = analyticsMenuItemRepo;
+        this.locationRepository = locationRepository;
+        this.locationAccessService = locationAccessService;
+        this.userService = userService;
+        this.vendorRepository = vendorRepository;
+        this.taxCalculationService = taxCalculationService;
+        this.taxProfileRepository = taxProfileRepository;
     }
 
     @Autowired
@@ -355,6 +383,7 @@ public class MenuController {
                                     existing.getId(), newPrice, null, "Price updated via admin"));
                         } catch (Exception ex) { /* ignore */ }
                     }
+
                     if (categoryIdStr != null && !categoryIdStr.isBlank()) {
                         try {
                             Long categoryId = Long.parseLong(categoryIdStr);
@@ -602,7 +631,8 @@ public class MenuController {
             .name(item.getName())
             .description(item.getDescription())
             .locationId(item.getLocation() != null ? item.getLocation().getId() : null)
-            .price(price)                          // from MenuItemSellingPriceHistory
+            .price(price == null ? null : taxCalculationService
+                    .calculate(price, item.getTaxProfile()).totalAmount())
             .imageUrl(item.getImageUrl())
             .isVeg(item.getIsVeg())
             .recommended(item.isRecommended())
@@ -619,6 +649,37 @@ public class MenuController {
             .estimatedCost(item.getEstimatedCost())
             .build();
     }
+
+    @PatchMapping("/{id}/tax")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPERUSER', 'SUPER_ADMIN', 'MANAGER')")
+    @org.springframework.transaction.annotation.Transactional
+    public ResponseEntity<?> updateTaxConfiguration(
+            @PathVariable Long id,
+            @RequestParam Long locationId,
+            @RequestBody TaxConfigurationRequest request,
+            org.springframework.security.core.Authentication authentication) {
+        requireManagementLocation(locationId, authentication);
+        MenuItem item = repo.findByIdAndLocationId(id, locationId).orElse(null);
+        if (item == null) return ResponseEntity.notFound().build();
+        var profile = taxProfileRepository.findById(request.taxProfileId())
+                .orElseThrow(() -> new IllegalArgumentException("Tax profile not found: " + request.taxProfileId()));
+        item.setTaxProfile(profile);
+        item.setHsnSac(request.hsnSac() == null ? profile.getHsnSac() : request.hsnSac().trim());
+        MenuItem saved = repo.save(item);
+        BigDecimal basePrice = pricingService.getCurrentSellingPrice(id);
+        var preview = taxCalculationService.calculate(basePrice, profile);
+        return ResponseEntity.ok(Map.of(
+                "menuItemId", saved.getId(),
+                "taxProfileId", profile.getId(),
+                "taxProfileCode", profile.getCode(),
+                "hsnSac", saved.getHsnSac() == null ? "" : saved.getHsnSac(),
+                "basePrice", preview.taxableAmount(),
+                "gstRate", preview.gstRate(),
+                "gstAmount", preview.totalTax(),
+                "customerPrice", preview.totalAmount()));
+    }
+
+    public record TaxConfigurationRequest(Long taxProfileId, String hsnSac) {}
 
     // ── Profitability: Update Estimated Cost ──────────────────────────────────
 

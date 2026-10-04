@@ -6,12 +6,14 @@ import {
   StorefrontIcon,
   ConfettiIcon,
   BuildingOfficeIcon,
+  FileTextIcon,
 } from "@phosphor-icons/react";
 import { ROLE } from "./roles";
 
 export const ADMIN_NAVIGATION = [
   { section: "Control", items: [
     { to: "/admin/control-center", label: "Control Center", icon: ShieldCheckIcon, roles: [ROLE.SUPER_ADMIN] },
+    { to: "/admin/control-center/invoice-management", label: "Invoice Management", icon: FileTextIcon, roles: [ROLE.SUPER_ADMIN] },
   ] },
   { section: "Workspace", items: [{ to: "/admin", label: "Dashboard", roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN, ROLE.MANAGER] }] },
   { section: "Menu", items: [

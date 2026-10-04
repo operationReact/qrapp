@@ -20,9 +20,9 @@ public interface StallAnalyticsRepository extends JpaRepository<com.broandbro.qr
             SELECT s.id AS stallId,
                    s.vendor_name AS stallName,
                    COUNT(DISTINCT o.id) AS orders,
-                   COALESCE(SUM(COALESCE(oi.line_total,
+                   COALESCE(SUM(COALESCE(oi.taxable_amount,
                        oi.quantity * oi.selling_price_snapshot)), 0) AS revenue,
-                   COALESCE(SUM(COALESCE(oi.line_total,
+                   COALESCE(SUM(COALESCE(oi.taxable_amount,
                        oi.quantity * oi.selling_price_snapshot))
                        / NULLIF(COUNT(DISTINCT o.id), 0), 0) AS averageOrderValue
             FROM orders o

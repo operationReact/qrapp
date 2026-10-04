@@ -16,8 +16,10 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.H2Dialect
+  task:
+    scheduling:
+      enabled: false
 razorpay:
   key: test-key
   secret: test-secret
   webhookSecret: test-webhook
-

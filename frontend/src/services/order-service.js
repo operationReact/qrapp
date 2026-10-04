@@ -3,6 +3,9 @@ import { apiClient } from "./index";
 export const getMyOrders = () =>
   apiClient.get("/orders/me").then((r) => r.data);
 
+export const downloadInvoice = (orderId) =>
+  apiClient.get(`/orders/${orderId}/invoice`, { responseType: "blob" }).then((r) => r.data);
+
 export const createOrder = (data, locationId) => {
   const payload = locationId ? { ...data, locationId } : data;
   return apiClient.post("/orders", payload).then((r) => r.data);
@@ -42,6 +45,9 @@ export const getAdminOrder = (id, locationId) => {
   const params = locationId != null ? { locationId } : undefined;
   return apiClient.get(`/admin/orders/${id}`, params ? { params } : undefined).then((r) => r.data);
 };
+
+export const downloadAdminInvoice = (orderId) =>
+  apiClient.get(`/admin/orders/${orderId}/invoice`, { responseType: "blob" }).then((r) => r.data);
 
 export const updateAdminOrder = (id, data, locationId) => {
   const config = locationId != null ? { params: { locationId } } : undefined;

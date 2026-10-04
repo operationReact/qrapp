@@ -286,12 +286,14 @@ public interface MenuItemAnalyticsRepository extends JpaRepository<MenuItemAnaly
                    mi.category_id,
                    c.name                                     AS category_name,
                    COALESCE(SUM(oi.quantity), 0)             AS total_qty_sold,
-                   COALESCE(SUM(oi.quantity * oi.selling_price_snapshot), 0) AS total_revenue,
+                   COALESCE(SUM(COALESCE(oi.taxable_amount,
+                       oi.quantity * oi.selling_price_snapshot)), 0) AS total_revenue,
                    COALESCE(SUM(oi.quantity * COALESCE(oi.cost_price_snapshot, mi.estimated_cost, 0)), 0) AS total_cost,
                    COUNT(DISTINCT oi.order_id)               AS order_count,
                    CASE
                        WHEN SUM(oi.quantity) = 0 THEN NULL
-                       ELSE SUM(oi.quantity * oi.selling_price_snapshot) / SUM(oi.quantity)
+                       ELSE SUM(COALESCE(oi.taxable_amount,
+                           oi.quantity * oi.selling_price_snapshot)) / SUM(oi.quantity)
                    END                                        AS avg_selling_price,
                    CASE
                        WHEN SUM(oi.quantity) = 0 THEN NULL

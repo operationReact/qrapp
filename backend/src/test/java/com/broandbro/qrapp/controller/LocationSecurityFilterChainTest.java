@@ -33,6 +33,8 @@ class LocationSecurityFilterChainTest {
     @MockBean UserLocationAccessRepository accesses;
     @MockBean UserRepository userRepository;
     @MockBean com.broandbro.qrapp.service.LocationCodeService locationCodeService;
+    @MockBean com.broandbro.qrapp.service.LocationPhotoService locationPhotoService;
+    @MockBean com.broandbro.qrapp.service.LocationDeletionService locationDeletionService;
 
     private final Location a = Location.builder().id(1L).code("A").name("A").active(true).build();
     private final Location b = Location.builder().id(2L).code("B").name("B").active(true).build();
@@ -87,7 +89,7 @@ class LocationSecurityFilterChainTest {
     void superAdminCanCreateLocation() throws Exception {
         Location created = Location.builder().id(3L).code("new-location").name("New Location")
                 .active(true).build();
-        when(locationCodeService.create(any(Location.class))).thenReturn(created);
+        when(locationCodeService.create(any(Location.class), any())).thenReturn(created);
 
         mvc.perform(post("/api/admin/locations")
                         .header("Authorization", bearer("super-token"))

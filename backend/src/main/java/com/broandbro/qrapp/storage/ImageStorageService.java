@@ -6,6 +6,7 @@ package com.broandbro.qrapp.storage;
  */
 public interface ImageStorageService {
     record StoredImage(String url, String key) {}
+    record StoredContent(byte[] bytes, String contentType) {}
 
     /**
      * Uploads a raw image to the storage backend and returns the public URL.
@@ -25,6 +26,8 @@ public interface ImageStorageService {
     StoredImage uploadImageWithKey(byte[] imageBytes, String folder, String contentType);
 
     StoredImage uploadLocationImageWithKey(byte[] imageBytes, Long locationId, String locationName, String contentType);
+
+    StoredContent readImage(String key);
 
     void deleteLocationImageByKey(String key);
 

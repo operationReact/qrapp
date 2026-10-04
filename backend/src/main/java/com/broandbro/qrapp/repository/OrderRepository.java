@@ -17,6 +17,9 @@ import java.util.List;
 import java.util.Optional;
 
 public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecificationExecutor<Order> {
+    @Query("SELECT o FROM Order o LEFT JOIN FETCH o.location WHERE o.id = :id")
+    Optional<Order> findByIdWithLocation(@Param("id") Long id);
+
     Optional<Order> findByRazorpayOrderId(String razorpayOrderId);
     Page<Order> findAllByStatus(OrderStatus status, Pageable pageable);
     List<Order> findAllByUserIdOrderByCreatedAtDescIdDesc(Long userId);

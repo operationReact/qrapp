@@ -3,6 +3,7 @@ package com.broandbro.qrapp.controller;
 import com.broandbro.qrapp.entity.Location;
 import com.broandbro.qrapp.repository.LocationRepository;
 import com.broandbro.qrapp.storage.impl.S3ImageStorageService;
+import com.broandbro.qrapp.storage.ImageStorageService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.MediaType;
@@ -21,7 +22,7 @@ public class PublicLocationImageController {
     public ResponseEntity<ByteArrayResource> image(@PathVariable Long locationId) {
         Location location = locationRepository.findById(locationId).orElseThrow();
         if (location.getLocationPhotoKey() == null) return ResponseEntity.notFound().build();
-        S3ImageStorageService.StoredContent content = storage.readImage(location.getLocationPhotoKey());
+        ImageStorageService.StoredContent content = storage.readImage(location.getLocationPhotoKey());
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType(content.contentType()))
                 .cacheControl(CacheControl.maxAge(java.time.Duration.ofHours(1)).cachePublic())

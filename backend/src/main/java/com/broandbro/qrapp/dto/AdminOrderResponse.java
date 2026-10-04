@@ -6,6 +6,7 @@ import com.broandbro.qrapp.enums.PaymentMethod;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -29,6 +30,15 @@ public class AdminOrderResponse {
     private LocalDateTime scheduledAt;
     private boolean preOrder;
     private double total;
+    private BigDecimal baseAmount;
+    private BigDecimal discountAmount;
+    private BigDecimal taxableAmount;
+    private BigDecimal cgstAmount;
+    private BigDecimal sgstAmount;
+    private BigDecimal igstAmount;
+    private BigDecimal totalTax;
+    private BigDecimal customerPaid;
+    private boolean invoiceAvailable;
     private int totalItems;
     private String adminNote;
     private String assignedAdmin;
@@ -67,4 +77,3 @@ public class AdminOrderResponse {
         private LocalDateTime changedAt;
     }
 }
-

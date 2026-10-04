@@ -164,6 +164,7 @@ public interface DailySalesAnalyticsRepository extends JpaRepository<DailySalesA
                    COALESCE(o.location_id, (SELECT id FROM pragati)) AS location_id,
                    o.status              AS status,
                    o.grand_total         AS grand_total,
+                   COALESCE(o.tax, 0)    AS gst_collected,
                    o.coupon_discount     AS coupon_discount,
                    o.phone               AS phone,
                    o.payment_method      AS payment_method,
@@ -183,7 +184,7 @@ public interface DailySalesAnalyticsRepository extends JpaRepository<DailySalesA
                COALESCE(SUM(b.grand_total)
                    FILTER (WHERE b.status = 'COMPLETED'), 0)                 AS total_revenue,
 
-               COALESCE(SUM(b.grand_total - COALESCE(b.coupon_discount, 0))
+               COALESCE(SUM(b.grand_total - COALESCE(b.coupon_discount, 0) - b.gst_collected)
                    FILTER (WHERE b.status = 'COMPLETED'), 0)                 AS net_revenue,
 
                COALESCE(SUM(b.coupon_discount)
@@ -218,14 +219,16 @@ public interface DailySalesAnalyticsRepository extends JpaRepository<DailySalesA
 
                COALESCE(SUM(b.item_cost) FILTER (WHERE b.status = 'COMPLETED'), 0) AS total_estimated_cost,
 
-               COALESCE(SUM(b.grand_total) FILTER (WHERE b.status = 'COMPLETED'), 0)
+               COALESCE(SUM(b.grand_total - b.gst_collected)
+                   FILTER (WHERE b.status = 'COMPLETED'), 0)
                    - COALESCE(SUM(b.item_cost) FILTER (WHERE b.status = 'COMPLETED'), 0) AS total_estimated_profit,
 
                CASE
                    WHEN COALESCE(SUM(b.grand_total)
                             FILTER (WHERE b.status = 'COMPLETED'), 0) = 0 THEN NULL
                    ELSE (
-                       COALESCE(SUM(b.grand_total) FILTER (WHERE b.status = 'COMPLETED'), 0)
+                       COALESCE(SUM(b.grand_total - b.gst_collected)
+                           FILTER (WHERE b.status = 'COMPLETED'), 0)
                        - COALESCE(SUM(b.item_cost) FILTER (WHERE b.status = 'COMPLETED'), 0)
                    ) / COALESCE(SUM(b.grand_total) FILTER (WHERE b.status = 'COMPLETED'), 1) * 100
                END                                                            AS avg_profit_margin,
@@ -307,5 +310,4 @@ public interface DailySalesAnalyticsRepository extends JpaRepository<DailySalesA
     @Query("DELETE FROM DailySalesAnalytics d WHERE d.locationId = :locationId")
     void deleteByLocationId(@Param("locationId") Long locationId);
 }
-
 

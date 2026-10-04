@@ -40,6 +40,14 @@ public class MenuItem {
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "tag_id")
     private Tag tag;
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "tax_profile_id")
+    private TaxProfile taxProfile;
+
+    @Column(name = "hsn_sac", length = 20)
+    private String hsnSac;
+
     @Column(name = "is_veg")
     private Boolean isVeg;
 
