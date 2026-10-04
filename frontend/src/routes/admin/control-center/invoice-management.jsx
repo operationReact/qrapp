@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { ImagePlus, Save, Upload } from "lucide-react";
+import { Check, ImagePlus, Save, Upload } from "lucide-react";
 import { RoleGuard } from "@/components/RoleGuard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -124,9 +124,44 @@ function InvoiceManagement() {
         </div>
         <div className="space-y-5">
           <Section title="Signature"><div className="space-y-4">
-            <Toggle label="Enable signature" checked={form.signatureEnabled} onChange={(value) => update("signatureEnabled", value)} />
-            <div className="grid grid-cols-2 gap-2"><Button className="h-11" type="button" variant={form.signatureType === "TEXT" ? "default" : "outline"} onClick={() => update("signatureType", "TEXT")}>Text</Button><Button className="h-11" type="button" variant={form.signatureType === "UPLOADED" ? "default" : "outline"} onClick={() => update("signatureType", "UPLOADED")}>Uploaded</Button></div>
-            {form.signatureType === "TEXT" ? <div className="grid gap-3 md:grid-cols-2 md:gap-4"><Field label="Signatory name" value={form.signatoryName || ""} onChange={(e) => update("signatoryName", e.target.value)} /><Field label="Designation" value={form.signatoryDesignation || ""} onChange={(e) => update("signatoryDesignation", e.target.value)} /></div> : <AssetUpload label="Signature image" type="signature" value={form.signatureAssetUrl} onUpload={(file) => upload.mutate({ type: "signature", file })} />}
+            <div className="flex items-center justify-between gap-3 rounded-2xl border border-[#E7E0D8] bg-[#FBF8F3] p-3.5">
+              <div>
+                <p className="text-sm font-semibold text-[#24211F]">Show on invoice</p>
+                <p className="mt-0.5 text-xs leading-5 text-[#756D64]">Add an authorised signatory block to the PDF.</p>
+              </div>
+              <Switch
+                checked={Boolean(form.signatureEnabled)}
+                onCheckedChange={(value) => update("signatureEnabled", value)}
+                aria-label="Enable signature"
+              />
+            </div>
+            <div className="rounded-2xl border border-[#E7E0D8] bg-white p-1.5">
+              <div className="grid grid-cols-2 gap-1">
+                {[["TEXT", "Typed signature"], ["UPLOADED", "Image signature"]].map(([type, label]) => {
+                  const selected = form.signatureType === type;
+                  return <button
+                    key={type}
+                    type="button"
+                    aria-pressed={selected}
+                    onClick={() => update("signatureType", type)}
+                    className={`flex min-h-11 items-center justify-center gap-2 rounded-xl px-2 text-xs font-semibold transition-colors ${selected ? "bg-[#24211F] text-white shadow-sm" : "text-[#756D64] hover:bg-[#F8F5F0]"}`}
+                  >
+                    {selected && <Check className="size-3.5" />}
+                    {label}
+                  </button>;
+                })}
+              </div>
+            </div>
+            {form.signatureType === "TEXT" ? <div className="space-y-3">
+              <div className="grid gap-3 md:grid-cols-2 md:gap-4">
+                <Field label="Signatory name" value={form.signatoryName || ""} placeholder="e.g. Rahul Sharma" onChange={(e) => update("signatoryName", e.target.value)} />
+                <Field label="Designation" value={form.signatoryDesignation || ""} placeholder="e.g. Authorised Signatory" onChange={(e) => update("signatoryDesignation", e.target.value)} />
+              </div>
+              <div className="rounded-2xl border border-dashed border-[#DCCFBE] bg-[#FFFCF7] px-4 py-3 text-right">
+                <p className="font-serif text-lg italic text-[#24211F]">{form.signatoryName || "Signatory name"}</p>
+                <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#B8893C]">{form.signatoryDesignation || "Authorised Signatory"}</p>
+              </div>
+            </div> : <AssetUpload label="Signature image" type="signature" value={form.signatureAssetUrl} onUpload={(file) => upload.mutate({ type: "signature", file })} />}
           </div></Section>
           <Section title="Display options"><div className="grid gap-3">{displayOptions.map(([key, label]) => <Toggle key={key} label={label} checked={form[key]} onChange={(value) => update(key, value)} />)}</div></Section>
           <Section title="Footer"><Field label="Footer text" value={form.footerText || ""} onChange={(e) => update("footerText", e.target.value)} /></Section>
