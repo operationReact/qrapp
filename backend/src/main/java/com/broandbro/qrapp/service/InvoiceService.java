@@ -36,6 +36,7 @@ public class InvoiceService {
     private final InvoiceRepository invoiceRepository;
     private final OrderItemRepository orderItemRepository;
     private final MenuRepository menuRepository;
+    private final TaxCalculationService taxCalculationService;
     private final InvoiceConfigurationService configurationService;
     private final ImageStorageService imageStorage;
 
@@ -70,7 +71,7 @@ public class InvoiceService {
                             location == null ? null : location.getAddress()))
                     .supplierState(firstNonBlank(configuration.getState(),
                             location == null ? null : location.getStateUt()))
-                    .supplierStateCode(firstNonBlank(configuration.getStateCode(),
+                    .supplierStateCode(firstValidStateCode(configuration.getStateCode(),
                             location == null ? null : location.getSupplierStateCode()))
                     .customerPhone(order.getPhone())
                     .taxableAmount(taxable)
@@ -91,14 +92,16 @@ public class InvoiceService {
         Color primary = color(config.getPrimaryColor(), "#171717");
         Color accent = color(config.getAccentColor(), "#B8893C");
         float brandX = config.getLogoAssetKey() == null || config.getLogoAssetKey().isBlank() ? 42 : 154;
-        drawAsset(document, content, config.getLogoAssetKey(), 42, 758, 92, 34);
-        drawText(content, "BRO & BRO", brandX, 789, 19, true, primary);
-        drawText(content, safeText(config.getTradeName(), ""), brandX, 770, 9, false, Color.DARK_GRAY);
-        drawTextRight(content, continued ? "TAX INVOICE (CONTINUED)"
-                        : safeText(config.getInvoiceTitle(), "TAX INVOICE"),
-                "Invoice No: " + safeText(invoice.getInvoiceNumber(), "-"),
-                "Invoice Date: " + safeText(String.valueOf(invoice.getInvoiceDate()), "-"),
-                553, 789, primary);
+        drawAsset(document, content, config.getLogoAssetKey(), 48, 755, 84, 40);
+        drawText(content, "BRO & BRO", brandX, 789, 20, true, primary);
+        drawText(content, safeText(config.getTradeName(), ""), brandX, 768, 9, false, Color.DARK_GRAY);
+        String title = continued ? "TAX INVOICE (CONTINUED)"
+                : safeText(config.getInvoiceTitle(), "TAX INVOICE");
+        drawText(content, title, 553 - textWidth(title, 14, true), 789, 14, true, primary);
+        String invoiceNumber = "Invoice No: " + safeText(invoice.getInvoiceNumber(), "-");
+        String invoiceDate = "Invoice Date: " + safeText(String.valueOf(invoice.getInvoiceDate()), "-");
+        drawText(content, invoiceNumber, 553 - textWidth(invoiceNumber, 8, false), 766, 8, false, Color.DARK_GRAY);
+        drawText(content, invoiceDate, 553 - textWidth(invoiceDate, 8, false), 751, 8, false, Color.DARK_GRAY);
         drawLine(content, 42, 744, 553, 744, accent, 1.1f);
         return 710;
     }
@@ -142,8 +145,10 @@ public class InvoiceService {
 
     private float drawItemTable(PDPageContentStream content, List<OrderItem> items,
                                 Map<Long, String> itemNames,
+                                Map<Long, MenuItem> menuItems,
                                 BigDecimal fallbackTaxable,
                                 BigDecimal fallbackTotal,
+                                TaxCalculationService.TaxCalculationResult legacyTax,
                                 InvoiceConfiguration config, float y) throws IOException {
         drawSectionLabel(content, "ITEM DETAILS", 42, y);
         float top = y - 16;
@@ -162,13 +167,19 @@ public class InvoiceService {
             BigDecimal taxable = nonZero(item.getTaxableAmount(), items.size() == 1 ? fallbackTaxable : BigDecimal.ZERO);
             BigDecimal customerTotal = nonZero(item.getTotalCustomerPrice(),
                     items.size() == 1 ? fallbackTotal : BigDecimal.ZERO);
+            BigDecimal gstRate = item.getGstRate();
+            if (gstRate == null && legacyTax != null) gstRate = legacyTax.gstRate();
+            if (gstRate == null && menuItems.get(item.getItemId()) != null
+                    && menuItems.get(item.getItemId()).getTaxProfile() != null) {
+                gstRate = menuItems.get(item.getItemId()).getTaxProfile().getGstRate();
+            }
             String rate = item.getQuantity() == 0 ? "0.00"
                     : money(MoneyService.amount(taxable)
                     .divide(BigDecimal.valueOf(item.getQuantity()), 2, MoneyService.ROUNDING));
             drawTableText(content, truncate(description, 32), columns[0] + 7, rowY, 8, false);
             drawTableText(content, Boolean.TRUE.equals(config.getShowHsnSac())
                     ? safeText(item.getHsnSac(), "-") : "-", columns[1] + 7, rowY, 8, false);
-            drawTableText(content, rate(item.getGstRate()), columns[2] + 7, rowY, 8, false);
+            drawTableText(content, rate(gstRate), columns[2] + 7, rowY, 8, false);
             drawTableText(content, String.valueOf(item.getQuantity()), columns[3] + 7, rowY, 8, false);
             drawTableText(content, "INR " + rate, columns[4] + 5, rowY, 8, false);
             drawTableText(content, "INR " + money(customerTotal), columns[5] + 5, rowY, 8, false);
@@ -179,6 +190,7 @@ public class InvoiceService {
 
     private float drawTotals(PDDocument document, PDPageContentStream content, Invoice invoice,
                              Order order, List<OrderItem> items,
+                             TaxCalculationService.TaxCalculationResult legacyTax,
                              InvoiceConfiguration config, float y) throws IOException {
         BigDecimal taxableAmount = nonZero(invoice.getTaxableAmount(),
                 nonZero(sum(items, OrderItem::getTaxableAmount),
@@ -190,8 +202,15 @@ public class InvoiceService {
         BigDecimal sgstAmount = nonZero(invoice.getSgstAmount(),
                 sum(items, OrderItem::getSgstAmount));
         if (cgstAmount.compareTo(BigDecimal.ZERO) == 0 && sgstAmount.compareTo(BigDecimal.ZERO) == 0) {
-            cgstAmount = intraStateTaxComponent(totalTax, invoice.getIgstAmount());
-            sgstAmount = totalTax.subtract(cgstAmount);
+            if (legacyTax != null) {
+                totalTax = legacyTax.totalTax();
+                taxableAmount = legacyTax.taxableAmount();
+                cgstAmount = legacyTax.cgstAmount();
+                sgstAmount = legacyTax.sgstAmount();
+            } else {
+                cgstAmount = intraStateTaxComponent(totalTax, invoice.getIgstAmount());
+                sgstAmount = totalTax.subtract(cgstAmount);
+            }
         }
         float boxTop = y;
         drawSectionLabel(content, "PAYMENT SUMMARY", 42, boxTop);
@@ -260,13 +279,6 @@ public class InvoiceService {
         content.newLineAtOffset(x, y);
         content.showText(clean(text));
         content.endText();
-    }
-
-    private static void drawTextRight(PDPageContentStream content, String title, String number,
-                                      String date, float right, float y, Color color) throws IOException {
-        drawText(content, title, right - textWidth(title, 13, true), y, 13, true, color);
-        drawText(content, number, right - textWidth(number, 8, false), y - 22, 8, false, Color.DARK_GRAY);
-        drawText(content, date, right - textWidth(date, 8, false), y - 37, 8, false, Color.DARK_GRAY);
     }
 
     private static float textWidth(String text, float size, boolean bold) {
@@ -347,9 +359,14 @@ public class InvoiceService {
             Map<Long, String> itemNames = menuRepository == null ? Map.of() : menuRepository.findAllById(
                     items.stream().map(OrderItem::getItemId).distinct().toList()).stream()
                     .collect(Collectors.toMap(MenuItem::getId, MenuItem::getName, (first, ignored) -> first));
+            Map<Long, MenuItem> menuItems = menuRepository == null ? Map.of() : menuRepository.findAllById(
+                    items.stream().map(OrderItem::getItemId).distinct().toList()).stream()
+                    .collect(Collectors.toMap(MenuItem::getId, item -> item, (first, ignored) -> first));
+            TaxCalculationService.TaxCalculationResult legacyTax =
+                    legacyTax(invoice, order, items, menuItems);
             BigDecimal fallbackTaxable = nonZero(invoice.getTaxableAmount(), fallbackTaxableAmount(order));
-            y = drawItemTable(content, items, itemNames, fallbackTaxable,
-                    MoneyService.amount(invoice.getGrandTotal()), config, y);
+            y = drawItemTable(content, items, itemNames, menuItems, fallbackTaxable,
+                    MoneyService.amount(invoice.getGrandTotal()), legacyTax, config, y);
             if (y < 330) {
                 content.close();
                 page = new PDPage(PDRectangle.A4);
@@ -357,7 +374,7 @@ public class InvoiceService {
                 content = new PDPageContentStream(document, page);
                 y = drawInvoiceHeader(document, content, invoice, config, true) - 28;
             }
-            y = drawTotals(document, content, invoice, order, items, config, y);
+            y = drawTotals(document, content, invoice, order, items, legacyTax, config, y);
             drawFooterAndSignature(document, content, config, y);
             content.close();
             document.save(output);
@@ -398,6 +415,34 @@ public class InvoiceService {
         return MoneyService.amount(order.getSubtotal().subtract(discount));
     }
 
+    private TaxCalculationService.TaxCalculationResult legacyTax(
+            Invoice invoice, Order order, List<OrderItem> items, Map<Long, MenuItem> menuItems) {
+        if (taxCalculationService == null
+                || nonZero(invoice.getTotalTax(), order.getTax()).compareTo(BigDecimal.ZERO) > 0
+                || items.isEmpty()) {
+            return null;
+        }
+        MenuItem menuItem = menuItems.get(items.get(0).getItemId());
+        if (menuItem == null || menuItem.getTaxProfile() == null
+                || !Boolean.TRUE.equals(menuItem.getTaxProfile().getActive())
+                || menuItem.getTaxProfile().getGstRate() == null
+                || menuItem.getTaxProfile().getGstRate().compareTo(BigDecimal.ZERO) <= 0) {
+            return null;
+        }
+        boolean sameProfile = items.stream()
+                .map(item -> menuItems.get(item.getItemId()))
+                .allMatch(item -> item != null && item.getTaxProfile() != null
+                        && java.util.Objects.equals(item.getTaxProfile().getTaxType(),
+                        menuItem.getTaxProfile().getTaxType())
+                        && item.getTaxProfile().getGstRate().compareTo(menuItem.getTaxProfile().getGstRate()) == 0);
+        if (!sameProfile) return null;
+        BigDecimal customerTotal = MoneyService.amount(invoice.getGrandTotal());
+        BigDecimal divisor = BigDecimal.ONE.add(menuItem.getTaxProfile().getGstRate()
+                .divide(BigDecimal.valueOf(100), 8, MoneyService.ROUNDING));
+        BigDecimal taxable = customerTotal.divide(divisor, MoneyService.SCALE, MoneyService.ROUNDING);
+        return taxCalculationService.calculate(taxable, menuItem.getTaxProfile());
+    }
+
     private static BigDecimal intraStateTaxComponent(BigDecimal totalTax, BigDecimal igst) {
         if (totalTax == null || totalTax.compareTo(BigDecimal.ZERO) <= 0
                 || igst != null && igst.compareTo(BigDecimal.ZERO) > 0) {
@@ -428,6 +473,17 @@ public class InvoiceService {
 
     private static String firstNonBlank(String value, String fallback) {
         return safeText(value, fallback);
+    }
+
+    private static String firstValidStateCode(String preferred, String fallback) {
+        String preferredCode = validStateCode(preferred);
+        return preferredCode != null ? preferredCode : validStateCode(fallback);
+    }
+
+    private static String validStateCode(String value) {
+        if (value == null || value.isBlank()) return null;
+        String normalized = value.trim();
+        return normalized.matches("\\d{1,2}") ? normalized : null;
     }
 
     private static BigDecimal sum(List<OrderItem> items, java.util.function.Function<OrderItem, BigDecimal> getter) {

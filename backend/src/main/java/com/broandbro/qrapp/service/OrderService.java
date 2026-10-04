@@ -91,6 +91,7 @@ public class OrderService {
     private final LocationAccessService locationAccessService;
     private final com.broandbro.qrapp.repository.LocationRepository locationRepository;
     private final InvoiceService invoiceService;
+    private final TaxCalculationService taxCalculationService;
 
     /**
      * Creates a new order with a human-readable, location-specific order number.
@@ -862,31 +863,17 @@ public class OrderService {
         response.setAdminNote(order.getAdminNote());
         response.setAssignedAdmin(order.getAssignedAdmin());
         response.setLive(isLive(order));
+        TaxSummary taxSummary = taxSummary(order, orderItems, menuById);
         response.setBaseAmount(MoneyService.amount(orderItems.stream()
                 .map(OrderItem::getGrossBaseAmount)
                 .filter(Objects::nonNull)
                 .reduce(BigDecimal.ZERO, BigDecimal::add)));
         response.setDiscountAmount(MoneyService.amount(order.getCouponDiscount()));
-        response.setTaxableAmount(MoneyService.amount(orderItems.stream()
-                .map(OrderItem::getTaxableAmount)
-                .filter(Objects::nonNull)
-                .reduce(BigDecimal.ZERO, BigDecimal::add)));
-        response.setCgstAmount(MoneyService.amount(orderItems.stream()
-                .map(OrderItem::getCgstAmount)
-                .filter(Objects::nonNull)
-                .reduce(BigDecimal.ZERO, BigDecimal::add)));
-        response.setSgstAmount(MoneyService.amount(orderItems.stream()
-                .map(OrderItem::getSgstAmount)
-                .filter(Objects::nonNull)
-                .reduce(BigDecimal.ZERO, BigDecimal::add)));
-        response.setIgstAmount(MoneyService.amount(orderItems.stream()
-                .map(OrderItem::getIgstAmount)
-                .filter(Objects::nonNull)
-                .reduce(BigDecimal.ZERO, BigDecimal::add)));
-        response.setTotalTax(MoneyService.amount(orderItems.stream()
-                .map(OrderItem::getTotalTax)
-                .filter(Objects::nonNull)
-                .reduce(BigDecimal.ZERO, BigDecimal::add)));
+        response.setTaxableAmount(taxSummary.taxableAmount());
+        response.setCgstAmount(taxSummary.cgstAmount());
+        response.setSgstAmount(taxSummary.sgstAmount());
+        response.setIgstAmount(taxSummary.igstAmount());
+        response.setTotalTax(taxSummary.totalTax());
         response.setCustomerPaid(MoneyService.amount(order.getGrandTotal()));
         response.setInvoiceAvailable(order.getId() != null && order.getGrandTotal() != null);
 
@@ -948,6 +935,51 @@ public class OrderService {
         response.setHistory(history);
         return response;
     }
+
+    private TaxSummary taxSummary(Order order, List<OrderItem> items, Map<Long, MenuItem> menuById) {
+        TaxSummary stored = new TaxSummary(
+                sumTax(items, OrderItem::getTaxableAmount),
+                sumTax(items, OrderItem::getCgstAmount),
+                sumTax(items, OrderItem::getSgstAmount),
+                sumTax(items, OrderItem::getIgstAmount),
+                sumTax(items, OrderItem::getTotalTax));
+        if (stored.totalTax().compareTo(BigDecimal.ZERO) > 0
+                || taxCalculationService == null || items.isEmpty()) return stored;
+
+        List<TaxCalculationService.TaxCalculationResult> calculated = new ArrayList<>();
+        for (OrderItem item : items) {
+            MenuItem menuItem = menuById.get(item.getItemId());
+            if (menuItem == null || menuItem.getTaxProfile() == null
+                    || !Boolean.TRUE.equals(menuItem.getTaxProfile().getActive())
+                    || menuItem.getTaxProfile().getGstRate() == null
+                    || menuItem.getTaxProfile().getGstRate().compareTo(BigDecimal.ZERO) <= 0) {
+                return stored;
+            }
+            BigDecimal customerAmount = item.getTotalCustomerPrice();
+            if (customerAmount == null || customerAmount.compareTo(BigDecimal.ZERO) <= 0) {
+                customerAmount = item.getLineTotal();
+            }
+            if (customerAmount == null || customerAmount.compareTo(BigDecimal.ZERO) <= 0) return stored;
+            BigDecimal divisor = BigDecimal.ONE.add(menuItem.getTaxProfile().getGstRate()
+                    .divide(BigDecimal.valueOf(100), 8, MoneyService.ROUNDING));
+            BigDecimal taxable = customerAmount.divide(divisor, MoneyService.SCALE, MoneyService.ROUNDING);
+            calculated.add(taxCalculationService.calculate(taxable, menuItem.getTaxProfile()));
+        }
+        return new TaxSummary(
+                sumTax(calculated, TaxCalculationService.TaxCalculationResult::taxableAmount),
+                sumTax(calculated, TaxCalculationService.TaxCalculationResult::cgstAmount),
+                sumTax(calculated, TaxCalculationService.TaxCalculationResult::sgstAmount),
+                sumTax(calculated, TaxCalculationService.TaxCalculationResult::igstAmount),
+                sumTax(calculated, TaxCalculationService.TaxCalculationResult::totalTax));
+    }
+
+    private static <T> BigDecimal sumTax(List<T> values, java.util.function.Function<T, BigDecimal> getter) {
+        return MoneyService.amount(values.stream().map(getter).filter(Objects::nonNull)
+                .reduce(BigDecimal.ZERO, BigDecimal::add));
+    }
+
+    private record TaxSummary(BigDecimal taxableAmount, BigDecimal cgstAmount,
+                              BigDecimal sgstAmount, BigDecimal igstAmount, BigDecimal totalTax) {}
 
     // ── Pre-order methods ────────────────────────────────────────────────────
 

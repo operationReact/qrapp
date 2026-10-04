@@ -14,6 +14,7 @@ import com.broandbro.qrapp.repository.MenuItemSellingPriceHistoryRepository;
 import com.broandbro.qrapp.repository.MenuRepository;
 import com.broandbro.qrapp.repository.VendorRepository;
 import com.broandbro.qrapp.repository.VendorMenuItemCostHistoryRepository;
+import com.broandbro.qrapp.repository.TaxProfileRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -54,6 +55,7 @@ public class PricingService {
     private final MenuRepository    menuRepository;
     private final VendorRepository    vendorRepository;
     private final TaxCalculationService taxCalculationService;
+    private final TaxProfileRepository taxProfileRepository;
 
     /**
      * Returns a map of menuItemId → current selling price for all supplied IDs.
@@ -151,15 +153,28 @@ public class PricingService {
                 : null;
         BigDecimal profit    = (costPrice != null) ? sellingPrice.subtract(costPrice) : null;
         BigDecimal lineTotal = sellingPrice.multiply(BigDecimal.valueOf(quantity));
+        TaxProfile taxProfile = effectiveTaxProfile(menuItem);
         TaxCalculationService.TaxCalculationResult tax = taxCalculationService.calculate(
-                lineTotal, menuItem.getTaxProfile());
+                lineTotal, taxProfile);
         return new OrderItemSnapshot(
                 sellingPrice, costPrice, profit, lineTotal, tax,
-                menuItem.getTaxProfile() != null ? menuItem.getTaxProfile().getId() : null,
+                taxProfile != null ? taxProfile.getId() : null,
                 menuItem.getHsnSac() != null
                         ? menuItem.getHsnSac()
-                        : menuItem.getTaxProfile() != null ? menuItem.getTaxProfile().getHsnSac() : null
+                        : taxProfile != null ? taxProfile.getHsnSac() : null
         );
+    }
+
+    private TaxProfile effectiveTaxProfile(MenuItem menuItem) {
+        TaxProfile configured = menuItem.getTaxProfile();
+        if (configured != null && Boolean.TRUE.equals(configured.getActive())
+                && configured.getGstRate() != null
+                && configured.getGstRate().compareTo(BigDecimal.ZERO) > 0) {
+            return configured;
+        }
+        return taxProfileRepository == null
+                ? configured
+                : taxProfileRepository.findByCode("GST_5_INTRA").orElse(configured);
     }
 
     /** Immutable value object returned by {@link #createSnapshot}. */

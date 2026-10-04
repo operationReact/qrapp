@@ -22,6 +22,12 @@ function SuccessPage() {
   const orderId = location.state?.orderId;
   const awardedCoupons = location.state?.awardedCoupons ?? [];
   const isWallet = paymentMethod === "WALLET";
+  const isPayAtStall = paymentMethod === "PAY_AT_STALL";
+  const paymentLabel = isWallet
+    ? "Wallet"
+    : isPayAtStall
+      ? "Pay at stall"
+      : "Razorpay";
 
   return (
     <div className="page-shell bg-background flex w-full min-h-screen justify-center py-6 sm:px-4">
@@ -54,15 +60,17 @@ function SuccessPage() {
                   )}
                 </span>
                 <span className="text-xs font-medium text-green-700">
-                  Paid via
+                  {isPayAtStall ? "Payment method" : "Paid via"}
                 </span>
               </div>
               <div className="mt-2 text-base font-semibold text-green-800">
-                {isWallet ? "Wallet" : "Razorpay"}
+                {paymentLabel}
               </div>
               <div className="absolute -right-2 -bottom-2 opacity-10">
                 {isWallet ? (
                   <WalletIcon className="size-16" />
+                ) : isPayAtStall ? (
+                  <CreditCardIcon className="size-16" />
                 ) : (
                   <img src="/razorpay.svg" alt="" className="size-16" />
                 )}

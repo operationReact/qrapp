@@ -97,6 +97,10 @@ public class InvoiceConfigurationService {
                 || (!config.getSignatureType().equals("TEXT") && !config.getSignatureType().equals("UPLOADED"))) {
             throw new IllegalArgumentException("Signature type must be TEXT or UPLOADED");
         }
+        if (config.getStateCode() != null && !config.getStateCode().isBlank()
+                && !config.getStateCode().trim().matches("\\d{1,2}")) {
+            throw new IllegalArgumentException("State code must contain one or two digits");
+        }
         validateColor(config.getPrimaryColor());
         validateColor(config.getAccentColor());
     }
