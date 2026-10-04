@@ -18,7 +18,7 @@ sudo tee /etc/nginx/sites-available/backend-proxy > /dev/null << EOF
 server {
     listen 80;
     server_name $DOMAIN;
-    client_max_body_size 10m;
+    client_max_body_size 25m;
 
     location / {
         proxy_pass http://localhost:$BACKEND_PORT;

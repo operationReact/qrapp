@@ -43,8 +43,8 @@ spring:
     lock-retry-count: ${SPRING_FLYWAY_LOCK_RETRY_COUNT:180}
   servlet:
     multipart:
-      max-file-size: 10MB
-      max-request-size: 12MB
+      max-file-size: 25MB
+      max-request-size: 30MB
   jpa:
     hibernate:
       ddl-auto: validate

@@ -130,7 +130,7 @@ cat > "/etc/nginx/conf.d/broandbro.conf" << 'NGINX'
 server {
     listen 80 default_server;
     server_name _;
-    client_max_body_size 10m;
+    client_max_body_size 25m;
 
     # Let's Encrypt ACME challenge – must be reachable over HTTP
     location /.well-known/acme-challenge/ {
