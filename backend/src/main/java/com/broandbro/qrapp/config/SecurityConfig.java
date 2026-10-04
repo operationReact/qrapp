@@ -116,6 +116,11 @@ public class SecurityConfig {
 
                         .requestMatchers("/uploads/**", "/api/public/location-images/**").permitAll()
 
+                        // The published customer gallery is intentionally public. Uploads,
+                        // customer-owned data, and moderation remain protected by their
+                        // controller mappings below.
+                        .requestMatchers(HttpMethod.GET, "/api/hall-of-happiness").permitAll()
+
                         // Swagger / OpenAPI
                         .requestMatchers(
                                 "/swagger-ui.html",
