@@ -5,6 +5,9 @@ import com.broandbro.qrapp.service.InvoiceConfigurationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.http.CacheControl;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -34,5 +37,15 @@ public class InvoiceConfigurationController {
     public InvoiceConfiguration upload(@PathVariable String assetType,
                                        @RequestPart("file") MultipartFile file) {
         return service.upload(assetType, file);
+    }
+
+    @GetMapping("/assets/{assetType}")
+    public ResponseEntity<ByteArrayResource> asset(@PathVariable String assetType) {
+        return service.readAsset(assetType)
+                .map(content -> ResponseEntity.ok()
+                        .contentType(MediaType.parseMediaType(content.contentType()))
+                        .cacheControl(CacheControl.noCache())
+                        .body(new ByteArrayResource(content.bytes())))
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 }

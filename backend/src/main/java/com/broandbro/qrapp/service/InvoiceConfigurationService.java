@@ -10,6 +10,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.Locale;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -65,6 +66,21 @@ public class InvoiceConfigurationService {
         } catch (IOException ex) {
             throw new IllegalArgumentException("Could not read invoice asset", ex);
         }
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<ImageStorageService.StoredContent> readAsset(String assetType) {
+        InvoiceConfiguration config = findGlobal();
+        String normalizedAssetType = assetType == null ? "" : assetType.toLowerCase(Locale.ROOT);
+        String key = switch (normalizedAssetType) {
+            case "logo" -> config.getLogoAssetKey();
+            case "signature" -> config.getSignatureAssetKey();
+            case "payment-qr" -> config.getPaymentQrAssetKey();
+            default -> throw new IllegalArgumentException("Unsupported invoice asset type");
+        };
+        return key == null || key.isBlank()
+                ? Optional.empty()
+                : Optional.of(storage.readImage(key));
     }
 
     private void validate(InvoiceConfiguration config) {
