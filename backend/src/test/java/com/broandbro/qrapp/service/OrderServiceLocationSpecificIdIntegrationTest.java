@@ -114,7 +114,7 @@ class OrderServiceLocationSpecificIdIntegrationTest {
         // Setup: Create location without code
         Location location = new Location();
         location.setName("No Code Location");
-        location.setCode(null);  // No code
+        location.setCode("");  // No code
         location.setStateUt("Telangana");
         location.setActive(true);
         location.setCreatedAt(Instant.now());

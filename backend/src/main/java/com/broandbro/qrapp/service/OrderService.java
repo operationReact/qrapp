@@ -90,6 +90,7 @@ public class OrderService {
     private final ComboCampaignService comboCampaignService;
     private final LocationAccessService locationAccessService;
     private final com.broandbro.qrapp.repository.LocationRepository locationRepository;
+    private final InvoiceService invoiceService;
 
     /**
      * Creates a new order with a human-readable, location-specific order number.
@@ -175,7 +176,7 @@ public class OrderService {
             Long vendorId = menuItem.getVendor() != null ? menuItem.getVendor().getId() : null;
             PricingService.OrderItemSnapshot snap = pricingService.createSnapshot(i.getItemId(), vendorId, i.getQuantity());
             itemSnaps.add(new Object[]{i, snap});
-            subtotal = subtotal.add(snap.lineTotal() != null ? snap.lineTotal() : java.math.BigDecimal.ZERO);
+            subtotal = subtotal.add(snap.lineTotal());
         }
 
         // ── Validate all items come from the same location ──────────────────────
@@ -273,10 +274,21 @@ public class OrderService {
                 log.warn("BYOC evaluation failed (non-fatal): {}", ex.getMessage());
             }
         }
-        java.math.BigDecimal tax = java.math.BigDecimal.ZERO;
-        order.setSubtotal(subtotal);
-        order.setTax(tax);
-        order.setGrandTotal(subtotal.subtract(couponDiscount).add(tax));
+        List<TaxCalculationService.TaxCalculationResult> adjustedTaxes =
+                calculateDiscountedTaxes(itemSnaps, couponDiscount);
+        java.math.BigDecimal tax = itemSnaps.stream()
+                .map(pair -> adjustedTaxes.get(itemSnaps.indexOf(pair)).totalTax())
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        for (int index = 0; index < itemSnaps.size(); index++) {
+            Object[] pair = itemSnaps.get(index);
+            itemSnaps.set(index, new Object[]{pair[0], pair[1], adjustedTaxes.get(index)});
+        }
+        BigDecimal baseSubtotal = itemSnaps.stream()
+                .map(pair -> ((PricingService.OrderItemSnapshot) pair[1]).lineTotal())
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        order.setSubtotal(baseSubtotal);
+        order.setTax(MoneyService.amount(tax));
+        order.setGrandTotal(MoneyService.amount(baseSubtotal.subtract(couponDiscount).add(tax)));
 
         // ── Step 3: single save — order persisted with correct totals + gets ID ─
         log.info("[createOrder] DEBUG: Before orderRepo.save() - orderNumber={}, locationCode={}, locationId={}", 
@@ -309,6 +321,8 @@ public class OrderService {
         for (Object[] pair : itemSnaps) {
             CreateOrderRequest.Item i   = (CreateOrderRequest.Item) pair[0];
             PricingService.OrderItemSnapshot snap = (PricingService.OrderItemSnapshot) pair[1];
+            TaxCalculationService.TaxCalculationResult adjustedTax =
+                    (TaxCalculationService.TaxCalculationResult) pair[2];
             OrderItem oi = new OrderItem();
             oi.setOrderId(order.getId());
             oi.setItemId(i.getItemId());
@@ -316,11 +330,57 @@ public class OrderService {
             oi.setSellingPriceSnapshot(snap.sellingPriceSnapshot());
             oi.setCostPriceSnapshot(snap.costPriceSnapshot());
             oi.setProfitSnapshot(snap.profitSnapshot());
-            oi.setLineTotal(snap.lineTotal());
+            oi.setLineTotal(adjustedTax.totalAmount());
+            applyTaxSnapshot(oi, snap, adjustedTax,
+                    snap.lineTotal().subtract(adjustedTax.taxableAmount()));
             orderItemRepo.save(oi);
         }
+        invoiceService.createIfAbsent(order);
 
         return new CreateOrderResult(order, awardedCoupons);
+    }
+
+    private void applyTaxSnapshot(OrderItem item, PricingService.OrderItemSnapshot snapshot,
+                                  TaxCalculationService.TaxCalculationResult tax,
+                                  BigDecimal discountAmount) {
+        item.setUnitBasePrice(snapshot.sellingPriceSnapshot());
+        item.setGrossBaseAmount(snapshot.lineTotal());
+        item.setDiscountAmount(MoneyService.amount(discountAmount));
+        item.setTaxableAmount(tax.taxableAmount());
+        item.setGstRate(tax.gstRate());
+        item.setCgstRate(tax.cgstRate());
+        item.setCgstAmount(tax.cgstAmount());
+        item.setSgstRate(tax.sgstRate());
+        item.setSgstAmount(tax.sgstAmount());
+        item.setIgstRate(tax.igstRate());
+        item.setIgstAmount(tax.igstAmount());
+        item.setTotalTax(tax.totalTax());
+        item.setUnitCustomerPrice(MoneyService.amount(tax.totalAmount()
+                .divide(BigDecimal.valueOf(Math.max(1, item.getQuantity())), 8, MoneyService.ROUNDING)));
+        item.setTotalCustomerPrice(tax.totalAmount());
+        item.setTaxProfileId(snapshot.taxProfileId());
+        item.setHsnSac(snapshot.hsnSac());
+    }
+
+    private List<TaxCalculationService.TaxCalculationResult> calculateDiscountedTaxes(
+            List<Object[]> itemSnaps, BigDecimal discount) {
+        BigDecimal totalBase = itemSnaps.stream()
+                .map(pair -> ((PricingService.OrderItemSnapshot) pair[1]).lineTotal())
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal remainingDiscount = MoneyService.amount(discount);
+        List<TaxCalculationService.TaxCalculationResult> results = new ArrayList<>();
+        for (int index = 0; index < itemSnaps.size(); index++) {
+            PricingService.OrderItemSnapshot snapshot =
+                    (PricingService.OrderItemSnapshot) itemSnaps.get(index)[1];
+            BigDecimal share = index == itemSnaps.size() - 1 || totalBase.signum() == 0
+                    ? remainingDiscount
+                    : MoneyService.amount(discount.multiply(snapshot.lineTotal())
+                    .divide(totalBase, 8, MoneyService.ROUNDING));
+            remainingDiscount = remainingDiscount.subtract(share);
+            BigDecimal discountedBase = snapshot.lineTotal().subtract(share).max(BigDecimal.ZERO);
+            results.add(pricingService.calculateDiscountedTax(snapshot, discountedBase));
+        }
+        return results;
     }
 
     /** Wraps the created order together with any milestone coupons awarded during this order. */
@@ -375,6 +435,7 @@ public class OrderService {
             summary.setCreatedAt(order.getCreatedAt());
             summary.setScheduledAt(order.getScheduledAt());
             summary.setPreOrder(order.isPreOrder());
+            summary.setInvoiceAvailable(order.getId() != null && order.getGrandTotal() != null);
 
             double total = 0;
             List<UserOrderSummaryResponse.ItemSummary> itemSummaries = new ArrayList<>();
@@ -386,7 +447,9 @@ public class OrderService {
                 if (menuItem != null) {
                     itemSummary.setName(menuItem.getName());
                     // Use immutable snapshot price; fall back to current price for legacy rows
-                    double unitPrice = orderItem.getSellingPriceSnapshot() != null
+                    double unitPrice = orderItem.getUnitCustomerPrice() != null
+                            ? orderItem.getUnitCustomerPrice().doubleValue()
+                            : orderItem.getSellingPriceSnapshot() != null
                             ? orderItem.getSellingPriceSnapshot().doubleValue()
                             : pricingService.getCurrentSellingPrice(menuItem.getId()).doubleValue();
                     itemSummary.setPrice(unitPrice);
@@ -398,7 +461,7 @@ public class OrderService {
             }
 
             summary.setItems(itemSummaries);
-            summary.setTotal(total);
+            summary.setTotal(order.getGrandTotal() != null ? order.getGrandTotal().doubleValue() : total);
             response.add(summary);
         }
 
@@ -799,6 +862,33 @@ public class OrderService {
         response.setAdminNote(order.getAdminNote());
         response.setAssignedAdmin(order.getAssignedAdmin());
         response.setLive(isLive(order));
+        response.setBaseAmount(MoneyService.amount(orderItems.stream()
+                .map(OrderItem::getGrossBaseAmount)
+                .filter(Objects::nonNull)
+                .reduce(BigDecimal.ZERO, BigDecimal::add)));
+        response.setDiscountAmount(MoneyService.amount(order.getCouponDiscount()));
+        response.setTaxableAmount(MoneyService.amount(orderItems.stream()
+                .map(OrderItem::getTaxableAmount)
+                .filter(Objects::nonNull)
+                .reduce(BigDecimal.ZERO, BigDecimal::add)));
+        response.setCgstAmount(MoneyService.amount(orderItems.stream()
+                .map(OrderItem::getCgstAmount)
+                .filter(Objects::nonNull)
+                .reduce(BigDecimal.ZERO, BigDecimal::add)));
+        response.setSgstAmount(MoneyService.amount(orderItems.stream()
+                .map(OrderItem::getSgstAmount)
+                .filter(Objects::nonNull)
+                .reduce(BigDecimal.ZERO, BigDecimal::add)));
+        response.setIgstAmount(MoneyService.amount(orderItems.stream()
+                .map(OrderItem::getIgstAmount)
+                .filter(Objects::nonNull)
+                .reduce(BigDecimal.ZERO, BigDecimal::add)));
+        response.setTotalTax(MoneyService.amount(orderItems.stream()
+                .map(OrderItem::getTotalTax)
+                .filter(Objects::nonNull)
+                .reduce(BigDecimal.ZERO, BigDecimal::add)));
+        response.setCustomerPaid(MoneyService.amount(order.getGrandTotal()));
+        response.setInvoiceAvailable(order.getId() != null && order.getGrandTotal() != null);
 
         int totalItems = 0;
         double total = 0;
@@ -811,7 +901,9 @@ public class OrderService {
             itemSummary.setQuantity(orderItem.getQuantity());
             if (menuItem != null) {
                 itemSummary.setName(menuItem.getName());
-                double unitPrice = orderItem.getSellingPriceSnapshot() != null
+                double unitPrice = orderItem.getUnitCustomerPrice() != null
+                        ? orderItem.getUnitCustomerPrice().doubleValue()
+                        : orderItem.getSellingPriceSnapshot() != null
                         ? orderItem.getSellingPriceSnapshot().doubleValue()
                         : pricingService.getCurrentSellingPrice(menuItem.getId()).doubleValue();
                 itemSummary.setPrice(unitPrice);
@@ -819,7 +911,9 @@ public class OrderService {
                 itemSummary.setIsVeg(menuItem.getIsVeg());
                 itemSummary.setCategory(menuItem.getCategory() != null ? menuItem.getCategory().getName() : null);
                 itemSummary.setCategoryImageUrl(menuItem.getCategory() != null ? menuItem.getCategory().getImageUrl() : null);
-                double subtotal = unitPrice * orderItem.getQuantity();
+                double subtotal = orderItem.getTotalCustomerPrice() != null
+                        ? orderItem.getTotalCustomerPrice().doubleValue()
+                        : unitPrice * orderItem.getQuantity();
                 itemSummary.setSubtotal(subtotal);
                 total += subtotal;
             }
@@ -967,7 +1061,7 @@ public class OrderService {
             }
 
             itemSnaps.add(new Object[]{i, snap});
-            subtotal = subtotal.add(snap.lineTotal() != null ? snap.lineTotal() : java.math.BigDecimal.ZERO);
+            subtotal = subtotal.add(snap.lineTotal());
         }
 
         // ── Validate location and extract location code ────────────────────────────
@@ -1009,9 +1103,21 @@ public class OrderService {
             }
         }
 
-        order.setSubtotal(subtotal);
-        order.setTax(java.math.BigDecimal.ZERO);
-        order.setGrandTotal(subtotal.subtract(couponDiscount));
+        List<TaxCalculationService.TaxCalculationResult> adjustedTaxes =
+                calculateDiscountedTaxes(itemSnaps, couponDiscount);
+        for (int index = 0; index < itemSnaps.size(); index++) {
+            Object[] pair = itemSnaps.get(index);
+            itemSnaps.set(index, new Object[]{pair[0], pair[1], adjustedTaxes.get(index)});
+        }
+        BigDecimal baseSubtotal = itemSnaps.stream()
+                .map(pair -> ((PricingService.OrderItemSnapshot) pair[1]).lineTotal())
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        order.setSubtotal(baseSubtotal);
+        java.math.BigDecimal tax = itemSnaps.stream()
+                .map(pair -> ((TaxCalculationService.TaxCalculationResult) pair[2]).totalTax())
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        order.setTax(tax);
+        order.setGrandTotal(MoneyService.amount(baseSubtotal.subtract(couponDiscount).add(tax)));
         log.info("[createPreOrder] Totals — subtotal={} couponDiscount={} grandTotal={}",
                 subtotal, couponDiscount, order.getGrandTotal());
 
@@ -1024,6 +1130,8 @@ public class OrderService {
         for (Object[] pair : itemSnaps) {
             CreateOrderRequest.Item i = (CreateOrderRequest.Item) pair[0];
             PricingService.OrderItemSnapshot snap = (PricingService.OrderItemSnapshot) pair[1];
+            TaxCalculationService.TaxCalculationResult adjustedTax =
+                    (TaxCalculationService.TaxCalculationResult) pair[2];
             OrderItem oi = new OrderItem();
             oi.setOrderId(order.getId());
             oi.setItemId(i.getItemId());
@@ -1031,11 +1139,14 @@ public class OrderService {
             oi.setSellingPriceSnapshot(snap.sellingPriceSnapshot());
             oi.setCostPriceSnapshot(snap.costPriceSnapshot());
             oi.setProfitSnapshot(snap.profitSnapshot());
-            oi.setLineTotal(snap.lineTotal());
+            oi.setLineTotal(adjustedTax.totalAmount());
+            applyTaxSnapshot(oi, snap, adjustedTax,
+                    snap.lineTotal().subtract(adjustedTax.taxableAmount()));
             orderItemRepo.save(oi);
             log.info("[createPreOrder] OrderItem saved — orderId={} itemId={} qty={} lineTotal={}",
                     order.getId(), i.getItemId(), i.getQuantity(), snap.lineTotal());
         }
+        invoiceService.createIfAbsent(order);
 
         log.info("[createPreOrder] Completed — orderId={} orderNumber={}", order.getId(), order.getOrderNumber());
         return new CreateOrderResult(order, java.util.List.of());

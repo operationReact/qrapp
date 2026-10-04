@@ -69,7 +69,6 @@ class LocationSpecificOrderIdGenerationTest {
                 .thenAnswer(inv -> {
                     DailyOrderSequence arg = inv.getArgument(0);
                     arg.setId(1L);
-                    arg.setLastSequence(arg.getLastSequence() + 1);
                     return arg;
                 });
 
@@ -101,7 +100,6 @@ class LocationSpecificOrderIdGenerationTest {
                 .thenAnswer(inv -> {
                     DailyOrderSequence arg = inv.getArgument(0);
                     arg.setId(1L);
-                    arg.setLastSequence(arg.getLastSequence() + 1);
                     return arg;
                 });
 
@@ -131,7 +129,6 @@ class LocationSpecificOrderIdGenerationTest {
                 .thenAnswer(inv -> {
                     DailyOrderSequence arg = inv.getArgument(0);
                     arg.setId(100L);
-                    arg.setLastSequence(arg.getLastSequence() + 1);
                     return arg;
                 });
 
@@ -154,7 +151,6 @@ class LocationSpecificOrderIdGenerationTest {
                 .thenAnswer(inv -> {
                     DailyOrderSequence arg = inv.getArgument(0);
                     arg.setId(100L);
-                    arg.setLastSequence(arg.getLastSequence() + 1);
                     return arg;
                 });
 
@@ -190,7 +186,6 @@ class LocationSpecificOrderIdGenerationTest {
                 .thenAnswer(inv -> {
                     DailyOrderSequence arg = inv.getArgument(0);
                     arg.setId(1L);
-                    arg.setLastSequence(arg.getLastSequence() + 1);
                     return arg;
                 });
 
@@ -221,7 +216,6 @@ class LocationSpecificOrderIdGenerationTest {
                 .thenAnswer(inv -> {
                     DailyOrderSequence arg = inv.getArgument(0);
                     arg.setId(arg.getLocationCode() == null ? 100L : 1L);
-                    arg.setLastSequence(arg.getLastSequence() + 1);
                     return arg;
                 });
 

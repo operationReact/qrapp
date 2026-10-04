@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
@@ -17,8 +18,10 @@ import {
   CheckCircleIcon,
   CookingPotIcon,
   ImageIcon,
+  DownloadSimpleIcon,
 } from "@phosphor-icons/react";
 import { baseURL } from "@/services";
+import { downloadInvoice } from "@/services/order-service";
 import {
   formatOrderDate,
   formatOrderTime,
@@ -276,8 +279,30 @@ export function OrderCardSkeleton() {
 }
 
 export default function OrderCard({ order }) {
+  const [downloadingInvoice, setDownloadingInvoice] = useState(false);
   const status = normalizeOrderStatus(order.status);
   const itemCount = Array.isArray(order.items) ? order.items.length : 0;
+  const canDownloadInvoice = order.invoiceAvailable && status === "COMPLETED";
+
+  const handleInvoiceDownload = async () => {
+    if (downloadingInvoice) return;
+    setDownloadingInvoice(true);
+    try {
+      const blob = await downloadInvoice(order.id);
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = `BroAndBro-Invoice-${order.orderNumber || order.id}.pdf`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(url);
+    } catch {
+      toast.error("Unable to download the invoice. Please try again.");
+    } finally {
+      setDownloadingInvoice(false);
+    }
+  };
 
   return (
     <article className="box-border w-full min-w-0 max-w-full rounded-2xl border border-border bg-card p-3.5 shadow-sm transition-shadow hover:shadow-md sm:p-4">
@@ -326,7 +351,21 @@ export default function OrderCard({ order }) {
 
       <div className="mt-4 flex min-w-0 items-center justify-between gap-3 border-t border-border pt-3">
         <PaymentStatus status={order.paymentStatus} />
-        <OrderItemsDrawer order={order} />
+        <div className="flex min-w-0 flex-1 justify-end gap-2">
+          <OrderItemsDrawer order={order} />
+          {canDownloadInvoice && (
+            <Button
+              type="button"
+              variant="secondary"
+              className="min-h-11 shrink-0 gap-2 rounded-xl"
+              disabled={downloadingInvoice}
+              onClick={handleInvoiceDownload}
+            >
+              <DownloadSimpleIcon weight="duotone" aria-hidden="true" />
+              {downloadingInvoice ? "Downloading..." : "Invoice"}
+            </Button>
+          )}
+        </div>
       </div>
     </article>
   );

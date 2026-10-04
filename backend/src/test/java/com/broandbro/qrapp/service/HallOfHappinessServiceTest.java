@@ -122,6 +122,8 @@ class HallOfHappinessServiceTest {
         order.setId(42L);
         order.setUserId(7L);
         order.setStatus(PartyOrderStatus.COMPLETED);
+        order.setOrderType("PARTY");
+        order.setEstimatedTotalAmount(new java.math.BigDecimal("1500.00"));
         when(partyOrderRepository.findById(42L)).thenReturn(Optional.of(order));
         when(imageStorageService.uploadImage(any(), any(), any())).thenReturn("https://example.com/photo.jpg");
         when(photoRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
@@ -233,7 +235,7 @@ class HallOfHappinessServiceTest {
                 .when(locationAccessService).requireLocationAccess(manager, 2L);
 
         HallOfHappinessPhotoUpdateRequest request = new HallOfHappinessPhotoUpdateRequest(
-                null, null, null, null, null, 2L);
+                null, null, null, null, null, 2L, null, null);
 
         assertThrows(org.springframework.security.access.AccessDeniedException.class,
                 () -> service.updatePhoto(5L, request, "manager"));
@@ -256,7 +258,7 @@ class HallOfHappinessServiceTest {
                 .when(locationAccessService).requireSuperAdmin(manager);
 
         HallOfHappinessPhotoUpdateRequest request = new HallOfHappinessPhotoUpdateRequest(
-                null, null, null, null, true, null);
+                null, null, null, null, true, null, null, null);
 
         assertThrows(org.springframework.security.access.AccessDeniedException.class,
                 () -> service.updatePhoto(5L, request, "manager"));

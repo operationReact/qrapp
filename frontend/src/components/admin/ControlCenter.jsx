@@ -35,6 +35,7 @@ const moreNavigation = [
   { to: "/admin/vendors", label: "Vendors", roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN, ROLE.MANAGER] },
   { to: "/admin/control-center/access", label: "Access Management", roles: [ROLE.SUPER_ADMIN] },
   { to: "/admin/control-center/payments", label: "Payment Management", roles: [ROLE.SUPER_ADMIN] },
+  { to: "/admin/control-center/invoice-management", label: "Invoice Management", roles: [ROLE.SUPER_ADMIN] },
   { to: "/admin/hall-of-happiness", label: "Hall of Happiness", roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN, ROLE.MANAGER] },
   { to: "/admin/party-orders", label: "Party Orders", roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN, ROLE.MANAGER] },
 ];

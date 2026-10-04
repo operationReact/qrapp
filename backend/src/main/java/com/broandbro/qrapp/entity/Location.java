@@ -49,6 +49,15 @@ public class Location {
     @Column(name = "state_ut", length = 120)
     private String stateUt;
 
+    @Column(name = "supplier_legal_name", length = 200)
+    private String supplierLegalName;
+
+    @Column(name = "supplier_gstin", length = 15)
+    private String supplierGstin;
+
+    @Column(name = "supplier_state_code", length = 2)
+    private String supplierStateCode;
+
     @Column(name = "pin_code", length = 6)
     private String pinCode;
 

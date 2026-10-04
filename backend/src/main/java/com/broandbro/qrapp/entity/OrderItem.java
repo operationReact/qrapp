@@ -79,6 +79,54 @@ public class OrderItem {
     @Column(name = "line_total", precision = 19, scale = 2)
     private BigDecimal lineTotal;
 
+    @Column(name = "unit_base_price", precision = 19, scale = 2)
+    private BigDecimal unitBasePrice;
+
+    @Column(name = "gross_base_amount", precision = 19, scale = 2)
+    private BigDecimal grossBaseAmount;
+
+    @Column(name = "discount_amount", precision = 19, scale = 2)
+    private BigDecimal discountAmount;
+
+    @Column(name = "taxable_amount", precision = 19, scale = 2)
+    private BigDecimal taxableAmount;
+
+    @Column(name = "gst_rate", precision = 7, scale = 4)
+    private BigDecimal gstRate;
+
+    @Column(name = "cgst_rate", precision = 7, scale = 4)
+    private BigDecimal cgstRate;
+
+    @Column(name = "cgst_amount", precision = 19, scale = 2)
+    private BigDecimal cgstAmount;
+
+    @Column(name = "sgst_rate", precision = 7, scale = 4)
+    private BigDecimal sgstRate;
+
+    @Column(name = "sgst_amount", precision = 19, scale = 2)
+    private BigDecimal sgstAmount;
+
+    @Column(name = "igst_rate", precision = 7, scale = 4)
+    private BigDecimal igstRate;
+
+    @Column(name = "igst_amount", precision = 19, scale = 2)
+    private BigDecimal igstAmount;
+
+    @Column(name = "total_tax", precision = 19, scale = 2)
+    private BigDecimal totalTax;
+
+    @Column(name = "unit_customer_price", precision = 19, scale = 2)
+    private BigDecimal unitCustomerPrice;
+
+    @Column(name = "total_customer_price", precision = 19, scale = 2)
+    private BigDecimal totalCustomerPrice;
+
+    @Column(name = "tax_profile_id")
+    private Long taxProfileId;
+
+    @Column(name = "hsn_sac", length = 20)
+    private String hsnSac;
+
     /** Timestamp when this snapshot was recorded. */
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;

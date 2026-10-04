@@ -22,7 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { getAdminOrder, updateOrderStatusAdmin } from "@/services/order-service";
+import { getAdminOrder, updateOrderStatusAdmin, downloadAdminInvoice } from "@/services/order-service";
 import { cn, isOrderPaid, formatAge } from "@/lib/utils";
 import { parseApiError, getBusinessErrorMessage } from "@/lib/api-error-parser";
 import { useMarkOrderAsPaid } from "@/hooks/useOrderMutations";
@@ -310,6 +310,7 @@ export function KitchenQueueOrderDetailPanel({
   const [targetStatus, setTargetStatus] = useState(null);
   const [isBackwardMove, setIsBackwardMove] = useState(false);
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
+  const [invoiceDownloading, setInvoiceDownloading] = useState(false);
 
   // Fetch order details
   const { data: order, isLoading, error } = useQuery({
@@ -371,6 +372,26 @@ export function KitchenQueueOrderDetailPanel({
 
   const handleMarkAsPaid = () => {
     paymentMutation.mutate(orderId);
+  };
+
+  const handleInvoiceDownload = async () => {
+    if (invoiceDownloading) return;
+    setInvoiceDownloading(true);
+    try {
+      const blob = await downloadAdminInvoice(orderId);
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = `BroAndBro-Invoice-${order?.orderNumber || orderId}.pdf`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(url);
+    } catch {
+      toast.error("Unable to download the invoice.");
+    } finally {
+      setInvoiceDownloading(false);
+    }
   };
 
   if (!isOpen) return null;
@@ -446,6 +467,34 @@ export function KitchenQueueOrderDetailPanel({
                     >
                       {paid ? "PAID" : "UNPAID"}
                     </span>
+                  </div>
+
+                  <div className="space-y-3">
+                    <h3 className="text-sm font-semibold text-gray-900">Order Financial Summary</h3>
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-2 rounded-lg bg-gray-50 p-3 text-sm">
+                      <span className="text-gray-500">Base Amount</span>
+                      <span className="text-right font-medium">₹{Number(order.baseAmount || 0).toFixed(2)}</span>
+                      <span className="text-gray-500">Discount</span>
+                      <span className="text-right font-medium">₹{Number(order.discountAmount || 0).toFixed(2)}</span>
+                      <span className="text-gray-500">Taxable Amount</span>
+                      <span className="text-right font-medium">₹{Number(order.taxableAmount || 0).toFixed(2)}</span>
+                      <span className="text-gray-500">CGST</span>
+                      <span className="text-right font-medium">₹{Number(order.cgstAmount || 0).toFixed(2)}</span>
+                      <span className="text-gray-500">SGST</span>
+                      <span className="text-right font-medium">₹{Number(order.sgstAmount || 0).toFixed(2)}</span>
+                      <span className="text-gray-500">Total GST</span>
+                      <span className="text-right font-medium">₹{Number(order.totalTax || 0).toFixed(2)}</span>
+                      <span className="font-semibold text-gray-900">Customer Paid</span>
+                      <span className="text-right font-bold">₹{Number(order.customerPaid || order.total || 0).toFixed(2)}</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleInvoiceDownload}
+                      disabled={invoiceDownloading}
+                      className="w-full rounded-lg bg-gray-900 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
+                    >
+                      {invoiceDownloading ? "Downloading invoice..." : "Download Invoice"}
+                    </button>
                   </div>
                   {!paid && (
                     <p className="text-xs text-amber-600 flex items-center gap-1">

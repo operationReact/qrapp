@@ -33,7 +33,6 @@ import java.util.UUID;
 @RequiredArgsConstructor
 @Slf4j
 public class S3ImageStorageService implements ImageStorageService {
-    public record StoredContent(byte[] bytes, String contentType) {}
     private static final Path LOCAL_IMAGE_ROOT = Paths.get(
             System.getProperty("user.dir"), ".local-image-storage").toAbsolutePath().normalize();
 
@@ -133,7 +132,7 @@ public class S3ImageStorageService implements ImageStorageService {
         }
     }
 
-    public StoredContent readImage(String key) {
+    public ImageStorageService.StoredContent readImage(String key) {
         if (key != null && key.startsWith("local/")) {
             String contentType = key.endsWith(".jpg") || key.endsWith(".jpeg")
                     ? "image/jpeg" : key.endsWith(".webp") ? "image/webp" : "image/png";

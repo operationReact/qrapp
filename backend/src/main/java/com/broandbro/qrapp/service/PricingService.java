@@ -8,6 +8,8 @@ import com.broandbro.qrapp.entity.MenuItem;
 import com.broandbro.qrapp.entity.MenuItemSellingPriceHistory;
 import com.broandbro.qrapp.entity.Vendor;
 import com.broandbro.qrapp.entity.VendorMenuItemCostHistory;
+import com.broandbro.qrapp.entity.TaxProfile;
+import com.broandbro.qrapp.enums.TaxType;
 import com.broandbro.qrapp.repository.MenuItemSellingPriceHistoryRepository;
 import com.broandbro.qrapp.repository.MenuRepository;
 import com.broandbro.qrapp.repository.VendorRepository;
@@ -51,6 +53,7 @@ public class PricingService {
     private final VendorMenuItemCostHistoryRepository   vendorCostRepo;
     private final MenuRepository    menuRepository;
     private final VendorRepository    vendorRepository;
+    private final TaxCalculationService taxCalculationService;
 
     /**
      * Returns a map of menuItemId → current selling price for all supplied IDs.
@@ -130,7 +133,9 @@ public class PricingService {
     // =========================================================================
 
     /**
-     * Creates a financial snapshot for a single order line item.
+     * Creates a financial snapshot for a single order line item. The active
+     * selling-price record is treated as the taxable base price; the customer
+     * amount is derived by the centralized tax service.
      *
      * @param menuItemId ID of the ordered item
      * @param vendorId     supplying vendor ID (null for SELF_PREPARED)
@@ -138,13 +143,23 @@ public class PricingService {
      * @return a snapshot record (not persisted – caller persists via OrderItem entity)
      */
     public OrderItemSnapshot createSnapshot(Long menuItemId, Long vendorId, int quantity) {
+        MenuItem menuItem = menuRepository.findById(menuItemId)
+                .orElseThrow(() -> new IllegalArgumentException("MenuItem not found: " + menuItemId));
         BigDecimal sellingPrice = getCurrentSellingPrice(menuItemId);
         BigDecimal costPrice    = vendorId != null
                 ? getCurrentVendorCost(vendorId, menuItemId).orElse(null)
                 : null;
         BigDecimal profit    = (costPrice != null) ? sellingPrice.subtract(costPrice) : null;
         BigDecimal lineTotal = sellingPrice.multiply(BigDecimal.valueOf(quantity));
-        return new OrderItemSnapshot(sellingPrice, costPrice, profit, lineTotal);
+        TaxCalculationService.TaxCalculationResult tax = taxCalculationService.calculate(
+                lineTotal, menuItem.getTaxProfile());
+        return new OrderItemSnapshot(
+                sellingPrice, costPrice, profit, lineTotal, tax,
+                menuItem.getTaxProfile() != null ? menuItem.getTaxProfile().getId() : null,
+                menuItem.getHsnSac() != null
+                        ? menuItem.getHsnSac()
+                        : menuItem.getTaxProfile() != null ? menuItem.getTaxProfile().getHsnSac() : null
+        );
     }
 
     /** Immutable value object returned by {@link #createSnapshot}. */
@@ -152,7 +167,29 @@ public class PricingService {
             BigDecimal sellingPriceSnapshot,
             BigDecimal costPriceSnapshot,
             BigDecimal profitSnapshot,
-            BigDecimal lineTotal) {
+            BigDecimal lineTotal,
+            TaxCalculationService.TaxCalculationResult tax,
+            Long taxProfileId,
+            String hsnSac) {
+    }
+
+    public TaxCalculationService.TaxCalculationResult calculateDiscountedTax(
+            OrderItemSnapshot snapshot, BigDecimal discountedBaseAmount) {
+        TaxCalculationService.TaxCalculationResult original = snapshot.tax();
+        TaxType type = original.igstRate().compareTo(BigDecimal.ZERO) > 0
+                ? TaxType.INTER_STATE
+                : original.cgstRate().compareTo(BigDecimal.ZERO) > 0
+                || original.sgstRate().compareTo(BigDecimal.ZERO) > 0
+                ? TaxType.INTRA_STATE : TaxType.NONE;
+        TaxProfile profile = TaxProfile.builder()
+                .taxType(type)
+                .gstRate(original.gstRate())
+                .cgstRate(original.cgstRate())
+                .sgstRate(original.sgstRate())
+                .igstRate(original.igstRate())
+                .active(true)
+                .build();
+        return taxCalculationService.calculate(discountedBaseAmount, profile);
     }
 
     // =========================================================================

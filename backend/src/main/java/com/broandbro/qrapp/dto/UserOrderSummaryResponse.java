@@ -16,6 +16,7 @@ public class UserOrderSummaryResponse {
     private LocalDateTime createdAt;
     private LocalDateTime scheduledAt;
     private boolean preOrder;
+    private boolean invoiceAvailable;
     private double total;
     private List<ItemSummary> items = new ArrayList<>();
 
@@ -29,4 +30,3 @@ public class UserOrderSummaryResponse {
         private Boolean isVeg;
     }
 }
-
