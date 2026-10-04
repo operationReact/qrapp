@@ -41,6 +41,36 @@ public class TaxCalculationService {
         );
     }
 
+    /**
+     * Calculates tax from a customer-facing price that already includes GST.
+     * The returned total remains exactly the supplied inclusive amount.
+     */
+    public TaxCalculationResult calculateInclusive(BigDecimal inclusiveAmount, TaxProfile profile) {
+        BigDecimal inclusive = MoneyService.amount(inclusiveAmount);
+        if (profile == null || !Boolean.TRUE.equals(profile.getActive())) {
+            return TaxCalculationResult.zero(inclusive);
+        }
+
+        BigDecimal rate = MoneyService.amount(profile.getGstRate())
+                .divide(BigDecimal.valueOf(100), 8, MoneyService.ROUNDING);
+        BigDecimal taxable = rate.signum() == 0
+                ? inclusive
+                : inclusive.divide(BigDecimal.ONE.add(rate), MoneyService.SCALE, MoneyService.ROUNDING);
+        TaxCalculationResult result = calculate(taxable, profile);
+        return new TaxCalculationResult(
+                result.taxableAmount(),
+                result.gstRate(),
+                result.cgstRate(),
+                result.cgstAmount(),
+                result.sgstRate(),
+                result.sgstAmount(),
+                result.igstRate(),
+                result.igstAmount(),
+                result.totalTax(),
+                inclusive
+        );
+    }
+
     public record TaxCalculationResult(
             BigDecimal taxableAmount,
             BigDecimal gstRate,

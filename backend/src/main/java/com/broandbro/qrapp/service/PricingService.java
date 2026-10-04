@@ -136,8 +136,8 @@ public class PricingService {
 
     /**
      * Creates a financial snapshot for a single order line item. The active
-     * selling-price record is treated as the taxable base price; the customer
-     * amount is derived by the centralized tax service.
+     * selling-price record is the customer-facing, GST-inclusive price; the
+     * centralized tax service extracts the taxable base and GST amounts.
      *
      * @param menuItemId ID of the ordered item
      * @param vendorId     supplying vendor ID (null for SELF_PREPARED)
@@ -154,7 +154,7 @@ public class PricingService {
         BigDecimal profit    = (costPrice != null) ? sellingPrice.subtract(costPrice) : null;
         BigDecimal lineTotal = sellingPrice.multiply(BigDecimal.valueOf(quantity));
         TaxProfile taxProfile = effectiveTaxProfile(menuItem);
-        TaxCalculationService.TaxCalculationResult tax = taxCalculationService.calculate(
+        TaxCalculationService.TaxCalculationResult tax = taxCalculationService.calculateInclusive(
                 lineTotal, taxProfile);
         return new OrderItemSnapshot(
                 sellingPrice, costPrice, profit, lineTotal, tax,
@@ -204,7 +204,7 @@ public class PricingService {
                 .igstRate(original.igstRate())
                 .active(true)
                 .build();
-        return taxCalculationService.calculate(discountedBaseAmount, profile);
+        return taxCalculationService.calculateInclusive(discountedBaseAmount, profile);
     }
 
     // =========================================================================

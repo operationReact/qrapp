@@ -632,7 +632,7 @@ public class MenuController {
             .description(item.getDescription())
             .locationId(item.getLocation() != null ? item.getLocation().getId() : null)
             .price(price == null ? null : taxCalculationService
-                    .calculate(price, item.getTaxProfile()).totalAmount())
+                    .calculateInclusive(price, item.getTaxProfile()).totalAmount())
             .imageUrl(item.getImageUrl())
             .isVeg(item.getIsVeg())
             .recommended(item.isRecommended())
@@ -667,7 +667,7 @@ public class MenuController {
         item.setHsnSac(request.hsnSac() == null ? profile.getHsnSac() : request.hsnSac().trim());
         MenuItem saved = repo.save(item);
         BigDecimal basePrice = pricingService.getCurrentSellingPrice(id);
-        var preview = taxCalculationService.calculate(basePrice, profile);
+        var preview = taxCalculationService.calculateInclusive(basePrice, profile);
         return ResponseEntity.ok(Map.of(
                 "menuItemId", saved.getId(),
                 "taxProfileId", profile.getId(),
