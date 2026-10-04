@@ -270,7 +270,8 @@ public class SuperAdminLocationController {
                 .orElseGet(() -> UserLocationAccess.builder().user(user).location(location).build());
         access.setActive(request.getActive());
         access.setRole(assignmentRole);
-        return LocationResponse.from(accessRepository.save(access).getLocation());
+        accessRepository.save(access);
+        return LocationResponse.from(location);
     }
 
     @DeleteMapping("/users/{userId}/locations/{locationId}")
