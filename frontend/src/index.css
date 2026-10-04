@@ -933,3 +933,23 @@ body {
   z-index: 50;
   pointer-events: none;
 }
+
+/* Kitchen Queue semantic tokens (scoped to the page; brand reuses --cc-primary) */
+.kq-root,
+:root {
+  --kq-page: #F7F2EA;
+  --kq-surface: #FFFEFC;
+  --kq-surface-subtle: #F1EBE1;
+  --kq-hairline: rgba(60, 40, 20, 0.08);
+  --kq-text-primary: #1C1917;
+  --kq-text-secondary: #6B625A;
+  --kq-brand: var(--cc-primary, #FF2438);
+  --kq-new: #6D28D9;
+  --kq-cooking: #D45A0A;
+  --kq-ready: #067A45;
+  --kq-delayed: #C0182A;
+  --kq-paid: #067A45;
+  --kq-unpaid: #B45309;
+  --kq-shadow: 0 1px 2px rgba(60, 40, 20, 0.05), 0 8px 24px rgba(60, 40, 20, 0.08);
+  --kq-shadow-hover: 0 2px 4px rgba(60, 40, 20, 0.06), 0 16px 32px rgba(60, 40, 20, 0.12);
+}
