@@ -261,6 +261,10 @@ public class InvoiceService {
         }
     }
 
+    private static void drawContinuationMarker(PDPageContentStream content) throws IOException {
+        drawText(content, "TO BE CONTINUED...", 42, 48, 8, false, Color.DARK_GRAY);
+    }
+
     private static void drawSectionLabel(PDPageContentStream content, String text, float x, float y) throws IOException {
         drawText(content, text, x, y, 9, true, Color.BLACK);
     }
@@ -368,6 +372,7 @@ public class InvoiceService {
             y = drawItemTable(content, items, itemNames, menuItems, fallbackTaxable,
                     MoneyService.amount(invoice.getGrandTotal()), legacyTax, config, y);
             if (y < 330) {
+                drawContinuationMarker(content);
                 content.close();
                 page = new PDPage(PDRectangle.A4);
                 document.addPage(page);
