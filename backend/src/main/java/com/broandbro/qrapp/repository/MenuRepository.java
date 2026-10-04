@@ -31,7 +31,7 @@ public interface MenuRepository extends JpaRepository<MenuItem, Long> {
            "(:categoryId  IS NULL OR (m.category.id = :categoryId AND m.category.location.id = :locationId)) AND " +
            "(:recommended IS NULL OR m.recommended  = :recommended) " +
            "ORDER BY m.id ASC")
-    @EntityGraph(attributePaths = {"category", "tag", "vendor"})
+    @EntityGraph(attributePaths = {"category", "tag", "vendor", "taxProfile"})
     List<MenuItem> findByFilters(
             @Param("locationId")  Long    locationId,
             @Param("isVeg")         Boolean isVeg,
@@ -47,7 +47,7 @@ public interface MenuRepository extends JpaRepository<MenuItem, Long> {
     @Query("SELECT m FROM MenuItem m " +
            "WHERE m.location.id = :locationId AND m.recommended = true AND m.isHidden = false AND m.isDeleted = false " +
            "ORDER BY m.id DESC")
-    @EntityGraph(attributePaths = {"category", "tag", "vendor"})
+    @EntityGraph(attributePaths = {"category", "tag", "vendor", "taxProfile"})
     List<MenuItem> findTopRecommended(@Param("locationId") Long locationId, Pageable pageable);
 
     /**
@@ -57,7 +57,7 @@ public interface MenuRepository extends JpaRepository<MenuItem, Long> {
     @Query("SELECT m FROM MenuItem m " +
            "WHERE m.location.id = :locationId AND m.category.id = :categoryId AND m.isDeleted = false " +
            "ORDER BY m.id ASC")
-    @EntityGraph(attributePaths = {"category", "tag", "vendor"})
+    @EntityGraph(attributePaths = {"category", "tag", "vendor", "taxProfile"})
     List<MenuItem> findByCategoryId(@Param("locationId") Long locationId, @Param("categoryId") Long categoryId);
 
     /**
@@ -67,7 +67,7 @@ public interface MenuRepository extends JpaRepository<MenuItem, Long> {
     @Query("SELECT m FROM MenuItem m " +
            "WHERE m.location.id = :locationId AND m.tag.id = :tagId AND m.isDeleted = false " +
            "ORDER BY m.id ASC")
-    @EntityGraph(attributePaths = {"category", "tag", "vendor"})
+    @EntityGraph(attributePaths = {"category", "tag", "vendor", "taxProfile"})
     List<MenuItem> findByTagId(@Param("locationId") Long locationId, @Param("tagId") Long tagId);
 
     /**
