@@ -9,3 +9,12 @@ CREATE TABLE IF NOT EXISTS whatsapp_webhook_outbox (
     claimed_by VARCHAR(255),
     claim_until TIMESTAMP
 );
+INSERT INTO invoice_configurations (
+    invoice_prefix, invoice_number_format, invoice_title, business_name,
+    signature_enabled, signature_type, primary_color, accent_color, template_code,
+    created_at, updated_at
+) VALUES (
+    'TEST', 'TEST/{FY}/{SEQ}', 'TEST INVOICE', 'Test Invoice Business',
+    FALSE, 'TEXT', '#171717', '#B8893C', 'TEST',
+    CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+);

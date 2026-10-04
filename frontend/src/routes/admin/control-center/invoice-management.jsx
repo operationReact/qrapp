@@ -18,8 +18,8 @@ export const Route = createFileRoute("/admin/control-center/invoice-management")
 const defaults = {
   invoicePrefix: "BB",
   invoiceNumberFormat: "BB/{FY}/{SEQ}",
-  invoiceTitle: "TAX INVOICE",
-  businessName: "Bro & Bro Hospitality LLP",
+  invoiceTitle: "",
+  businessName: "",
   signatureType: "TEXT",
   signatureEnabled: false,
   showGstin: true,
@@ -33,7 +33,7 @@ const defaults = {
   primaryColor: "#171717",
   accentColor: "#B8893C",
   templateCode: "BRO_AND_BRO_MODERN",
-  footerText: "GOOD FOOD. GOOD MOOD. GOOD COMPANY.",
+  footerText: "",
 };
 
 function Field({ label, className = "", ...props }) {

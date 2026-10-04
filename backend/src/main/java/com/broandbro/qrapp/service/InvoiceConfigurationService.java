@@ -19,11 +19,7 @@ public class InvoiceConfigurationService {
 
     @Transactional(readOnly = true)
     public InvoiceConfiguration findGlobal() {
-        return repository.findTopByOrderByIdAsc().orElseGet(() -> InvoiceConfiguration.builder()
-                .businessName("Bro & Bro Hospitality LLP")
-                .invoiceTitle("TAX INVOICE")
-                .footerText("GOOD FOOD. GOOD MOOD. GOOD COMPANY.")
-                .build());
+        return repository.findTopByOrderByIdAsc().orElseGet(InvoiceConfiguration::new);
     }
 
     @Transactional
@@ -72,6 +68,12 @@ public class InvoiceConfigurationService {
     }
 
     private void validate(InvoiceConfiguration config) {
+        if (config.getBusinessName() == null || config.getBusinessName().isBlank()) {
+            throw new IllegalArgumentException("Business name is required");
+        }
+        if (config.getInvoiceTitle() == null || config.getInvoiceTitle().isBlank()) {
+            throw new IllegalArgumentException("Invoice title is required");
+        }
         if (config.getInvoicePrefix() == null || config.getInvoicePrefix().isBlank()) {
             throw new IllegalArgumentException("Invoice prefix is required");
         }
