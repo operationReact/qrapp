@@ -32,7 +32,10 @@ public class CustomerCompanyController {
     public List<CustomerCompanyResponse> companies(Authentication authentication) {
         authorize(authentication);
         return companyService.listAll().stream()
-                .map(company -> CustomerCompanyResponse.from(company, companyService.locationNames(company.getId())))
+                .map(company -> CustomerCompanyResponse.from(
+                        company,
+                        companyService.locationNames(company.getId()),
+                        companyService.locationIds(company.getId())))
                 .toList();
     }
 

@@ -82,7 +82,10 @@ public class MenuItemImageGenerationService {
         }
 
         // Duplicate prevention
-        if (!force && ImageGenerationStatus.COMPLETED.equals(menuItem.getImageGenerationStatus())) {
+        if (!force
+                && ImageGenerationStatus.COMPLETED.equals(menuItem.getImageGenerationStatus())
+                && menuItem.getImageUrl() != null
+                && !menuItem.getImageUrl().isBlank()) {
             log.info("[ImgGen] Skipping – already COMPLETED for menuItemId={}. Use force=true to regenerate.", menuItemId);
             return;
         }
@@ -100,6 +103,8 @@ public class MenuItemImageGenerationService {
         // If prompt has not changed and image already exists, skip
         if (!force
                 && ImageGenerationStatus.COMPLETED.equals(menuItem.getImageGenerationStatus())
+                && menuItem.getImageUrl() != null
+                && !menuItem.getImageUrl().isBlank()
                 && Objects.equals(promptHash, menuItem.getImagePromptHash())) {
             log.info("[ImgGen] Prompt unchanged and image already exists for menuItemId={}. Skipping.", menuItemId);
             return;

@@ -14,6 +14,8 @@ import {
   patchMenuItemQuick,
   restoreMenuItem,
   setItemCost,
+  generateMissingMenuImages,
+  getMenuImageGenerationSummary,
 } from "@/services/menu-service";
 import { menuOptions } from "@/query/options/menu";
 import { useAuth } from "@/context/AuthContext";
@@ -100,6 +102,8 @@ export const Route = createFileRoute("/admin/(menu)/menu")({
     const [categoriesModalOpen, setCategoriesModalOpen] = useState(false);
     const [toolsOpen, setToolsOpen] = useState(false);
     const [toolsView, setToolsView] = useState("menu"); // "menu" | "trash"
+    const [imageBatchActive, setImageBatchActive] = useState(false);
+    const [brokenImageIds, setBrokenImageIds] = useState(() => new Set());
 
     const openToolsMenu  = () => { setToolsView("menu");  setToolsOpen(true); };
     const openTrashView  = () => { setToolsView("trash"); setToolsOpen(true); };
@@ -121,6 +125,36 @@ export const Route = createFileRoute("/admin/(menu)/menu")({
       enabled: Boolean(activeLocationId),
       staleTime: 30_000,
     });
+
+    const { data: imageSummary = {} } = useQuery({
+      queryKey: ["menu-image-generation-summary", activeLocationId],
+      queryFn: () => getMenuImageGenerationSummary(activeLocationId),
+      enabled: Boolean(activeLocationId),
+      refetchInterval: imageBatchActive ? 2000 : false,
+      staleTime: imageBatchActive ? 0 : 30_000,
+    });
+
+    const generateMissingImagesMutation = useMutation({
+      mutationFn: () => generateMissingMenuImages(activeLocationId, 3),
+      onSuccess: (data) => {
+        if (data.requested > 0) {
+          setImageBatchActive(true);
+          toast.success(`Started image generation for ${data.requested} menu item${data.requested === 1 ? "" : "s"}.`);
+          queryClient.invalidateQueries({ queryKey: ["menu-image-generation-summary", activeLocationId] });
+        } else {
+          toast.info("No missing menu images are waiting to be generated.");
+        }
+      },
+      onError: (err) => {
+        toast.error(err?.response?.data?.message || "Unable to start image generation.");
+      },
+    });
+
+    useEffect(() => {
+      if (!imageBatchActive) return undefined;
+      const timeout = window.setTimeout(() => setImageBatchActive(false), 30_000);
+      return () => window.clearTimeout(timeout);
+    }, [imageBatchActive]);
 
     const restoreMutation = useMutation({
       mutationFn: (id) => restoreMenuItem(id, activeLocationId),
@@ -179,14 +213,22 @@ export const Route = createFileRoute("/admin/(menu)/menu")({
 
     const totalItems = menu.length;
 
+    useEffect(() => {
+      setBrokenImageIds(new Set());
+    }, [activeLocationId, menu]);
+
     const missingCostCount = useMemo(
       () => menu.filter((m) => m.available && m.estimatedCost == null).length,
       [menu],
     );
 
     const missingImageCount = useMemo(
-      () => menu.filter((m) => !m.imageUrl).length,
-      [menu],
+      () => menu.filter((m) => !m.imageUrl || brokenImageIds.has(m.id)).length,
+      [menu, brokenImageIds],
+    );
+    const totalMissingImageCount = Math.max(
+      missingImageCount,
+      Number.isFinite(Number(imageSummary.missing)) ? Number(imageSummary.missing) : 0,
     );
 
     const avgMargin = useMemo(() => {
@@ -477,20 +519,20 @@ export const Route = createFileRoute("/admin/(menu)/menu")({
         </div>
 
         {/* ── Attention card ──────────────────────────────────────── */}
-        {(missingCostCount > 0 || missingImageCount > 0) && (
+        {(missingCostCount > 0 || totalMissingImageCount > 0) && (
           <div className="mx-4 mb-2 rounded-xl border border-amber-200 bg-amber-50 p-3 space-y-2.5">
             {/* Header */}
             <div className="flex items-center gap-1.5">
               <WarningCircleIcon weight="fill" className="size-3.5 text-amber-500 shrink-0" />
               <p className="text-xs font-bold text-amber-900 leading-none">
-                {missingCostCount + missingImageCount} Issues Need Attention
+                {missingCostCount + totalMissingImageCount} Issues Need Attention
               </p>
             </div>
 
             {/* Tappable issue cards */}
             <div
               className={`grid gap-2 ${
-                missingCostCount > 0 && missingImageCount > 0
+                missingCostCount > 0 && totalMissingImageCount > 0
                   ? "grid-cols-2"
                   : "grid-cols-1"
               }`}
@@ -518,16 +560,12 @@ export const Route = createFileRoute("/admin/(menu)/menu")({
                   </span>
                 </button>
               )}
-              {missingImageCount > 0 && (
-                <button
-                  type="button"
-                  onClick={() => setMissingImagesOpen(true)}
-                  className="flex flex-col gap-2 bg-white rounded-lg border border-amber-200 px-3 py-2.5 hover:border-amber-400 hover:shadow-sm active:scale-[0.97] transition-all text-left"
-                >
+              {totalMissingImageCount > 0 && (
+                <div className="flex flex-col gap-2 bg-white rounded-lg border border-amber-200 px-3 py-2.5">
                   <span className="text-lg leading-none">🖼️</span>
                   <div>
                     <p className="text-2xl font-black text-amber-800 leading-none tracking-tight">
-                      {missingImageCount}
+                      {totalMissingImageCount}
                     </p>
                     <p className="text-[11px] font-semibold text-amber-700 mt-0.5">
                       Missing Images
@@ -536,10 +574,34 @@ export const Route = createFileRoute("/admin/(menu)/menu")({
                       Increases customer orders
                     </p>
                   </div>
-                  <span className="text-[11px] font-bold text-amber-600 mt-auto">
-                    Fix Images →
-                  </span>
-                </button>
+                  <div className="flex items-center gap-2 mt-auto">
+                    <Button
+                      type="button"
+                      size="sm"
+                      className="h-7 text-[11px] px-2.5"
+                      disabled={generateMissingImagesMutation.isPending || imageSummary.processing > 0}
+                      onClick={() => generateMissingImagesMutation.mutate()}
+                    >
+                      {generateMissingImagesMutation.isPending
+                        ? "Starting…"
+                        : imageSummary.processing > 0
+                          ? `${imageSummary.processing} processing`
+                          : "Generate next 3"}
+                    </Button>
+                    <button
+                      type="button"
+                      onClick={() => setMissingImagesOpen(true)}
+                      className="text-[11px] font-bold text-amber-600 hover:underline"
+                    >
+                      Manage →
+                    </button>
+                  </div>
+                  {(imageSummary.completed != null || imageSummary.failed != null) && (
+                    <p className="text-[10px] text-muted-foreground">
+                      {imageSummary.completed || 0} completed · {imageSummary.failed || 0} failed
+                    </p>
+                  )}
+                </div>
               )}
             </div>
           </div>
@@ -572,6 +634,10 @@ export const Route = createFileRoute("/admin/(menu)/menu")({
                   onDelete={handleDeleteConfirm}
                   onQuickUpdate={handleQuickUpdate}
                   onSetCost={handleSetCost}
+                  onImageError={(id) => setBrokenImageIds((previous) => {
+                    if (previous.has(id)) return previous;
+                    return new Set([...previous, id]);
+                  })}
                   isUpdating={quickUpdateMutation.isPending}
                   isSavingCost={costMutation.isPending}
                 />

@@ -672,11 +672,34 @@ export function CustomerCompanies() {
   const [createLocationId, setCreateLocationId] = useState("");
   const [editingId, setEditingId] = useState(null);
   const [editingName, setEditingName] = useState("");
+  const [companyStatusFilter, setCompanyStatusFilter] = useState("ACTIVE");
+  const [companyLocationFilter, setCompanyLocationFilter] = useState("ALL");
   const queryClient = useQueryClient();
 
-  const selectedLocation = locations.find((location) => String(location.id) === createLocationId);
-  const visibleCompanies = companies;
-  const visibleCount = companies.length;
+  const activeLocations = locations.filter((location) => location.active !== false);
+  const selectedLocation = activeLocations.find((location) => String(location.id) === createLocationId);
+  const selectedCompanyLocationName = activeLocations.find(
+    (location) => String(location.id) === companyLocationFilter,
+  )?.name;
+  const locationCompanies = companies.filter((company) =>
+    companyLocationFilter === "ALL"
+      ? activeLocations.some((location) =>
+          (company.locationIds || []).map(String).includes(String(location.id))
+          || (company.locationNames || []).includes(location.name),
+        )
+      : (company.locationIds || []).map(String).includes(companyLocationFilter)
+      || (selectedCompanyLocationName && (company.locationNames || []).includes(selectedCompanyLocationName)),
+  );
+  const activeCompanyCount = locationCompanies.filter((company) => company.active).length;
+  const inactiveCompanyCount = locationCompanies.length - activeCompanyCount;
+  const visibleCompanies = locationCompanies.filter((company) =>
+    companyStatusFilter === "ALL"
+      ? true
+      : companyStatusFilter === "ACTIVE"
+        ? company.active
+        : !company.active,
+  );
+  const visibleCount = visibleCompanies.length;
 
   const refresh = () => {
     queryClient.invalidateQueries({ queryKey: ["admin", "customer-companies"] });
@@ -739,10 +762,48 @@ export function CustomerCompanies() {
       {nameError && <p className="text-xs text-[var(--cc-error)]">{nameError}</p>}
       <label className="block space-y-1.5 text-xs font-semibold text-[var(--cc-text)]">
         <span>Operating Location</span>
-        <select required aria-label="Operating Location" className="h-11 w-full rounded-[10px] border border-[var(--cc-border)] bg-white px-3 text-sm font-normal" value={createLocationId} onChange={(event) => setCreateLocationId(event.target.value)} disabled={locationsLoading}>
-        <option value="">Select operating location</option>
-        {locations.map((location) => <option key={location.id} value={location.id}>{location.name}</option>)}
-        </select>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              type="button"
+              variant="outline"
+              aria-label="Operating Location"
+              disabled={locationsLoading}
+              className="h-11 w-full min-w-0 justify-between rounded-[10px] border-[var(--cc-border)] bg-white px-3 text-sm font-normal"
+            >
+              <span className="min-w-0 truncate text-left">
+                {activeLocations.find((location) => String(location.id) === String(createLocationId))?.name || "Select operating location"}
+              </span>
+              <ChevronDown className="size-4 shrink-0 opacity-60" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent
+            align="start"
+            className="w-[min(28rem,calc(100vw-2rem))] max-w-[calc(100vw-2rem)]"
+          >
+            <DropdownMenuItem
+              onSelect={() => setCreateLocationId("")}
+              className="min-h-10 gap-2"
+            >
+              <span className="min-w-0 flex-1 truncate">Select operating location</span>
+              {!createLocationId && <Check className="size-4 shrink-0" />}
+            </DropdownMenuItem>
+            {activeLocations.map((location) => {
+              const selected = String(location.id) === String(createLocationId);
+              return (
+                <DropdownMenuItem
+                  key={location.id}
+                  onSelect={() => setCreateLocationId(String(location.id))}
+                  className="min-h-10 gap-2"
+                >
+                  <MapPin className="size-4 shrink-0" />
+                  <span className="min-w-0 flex-1 truncate">{location.name}</span>
+                  {selected && <Check className="size-4 shrink-0" />}
+                </DropdownMenuItem>
+              );
+            })}
+          </DropdownMenuContent>
+        </DropdownMenu>
       </label>
       <Button type="submit" disabled={!canSubmit} className="h-11 w-full rounded-[10px] bg-[var(--cc-primary)] text-sm font-semibold text-white hover:bg-[var(--cc-primary-dark)] disabled:bg-[#F9A0A8]">
         {createMutation.isPending ? "Adding…" : "Add Customer Company"}
@@ -750,9 +811,65 @@ export function CustomerCompanies() {
     </form>
 
     <div>
-      <div className="mb-2 flex items-center gap-2">
-        <h3 className="text-[15px] font-semibold text-[var(--cc-text)]">Customer Companies</h3>
-        <span className="rounded-full bg-[var(--cc-primary-light)] px-2.5 py-1 text-xs font-semibold text-[var(--cc-primary-dark)]">{visibleCount}</span>
+      <div className="mb-2 flex flex-wrap items-center gap-2">
+        <div className="order-1 flex min-w-0 flex-1 items-center gap-2">
+          <h3 className="text-[15px] font-semibold text-[var(--cc-text)]">Customer Companies</h3>
+          <span className="rounded-full bg-[var(--cc-primary-light)] px-2.5 py-1 text-xs font-semibold text-[var(--cc-primary-dark)]">{visibleCount}</span>
+        </div>
+        <div className="order-2 shrink-0">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                type="button"
+                variant="outline"
+                aria-label="Filter companies by location"
+                className="h-10 min-w-0 justify-between rounded-[10px] border-[var(--cc-border)] bg-white px-3 text-xs font-semibold sm:w-56"
+              >
+                <span className="min-w-0 truncate">
+                  {locations.find((location) => String(location.id) === companyLocationFilter)?.name || "All locations"}
+                </span>
+                <ChevronDown className="size-4 shrink-0 opacity-60" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-[min(28rem,calc(100vw-2rem))] max-w-[calc(100vw-2rem)]">
+              <DropdownMenuItem onClick={() => setCompanyLocationFilter("ALL")} className="min-h-10 gap-2">
+                <span className="min-w-0 flex-1 truncate">All locations</span>
+                {companyLocationFilter === "ALL" && <Check className="size-4 shrink-0" />}
+              </DropdownMenuItem>
+              {activeLocations.map((location) => {
+                const value = String(location.id);
+                return (
+                  <DropdownMenuItem key={location.id} onClick={() => setCompanyLocationFilter(value)} className="min-h-10 gap-2">
+                    <MapPin className="size-4 shrink-0" />
+                    <span className="min-w-0 flex-1 truncate">{location.name}</span>
+                    {companyLocationFilter === value && <Check className="size-4 shrink-0" />}
+                  </DropdownMenuItem>
+                );
+              })}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+        <div className="order-3 grid w-full grid-cols-3 rounded-[10px] border border-[var(--cc-border)] bg-white p-0.5 text-xs font-semibold">
+          {[
+            ["ACTIVE", `Active ${activeCompanyCount}`],
+            ["INACTIVE", `Inactive ${inactiveCompanyCount}`],
+            ["ALL", `All ${locationCompanies.length}`],
+          ].map(([value, label]) => (
+            <button
+              key={value}
+              type="button"
+              aria-pressed={companyStatusFilter === value}
+              onClick={() => setCompanyStatusFilter(value)}
+              className={`min-h-9 rounded-[8px] px-2.5 transition-colors ${
+                companyStatusFilter === value
+                  ? "bg-[var(--cc-primary)] text-white"
+                  : "text-[var(--cc-secondary-text)] hover:bg-[var(--cc-primary-light)]"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
       <div className="rounded-[16px] border border-[var(--cc-border)] bg-white">
         {companiesLoading && <p className="p-4 text-center text-sm text-[var(--cc-muted-text)]">Loading...</p>}

@@ -21,6 +21,11 @@ import org.springframework.cache.annotation.Caching;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.data.domain.PageRequest;
+
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Admin-only endpoints for AI image generation management.
@@ -103,6 +108,57 @@ public class AdminAiImageController {
 
         return ResponseEntity.accepted()
                 .body("Image regeneration started for menu item '" + menuItem.getName() + "'.");
+    }
+
+    @PostMapping("/generate-missing-images")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPERUSER', 'SUPER_ADMIN', 'MANAGER')")
+    @Operation(summary = "Queue a bounded batch of menu items without images")
+    public ResponseEntity<Map<String, Object>> generateMissingImages(
+            @RequestParam Long locationId,
+            @RequestParam(defaultValue = "3") int limit,
+            java.security.Principal principal) {
+        User user = userService.findByPhone(principal.getName()).orElseThrow();
+        locationAccessService.requireLocationAccess(user, locationId);
+
+        int safeLimit = Math.max(1, Math.min(limit, 10));
+        List<MenuItem> candidates = menuRepository.findMissingImageCandidates(
+                locationId, com.broandbro.qrapp.enums.ImageGenerationStatus.FAILED,
+                com.broandbro.qrapp.enums.ImageGenerationStatus.COMPLETED,
+                PageRequest.of(0, safeLimit));
+        candidates.forEach(item -> imageGenerationService.generateImageForMenuItem(item.getId(), false));
+
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("requested", candidates.size());
+        response.put("limit", safeLimit);
+        response.put("itemIds", candidates.stream().map(MenuItem::getId).toList());
+        return ResponseEntity.accepted().body(response);
+    }
+
+    @GetMapping("/image-generation-summary")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPERUSER', 'SUPER_ADMIN', 'MANAGER')")
+    @Operation(summary = "Get menu image generation progress for a location")
+    public ResponseEntity<Map<String, Object>> getImageGenerationSummary(
+            @RequestParam Long locationId, java.security.Principal principal) {
+        User user = userService.findByPhone(principal.getName()).orElseThrow();
+        locationAccessService.requireLocationAccess(user, locationId);
+
+        List<MenuItem> items = menuRepository.findByLocationIdAndIsDeletedFalse(locationId);
+        long missing = items.stream().filter(item -> item.getImageUrl() == null || item.getImageUrl().isBlank()).count();
+        long processing = items.stream().filter(item ->
+                com.broandbro.qrapp.enums.ImageGenerationStatus.PROCESSING.equals(item.getImageGenerationStatus())).count();
+        long failed = items.stream().filter(item ->
+                com.broandbro.qrapp.enums.ImageGenerationStatus.FAILED.equals(item.getImageGenerationStatus())).count();
+
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("total", items.size());
+        response.put("missing", missing);
+        response.put("processing", processing);
+        response.put("failed", failed);
+        long completed = items.stream().filter(item ->
+                com.broandbro.qrapp.enums.ImageGenerationStatus.COMPLETED.equals(item.getImageGenerationStatus())
+                        && item.getImageUrl() != null && !item.getImageUrl().isBlank()).count();
+        response.put("completed", completed);
+        return ResponseEntity.ok(response);
     }
 
     /**

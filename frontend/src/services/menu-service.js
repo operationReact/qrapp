@@ -71,6 +71,16 @@ export const generateAiImageOptions = (menuItemId, count = 3, additionalPrompt =
 export const applyGeneratedImage = (menuItemId, imageUrl, allGeneratedUrls = [], locationId) =>
   apiClient.post(`/admin/menu-items/${menuItemId}/apply-generated-image`, { imageUrl, allGeneratedUrls }, { params: { locationId } }).then((r) => r.data);
 
+export const generateMissingMenuImages = (locationId, limit = 3) =>
+  apiClient.post("/admin/menu-items/generate-missing-images", null, {
+    params: { locationId, limit },
+  }).then((r) => r.data);
+
+export const getMenuImageGenerationSummary = (locationId) =>
+  apiClient.get("/admin/menu-items/image-generation-summary", {
+    params: { locationId },
+  }).then((r) => r.data);
+
 /**
  * Bulk-update estimated costs for multiple menu items.
  * @param {Array<{id: number, estimatedCost: number|null}>} updates
