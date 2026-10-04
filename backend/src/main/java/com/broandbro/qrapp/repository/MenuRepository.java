@@ -15,6 +15,17 @@ import java.util.Optional;
 public interface MenuRepository extends JpaRepository<MenuItem, Long> {
     List<MenuItem> findByLocationIdAndIsDeletedFalse(Long locationId);
 
+    @Query("SELECT m FROM MenuItem m WHERE m.location.id = :locationId AND m.isDeleted = false " +
+           "AND (m.imageUrl IS NULL OR TRIM(m.imageUrl) = '') " +
+           "AND (m.imageGenerationStatus IS NULL OR m.imageGenerationStatus = :completed " +
+           "OR m.imageGenerationStatus = :failed) " +
+           "ORDER BY m.id ASC")
+    List<MenuItem> findMissingImageCandidates(
+            @Param("locationId") Long locationId,
+            @Param("failed") ImageGenerationStatus failed,
+            @Param("completed") ImageGenerationStatus completed,
+            Pageable pageable);
+
     /**
      * Filtered menu query — all predicates are optional (null = no filter).
      *

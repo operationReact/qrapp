@@ -23,6 +23,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
+import { Check, ChevronDown, Globe, MapPin } from "lucide-react";
 import { KPIStrip } from "@/components/admin/hall-of-happiness/KPIStrip";
 import { SearchToolbar } from "@/components/admin/hall-of-happiness/SearchToolbar";
 import { MemoryGrid } from "@/components/admin/hall-of-happiness/MemoryGrid";
@@ -53,6 +54,7 @@ function HallOfHappinessAdminPage() {
   const [toDate, setToDate] = useState("");
   const [locationFilter, setLocationFilter] = useState("");
   const configLocationId = locationFilter || activeLocationId;
+  const selectedLocation = locations.find((location) => String(location.id) === String(locationFilter));
   const configQuery = useQuery(hallOfHappinessConfigOptions(configLocationId));
   const configMutation = useMutation({
     mutationFn: (enabled) => setHallOfHappinessEnabled(configLocationId, enabled),
@@ -178,7 +180,7 @@ function HallOfHappinessAdminPage() {
       <div className="sticky top-0 z-30 border-b border-[var(--cc-border)] bg-white">
         <div className="mx-auto max-w-[1400px] px-4 py-3 md:px-6">
           {/* Header Container - Responsive flex layout */}
-          <div className="flex items-center justify-between gap-3 md:gap-4">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between md:gap-4">
             {/* Left Section: Back Button + Icon + Title/Subtitle */}
             <div className="flex items-center gap-2 md:gap-3 min-w-0 flex-1">
               {/* Back Button */}
@@ -209,26 +211,56 @@ function HallOfHappinessAdminPage() {
             </div>
 
             {/* Right Section: Add Memory Button + More Menu */}
-            <div className="flex items-center gap-2 md:gap-3 shrink-0">
-              <label className="flex items-center gap-1.5 rounded-full border border-[var(--cc-border)] bg-[var(--cc-page)] px-2 py-2 text-xs font-semibold text-[var(--cc-text)]">
-                <span className="hidden sm:inline">Location</span>
-                <select
-                  aria-label="Select location"
-                  className="max-w-[8rem] bg-transparent text-xs outline-none"
-                  value={locationFilter}
-                  onChange={(event) => {
-                    setLocationFilter(event.target.value);
-                    setPage(0);
-                  }}
-                >
-                  <option value="">All locations</option>
-                  {locations.map((location) => (
-                    <option key={location.id} value={String(location.id)}>
-                      {location.name || location.title || `Location ${location.id}`}
-                    </option>
-                  ))}
-                </select>
-              </label>
+            <div className="flex w-full flex-wrap items-center gap-2 md:w-auto md:flex-nowrap md:gap-3">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    aria-label="Select location"
+                    className="min-w-0 flex-1 justify-between rounded-full border-[var(--cc-border)] bg-[var(--cc-page)] px-3 text-xs font-semibold text-[var(--cc-text)] md:w-56 md:flex-none"
+                  >
+                    <span className="flex min-w-0 items-center gap-1.5">
+                      {locationFilter ? <MapPin className="size-3.5 shrink-0" /> : <Globe className="size-3.5 shrink-0" />}
+                      <span className="truncate">
+                        {selectedLocation?.name || selectedLocation?.title || "All locations"}
+                      </span>
+                    </span>
+                    <ChevronDown className="size-3.5 shrink-0 opacity-60" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-[min(22rem,calc(100vw-2rem))]">
+                  <DropdownMenuItem
+                    onSelect={() => {
+                      setLocationFilter("");
+                      setPage(0);
+                    }}
+                    className="gap-2"
+                  >
+                    <Globe className="size-4 shrink-0" />
+                    <span className="min-w-0 flex-1 truncate">All locations</span>
+                    {!locationFilter && <Check className="size-4 shrink-0" />}
+                  </DropdownMenuItem>
+                  {locations.map((location) => {
+                    const name = location.name || location.title || `Location ${location.id}`;
+                    const selected = String(location.id) === String(locationFilter);
+                    return (
+                      <DropdownMenuItem
+                        key={location.id}
+                        onSelect={() => {
+                          setLocationFilter(String(location.id));
+                          setPage(0);
+                        }}
+                        className="gap-2"
+                      >
+                        <MapPin className="size-4 shrink-0" />
+                        <span className="min-w-0 flex-1 truncate">{name}</span>
+                        {selected && <Check className="size-4 shrink-0" />}
+                      </DropdownMenuItem>
+                    );
+                  })}
+                </DropdownMenuContent>
+              </DropdownMenu>
               {canGlobal && <label className="flex items-center gap-2 rounded-full border border-[var(--cc-border)] bg-[var(--cc-page)] px-2.5 py-2 text-xs font-semibold text-[var(--cc-text)] sm:px-3">
                 <span className="hidden sm:inline">Customer section</span>
                 <Switch

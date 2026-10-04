@@ -95,7 +95,7 @@ function ToggleChip({ active, activeClass, inactiveClass, onClick, disabled, chi
 
 // ── Main component ─────────────────────────────────────────────────────────
 export default function AdminMenuItem({
-  item, onEdit, onDelete, onQuickUpdate, onSetCost, isUpdating, isSavingCost,
+  item, onEdit, onDelete, onQuickUpdate, onSetCost, onImageError, isUpdating, isSavingCost,
 }) {
   const [imgError,         setImgError]         = useState(false);
   const [costOpen,         setCostOpen]         = useState(false);
@@ -171,7 +171,10 @@ export default function AdminMenuItem({
               <img
                 src={imageSrc}
                 alt={item.name}
-                onError={() => setImgError(true)}
+                onError={() => {
+                  setImgError(true);
+                  onImageError?.(item.id);
+                }}
                 className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
               />
             ) : (
@@ -517,4 +520,5 @@ AdminMenuItem.propTypes = {
   onSetCost:     PropTypes.func.isRequired,
   isUpdating:    PropTypes.bool,
   isSavingCost:  PropTypes.bool,
+  onImageError: PropTypes.func,
 };
