@@ -1,4 +1,4 @@
-import { createFileRoute, Outlet, useLocation, Navigate } from "@tanstack/react-router";
+import { createFileRoute, Outlet, useLocation } from "@tanstack/react-router";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
 import {
   SidebarInset,
@@ -10,8 +10,7 @@ import { Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SidebarIcon } from "@phosphor-icons/react";
 import { RoleGuard } from "@/components/RoleGuard";
-import { CAN_ACCESS_ADMIN, isKitchenStaffOnly } from "@/lib/roles";
-import { useAuth } from "@/context/AuthContext";
+import { CAN_ACCESS_ADMIN } from "@/lib/roles";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/admin")({
@@ -70,7 +69,6 @@ function SubPageHeader({ title }) {
 
 function AdminLayout() {
   const { pathname } = useLocation();
-  const { user } = useAuth();
   // Dashboard has its own embedded premium header — skip the layout header there
   const isDashboard = pathname === "/admin" || pathname === "/admin/";
   // Control Center renders its own compact 64px header (menu + title + bell)
@@ -80,26 +78,19 @@ function AdminLayout() {
   const isFoodCourt = pathname.startsWith("/admin/food-court");
   const hideGenericHeader = isDashboard || isControlCenter;
 
-  // KITCHEN_STAFF are confined to the Kitchen Queue — bounce them there.
-  const kitchenOnly = isKitchenStaffOnly(user);
-
   return (
     <RoleGuard roles={CAN_ACCESS_ADMIN}>
-      {kitchenOnly && !pathname.startsWith("/admin/kitchen-queue") ? (
-        <Navigate to="/admin/kitchen-queue" replace />
-      ) : (
-        <AdminDashboardProvider>
-          <SidebarProvider>
-            <AdminSidebar />
-            <SidebarInset className="min-w-0 bg-[var(--cc-page)]">
-              {!hideGenericHeader && <SubPageHeader title={isKitchenQueue ? "Kitchen Queue" : isFoodCourt ? "Food Court Management" : undefined} />}
-              <div className="min-h-0 flex-1 flex flex-col">
-                <Outlet />
-              </div>
-            </SidebarInset>
-          </SidebarProvider>
-        </AdminDashboardProvider>
-      )}
+      <AdminDashboardProvider>
+        <SidebarProvider>
+          <AdminSidebar />
+          <SidebarInset className="min-w-0 bg-[var(--cc-page)]">
+            {!hideGenericHeader && <SubPageHeader title={isKitchenQueue ? "Kitchen Queue" : isFoodCourt ? "Food Court Management" : undefined} />}
+            <div className="min-h-0 flex-1 flex flex-col">
+              <Outlet />
+            </div>
+          </SidebarInset>
+        </SidebarProvider>
+      </AdminDashboardProvider>
     </RoleGuard>
   );
 }

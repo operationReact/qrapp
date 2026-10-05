@@ -3,6 +3,8 @@ package com.broandbro.qrapp.controller;
 import com.broandbro.qrapp.dto.RegisterRequest;
 import com.broandbro.qrapp.dto.UpdateProfileRequest;
 import com.broandbro.qrapp.dto.UserResponse;
+import com.broandbro.qrapp.dto.UserLocationAccessResponse;
+import com.broandbro.qrapp.dto.LocationResponse;
 import com.broandbro.qrapp.dto.OtpResponse;
 import com.broandbro.qrapp.dto.PasswordResetOtpResponse;
 import com.broandbro.qrapp.dto.PasswordResetRequest;
@@ -15,6 +17,7 @@ import com.broandbro.qrapp.exception.WhatsAppDeliveryException;
 import com.broandbro.qrapp.service.MilestoneCouponService;
 import com.broandbro.qrapp.service.UserService;
 import com.broandbro.qrapp.service.WhatsAppOtpService;
+import com.broandbro.qrapp.repository.UserLocationAccessRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -34,6 +37,7 @@ public class UserAuthController {
     private final MilestoneCouponService milestoneCouponService;
     private final WhatsAppOtpService whatsAppOtpService;
     private final com.broandbro.qrapp.service.LocationAccessService locationAccessService;
+    private final UserLocationAccessRepository userLocationAccessRepository;
 
     private static final String GENERIC_RESET_MESSAGE =
             "If the account is eligible, a verification code has been sent to your WhatsApp.";
@@ -144,6 +148,12 @@ public class UserAuthController {
                 com.broandbro.qrapp.dto.CustomerCompanyResponse.from(currentUser.getCustomerCompany()));
         r.setLocations(locationAccessService.getAccessibleLocations(currentUser).stream()
                 .map(com.broandbro.qrapp.dto.LocationResponse::from).toList());
+        r.setLocationAccess(userLocationAccessRepository
+                .findByUserIdAndActiveTrueAndLocationActiveTrueOrderByLocationNameAsc(currentUser.getId())
+                .stream()
+                .map(access -> new UserLocationAccessResponse(
+                        LocationResponse.from(access.getLocation()), access.getRole()))
+                .toList());
         return ResponseEntity.ok(r);
     }
 

@@ -12,16 +12,18 @@ import { adminOrdersOptions, adminOrderDashboardOptions, adminOrderOptions } fro
 import { updateAdminOrder } from "@/services/order-service";
 import { useAuth } from "./AuthContext";
 import { useLocation as useActiveLocation } from "@/context/LocationContext";
+import { hasRole, isKitchenStaffOnly } from "@/lib/roles";
 
 const AdminDashboardContext = createContext(null);
 
 export const AdminDashboardProvider = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { setUser: setAdmin, isAdmin, isSuperUser } = useAuth();
+  const { setUser: setAdmin, isAdmin, isSuperUser, user } = useAuth();
   const { activeLocationId, isLoading: locationLoading } = useActiveLocation();
   const queryClient = useQueryClient();
-  const canViewAdmin = isAdmin || isSuperUser;
+  const canViewAdmin = hasRole(user, "SUPER_ADMIN", activeLocationId)
+    && !isKitchenStaffOnly(user, activeLocationId);
   const dashboardEnabled = canViewAdmin && !locationLoading;
 
 
@@ -154,14 +156,33 @@ export const AdminDashboardProvider = ({ children }) => {
 export const useAdminDashboard = (selectedOrderId) => {
   const context = useContext(AdminDashboardContext);
   if (!context) {
-    throw new Error(
-      "useAdminDashboard must be used within an AdminDashboardProvider",
-    );
+    return {
+      ordersPage: { content: [], totalPages: 0, totalElements: 0, number: 0 },
+      dashboard: { delayedOrders: 0, placedOrders: 0 },
+      dashboardLoading: false,
+      dashboardRefreshing: false,
+      dashboardUpdatedAt: null,
+      dashboardError: null,
+      refetchDashboard: async () => {},
+      page: 0,
+      setPage: () => {},
+      size: 10,
+      setSize: () => {},
+      filters: {},
+      setFilters: () => {},
+      loading: false,
+      refreshing: false,
+      error: null,
+      actionLoading: false,
+      loadData: async () => {},
+      handleOrderUpdate: async () => {},
+      selectedOrder: null,
+    };
   }
 
   const { ordersPage } = context;
-  const { isAdmin, isSuperUser } = useAuth();
-  const canViewAdmin = isAdmin || isSuperUser;
+  const { isAdmin, isSuperUser, user } = useAuth();
+  const canViewAdmin = hasRole(user, "SUPER_ADMIN");
 
   const orderFromPage = useMemo(() => {
     if (!selectedOrderId || !ordersPage?.content) return null;

@@ -3,7 +3,28 @@ import PropTypes from 'prop-types';
 import { createContext, useContext, useState, useRef, useEffect } from 'react';
 import { useLocation } from './LocationContext';
 
-const CartContext = createContext();
+const emptyCartContext = {
+  cart: [],
+  addItem: () => {},
+  decreaseItem: () => {},
+  removeItem: () => {},
+  clearCart: () => {},
+  getTotal: () => 0,
+  getTotalAfterDiscount: () => 0,
+  drawerOpen: false,
+  openDrawer: () => {},
+  closeDrawer: () => {},
+  toggleDrawer: () => {},
+  addCount: 0,
+  lastAdded: null,
+  appliedPromotion: null,
+  applyPromotion: () => {},
+  removePromotion: () => {},
+  byocDiscount: null,
+  applyByocDiscount: () => {},
+  removeByocDiscount: () => {},
+};
+const CartContext = createContext(emptyCartContext);
 
 export const useCart = () => useContext(CartContext);
 

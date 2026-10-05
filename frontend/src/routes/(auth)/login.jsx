@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect, useRef } from "react";
 import { Link } from "@tanstack/react-router";
 import { useMutation } from "@tanstack/react-query";
+import { setUserAuth } from "@/services";
 import { loginUser } from "@/services/auth-service";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
@@ -41,7 +42,9 @@ export const Route = createFileRoute("/(auth)/login")({
           setNoToken(true);
           return;
         }
-        setUser({ token: data.token, ...data.user });
+        setUserAuth(data.token);
+        setUser({ ...data.user, token: data.token });
+        window.location.assign("/admin");
       },
     });
 

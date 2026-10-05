@@ -39,15 +39,17 @@ console.info(`[api] baseURL → ${resolvedBase}`);
 export const baseURL = resolvedBase;
 
 export const apiClient = axios.create({ baseURL: resolvedBase });
+let activeAuthToken = null;
 
 apiClient.interceptors.request.use(
   (config) => {
     try {
       const raw = localStorage.getItem("user");
       const creds = raw ? JSON.parse(raw) : null;
-      if (creds && creds.token) {
+      const token = creds?.token || activeAuthToken;
+      if (token) {
         config.headers = config.headers || {};
-        config.headers["Authorization"] = `Bearer ${creds.token}`;
+        config.headers["Authorization"] = `Bearer ${token}`;
       }
       const activeLocation = JSON.parse(localStorage.getItem("active-location") || "null");
       if (activeLocation?.id) {
@@ -68,6 +70,7 @@ apiClient.interceptors.response.use(
     const status = error?.response?.status;
     if (status === 401) {
       try {
+        activeAuthToken = null;
         delete apiClient.defaults.headers.common["Authorization"];
         localStorage.removeItem("user");
         window.dispatchEvent(
@@ -85,6 +88,7 @@ apiClient.interceptors.response.use(
 
 export const setUserAuth = (token) => {
   if (token) {
+    activeAuthToken = token;
     apiClient.defaults.headers.common["Authorization"] = `Bearer ${token}`;
     try {
       const raw = localStorage.getItem("user");
@@ -94,6 +98,7 @@ export const setUserAuth = (token) => {
       console.debug("setUserAuth localStorage write failed", e);
     }
   } else {
+    activeAuthToken = null;
     try {
       localStorage.removeItem("user");
     } catch (e) {
