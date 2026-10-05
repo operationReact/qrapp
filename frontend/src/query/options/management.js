@@ -37,6 +37,9 @@ export const userLocationsOptions = (userId, enabled = true) => ({
 });
 
 export async function createManagementResource(path, payload) { return (await apiClient.post(path, payload)).data; }
+export async function resetAdminUserPassword(userId, newPassword) {
+  return (await apiClient.put(`/api/admin/users/${userId}/password`, { newPassword })).data;
+}
 export async function updateManagementResource(path, id, payload) { return (await apiClient.patch(`${path}/${id}`, payload)).data; }
 function locationFormData(payload, photo) {
   const locationPayload = { ...payload };

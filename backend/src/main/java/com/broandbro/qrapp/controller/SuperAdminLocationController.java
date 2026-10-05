@@ -229,6 +229,25 @@ public class SuperAdminLocationController {
         return userResponse(userRepository.save(user));
     }
 
+    @PutMapping("/users/{userId}/password")
+    public ResponseEntity<?> resetPassword(
+            @PathVariable Long userId,
+            @Valid @RequestBody AdminPasswordResetRequest request,
+            org.springframework.security.core.Authentication authentication) {
+        authorize(authentication);
+        try {
+            return ResponseEntity.ok(userService.resetPasswordByAdmin(userId, request.getNewPassword()));
+        } catch (IllegalArgumentException exception) {
+            if ("user_not_found".equals(exception.getMessage())) {
+                return ResponseEntity.notFound().build();
+            }
+            if ("password_length_invalid".equals(exception.getMessage())) {
+                return ResponseEntity.badRequest().body("password_length_invalid");
+            }
+            throw exception;
+        }
+    }
+
     @GetMapping("/users/{userId}/locations")
     public List<UserLocationAccessResponse> userLocations(@PathVariable Long userId,
                                                 org.springframework.security.core.Authentication authentication) {

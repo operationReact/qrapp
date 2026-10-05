@@ -20,7 +20,7 @@ import { paymentConfigOptions } from "@/query/options/orders";
 import { adminSetPaymentMethod, getAdminSettings } from "@/services/order-service";
 import { partyOrdersOptions } from "@/query/options/party-orders";
 import { adminHallOfHappinessOptions } from "@/query/options/admin-hall-of-happiness";
-import { adminCreateUserOptions, adminCustomerCompaniesOptions, adminLocationsOptions, adminLocationsPageOptions, adminUsersOptions, adminVendorsOptions, assignCustomerCompany, createAdminLocation, createAdminUser, createManagementResource, deleteAdminLocation, grantUserLocation, revokeUserLocation, setAdminLocationActive, updateAdminLocation, updateCustomerCompany, updateUserRole, userLocationsOptions } from "@/query/options/management";
+import { adminCreateUserOptions, adminCustomerCompaniesOptions, adminLocationsOptions, adminLocationsPageOptions, adminUsersOptions, adminVendorsOptions, assignCustomerCompany, createAdminLocation, createAdminUser, createManagementResource, deleteAdminLocation, grantUserLocation, resetAdminUserPassword, revokeUserLocation, setAdminLocationActive, updateAdminLocation, updateCustomerCompany, updateUserRole, userLocationsOptions } from "@/query/options/management";
 import { baseURL } from "@/services";
 import { ControlCenterThumbnail } from "@/components/admin/ControlCenterThumbnail";
 
@@ -326,13 +326,70 @@ function UserAccessDialog({ user, open, onOpenChange, query }) {
   </Dialog>;
 }
 
-function UserCard({ user, onViewAccess }) {
+function UserPasswordResetDialog({ user, open, onOpenChange, mutation }) {
+  const [password, setPassword] = useState("");
+  const [confirmation, setConfirmation] = useState("");
+  const mismatch = confirmation.length > 0 && password !== confirmation;
+  const canSubmit = password.length >= 8 && password.length <= 128 && password === confirmation && !mutation.isPending;
+
+  useEffect(() => {
+    if (!open) {
+      setPassword("");
+      setConfirmation("");
+    }
+  }, [open]);
+
+  const submit = (event) => {
+    event.preventDefault();
+    if (canSubmit) mutation.mutate(password);
+  };
+
+  return <Dialog open={open} onOpenChange={onOpenChange}>
+    <DialogContent className="max-h-[calc(100vh-32px)] overflow-y-auto rounded-[20px] border border-[var(--cc-border)] bg-white p-5 shadow-[0_12px_40px_rgba(0,0,0,0.16)] sm:max-w-md">
+      <DialogHeader>
+        <DialogTitle className="text-lg font-semibold text-[var(--cc-text)]">Reset password</DialogTitle>
+        <DialogDescription className="text-sm text-[var(--cc-secondary-text)]">
+          Set a new password for {user?.name || user?.fullName || user?.username || "this user"}.
+        </DialogDescription>
+      </DialogHeader>
+      <form className="grid gap-4" onSubmit={submit}>
+        <Input
+          autoFocus
+          type="password"
+          minLength={8}
+          maxLength={128}
+          required
+          placeholder="New password"
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
+          className="h-11 rounded-[10px] border-[var(--cc-border)]"
+        />
+        <Input
+          type="password"
+          minLength={8}
+          maxLength={128}
+          required
+          placeholder="Confirm new password"
+          value={confirmation}
+          onChange={(event) => setConfirmation(event.target.value)}
+          className="h-11 rounded-[10px] border-[var(--cc-border)]"
+        />
+        {mismatch && <p className="text-xs text-[var(--cc-error)]">Passwords do not match.</p>}
+        <Button type="submit" disabled={!canSubmit} className="h-11 rounded-[10px] bg-[var(--cc-primary)] text-sm font-semibold text-white hover:bg-[var(--cc-primary-dark)] disabled:bg-[#F9A0A8]">
+          {mutation.isPending ? "Resetting password..." : "Reset password"}
+        </Button>
+      </form>
+    </DialogContent>
+  </Dialog>;
+}
+
+function UserCard({ user, onViewAccess, onResetPassword }) {
   const active = user.active ?? user.enabled ?? true;
   return <div className="flex min-h-[76px] items-center gap-3 rounded-[16px] border border-[var(--cc-border)] bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
     <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-[var(--cc-primary-light)] text-[var(--cc-primary)]"><UserRound className="size-5" /></div>
     <div className="min-w-0 flex-1"><p className="truncate text-[15px] font-semibold text-[var(--cc-text)]">{user.name || user.fullName || user.username || "Unnamed user"}</p><p className="truncate text-xs text-[var(--cc-secondary-text)]">{user.phone || user.whatsappNumber || user.email || "No phone number"}</p></div>
     <div className="hidden items-end gap-1.5 sm:flex sm:flex-col"><span className="rounded-full bg-[var(--cc-primary-light)] px-2.5 py-1 text-xs font-semibold text-[var(--cc-primary-dark)]">{humanRole(user.role || user.roles?.[0])}</span><span className={`text-xs ${active ? "text-[var(--cc-success)]" : "text-[var(--cc-muted-text)]"}`}>{active ? "Active" : "Inactive"}</span></div>
-    <DropdownMenu><DropdownMenuTrigger className="grid size-11 shrink-0 place-items-center rounded-[10px] text-[var(--cc-muted-text)] hover:bg-[var(--cc-primary-light)]" aria-label={`Actions for ${user.name || "user"}`}><MoreVertical className="size-5" /></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onClick={() => onViewAccess(user)}>View access</DropdownMenuItem></DropdownMenuContent></DropdownMenu>
+    <DropdownMenu><DropdownMenuTrigger className="grid size-11 shrink-0 place-items-center rounded-[10px] text-[var(--cc-muted-text)] hover:bg-[var(--cc-primary-light)]" aria-label={`Actions for ${user.name || "user"}`}><MoreVertical className="size-5" /></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onClick={() => onViewAccess(user)}>View access</DropdownMenuItem><DropdownMenuItem onClick={() => onResetPassword(user)}>Reset password</DropdownMenuItem></DropdownMenuContent></DropdownMenu>
   </div>;
 }
 
@@ -349,7 +406,21 @@ export function ControlCenterUsers() {
   const [roleFilter, setRoleFilter] = useState("ALL");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [accessUser, setAccessUser] = useState(null);
+  const [passwordUser, setPasswordUser] = useState(null);
   const accessQuery = useQuery(userLocationsOptions(accessUser?.id, Boolean(accessUser)));
+  const passwordMutation = useMutation({
+    mutationFn: (newPassword) => resetAdminUserPassword(passwordUser.id, newPassword),
+    onSuccess: () => {
+      setPasswordUser(null);
+      toast.success("Password reset successfully. The user can now sign in with the new password.");
+    },
+    onError: (error) => {
+      const message = error?.response?.data === "password_length_invalid"
+        ? "Password must be between 8 and 128 characters."
+        : error?.response?.data?.message || "Unable to reset password.";
+      toast.error(message);
+    },
+  });
   const mutation = useMutation({
     mutationFn: () => createAdminUser({ ...form, name: form.name.trim(), phone: form.phone.trim(), locationId: Number(form.locationId) }),
     onSuccess: () => {
@@ -380,10 +451,11 @@ export function ControlCenterUsers() {
   return <Shell title="Users" description="Create and manage internal users." showLocationContext={false}>
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div className="relative w-full sm:max-w-sm"><Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[var(--cc-muted-text)]" /><Input className="h-11 rounded-[10px] border-[var(--cc-border)] bg-white pl-10" placeholder="Search name or WhatsApp number" value={search} onChange={(event) => setSearch(event.target.value)} /></div><Button className="h-11 w-full rounded-[10px] bg-[var(--cc-primary)] text-sm font-semibold text-white hover:bg-[var(--cc-primary-dark)] sm:w-auto" onClick={() => setCreateOpen(true)}><Plus className="size-[18px]" /> Create User</Button></div>
     <div className="grid grid-cols-1 gap-2 sm:max-w-2xl sm:grid-cols-3"><select aria-label="Filter users by location" className="h-11 rounded-[10px] border border-[var(--cc-border)] bg-white px-3 text-sm" value={locationFilter} onChange={(event) => setLocationFilter(event.target.value)}><option value="ALL">All Locations</option>{locations.map((location) => <option key={location.id} value={location.id}>{location.name}</option>)}</select><select className="h-11 rounded-[10px] border border-[var(--cc-border)] bg-white px-3 text-sm" value={roleFilter} onChange={(event) => setRoleFilter(event.target.value)}><option value="ALL">All Roles</option>{[...new Set(data.map((user) => user.role || user.roles?.[0]).filter(Boolean))].map((role) => <option key={role} value={role}>{humanRole(role)}</option>)}</select><select className="h-11 rounded-[10px] border border-[var(--cc-border)] bg-white px-3 text-sm" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}><option value="ALL">All Status</option><option value="ACTIVE">Active</option><option value="INACTIVE">Inactive</option></select></div>
-    {isLoading ? <p className="text-sm text-[var(--cc-muted-text)]">Loading users...</p> : <div className="grid gap-3 lg:grid-cols-2">{filteredUsers.map((user) => <UserCard key={user.id} user={user} onViewAccess={setAccessUser} />)}{!filteredUsers.length && <p className="rounded-[16px] border border-[var(--cc-border)] bg-white p-8 text-center text-sm text-[var(--cc-muted-text)] lg:col-span-2">No users match these filters.</p>}</div>}
+    {isLoading ? <p className="text-sm text-[var(--cc-muted-text)]">Loading users...</p> : <div className="grid gap-3 lg:grid-cols-2">{filteredUsers.map((user) => <UserCard key={user.id} user={user} onViewAccess={setAccessUser} onResetPassword={setPasswordUser} />)}{!filteredUsers.length && <p className="rounded-[16px] border border-[var(--cc-border)] bg-white p-8 text-center text-sm text-[var(--cc-muted-text)] lg:col-span-2">No users match these filters.</p>}</div>}
     <ErrorState error={error} />
     <UserCreateDialog open={createOpen} onOpenChange={setCreateOpen} form={form} setForm={setForm} roles={roles} locations={locations} optionsLoading={optionsLoading} mutation={mutation} apiError={apiError} optionsError={optionsError} />
     <UserAccessDialog user={accessUser} open={Boolean(accessUser)} onOpenChange={(open) => { if (!open) setAccessUser(null); }} query={accessQuery} />
+    <UserPasswordResetDialog user={passwordUser} open={Boolean(passwordUser)} onOpenChange={(open) => { if (!open) setPasswordUser(null); }} mutation={passwordMutation} />
   </Shell>;
 }
 
