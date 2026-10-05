@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 import { LocationSelector } from "@/components/LocationSelector";
 import { liveOrdersAdminOptions } from "@/query/options/orders";
-import { updateAdminOrder } from "@/services/order-service";
+import { updateOrderStatusAdmin } from "@/services/order-service";
 import { useAuth } from "@/context/AuthContext";
 import { useLocation as useActiveLocation } from "@/context/LocationContext";
 import { canAccessAdmin } from "@/lib/roles";
@@ -415,7 +415,7 @@ function KitchenQueuePage() {
 
   const mutation = useMutation({
     mutationFn: ({ orderId, status }) =>
-      updateAdminOrder(orderId, { status }, activeLocationId),
+      updateOrderStatusAdmin(orderId, { status }, activeLocationId),
     onError: (error) => {
       const parsedError = parseApiError(error);
       const message = parsedError.isBusinessError
