@@ -27,6 +27,46 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
+async function prepareUploadImage(file) {
+  const sourceUrl = URL.createObjectURL(file);
+  try {
+    const image = new Image();
+    image.src = sourceUrl;
+    await new Promise((resolve, reject) => {
+      image.onload = resolve;
+      image.onerror = reject;
+    });
+
+    const scale = Math.min(1, 1024 / Math.max(image.width, image.height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(image.width * scale));
+    canvas.height = Math.max(1, Math.round(image.height * scale));
+    canvas.getContext("2d").drawImage(image, 0, 0, canvas.width, canvas.height);
+
+    let smallestBlob = null;
+    for (const quality of [0.7, 0.5, 0.35, 0.2]) {
+      const blob = await new Promise((resolve) =>
+        canvas.toBlob(resolve, "image/jpeg", quality),
+      );
+      if (blob && (!smallestBlob || blob.size < smallestBlob.size)) {
+        smallestBlob = blob;
+      }
+      if (blob && blob.size <= 1024 * 1024) {
+        return new File([blob], file.name.replace(/\.[^.]+$/, ".jpg"), {
+          type: "image/jpeg",
+        });
+      }
+    }
+    return smallestBlob
+      ? new File([smallestBlob], file.name.replace(/\.[^.]+$/, ".jpg"), {
+          type: "image/jpeg",
+        })
+      : file;
+  } finally {
+    URL.revokeObjectURL(sourceUrl);
+  }
+}
+
 export function MemoryDetailView({ open, onOpenChange, submission, onAction, onEdit, actionPending, locations = [] }) {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   
@@ -161,7 +201,7 @@ export function MemoryDetailView({ open, onOpenChange, submission, onAction, onE
 
     // Handle image replacement
     if (newImageFile) {
-      payload.file = newImageFile;
+      payload.file = await prepareUploadImage(newImageFile);
     }
     onEdit({ id: photo.id, payload });
   };
