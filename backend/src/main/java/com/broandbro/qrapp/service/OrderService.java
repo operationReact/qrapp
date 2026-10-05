@@ -287,9 +287,13 @@ public class OrderService {
         BigDecimal baseSubtotal = itemSnaps.stream()
                 .map(pair -> ((PricingService.OrderItemSnapshot) pair[1]).lineTotal())
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal inclusiveGrandTotal = adjustedTaxes.stream()
+                .map(TaxCalculationService.TaxCalculationResult::totalAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
         order.setSubtotal(baseSubtotal);
         order.setTax(MoneyService.amount(tax));
-        order.setGrandTotal(MoneyService.amount(baseSubtotal.subtract(couponDiscount).add(tax)));
+        // Menu prices and adjusted item totals already include GST.
+        order.setGrandTotal(MoneyService.amount(inclusiveGrandTotal));
 
         // ── Step 3: single save — order persisted with correct totals + gets ID ─
         log.info("[createOrder] DEBUG: Before orderRepo.save() - orderNumber={}, locationCode={}, locationId={}", 
@@ -1155,7 +1159,10 @@ public class OrderService {
                 .map(pair -> ((TaxCalculationService.TaxCalculationResult) pair[2]).totalTax())
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         order.setTax(tax);
-        order.setGrandTotal(MoneyService.amount(baseSubtotal.subtract(couponDiscount).add(tax)));
+        BigDecimal inclusiveGrandTotal = adjustedTaxes.stream()
+                .map(TaxCalculationService.TaxCalculationResult::totalAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        order.setGrandTotal(MoneyService.amount(inclusiveGrandTotal));
         log.info("[createPreOrder] Totals — subtotal={} couponDiscount={} grandTotal={}",
                 subtotal, couponDiscount, order.getGrandTotal());
 
