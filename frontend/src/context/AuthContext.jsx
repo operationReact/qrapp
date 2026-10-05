@@ -27,7 +27,23 @@ export const AuthProvider = ({ children }) => {
   const isSuperUser = !!user?.isSuperUser;
 
   const setUser = useCallback((nextUser) => {
-    setUserState(nextUser);
+    setUserState((currentUser) => {
+      const resolvedUser =
+        typeof nextUser === "function" ? nextUser(currentUser) : nextUser;
+
+      try {
+        if (resolvedUser) {
+          localStorage.setItem("user", JSON.stringify(resolvedUser));
+        } else {
+          localStorage.removeItem("user");
+        }
+      } catch (error) {
+        console.warn("Unable to persist the authentication session", error);
+      }
+
+      setUserAuth(resolvedUser?.token);
+      return resolvedUser;
+    });
   }, []);
 
   useEffect(() => {

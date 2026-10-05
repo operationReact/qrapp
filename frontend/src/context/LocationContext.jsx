@@ -14,11 +14,13 @@ function readActiveLocation() {
   try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "null"); } catch { return null; }
 }
 
-export function authorizedLocationsOptions(enabled = true) {
+export function authorizedLocationsOptions(enabled = true, token = null) {
   return {
     queryKey: ["locations", "accessible"],
     queryFn: async () => {
-      const response = await apiClient.get("/api/locations/accessible");
+      const response = await apiClient.get("/api/locations/accessible", {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      });
       const body = response.data;
       return Array.isArray(body) ? body : (body?.content || body?.data || body?.locations || []);
     },
@@ -40,7 +42,7 @@ export function LocationProvider({ children }) {
   const allowAllLocations = canSelectAllLocations(user);
   const usePublicLocations = !isAdmin;
   const authorizedQuery = useQuery(
-    authorizedLocationsOptions(Boolean(user?.token) && isAdmin),
+    authorizedLocationsOptions(Boolean(user?.token) && isAdmin, user?.token),
   );
   const publicQuery = useQuery(publicLocationsOptions(usePublicLocations));
   const locationQuery = usePublicLocations ? publicQuery : authorizedQuery;
@@ -56,18 +58,28 @@ export function LocationProvider({ children }) {
     () => (usePublicLocations ? publicQuery.data : authorizedQuery.data) || [],
     [authorizedQuery.data, publicQuery.data, usePublicLocations],
   );
+  const assignedLocations = user?.locations
+    || user?.info?.locations
+    || (user?.locationAccess || user?.info?.locationAccess)?.map((access) => access.location);
+  const scopedLocations = useMemo(() => {
+    if (usePublicLocations || canSelectAllLocations(user) || !Array.isArray(assignedLocations)) {
+      return availableLocations;
+    }
+    const assignedIds = new Set(assignedLocations.map((location) => String(location.id)));
+    return availableLocations.filter((location) => assignedIds.has(String(location.id)));
+  }, [assignedLocations, availableLocations, user, usePublicLocations]);
   const allLocationsSelected = allowAllLocations && isAllLocationsSelection(storedLocation);
   const defaultLocation = user?.defaultLocation || user?.info?.defaultLocation;
   const baseLocation = allLocationsSelected
     ? ALL_LOCATIONS
-    : availableLocations.find((item) => String(item.id) === String(storedLocation?.id))
-    || availableLocations.find((item) => String(item.id) === String(defaultLocation?.id))
-    || availableLocations.find((item) => item.code === "PRAGATI_NAGAR")
-    || availableLocations[0]
+    : scopedLocations.find((item) => String(item.id) === String(storedLocation?.id))
+    || scopedLocations.find((item) => String(item.id) === String(defaultLocation?.id))
+    || scopedLocations.find((item) => item.code === "PRAGATI_NAGAR")
+    || scopedLocations[0]
     || null;
   const overrideLocation = useMemo(
-    () => resolveSectionOverride(sectionOverride, availableLocations),
-    [sectionOverride, availableLocations],
+    () => resolveSectionOverride(sectionOverride, scopedLocations),
+    [sectionOverride, scopedLocations],
   );
   const activeLocation = overrideLocation || baseLocation;
   const isAllLocations = isAllLocationsSelection(activeLocation);
@@ -89,14 +101,14 @@ export function LocationProvider({ children }) {
       return () => window.clearTimeout(timer);
     }
     if (!locationQuerySuccess) return;
-    if (storedLocation && !availableLocations.some((item) => String(item.id) === String(storedLocation.id))) {
+    if (storedLocation && !scopedLocations.some((item) => String(item.id) === String(storedLocation.id))) {
       const timer = window.setTimeout(() => setStoredLocation(null), 0);
       return () => window.clearTimeout(timer);
     } else if (!storedLocation && baseLocation) {
       const timer = window.setTimeout(() => setStoredLocation(baseLocation), 0);
       return () => window.clearTimeout(timer);
     }
-  }, [baseLocation, allLocationsSelected, allowAllLocations, availableLocations, locationQuerySuccess, storedLocation]);
+  }, [baseLocation, allLocationsSelected, allowAllLocations, scopedLocations, locationQuerySuccess, storedLocation]);
 
   const setActiveLocation = useCallback((location) => {
     // A root-level selection supersedes any transient section override.
@@ -106,31 +118,31 @@ export function LocationProvider({ children }) {
       setEffectiveLocationId(null);
       return;
     }
-    const next = location && availableLocations.find((item) => String(item.id) === String(location.id));
+    const next = location && scopedLocations.find((item) => String(item.id) === String(location.id));
     setStoredLocation(next || null);
     setEffectiveLocationId(activeLocationScopeId(next));
-  }, [allowAllLocations, availableLocations]);
+  }, [allowAllLocations, scopedLocations]);
   // Section-level selection: transient override, never persisted, and only
   // among assigned locations (never the "All Locations" sentinel).
   const setSectionLocation = useCallback((location) => {
-    const next = resolveSectionOverride(location, availableLocations);
+    const next = resolveSectionOverride(location, scopedLocations);
     setSectionOverride(next);
     setEffectiveLocationId(activeLocationScopeId(next));
-  }, [availableLocations]);
+  }, [scopedLocations]);
   const clearSectionLocation = useCallback(() => {
     setSectionOverride(null);
     setEffectiveLocationId(activeLocationScopeId(baseLocation));
   }, [baseLocation]);
   const value = useMemo(() => ({
-    activeLocation, activeLocationId, availableLocations,
+    activeLocation, activeLocationId, availableLocations: scopedLocations,
     isAllLocations, canSelectAllLocations: allowAllLocations, allLocationsOption: ALL_LOCATIONS,
-    setActiveLocation, locations: availableLocations, selectLocation: setActiveLocation,
+    setActiveLocation, locations: scopedLocations, selectLocation: setActiveLocation,
     sectionLocation: overrideLocation, hasSectionOverride: Boolean(overrideLocation),
     setSectionLocation, clearSectionLocation,
     isLoading: locationQuery.isLoading,
     error: locationQuery.error,
     refetch: locationQuery.refetch,
-  }), [activeLocation, activeLocationId, availableLocations, isAllLocations, allowAllLocations,
+  }), [activeLocation, activeLocationId, scopedLocations, isAllLocations, allowAllLocations,
     setActiveLocation, overrideLocation, setSectionLocation, clearSectionLocation,
     locationQuery.isLoading, locationQuery.error, locationQuery.refetch]);
   return <LocationContext.Provider value={value}>{children}</LocationContext.Provider>;

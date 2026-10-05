@@ -9,6 +9,7 @@ import { useAuth } from "@/context/AuthContext";
 import { LocationSelector } from "@/components/LocationSelector";
 import { SectionLocationSelector } from "@/components/SectionLocationSelector";
 import { canUseRootLocationSelector } from "@/lib/sectionLocation";
+import { hasRole, isKitchenStaffOnly } from "@/lib/roles";
 import { useAdminDashboard } from "@/context/AdminDashboardContext";
 import { useLocation as useActiveLocation } from "@/context/LocationContext";
 import {
@@ -329,8 +330,14 @@ function DashboardHeader({ rangeKey, onRangeChange, ownerName, notifications }) 
 function AdminDashboardPage() {
   const { isAdmin, isSuperUser, user } = useAuth();
   const location = useLocation();
-  const { activeLocationId, isLoading: locationLoading } = useActiveLocation();
-  const canViewAdmin = isAdmin || isSuperUser;
+  const {
+    activeLocationId,
+    isLoading: locationLoading,
+    setActiveLocation,
+  } = useActiveLocation();
+  const hasAdminAccess = isAdmin || isSuperUser;
+  const canViewAdmin = hasRole(user, "SUPER_ADMIN", activeLocationId)
+    && !isKitchenStaffOnly(user, activeLocationId);
   const {
     dashboard,
     dashboardLoading,
@@ -406,7 +413,43 @@ function AdminDashboardPage() {
     },
   ].filter(Boolean), [inventoryQuery.data, live.delayedOrders, live.placedOrders]);
 
-  if (!canViewAdmin) return <Navigate to="/login" replace state={{ from: location.pathname }} />;
+  if (!hasAdminAccess) return <Navigate to="/login" replace state={{ from: location.pathname }} />;
+  const locationAccess = user?.locationAccess || user?.info?.locationAccess || [];
+  if (!isSuperUser && locationAccess.length > 0) {
+    return (
+      <div className="mx-auto flex min-h-[60vh] w-full max-w-2xl flex-col gap-5 px-4 py-8 sm:px-6">
+        <div>
+          <h1 className="text-xl font-bold text-[#29231e]">Your location access</h1>
+          <p className="mt-1 text-sm text-[#746b63]">
+            Select a location to use the features assigned to your role there.
+          </p>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {locationAccess.map((access) => (
+            <button
+              type="button"
+              key={access.location?.id}
+              onClick={() => setActiveLocation(access.location)}
+              className="rounded-xl border border-[#eadfd5] bg-white p-4 shadow-sm"
+            >
+              <p className="text-left font-semibold text-[#29231e]">
+                {access.location?.name || "Assigned location"}
+              </p>
+              <p className="mt-1 text-left text-xs font-medium uppercase tracking-wide text-[#e51b23]">
+                {String(access.role || "CUSTOMER").replaceAll("_", " ")}
+              </p>
+            </button>
+          ))}
+        </div>
+        <Link
+          to="/admin/kitchen-queue"
+          className="self-start rounded-lg bg-[#e51b23] px-4 py-2 text-sm font-semibold text-white"
+        >
+          Okay, go ahead
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#F8F6F3]">

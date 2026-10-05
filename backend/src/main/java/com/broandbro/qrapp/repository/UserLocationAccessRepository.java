@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Optional;
 
 public interface UserLocationAccessRepository extends JpaRepository<UserLocationAccess, Long> {
+    @EntityGraph(attributePaths = "location")
     Optional<UserLocationAccess> findByUserIdAndLocationId(Long userId, Long locationId);
     @EntityGraph(attributePaths = "location")
     List<UserLocationAccess> findByUserIdAndActiveTrueAndLocationActiveTrueOrderByLocationNameAsc(Long userId);

@@ -15,7 +15,7 @@ export const ADMIN_NAVIGATION = [
     { to: "/admin/control-center", label: "Control Center", icon: ShieldCheckIcon, roles: [ROLE.SUPER_ADMIN] },
     { to: "/admin/control-center/invoice-management", label: "Invoice Management", icon: FileTextIcon, roles: [ROLE.SUPER_ADMIN] },
   ] },
-  { section: "Workspace", items: [{ to: "/admin", label: "Dashboard", roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN, ROLE.MANAGER] }] },
+  { section: "Workspace", items: [{ to: "/admin", label: "Dashboard", roles: [ROLE.SUPER_ADMIN] }] },
   { section: "Menu", items: [
     { to: "/admin/menu", label: "Menu Items", icon: BowlFoodIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN, ROLE.MANAGER] },
     { to: "/admin/combos", label: "Combos", icon: CubeIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN] },
@@ -24,18 +24,18 @@ export const ADMIN_NAVIGATION = [
     { to: "/admin/home-content", label: "Customer Home Content", icon: ImageIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN] },
   ] },
   { section: "Operations", items: [
-    { to: "/admin/vendors", label: "Vendor Management", icon: StorefrontIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN, ROLE.MANAGER] },
+    { to: "/admin/vendors", label: "Vendor Management", icon: StorefrontIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN] },
     { to: "/admin/kitchen-queue", label: "Kitchen Queue", icon: QueueIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN, ROLE.MANAGER, ROLE.KITCHEN_STAFF] },
-    { to: "/admin/party-orders", label: "Party Orders", icon: UsersThreeIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN, ROLE.MANAGER] },
-    { to: "/admin/hall-of-happiness", label: "Hall of Happiness", icon: ConfettiIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN, ROLE.MANAGER] },
-    { to: "/admin/pre-orders", label: "Pre-Orders", icon: CalendarCheckIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN, ROLE.MANAGER] },
+    { to: "/admin/party-orders", label: "Party Orders", icon: UsersThreeIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN] },
+    { to: "/admin/hall-of-happiness", label: "Hall of Happiness", icon: ConfettiIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN] },
+    { to: "/admin/pre-orders", label: "Pre-Orders", icon: CalendarCheckIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN] },
   ] },
   { section: "Offers", items: [
-    { to: "/admin/promotions", label: "Promotions", icon: TicketIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN, ROLE.MANAGER] },
-    { to: "/admin/milestones", label: "Milestones", icon: TrophyIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN, ROLE.MANAGER] },
+    { to: "/admin/promotions", label: "Promotions", icon: TicketIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN] },
+    { to: "/admin/milestones", label: "Milestones", icon: TrophyIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN] },
   ] },
   { section: "Food Court", items: [
-    { to: "/admin/food-court", label: "Food Court", icon: BuildingOfficeIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN, ROLE.MANAGER] },
+    { to: "/admin/food-court", label: "Food Court", icon: BuildingOfficeIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN] },
   ] },
   { section: "Growth Tools", items: [
     { to: "/admin/item-recommendations", label: "Item Pairings", icon: ListPlusIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN] },
@@ -52,6 +52,6 @@ export const ADMIN_NAVIGATION = [
   ] },
   { section: "System", items: [
     { to: "/admin/global-controls", label: "Settings", icon: SlidersIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN] },
-    { to: "/admin/ops-center", label: "Operations Center", icon: TerminalWindowIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN, ROLE.MANAGER] },
+    { to: "/admin/ops-center", label: "Operations Center", icon: TerminalWindowIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN] },
   ] },
 ];

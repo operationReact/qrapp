@@ -28,9 +28,8 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import { useLocation as useActiveLocation } from "@/context/LocationContext";
 import { cn } from "@/lib/utils";
-import { hasRole } from "@/lib/roles";
+import { canAccessAdmin, hasRole } from "@/lib/roles";
 import { ADMIN_NAVIGATION } from "@/lib/adminNavigation";
-import { canUseRootLocationSelector } from "@/lib/sectionLocation";
 import { GeneratedAvatar } from "@/components/ui/generated-avatar";
 import { useSidebar } from "@/components/ui/sidebar";
 import { ALL_LOCATIONS } from "@/lib/allLocations";
@@ -105,17 +104,19 @@ function MobileLocationSelector() {
     <div ref={popoverRef} className="relative shrink-0">
       <button
         type="button"
-        className="flex h-10 w-[112px] min-[380px]:w-[124px] min-[400px]:w-[132px] min-[420px]:w-[140px] items-center gap-1 rounded-full border border-[#e7ded2] bg-[#fffdfc] px-2.5 text-left text-[#29231e] shadow-[0_1px_4px_rgba(42,35,30,0.04)] transition-colors hover:bg-[#f3e7d3] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#e51b23]/30"
+        className="flex h-10 w-[148px] min-[380px]:w-[160px] min-[420px]:w-[176px] items-center gap-2 rounded-full border border-[#dfd0c0] bg-gradient-to-b from-white to-[#fffaf4] px-3 text-left text-[#29231e] shadow-[0_3px_12px_rgba(78,55,35,0.10),inset_0_1px_0_rgba(255,255,255,0.9)] transition-all hover:-translate-y-px hover:border-[#cdb99f] hover:shadow-[0_5px_16px_rgba(78,55,35,0.14)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#e51b23]/30"
         onClick={() => setOpen((current) => !current)}
         aria-label={`Select location, currently ${locationName}`}
         aria-expanded={open}
       >
-        {isAllLocations ? <Globe2 className="size-[15px] shrink-0 text-[#4a4038]" aria-hidden="true" /> : <MapPin className="size-[15px] shrink-0 text-[#4a4038]" aria-hidden="true" />}
-        <span className="min-w-0 flex-1 truncate text-xs font-medium text-[#29231e]">{locationName}</span>
-        <ChevronDown className={cn("size-3.5 shrink-0 text-[#4a4038] transition-transform", open && "rotate-180")} aria-hidden="true" />
+        <span className="grid size-6 shrink-0 place-items-center rounded-full bg-[#fff0ed] text-[#e51b23]">
+          {isAllLocations ? <Globe2 className="size-[13px]" aria-hidden="true" /> : <MapPin className="size-[13px]" aria-hidden="true" />}
+        </span>
+        <span className="min-w-0 flex-1 truncate text-[11px] font-semibold tracking-[-0.01em] text-[#29231e]">{locationName}</span>
+        <ChevronDown className={cn("size-3.5 shrink-0 text-[#a58d78] transition-transform", open && "rotate-180 text-[#e51b23]")} aria-hidden="true" />
       </button>
       {open && (
-        <div className="absolute right-0 top-[calc(100%+8px)] z-20 w-52 rounded-2xl border border-[#e7ded2] bg-[#fffdfc] p-1.5 shadow-[0_14px_35px_rgba(42,35,30,0.14)]">
+        <div className="absolute right-0 top-[calc(100%+8px)] z-20 w-64 max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-[#dfd0c0] bg-[#fffdfc]/95 p-1.5 shadow-[0_18px_45px_rgba(42,35,30,0.18)] backdrop-blur-xl">
           <button
             type="button"
             className={cn("flex min-h-11 w-full items-center gap-2 rounded-xl px-2.5 text-left text-sm", isAllLocations ? "bg-[#fff0f0] font-semibold text-[#e51b23]" : "text-[#29231e] hover:bg-[#f7f3ec]")}
@@ -142,7 +143,7 @@ function MobileLocationSelector() {
                 }}
               >
                 <MapPin className="size-4 shrink-0" aria-hidden="true" />
-                <span className="flex-1 truncate">{name}</span>
+                <span className="min-w-0 flex-1 break-words leading-5">{name}</span>
                 {selected && <Check className="size-4" aria-hidden="true" />}
               </button>
             );
@@ -155,15 +156,16 @@ function MobileLocationSelector() {
 
 export function AdminSidebar() {
   const { setUser: setAdmin, user } = useAuth();
+  const { activeLocationId } = useActiveLocation();
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const { setOpenMobile } = useSidebar();
   const { refreshing, loadData, dashboard } = useAdminDashboard();
   const alertCount = (dashboard?.delayedOrders ?? 0) + (dashboard?.placedOrders ?? 0);
-  const showLocationSelector = canUseRootLocationSelector(user);
+  const showLocationSelector = canAccessAdmin(user);
   const userName = user?.info?.name || user?.name || user?.username || "Admin";
-  const isSuperAdmin = Boolean(user?.isSuperUser || hasRole(user, "SUPER_ADMIN"));
-  const roleLabel = isSuperAdmin ? "Super Admin" : hasRole(user, "MANAGER") ? "Manager" : hasRole(user, "KITCHEN_STAFF") ? "Kitchen Staff" : "Admin";
+  const isSuperAdmin = Boolean(user?.isSuperUser || hasRole(user, "SUPER_ADMIN", activeLocationId));
+  const roleLabel = isSuperAdmin ? "Super Admin" : hasRole(user, "MANAGER", activeLocationId) ? "Manager" : hasRole(user, "KITCHEN_STAFF", activeLocationId) ? "Kitchen Staff" : "Admin";
   const avatar = user?.info?.avatarUrl || user?.avatarUrl || user?.profilePicture;
   // Deterministic, illustrated (non-initials, non-emoji) fallback avatar:
   // same user (by stable id/email/username) always renders with the same
@@ -228,7 +230,7 @@ export function AdminSidebar() {
       <nav aria-label="Admin navigation" className="contents">
         <SidebarContent className="gap-0 px-3 py-2 md:py-4">
         {renderedNavigation.map(({ section, items }) => {
-          const visibleItems = items.filter((item) => hasRole(user, item.roles));
+          const visibleItems = items.filter((item) => hasRole(user, item.roles, activeLocationId));
           if (!visibleItems.length) return null;
           return <SidebarGroup key={section} className="border-b border-[#e7ded2]/40 p-0 pt-3.5 pb-0 first:pt-0 last:border-0">
             <SidebarGroupLabel className="mb-1.5 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em] text-[#756e66]">{section === "Menu" ? "Menu Management" : section === "Offers" ? "Marketing" : section === "Analytics" ? "Reports" : section}{section === "Operations" && alertCount > 0 && <span className="ml-auto rounded-full bg-[#e51b23] px-1.5 text-[10px] leading-5 text-white">{alertCount > 9 ? "9+" : alertCount}</span>}</SidebarGroupLabel>

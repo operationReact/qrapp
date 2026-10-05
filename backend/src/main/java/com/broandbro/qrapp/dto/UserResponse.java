@@ -16,5 +16,6 @@ public class UserResponse {
     private String role;
     private LocationResponse defaultLocation;
     private java.util.List<LocationResponse> locations;
+    private java.util.List<UserLocationAccessResponse> locationAccess;
     private CustomerCompanyResponse customerCompany;
 }
