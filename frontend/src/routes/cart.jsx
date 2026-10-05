@@ -115,7 +115,7 @@ function CartPage() {
   const [upsellSessionDone, setUpsellSessionDone] = useState(false);
 
   // Fetch payment config via React Query — auto-retries & caches
-  const { data: paymentConfig } = useQuery(paymentConfigOptions);
+  const { data: paymentConfig } = useQuery(paymentConfigOptions(activeLocationId));
   const payAtStallEnabled = !!paymentConfig?.payAtStallEnabled;
 
   // Compute directly from cart so it updates on every cart state change

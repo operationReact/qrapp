@@ -43,8 +43,20 @@ export const uploadHallPhotosForOrder = ({ orderId, photos, consent, termsVersio
 export const getAdminHallOfHappiness = (params = {}) =>
   apiClient.get("/api/admin/hall-of-happiness", { params }).then((r) => r.data);
 
-export const updateAdminHallPhoto = (id, payload) =>
-  apiClient.patch(`/api/admin/hall-of-happiness/photos/${id}`, payload).then((r) => r.data);
+export const updateAdminHallPhoto = (id, payload) => {
+  if (!payload?.file) {
+    return apiClient.patch(`/api/admin/hall-of-happiness/photos/${id}`, payload).then((r) => r.data);
+  }
+
+  const form = new FormData();
+  form.append("file", payload.file);
+  for (const [key, value] of Object.entries(payload)) {
+    if (key !== "file" && value !== undefined && value !== null) {
+      form.append(key, String(value));
+    }
+  }
+  return apiClient.patch(`/api/admin/hall-of-happiness/photos/${id}`, form).then((r) => r.data);
+};
 
 export const runHallPhotoAction = (id, action) =>
   (action === "remove"
