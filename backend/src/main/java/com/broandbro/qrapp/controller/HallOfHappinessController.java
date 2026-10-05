@@ -22,6 +22,8 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.Map;
+import java.io.IOException;
+import java.util.Base64;
 
 @RestController
 public class HallOfHappinessController {
@@ -155,6 +157,26 @@ public class HallOfHappinessController {
             @PathVariable Long id,
             @Valid @RequestBody HallOfHappinessPhotoUpdateRequest request,
             Principal principal) {
+        service.requireAdminPhotoAccess(id, adminUser(principal));
+        return service.updatePhoto(id, request, principal.getName());
+    }
+
+    @PatchMapping(value = "/api/admin/hall-of-happiness/photos/{id}",
+            consumes = "multipart/form-data")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN', 'SUPERUSER', 'MANAGER')")
+    public HallOfHappinessPhotoResponse updateMultipart(
+            @PathVariable Long id,
+            @RequestPart("file") MultipartFile file,
+            @RequestParam(required = false) String caption,
+            @RequestParam(required = false) Integer displayOrder,
+            @RequestParam(required = false) String eventLabel,
+            @RequestParam(required = false) String description,
+            @RequestParam(required = false) Boolean global,
+            @RequestParam(required = false) Long locationId,
+            Principal principal) throws IOException {
+        HallOfHappinessPhotoUpdateRequest request = new HallOfHappinessPhotoUpdateRequest(
+                caption, displayOrder, eventLabel, description, global, locationId,
+                Base64.getEncoder().encodeToString(file.getBytes()), file.getOriginalFilename());
         service.requireAdminPhotoAccess(id, adminUser(principal));
         return service.updatePhoto(id, request, principal.getName());
     }

@@ -58,7 +58,7 @@ function GlobalControlsPage() {
     mutationFn: (enabled) => adminSetPayAtStall(enabled),
     onSuccess: (_, enabled) => {
       queryClient.invalidateQueries({ queryKey: adminSettingsOptions.queryKey });
-      queryClient.invalidateQueries({ queryKey: paymentConfigOptions.queryKey });
+      queryClient.invalidateQueries({ queryKey: ["payment", "config"] });
       toast.success(`Pay at Stall ${enabled ? "enabled" : "disabled"} successfully`);
     },
     onError: () => {

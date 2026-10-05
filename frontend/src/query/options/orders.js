@@ -77,11 +77,9 @@ export const adminPreOrderItemsOptions = queryOptions({
 });
 
 /** Public — no auth needed. Used in cart to show Pay at Stall option. */
-export const paymentConfigOptions = queryOptions({
-  queryKey: ["payment", "config", (() => {
-    try { return JSON.parse(localStorage.getItem("active-location") || "null")?.id || null; } catch { return null; }
-  })()],
-  queryFn: ({ queryKey }) => getPaymentConfig(queryKey[2]),
+export const paymentConfigOptions = (locationId = null) => queryOptions({
+  queryKey: ["payment", "config", locationId ?? null],
+  queryFn: () => getPaymentConfig(locationId),
   staleTime: 1000 * 60,   // 1 min
   retry: 2,
 });

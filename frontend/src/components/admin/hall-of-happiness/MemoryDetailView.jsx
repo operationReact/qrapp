@@ -161,25 +161,9 @@ export function MemoryDetailView({ open, onOpenChange, submission, onAction, onE
 
     // Handle image replacement
     if (newImageFile) {
-      try {
-        const reader = new FileReader();
-        reader.onload = () => {
-          // Extract base64 without data URL prefix
-          const base64 = reader.result.split(",")[1];
-          payload.imageBase64 = base64;
-          payload.fileName = newImageFile.name;
-          onEdit({ id: photo.id, payload });
-        };
-        reader.onerror = () => {
-          setError("Failed to read image file.");
-        };
-        reader.readAsDataURL(newImageFile);
-      } catch {
-        setError("Failed to process image.");
-      }
-    } else {
-      onEdit({ id: photo.id, payload });
+      payload.file = newImageFile;
     }
+    onEdit({ id: photo.id, payload });
   };
 
   const currentLocation = locations.find(loc => String(loc.id) === String(formState.locationId));

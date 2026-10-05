@@ -207,7 +207,10 @@ export function ControlCenterOverview() {
   const { data: vendors = [], error: vendorsError } = useQuery(adminVendorsOptions());
   const { data: partyOrders = [], error: partyOrdersError } = useQuery(partyOrdersOptions);
   const { data: hallData, error: hallError } = useQuery(adminHallOfHappinessOptions({ page: 0, size: 100 }));
-  const { data: paymentConfig, error: paymentError } = useQuery(paymentConfigOptions);
+  const { activeLocation } = useActiveLocation();
+  const { data: paymentConfig, error: paymentError } = useQuery(
+    paymentConfigOptions(activeLocation?.id ?? null),
+  );
   const hallPhotos = hallData?.content || [];
   const pendingHall = hallPhotos.filter((photo) => ["CUSTOMER_UPLOAD", "PENDING", "PENDING_REVIEW"].includes(photo.status)).length;
   const enabledPayments = [paymentConfig?.walletEnabled, paymentConfig?.razorpayEnabled, paymentConfig?.payAtStallEnabled].filter(Boolean).length;
@@ -1166,7 +1169,7 @@ export function ControlCenterPayments() {
     mutationFn: ({ method, enabled }) => toggle(method, enabled),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin", "settings", locationId] });
-      queryClient.invalidateQueries({ queryKey: paymentConfigOptions.queryKey });
+      queryClient.invalidateQueries({ queryKey: ["payment", "config"] });
     },
   });
 
