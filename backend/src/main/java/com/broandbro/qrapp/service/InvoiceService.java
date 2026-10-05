@@ -488,7 +488,9 @@ public class InvoiceService {
     private static String validStateCode(String value) {
         if (value == null || value.isBlank()) return null;
         String normalized = value.trim();
-        return normalized.matches("\\d{1,2}") ? normalized : null;
+        return normalized.matches("(?i)(\\d{1,2}|[a-z]{2})")
+                ? normalized.toUpperCase(java.util.Locale.ROOT)
+                : null;
     }
 
     private static BigDecimal sum(List<OrderItem> items, java.util.function.Function<OrderItem, BigDecimal> getter) {
