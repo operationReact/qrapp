@@ -161,6 +161,22 @@ public class UserService {
     }
 
     @Transactional
+    public UserResponse resetPasswordByAdmin(Long userId, String newPassword) {
+        String password = trimToNull(newPassword);
+        if (password == null || password.length() < 8 || password.length() > 128) {
+            throw new IllegalArgumentException("password_length_invalid");
+        }
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("user_not_found"));
+        String previousToken = user.getToken();
+        user.setPassword(passwordEncoder.encode(password));
+        user.setToken(null);
+        User saved = userRepository.save(user);
+        if (previousToken != null) tokenCache.remove(previousToken);
+        return toResponse(saved);
+    }
+
+    @Transactional
     public LoginResponse registerVerified(String phone, String name, String passwordHash) {
         return registerVerified(phone, name, passwordHash, null, null, null, null, null);
     }
