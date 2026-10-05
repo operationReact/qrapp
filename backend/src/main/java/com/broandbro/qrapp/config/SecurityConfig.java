@@ -173,6 +173,8 @@ public class SecurityConfig {
                         .hasAnyRole("ADMIN", "SUPERUSER", "SUPER_ADMIN", "MANAGER", "KITCHEN_STAFF")
                         .requestMatchers(HttpMethod.PATCH, "/admin/orders/*/status")
                         .hasAnyRole("ADMIN", "SUPERUSER", "SUPER_ADMIN", "MANAGER", "KITCHEN_STAFF")
+                        .requestMatchers(HttpMethod.GET, "/admin/orders", "/admin/orders/*")
+                        .hasAnyRole("ADMIN", "SUPERUSER", "SUPER_ADMIN", "MANAGER", "KITCHEN_STAFF")
 
                         .requestMatchers("/admin/**")
                         .hasAnyRole("ADMIN", "SUPERUSER", "SUPER_ADMIN", "MANAGER")

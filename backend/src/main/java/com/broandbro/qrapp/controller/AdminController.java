@@ -53,9 +53,8 @@ public class AdminController {
                                                                @RequestParam(required = false) Long locationId,
                                                                Authentication authentication,
                                                                Pageable pageable) {
-        User user = requireUser(authentication);
-        locationAccessService.requireNonKitchenAdmin(user, locationId);
-        Optional<List<Long>> scope = locationAccessService.resolveDashboardLocationScope(user, locationId);
+                                                               User user = requireUser(authentication);
+                                                               Optional<List<Long>> scope = locationAccessService.resolveDashboardLocationScope(user, locationId);
         return ResponseEntity.ok(orderService.getAdminOrders(status, paymentStatus, query, liveOnly, scope, pageable));
     }
 
@@ -72,11 +71,10 @@ public class AdminController {
     @GetMapping("/orders/dashboard")
     public ResponseEntity<AdminOrderDashboardResponse> dashboard(@RequestParam(defaultValue = "12") int liveLimit,
                                                                  @RequestParam(required = false) Long locationId,
-                                                                 Authentication authentication) {
-        User user = requireUser(authentication);
-        locationAccessService.requireNonKitchenAdmin(user, locationId);
-        Optional<List<Long>> scope = locationAccessService.resolveDashboardLocationScope(user, locationId);
-        return ResponseEntity.ok(orderService.getAdminDashboard(liveLimit, scope));
+                                                                                                                          Authentication authentication) {
+                                                                 User user = requireUser(authentication);
+                                                                 Optional<List<Long>> scope = locationAccessService.resolveDashboardLocationScope(user, locationId);
+                                                                 return ResponseEntity.ok(orderService.getAdminDashboard(liveLimit, scope));
     }
 
     @GetMapping("/orders/{id}")
@@ -84,7 +82,6 @@ public class AdminController {
                                                        @RequestParam(required = false) Long locationId,
                                                        Authentication authentication) {
         User user = requireUser(authentication);
-        locationAccessService.requireNonKitchenAdmin(user, locationId);
         Optional<List<Long>> scope = locationAccessService.resolveDashboardLocationScope(user, locationId);
         orderService.assertOrderWithinScope(id, scope);
         return ResponseEntity.ok(orderService.getAdminOrder(id));
