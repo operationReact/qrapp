@@ -782,7 +782,7 @@ export function CustomerCompanies() {
             className="w-[min(28rem,calc(100vw-2rem))] max-w-[calc(100vw-2rem)]"
           >
             <DropdownMenuItem
-              onSelect={() => setCreateLocationId("")}
+              onClick={() => setCreateLocationId("")}
               className="min-h-10 gap-2"
             >
               <span className="min-w-0 flex-1 truncate">Select operating location</span>
@@ -793,7 +793,7 @@ export function CustomerCompanies() {
               return (
                 <DropdownMenuItem
                   key={location.id}
-                  onSelect={() => setCreateLocationId(String(location.id))}
+                  onClick={() => setCreateLocationId(String(location.id))}
                   className="min-h-10 gap-2"
                 >
                   <MapPin className="size-4 shrink-0" />
