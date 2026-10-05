@@ -293,6 +293,10 @@ jobs:
           else
             echo "ℹ️  Existing TLS certificate detected; skipping inline renewal (handled by certbot-renew.timer)"
           fi
+          # Keep existing HTTPS/server blocks aligned with the 5 MB Hall of Happiness
+          # upload validation and Spring's 25 MB multipart limit.
+          sudo sed -i -E 's/client_max_body_size[[:space:]]+[0-9]+[mMgG];/client_max_body_size 25m;/g' \
+            /etc/nginx/conf.d/*.conf /etc/nginx/sites-enabled/* 2>/dev/null || true
           nginx -t
           systemctl reload nginx
           ss -ltn '( sport = :443 )' | grep -q LISTEN
