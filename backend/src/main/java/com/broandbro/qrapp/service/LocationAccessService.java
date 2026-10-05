@@ -137,6 +137,23 @@ public class LocationAccessService {
 
     /** Denies access to non-queue admin surfaces for KITCHEN_STAFF users. */
     public void requireNonKitchenAdmin(User user) {
+        requireNonKitchenAdmin(user, null);
+    }
+
+    public void requireNonKitchenAdmin(User user, Long locationId) {
+        if (user == null) {
+            throw new AccessDeniedException("authentication_required");
+        }
+        if (locationId != null && usesLocationAssignments(user)) {
+            UserRole role = accessRepository.findByUserIdAndLocationId(user.getId(), locationId)
+                    .filter(a -> Boolean.TRUE.equals(a.getActive()))
+                    .map(UserLocationAccess::getRole)
+                    .orElse(UserRole.CUSTOMER);
+            if (role != UserRole.ADMIN && role != UserRole.MANAGER) {
+                throw new AccessDeniedException("kitchen_staff_queue_only");
+            }
+            return;
+        }
         if (isKitchenStaffOnly(user)) {
             throw new AccessDeniedException("kitchen_staff_queue_only");
         }
