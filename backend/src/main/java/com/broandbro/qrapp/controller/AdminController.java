@@ -54,7 +54,7 @@ public class AdminController {
                                                                Authentication authentication,
                                                                Pageable pageable) {
         User user = requireUser(authentication);
-        locationAccessService.requireNonKitchenAdmin(user);
+        locationAccessService.requireNonKitchenAdmin(user, locationId);
         Optional<List<Long>> scope = locationAccessService.resolveDashboardLocationScope(user, locationId);
         return ResponseEntity.ok(orderService.getAdminOrders(status, paymentStatus, query, liveOnly, scope, pageable));
     }
@@ -74,7 +74,7 @@ public class AdminController {
                                                                  @RequestParam(required = false) Long locationId,
                                                                  Authentication authentication) {
         User user = requireUser(authentication);
-        locationAccessService.requireNonKitchenAdmin(user);
+        locationAccessService.requireNonKitchenAdmin(user, locationId);
         Optional<List<Long>> scope = locationAccessService.resolveDashboardLocationScope(user, locationId);
         return ResponseEntity.ok(orderService.getAdminDashboard(liveLimit, scope));
     }
@@ -84,7 +84,7 @@ public class AdminController {
                                                        @RequestParam(required = false) Long locationId,
                                                        Authentication authentication) {
         User user = requireUser(authentication);
-        locationAccessService.requireNonKitchenAdmin(user);
+        locationAccessService.requireNonKitchenAdmin(user, locationId);
         Optional<List<Long>> scope = locationAccessService.resolveDashboardLocationScope(user, locationId);
         orderService.assertOrderWithinScope(id, scope);
         return ResponseEntity.ok(orderService.getAdminOrder(id));
@@ -96,7 +96,7 @@ public class AdminController {
                                                           @RequestParam(required = false) Long locationId,
                                                           Authentication authentication) {
         User user = requireUser(authentication);
-        locationAccessService.requireNonKitchenAdmin(user);
+        locationAccessService.requireNonKitchenAdmin(user, locationId);
         Optional<List<Long>> scope = locationAccessService.resolveDashboardLocationScope(user, locationId);
         orderService.assertOrderWithinScope(id, scope);
         return ResponseEntity.ok(orderService.updateAdminOrder(id, request, authentication.getName()));
