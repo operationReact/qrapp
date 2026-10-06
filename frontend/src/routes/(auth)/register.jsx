@@ -46,6 +46,7 @@ export const Route = createFileRoute("/(auth)/register")({
     const [termsAccepted, setTermsAccepted] = useState(false);
     const [customerCompanySearch, setCustomerCompanySearch] = useState("");
     const companyComboboxAnchor = useComboboxAnchor();
+    const occasionComboboxAnchor = useComboboxAnchor();
     const [error, setError] = useState(null);
     const locationsQuery = useQuery({
       queryKey: ["locations", "registration-selectable"],
@@ -272,22 +273,32 @@ export const Route = createFileRoute("/(auth)/register")({
                         className="h-10"
                       />
                     </RegistrationPurposeControl>
-                    <RegistrationPurposeControl type="select" label="Special Day occasion">
-                      <select
-                        value={specialDayType}
-                        onChange={(e) => {
-                          setSpecialDayType(e.target.value);
-                          if (e.target.value !== "Other") setSpecialDayCustomLabel("");
-                        }}
-                        aria-label="Special Day occasion"
-                        className="h-10 w-full rounded-xl border border-input bg-background text-base outline-none focus:ring-2 focus:ring-ring"
-                      >
-                        <option value="">Choose an occasion</option>
-                        {SPECIAL_DAY_TYPES.map((type) => (
-                          <option key={type} value={type}>{type}</option>
-                        ))}
-                      </select>
-                    </RegistrationPurposeControl>
+                    <Combobox
+                      items={SPECIAL_DAY_TYPES}
+                      value={specialDayType}
+                      onValueChange={(value) => {
+                        setSpecialDayType(value);
+                        if (value !== "Other") setSpecialDayCustomLabel("");
+                      }}
+                    >
+                      <div ref={occasionComboboxAnchor}>
+                        <RegistrationPurposeControl type="select" label="Special Day occasion">
+                          <ComboboxInput
+                            placeholder="Choose an occasion"
+                            aria-label="Special Day occasion"
+                            className="h-10"
+                          />
+                        </RegistrationPurposeControl>
+                      </div>
+                      <ComboboxContent anchor={occasionComboboxAnchor}>
+                        <ComboboxEmpty>No matching occasions.</ComboboxEmpty>
+                        <ComboboxList>
+                          {SPECIAL_DAY_TYPES.map((type) => (
+                            <ComboboxItem key={type} value={type}>{type}</ComboboxItem>
+                          ))}
+                        </ComboboxList>
+                      </ComboboxContent>
+                    </Combobox>
                   </div>
                   {specialDayType === "Other" && (
                     <RegistrationPurposeControl type="text" label="Custom special day occasion">

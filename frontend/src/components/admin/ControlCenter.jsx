@@ -1051,12 +1051,65 @@ export function ControlCenterAccess() {
   return <Shell title="Access Management" description="Manage each user's role and authorized operating locations." showLocationContext={false}>
     <div className="grid gap-5 lg:grid-cols-[minmax(18rem,.8fr)_minmax(0,1.2fr)]">
       <section className="rounded-[16px] border border-[var(--cc-border)] bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
-        <label className="mb-4 block text-[11px] font-bold uppercase tracking-[0.06em] text-[#77716D]">Location
-          <select aria-label="Filter users by location" className="mt-2 h-11 w-full rounded-[10px] border border-[var(--cc-border)] bg-white px-3 text-sm font-semibold normal-case tracking-normal text-[var(--cc-text)]" value={locationFilter} onChange={(event) => { setLocationFilter(event.target.value); setSelectedId(null); setFeedback(null); }}>
-            <option value="ALL">All locations</option>
-            {locations.map((location) => <option key={location.id} value={String(location.id)}>{location.name || location.title || `Location ${location.id}`}</option>)}
-          </select>
-        </label>
+        <div className="mb-4">
+          <span className="block text-[11px] font-bold uppercase tracking-[0.06em] text-[#77716D]">Location</span>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                type="button"
+                variant="outline"
+                aria-label="Filter users by location"
+                disabled={locationsLoading}
+                className="mt-2 h-11 w-full min-w-0 justify-between rounded-[10px] border-[var(--cc-border)] bg-white px-3 text-sm font-semibold normal-case tracking-normal text-[var(--cc-text)]"
+              >
+                <span className="min-w-0 truncate text-left">
+                  {locationFilter === "ALL"
+                    ? "All locations"
+                    : locations.find((location) => String(location.id) === String(locationFilter))?.name || "Select location"}
+                </span>
+                <ChevronDown className="size-4 shrink-0 opacity-60" aria-hidden="true" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align="start"
+              className="w-[min(28rem,calc(100vw-2rem))] max-w-[calc(100vw-2rem)]"
+            >
+              <DropdownMenuItem
+                onClick={() => {
+                  setLocationFilter("ALL");
+                  setSelectedId(null);
+                  setFeedback(null);
+                }}
+                className="min-h-10 gap-2"
+              >
+                <MapPin className="size-4 shrink-0" />
+                <span className="min-w-0 flex-1 truncate">All locations</span>
+                {locationFilter === "ALL" && <Check className="size-4 shrink-0" />}
+              </DropdownMenuItem>
+              {locations.map((location) => {
+                const value = String(location.id);
+                const selected = value === String(locationFilter);
+                return (
+                  <DropdownMenuItem
+                    key={location.id}
+                    onClick={() => {
+                      setLocationFilter(value);
+                      setSelectedId(null);
+                      setFeedback(null);
+                    }}
+                    className="min-h-10 gap-2"
+                  >
+                    <MapPin className="size-4 shrink-0" />
+                    <span className="min-w-0 flex-1 truncate">
+                      {location.name || location.title || `Location ${location.id}`}
+                    </span>
+                    {selected && <Check className="size-4 shrink-0" />}
+                  </DropdownMenuItem>
+                );
+              })}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
         <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.06em] text-[#77716D]">Select User</p>
         <Popover open={userPickerOpen} onOpenChange={setUserPickerOpen}>
           <PopoverTrigger asChild>
@@ -1176,12 +1229,47 @@ export function ControlCenterPayments() {
   return <Shell title="Payment Management" description="Configure available customer payment methods.">
     <div className="flex items-center gap-3 rounded-[16px] border border-[var(--cc-border)] bg-white p-4">
       <MapPin className="size-4 shrink-0 text-[var(--cc-primary)]" aria-hidden="true" />
-      <label className="flex min-w-0 flex-1 items-center gap-3 text-sm font-semibold text-[var(--cc-text)]">
+      <div className="flex min-w-0 flex-1 items-center gap-3 text-sm font-semibold text-[var(--cc-text)]">
         <span className="shrink-0">Location</span>
-        <select className="h-10 min-w-0 flex-1 rounded-[10px] border border-[var(--cc-border)] bg-white px-3 text-sm" value={locationId} onChange={(event) => setSelectedLocationId(event.target.value)} disabled={locationsLoading}>
-          {locations.map((location) => <option key={location.id} value={String(location.id)}>{location.name || location.title || `Location ${location.id}`}</option>)}
-        </select>
-      </label>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              type="button"
+              variant="outline"
+              aria-label="Select payment location"
+              disabled={locationsLoading}
+              className="h-10 min-w-0 flex-1 justify-between rounded-[10px] border-[var(--cc-border)] bg-white px-3 text-sm font-semibold"
+            >
+              <span className="min-w-0 truncate text-left">
+                {locations.find((location) => String(location.id) === String(locationId))?.name || "Select location"}
+              </span>
+              <ChevronDown className="size-4 shrink-0 opacity-60" aria-hidden="true" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent
+            align="start"
+            className="w-[min(28rem,calc(100vw-2rem))] max-w-[calc(100vw-2rem)]"
+          >
+            {locations.map((location) => {
+              const value = String(location.id);
+              const selected = value === String(locationId);
+              return (
+                <DropdownMenuItem
+                  key={location.id}
+                  onClick={() => setSelectedLocationId(value)}
+                  className="min-h-10 gap-2"
+                >
+                  <MapPin className="size-4 shrink-0" />
+                  <span className="min-w-0 flex-1 truncate">
+                    {location.name || location.title || `Location ${location.id}`}
+                  </span>
+                  {selected && <Check className="size-4 shrink-0" />}
+                </DropdownMenuItem>
+              );
+            })}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
     </div>
     <Card className="rounded-[16px] border-[var(--cc-border)] bg-white shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
       <CardHeader className="border-b border-[var(--cc-divider)] py-4"><CardTitle className="text-[15px] font-semibold text-[var(--cc-text)]">Payment methods</CardTitle></CardHeader>
