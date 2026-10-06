@@ -24,8 +24,10 @@ import {
   CreditCardIcon,
 } from "@phosphor-icons/react";
 import { useAuth } from "@/context/AuthContext";
+import { useLocation } from "@/context/LocationContext";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
+import { paymentConfigOptions } from "@/query/options/orders";
 
 // ── Razorpay loader ───────────────────────────────────────────────────────────
 function loadRazorpayScript() {
@@ -72,8 +74,12 @@ export default function CustomerPreOrderDialog({
   onOpenChange,
 }) {
   const { user } = useAuth();
+  const { activeLocationId } = useLocation();
   const navigate = useNavigate();
   const { data: allItems = [], isLoading } = useQuery(preOrderItemsOptions);
+  const { data: paymentConfig, isLoading: paymentConfigLoading } = useQuery(
+    paymentConfigOptions(activeLocationId),
+  );
 
   const scheduledDate = useMemo(() => getNextWorkingDay(), []);
   const scheduledLabel = formatScheduledDate(scheduledDate);
@@ -143,6 +149,17 @@ export default function CustomerPreOrderDialog({
 
   const canPayWallet =
     walletBalance !== null && walletBalance >= grandTotal && grandTotal > 0;
+  const walletEnabled = paymentConfig?.walletEnabled === true;
+  const razorpayEnabled = paymentConfig?.razorpayEnabled === true;
+  const effectivePaymentMethod = paymentConfig
+    ? paymentMethod === "WALLET" && walletEnabled && canPayWallet
+      ? "WALLET"
+      : razorpayEnabled
+        ? "RAZORPAY"
+        : walletEnabled && canPayWallet
+          ? "WALLET"
+          : ""
+    : paymentMethod;
   const isValid = phone.trim().length >= 10 && selectedItems.length > 0;
 
   const handleCheckout = async () => {
@@ -152,7 +169,8 @@ export default function CustomerPreOrderDialog({
       const res = await createPreOrder({
         phone: phone.trim(),
         scheduledAt,
-        paymentMethod,
+        paymentMethod: effectivePaymentMethod,
+        locationId: activeLocationId,
         customerNote: note.trim() || undefined,
         items: selectedItems.map(({ item, qty }) => ({
           itemId: item.id,
@@ -160,7 +178,7 @@ export default function CustomerPreOrderDialog({
         })),
       });
 
-      if (paymentMethod === "WALLET") {
+      if (effectivePaymentMethod === "WALLET") {
         onOpenChange(false);
         navigate({
           to: "/success",
@@ -364,8 +382,18 @@ export default function CustomerPreOrderDialog({
               Payment method
             </span>
             <div className="grid mt-2 grid-cols-2 gap-2">
+              {paymentConfigLoading && (
+                <p className="col-span-2 text-sm text-zinc-500">
+                  Loading payment methods...
+                </p>
+              )}
+              {!paymentConfigLoading && !razorpayEnabled && !walletEnabled && (
+                <p className="col-span-2 text-sm text-red-600">
+                  No payment methods are currently available for this location.
+                </p>
+              )}
               {/* Razorpay */}
-              <button
+              {!paymentConfigLoading && razorpayEnabled && <button
                 onClick={() => setPaymentMethod("RAZORPAY")}
                 className={cn(
                   "flex items-center gap-2 rounded-sm border px-3 py-2.5 text-sm font-medium transition-colors",
@@ -384,9 +412,9 @@ export default function CustomerPreOrderDialog({
                   weight="fill"
                 />
                 <span>Pay Online</span>
-              </button>
+              </button>}
               {/* Wallet */}
-              <button
+              {!paymentConfigLoading && walletEnabled && <button
                 onClick={() => user?.token && setPaymentMethod("WALLET")}
                 disabled={!user?.token || !canPayWallet}
                 className={cn(
@@ -416,7 +444,7 @@ export default function CustomerPreOrderDialog({
                     {!canPayWallet && grandTotal > 0 && " (insufficient)"}
                   </span>
                 )}
-              </button>
+              </button>}
             </div>
           </div>
 
@@ -456,14 +484,14 @@ export default function CustomerPreOrderDialog({
             </Button>
             <Button
               size="sm"
-              disabled={!isValid || submitting}
+              disabled={!isValid || submitting || paymentConfigLoading || !effectivePaymentMethod}
               className="bg-primary hover:bg-primary text-white gap-1.5"
               onClick={handleCheckout}
             >
               <CalendarCheckIcon className="size-4" weight="fill" />
               {submitting
                 ? "Processing…"
-                : paymentMethod === "WALLET"
+                : effectivePaymentMethod === "WALLET"
                   ? "Pay & Pre-Order"
                   : "Pay Online"}
             </Button>

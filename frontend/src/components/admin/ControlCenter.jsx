@@ -578,13 +578,83 @@ function LocationFilterFields({ filters, locations, companies, onChange }) {
     .filter((location) => !filters.state || location.stateUt === filters.state)
     .map((location) => location.city).filter(Boolean))].sort();
   const countries = [...new Set(locations.map((location) => location.country).filter(Boolean))].sort();
-  const selectClass = "h-10 w-full min-w-0 rounded-[10px] border border-[var(--cc-border)] bg-white px-3 text-sm";
+  const options = [
+    {
+      label: "Status",
+      value: filters.status,
+      placeholder: "Active",
+      items: [
+        ["ACTIVE", "Active"],
+        ["INACTIVE", "Inactive"],
+        ["ALL", "All"],
+      ],
+      onChange: (value) => onChange({ status: value }),
+    },
+    {
+      label: "State",
+      value: filters.state,
+      placeholder: "All States",
+      items: [["", "All States"], ...states.map((state) => [state, state])],
+      onChange: (value) => onChange({ state: value, city: "" }),
+    },
+    {
+      label: "City",
+      value: filters.city,
+      placeholder: "All Cities",
+      items: [["", "All Cities"], ...cities.map((city) => [city, city])],
+      onChange: (value) => onChange({ city: value }),
+    },
+    {
+      label: "Country",
+      value: filters.country,
+      placeholder: "All Countries",
+      items: [["", "All Countries"], ...countries.map((country) => [country, country])],
+      onChange: (value) => onChange({ country: value }),
+    },
+    {
+      label: "Customer Company",
+      value: filters.customerCompanyId,
+      placeholder: "All Companies",
+      items: [["", "All Companies"], ...companies.map((company) => [String(company.id), company.name])],
+      onChange: (value) => onChange({ customerCompanyId: value }),
+    },
+  ];
+
   return <div className="grid min-w-0 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-    <label className="min-w-0 space-y-1 text-xs font-semibold"><span>Status</span><select className={selectClass} value={filters.status} onChange={(event) => onChange({ status: event.target.value })}><option value="ACTIVE">Active</option><option value="INACTIVE">Inactive</option><option value="ALL">All</option></select></label>
-    <label className="min-w-0 space-y-1 text-xs font-semibold"><span>State</span><select className={selectClass} value={filters.state} onChange={(event) => onChange({ state: event.target.value, city: "" })}><option value="">All States</option>{states.map((state) => <option key={state} value={state}>{state}</option>)}</select></label>
-    <label className="min-w-0 space-y-1 text-xs font-semibold"><span>City</span><select className={selectClass} value={filters.city} onChange={(event) => onChange({ city: event.target.value })}><option value="">All Cities</option>{cities.map((city) => <option key={city} value={city}>{city}</option>)}</select></label>
-    <label className="min-w-0 space-y-1 text-xs font-semibold"><span>Country</span><select className={selectClass} value={filters.country} onChange={(event) => onChange({ country: event.target.value })}><option value="">All Countries</option>{countries.map((country) => <option key={country} value={country}>{country}</option>)}</select></label>
-    <label className="min-w-0 space-y-1 text-xs font-semibold"><span>Customer Company</span><select className={selectClass} value={filters.customerCompanyId} onChange={(event) => onChange({ customerCompanyId: event.target.value })}><option value="">All Companies</option>{companies.map((company) => <option key={company.id} value={company.id}>{company.name}</option>)}</select></label>
+    {options.map((option) => (
+      <label key={option.label} className="min-w-0 space-y-1 text-xs font-semibold">
+        <span>{option.label}</span>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              type="button"
+              variant="outline"
+              className="h-10 w-full min-w-0 justify-between rounded-[10px] border-[var(--cc-border)] bg-white px-3 text-left text-sm font-normal"
+            >
+              <span className="min-w-0 truncate">
+                {option.items.find(([value]) => value === option.value)?.[1] || option.placeholder}
+              </span>
+              <ChevronDown className="size-4 shrink-0 opacity-60" aria-hidden="true" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent
+            align="start"
+            className="w-[calc(100vw-3.5rem)] max-w-[calc(100vw-3.5rem)]"
+          >
+            {option.items.map(([value, label]) => (
+              <DropdownMenuItem
+                key={`${option.label}-${value || "empty"}`}
+                onClick={() => option.onChange(value)}
+                className="min-h-10 gap-2"
+              >
+                <span className="min-w-0 flex-1 truncate">{label}</span>
+                {value === option.value && <Check className="size-4 shrink-0" />}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </label>
+    ))}
     <label className="min-w-0 space-y-1 text-xs font-semibold sm:col-span-2 lg:col-span-1"><span>Search</span><Input className="h-10 rounded-[10px] border-[var(--cc-border)]" placeholder="Name, code, city, state or PIN" value={filters.search} onChange={(event) => onChange({ search: event.target.value })} /></label>
   </div>;
 }
