@@ -32,7 +32,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     List<User> findAllByLocationId(@Param("locationId") Long locationId);
 
     @EntityGraph(attributePaths = {"defaultLocation", "customerCompany"})
-    Optional<User> findByToken(String token);
+    Optional<User> findByTokenAndActiveTrue(String token);
 
     /** Returns a page of user IDs — used by {@code UserPreferenceScheduler} for batched rebuilds. */
     @Query("SELECT u.id FROM User u ORDER BY u.id ASC")

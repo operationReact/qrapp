@@ -6,6 +6,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.broandbro.qrapp.enums.FulfillmentType;
 import com.broandbro.qrapp.enums.InventoryMode;
 import com.broandbro.qrapp.enums.ImageGenerationStatus;
+import com.broandbro.qrapp.enums.ProductType;
 import java.time.Instant;
 
 @Entity
@@ -18,6 +19,10 @@ public class MenuItem {
     private Long id;
     private String name;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "product_type", nullable = false)
+    private ProductType productType = ProductType.PREPARED_FOOD;
+
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "category_id")
     private Category category;
@@ -27,6 +32,15 @@ public class MenuItem {
     @JsonIgnore
     private Location location;
 
+    /**
+     * Non-owning compatibility projection for shared catalog products.  Legacy
+     * menu items keep this null and retain their existing contracts.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "product_id")
+    @JsonIgnore
+    private Product catalogProduct;
+
     // Make recommended nullable to avoid forcing a NOT NULL schema change that may time out
     private Boolean recommended;
 
@@ -34,6 +48,15 @@ public class MenuItem {
     private Boolean available = true;
 
     private String description;
+
+    @Column(name = "barcode", length = 64)
+    private String barcode;
+
+    @Column(name = "mrp", precision = 19, scale = 2)
+    private java.math.BigDecimal mrp;
+
+    @Column(name = "purchase_cost", precision = 19, scale = 2)
+    private java.math.BigDecimal purchaseCost;
     @Column(name = "image_url")
     private String imageUrl;
 

@@ -70,6 +70,7 @@ export const AuthProvider = ({ children }) => {
     getCurrentUser()
       .then((profile) => {
         if (!active) return;
+        if (readStoredUser()?.token !== storedUser.token) return;
         setUserState({
           ...storedUser,
           ...profile,
@@ -79,6 +80,7 @@ export const AuthProvider = ({ children }) => {
       })
       .catch((error) => {
         if (!active) return;
+        if (readStoredUser()?.token !== storedUser.token) return;
         console.warn("Unable to restore the authentication session", error);
         setUserState(null);
       })

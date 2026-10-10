@@ -17,6 +17,7 @@ import { Route as RefundCancellationPolicyRouteImport } from './routes/refund-ca
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as PrivacyPolicyRouteImport } from './routes/privacy-policy'
 import { Route as PartyOrdersRouteImport } from './routes/party-orders'
+import { Route as PartnerRouteImport } from './routes/partner'
 import { Route as OrdersRouteImport } from './routes/orders'
 import { Route as NewPartyOrderRouteImport } from './routes/new-party-order'
 import { Route as MilestonesRouteImport } from './routes/milestones'
@@ -26,22 +27,40 @@ import { Route as GrievanceRedressalRouteImport } from './routes/grievance-redre
 import { Route as FssaiInformationRouteImport } from './routes/fssai-information'
 import { Route as FoodSafetyRouteImport } from './routes/food-safety'
 import { Route as FaqsRouteImport } from './routes/faqs'
+import { Route as EssentialsRouteImport } from './routes/essentials'
 import { Route as ContactUsRouteImport } from './routes/contact-us'
+import { Route as ChangePasswordRouteImport } from './routes/change-password'
 import { Route as CartRouteImport } from './routes/cart'
 import { Route as BusinessInformationRouteImport } from './routes/business-information'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AboutUsRouteImport } from './routes/about-us'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as PartnerIndexRouteImport } from './routes/partner/index'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
+import { Route as PartnerUsersRouteImport } from './routes/partner/users'
+import { Route as PartnerReportsRouteImport } from './routes/partner/reports'
+import { Route as PartnerProfileRouteImport } from './routes/partner/profile'
+import { Route as PartnerPerformanceRouteImport } from './routes/partner/performance'
+import { Route as PartnerOrdersRouteImport } from './routes/partner/orders'
+import { Route as PartnerNotificationsRouteImport } from './routes/partner/notifications'
+import { Route as PartnerMenuRouteImport } from './routes/partner/menu'
+import { Route as PartnerLocationsRouteImport } from './routes/partner/locations'
+import { Route as PartnerInsightsRouteImport } from './routes/partner/insights'
+import { Route as PartnerFeedbackRouteImport } from './routes/partner/feedback'
 import { Route as CategoriesCategoryIdRouteImport } from './routes/categories.$categoryId'
 import { Route as AdminVendorsRouteImport } from './routes/admin/vendors'
+import { Route as AdminPartnersRouteImport } from './routes/admin/partners'
 import { Route as AdminOpsCenterRouteImport } from './routes/admin/ops-center'
 import { Route as AdminCustomerCompaniesRouteImport } from './routes/admin/customer-companies'
 import { Route as authRegisterRouteImport } from './routes/(auth)/register'
 import { Route as authLoginRouteImport } from './routes/(auth)/login'
 import { Route as authForgetPasswordRouteImport } from './routes/(auth)/forget-password'
+import { Route as PartnerFinanceIndexRouteImport } from './routes/partner/finance/index'
 import { Route as AdminControlCenterIndexRouteImport } from './routes/admin/control-center/index'
 import { Route as AdminAnalyticsIndexRouteImport } from './routes/admin/analytics/index'
+import { Route as PartnerOrdersOrderIdRouteImport } from './routes/partner/orders/$orderId'
+import { Route as PartnerLocationsLocationIdRouteImport } from './routes/partner/locations/$locationId'
+import { Route as PartnerFinanceAgreementsRouteImport } from './routes/partner/finance/agreements'
 import { Route as AdminControlCenterUsersRouteImport } from './routes/admin/control-center/users'
 import { Route as AdminControlCenterPaymentsRouteImport } from './routes/admin/control-center/payments'
 import { Route as AdminControlCenterLocationsRouteImport } from './routes/admin/control-center/locations'
@@ -65,7 +84,9 @@ import { Route as AdminordersPartyOrdersRouteImport } from './routes/admin/(orde
 import { Route as AdminordersOperationalQueueRouteImport } from './routes/admin/(orders)/operational-queue'
 import { Route as AdminordersKitchenQueueRouteImport } from './routes/admin/(orders)/kitchen-queue'
 import { Route as AdminordersHallOfHappinessRouteImport } from './routes/admin/(orders)/hall-of-happiness'
+import { Route as AdminoperationsManualInvoicesRouteImport } from './routes/admin/(operations)/manual-invoices'
 import { Route as AdminmilestonesMilestonesRouteImport } from './routes/admin/(milestones)/milestones'
+import { Route as AdminmenuProductCatalogRouteImport } from './routes/admin/(menu)/product-catalog'
 import { Route as AdminmenuMenuRouteImport } from './routes/admin/(menu)/menu'
 import { Route as AdminmenuMealRolesRouteImport } from './routes/admin/(menu)/meal-roles'
 import { Route as AdminmenuManageMenuRouteImport } from './routes/admin/(menu)/manage-menu'
@@ -78,9 +99,11 @@ import { Route as AdmingrowthCategoryPairingsRouteImport } from './routes/admin/
 import { Route as AdmingrowthAutoSuggestionsRouteImport } from './routes/admin/(growth)/auto-suggestions'
 import { Route as AdminfoodcourtFoodCourtRouteImport } from './routes/admin/(foodcourt)/food-court'
 import { Route as AdmincouponsCouponsRouteImport } from './routes/admin/(coupons)/coupons'
+import { Route as PartnerFinanceSettlementsIndexRouteImport } from './routes/partner/finance/settlements/index'
 import { Route as AdminmenuHomeContentIndexRouteImport } from './routes/admin/(menu)/home-content/index'
 import { Route as AdminmenuCombosIndexRouteImport } from './routes/admin/(menu)/combos/index'
 import { Route as AdminmenuComboCampaignsIndexRouteImport } from './routes/admin/(menu)/combo-campaigns/index'
+import { Route as PartnerFinanceSettlementsSettlementIdRouteImport } from './routes/partner/finance/settlements/$settlementId'
 import { Route as AdminmenuCombosEditRouteImport } from './routes/admin/(menu)/combos/edit'
 import { Route as AdminmenuCombosCreateRouteImport } from './routes/admin/(menu)/combos/create'
 
@@ -123,6 +146,11 @@ const PrivacyPolicyRoute = PrivacyPolicyRouteImport.update({
 const PartyOrdersRoute = PartyOrdersRouteImport.update({
   id: '/party-orders',
   path: '/party-orders',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PartnerRoute = PartnerRouteImport.update({
+  id: '/partner',
+  path: '/partner',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OrdersRoute = OrdersRouteImport.update({
@@ -170,9 +198,19 @@ const FaqsRoute = FaqsRouteImport.update({
   path: '/faqs',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EssentialsRoute = EssentialsRouteImport.update({
+  id: '/essentials',
+  path: '/essentials',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ContactUsRoute = ContactUsRouteImport.update({
   id: '/contact-us',
   path: '/contact-us',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ChangePasswordRoute = ChangePasswordRouteImport.update({
+  id: '/change-password',
+  path: '/change-password',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CartRoute = CartRouteImport.update({
@@ -200,10 +238,65 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PartnerIndexRoute = PartnerIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => PartnerRoute,
+} as any)
 const AdminIndexRoute = AdminIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AdminRoute,
+} as any)
+const PartnerUsersRoute = PartnerUsersRouteImport.update({
+  id: '/users',
+  path: '/users',
+  getParentRoute: () => PartnerRoute,
+} as any)
+const PartnerReportsRoute = PartnerReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
+  getParentRoute: () => PartnerRoute,
+} as any)
+const PartnerProfileRoute = PartnerProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => PartnerRoute,
+} as any)
+const PartnerPerformanceRoute = PartnerPerformanceRouteImport.update({
+  id: '/performance',
+  path: '/performance',
+  getParentRoute: () => PartnerRoute,
+} as any)
+const PartnerOrdersRoute = PartnerOrdersRouteImport.update({
+  id: '/orders',
+  path: '/orders',
+  getParentRoute: () => PartnerRoute,
+} as any)
+const PartnerNotificationsRoute = PartnerNotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
+  getParentRoute: () => PartnerRoute,
+} as any)
+const PartnerMenuRoute = PartnerMenuRouteImport.update({
+  id: '/menu',
+  path: '/menu',
+  getParentRoute: () => PartnerRoute,
+} as any)
+const PartnerLocationsRoute = PartnerLocationsRouteImport.update({
+  id: '/locations',
+  path: '/locations',
+  getParentRoute: () => PartnerRoute,
+} as any)
+const PartnerInsightsRoute = PartnerInsightsRouteImport.update({
+  id: '/insights',
+  path: '/insights',
+  getParentRoute: () => PartnerRoute,
+} as any)
+const PartnerFeedbackRoute = PartnerFeedbackRouteImport.update({
+  id: '/feedback',
+  path: '/feedback',
+  getParentRoute: () => PartnerRoute,
 } as any)
 const CategoriesCategoryIdRoute = CategoriesCategoryIdRouteImport.update({
   id: '/categories/$categoryId',
@@ -213,6 +306,11 @@ const CategoriesCategoryIdRoute = CategoriesCategoryIdRouteImport.update({
 const AdminVendorsRoute = AdminVendorsRouteImport.update({
   id: '/vendors',
   path: '/vendors',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminPartnersRoute = AdminPartnersRouteImport.update({
+  id: '/partners',
+  path: '/partners',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminOpsCenterRoute = AdminOpsCenterRouteImport.update({
@@ -240,6 +338,11 @@ const authForgetPasswordRoute = authForgetPasswordRouteImport.update({
   path: '/forget-password',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PartnerFinanceIndexRoute = PartnerFinanceIndexRouteImport.update({
+  id: '/finance/',
+  path: '/finance/',
+  getParentRoute: () => PartnerRoute,
+} as any)
 const AdminControlCenterIndexRoute = AdminControlCenterIndexRouteImport.update({
   id: '/control-center/',
   path: '/control-center/',
@@ -250,6 +353,23 @@ const AdminAnalyticsIndexRoute = AdminAnalyticsIndexRouteImport.update({
   path: '/analytics/',
   getParentRoute: () => AdminRoute,
 } as any)
+const PartnerOrdersOrderIdRoute = PartnerOrdersOrderIdRouteImport.update({
+  id: '/$orderId',
+  path: '/$orderId',
+  getParentRoute: () => PartnerOrdersRoute,
+} as any)
+const PartnerLocationsLocationIdRoute =
+  PartnerLocationsLocationIdRouteImport.update({
+    id: '/$locationId',
+    path: '/$locationId',
+    getParentRoute: () => PartnerLocationsRoute,
+  } as any)
+const PartnerFinanceAgreementsRoute =
+  PartnerFinanceAgreementsRouteImport.update({
+    id: '/finance/agreements',
+    path: '/finance/agreements',
+    getParentRoute: () => PartnerRoute,
+  } as any)
 const AdminControlCenterUsersRoute = AdminControlCenterUsersRouteImport.update({
   id: '/control-center/users',
   path: '/control-center/users',
@@ -376,12 +496,23 @@ const AdminordersHallOfHappinessRoute =
     path: '/hall-of-happiness',
     getParentRoute: () => AdminRoute,
   } as any)
+const AdminoperationsManualInvoicesRoute =
+  AdminoperationsManualInvoicesRouteImport.update({
+    id: '/(operations)/manual-invoices',
+    path: '/manual-invoices',
+    getParentRoute: () => AdminRoute,
+  } as any)
 const AdminmilestonesMilestonesRoute =
   AdminmilestonesMilestonesRouteImport.update({
     id: '/(milestones)/milestones',
     path: '/milestones',
     getParentRoute: () => AdminRoute,
   } as any)
+const AdminmenuProductCatalogRoute = AdminmenuProductCatalogRouteImport.update({
+  id: '/(menu)/product-catalog',
+  path: '/product-catalog',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminmenuMenuRoute = AdminmenuMenuRouteImport.update({
   id: '/(menu)/menu',
   path: '/menu',
@@ -447,6 +578,12 @@ const AdmincouponsCouponsRoute = AdmincouponsCouponsRouteImport.update({
   path: '/coupons',
   getParentRoute: () => AdminRoute,
 } as any)
+const PartnerFinanceSettlementsIndexRoute =
+  PartnerFinanceSettlementsIndexRouteImport.update({
+    id: '/finance/settlements/',
+    path: '/finance/settlements/',
+    getParentRoute: () => PartnerRoute,
+  } as any)
 const AdminmenuHomeContentIndexRoute =
   AdminmenuHomeContentIndexRouteImport.update({
     id: '/(menu)/home-content/',
@@ -463,6 +600,12 @@ const AdminmenuComboCampaignsIndexRoute =
     id: '/(menu)/combo-campaigns/',
     path: '/combo-campaigns/',
     getParentRoute: () => AdminRoute,
+  } as any)
+const PartnerFinanceSettlementsSettlementIdRoute =
+  PartnerFinanceSettlementsSettlementIdRouteImport.update({
+    id: '/finance/settlements/$settlementId',
+    path: '/finance/settlements/$settlementId',
+    getParentRoute: () => PartnerRoute,
   } as any)
 const AdminmenuCombosEditRoute = AdminmenuCombosEditRouteImport.update({
   id: '/(menu)/combos/edit',
@@ -481,7 +624,9 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRouteWithChildren
   '/business-information': typeof BusinessInformationRoute
   '/cart': typeof CartRoute
+  '/change-password': typeof ChangePasswordRoute
   '/contact-us': typeof ContactUsRoute
+  '/essentials': typeof EssentialsRoute
   '/faqs': typeof FaqsRoute
   '/food-safety': typeof FoodSafetyRoute
   '/fssai-information': typeof FssaiInformationRoute
@@ -491,6 +636,7 @@ export interface FileRoutesByFullPath {
   '/milestones': typeof MilestonesRoute
   '/new-party-order': typeof NewPartyOrderRoute
   '/orders': typeof OrdersRoute
+  '/partner': typeof PartnerRouteWithChildren
   '/party-orders': typeof PartyOrdersRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
   '/profile': typeof ProfileRoute
@@ -504,9 +650,21 @@ export interface FileRoutesByFullPath {
   '/register': typeof authRegisterRoute
   '/admin/customer-companies': typeof AdminCustomerCompaniesRoute
   '/admin/ops-center': typeof AdminOpsCenterRoute
+  '/admin/partners': typeof AdminPartnersRoute
   '/admin/vendors': typeof AdminVendorsRoute
   '/categories/$categoryId': typeof CategoriesCategoryIdRoute
+  '/partner/feedback': typeof PartnerFeedbackRoute
+  '/partner/insights': typeof PartnerInsightsRoute
+  '/partner/locations': typeof PartnerLocationsRouteWithChildren
+  '/partner/menu': typeof PartnerMenuRoute
+  '/partner/notifications': typeof PartnerNotificationsRoute
+  '/partner/orders': typeof PartnerOrdersRouteWithChildren
+  '/partner/performance': typeof PartnerPerformanceRoute
+  '/partner/profile': typeof PartnerProfileRoute
+  '/partner/reports': typeof PartnerReportsRoute
+  '/partner/users': typeof PartnerUsersRoute
   '/admin/': typeof AdminIndexRoute
+  '/partner/': typeof PartnerIndexRoute
   '/admin/coupons': typeof AdmincouponsCouponsRoute
   '/admin/food-court': typeof AdminfoodcourtFoodCourtRoute
   '/admin/auto-suggestions': typeof AdmingrowthAutoSuggestionsRoute
@@ -519,7 +677,9 @@ export interface FileRoutesByFullPath {
   '/admin/manage-menu': typeof AdminmenuManageMenuRoute
   '/admin/meal-roles': typeof AdminmenuMealRolesRoute
   '/admin/menu': typeof AdminmenuMenuRoute
+  '/admin/product-catalog': typeof AdminmenuProductCatalogRoute
   '/admin/milestones': typeof AdminmilestonesMilestonesRoute
+  '/admin/manual-invoices': typeof AdminoperationsManualInvoicesRoute
   '/admin/hall-of-happiness': typeof AdminordersHallOfHappinessRoute
   '/admin/kitchen-queue': typeof AdminordersKitchenQueueRoute
   '/admin/operational-queue': typeof AdminordersOperationalQueueRoute
@@ -543,20 +703,28 @@ export interface FileRoutesByFullPath {
   '/admin/control-center/locations': typeof AdminControlCenterLocationsRoute
   '/admin/control-center/payments': typeof AdminControlCenterPaymentsRoute
   '/admin/control-center/users': typeof AdminControlCenterUsersRoute
+  '/partner/finance/agreements': typeof PartnerFinanceAgreementsRoute
+  '/partner/locations/$locationId': typeof PartnerLocationsLocationIdRoute
+  '/partner/orders/$orderId': typeof PartnerOrdersOrderIdRoute
   '/admin/analytics/': typeof AdminAnalyticsIndexRoute
   '/admin/control-center/': typeof AdminControlCenterIndexRoute
+  '/partner/finance/': typeof PartnerFinanceIndexRoute
   '/admin/combos/create': typeof AdminmenuCombosCreateRoute
   '/admin/combos/edit': typeof AdminmenuCombosEditRoute
+  '/partner/finance/settlements/$settlementId': typeof PartnerFinanceSettlementsSettlementIdRoute
   '/admin/combo-campaigns/': typeof AdminmenuComboCampaignsIndexRoute
   '/admin/combos/': typeof AdminmenuCombosIndexRoute
   '/admin/home-content/': typeof AdminmenuHomeContentIndexRoute
+  '/partner/finance/settlements/': typeof PartnerFinanceSettlementsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about-us': typeof AboutUsRoute
   '/business-information': typeof BusinessInformationRoute
   '/cart': typeof CartRoute
+  '/change-password': typeof ChangePasswordRoute
   '/contact-us': typeof ContactUsRoute
+  '/essentials': typeof EssentialsRoute
   '/faqs': typeof FaqsRoute
   '/food-safety': typeof FoodSafetyRoute
   '/fssai-information': typeof FssaiInformationRoute
@@ -579,9 +747,21 @@ export interface FileRoutesByTo {
   '/register': typeof authRegisterRoute
   '/admin/customer-companies': typeof AdminCustomerCompaniesRoute
   '/admin/ops-center': typeof AdminOpsCenterRoute
+  '/admin/partners': typeof AdminPartnersRoute
   '/admin/vendors': typeof AdminVendorsRoute
   '/categories/$categoryId': typeof CategoriesCategoryIdRoute
+  '/partner/feedback': typeof PartnerFeedbackRoute
+  '/partner/insights': typeof PartnerInsightsRoute
+  '/partner/locations': typeof PartnerLocationsRouteWithChildren
+  '/partner/menu': typeof PartnerMenuRoute
+  '/partner/notifications': typeof PartnerNotificationsRoute
+  '/partner/orders': typeof PartnerOrdersRouteWithChildren
+  '/partner/performance': typeof PartnerPerformanceRoute
+  '/partner/profile': typeof PartnerProfileRoute
+  '/partner/reports': typeof PartnerReportsRoute
+  '/partner/users': typeof PartnerUsersRoute
   '/admin': typeof AdminIndexRoute
+  '/partner': typeof PartnerIndexRoute
   '/admin/coupons': typeof AdmincouponsCouponsRoute
   '/admin/food-court': typeof AdminfoodcourtFoodCourtRoute
   '/admin/auto-suggestions': typeof AdmingrowthAutoSuggestionsRoute
@@ -594,7 +774,9 @@ export interface FileRoutesByTo {
   '/admin/manage-menu': typeof AdminmenuManageMenuRoute
   '/admin/meal-roles': typeof AdminmenuMealRolesRoute
   '/admin/menu': typeof AdminmenuMenuRoute
+  '/admin/product-catalog': typeof AdminmenuProductCatalogRoute
   '/admin/milestones': typeof AdminmilestonesMilestonesRoute
+  '/admin/manual-invoices': typeof AdminoperationsManualInvoicesRoute
   '/admin/hall-of-happiness': typeof AdminordersHallOfHappinessRoute
   '/admin/kitchen-queue': typeof AdminordersKitchenQueueRoute
   '/admin/operational-queue': typeof AdminordersOperationalQueueRoute
@@ -618,13 +800,19 @@ export interface FileRoutesByTo {
   '/admin/control-center/locations': typeof AdminControlCenterLocationsRoute
   '/admin/control-center/payments': typeof AdminControlCenterPaymentsRoute
   '/admin/control-center/users': typeof AdminControlCenterUsersRoute
+  '/partner/finance/agreements': typeof PartnerFinanceAgreementsRoute
+  '/partner/locations/$locationId': typeof PartnerLocationsLocationIdRoute
+  '/partner/orders/$orderId': typeof PartnerOrdersOrderIdRoute
   '/admin/analytics': typeof AdminAnalyticsIndexRoute
   '/admin/control-center': typeof AdminControlCenterIndexRoute
+  '/partner/finance': typeof PartnerFinanceIndexRoute
   '/admin/combos/create': typeof AdminmenuCombosCreateRoute
   '/admin/combos/edit': typeof AdminmenuCombosEditRoute
+  '/partner/finance/settlements/$settlementId': typeof PartnerFinanceSettlementsSettlementIdRoute
   '/admin/combo-campaigns': typeof AdminmenuComboCampaignsIndexRoute
   '/admin/combos': typeof AdminmenuCombosIndexRoute
   '/admin/home-content': typeof AdminmenuHomeContentIndexRoute
+  '/partner/finance/settlements': typeof PartnerFinanceSettlementsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -633,7 +821,9 @@ export interface FileRoutesById {
   '/admin': typeof AdminRouteWithChildren
   '/business-information': typeof BusinessInformationRoute
   '/cart': typeof CartRoute
+  '/change-password': typeof ChangePasswordRoute
   '/contact-us': typeof ContactUsRoute
+  '/essentials': typeof EssentialsRoute
   '/faqs': typeof FaqsRoute
   '/food-safety': typeof FoodSafetyRoute
   '/fssai-information': typeof FssaiInformationRoute
@@ -643,6 +833,7 @@ export interface FileRoutesById {
   '/milestones': typeof MilestonesRoute
   '/new-party-order': typeof NewPartyOrderRoute
   '/orders': typeof OrdersRoute
+  '/partner': typeof PartnerRouteWithChildren
   '/party-orders': typeof PartyOrdersRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
   '/profile': typeof ProfileRoute
@@ -656,9 +847,21 @@ export interface FileRoutesById {
   '/(auth)/register': typeof authRegisterRoute
   '/admin/customer-companies': typeof AdminCustomerCompaniesRoute
   '/admin/ops-center': typeof AdminOpsCenterRoute
+  '/admin/partners': typeof AdminPartnersRoute
   '/admin/vendors': typeof AdminVendorsRoute
   '/categories/$categoryId': typeof CategoriesCategoryIdRoute
+  '/partner/feedback': typeof PartnerFeedbackRoute
+  '/partner/insights': typeof PartnerInsightsRoute
+  '/partner/locations': typeof PartnerLocationsRouteWithChildren
+  '/partner/menu': typeof PartnerMenuRoute
+  '/partner/notifications': typeof PartnerNotificationsRoute
+  '/partner/orders': typeof PartnerOrdersRouteWithChildren
+  '/partner/performance': typeof PartnerPerformanceRoute
+  '/partner/profile': typeof PartnerProfileRoute
+  '/partner/reports': typeof PartnerReportsRoute
+  '/partner/users': typeof PartnerUsersRoute
   '/admin/': typeof AdminIndexRoute
+  '/partner/': typeof PartnerIndexRoute
   '/admin/(coupons)/coupons': typeof AdmincouponsCouponsRoute
   '/admin/(foodcourt)/food-court': typeof AdminfoodcourtFoodCourtRoute
   '/admin/(growth)/auto-suggestions': typeof AdmingrowthAutoSuggestionsRoute
@@ -671,7 +874,9 @@ export interface FileRoutesById {
   '/admin/(menu)/manage-menu': typeof AdminmenuManageMenuRoute
   '/admin/(menu)/meal-roles': typeof AdminmenuMealRolesRoute
   '/admin/(menu)/menu': typeof AdminmenuMenuRoute
+  '/admin/(menu)/product-catalog': typeof AdminmenuProductCatalogRoute
   '/admin/(milestones)/milestones': typeof AdminmilestonesMilestonesRoute
+  '/admin/(operations)/manual-invoices': typeof AdminoperationsManualInvoicesRoute
   '/admin/(orders)/hall-of-happiness': typeof AdminordersHallOfHappinessRoute
   '/admin/(orders)/kitchen-queue': typeof AdminordersKitchenQueueRoute
   '/admin/(orders)/operational-queue': typeof AdminordersOperationalQueueRoute
@@ -695,13 +900,19 @@ export interface FileRoutesById {
   '/admin/control-center/locations': typeof AdminControlCenterLocationsRoute
   '/admin/control-center/payments': typeof AdminControlCenterPaymentsRoute
   '/admin/control-center/users': typeof AdminControlCenterUsersRoute
+  '/partner/finance/agreements': typeof PartnerFinanceAgreementsRoute
+  '/partner/locations/$locationId': typeof PartnerLocationsLocationIdRoute
+  '/partner/orders/$orderId': typeof PartnerOrdersOrderIdRoute
   '/admin/analytics/': typeof AdminAnalyticsIndexRoute
   '/admin/control-center/': typeof AdminControlCenterIndexRoute
+  '/partner/finance/': typeof PartnerFinanceIndexRoute
   '/admin/(menu)/combos/create': typeof AdminmenuCombosCreateRoute
   '/admin/(menu)/combos/edit': typeof AdminmenuCombosEditRoute
+  '/partner/finance/settlements/$settlementId': typeof PartnerFinanceSettlementsSettlementIdRoute
   '/admin/(menu)/combo-campaigns/': typeof AdminmenuComboCampaignsIndexRoute
   '/admin/(menu)/combos/': typeof AdminmenuCombosIndexRoute
   '/admin/(menu)/home-content/': typeof AdminmenuHomeContentIndexRoute
+  '/partner/finance/settlements/': typeof PartnerFinanceSettlementsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -711,7 +922,9 @@ export interface FileRouteTypes {
     | '/admin'
     | '/business-information'
     | '/cart'
+    | '/change-password'
     | '/contact-us'
+    | '/essentials'
     | '/faqs'
     | '/food-safety'
     | '/fssai-information'
@@ -721,6 +934,7 @@ export interface FileRouteTypes {
     | '/milestones'
     | '/new-party-order'
     | '/orders'
+    | '/partner'
     | '/party-orders'
     | '/privacy-policy'
     | '/profile'
@@ -734,9 +948,21 @@ export interface FileRouteTypes {
     | '/register'
     | '/admin/customer-companies'
     | '/admin/ops-center'
+    | '/admin/partners'
     | '/admin/vendors'
     | '/categories/$categoryId'
+    | '/partner/feedback'
+    | '/partner/insights'
+    | '/partner/locations'
+    | '/partner/menu'
+    | '/partner/notifications'
+    | '/partner/orders'
+    | '/partner/performance'
+    | '/partner/profile'
+    | '/partner/reports'
+    | '/partner/users'
     | '/admin/'
+    | '/partner/'
     | '/admin/coupons'
     | '/admin/food-court'
     | '/admin/auto-suggestions'
@@ -749,7 +975,9 @@ export interface FileRouteTypes {
     | '/admin/manage-menu'
     | '/admin/meal-roles'
     | '/admin/menu'
+    | '/admin/product-catalog'
     | '/admin/milestones'
+    | '/admin/manual-invoices'
     | '/admin/hall-of-happiness'
     | '/admin/kitchen-queue'
     | '/admin/operational-queue'
@@ -773,20 +1001,28 @@ export interface FileRouteTypes {
     | '/admin/control-center/locations'
     | '/admin/control-center/payments'
     | '/admin/control-center/users'
+    | '/partner/finance/agreements'
+    | '/partner/locations/$locationId'
+    | '/partner/orders/$orderId'
     | '/admin/analytics/'
     | '/admin/control-center/'
+    | '/partner/finance/'
     | '/admin/combos/create'
     | '/admin/combos/edit'
+    | '/partner/finance/settlements/$settlementId'
     | '/admin/combo-campaigns/'
     | '/admin/combos/'
     | '/admin/home-content/'
+    | '/partner/finance/settlements/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/about-us'
     | '/business-information'
     | '/cart'
+    | '/change-password'
     | '/contact-us'
+    | '/essentials'
     | '/faqs'
     | '/food-safety'
     | '/fssai-information'
@@ -809,9 +1045,21 @@ export interface FileRouteTypes {
     | '/register'
     | '/admin/customer-companies'
     | '/admin/ops-center'
+    | '/admin/partners'
     | '/admin/vendors'
     | '/categories/$categoryId'
+    | '/partner/feedback'
+    | '/partner/insights'
+    | '/partner/locations'
+    | '/partner/menu'
+    | '/partner/notifications'
+    | '/partner/orders'
+    | '/partner/performance'
+    | '/partner/profile'
+    | '/partner/reports'
+    | '/partner/users'
     | '/admin'
+    | '/partner'
     | '/admin/coupons'
     | '/admin/food-court'
     | '/admin/auto-suggestions'
@@ -824,7 +1072,9 @@ export interface FileRouteTypes {
     | '/admin/manage-menu'
     | '/admin/meal-roles'
     | '/admin/menu'
+    | '/admin/product-catalog'
     | '/admin/milestones'
+    | '/admin/manual-invoices'
     | '/admin/hall-of-happiness'
     | '/admin/kitchen-queue'
     | '/admin/operational-queue'
@@ -848,13 +1098,19 @@ export interface FileRouteTypes {
     | '/admin/control-center/locations'
     | '/admin/control-center/payments'
     | '/admin/control-center/users'
+    | '/partner/finance/agreements'
+    | '/partner/locations/$locationId'
+    | '/partner/orders/$orderId'
     | '/admin/analytics'
     | '/admin/control-center'
+    | '/partner/finance'
     | '/admin/combos/create'
     | '/admin/combos/edit'
+    | '/partner/finance/settlements/$settlementId'
     | '/admin/combo-campaigns'
     | '/admin/combos'
     | '/admin/home-content'
+    | '/partner/finance/settlements'
   id:
     | '__root__'
     | '/'
@@ -862,7 +1118,9 @@ export interface FileRouteTypes {
     | '/admin'
     | '/business-information'
     | '/cart'
+    | '/change-password'
     | '/contact-us'
+    | '/essentials'
     | '/faqs'
     | '/food-safety'
     | '/fssai-information'
@@ -872,6 +1130,7 @@ export interface FileRouteTypes {
     | '/milestones'
     | '/new-party-order'
     | '/orders'
+    | '/partner'
     | '/party-orders'
     | '/privacy-policy'
     | '/profile'
@@ -885,9 +1144,21 @@ export interface FileRouteTypes {
     | '/(auth)/register'
     | '/admin/customer-companies'
     | '/admin/ops-center'
+    | '/admin/partners'
     | '/admin/vendors'
     | '/categories/$categoryId'
+    | '/partner/feedback'
+    | '/partner/insights'
+    | '/partner/locations'
+    | '/partner/menu'
+    | '/partner/notifications'
+    | '/partner/orders'
+    | '/partner/performance'
+    | '/partner/profile'
+    | '/partner/reports'
+    | '/partner/users'
     | '/admin/'
+    | '/partner/'
     | '/admin/(coupons)/coupons'
     | '/admin/(foodcourt)/food-court'
     | '/admin/(growth)/auto-suggestions'
@@ -900,7 +1171,9 @@ export interface FileRouteTypes {
     | '/admin/(menu)/manage-menu'
     | '/admin/(menu)/meal-roles'
     | '/admin/(menu)/menu'
+    | '/admin/(menu)/product-catalog'
     | '/admin/(milestones)/milestones'
+    | '/admin/(operations)/manual-invoices'
     | '/admin/(orders)/hall-of-happiness'
     | '/admin/(orders)/kitchen-queue'
     | '/admin/(orders)/operational-queue'
@@ -924,13 +1197,19 @@ export interface FileRouteTypes {
     | '/admin/control-center/locations'
     | '/admin/control-center/payments'
     | '/admin/control-center/users'
+    | '/partner/finance/agreements'
+    | '/partner/locations/$locationId'
+    | '/partner/orders/$orderId'
     | '/admin/analytics/'
     | '/admin/control-center/'
+    | '/partner/finance/'
     | '/admin/(menu)/combos/create'
     | '/admin/(menu)/combos/edit'
+    | '/partner/finance/settlements/$settlementId'
     | '/admin/(menu)/combo-campaigns/'
     | '/admin/(menu)/combos/'
     | '/admin/(menu)/home-content/'
+    | '/partner/finance/settlements/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -939,7 +1218,9 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRouteWithChildren
   BusinessInformationRoute: typeof BusinessInformationRoute
   CartRoute: typeof CartRoute
+  ChangePasswordRoute: typeof ChangePasswordRoute
   ContactUsRoute: typeof ContactUsRoute
+  EssentialsRoute: typeof EssentialsRoute
   FaqsRoute: typeof FaqsRoute
   FoodSafetyRoute: typeof FoodSafetyRoute
   FssaiInformationRoute: typeof FssaiInformationRoute
@@ -949,6 +1230,7 @@ export interface RootRouteChildren {
   MilestonesRoute: typeof MilestonesRoute
   NewPartyOrderRoute: typeof NewPartyOrderRoute
   OrdersRoute: typeof OrdersRoute
+  PartnerRoute: typeof PartnerRouteWithChildren
   PartyOrdersRoute: typeof PartyOrdersRoute
   PrivacyPolicyRoute: typeof PrivacyPolicyRoute
   ProfileRoute: typeof ProfileRoute
@@ -1021,6 +1303,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PartyOrdersRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/partner': {
+      id: '/partner'
+      path: '/partner'
+      fullPath: '/partner'
+      preLoaderRoute: typeof PartnerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/orders': {
       id: '/orders'
       path: '/orders'
@@ -1084,11 +1373,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FaqsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/essentials': {
+      id: '/essentials'
+      path: '/essentials'
+      fullPath: '/essentials'
+      preLoaderRoute: typeof EssentialsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/contact-us': {
       id: '/contact-us'
       path: '/contact-us'
       fullPath: '/contact-us'
       preLoaderRoute: typeof ContactUsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/change-password': {
+      id: '/change-password'
+      path: '/change-password'
+      fullPath: '/change-password'
+      preLoaderRoute: typeof ChangePasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/cart': {
@@ -1126,12 +1429,89 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/partner/': {
+      id: '/partner/'
+      path: '/'
+      fullPath: '/partner/'
+      preLoaderRoute: typeof PartnerIndexRouteImport
+      parentRoute: typeof PartnerRoute
+    }
     '/admin/': {
       id: '/admin/'
       path: '/'
       fullPath: '/admin/'
       preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof AdminRoute
+    }
+    '/partner/users': {
+      id: '/partner/users'
+      path: '/users'
+      fullPath: '/partner/users'
+      preLoaderRoute: typeof PartnerUsersRouteImport
+      parentRoute: typeof PartnerRoute
+    }
+    '/partner/reports': {
+      id: '/partner/reports'
+      path: '/reports'
+      fullPath: '/partner/reports'
+      preLoaderRoute: typeof PartnerReportsRouteImport
+      parentRoute: typeof PartnerRoute
+    }
+    '/partner/profile': {
+      id: '/partner/profile'
+      path: '/profile'
+      fullPath: '/partner/profile'
+      preLoaderRoute: typeof PartnerProfileRouteImport
+      parentRoute: typeof PartnerRoute
+    }
+    '/partner/performance': {
+      id: '/partner/performance'
+      path: '/performance'
+      fullPath: '/partner/performance'
+      preLoaderRoute: typeof PartnerPerformanceRouteImport
+      parentRoute: typeof PartnerRoute
+    }
+    '/partner/orders': {
+      id: '/partner/orders'
+      path: '/orders'
+      fullPath: '/partner/orders'
+      preLoaderRoute: typeof PartnerOrdersRouteImport
+      parentRoute: typeof PartnerRoute
+    }
+    '/partner/notifications': {
+      id: '/partner/notifications'
+      path: '/notifications'
+      fullPath: '/partner/notifications'
+      preLoaderRoute: typeof PartnerNotificationsRouteImport
+      parentRoute: typeof PartnerRoute
+    }
+    '/partner/menu': {
+      id: '/partner/menu'
+      path: '/menu'
+      fullPath: '/partner/menu'
+      preLoaderRoute: typeof PartnerMenuRouteImport
+      parentRoute: typeof PartnerRoute
+    }
+    '/partner/locations': {
+      id: '/partner/locations'
+      path: '/locations'
+      fullPath: '/partner/locations'
+      preLoaderRoute: typeof PartnerLocationsRouteImport
+      parentRoute: typeof PartnerRoute
+    }
+    '/partner/insights': {
+      id: '/partner/insights'
+      path: '/insights'
+      fullPath: '/partner/insights'
+      preLoaderRoute: typeof PartnerInsightsRouteImport
+      parentRoute: typeof PartnerRoute
+    }
+    '/partner/feedback': {
+      id: '/partner/feedback'
+      path: '/feedback'
+      fullPath: '/partner/feedback'
+      preLoaderRoute: typeof PartnerFeedbackRouteImport
+      parentRoute: typeof PartnerRoute
     }
     '/categories/$categoryId': {
       id: '/categories/$categoryId'
@@ -1145,6 +1525,13 @@ declare module '@tanstack/react-router' {
       path: '/vendors'
       fullPath: '/admin/vendors'
       preLoaderRoute: typeof AdminVendorsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/partners': {
+      id: '/admin/partners'
+      path: '/partners'
+      fullPath: '/admin/partners'
+      preLoaderRoute: typeof AdminPartnersRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/ops-center': {
@@ -1182,6 +1569,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof authForgetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/partner/finance/': {
+      id: '/partner/finance/'
+      path: '/finance'
+      fullPath: '/partner/finance/'
+      preLoaderRoute: typeof PartnerFinanceIndexRouteImport
+      parentRoute: typeof PartnerRoute
+    }
     '/admin/control-center/': {
       id: '/admin/control-center/'
       path: '/control-center'
@@ -1195,6 +1589,27 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/analytics/'
       preLoaderRoute: typeof AdminAnalyticsIndexRouteImport
       parentRoute: typeof AdminRoute
+    }
+    '/partner/orders/$orderId': {
+      id: '/partner/orders/$orderId'
+      path: '/$orderId'
+      fullPath: '/partner/orders/$orderId'
+      preLoaderRoute: typeof PartnerOrdersOrderIdRouteImport
+      parentRoute: typeof PartnerOrdersRoute
+    }
+    '/partner/locations/$locationId': {
+      id: '/partner/locations/$locationId'
+      path: '/$locationId'
+      fullPath: '/partner/locations/$locationId'
+      preLoaderRoute: typeof PartnerLocationsLocationIdRouteImport
+      parentRoute: typeof PartnerLocationsRoute
+    }
+    '/partner/finance/agreements': {
+      id: '/partner/finance/agreements'
+      path: '/finance/agreements'
+      fullPath: '/partner/finance/agreements'
+      preLoaderRoute: typeof PartnerFinanceAgreementsRouteImport
+      parentRoute: typeof PartnerRoute
     }
     '/admin/control-center/users': {
       id: '/admin/control-center/users'
@@ -1357,11 +1772,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminordersHallOfHappinessRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/(operations)/manual-invoices': {
+      id: '/admin/(operations)/manual-invoices'
+      path: '/manual-invoices'
+      fullPath: '/admin/manual-invoices'
+      preLoaderRoute: typeof AdminoperationsManualInvoicesRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/(milestones)/milestones': {
       id: '/admin/(milestones)/milestones'
       path: '/milestones'
       fullPath: '/admin/milestones'
       preLoaderRoute: typeof AdminmilestonesMilestonesRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/(menu)/product-catalog': {
+      id: '/admin/(menu)/product-catalog'
+      path: '/product-catalog'
+      fullPath: '/admin/product-catalog'
+      preLoaderRoute: typeof AdminmenuProductCatalogRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/(menu)/menu': {
@@ -1448,6 +1877,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdmincouponsCouponsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/partner/finance/settlements/': {
+      id: '/partner/finance/settlements/'
+      path: '/finance/settlements'
+      fullPath: '/partner/finance/settlements/'
+      preLoaderRoute: typeof PartnerFinanceSettlementsIndexRouteImport
+      parentRoute: typeof PartnerRoute
+    }
     '/admin/(menu)/home-content/': {
       id: '/admin/(menu)/home-content/'
       path: '/home-content'
@@ -1469,6 +1905,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminmenuComboCampaignsIndexRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/partner/finance/settlements/$settlementId': {
+      id: '/partner/finance/settlements/$settlementId'
+      path: '/finance/settlements/$settlementId'
+      fullPath: '/partner/finance/settlements/$settlementId'
+      preLoaderRoute: typeof PartnerFinanceSettlementsSettlementIdRouteImport
+      parentRoute: typeof PartnerRoute
+    }
     '/admin/(menu)/combos/edit': {
       id: '/admin/(menu)/combos/edit'
       path: '/combos/edit'
@@ -1489,6 +1932,7 @@ declare module '@tanstack/react-router' {
 interface AdminRouteChildren {
   AdminCustomerCompaniesRoute: typeof AdminCustomerCompaniesRoute
   AdminOpsCenterRoute: typeof AdminOpsCenterRoute
+  AdminPartnersRoute: typeof AdminPartnersRoute
   AdminVendorsRoute: typeof AdminVendorsRoute
   AdminIndexRoute: typeof AdminIndexRoute
   AdmincouponsCouponsRoute: typeof AdmincouponsCouponsRoute
@@ -1503,7 +1947,9 @@ interface AdminRouteChildren {
   AdminmenuManageMenuRoute: typeof AdminmenuManageMenuRoute
   AdminmenuMealRolesRoute: typeof AdminmenuMealRolesRoute
   AdminmenuMenuRoute: typeof AdminmenuMenuRoute
+  AdminmenuProductCatalogRoute: typeof AdminmenuProductCatalogRoute
   AdminmilestonesMilestonesRoute: typeof AdminmilestonesMilestonesRoute
+  AdminoperationsManualInvoicesRoute: typeof AdminoperationsManualInvoicesRoute
   AdminordersHallOfHappinessRoute: typeof AdminordersHallOfHappinessRoute
   AdminordersKitchenQueueRoute: typeof AdminordersKitchenQueueRoute
   AdminordersOperationalQueueRoute: typeof AdminordersOperationalQueueRoute
@@ -1539,6 +1985,7 @@ interface AdminRouteChildren {
 const AdminRouteChildren: AdminRouteChildren = {
   AdminCustomerCompaniesRoute: AdminCustomerCompaniesRoute,
   AdminOpsCenterRoute: AdminOpsCenterRoute,
+  AdminPartnersRoute: AdminPartnersRoute,
   AdminVendorsRoute: AdminVendorsRoute,
   AdminIndexRoute: AdminIndexRoute,
   AdmincouponsCouponsRoute: AdmincouponsCouponsRoute,
@@ -1553,7 +2000,9 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminmenuManageMenuRoute: AdminmenuManageMenuRoute,
   AdminmenuMealRolesRoute: AdminmenuMealRolesRoute,
   AdminmenuMenuRoute: AdminmenuMenuRoute,
+  AdminmenuProductCatalogRoute: AdminmenuProductCatalogRoute,
   AdminmilestonesMilestonesRoute: AdminmilestonesMilestonesRoute,
+  AdminoperationsManualInvoicesRoute: AdminoperationsManualInvoicesRoute,
   AdminordersHallOfHappinessRoute: AdminordersHallOfHappinessRoute,
   AdminordersKitchenQueueRoute: AdminordersKitchenQueueRoute,
   AdminordersOperationalQueueRoute: AdminordersOperationalQueueRoute,
@@ -1590,13 +2039,78 @@ const AdminRouteChildren: AdminRouteChildren = {
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
+interface PartnerLocationsRouteChildren {
+  PartnerLocationsLocationIdRoute: typeof PartnerLocationsLocationIdRoute
+}
+
+const PartnerLocationsRouteChildren: PartnerLocationsRouteChildren = {
+  PartnerLocationsLocationIdRoute: PartnerLocationsLocationIdRoute,
+}
+
+const PartnerLocationsRouteWithChildren =
+  PartnerLocationsRoute._addFileChildren(PartnerLocationsRouteChildren)
+
+interface PartnerOrdersRouteChildren {
+  PartnerOrdersOrderIdRoute: typeof PartnerOrdersOrderIdRoute
+}
+
+const PartnerOrdersRouteChildren: PartnerOrdersRouteChildren = {
+  PartnerOrdersOrderIdRoute: PartnerOrdersOrderIdRoute,
+}
+
+const PartnerOrdersRouteWithChildren = PartnerOrdersRoute._addFileChildren(
+  PartnerOrdersRouteChildren,
+)
+
+interface PartnerRouteChildren {
+  PartnerFeedbackRoute: typeof PartnerFeedbackRoute
+  PartnerInsightsRoute: typeof PartnerInsightsRoute
+  PartnerLocationsRoute: typeof PartnerLocationsRouteWithChildren
+  PartnerMenuRoute: typeof PartnerMenuRoute
+  PartnerNotificationsRoute: typeof PartnerNotificationsRoute
+  PartnerOrdersRoute: typeof PartnerOrdersRouteWithChildren
+  PartnerPerformanceRoute: typeof PartnerPerformanceRoute
+  PartnerProfileRoute: typeof PartnerProfileRoute
+  PartnerReportsRoute: typeof PartnerReportsRoute
+  PartnerUsersRoute: typeof PartnerUsersRoute
+  PartnerIndexRoute: typeof PartnerIndexRoute
+  PartnerFinanceAgreementsRoute: typeof PartnerFinanceAgreementsRoute
+  PartnerFinanceIndexRoute: typeof PartnerFinanceIndexRoute
+  PartnerFinanceSettlementsSettlementIdRoute: typeof PartnerFinanceSettlementsSettlementIdRoute
+  PartnerFinanceSettlementsIndexRoute: typeof PartnerFinanceSettlementsIndexRoute
+}
+
+const PartnerRouteChildren: PartnerRouteChildren = {
+  PartnerFeedbackRoute: PartnerFeedbackRoute,
+  PartnerInsightsRoute: PartnerInsightsRoute,
+  PartnerLocationsRoute: PartnerLocationsRouteWithChildren,
+  PartnerMenuRoute: PartnerMenuRoute,
+  PartnerNotificationsRoute: PartnerNotificationsRoute,
+  PartnerOrdersRoute: PartnerOrdersRouteWithChildren,
+  PartnerPerformanceRoute: PartnerPerformanceRoute,
+  PartnerProfileRoute: PartnerProfileRoute,
+  PartnerReportsRoute: PartnerReportsRoute,
+  PartnerUsersRoute: PartnerUsersRoute,
+  PartnerIndexRoute: PartnerIndexRoute,
+  PartnerFinanceAgreementsRoute: PartnerFinanceAgreementsRoute,
+  PartnerFinanceIndexRoute: PartnerFinanceIndexRoute,
+  PartnerFinanceSettlementsSettlementIdRoute:
+    PartnerFinanceSettlementsSettlementIdRoute,
+  PartnerFinanceSettlementsIndexRoute: PartnerFinanceSettlementsIndexRoute,
+}
+
+const PartnerRouteWithChildren =
+  PartnerRoute._addFileChildren(PartnerRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutUsRoute: AboutUsRoute,
   AdminRoute: AdminRouteWithChildren,
   BusinessInformationRoute: BusinessInformationRoute,
   CartRoute: CartRoute,
+  ChangePasswordRoute: ChangePasswordRoute,
   ContactUsRoute: ContactUsRoute,
+  EssentialsRoute: EssentialsRoute,
   FaqsRoute: FaqsRoute,
   FoodSafetyRoute: FoodSafetyRoute,
   FssaiInformationRoute: FssaiInformationRoute,
@@ -1606,6 +2120,7 @@ const rootRouteChildren: RootRouteChildren = {
   MilestonesRoute: MilestonesRoute,
   NewPartyOrderRoute: NewPartyOrderRoute,
   OrdersRoute: OrdersRoute,
+  PartnerRoute: PartnerRouteWithChildren,
   PartyOrdersRoute: PartyOrdersRoute,
   PrivacyPolicyRoute: PrivacyPolicyRoute,
   ProfileRoute: ProfileRoute,

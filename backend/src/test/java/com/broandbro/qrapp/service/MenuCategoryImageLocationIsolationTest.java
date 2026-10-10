@@ -4,10 +4,12 @@ import com.broandbro.qrapp.entity.Category;
 import com.broandbro.qrapp.entity.Location;
 import com.broandbro.qrapp.entity.MenuItem;
 import com.broandbro.qrapp.entity.MenuItemImage;
+import com.broandbro.qrapp.entity.Product;
 import com.broandbro.qrapp.controller.MenuController;
 import com.broandbro.qrapp.analytics.repository.MenuItemAnalyticsRepository;
 import com.broandbro.qrapp.dto.MenuItemResponse;
 import com.broandbro.qrapp.enums.StockStatus;
+import com.broandbro.qrapp.enums.ProductType;
 import com.broandbro.qrapp.repository.CategoryRepository;
 import com.broandbro.qrapp.repository.LocationRepository;
 import com.broandbro.qrapp.repository.MenuItemImageRepository;
@@ -103,6 +105,52 @@ class MenuCategoryImageLocationIsolationTest {
                 .extracting(MenuItemResponse::getId).containsExactly(20L);
         verify(menus).findByFilters(eq(pragati.getId()), isNull(), isNull(), isNull(), any());
         verify(menus, never()).findByFilters(eq(towers.getId()), any(), any(), any(), any());
+    }
+
+    @Test
+    void retailMenuUsesMenuItemIdButCatalogMasterFieldsAndLocationPrice() {
+        MenuRepository menus = mock(MenuRepository.class);
+        LocationRepository locations = mock(LocationRepository.class);
+        PricingService pricing = mock(PricingService.class);
+        InventoryService inventory = mock(InventoryService.class);
+        when(locations.findById(pragati.getId())).thenReturn(Optional.of(pragati));
+
+        Product catalogProduct = new Product();
+        catalogProduct.setId(900L);
+        catalogProduct.setName("Catalog Soap");
+        catalogProduct.setDescription("Authoritative description");
+        catalogProduct.setMrp(new BigDecimal("50"));
+        catalogProduct.setImageUrl("/catalog/soap.png");
+
+        MenuItem projection = menuItem(20L, pragati);
+        projection.setProductType(ProductType.RETAIL_PRODUCT);
+        projection.setCatalogProduct(catalogProduct);
+        projection.setName("Stale projection name");
+        projection.setMrp(new BigDecimal("99"));
+        projection.setImageUrl("/legacy/stale.png");
+        when(menus.findVisibleByLocationAndProductType(eq(pragati.getId()), eq(ProductType.RETAIL_PRODUCT), any()))
+                .thenReturn(List.of(projection));
+        when(pricing.getCurrentSellingPrices(List.of(20L)))
+                .thenReturn(Map.of(20L, new BigDecimal("42")));
+        when(inventory.getAvailability(List.of(projection)))
+                .thenReturn(Map.of(20L, new InventoryService.MenuItemAvailability(true, StockStatus.AVAILABLE)));
+
+        MenuController controller = new MenuController(
+                menus, mock(CategoryRepository.class), mock(TagRepository.class), inventory,
+                pricing, mock(ApplicationEventPublisher.class),
+                mock(MenuItemAnalyticsRepository.class), locations,
+                mock(LocationAccessService.class), mock(UserService.class));
+
+        List<MenuItemResponse> result = controller.getRetailMenu(pragati.getId(), 200);
+
+        assertThat(result).singleElement().satisfies(item -> {
+            assertThat(item.getId()).isEqualTo(20L);
+            assertThat(item.getId()).isNotEqualTo(catalogProduct.getId());
+            assertThat(item.getName()).isEqualTo("Catalog Soap");
+            assertThat(item.getMrp()).isEqualByComparingTo("50");
+            assertThat(item.getImageUrl()).isEqualTo("/catalog/soap.png");
+            assertThat(item.getPrice()).isEqualByComparingTo("42");
+        });
     }
 
     @Test

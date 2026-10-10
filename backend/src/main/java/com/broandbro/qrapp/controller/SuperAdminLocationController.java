@@ -33,6 +33,8 @@ public class SuperAdminLocationController {
     private final com.broandbro.qrapp.service.LocationCodeService locationCodeService;
     private final com.broandbro.qrapp.service.LocationPhotoService locationPhotoService;
     private final com.broandbro.qrapp.service.LocationDeletionService locationDeletionService;
+    private final com.broandbro.qrapp.service.PartnerService partnerService;
+    private final com.broandbro.qrapp.repository.PartnerLocationRepository partnerLocationRepository;
 
     @GetMapping("/locations")
     public Page<LocationResponse> locations(
@@ -57,7 +59,7 @@ public class SuperAdminLocationController {
         };
         return locationRepository.findForAdminFilters(active, cleanLower(state), cleanLower(city), cleanLower(country),
                         customerCompanyId, cleanLower(search), PageRequest.of(page, size, Sort.by("name").ascending()))
-                .map(LocationResponse::from);
+                .map(this::locationResponse);
     }
 
     private static String clean(String value) {
@@ -85,7 +87,9 @@ public class SuperAdminLocationController {
                 .pinCode(request.getPinCode().trim())
                 .active(request.getActive()).build();
         l.setAddress(formatAddress(l));
-        return ResponseEntity.status(HttpStatus.CREATED).body(LocationResponse.from(locationCodeService.create(l, request.getCode())));
+        Location saved = locationCodeService.create(l, request.getCode());
+        syncPartner(saved, request.getPartnerId(), authentication);
+        return ResponseEntity.status(HttpStatus.CREATED).body(locationResponse(saved));
     }
 
     @PostMapping(value = "/locations", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -129,7 +133,9 @@ public class SuperAdminLocationController {
         l.setPinCode(request.getPinCode().trim());
         l.setAddress(formatAddress(l));
         l.setActive(request.getActive());
-        return LocationResponse.from(locationRepository.save(locationCodeService.update(l, request.getCode())));
+        Location saved = locationCodeService.update(l, request.getCode());
+        syncPartner(saved, request.getPartnerId(), authentication);
+        return locationResponse(saved);
     }
 
     @PutMapping(value = "/locations/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -169,6 +175,33 @@ public class SuperAdminLocationController {
                         location.getCity(), location.getDistrict(), location.getStateUt(), location.getPinCode())
                 .filter(value -> value != null && !value.isBlank())
                 .collect(java.util.stream.Collectors.joining(", "));
+    }
+
+    private void syncPartner(Location location, Long partnerId,
+                             org.springframework.security.core.Authentication authentication) {
+        if (partnerId == null) {
+            partnerService.clearLocationPartner(location.getId(), authentication.getName());
+        } else {
+            partnerService.syncLocationPartner(location.getId(), partnerId, authentication.getName());
+        }
+    }
+
+    private LocationResponse locationResponse(Location location) {
+        LocationResponse response = LocationResponse.from(location);
+        partnerLocationRepository.findActivePrimaryByLocation(location.getId(),
+                        com.broandbro.qrapp.entity.PartnerRelationshipStatus.ACTIVE,
+                        com.broandbro.qrapp.entity.PartnerRelationshipType.PRIMARY)
+                .ifPresent(link -> {
+                    response.setPartnerId(link.getPartner().getId());
+                    response.setPartnerName(link.getPartner().getDisplayName());
+                    response.setPartnerRelationshipType(link.getRelationshipType().name());
+                    response.setPartnerEffectiveFrom(link.getEffectiveFrom());
+                    response.setPartnerEffectiveTo(link.getEffectiveTo());
+                });
+        response.setSecondaryPartnerCount(partnerLocationRepository.countByLocationIdAndStatusAndRelationshipType(
+                location.getId(), com.broandbro.qrapp.entity.PartnerRelationshipStatus.ACTIVE,
+                com.broandbro.qrapp.entity.PartnerRelationshipType.SECONDARY));
+        return response;
     }
 
     @GetMapping("/users")

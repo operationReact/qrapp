@@ -19,12 +19,13 @@ export default function CategoryDishCard({ item }) {
   return (
     <article className="flex items-start gap-3 p-3">
       <div className="relative shrink-0">
-        <img
-          src={item.imageUrl}
-          alt={item.name}
-          loading="lazy"
-          className="size-24 rounded-lg object-cover"
-        />
+        {item.imageUrl ? (
+          <img src={item.imageUrl} alt={item.name} loading="lazy" className="size-24 rounded-lg object-cover" />
+        ) : (
+          <div className="flex size-24 items-center justify-center rounded-lg bg-gradient-to-br from-amber-100 to-orange-200 text-xs font-semibold text-amber-900">
+            {item.category?.name || "Bro & Bro"}
+          </div>
+        )}
         {item.isVeg != null && (
           <div
             title={veg ? "Veg" : "Non Veg"}
@@ -52,6 +53,9 @@ export default function CategoryDishCard({ item }) {
         <p className="mt-0.5 text-base font-semibold text-foreground">
           ₹{Number(item.price || 0).toFixed(0)}
         </p>
+        {item.productType === "RETAIL_PRODUCT" && item.mrp > item.price && (
+          <p className="text-xs text-muted-foreground line-through">MRP ₹{Number(item.mrp).toFixed(0)}</p>
+        )}
         <div className="mt-auto flex items-center justify-end pt-2">
           <Button
             variant={qty > 0 ? "secondary" : "shadow-white"}

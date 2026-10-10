@@ -24,6 +24,12 @@ public class LocationResponse {
     private BigDecimal longitude;
     private String locationPhotoUrl;
     private Boolean active;
+    private Long partnerId;
+    private String partnerName;
+    private String partnerRelationshipType;
+    private java.time.LocalDate partnerEffectiveFrom;
+    private java.time.LocalDate partnerEffectiveTo;
+    private long secondaryPartnerCount;
 
     public static LocationResponse from(Location l) {
         LocationResponse response = new LocationResponse();

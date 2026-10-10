@@ -11,6 +11,8 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
 
     List<OrderItem> findAllByOrderIdIn(List<Long> orderIds);
 
+    List<OrderItem> findAllByOrderId(Long orderId);
+
 	@Query(value = """
 			SELECT COALESCE(SUM(oi.selling_price_snapshot * oi.quantity), 0)
 			FROM order_item oi

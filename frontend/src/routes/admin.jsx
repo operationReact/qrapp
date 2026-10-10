@@ -74,9 +74,11 @@ function AdminLayout() {
   // Control Center renders its own compact 64px header (menu + title + bell)
   // so it doesn't stack with this generic sub-page header.
   const isControlCenter = pathname.startsWith("/admin/control-center");
+  const isPartners = pathname === "/admin/partners";
   const isKitchenQueue = pathname.startsWith("/admin/kitchen-queue");
   const isFoodCourt = pathname.startsWith("/admin/food-court");
-  const hideGenericHeader = isDashboard || isControlCenter;
+  const isProductCatalog = pathname.startsWith("/admin/product-catalog");
+  const hideGenericHeader = isDashboard || isControlCenter || isPartners;
 
   return (
     <RoleGuard roles={CAN_ACCESS_ADMIN}>
@@ -84,7 +86,9 @@ function AdminLayout() {
         <SidebarProvider>
           <AdminSidebar />
           <SidebarInset className="min-w-0 bg-[var(--cc-page)]">
-            {!hideGenericHeader && <SubPageHeader title={isKitchenQueue ? "Kitchen Queue" : isFoodCourt ? "Food Court Management" : undefined} />}
+            {!hideGenericHeader && <SubPageHeader
+              title={isKitchenQueue ? "Kitchen Queue" : isFoodCourt ? "Food Court Management" : isProductCatalog ? "Essentials Catalog" : undefined}
+            />}
             <div className="min-h-0 flex-1 flex flex-col">
               <Outlet />
             </div>

@@ -15,8 +15,15 @@ import com.broandbro.qrapp.service.PricingService;
 import com.broandbro.qrapp.service.LocationAccessService;
 import com.broandbro.qrapp.service.UserService;
 import com.broandbro.qrapp.service.TaxCalculationService;
+import com.broandbro.qrapp.enums.ProductType;
 import com.broandbro.qrapp.repository.LocationRepository;
 import com.broandbro.qrapp.repository.TaxProfileRepository;
+import com.broandbro.qrapp.repository.InventoryRepository;
+import com.broandbro.qrapp.repository.InventoryAuditRepository;
+import com.broandbro.qrapp.entity.Inventory;
+import com.broandbro.qrapp.entity.InventoryAudit;
+import com.broandbro.qrapp.enums.InventoryMode;
+import com.broandbro.qrapp.enums.InventoryAuditActionType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -79,6 +86,10 @@ public class MenuController {
     private final com.broandbro.qrapp.repository.VendorRepository vendorRepository;
     private final TaxCalculationService taxCalculationService;
     private final TaxProfileRepository taxProfileRepository;
+    @Autowired
+    private InventoryRepository inventoryRepository;
+    @Autowired
+    private InventoryAuditRepository inventoryAuditRepository;
 
     public MenuController(MenuRepository repo, CategoryRepository categoryRepository,
                           TagRepository tagRepository, InventoryService inventoryService,
@@ -167,6 +178,21 @@ public class MenuController {
             .toList();
     }
 
+    @GetMapping("/retail")
+    public List<MenuItemResponse> getRetailMenu(@RequestParam Long locationId,
+                                                @RequestParam(defaultValue = "200") Integer size) {
+        requireActiveLocation(locationId);
+        int safeSize = Math.max(1, Math.min(size == null ? 200 : size, MAX_MENU_SIZE));
+        List<MenuItem> items = repo.findVisibleByLocationAndProductType(
+                locationId, ProductType.RETAIL_PRODUCT, PageRequest.of(0, safeSize));
+        List<Long> ids = items.stream().map(MenuItem::getId).toList();
+        Map<Long, BigDecimal> priceMap = pricingService.getCurrentSellingPrices(ids);
+        Map<Long, InventoryService.MenuItemAvailability> availabilityMap = inventoryService.getAvailability(items);
+        return items.stream()
+                .map(item -> buildMenuItemResponse(item, priceMap.get(item.getId()), availabilityMap.get(item.getId())))
+                .toList();
+    }
+
 
     @GetMapping("/recommended")
     @Cacheable(cacheNames = "menuRecommended",
@@ -220,6 +246,12 @@ public class MenuController {
             @RequestPart(value = "isVeg",          required = false) String isVegStr,
             @RequestPart(value = "inventoryMode",  required = false) String inventoryModeStr,
             @RequestPart(value = "estimatedCost",  required = false) String estimatedCostStr,
+            @RequestPart(value = "productType", required = false) String productTypeStr,
+            @RequestPart(value = "mrp", required = false) String mrpStr,
+            @RequestPart(value = "purchaseCost", required = false) String purchaseCostStr,
+            @RequestPart(value = "barcode", required = false) String barcode,
+            @RequestPart(value = "taxProfileId", required = false) String taxProfileIdStr,
+            @RequestPart(value = "initialStock", required = false) String initialStockStr,
             @RequestPart(value = "imageUrl",       required = false) String imageUrlStr,
             @RequestPart(value = "image",          required = false) MultipartFile image
             , @RequestParam Long locationId,
@@ -231,6 +263,16 @@ public class MenuController {
             item.setId(null);
             item.setLocation(locationRepository.findById(locationId).orElseThrow());
             item.setName(name == null ? "" : name);
+            if (productTypeStr != null && !productTypeStr.isBlank()) {
+                item.setProductType(ProductType.valueOf(productTypeStr.trim().toUpperCase()));
+            }
+            item.setBarcode(trimToNull(barcode));
+            item.setMrp(parseMoney(mrpStr, "mrp"));
+            item.setPurchaseCost(parseMoney(purchaseCostStr, "purchaseCost"));
+            if (taxProfileIdStr != null && !taxProfileIdStr.isBlank()) {
+                item.setTaxProfile(taxProfileRepository.findById(Long.parseLong(taxProfileIdStr))
+                        .orElseThrow(() -> new IllegalArgumentException("Tax profile not found")));
+            }
             double price = 0.0;
             if (priceStr != null && !priceStr.isBlank()) {
                 try {
@@ -240,7 +282,6 @@ public class MenuController {
                 }
             }
             final double resolvedPrice = price;
-
             // Set category if categoryId is provided
             if (categoryIdStr != null && !categoryIdStr.isBlank()) {
                 try {
@@ -251,6 +292,11 @@ public class MenuController {
                 } catch (NumberFormatException nfe) {
                     return ResponseEntity.badRequest().body("Invalid category ID format");
                 }
+
+            }
+            validateProduct(item, resolvedPrice);
+            if (item.getProductType() == ProductType.RETAIL_PRODUCT) {
+                item.setInventoryMode(InventoryMode.LIMITED);
             }
 
             item.setDescription(description);
@@ -315,6 +361,20 @@ public class MenuController {
                 item.setImageUrl(imageUrlStr.trim());
             }
             MenuItem saved = repo.save(item);
+            if (saved.getProductType() == ProductType.RETAIL_PRODUCT) {
+                long initialStock = parseQuantity(initialStockStr);
+                Inventory inventory = Inventory.builder().menuItem(saved)
+                        .availableQuantity(initialStock).reservedQuantity(0L)
+                        .lowStockThreshold(10L).build();
+                inventoryRepository.save(inventory);
+                if (initialStock > 0) {
+                    inventoryAuditRepository.save(InventoryAudit.builder()
+                            .menuItemId(saved.getId())
+                            .actionType(InventoryAuditActionType.OPENING_STOCK)
+                            .oldQuantity(0L).newQuantity(initialStock)
+                            .reason("Retail product opening stock").build());
+                }
+            }
             // Persist initial selling price in history table
             if (resolvedPrice > 0) {
                 pricingService.setSellingPrice(new com.broandbro.qrapp.dto.pricing.PriceSetRequest(
@@ -339,6 +399,44 @@ public class MenuController {
         }
     }
 
+    private BigDecimal parseMoney(String value, String field) {
+        if (value == null || value.isBlank()) return null;
+        try {
+            return new BigDecimal(value).setScale(2, java.math.RoundingMode.HALF_UP);
+        } catch (NumberFormatException ex) {
+            throw new IllegalArgumentException("Invalid " + field + " format");
+        }
+    }
+
+    private void validateProduct(MenuItem item, double resolvedPrice) {
+        if (item.getProductType() != ProductType.RETAIL_PRODUCT) return;
+        if (item.getCategory() == null) throw new IllegalArgumentException("Category is required");
+        if (item.getMrp() == null || item.getMrp().compareTo(BigDecimal.ZERO) <= 0)
+            throw new IllegalArgumentException("MRP must be greater than zero");
+        BigDecimal selling = resolvedPrice > 0 ? BigDecimal.valueOf(resolvedPrice) : BigDecimal.ZERO;
+        if (selling.compareTo(BigDecimal.ZERO) <= 0 || selling.compareTo(item.getMrp()) > 0)
+            throw new IllegalArgumentException("Selling price must be greater than zero and not exceed MRP");
+        if (item.getPurchaseCost() == null || item.getPurchaseCost().compareTo(BigDecimal.ZERO) < 0)
+            throw new IllegalArgumentException("Purchase cost must be zero or greater");
+        if (item.getTaxProfile() == null)
+            throw new IllegalArgumentException("GST rate is required for retail products");
+    }
+
+    private String trimToNull(String value) {
+        return value == null || value.isBlank() ? null : value.trim();
+    }
+
+    private long parseQuantity(String value) {
+        if (value == null || value.isBlank()) return 0L;
+        try {
+            long quantity = Long.parseLong(value);
+            if (quantity < 0) throw new IllegalArgumentException("Initial stock cannot be negative");
+            return quantity;
+        } catch (NumberFormatException ex) {
+            throw new IllegalArgumentException("Invalid initialStock format");
+        }
+    }
+
     // --- Flexible single PUT handler (handles JSON, multipart, raw bytes) ---
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPERUSER', 'SUPER_ADMIN', 'MANAGER')")
@@ -355,6 +453,11 @@ public class MenuController {
         Optional<MenuItem> o = repo.findByIdAndLocationId(id, locationId);
         if (o.isEmpty()) return ResponseEntity.notFound().build();
         MenuItem existing = o.get();
+        if (existing.getCatalogProduct() != null) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of(
+                    "error", "CATALOG_PROJECTION_READ_ONLY",
+                    "message", "Update the shared product or its location assignment through /api/catalog"));
+        }
 
         String contentType = request.getContentType();
         try {
@@ -606,6 +709,11 @@ public class MenuController {
             return ResponseEntity.notFound().build();
         }
         MenuItem item = optItem.get();
+        if (item.getCatalogProduct() != null) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of(
+                    "error", "CATALOG_PROJECTION_READ_ONLY",
+                    "message", "Update the shared product or its location assignment through /api/catalog"));
+        }
         item.setIsDeleted(true);
         repo.save(item);
         log.info("Soft-deleted menu item id={} name='{}'", id, item.getName());
@@ -625,15 +733,18 @@ public class MenuController {
             BigDecimal price,
             InventoryService.MenuItemAvailability availability) {
         Long vendorId = item.getVendor() != null ? item.getVendor().getId() : null;
+        com.broandbro.qrapp.entity.Product catalogProduct = item.getCatalogProduct();
 
         return MenuItemResponse.builder()
             .id(item.getId())
-            .name(item.getName())
-            .description(item.getDescription())
+            .name(catalogProduct == null ? item.getName() : catalogProduct.getName())
+            .productType(item.getProductType())
+            .description(catalogProduct == null ? item.getDescription() : catalogProduct.getDescription())
             .locationId(item.getLocation() != null ? item.getLocation().getId() : null)
             .price(price == null ? null : taxCalculationService
                     .calculateInclusive(price, item.getTaxProfile()).totalAmount())
-            .imageUrl(item.getImageUrl())
+            .mrp(catalogProduct == null ? item.getMrp() : catalogProduct.getMrp())
+            .imageUrl(catalogProduct == null ? item.getImageUrl() : catalogProduct.getImageUrl())
             .isVeg(item.getIsVeg())
             .recommended(item.isRecommended())
             .category(item.getCategory())
@@ -661,6 +772,11 @@ public class MenuController {
         requireManagementLocation(locationId, authentication);
         MenuItem item = repo.findByIdAndLocationId(id, locationId).orElse(null);
         if (item == null) return ResponseEntity.notFound().build();
+        if (item.getCatalogProduct() != null) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of(
+                    "error", "CATALOG_PROJECTION_READ_ONLY",
+                    "message", "Update the shared product through /api/catalog"));
+        }
         var profile = taxProfileRepository.findById(request.taxProfileId())
                 .orElseThrow(() -> new IllegalArgumentException("Tax profile not found: " + request.taxProfileId()));
         item.setTaxProfile(profile);
@@ -708,6 +824,11 @@ public ResponseEntity<?> updateEstimatedCost(
             return ResponseEntity.notFound().build();
         }
         MenuItem item = optItem.get();
+        if (item.getCatalogProduct() != null) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of(
+                    "error", "CATALOG_PROJECTION_READ_ONLY",
+                    "message", "Update the shared product through /api/catalog"));
+        }
         BigDecimal cost = body.get("estimatedCost");
         if (cost != null && cost.compareTo(BigDecimal.ZERO) < 0) {
             return ResponseEntity.badRequest().body("estimatedCost must be >= 0");

@@ -35,6 +35,8 @@ class LocationSecurityFilterChainTest {
     @MockBean com.broandbro.qrapp.service.LocationCodeService locationCodeService;
     @MockBean com.broandbro.qrapp.service.LocationPhotoService locationPhotoService;
     @MockBean com.broandbro.qrapp.service.LocationDeletionService locationDeletionService;
+    @MockBean com.broandbro.qrapp.service.PartnerService partnerService;
+    @MockBean com.broandbro.qrapp.repository.PartnerLocationRepository partnerLocationRepository;
 
     private final Location a = Location.builder().id(1L).code("A").name("A").active(true).build();
     private final Location b = Location.builder().id(2L).code("B").name("B").active(true).build();
@@ -75,6 +77,14 @@ class LocationSecurityFilterChainTest {
         mvc.perform(get("/api/locations/1/authorized")).andExpect(status().isUnauthorized());
         mvc.perform(get("/api/admin/users").header("Authorization", bearer("admin-token")))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void inactiveUserTokenIsRejected() throws Exception {
+        when(users.findByToken("inactive-token")).thenReturn(Optional.empty());
+
+        mvc.perform(get("/api/locations/1/authorized").header("Authorization", bearer("inactive-token")))
+                .andExpect(status().isUnauthorized());
     }
 
     @Test

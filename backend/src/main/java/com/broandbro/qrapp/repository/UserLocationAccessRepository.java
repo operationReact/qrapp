@@ -13,6 +13,7 @@ public interface UserLocationAccessRepository extends JpaRepository<UserLocation
     @EntityGraph(attributePaths = "location")
     List<UserLocationAccess> findByUserIdOrderByLocationNameAsc(Long userId);
     List<UserLocationAccess> findByLocationId(Long locationId);
+    List<UserLocationAccess> findByLocationIdAndActiveTrueAndLocationActiveTrue(Long locationId);
     void deleteByUserIdAndLocationId(Long userId, Long locationId);
 
     /** Delete all access records for a specific location. */

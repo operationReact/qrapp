@@ -24,6 +24,11 @@ public class BulkMenuRowDto {
     private BigDecimal price;
     private String fulfillmentType;
     private String inventoryMode;
+    private String productType;
+    private BigDecimal mrp;
+    private BigDecimal purchaseCost;
+    private String barcode;
+    private Long taxProfileId;
     private String isHidden;
 
     // ---- inventory fields ----

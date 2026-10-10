@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/input-group";
 import { RegistrationPurposeControl } from "@/components/registration-purpose-control";
 import { useAuth } from "@/context/AuthContext";
+import { extractApiError } from "@/lib/apiError";
 
 export const Route = createFileRoute("/(auth)/login")({
   component: function UserLogin() {
@@ -34,29 +35,63 @@ export const Route = createFileRoute("/(auth)/login")({
     }, []);
 
     const [noToken, setNoToken] = useState(false);
+    const [loginError, setLoginError] = useState(null);
 
     const loginMutation = useMutation({
       mutationFn: loginUser,
+      onError: (error) => {
+        setLoginError(extractApiError(error, "Unable to sign in. Check your details and try again."));
+      },
       onSuccess: (data) => {
         if (!data.token) {
           setNoToken(true);
+          setLoginError(null);
           return;
         }
         setUserAuth(data.token);
         setUser({ ...data.user, token: data.token });
-        window.location.assign("/admin");
+        if (data.mustChangePassword || data.user?.mustChangePassword) {
+          window.location.assign("/change-password");
+        } else {
+          window.location.assign(data.user?.role?.startsWith("PARTNER_") ? "/partner" : "/admin");
+        }
       },
     });
 
     const submit = (e) => {
       e.preventDefault();
+      setNoToken(false);
+      setLoginError(null);
       loginMutation.mutate({ phone: identifier, password });
     };
 
     return (
-      <div className="flex w-full flex-1 items-center justify-center py-6 sm:px-4">
-        <div className="w-full max-w-md">
-          <div className="px-4">
+      <div className="auth-login-page">
+        <aside className="auth-login-promo" aria-label="Bro & Bro">
+          <div className="auth-login-promo-content">
+            <img src="/bro-logo.png" alt="Bro & Bro" className="auth-login-logo" />
+            <p className="auth-login-kicker">Workplace food, made better</p>
+            <h1>Good food brings people together.</h1>
+            <p className="auth-login-promo-copy">
+              Order delicious meals for your workplace with the Bro & Bro experience.
+            </p>
+            <img
+              src="/login-banner.jpg"
+              alt="Delicious meals from Bro & Bro"
+              className="auth-login-promo-image"
+            />
+          </div>
+        </aside>
+        <main className="auth-login-main">
+          <div className="auth-login-card">
+            <div className="auth-login-mobile-brand">
+              <img src="/bro-logo.png" alt="Bro & Bro" className="auth-login-logo" />
+              <div>
+                <p className="auth-login-kicker">Welcome back</p>
+                <p className="auth-login-mobile-copy">Sign in to your account</p>
+              </div>
+            </div>
+            <div className="auth-login-back">
             <Link
               className={buttonVariants({
                 size: "xs",
@@ -69,27 +104,20 @@ export const Route = createFileRoute("/(auth)/login")({
               <CaretLeftIcon weight="bold" />
               <span>Back To Menu</span>
             </Link>
-          </div>
-          <div className="rounded-xl p-4 pt-2 h-fit">
-            <img
-              src="/login-banner.jpg"
-              alt="Your Easy Access To Delicious Meals"
-              className="w-full border border-muted login-banner rounded-[14px] overflow-hidden"
-            />
-            <div className="mb-4 mt-4">
-              <h1 className="text-lg font-semibold">
-                Welcome back,
-                <span className="text-primary"> Login Your Account</span>
-              </h1>
+            </div>
+            <div className="auth-login-heading">
+              <p className="auth-login-kicker">Secure access</p>
+              <h1>Welcome back</h1>
+              <p>Sign in to continue to your Bro & Bro account.</p>
             </div>
             {(loginMutation.isError || noToken) && (
-              <div className="mb-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+              <div className="auth-login-error" role="alert" aria-live="polite">
                 {noToken
-                  ? "No token returned from server"
-                  : "Invalid phone or password"}
+                  ? "Sign in could not be completed because the server did not return a session."
+                  : loginError || "Unable to sign in. Check your details and try again."}
               </div>
             )}
-            <form onSubmit={submit} className="space-y-5 font-sans">
+            <form onSubmit={submit} className="auth-login-form">
               <Field className="gap-2">
                 <FieldLabel
                   htmlFor="identifier"
@@ -143,6 +171,7 @@ export const Route = createFileRoute("/(auth)/login")({
                       required
                       name="password"
                       id="password"
+                      autoComplete="current-password"
                     />
                   </RegistrationPurposeControl>
                 </FieldContent>
@@ -158,7 +187,7 @@ export const Route = createFileRoute("/(auth)/login")({
               >
                 Forgot Password?
               </Link>
-              <div className="flex mt-5 flex-col gap-2 justify-center">
+              <div className="auth-login-actions">
                 <Button
                   type="submit"
                   size="lg"
@@ -167,18 +196,18 @@ export const Route = createFileRoute("/(auth)/login")({
                   {loginMutation.isPending ? "Signing in..." : "Sign In"}
                 </Button>
 
-                <FieldSeparator>OR</FieldSeparator>
+                <FieldSeparator className="auth-login-separator">OR</FieldSeparator>
 
                 <Link
                   to="/register"
-                  className={buttonVariants({ variant: "ghost", size: "lg" })}
+                  className={`${buttonVariants({ variant: "outline", size: "lg" })} auth-login-create`}
                 >
                   Create Account
                 </Link>
               </div>
             </form>
           </div>
-        </div>
+        </main>
       </div>
     );
   },

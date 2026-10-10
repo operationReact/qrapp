@@ -48,6 +48,11 @@ const EMPTY_FORM = {
   recommended: false,
   isVeg: false,
   estimatedCost: "",
+  productType: "PREPARED_FOOD",
+  mrp: "",
+  purchaseCost: "",
+  initialStock: "0",
+  taxProfileId: "",
 };
 
 function AdminCreateMenuPage() {
@@ -148,6 +153,14 @@ function AdminCreateMenuPage() {
     if (!form.name.trim()) return "Name is required.";
     if (!form.price || Number.isNaN(Number(form.price))) return "Valid price is required.";
     if (Number(form.price) <= 0) return "Price must be greater than 0.";
+    if (form.productType === "RETAIL_PRODUCT") {
+      if (!form.categoryId) return "Category is required for retail products.";
+      if (!form.mrp || Number(form.mrp) <= 0) return "Valid MRP is required.";
+      if (Number(form.price) > Number(form.mrp)) return "Selling price cannot exceed MRP.";
+      if (form.purchaseCost === "" || Number(form.purchaseCost) < 0) return "Valid purchase cost is required.";
+      if (Number(form.initialStock) < 0) return "Initial stock cannot be negative.";
+      if (!form.taxProfileId) return "GST profile is required for retail products.";
+    }
     return null;
   };
 
@@ -168,11 +181,18 @@ function AdminCreateMenuPage() {
     fd.append("available",   String(form.available));
     fd.append("recommended", String(form.recommended));
     fd.append("isVeg",       String(Boolean(form.isVeg)));
+    fd.append("productType", form.productType);
 
     if (form.categoryId != null) fd.append("categoryId", String(form.categoryId));
     if (form.tagId      != null) fd.append("tagId",      String(form.tagId));
     if (form.description.trim()) fd.append("description", form.description.trim());
     if (costNum         != null) fd.append("estimatedCost", String(costNum));
+    if (form.productType === "RETAIL_PRODUCT") {
+      fd.append("mrp", String(Number(form.mrp)));
+      fd.append("purchaseCost", String(Number(form.purchaseCost)));
+      fd.append("initialStock", String(Number(form.initialStock)));
+      fd.append("taxProfileId", String(form.taxProfileId));
+    }
 
     if (includeImage) {
       if (imageFile) {
@@ -593,6 +613,16 @@ function AdminCreateMenuPage() {
                   </Field>
 
                   <Field>
+                    <FieldLabel>Product Type</FieldLabel>
+                    <FieldContent>
+                      <select className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={form.productType} onChange={handleChange("productType")}>
+                        <option value="PREPARED_FOOD">Prepared Food</option>
+                        <option value="RETAIL_PRODUCT">Retail Product</option>
+                      </select>
+                    </FieldContent>
+                  </Field>
+
+                  <Field>
                     <FieldLabel>Price (₹)</FieldLabel>
                     <FieldContent>
                       <Input
@@ -605,6 +635,27 @@ function AdminCreateMenuPage() {
                       />
                     </FieldContent>
                   </Field>
+
+                  {form.productType === "RETAIL_PRODUCT" && (
+                    <>
+                      <Field>
+                        <FieldLabel>MRP (₹)</FieldLabel>
+                        <FieldContent><Input type="number" min="0.01" step="0.01" value={form.mrp} onChange={handleChange("mrp")} /></FieldContent>
+                      </Field>
+                      <Field>
+                        <FieldLabel>Purchase Cost (₹)</FieldLabel>
+                        <FieldContent><Input type="number" min="0" step="0.01" value={form.purchaseCost} onChange={handleChange("purchaseCost")} /></FieldContent>
+                      </Field>
+                      <Field>
+                        <FieldLabel>Initial Stock</FieldLabel>
+                        <FieldContent><Input type="number" min="0" step="1" value={form.initialStock} onChange={handleChange("initialStock")} /></FieldContent>
+                      </Field>
+                      <Field>
+                        <FieldLabel>GST Profile ID</FieldLabel>
+                        <FieldContent><Input type="number" min="1" value={form.taxProfileId} onChange={handleChange("taxProfileId")} placeholder="e.g. 2" /></FieldContent>
+                      </Field>
+                    </>
+                  )}
 
                   <Field>
                     <FieldLabel>

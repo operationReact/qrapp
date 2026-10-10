@@ -8,6 +8,11 @@ import com.broandbro.qrapp.entity.MenuItem;
 import com.broandbro.qrapp.entity.Location;
 import com.broandbro.qrapp.enums.FulfillmentType;
 import com.broandbro.qrapp.enums.InventoryMode;
+import com.broandbro.qrapp.enums.ProductType;
+import com.broandbro.qrapp.enums.InventoryAuditActionType;
+import com.broandbro.qrapp.entity.InventoryAudit;
+import com.broandbro.qrapp.repository.InventoryAuditRepository;
+import com.broandbro.qrapp.repository.TaxProfileRepository;
 import com.broandbro.qrapp.repository.CategoryRepository;
 import com.broandbro.qrapp.repository.InventoryRepository;
 import com.broandbro.qrapp.repository.MenuRepository;
@@ -50,6 +55,8 @@ public class BulkMenuUploadService {
     private final PricingService           pricingService;
     private final ApplicationEventPublisher eventPublisher;
     private final LocationRepository locationRepository;
+    private final InventoryAuditRepository inventoryAuditRepository;
+    private final TaxProfileRepository taxProfileRepository;
 
     // =========================================================================
     // VALIDATE — parse + validate only, no DB writes
@@ -525,6 +532,15 @@ public class BulkMenuUploadService {
         item.setIsHidden(parseBoolean(row.getIsHidden(), false));
         item.setFulfillmentType(parseFulfillmentType(row.getFulfillmentType()));
         item.setInventoryMode(parseInventoryMode(row.getInventoryMode()));
+        item.setProductType(parseProductType(row.getProductType()));
+        item.setMrp(row.getMrp());
+        item.setPurchaseCost(row.getPurchaseCost());
+        item.setBarcode(row.getBarcode());
+        if (row.getTaxProfileId() != null) {
+            item.setTaxProfile(taxProfileRepository.findById(row.getTaxProfileId())
+                    .orElseThrow(() -> new IllegalArgumentException("GST profile not found")));
+        }
+        if (item.getProductType() == ProductType.RETAIL_PRODUCT) item.setInventoryMode(InventoryMode.LIMITED);
         return item;
     }
 
@@ -536,6 +552,10 @@ public class BulkMenuUploadService {
         if (row.getIsHidden() != null)        item.setIsHidden(parseBoolean(row.getIsHidden(), item.getIsHidden()));
         if (row.getFulfillmentType() != null) item.setFulfillmentType(parseFulfillmentType(row.getFulfillmentType()));
         if (row.getInventoryMode() != null)   item.setInventoryMode(parseInventoryMode(row.getInventoryMode()));
+        if (row.getProductType() != null)     item.setProductType(parseProductType(row.getProductType()));
+        if (row.getMrp() != null)             item.setMrp(row.getMrp());
+        if (row.getPurchaseCost() != null)    item.setPurchaseCost(row.getPurchaseCost());
+        if (row.getBarcode() != null)         item.setBarcode(row.getBarcode());
         item.setCategory(category);
     }
 
@@ -558,6 +578,12 @@ public class BulkMenuUploadService {
                 .reservedQuantity(0L)
                 .build();
         inventoryRepository.save(inv);
+        if (row.getInitialQuantity() != null && row.getInitialQuantity() > 0) {
+            inventoryAuditRepository.save(InventoryAudit.builder()
+                    .menuItemId(item.getId()).actionType(InventoryAuditActionType.OPENING_STOCK)
+                    .oldQuantity(0L).newQuantity(row.getInitialQuantity())
+                    .reason("Bulk import opening stock").build());
+        }
     }
 
     private boolean parseBoolean(String val, boolean defaultVal) {
@@ -579,5 +605,11 @@ public class BulkMenuUploadService {
         if (val == null || val.isBlank()) return InventoryMode.UNLIMITED;
         try { return InventoryMode.valueOf(val.trim().toUpperCase()); }
         catch (Exception e) { return InventoryMode.UNLIMITED; }
+    }
+
+    private ProductType parseProductType(String val) {
+        if (val == null || val.isBlank()) return ProductType.PREPARED_FOOD;
+        try { return ProductType.valueOf(val.trim().toUpperCase()); }
+        catch (Exception e) { throw new IllegalArgumentException("Invalid product type: " + val); }
     }
 }

@@ -78,6 +78,10 @@ public class User {
     @Builder.Default
     private Boolean active = true;
 
+    @Column(name = "must_change_password", nullable = false)
+    @Builder.Default
+    private Boolean mustChangePassword = false;
+
     @PrePersist
     public void prePersist() {
         if (createdAt == null) createdAt = Instant.now();
@@ -85,6 +89,7 @@ public class User {
         if (isSuperUser == null) isSuperUser = false;
         if (termsAccepted == null) termsAccepted = false;
         if (active == null) active = true;
+        if (mustChangePassword == null) mustChangePassword = false;
         if (role == null) role = isSuperUser ? UserRole.SUPER_ADMIN
                 : (isAdmin ? UserRole.ADMIN : UserRole.CUSTOMER);
     }

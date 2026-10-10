@@ -3,6 +3,7 @@ package com.broandbro.qrapp.dto;
 import com.broandbro.qrapp.enums.InventoryOperation;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
+import com.broandbro.qrapp.enums.InventoryAuditActionType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -48,5 +49,7 @@ public class InventoryUpdateRequest {
      * Example: warehouse ID, order ID, etc.
      */
     private String referenceId;
-}
 
+    /** Optional accountable movement label; defaults to the operation's legacy action. */
+    private InventoryAuditActionType movementType;
+}

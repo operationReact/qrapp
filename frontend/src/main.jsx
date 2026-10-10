@@ -6,6 +6,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { router } from './router'
 import "./index.css";
+import "./styles/auth-login.css";
+import "./styles/partner-header-branding.css";
 import ErrorBoundary from './components/ErrorBoundary';
 
 const queryClient = new QueryClient({

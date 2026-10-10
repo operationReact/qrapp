@@ -46,6 +46,7 @@ export const Route = createFileRoute("/(auth)/register")({
     const [termsAccepted, setTermsAccepted] = useState(false);
     const [customerCompanySearch, setCustomerCompanySearch] = useState("");
     const companyComboboxAnchor = useComboboxAnchor();
+    const locationComboboxAnchor = useComboboxAnchor();
     const occasionComboboxAnchor = useComboboxAnchor();
     const [error, setError] = useState(null);
     const locationsQuery = useQuery({
@@ -124,10 +125,16 @@ export const Route = createFileRoute("/(auth)/register")({
     };
 
     const handleResendOTP = () => otpMutation.mutateAsync();
+    const selectedLocation = locationsQuery.data?.find(
+      (location) => String(location.id) === String(defaultLocationId),
+    );
+    const selectedLocationName = selectedLocation
+      ? selectedLocation.name || selectedLocation.title || `Location ${selectedLocation.id}`
+      : "";
 
     return (
-      <div className="flex w-full flex-1 items-center justify-center py-6 sm:px-4">
-        <div className="w-full max-w-md">
+      <div className="auth-register-page flex w-full min-w-0 flex-1 items-center justify-center overflow-x-hidden py-6 sm:px-4">
+        <div className="w-full min-w-0 max-w-md">
           <div className="px-4">
             <Link
               className={buttonVariants({
@@ -142,7 +149,7 @@ export const Route = createFileRoute("/(auth)/register")({
               <span>Back To Menu</span>
             </Link>
           </div>
-          <div className="rounded-xl p-4 pt-2 h-fit">
+          <div className="h-fit min-w-0 rounded-xl p-4 pt-2">
             <img
               src="/login-banner.jpg"
               alt="Your Easy Access To Delicious Meals"
@@ -161,8 +168,8 @@ export const Route = createFileRoute("/(auth)/register")({
                   <div className="min-h-12 animate-pulse rounded-xl border bg-muted" aria-label="Loading locations" />
                 )}
                 {locationsQuery.isError && (
-                  <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-3 text-sm text-amber-800">
-                    Locations are temporarily unavailable.                     Please try again before continuing.
+                  <p className="auth-form-error" role="alert" aria-live="polite">
+                    {extractApiError(locationsQuery.error, "Locations are temporarily unavailable. Please try again before continuing.")}
                   </p>
                 )}
                 {locationsQuery.isSuccess && !locationsQuery.data.length && (
@@ -171,25 +178,38 @@ export const Route = createFileRoute("/(auth)/register")({
                   </p>
                 )}
                 {locationsQuery.isSuccess && locationsQuery.data.length > 0 && (
-                  <RegistrationPurposeControl type="location" label="Preferred Location">
-                    <select
-                      value={defaultLocationId}
-                      onChange={(event) => {
-                        setDefaultLocationId(event.target.value);
-                        setCustomerCompanyId("");
-                        setCustomerCompanySearch("");
-                      }}
-                      className="min-h-12 w-full rounded-xl border border-input bg-background text-base outline-none focus:ring-2 focus:ring-ring"
-                      aria-label="Preferred Location"
-                    >
-                      <option value="">Choose a location</option>
-                      {locationsQuery.data.map((location) => (
-                        <option key={location.id} value={location.id}>
-                          {location.name || location.title || `Location ${location.id}`}
-                        </option>
-                      ))}
-                    </select>
-                  </RegistrationPurposeControl>
+                  <Combobox
+                    items={locationsQuery.data.map((location) => location.name || location.title || `Location ${location.id}`)}
+                    value={selectedLocationName}
+                    onValueChange={(value) => {
+                      const selectedLocation = locationsQuery.data.find(
+                        (location) => (location.name || location.title || `Location ${location.id}`) === value,
+                      );
+                      setDefaultLocationId(selectedLocation ? String(selectedLocation.id) : "");
+                      setCustomerCompanyId("");
+                      setCustomerCompanySearch("");
+                    }}
+                  >
+                    <div ref={locationComboboxAnchor}>
+                      <RegistrationPurposeControl type="location" label="Preferred Location">
+                        <ComboboxInput
+                          required
+                          placeholder="Choose a location"
+                          aria-label="Preferred Location"
+                          className="min-h-12 w-full rounded-xl text-base"
+                        />
+                      </RegistrationPurposeControl>
+                    </div>
+                    <ComboboxContent anchor={locationComboboxAnchor}>
+                      <ComboboxEmpty>No matching locations.</ComboboxEmpty>
+                      <ComboboxList>
+                        {locationsQuery.data.map((location) => {
+                          const label = location.name || location.title || `Location ${location.id}`;
+                          return <ComboboxItem key={location.id} value={label}>{label}</ComboboxItem>;
+                        })}
+                      </ComboboxList>
+                    </ComboboxContent>
+                  </Combobox>
                 )}
               </FieldContent>
             </Field>
@@ -198,6 +218,11 @@ export const Route = createFileRoute("/(auth)/register")({
               <FieldContent>
                 {!defaultLocationId && <p className="rounded-xl border border-muted px-3 py-3 text-sm text-muted-foreground">Select a Location first.</p>}
                 {defaultLocationId && companiesQuery.isLoading && <div className="min-h-12 animate-pulse rounded-xl border bg-muted" aria-label="Loading customer companies" />}
+                {defaultLocationId && companiesQuery.isError && (
+                  <p className="auth-form-error" role="alert" aria-live="polite">
+                    {extractApiError(companiesQuery.error, "Customer Companies are temporarily unavailable. Please try again.")}
+                  </p>
+                )}
                 {defaultLocationId && companiesQuery.isSuccess && !companiesQuery.data.length && <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-3 text-sm text-amber-800">No active Customer Companies are available at this Location.</p>}
                 {defaultLocationId && companiesQuery.isSuccess && companiesQuery.data.length > 0 && (
                   <Combobox

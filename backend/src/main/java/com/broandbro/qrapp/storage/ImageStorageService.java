@@ -25,11 +25,19 @@ public interface ImageStorageService {
 
     StoredImage uploadImageWithKey(byte[] imageBytes, String folder, String contentType);
 
+    StoredImage uploadImageWithKey(byte[] imageBytes, String folder, String fileName, String contentType);
+
     StoredImage uploadLocationImageWithKey(byte[] imageBytes, Long locationId, String locationName, String contentType);
 
     StoredContent readImage(String key);
 
     void deleteLocationImageByKey(String key);
+
+    /**
+     * Deletes a key from the primary image bucket. Callers must only pass keys
+     * that they own; AI workflow services additionally enforce their prefixes.
+     */
+    void deleteImageByKey(String key);
 
     /**
      * Deletes an image from storage by its public URL.
