@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from "react";
-import Autoplay from "embla-carousel-autoplay";
 import {
   ArrowRightIcon,
   CaretLeftIcon,
@@ -22,21 +21,21 @@ const CATEGORIES = [
     key: "chips",
     label: "Chips & Snacks",
     image: "/assets/essentials/products/lays.png.png",
-    surface: "bg-[#fff0bd]",
+    surface: "#fff0bd",
     terms: ["chips", "snacks"],
   },
   {
     key: "biscuits",
     label: "Biscuits & Cookies",
     image: "/assets/essentials/products/oreo.png.png",
-    surface: "bg-[#eee9ff]",
+    surface: "#eee9ff",
     terms: ["biscuit", "cookie"],
   },
   {
     key: "chocolates",
     label: "Chocolates",
     image: "/assets/essentials/products/kitkat.png.png",
-    surface: "bg-[#f9dfe7]",
+    surface: "#f9dfe7",
     terms: ["chocolate"],
   },
   {
@@ -44,7 +43,7 @@ const CATEGORIES = [
     routeKey: "drinks",
     label: "Beverages",
     image: "/assets/essentials/products/coca-cola.png.png",
-    surface: "bg-[#dff6ec]",
+    surface: "#dff6ec",
     terms: ["drink", "beverage", "cola", "juice", "water"],
   },
   {
@@ -52,7 +51,7 @@ const CATEGORIES = [
     routeKey: "snacks",
     label: "Instant Foods",
     image: "/assets/essentials/hero/essentials-snacks-banner.png.png",
-    surface: "bg-[#ffecca]",
+    surface: "#ffecca",
     terms: ["instant", "noodle", "snack"],
   },
   {
@@ -60,7 +59,7 @@ const CATEGORIES = [
     routeKey: "other",
     label: "Daily Essentials",
     image: "/assets/essentials/hero/essentials-basket.png",
-    surface: "bg-[#e2efff]",
+    surface: "#e2efff",
     terms: ["personal", "confectionery", "daily", "other"],
   },
 ];
@@ -123,7 +122,6 @@ function CarouselStatus({ count }) {
 
 export default function HomeEssentialsSection({ locationId }) {
   const { data: products = [] } = useQuery(retailMenuOptions(locationId));
-  const [reducedMotion, setReducedMotion] = useState(false);
   const [compactViewport, setCompactViewport] = useState(false);
   const categories = useMemo(
     () =>
@@ -135,43 +133,28 @@ export default function HomeEssentialsSection({ locationId }) {
   );
 
   useEffect(() => {
-    const motionMedia = window.matchMedia("(prefers-reduced-motion: reduce)");
     const viewportMedia = window.matchMedia("(max-width: 1023px)");
     const update = () => {
-      setReducedMotion(motionMedia.matches);
       setCompactViewport(viewportMedia.matches);
     };
     update();
-    motionMedia.addEventListener?.("change", update);
     viewportMedia.addEventListener?.("change", update);
     return () => {
-      motionMedia.removeEventListener?.("change", update);
       viewportMedia.removeEventListener?.("change", update);
     };
   }, []);
 
-  const autoplay = useMemo(
-    () =>
-      reducedMotion || !compactViewport
-        ? null
-        : Autoplay({
-            delay: 4200,
-            stopOnInteraction: true,
-            stopOnMouseEnter: true,
-            stopOnFocusIn: true,
-          }),
-    [compactViewport, reducedMotion],
-  );
-
   return (
     <section className="container-premium py-2 md:py-3 lg:py-4" aria-labelledby="home-essentials-heading">
-      <div className="overflow-hidden rounded-[28px] border border-[#f4cfc3] bg-[linear-gradient(120deg,#fff8f3_0%,#ffebe2_100%)] px-4 py-5 shadow-[0_14px_36px_rgba(143,70,42,0.08)] sm:px-6 sm:py-6 lg:rounded-[32px] lg:px-8 lg:py-7">
+      <div className="relative overflow-hidden rounded-[28px] border border-[#f4cfc3] bg-[radial-gradient(circle_at_90%_0%,rgba(255,224,211,0.8),transparent_34%),linear-gradient(120deg,#fffaf6_0%,#ffebe2_100%)] px-4 py-5 shadow-[0_14px_36px_rgba(143,70,42,0.08)] sm:px-6 sm:py-6 lg:rounded-[32px] lg:px-8 lg:py-7">
+        <div aria-hidden="true" className="pointer-events-none absolute -right-14 -top-20 size-52 rounded-full border-[18px] border-white/35" />
+        <div aria-hidden="true" className="pointer-events-none absolute bottom-[-72px] left-[28%] size-40 rounded-full bg-[#ffd7c8]/35 blur-2xl" />
         <div className="relative flex min-h-[168px] items-center justify-between gap-4 lg:min-h-[190px]">
           <div className="relative z-10 max-w-[620px]">
             <p className="font-sans text-[11px] font-extrabold uppercase tracking-[0.18em] text-[#d91d34] sm:text-xs">
-              Snacks &amp; More
+              EVERYDAY FAVOURITES
             </p>
-            <h2 id="home-essentials-heading" className="mt-2 font-sans text-2xl font-extrabold leading-tight tracking-[-0.025em] text-[#17212b] sm:text-4xl lg:text-[46px]">
+            <h2 id="home-essentials-heading" className="mt-2 font-sans text-2xl font-extrabold leading-tight tracking-[-0.025em] text-[#3d2923] sm:text-4xl lg:text-[46px]">
               Snacks <span className="text-[#ef233c]">&amp; More</span>
             </h2>
             <p className="mt-3 max-w-[520px] font-sans text-sm font-medium leading-5 text-[#59636d] sm:text-base lg:text-lg">
@@ -199,7 +182,6 @@ export default function HomeEssentialsSection({ locationId }) {
 
         <Carousel
           opts={{ align: "start", loop: compactViewport }}
-          plugins={autoplay ? [autoplay] : undefined}
           className="relative mt-5 sm:mt-6 lg:mt-4"
         >
           <CarouselContent className="-ml-3 py-1 pr-1">
@@ -214,9 +196,10 @@ export default function HomeEssentialsSection({ locationId }) {
                   className="group flex h-[208px] flex-col overflow-hidden rounded-[20px] border border-white/80 bg-white shadow-[0_6px_16px_rgba(122,47,27,0.07)] transition hover:-translate-y-1 hover:shadow-[0_12px_24px_rgba(122,47,27,0.12)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ef233c] sm:h-[224px] lg:h-[246px]"
                 >
                   <div
-                    className={`flex shrink-0 items-center justify-center overflow-hidden p-2 ${category.surface}`}
-                    style={{ height: "110px", flexBasis: "110px" }}
+                    className="relative flex shrink-0 items-center justify-center overflow-hidden p-2"
+                    style={{ height: "124px", flexBasis: "124px", background: category.surface }}
                   >
+                    <span className="absolute left-3 top-3 size-1.5 rounded-full bg-white/80 shadow-[0_0_0_4px_rgba(255,255,255,0.2)]" aria-hidden="true" />
                     <img
                       src={category.image}
                       alt={`${category.label} category`}
@@ -224,7 +207,7 @@ export default function HomeEssentialsSection({ locationId }) {
                       width="320"
                       height="220"
                       className="h-auto w-auto object-contain"
-                      style={{ maxHeight: "78px", maxWidth: "92px" }}
+                      style={{ maxHeight: "90px", maxWidth: "112px" }}
                       onError={(event) => {
                         event.currentTarget.src = "/assets/essentials/essentials-product-collage.png";
                       }}
@@ -236,7 +219,7 @@ export default function HomeEssentialsSection({ locationId }) {
                         {category.label}
                       </h3>
                       <p className="mt-1 font-sans text-[11px] font-medium text-[#7a838b] sm:text-xs">
-                        {category.count > 0 ? `${category.count} products` : "Explore range"}
+                        {category.count > 0 ? `${category.count} ${category.count === 1 ? "product" : "products"}` : "Explore range"}
                       </p>
                     </div>
                     <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[#fff0ec] text-[#ef233c] transition group-hover:bg-[#ef233c] group-hover:text-white">
