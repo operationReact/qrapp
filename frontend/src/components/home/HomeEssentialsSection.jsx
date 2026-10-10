@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import Autoplay from "embla-carousel-autoplay";
 import {
   ArrowRightIcon,
   CaretLeftIcon,
@@ -122,7 +123,7 @@ function CarouselStatus({ count }) {
 
 export default function HomeEssentialsSection({ locationId }) {
   const { data: products = [] } = useQuery(retailMenuOptions(locationId));
-  const [compactViewport, setCompactViewport] = useState(false);
+  const [reducedMotion, setReducedMotion] = useState(false);
   const categories = useMemo(
     () =>
       CATEGORIES.map((category) => ({
@@ -133,16 +134,29 @@ export default function HomeEssentialsSection({ locationId }) {
   );
 
   useEffect(() => {
-    const viewportMedia = window.matchMedia("(max-width: 1023px)");
+    const motionMedia = window.matchMedia("(prefers-reduced-motion: reduce)");
     const update = () => {
-      setCompactViewport(viewportMedia.matches);
+      setReducedMotion(motionMedia.matches);
     };
     update();
-    viewportMedia.addEventListener?.("change", update);
+    motionMedia.addEventListener?.("change", update);
     return () => {
-      viewportMedia.removeEventListener?.("change", update);
+      motionMedia.removeEventListener?.("change", update);
     };
   }, []);
+
+  const autoplay = useMemo(
+    () =>
+      reducedMotion
+        ? null
+        : Autoplay({
+            delay: 3600,
+            stopOnInteraction: false,
+            stopOnMouseEnter: true,
+            stopOnFocusIn: true,
+          }),
+    [reducedMotion],
+  );
 
   return (
     <section className="container-premium py-1 md:py-3 lg:py-4" aria-labelledby="home-essentials-heading">
@@ -182,10 +196,11 @@ export default function HomeEssentialsSection({ locationId }) {
         </div>
 
         <Carousel
-          opts={{ align: "start", loop: compactViewport }}
+          opts={{ align: "start", loop: true }}
+          plugins={autoplay ? [autoplay] : undefined}
           className="relative mt-2 sm:mt-6 lg:mt-4"
         >
-          <CarouselContent className="-ml-3 py-1 pr-1">
+          <CarouselContent className="-ml-3 touch-pan-x cursor-grab py-1 pr-1 active:cursor-grabbing">
             {categories.map((category) => (
               <CarouselItem
                 key={category.key}
