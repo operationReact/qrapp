@@ -168,13 +168,13 @@ export default function HomeEssentialsSection({ locationId }) {
       <div className="overflow-hidden rounded-[28px] border border-[#f4cfc3] bg-[linear-gradient(120deg,#fff8f3_0%,#ffebe2_100%)] px-4 py-5 shadow-[0_14px_36px_rgba(143,70,42,0.08)] sm:px-6 sm:py-6 lg:rounded-[32px] lg:px-8 lg:py-7">
         <div className="relative flex min-h-[168px] items-center justify-between gap-4 lg:min-h-[190px]">
           <div className="relative z-10 max-w-[620px]">
-            <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#ef233c] sm:text-xs">
+            <p className="font-sans text-[11px] font-extrabold uppercase tracking-[0.18em] text-[#d91d34] sm:text-xs">
               Snacks &amp; More
             </p>
-            <h2 id="home-essentials-heading" className="mt-2 text-[30px] font-black leading-[1.05] tracking-[-0.04em] text-[#17212b] sm:text-4xl lg:text-[46px]">
+            <h2 id="home-essentials-heading" className="mt-2 font-sans text-2xl font-extrabold leading-tight tracking-[-0.025em] text-[#17212b] sm:text-4xl lg:text-[46px]">
               Snacks <span className="text-[#ef233c]">&amp; More</span>
             </h2>
-            <p className="mt-3 max-w-[520px] text-sm leading-5 text-[#59636d] sm:text-base lg:text-lg">
+            <p className="mt-3 max-w-[520px] font-sans text-sm font-medium leading-5 text-[#59636d] sm:text-base lg:text-lg">
               Biscuits, chips, drinks, chocolates &amp; more
             </p>
           </div>
@@ -190,7 +190,7 @@ export default function HomeEssentialsSection({ locationId }) {
 
           <Link
             to="/essentials"
-            className="relative z-10 inline-flex shrink-0 items-center gap-2 rounded-full bg-[#ef233c] px-5 py-3 text-sm font-extrabold text-white shadow-[0_8px_18px_rgba(239,35,60,0.2)] transition hover:bg-[#d91d34] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ef233c] focus-visible:ring-offset-2 sm:px-6 sm:py-3.5 sm:text-base"
+            className="relative z-10 inline-flex shrink-0 items-center gap-2 rounded-full !bg-[#ef233c] px-5 py-3 font-sans text-sm font-bold !text-white shadow-[0_8px_18px_rgba(239,35,60,0.2)] transition hover:!bg-[#d91d34] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ef233c] focus-visible:ring-offset-2 sm:px-6 sm:py-3.5 sm:text-base"
           >
             Shop Now
             <ArrowRightIcon weight="bold" className="size-4 sm:size-5" />
@@ -232,10 +232,10 @@ export default function HomeEssentialsSection({ locationId }) {
                   </div>
                   <div className="flex min-h-0 flex-1 items-end justify-between gap-2 p-3 sm:p-3.5">
                     <div className="min-w-0">
-                      <h3 className="line-clamp-2 text-[13px] font-extrabold leading-4 text-[#17212b] sm:text-sm lg:text-[15px]">
+                      <h3 className="line-clamp-2 font-sans text-[13px] font-bold leading-4 text-[#17212b] sm:text-sm lg:text-[15px]">
                         {category.label}
                       </h3>
-                      <p className="mt-1 text-[11px] text-[#7a838b] sm:text-xs">
+                      <p className="mt-1 font-sans text-[11px] font-medium text-[#7a838b] sm:text-xs">
                         {category.count > 0 ? `${category.count} products` : "Explore range"}
                       </p>
                     </div>
