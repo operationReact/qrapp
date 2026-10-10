@@ -175,18 +175,18 @@ function MenuPage() {
         />
       </div>
 
-      <div className="container-premium home-controls flex flex-col gap-2 py-1.5 md:gap-2 md:py-2 lg:gap-3 lg:py-2">
+      <div className="container-premium home-controls flex flex-col gap-2 py-1.5 md:gap-2 md:py-2 lg:gap-3 lg:py-1">
         {/* Desktop search/filter is now inside the hero overlay; show categories only below hero */}
         <div className="container-premium -mx-[0.875rem] w-auto px-0 md:mx-0 md:w-auto md:px-0">
           <CategoryTabs categories={categories} active={category} />
         </div>
       </div>
-      <Link to="/essentials" className="container-premium block py-2">
-        <section className="overflow-hidden rounded-[14px] shadow-sm">
+      <Link to="/essentials" className="container-premium block py-2 lg:py-2">
+        <section className="overflow-hidden rounded-[14px] shadow-sm lg:h-[220px] lg:max-h-[220px]">
           <img
             src="/assets/essentials/essentials-product-collage.png"
             alt="Bro & Bro Essentials: biscuits, chips, drinks and chocolates"
-            className="block h-auto w-full object-contain"
+            className="block h-auto w-full object-contain lg:size-full"
           />
         </section>
       </Link>

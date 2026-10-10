@@ -71,7 +71,7 @@ function EssentialsPage() {
   return (
     <div className="min-h-screen bg-background pb-24">
       <header className="sticky top-0 z-30 border-b border-border bg-background/95 px-4 py-3 backdrop-blur">
-        <div className="mx-auto flex max-w-5xl items-center gap-3">
+        <div className="mx-auto flex max-w-5xl items-center gap-3 lg:max-w-7xl lg:px-2">
           <Link to="/" aria-label="Back to home" className="rounded-full p-1.5 hover:bg-muted">
             <ArrowLeftIcon className="size-5" />
           </Link>
@@ -86,8 +86,8 @@ function EssentialsPage() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-5xl space-y-5 px-4 py-4">
-        <img src={heroImage} alt="Bro & Bro Everyday Essentials" className="block h-auto max-h-[150px] w-full rounded-2xl object-cover" />
+      <main className="mx-auto max-w-5xl space-y-5 px-4 py-4 lg:max-w-7xl lg:space-y-6 lg:px-8 lg:py-5">
+        <img src={heroImage} alt="Bro & Bro Everyday Essentials" className="block h-auto max-h-[150px] w-full rounded-2xl object-cover lg:hidden" />
 
         <label className="flex h-11 items-center gap-2 rounded-full border border-border bg-card px-4 shadow-sm">
           <MagnifyingGlassIcon className="size-5 text-muted-foreground" />
@@ -98,17 +98,17 @@ function EssentialsPage() {
           <img
             src={categoryBanner}
             alt={`${categoryNames.find(([, value]) => value === selectedCategory)?.[0]} essentials`}
-            className="block h-auto max-h-[130px] w-full rounded-2xl object-cover"
+            className="block h-auto max-h-[130px] w-full rounded-2xl object-cover lg:h-[160px] lg:max-h-none"
           />
         )}
 
-        <section className="grid grid-cols-3 gap-2 sm:grid-cols-5 md:grid-cols-9">
+        <section className="grid grid-cols-3 gap-2 sm:grid-cols-5 md:grid-cols-9 lg:gap-3">
           {categoryNames.map(([label, value]) => (
             <button
               key={value}
               type="button"
               onClick={() => setSelectedCategory(value)}
-              className={`flex min-h-20 flex-col items-center justify-center gap-2 rounded-xl border bg-card px-1 py-2 text-center text-xs font-semibold shadow-sm transition ${
+              className={`flex min-h-20 flex-col items-center justify-center gap-2 rounded-xl border bg-card px-1 py-2 text-center text-xs font-semibold shadow-sm transition lg:min-h-24 ${
                 selectedCategory === value ? "border-primary bg-primary/5 text-primary" : "border-transparent"
               }`}
             >
@@ -126,7 +126,7 @@ function EssentialsPage() {
             <span className="text-sm font-semibold text-primary">{filteredProducts.length} items</span>
           </div>
           {isLoading ? <p className="py-8 text-center text-sm text-muted-foreground">Loading essentials...</p> : (
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5 lg:gap-4">
               {filteredProducts.map((item) => <RetailProductCard key={item.id} item={item} />)}
             </div>
           )}
