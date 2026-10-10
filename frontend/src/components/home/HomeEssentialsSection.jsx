@@ -145,19 +145,19 @@ export default function HomeEssentialsSection({ locationId }) {
   }, []);
 
   return (
-    <section className="container-premium py-2 md:py-3 lg:py-4" aria-labelledby="home-essentials-heading">
-      <div className="relative overflow-hidden rounded-[28px] border border-[#f4cfc3] bg-[radial-gradient(circle_at_90%_0%,rgba(255,224,211,0.8),transparent_34%),linear-gradient(120deg,#fffaf6_0%,#ffebe2_100%)] px-4 py-5 shadow-[0_14px_36px_rgba(143,70,42,0.08)] sm:px-6 sm:py-6 lg:rounded-[32px] lg:px-8 lg:py-7">
+    <section className="container-premium py-1 md:py-3 lg:py-4" aria-labelledby="home-essentials-heading">
+      <div className="relative overflow-hidden rounded-[20px] border border-[#f4cfc3] bg-[radial-gradient(circle_at_90%_0%,rgba(255,224,211,0.8),transparent_34%),linear-gradient(120deg,#fffaf6_0%,#ffebe2_100%)] px-2.5 py-2 shadow-[0_14px_36px_rgba(143,70,42,0.08)] sm:rounded-[28px] sm:px-6 sm:py-6 lg:rounded-[32px] lg:px-8 lg:py-7">
         <div aria-hidden="true" className="pointer-events-none absolute -right-14 -top-20 size-52 rounded-full border-[18px] border-white/35" />
         <div aria-hidden="true" className="pointer-events-none absolute bottom-[-72px] left-[28%] size-40 rounded-full bg-[#ffd7c8]/35 blur-2xl" />
-        <div className="relative flex min-h-[168px] items-center justify-between gap-4 lg:min-h-[190px]">
+        <div className="relative flex min-h-[86px] items-center justify-between gap-2 sm:min-h-[168px] lg:min-h-[190px]">
           <div className="relative z-10 max-w-[620px]">
-            <p className="font-sans text-[11px] font-extrabold uppercase tracking-[0.18em] text-[#d91d34] sm:text-xs">
+            <p className="font-sans text-[11px] font-extrabold uppercase tracking-[0.18em] sm:text-xs" style={{ color: "#d91d34" }}>
               EVERYDAY FAVOURITES
             </p>
-            <h2 id="home-essentials-heading" className="mt-2 font-sans text-2xl font-extrabold leading-tight tracking-[-0.025em] text-[#3d2923] sm:text-4xl lg:text-[46px]">
-              Snacks <span className="text-[#ef233c]">&amp; More</span>
+            <h2 id="home-essentials-heading" className="mt-1 font-sans text-2xl font-extrabold leading-tight tracking-[-0.035em] sm:mt-2 sm:text-4xl lg:text-[46px]" style={{ color: "#30201c" }}>
+              Snacks <span style={{ color: "#d92d45" }}>&amp; More</span>
             </h2>
-            <p className="mt-3 max-w-[520px] font-sans text-sm font-medium leading-5 text-[#59636d] sm:text-base lg:text-lg">
+            <p className="mt-1 max-w-[520px] font-sans text-[11px] font-medium leading-3.5 sm:mt-3 sm:text-base sm:leading-5 lg:text-lg" style={{ color: "#80645b" }}>
               Biscuits, chips, drinks, chocolates &amp; more
             </p>
           </div>
@@ -173,7 +173,8 @@ export default function HomeEssentialsSection({ locationId }) {
 
           <Link
             to="/essentials"
-            className="relative z-10 inline-flex shrink-0 items-center gap-2 rounded-full !bg-[#ef233c] px-5 py-3 font-sans text-sm font-bold !text-white shadow-[0_8px_18px_rgba(239,35,60,0.2)] transition hover:!bg-[#d91d34] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ef233c] focus-visible:ring-offset-2 sm:px-6 sm:py-3.5 sm:text-base"
+            className="relative z-10 inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1.5 font-sans text-[11px] font-bold shadow-[0_8px_18px_rgba(239,35,60,0.2)] transition hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ef233c] focus-visible:ring-offset-2 sm:gap-2 sm:px-6 sm:py-3.5 sm:text-base"
+            style={{ backgroundColor: "#ef233c", color: "#ffffff" }}
           >
             Shop Now
             <ArrowRightIcon weight="bold" className="size-4 sm:size-5" />
@@ -182,7 +183,7 @@ export default function HomeEssentialsSection({ locationId }) {
 
         <Carousel
           opts={{ align: "start", loop: compactViewport }}
-          className="relative mt-5 sm:mt-6 lg:mt-4"
+          className="relative mt-2 sm:mt-6 lg:mt-4"
         >
           <CarouselContent className="-ml-3 py-1 pr-1">
             {categories.map((category) => (
@@ -193,11 +194,11 @@ export default function HomeEssentialsSection({ locationId }) {
                 <Link
                   to="/essentials"
                   hash={category.routeKey || category.key}
-                  className="group flex h-[208px] flex-col overflow-hidden rounded-[20px] border border-white/80 bg-white shadow-[0_6px_16px_rgba(122,47,27,0.07)] transition hover:-translate-y-1 hover:shadow-[0_12px_24px_rgba(122,47,27,0.12)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ef233c] sm:h-[224px] lg:h-[246px]"
+                  className="group flex h-[132px] flex-col overflow-hidden rounded-[16px] border border-white/80 bg-white shadow-[0_6px_16px_rgba(122,47,27,0.07)] transition hover:-translate-y-1 hover:shadow-[0_12px_24px_rgba(122,47,27,0.12)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ef233c] sm:h-[224px] lg:h-[246px]"
                 >
                   <div
                     className="relative flex shrink-0 items-center justify-center overflow-hidden p-2"
-                    style={{ height: "124px", flexBasis: "124px", background: category.surface }}
+                    style={{ height: "68px", flexBasis: "68px", background: category.surface }}
                   >
                     <span className="absolute left-3 top-3 size-1.5 rounded-full bg-white/80 shadow-[0_0_0_4px_rgba(255,255,255,0.2)]" aria-hidden="true" />
                     <img
@@ -207,22 +208,22 @@ export default function HomeEssentialsSection({ locationId }) {
                       width="320"
                       height="220"
                       className="h-auto w-auto object-contain"
-                      style={{ maxHeight: "90px", maxWidth: "112px" }}
+                      style={{ maxHeight: "50px", maxWidth: "70px" }}
                       onError={(event) => {
                         event.currentTarget.src = "/assets/essentials/essentials-product-collage.png";
                       }}
                     />
                   </div>
-                  <div className="flex min-h-0 flex-1 items-end justify-between gap-2 p-3 sm:p-3.5">
+                  <div className="flex min-h-0 flex-1 items-end justify-between gap-1 p-1.5 sm:gap-2 sm:p-3.5">
                     <div className="min-w-0">
-                      <h3 className="line-clamp-2 font-sans text-[13px] font-bold leading-4 text-[#17212b] sm:text-sm lg:text-[15px]">
+                      <h3 className="line-clamp-2 font-sans text-[10px] font-bold leading-3 text-[#17212b] sm:text-sm lg:text-[15px]">
                         {category.label}
                       </h3>
-                      <p className="mt-1 font-sans text-[11px] font-medium text-[#7a838b] sm:text-xs">
+                      <p className="mt-0.5 font-sans text-[9px] font-medium text-[#7a838b] sm:mt-1 sm:text-xs">
                         {category.count > 0 ? `${category.count} ${category.count === 1 ? "product" : "products"}` : "Explore range"}
                       </p>
                     </div>
-                    <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[#fff0ec] text-[#ef233c] transition group-hover:bg-[#ef233c] group-hover:text-white">
+                    <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-[#fff0ec] text-[#ef233c] transition group-hover:bg-[#ef233c] group-hover:text-white sm:size-8">
                     <ArrowRightIcon weight="bold" className="size-4" />
                     </span>
                   </div>
