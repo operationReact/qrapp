@@ -18,6 +18,7 @@ import { useLocation as useActiveLocation } from "@/context/LocationContext";
 import ImmersiveHomeHero from "@/components/home/ImmersiveHomeHero";
 import HomeCampaignRails from "@/components/home/HomeCampaignRails";
 import HallOfHappinessSection from "@/components/HallOfHappinessSection";
+import HomeEssentialsSection from "@/components/home/HomeEssentialsSection";
 import React from "react";
 import { BowlFoodIcon, CaretRightIcon } from "@phosphor-icons/react";
 import {
@@ -181,15 +182,7 @@ function MenuPage() {
           <CategoryTabs categories={categories} active={category} />
         </div>
       </div>
-      <Link to="/essentials" className="container-premium block py-2 lg:py-2">
-        <section className="overflow-hidden rounded-[14px] shadow-sm lg:h-[220px] lg:max-h-[220px]">
-          <img
-            src="/assets/essentials/essentials-product-collage.png"
-            alt="Bro & Bro Essentials: biscuits, chips, drinks and chocolates"
-            className="block h-auto w-full object-contain lg:size-full"
-          />
-        </section>
-      </Link>
+      <HomeEssentialsSection locationId={activeLocationId} />
       <HomeCampaignRails locationId={activeLocationId} />
       <HallOfHappinessSection />
 

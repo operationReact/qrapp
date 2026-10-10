@@ -141,12 +141,12 @@ export default function ImmersiveHomeHero({
     <div className="relative isolate overflow-hidden rounded-b-3xl" style={{ 
       height: (() => {
         const w = window.innerWidth;
-        if (w < 1024) return "min(78vw, 560px)";
+        if (w < 1024) return "clamp(340px, 78vw, 500px)";
         if (w < 1280) return "320px";
         if (w < 1536) return "340px";
         return "360px";
       })(),
-      minHeight: window.innerWidth < 1024 ? 380 : 0,
+      minHeight: 0,
     }}>
       <CombosDrawer open={combosOpen} onOpenChange={setCombosOpen} />
       <BuildYourOwnComboDrawer open={byocOpen} onOpenChange={setByocOpen} />
