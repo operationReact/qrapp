@@ -63,6 +63,16 @@ public class S3ImageStorageService implements ImageStorageService {
     }
 
     @Override
+    public StoredImage uploadImageWithKey(byte[] imageBytes, String folder, String fileName, String contentType) {
+        String safeName = fileName == null || fileName.isBlank()
+                ? UUID.randomUUID() + extension(contentType)
+                : fileName.replaceAll("[^A-Za-z0-9._-]", "-");
+        String key = folder + "/" + safeName;
+        if (!props.isEnabled()) return storeLocallyAtKey(imageBytes, key, contentType);
+        return putObject(imageBytes, props.getBucketName(), key, contentType);
+    }
+
+    @Override
     public StoredImage uploadLocationImageWithKey(byte[] imageBytes, Long locationId, String locationName,
                                                    String contentType) {
         String folder = "locations/" + locationId;
@@ -83,6 +93,25 @@ public class S3ImageStorageService implements ImageStorageService {
         if (props.isEnabled()) {
             s3Client.deleteObject(DeleteObjectRequest.builder()
                     .bucket(props.getLocationBucketName()).key(key).build());
+        }
+    }
+
+    @Override
+    public void deleteImageByKey(String key) {
+        if (key == null || key.isBlank()) return;
+        if (key.startsWith("local/")) {
+            deleteLocalImage(key);
+            return;
+        }
+        if (!props.isEnabled()) return;
+        if (!(key.startsWith("products/") || key.startsWith("locations/"))) {
+            throw new IllegalArgumentException("Unsupported image key prefix");
+        }
+        try {
+            s3Client.deleteObject(DeleteObjectRequest.builder()
+                    .bucket(props.getBucketName()).key(key).build());
+        } catch (S3Exception e) {
+            throw new ImageUploadException("Could not delete image key=" + key, e);
         }
     }
 
@@ -142,7 +171,7 @@ public class S3ImageStorageService implements ImageStorageService {
             throw new IllegalArgumentException("Image storage reference is unavailable");
         }
         var response = s3Client.getObjectAsBytes(GetObjectRequest.builder()
-                .bucket(props.getLocationBucketName()).key(key).build());
+                .bucket(props.getBucketName()).key(key).build());
         return new StoredContent(response.asByteArray(),
                 response.response().contentType() == null
                         ? "application/octet-stream"
@@ -152,6 +181,18 @@ public class S3ImageStorageService implements ImageStorageService {
     private StoredImage storeLocally(byte[] imageBytes, String folder, String contentType) {
         String key = folder.startsWith("local/") ? folder
                 : "local/" + folder + "/" + UUID.randomUUID() + extension(contentType);
+        Path file = LOCAL_IMAGE_ROOT.resolve(key.substring("local/".length())).normalize();
+        try {
+            Files.createDirectories(file.getParent());
+            Files.write(file, imageBytes);
+            return new StoredImage("/api/public/location-images/" + key.substring("local/".length()), key);
+        } catch (IOException e) {
+            throw new ImageUploadException("Could not store local image", e);
+        }
+    }
+
+    private StoredImage storeLocallyAtKey(byte[] imageBytes, String key, String contentType) {
+        if (!key.startsWith("local/")) key = "local/" + key;
         Path file = LOCAL_IMAGE_ROOT.resolve(key.substring("local/".length())).normalize();
         try {
             Files.createDirectories(file.getParent());

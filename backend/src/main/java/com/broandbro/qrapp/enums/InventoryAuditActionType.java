@@ -58,5 +58,12 @@ public enum InventoryAuditActionType {
      * Admin changed isHidden flag
      */
     VISIBILITY_CHANGE
+    ,
+    OPENING_STOCK,
+    PURCHASE,
+    SALE,
+    RETURN,
+    DAMAGE,
+    WASTAGE,
+    ADJUSTMENT
 }
-

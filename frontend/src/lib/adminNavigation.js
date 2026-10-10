@@ -18,6 +18,7 @@ export const ADMIN_NAVIGATION = [
   { section: "Workspace", items: [{ to: "/admin", label: "Dashboard", roles: [ROLE.SUPER_ADMIN] }] },
   { section: "Menu", items: [
     { to: "/admin/menu", label: "Menu Items", icon: BowlFoodIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN, ROLE.MANAGER] },
+    { to: "/admin/product-catalog", label: "Essentials Catalog", icon: StorefrontIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN, ROLE.MANAGER] },
     { to: "/admin/combos", label: "Combos", icon: CubeIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN] },
     { to: "/admin/classification", label: "Recommendation Setup", icon: ForkKnifeIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN] },
     { to: "/admin/combo-campaigns", label: "BYOC Campaigns", icon: SparkleIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN] },
@@ -25,6 +26,8 @@ export const ADMIN_NAVIGATION = [
   ] },
   { section: "Operations", items: [
     { to: "/admin/vendors", label: "Vendor Management", icon: StorefrontIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN] },
+    { to: "/admin/partners", label: "Partner Management", icon: BuildingOfficeIcon, roles: [ROLE.SUPER_ADMIN] },
+    { to: "/admin/manual-invoices", label: "Manual Invoices", icon: FileTextIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN] },
     { to: "/admin/kitchen-queue", label: "Kitchen Queue", icon: QueueIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN, ROLE.MANAGER, ROLE.KITCHEN_STAFF] },
     { to: "/admin/party-orders", label: "Party Orders", icon: UsersThreeIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN] },
     { to: "/admin/hall-of-happiness", label: "Hall of Happiness", icon: ConfettiIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN] },

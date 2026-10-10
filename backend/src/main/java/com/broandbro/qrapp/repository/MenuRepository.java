@@ -2,6 +2,7 @@ package com.broandbro.qrapp.repository;
 
 import com.broandbro.qrapp.entity.MenuItem;
 import com.broandbro.qrapp.enums.ImageGenerationStatus;
+import com.broandbro.qrapp.enums.ProductType;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -14,6 +15,13 @@ import java.util.Optional;
 
 public interface MenuRepository extends JpaRepository<MenuItem, Long> {
     List<MenuItem> findByLocationIdAndIsDeletedFalse(Long locationId);
+
+    @Query("SELECT m FROM MenuItem m WHERE m.location.id = :locationId AND m.productType = :productType " +
+           "AND m.isHidden = false AND m.isDeleted = false ORDER BY m.id ASC")
+    @EntityGraph(attributePaths = {"category", "tag", "vendor", "taxProfile", "catalogProduct"})
+    List<MenuItem> findVisibleByLocationAndProductType(@Param("locationId") Long locationId,
+                                                        @Param("productType") ProductType productType,
+                                                        Pageable pageable);
 
     @Query("SELECT m FROM MenuItem m WHERE m.location.id = :locationId AND m.isDeleted = false " +
            "AND (m.imageUrl IS NULL OR TRIM(m.imageUrl) = '') " +
@@ -42,7 +50,7 @@ public interface MenuRepository extends JpaRepository<MenuItem, Long> {
            "(:categoryId  IS NULL OR (m.category.id = :categoryId AND m.category.location.id = :locationId)) AND " +
            "(:recommended IS NULL OR m.recommended  = :recommended) " +
            "ORDER BY m.id ASC")
-    @EntityGraph(attributePaths = {"category", "tag", "vendor", "taxProfile"})
+    @EntityGraph(attributePaths = {"category", "tag", "vendor", "taxProfile", "catalogProduct"})
     List<MenuItem> findByFilters(
             @Param("locationId")  Long    locationId,
             @Param("isVeg")         Boolean isVeg,
@@ -58,7 +66,7 @@ public interface MenuRepository extends JpaRepository<MenuItem, Long> {
     @Query("SELECT m FROM MenuItem m " +
            "WHERE m.location.id = :locationId AND m.recommended = true AND m.isHidden = false AND m.isDeleted = false " +
            "ORDER BY m.id DESC")
-    @EntityGraph(attributePaths = {"category", "tag", "vendor", "taxProfile"})
+    @EntityGraph(attributePaths = {"category", "tag", "vendor", "taxProfile", "catalogProduct"})
     List<MenuItem> findTopRecommended(@Param("locationId") Long locationId, Pageable pageable);
 
     /**
@@ -68,7 +76,7 @@ public interface MenuRepository extends JpaRepository<MenuItem, Long> {
     @Query("SELECT m FROM MenuItem m " +
            "WHERE m.location.id = :locationId AND m.category.id = :categoryId AND m.isDeleted = false " +
            "ORDER BY m.id ASC")
-    @EntityGraph(attributePaths = {"category", "tag", "vendor", "taxProfile"})
+    @EntityGraph(attributePaths = {"category", "tag", "vendor", "taxProfile", "catalogProduct"})
     List<MenuItem> findByCategoryId(@Param("locationId") Long locationId, @Param("categoryId") Long categoryId);
 
     /**
@@ -78,7 +86,7 @@ public interface MenuRepository extends JpaRepository<MenuItem, Long> {
     @Query("SELECT m FROM MenuItem m " +
            "WHERE m.location.id = :locationId AND m.tag.id = :tagId AND m.isDeleted = false " +
            "ORDER BY m.id ASC")
-    @EntityGraph(attributePaths = {"category", "tag", "vendor", "taxProfile"})
+    @EntityGraph(attributePaths = {"category", "tag", "vendor", "taxProfile", "catalogProduct"})
     List<MenuItem> findByTagId(@Param("locationId") Long locationId, @Param("tagId") Long tagId);
 
     /**
@@ -113,6 +121,11 @@ public interface MenuRepository extends JpaRepository<MenuItem, Long> {
             @Param("locationId") Long locationId);
 
     Optional<MenuItem> findByIdAndLocationId(Long id, Long locationId);
+
+    Optional<MenuItem> findByCatalogProductIdAndLocationId(Long productId, Long locationId);
+
+    @EntityGraph(attributePaths = {"category", "tag", "vendor", "taxProfile", "catalogProduct"})
+    List<MenuItem> findByCatalogProductId(Long productId);
 
     List<MenuItem> findByIdInAndLocationId(List<Long> ids, Long locationId);
 

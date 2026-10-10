@@ -13,6 +13,7 @@ public class UserResponse {
     private String specialDayCustomLabel;
     private Boolean isAdmin;
     private Boolean isSuperUser;
+    private Boolean mustChangePassword;
     private String role;
     private LocationResponse defaultLocation;
     private java.util.List<LocationResponse> locations;

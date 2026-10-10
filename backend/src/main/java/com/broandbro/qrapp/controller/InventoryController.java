@@ -209,6 +209,34 @@ public class InventoryController {
                 "error", e.getMessage()
             ));
         }
+
+    }
+
+    @PostMapping("/movement")
+    @CacheEvict(cacheNames = {"menu", "menuRecommended"}, allEntries = true)
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN', 'SUPERUSER', 'MANAGER')")
+    public ResponseEntity<?> recordMovement(@Valid @RequestBody InventoryUpdateRequest request,
+                                            Authentication authentication) {
+        try {
+            Long adminUserId = extractUserId(authentication);
+            if (request.getMovementType() == null) {
+                throw new IllegalArgumentException("movementType is required");
+            }
+            if (request.getMovementType() == com.broandbro.qrapp.enums.InventoryAuditActionType.PURCHASE
+                    || request.getMovementType() == com.broandbro.qrapp.enums.InventoryAuditActionType.OPENING_STOCK
+                    || request.getMovementType() == com.broandbro.qrapp.enums.InventoryAuditActionType.RETURN) {
+                request.setOperation(com.broandbro.qrapp.enums.InventoryOperation.ADD);
+            } else if (request.getMovementType() == com.broandbro.qrapp.enums.InventoryAuditActionType.SALE
+                    || request.getMovementType() == com.broandbro.qrapp.enums.InventoryAuditActionType.DAMAGE
+                    || request.getMovementType() == com.broandbro.qrapp.enums.InventoryAuditActionType.WASTAGE) {
+                request.setOperation(com.broandbro.qrapp.enums.InventoryOperation.REMOVE);
+            } else {
+                request.setOperation(com.broandbro.qrapp.enums.InventoryOperation.SET);
+            }
+            return ResponseEntity.ok(inventoryService.updateInventory(request, adminUserId));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
     }
 
     /**
@@ -362,7 +390,8 @@ public class InventoryController {
         }
         // In your actual system, extract user ID from authentication
         // This is a placeholder - adjust based on your auth implementation
-        return 1L; // TODO: Extract from security context
+        return userService.findByPhone(authentication.getName())
+                .orElseThrow(() -> new AccessDeniedException("authentication_required")).getId();
     }
 
     private User requireUser(Authentication authentication) {

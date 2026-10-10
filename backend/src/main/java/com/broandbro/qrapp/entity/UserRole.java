@@ -5,5 +5,7 @@ public enum UserRole {
     ADMIN,
     MANAGER,
     KITCHEN_STAFF,
+    PARTNER_ADMIN,
+    PARTNER_USER,
     CUSTOMER
 }

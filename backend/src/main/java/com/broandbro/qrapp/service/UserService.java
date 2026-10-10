@@ -157,6 +157,7 @@ public class UserService {
         LoginResponse res = new LoginResponse();
         res.setToken(token);
         res.setUser(toResponse(u));
+        res.setMustChangePassword(Boolean.TRUE.equals(u.getMustChangePassword()));
         return res;
     }
 
@@ -291,18 +292,27 @@ public class UserService {
         return userRepository.findByPhone(phone);
     }
 
+    public void invalidateToken(User user) {
+        if (user != null && user.getToken() != null) {
+            tokenCache.remove(user.getToken());
+        }
+    }
+
     public Optional<User> findByToken(String token) {
         // consult local cache first
         if (token == null) return Optional.empty();
         CachedUser cu = tokenCache.get(token);
         if (cu != null) {
             if (Duration.between(cu.ts, Instant.now()).compareTo(TOKEN_CACHE_TTL) < 0) {
-                return Optional.of(cu.u);
+                if (Boolean.TRUE.equals(cu.u.getActive())) {
+                    return Optional.of(cu.u);
+                }
+                tokenCache.remove(token, cu);
             } else {
                 tokenCache.remove(token, cu);
             }
         }
-        Optional<User> user = userRepository.findByToken(token);
+        Optional<User> user = userRepository.findByTokenAndActiveTrue(token);
         user.ifPresent(this::cacheUser);
         return user;
     }
@@ -385,6 +395,9 @@ public class UserService {
                 throw new IllegalArgumentException("invalid_current_password");
             }
             user.setPassword(passwordEncoder.encode(newPassword));
+            if (isPartnerRole(user.getRole())) {
+                user.setMustChangePassword(false);
+            }
         }
 
         User saved = userRepository.save(user);
@@ -415,6 +428,7 @@ public class UserService {
         r.setSpecialDayCustomLabel(u.getSpecialDayCustomLabel());
         r.setIsAdmin(u.getIsAdmin());
         r.setIsSuperUser(u.getIsSuperUser());
+        r.setMustChangePassword(Boolean.TRUE.equals(u.getMustChangePassword()));
         r.setRole(effectiveRole(u).name());
         r.setDefaultLocation(u.getDefaultLocation() == null ? null :
                 com.broandbro.qrapp.dto.LocationResponse.from(u.getDefaultLocation()));
@@ -428,5 +442,9 @@ public class UserService {
         if (Boolean.TRUE.equals(u.getIsSuperUser())) return UserRole.SUPER_ADMIN;
         if (Boolean.TRUE.equals(u.getIsAdmin())) return UserRole.ADMIN;
         return UserRole.CUSTOMER;
+    }
+
+    private boolean isPartnerRole(UserRole role) {
+        return role == UserRole.PARTNER_ADMIN || role == UserRole.PARTNER_USER;
     }
 }

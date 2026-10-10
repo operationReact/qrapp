@@ -121,7 +121,11 @@ function HallOfHappinessAdminPage() {
   // Edit photo metadata
   const edit = useMutation({
     mutationFn: ({ id, payload }) => updateAdminHallPhoto(id, payload),
-    onSuccess: refresh,
+    onSuccess: () => {
+      refresh();
+      setSelectedSubmission(null);
+      toast.success("Changes saved.");
+    },
     onError: (error) => {
       // Check if photo was removed
       if (error.response?.data?.message === "photo_removed") {

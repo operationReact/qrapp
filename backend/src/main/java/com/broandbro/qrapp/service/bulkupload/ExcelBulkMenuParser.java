@@ -82,6 +82,11 @@ public class ExcelBulkMenuParser implements BulkMenuFileParser {
         dto.setIsHidden(getString(row, 8));
         dto.setInitialQuantity(getLong(row, 9));
         dto.setLowStockThreshold(getLong(row, 10));
+        dto.setProductType(getString(row, 11));
+        dto.setMrp(getBigDecimal(row, 12));
+        dto.setPurchaseCost(getBigDecimal(row, 13));
+        dto.setBarcode(getString(row, 14));
+        dto.setTaxProfileId(getLong(row, 15));
         return dto;
     }
 
@@ -124,4 +129,3 @@ public class ExcelBulkMenuParser implements BulkMenuFileParser {
         return null;
     }
 }
-

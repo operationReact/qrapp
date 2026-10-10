@@ -14,6 +14,8 @@ import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
+import org.springframework.http.client.MultipartBodyBuilder;
+import org.springframework.web.reactive.function.BodyInserters;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -67,6 +69,59 @@ public class OpenAiImageService implements ImageGenerationService {
             throw new OpenAiImageGenerationException("Image prompt must not be blank");
         }
         return generateImageInternal(prompt, "custom image", size);
+    }
+
+    @Override
+    @Retryable(
+            retryFor = {OpenAiImageGenerationException.class},
+            maxAttemptsExpression = "#{@openAiProperties.maxRetries}",
+            backoff = @Backoff(delay = 2000, multiplier = 2.0, maxDelay = 30000)
+    )
+    public byte[] generateImageFromPromptAndReference(String prompt, byte[] referenceBytes,
+                                                       String referenceContentType, String size) {
+        if (prompt == null || prompt.isBlank()) {
+            throw new OpenAiImageGenerationException("Image prompt must not be blank");
+        }
+        if (referenceBytes == null || referenceBytes.length == 0) {
+            throw new OpenAiImageGenerationException("Reference image must not be empty");
+        }
+        MultipartBodyBuilder multipart = new MultipartBodyBuilder();
+        multipart.part("model", props.getImageModel());
+        multipart.part("prompt", prompt);
+        multipart.part("size", size == null || size.isBlank() ? props.getImageSize() : size);
+        if (props.getImageModel() != null && props.getImageModel().startsWith("gpt-image")) {
+            multipart.part("quality", props.getImageQuality());
+        }
+        String filename = "reference." + (referenceContentType != null && referenceContentType.endsWith("webp")
+                ? "webp" : referenceContentType != null && referenceContentType.endsWith("jpeg") ? "jpg" : "png");
+        multipart.asyncPart("image", reactor.core.publisher.Mono.just(referenceBytes), byte[].class)
+                .filename(filename)
+                .contentType(org.springframework.http.MediaType.parseMediaType(
+                        referenceContentType == null ? "image/png" : referenceContentType));
+
+        try {
+            OpenAiImageResponse response = webClient.post()
+                    .uri("/images/edits")
+                    .body(BodyInserters.fromMultipartData(multipart.build()))
+                    .retrieve()
+                    .onStatus(status -> status.isError(), clientResponse ->
+                            clientResponse.bodyToMono(String.class).map(body ->
+                                    new OpenAiImageGenerationException(
+                                            "OpenAI image edit error " + clientResponse.statusCode() + ": " + body)))
+                    .bodyToMono(OpenAiImageResponse.class)
+                    .block(Duration.ofSeconds(props.getReadTimeoutSeconds()));
+            return decodeBase64Image(response, "product reference image");
+        } catch (OpenAiImageGenerationException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new OpenAiImageGenerationException(
+                    "Unexpected error calling OpenAI image edits: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public boolean supportsReferenceImages() {
+        return true;
     }
 
     private byte[] generateImageInternal(String prompt, String subject, String size) {
@@ -141,6 +196,11 @@ public class OpenAiImageService implements ImageGenerationService {
     @Override
     public String getProviderName() {
         return "openai";
+    }
+
+    @Override
+    public String getModelName() {
+        return props.getImageModel();
     }
 
     private byte[] decodeBase64Image(OpenAiImageResponse response, String menuItemName) {

@@ -37,8 +37,6 @@ public class TokenAuthFilter extends OncePerRequestFilter {
 
             User u = userService.findByToken(token).orElse(null);
             if (u != null) {
-                log.info("User found with token! Phone: {}, ID: {}, IsAdmin: {}, IsSuperUser: {}",
-                    u.getPhone(), u.getId(), u.getIsAdmin(), u.getIsSuperUser());
                 List<SimpleGrantedAuthority> authorities = new ArrayList<>();
                 if (u.getIsAdmin()) {
                     authorities.add(new SimpleGrantedAuthority("ROLE_ADMIN"));
@@ -49,6 +47,8 @@ public class TokenAuthFilter extends OncePerRequestFilter {
                 UserRole role = u.getRole();
                 String locationHeader = request.getHeader("X-Location-Id");
                 if (!Boolean.TRUE.equals(u.getIsSuperUser())
+                        && u.getRole() != UserRole.PARTNER_ADMIN
+                        && u.getRole() != UserRole.PARTNER_USER
                         && locationHeader != null && locationHeader.matches("\\d+")) {
                     role = accessRepository.findByUserIdAndLocationId(u.getId(), Long.valueOf(locationHeader))
                             .filter(access -> Boolean.TRUE.equals(access.getActive())
@@ -62,9 +62,9 @@ public class TokenAuthFilter extends OncePerRequestFilter {
                         "ROLE_" + (role == null ? UserRole.CUSTOMER : role).name()));
                 var auth = new UsernamePasswordAuthenticationToken(u.getPhone(), null, authorities);
                 SecurityContextHolder.getContext().setAuthentication(auth);
-                log.info("Authentication set in SecurityContext for user: {} with roles: {}", u.getPhone(), authorities);
+                log.debug("Authentication established for request with {} authorities", authorities.size());
             } else {
-                log.warn("No user found with token: {}", token);
+                log.warn("Authentication rejected: bearer token did not match an active user");
             }
         } else {
             log.debug("No Bearer token found in Authorization header");

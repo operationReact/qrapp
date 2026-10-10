@@ -14,6 +14,10 @@
     "test:roles":  "node --test src/lib/roles.test.js",
     "test:all-locations":  "node --test src/lib/allLocations.test.js",
     "test:location-code":  "node --test src/lib/locationCode.test.js",
+    "test:partner-finance": "node --test src/lib/partnerFinance.test.js",
+    "test:partner-branding": "node --test src/lib/partnerBranding.test.js",
+    "test:partner-shell": "node --test src/lib/partnerShellLogoStructure.test.js",
+    "test:partner-reports": "node --test src/lib/partnerReports.test.js src/lib/partnerNotifications.test.js",
     "test:campaign-presentation": "node --test src/components/home/campaignPresentation.test.js"
   },
   "dependencies": {

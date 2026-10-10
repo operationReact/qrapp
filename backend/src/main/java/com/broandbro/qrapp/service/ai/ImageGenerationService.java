@@ -40,7 +40,26 @@ public interface ImageGenerationService {
     byte[] generateImageFromPrompt(String prompt, String size);
 
     /**
+     * Generates an image using an uploaded reference image. Providers that do
+     * not support image edits must fail explicitly rather than silently
+     * ignoring the reference.
+     */
+    default byte[] generateImageFromPromptAndReference(String prompt, byte[] referenceBytes,
+                                                        String referenceContentType, String size) {
+        throw new UnsupportedOperationException(
+                "The configured image provider does not support reference images");
+    }
+
+    default boolean supportsReferenceImages() {
+        return false;
+    }
+
+    /**
      * Returns the name of the underlying provider (e.g. "openai", "stability").
      */
     String getProviderName();
+
+    default String getModelName() {
+        return "configured";
+    }
 }

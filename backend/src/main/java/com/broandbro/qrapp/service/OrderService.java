@@ -17,6 +17,7 @@ import com.broandbro.qrapp.entity.User;
 import com.broandbro.qrapp.enums.OrderPriority;
 import com.broandbro.qrapp.enums.OrderStatus;
 import com.broandbro.qrapp.enums.PaymentMethod;
+import com.broandbro.qrapp.enums.ProductType;
 import com.broandbro.qrapp.promotion.engine.CartContext;
 import com.broandbro.qrapp.promotion.engine.CartItemContext;
 import com.broandbro.qrapp.promotion.engine.EligibilityContext;
@@ -46,6 +47,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -92,6 +94,8 @@ public class OrderService {
     private final com.broandbro.qrapp.repository.LocationRepository locationRepository;
     private final InvoiceService invoiceService;
     private final TaxCalculationService taxCalculationService;
+    @Autowired
+    private InventoryService inventoryService;
 
     /**
      * Creates a new order with a human-readable, location-specific order number.
@@ -168,6 +172,11 @@ public class OrderService {
                         "Menu item '" + menuItem.getName() + "' does not belong to location '" + 
                         requestedLocation.getName() + "'. Cannot add items from different locations to same order.");
                 }
+            }
+            if (order.getLocation() != null && menuItem.getLocation() != null
+                    && !order.getLocation().getId().equals(menuItem.getLocation().getId())) {
+                throw new IllegalArgumentException(
+                        "All order items must belong to the same location");
             }
             
             // Scope the order to the location of its items (menu is location-owned).
@@ -339,6 +348,11 @@ public class OrderService {
             applyTaxSnapshot(oi, snap, adjustedTax,
                     snap.lineTotal().subtract(adjustedTax.taxableAmount()));
             orderItemRepo.save(oi);
+            MenuItem orderedItem = menuRepository.findById(i.getItemId()).orElseThrow();
+            if (orderedItem.getProductType() == ProductType.RETAIL_PRODUCT) {
+                inventoryService.deductInventory(i.getItemId(), (long) i.getQuantity(),
+                        order.getOrderNumber());
+            }
         }
         invoiceService.createIfAbsent(order);
 
@@ -684,7 +698,11 @@ public class OrderService {
                 if (nextStatus == OrderStatus.COMPLETED) {
                     order.setCompletedAt(now);
                 }
+                if (nextStatus == OrderStatus.CANCELLED) {
+                    restoreRetailInventory(order);
+                }
             }
+
         }
 
         if (hasPaymentStatusChange) {
@@ -692,6 +710,7 @@ public class OrderService {
             if (!normalized.equals("PAID") && !normalized.equals("PENDING") && !normalized.equals("FAILED")) {
                 throw new IllegalArgumentException("Invalid paymentStatus: " + request.getPaymentStatus());
             }
+
             nextPaymentStatus = normalized;
             order.setPaymentStatus(normalized);
         }
@@ -721,6 +740,16 @@ public class OrderService {
 
         return buildAdminOrderResponses(List.of(order)).stream().findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("Order not found: " + orderId));
+    }
+
+    private void restoreRetailInventory(Order order) {
+        orderItemRepo.findAllByOrderId(order.getId()).forEach(item ->
+                menuRepository.findById(item.getItemId()).ifPresent(menuItem -> {
+                    if (menuItem.getProductType() == ProductType.RETAIL_PRODUCT) {
+                        inventoryService.restoreInventory(item.getItemId(), (long) item.getQuantity(),
+                                order.getOrderNumber());
+                    }
+                }));
     }
 
     @Transactional

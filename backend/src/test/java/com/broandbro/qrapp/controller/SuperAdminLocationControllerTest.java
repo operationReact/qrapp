@@ -37,6 +37,8 @@ class SuperAdminLocationControllerTest {
     @MockBean com.broandbro.qrapp.security.TokenAuthFilter tokenAuthFilter;
     @MockBean com.broandbro.qrapp.service.LocationPhotoService locationPhotoService;
     @MockBean com.broandbro.qrapp.service.LocationDeletionService locationDeletionService;
+    @MockBean com.broandbro.qrapp.service.PartnerService partnerService;
+    @MockBean com.broandbro.qrapp.repository.PartnerLocationRepository partnerLocationRepository;
 
     @Test
     @WithMockUser(roles = "ADMIN")

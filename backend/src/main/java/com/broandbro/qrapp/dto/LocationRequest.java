@@ -19,6 +19,7 @@ public class LocationRequest {
     private String pinCode;
     private String country = "India";
     private Boolean active = true;
+    private Long partnerId;
 
     @jakarta.validation.constraints.AssertTrue(message = "State/UT must be a valid Indian state or union territory")
     public boolean isValidStateUt() {

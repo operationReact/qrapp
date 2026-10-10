@@ -15,6 +15,7 @@ import com.broandbro.qrapp.repository.MenuRepository;
 import com.broandbro.qrapp.repository.VendorRepository;
 import com.broandbro.qrapp.repository.VendorMenuItemCostHistoryRepository;
 import com.broandbro.qrapp.repository.TaxProfileRepository;
+import com.broandbro.qrapp.repository.LocationProductRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -56,6 +57,8 @@ public class PricingService {
     private final VendorRepository    vendorRepository;
     private final TaxCalculationService taxCalculationService;
     private final TaxProfileRepository taxProfileRepository;
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private LocationProductRepository locationProductRepository;
 
     /**
      * Returns a map of menuItemId → current selling price for all supplied IDs.
@@ -66,7 +69,7 @@ public class PricingService {
      */
     public Map<Long, BigDecimal> getCurrentSellingPrices(List<Long> menuItemIds) {
         if (menuItemIds == null || menuItemIds.isEmpty()) return Map.of();
-        return sellingPriceRepo.findCurrentPricesForItems(menuItemIds)
+        Map<Long, BigDecimal> prices = sellingPriceRepo.findCurrentPricesForItems(menuItemIds)
                 .stream()
                 .collect(java.util.stream.Collectors.toMap(
                         h -> h.getMenuItem().getId(),
@@ -74,6 +77,16 @@ public class PricingService {
                         // keep latest if somehow duplicates sneak through
                         (a, b) -> a
                 ));
+        if (locationProductRepository != null) {
+            menuRepository.findAllById(menuItemIds).forEach(item -> {
+                if (item.getCatalogProduct() != null && item.getLocation() != null) {
+                    locationProductRepository.findByProductIdAndLocationId(
+                                    item.getCatalogProduct().getId(), item.getLocation().getId())
+                            .ifPresent(assignment -> prices.put(item.getId(), assignment.getSellingPrice()));
+                }
+            });
+        }
+        return prices;
     }
 
     // =========================================================================
@@ -87,6 +100,15 @@ public class PricingService {
      * @return the selling price, or {@link BigDecimal#ZERO} if no active price exists
      */
     public BigDecimal getCurrentSellingPrice(Long menuItemId) {
+        if (locationProductRepository != null) {
+            MenuItem item = menuRepository.findById(menuItemId).orElse(null);
+            if (item != null && item.getCatalogProduct() != null && item.getLocation() != null) {
+                return locationProductRepository.findByProductIdAndLocationId(
+                                item.getCatalogProduct().getId(), item.getLocation().getId())
+                        .map(com.broandbro.qrapp.entity.LocationProduct::getSellingPrice)
+                        .orElse(BigDecimal.ZERO);
+            }
+        }
         return sellingPriceRepo.findCurrentActive(menuItemId)
                 .map(MenuItemSellingPriceHistory::getSellingPrice)
                 .orElseGet(() -> {
@@ -149,8 +171,8 @@ public class PricingService {
                 .orElseThrow(() -> new IllegalArgumentException("MenuItem not found: " + menuItemId));
         BigDecimal sellingPrice = getCurrentSellingPrice(menuItemId);
         BigDecimal costPrice    = vendorId != null
-                ? getCurrentVendorCost(vendorId, menuItemId).orElse(null)
-                : null;
+                ? getCurrentVendorCost(vendorId, menuItemId).orElse(menuItem.getPurchaseCost())
+                : menuItem.getPurchaseCost();
         BigDecimal profit    = (costPrice != null) ? sellingPrice.subtract(costPrice) : null;
         BigDecimal lineTotal = sellingPrice.multiply(BigDecimal.valueOf(quantity));
         TaxProfile taxProfile = effectiveTaxProfile(menuItem);

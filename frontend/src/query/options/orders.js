@@ -80,7 +80,10 @@ export const adminPreOrderItemsOptions = queryOptions({
 export const paymentConfigOptions = (locationId = null) => queryOptions({
   queryKey: ["payment", "config", locationId ?? null],
   queryFn: () => getPaymentConfig(locationId),
-  staleTime: 1000 * 60,   // 1 min
+  staleTime: 0,
+  refetchOnMount: "always",
+  refetchOnWindowFocus: true,
+  refetchOnReconnect: true,
   retry: 2,
 });
 

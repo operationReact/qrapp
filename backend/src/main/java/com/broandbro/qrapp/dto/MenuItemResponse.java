@@ -5,6 +5,7 @@ import com.broandbro.qrapp.entity.Tag;
 import com.broandbro.qrapp.enums.FulfillmentType;
 import com.broandbro.qrapp.enums.InventoryMode;
 import com.broandbro.qrapp.enums.StockStatus;
+import com.broandbro.qrapp.enums.ProductType;
 import com.broandbro.qrapp.classification.dto.ClassificationDtos.ComboRoleView;
 import com.broandbro.qrapp.classification.dto.ClassificationDtos.MealTypeView;
 import com.broandbro.qrapp.classification.dto.ClassificationDtos.CuisineTypeView;
@@ -30,6 +31,7 @@ public class MenuItemResponse {
 
     private Long id;
     private String name;
+    private ProductType productType;
     private String description;
 
     /**
@@ -44,6 +46,7 @@ public class MenuItemResponse {
      * Null if no active price record exists.
      */
     private BigDecimal price;
+    private BigDecimal mrp;
 
     private String imageUrl;
     private Boolean isVeg;

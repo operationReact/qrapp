@@ -9,6 +9,12 @@ import com.broandbro.qrapp.exception.*;
 import com.broandbro.qrapp.repository.InventoryAuditRepository;
 import com.broandbro.qrapp.repository.InventoryRepository;
 import com.broandbro.qrapp.repository.MenuRepository;
+import com.broandbro.qrapp.repository.LocationProductRepository;
+import com.broandbro.qrapp.repository.ProductInventoryRepository;
+import com.broandbro.qrapp.repository.ProductInventoryMovementRepository;
+import com.broandbro.qrapp.entity.LocationProduct;
+import com.broandbro.qrapp.entity.ProductInventory;
+import com.broandbro.qrapp.entity.ProductInventoryMovement;
 import com.broandbro.qrapp.service.InventoryService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -43,6 +49,12 @@ public class InventoryServiceImpl implements InventoryService {
     private final InventoryRepository inventoryRepository;
     private final InventoryAuditRepository inventoryAuditRepository;
     private final MenuRepository menuRepository;
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private LocationProductRepository locationProductRepository;
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private ProductInventoryRepository productInventoryRepository;
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private ProductInventoryMovementRepository productMovementRepository;
 
     // ============================================================================
     // CUSTOMER-FACING METHODS
@@ -52,6 +64,11 @@ public class InventoryServiceImpl implements InventoryService {
     @Transactional(readOnly = true)
     public StockStatus getStockStatus(Long menuItemId) {
         MenuItem menuItem = getMenuItemOrThrow(menuItemId);
+        LocationProduct catalogAssignment = catalogAssignment(menuItem);
+        ProductInventory catalogInventory = catalogInventory(menuItem, false);
+        if (catalogAssignment != null) {
+            return catalogStockStatus(catalogInventory);
+        }
 
         // UNLIMITED items don't have inventory tracking
         if (menuItem.getInventoryMode() == InventoryMode.UNLIMITED) {
@@ -75,6 +92,14 @@ public class InventoryServiceImpl implements InventoryService {
     @Transactional(readOnly = true)
     public boolean isOrderable(Long menuItemId) {
         MenuItem menuItem = getMenuItemOrThrow(menuItemId);
+        LocationProduct catalogAssignment = catalogAssignment(menuItem);
+        if (catalogAssignment != null) {
+            ProductInventory inventory = catalogInventory(menuItem, false);
+            return Boolean.TRUE.equals(catalogAssignment.getProduct().getActive())
+                    && Boolean.TRUE.equals(catalogAssignment.getVisible())
+                    && Boolean.TRUE.equals(catalogAssignment.getAvailable())
+                    && inventory != null && inventory.getAvailableQuantity() > 0;
+        }
 
         // Soft-deleted items are never orderable
         if (Boolean.TRUE.equals(menuItem.getIsDeleted())) return false;
@@ -109,6 +134,16 @@ public class InventoryServiceImpl implements InventoryService {
 
         Map<Long, MenuItemAvailability> availability = new HashMap<>();
         for (MenuItem item : menuItems) {
+            if (catalogAssignment(item) != null) {
+                ProductInventory inventory = catalogInventory(item, false);
+                boolean orderable = isCatalogOrderable(item, inventory);
+                StockStatus status = inventory == null || inventory.getAvailableQuantity() <= 0
+                        ? StockStatus.OUT_OF_STOCK
+                        : inventory.getAvailableQuantity() <= inventory.getLowStockThreshold()
+                        ? StockStatus.LIMITED : StockStatus.AVAILABLE;
+                availability.put(item.getId(), new MenuItemAvailability(orderable, status));
+                continue;
+            }
             boolean orderable = !Boolean.TRUE.equals(item.getIsDeleted())
                     && !Boolean.TRUE.equals(item.getIsHidden())
                     && !Boolean.FALSE.equals(item.getAvailable());
@@ -138,6 +173,19 @@ public class InventoryServiceImpl implements InventoryService {
     @Transactional(readOnly = true)
     public void validateQuantityAvailable(Long menuItemId, Long requestedQuantity) {
         MenuItem menuItem = getMenuItemOrThrow(menuItemId);
+        ProductInventory catalogInventory = catalogInventory(menuItem, false);
+        if (catalogInventory != null) {
+            if (requestedQuantity == null || requestedQuantity <= 0
+                    || catalogInventory.getAvailableQuantity() < requestedQuantity
+                    || !isCatalogOrderable(menuItem, catalogInventory)) {
+                throw new InsufficientInventoryException(menuItemId, requestedQuantity,
+                        catalogInventory.getAvailableQuantity());
+            }
+            return;
+        }
+        if (catalogAssignment(menuItem) != null) {
+            throw new InsufficientInventoryException(menuItemId, requestedQuantity, 0L);
+        }
 
         // UNLIMITED items have no stock restrictions
         if (menuItem.getInventoryMode() == InventoryMode.UNLIMITED) {
@@ -171,6 +219,21 @@ public class InventoryServiceImpl implements InventoryService {
     @CacheEvict(cacheNames = {"menu", "menuRecommended"}, allEntries = true)
     public void deductInventory(Long menuItemId, Long quantity, String orderId) {
         MenuItem menuItem = getMenuItemOrThrow(menuItemId);
+        LocationProduct catalogAssignment = catalogAssignment(menuItem);
+        if (catalogAssignment != null) {
+            if (quantity == null || quantity <= 0) throw new InventoryOperationException("Deduction quantity must be positive");
+            ProductInventory inventory = catalogInventory(menuItem, true);
+            if (inventory == null || !isCatalogOrderable(menuItem, inventory)
+                    || inventory.getAvailableQuantity() < quantity) {
+                throw new InsufficientInventoryException(menuItemId, quantity,
+                        inventory == null ? 0L : inventory.getAvailableQuantity());
+            }
+            long before = inventory.getAvailableQuantity();
+            inventory.setAvailableQuantity(before - quantity);
+            productInventoryRepository.save(inventory);
+            recordCatalogMovement(catalogAssignment, "SALE", -quantity, before, before - quantity, "Order deduction", orderId);
+            return;
+        }
 
         // UNLIMITED items don't need inventory deduction
         if (menuItem.getInventoryMode() == InventoryMode.UNLIMITED) {
@@ -223,6 +286,20 @@ public class InventoryServiceImpl implements InventoryService {
     @CacheEvict(cacheNames = {"menu", "menuRecommended"}, allEntries = true)
     public void restoreInventory(Long menuItemId, Long quantity, String orderId) {
         MenuItem menuItem = getMenuItemOrThrow(menuItemId);
+        LocationProduct catalogAssignment = catalogAssignment(menuItem);
+        if (catalogAssignment != null) {
+            if (quantity == null || quantity <= 0) throw new InventoryOperationException("Restoration quantity must be positive");
+            ProductInventory inventory = catalogInventory(menuItem, true);
+            if (inventory == null) {
+                throw new InventoryNotConfiguredException(menuItemId);
+            }
+            long before = inventory.getAvailableQuantity();
+            inventory.setAvailableQuantity(before + quantity);
+            productInventoryRepository.save(inventory);
+            recordCatalogMovement(catalogAssignment, "RETURN", quantity, before, before + quantity,
+                    "Order cancellation restoration", orderId);
+            return;
+        }
 
         // UNLIMITED items don't need inventory restoration
         if (menuItem.getInventoryMode() == InventoryMode.UNLIMITED) {
@@ -289,6 +366,51 @@ public class InventoryServiceImpl implements InventoryService {
         inventoryAuditRepository.save(audit);
     }
 
+    private LocationProduct catalogAssignment(MenuItem item) {
+        if (locationProductRepository == null || item == null || item.getCatalogProduct() == null
+                || item.getLocation() == null) return null;
+        return locationProductRepository.findByProductIdAndLocationId(
+                item.getCatalogProduct().getId(), item.getLocation().getId()).orElse(null);
+    }
+
+    private ProductInventory catalogInventory(MenuItem item, boolean lock) {
+        LocationProduct assignment = catalogAssignment(item);
+        if (assignment == null || productInventoryRepository == null) return null;
+        return (lock ? productInventoryRepository.findByLocationProductIdForUpdate(assignment.getId())
+                : productInventoryRepository.findByLocationProductId(assignment.getId())).orElse(null);
+    }
+
+    private boolean isCatalogOrderable(MenuItem item, ProductInventory inventory) {
+        LocationProduct assignment = catalogAssignment(item);
+        return assignment != null && inventory != null
+                && Boolean.TRUE.equals(assignment.getProduct().getActive())
+                && Boolean.TRUE.equals(assignment.getVisible())
+                && Boolean.TRUE.equals(assignment.getAvailable())
+                && inventory.getAvailableQuantity() > 0;
+    }
+
+    private StockStatus catalogStockStatus(ProductInventory inventory) {
+        if (inventory == null || inventory.getAvailableQuantity() <= 0) {
+            return StockStatus.OUT_OF_STOCK;
+        }
+        return inventory.getAvailableQuantity() <= inventory.getLowStockThreshold()
+                ? StockStatus.LIMITED : StockStatus.AVAILABLE;
+    }
+
+    private void recordCatalogMovement(LocationProduct assignment, String type, long delta,
+                                       long before, long after, String reason, String reference) {
+        if (productMovementRepository == null) return;
+        ProductInventoryMovement movement = new ProductInventoryMovement();
+        movement.setLocationProduct(assignment);
+        movement.setMovementType(type);
+        movement.setQuantityDelta(delta);
+        movement.setQuantityBefore(before);
+        movement.setQuantityAfter(after);
+        movement.setReason(reason);
+        movement.setReferenceId(reference);
+        productMovementRepository.save(movement);
+    }
+
     /**
      * Get menu item or throw exception.
      */
@@ -352,7 +474,7 @@ public class InventoryServiceImpl implements InventoryService {
         // Create audit entry
         createAuditEntry(
             request.getMenuItemId(),
-            InventoryAuditActionType.MANUAL_UPDATE,
+            request.getMovementType() != null ? request.getMovementType() : InventoryAuditActionType.MANUAL_UPDATE,
             oldQuantity,
             newQuantity,
             adminUserId,
@@ -470,6 +592,20 @@ public class InventoryServiceImpl implements InventoryService {
     @Transactional(readOnly = true)
     public InventoryStatusResponse getInventoryStatus(Long menuItemId) {
         MenuItem menuItem = getMenuItemOrThrow(menuItemId);
+
+        LocationProduct catalogAssignment = catalogAssignment(menuItem);
+        ProductInventory catalogInventory = catalogInventory(menuItem, false);
+        if (catalogAssignment != null) {
+            return InventoryStatusResponse.builder()
+                    .menuItemId(menuItemId)
+                    .itemName(menuItem.getName())
+                    .stockStatus(catalogStockStatus(catalogInventory))
+                    .available(isCatalogOrderable(menuItem, catalogInventory))
+                    .version(catalogInventory == null ? null : catalogInventory.getVersion())
+                    .lastUpdatedAt(catalogInventory == null || catalogInventory.getUpdatedAt() == null
+                            ? null : catalogInventory.getUpdatedAt().toString())
+                    .build();
+        }
 
         if (menuItem.getInventoryMode() == InventoryMode.UNLIMITED) {
             return InventoryStatusResponse.builder()

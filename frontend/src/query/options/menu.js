@@ -3,6 +3,7 @@ import {
   getMenu,
   getCategories,
   getRecommendedMenu,
+  getRetailMenu,
 } from "../../services/menu-service";
 import { getEffectiveLocationId } from "@/lib/activeLocationStore";
 
@@ -40,4 +41,15 @@ export const recommendedMenuOptions = (limit = 6, locationId = storedLocationId(
     staleTime: 1000 * 15,
     gcTime: 1000 * 60 * 10,
     refetchOnWindowFocus: true,
+  });
+
+export const retailMenuOptions = (locationId = storedLocationId()) =>
+  queryOptions({
+    queryKey: ["menu", "retail", locationId],
+    queryFn: () => getRetailMenu({ locationId }),
+    enabled: Boolean(locationId),
+    staleTime: 1000 * 15,
+    gcTime: 1000 * 60 * 10,
+    refetchOnWindowFocus: true,
+    placeholderData: [],
   });

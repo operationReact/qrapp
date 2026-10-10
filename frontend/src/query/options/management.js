@@ -21,6 +21,7 @@ export const adminLocationsPageOptions = (params) => ({
 });
 export const adminCustomerCompaniesOptions = (params) => list("/api/admin/customer-companies", "customer-companies", params);
 export const adminVendorsOptions = () => list("/api/v1/vendors", "vendors");
+export const adminPartnersOptions = () => list("/api/v1/partners", "partners");
 export const locationCustomerCompaniesOptions = (locationId, enabled = true) => ({
   queryKey: ["admin", "locations", locationId, "customer-companies"],
   enabled: Boolean(locationId) && enabled,

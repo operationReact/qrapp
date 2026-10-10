@@ -11,6 +11,9 @@ export const getMenu = (opts = {}) => {
   return apiClient.get("/menu", { params }).then((r) => r.data);
 };
 
+export const getRetailMenu = ({ locationId, size = 200 } = {}) =>
+  apiClient.get("/menu/retail", { params: { locationId, size } }).then((r) => r.data);
+
 export const getRecommendedMenu = ({ locationId, limit = 6 } = {}) => {
   const safeLimit = Number.isFinite(limit)
     ? Math.max(1, Math.min(50, Number(limit)))

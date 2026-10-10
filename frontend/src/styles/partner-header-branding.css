@@ -1,0 +1,160 @@
+.partner-header-branding-group {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.partner-header-logo-surface {
+  position: relative;
+  overflow: hidden;
+  flex: none;
+  border-radius: 0.75rem;
+}
+
+.partner-header-branding-logos {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.7rem;
+  overflow: hidden;
+  padding: 0.1rem;
+}
+
+.partner-header-logo-frame {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  flex: none;
+  place-items: center;
+  overflow: hidden;
+}
+.partner-header-logo-frame::after {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background: linear-gradient(105deg, transparent, rgba(255, 125, 105, 0.38), transparent);
+  content: "";
+  opacity: 0;
+  pointer-events: none;
+  transform: skewX(-18deg) translateX(-120%);
+  animation: partner-header-logo-sweep 700ms ease-in-out 80ms both;
+}
+
+.partner-header-bro-logo,
+.partner-header-partner-logo {
+  width: 4.2rem;
+  height: 2.15rem;
+  flex: none;
+  object-fit: contain;
+  opacity: 0;
+  transform: translateX(-0.7rem);
+  animation: partner-header-logo-in 700ms ease-in-out both;
+}
+
+.partner-header-partner-logo {
+  width: 4.8rem;
+}
+
+.partner-header-branding-logos > .partner-sidebar-divider {
+  position: relative;
+  z-index: 1;
+  flex: none;
+  opacity: 0;
+  animation: partner-header-divider-in 700ms ease-in-out both;
+}
+
+.partner-header-partner-name {
+  min-width: 0;
+}
+
+.partner-header-partner-name strong {
+  display: block;
+  overflow: hidden;
+  color: #302824;
+  font-size: 0.88rem;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.partner-header-branding-group:hover .partner-header-bro-logo,
+.partner-header-branding-group:hover .partner-header-partner-logo {
+  filter: saturate(1.08);
+  transform: translateY(-1px) scale(1.025);
+  transition: transform 220ms ease, filter 220ms ease;
+}
+
+.partner-sidebar-logout {
+  box-sizing: border-box;
+  width: 100%;
+  margin: 0.2rem 0 0;
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
+.partner-sidebar-logout:hover,
+.partner-sidebar-logout:focus-visible,
+.partner-mobile-more-logout:hover,
+.partner-mobile-more-logout:focus-visible {
+  color: #a13e37;
+  border-color: #f2d8d1;
+  background: #fff5f1;
+}
+
+.partner-mobile-more-logout {
+  width: 100%;
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+}
+
+@keyframes partner-header-logo-in {
+  0% { opacity: 0; transform: translateX(-0.7rem); }
+  65% { opacity: 1; transform: translateX(0.08rem); }
+  100% { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes partner-header-divider-in {
+  0% { opacity: 0; transform: scaleY(0.7); }
+  65% { opacity: 1; transform: scaleY(1.03); }
+  100% { opacity: 1; transform: scaleY(1); }
+}
+
+@keyframes partner-header-logo-sweep {
+  0% { opacity: 0; transform: skewX(-18deg) translateX(-120%); }
+  16% { opacity: 1; }
+  72% { opacity: 0.65; }
+  100% { opacity: 0; transform: skewX(-18deg) translateX(120%); }
+}
+
+@media (max-width: 800px) {
+  .partner-header-branding-group { gap: 0.45rem; }
+  .partner-header-branding-logos { gap: 0.45rem; }
+  .partner-header-bro-logo { width: 3.25rem; height: 2rem; }
+  .partner-header-partner-logo { width: 4.1rem; height: 2rem; }
+}
+
+@media (max-width: 420px) {
+  .partner-header-branding-group { gap: 0.3rem; }
+  .partner-header-branding-logos { gap: 0.3rem; }
+  .partner-header-bro-logo { width: 2.5rem; height: 1.8rem; }
+  .partner-header-partner-logo { width: 3.45rem; height: 1.85rem; }
+  .partner-location-control { max-width: 5.8rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .partner-header-bro-logo,
+  .partner-header-partner-logo,
+  .partner-header-branding-logos > .partner-sidebar-divider,
+  .partner-header-logo-frame::after {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}

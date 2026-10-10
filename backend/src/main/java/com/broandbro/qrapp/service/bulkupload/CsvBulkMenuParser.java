@@ -65,6 +65,11 @@ public class CsvBulkMenuParser implements BulkMenuFileParser {
         dto.setIsHidden(safeGet(cols, 8));
         dto.setInitialQuantity(parseLong(safeGet(cols, 9)));
         dto.setLowStockThreshold(parseLong(safeGet(cols, 10)));
+        dto.setProductType(safeGet(cols, 11));
+        dto.setMrp(parseBigDecimal(safeGet(cols, 12), rowNumber));
+        dto.setPurchaseCost(parseBigDecimal(safeGet(cols, 13), rowNumber));
+        dto.setBarcode(safeGet(cols, 14));
+        dto.setTaxProfileId(parseLong(safeGet(cols, 15)));
         return dto;
     }
 
@@ -92,4 +97,3 @@ public class CsvBulkMenuParser implements BulkMenuFileParser {
         }
     }
 }
-

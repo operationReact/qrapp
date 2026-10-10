@@ -114,6 +114,12 @@ export function MemoryDetailView({ open, onOpenChange, submission, onAction, onE
     }
   }, [open, submission, selectedPhotoIndex]);
 
+  useEffect(() => () => {
+    if (newImagePreview) {
+      URL.revokeObjectURL(newImagePreview);
+    }
+  }, [newImagePreview]);
+
   if (!submission || !submission.photos.length) return null;
 
   const photo = submission.photos[selectedPhotoIndex];

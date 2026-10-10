@@ -22,6 +22,9 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
 import java.util.Set;
 
 @Service
@@ -151,6 +154,8 @@ public class MenuItemImageService {
         MenuItemImage image = imageRepository.findByIdAndMenuItemLocationId(imageId, locationId)
                 .orElseThrow(() -> new ImageNotFoundException(imageId));
         imageRepository.delete(image);
+        image.getMenuItem().setImageUrl(null);
+        menuRepository.save(image.getMenuItem());
         log.info("Deleted image id={}", imageId);
     }
 
@@ -171,6 +176,16 @@ public class MenuItemImageService {
         if (contentType == null || !ALLOWED_CONTENT_TYPES.contains(contentType.toLowerCase())) {
             log.warn("Invalid content type: {}", contentType);
             throw new InvalidImageException("Invalid image type. Allowed: JPEG, PNG, WEBP");
+        }
+        try (InputStream input = file.getInputStream()) {
+            BufferedImage decoded = ImageIO.read(input);
+            if (decoded == null) {
+                throw new InvalidImageException("File is not a valid image");
+            }
+            // Small fixtures and legacy food images remain valid; avoid upscaling them
+            // in the optimizer rather than rejecting an otherwise genuine image.
+        } catch (IOException e) {
+            throw new InvalidImageException("Unable to validate image content");
         }
     }
 

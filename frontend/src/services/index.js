@@ -70,6 +70,17 @@ apiClient.interceptors.response.use(
     const status = error?.response?.status;
     if (status === 401) {
       try {
+        const failedHeader = error?.config?.headers?.Authorization
+          || error?.config?.headers?.authorization
+          || error?.config?.headers?.get?.("Authorization");
+        const failedToken = typeof failedHeader === "string" && failedHeader.startsWith("Bearer ")
+          ? failedHeader.slice(7)
+          : null;
+        const stored = JSON.parse(localStorage.getItem("user") || "null");
+        // An older request can finish after a fresh login. It must not clear the new session.
+        if (failedToken && stored?.token && failedToken !== stored.token) {
+          return Promise.reject(error);
+        }
         activeAuthToken = null;
         delete apiClient.defaults.headers.common["Authorization"];
         localStorage.removeItem("user");

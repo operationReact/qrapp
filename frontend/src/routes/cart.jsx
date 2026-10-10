@@ -115,8 +115,21 @@ function CartPage() {
   const [upsellSessionDone, setUpsellSessionDone] = useState(false);
 
   // Fetch payment config via React Query — auto-retries & caches
-  const { data: paymentConfig } = useQuery(paymentConfigOptions(activeLocationId));
-  const payAtStallEnabled = !!paymentConfig?.payAtStallEnabled;
+  const { data: paymentConfig, isLoading: paymentConfigLoading } = useQuery(
+    paymentConfigOptions(activeLocationId),
+  );
+  const enabledPaymentMethods = paymentConfig
+    ? [
+        paymentConfig.walletEnabled && "WALLET",
+        paymentConfig.razorpayEnabled && "RAZORPAY",
+        paymentConfig.payAtStallEnabled && "PAY_AT_STALL",
+      ].filter(Boolean)
+    : [];
+  const selectedPaymentMethod = paymentConfig
+    ? enabledPaymentMethods.includes(paymentMethod)
+      ? paymentMethod
+      : enabledPaymentMethods[0] || ""
+    : paymentMethod;
 
   // Compute directly from cart so it updates on every cart state change
   const total = cart.reduce((sum, i) => sum + Number(i.price) * i.quantity, 0);
@@ -429,7 +442,7 @@ function CartPage() {
       const res = await createOrder({
         items,
         phone,
-        paymentMethod,
+        paymentMethod: selectedPaymentMethod,
         promotionCode: appliedPromotion?.code ?? undefined,
         byocCampaignId:
           !appliedPromotion && byocDiscount?.campaignId
@@ -437,7 +450,7 @@ function CartPage() {
             : undefined,
       }, activeLocationId);
       console.log("Order response:", res);
-      const responsePaymentMethod = res?.paymentMethod || paymentMethod;
+      const responsePaymentMethod = res?.paymentMethod || selectedPaymentMethod;
 
       if (responsePaymentMethod === "WALLET") {
         clearCart?.();
@@ -734,9 +747,9 @@ function CartPage() {
                         Pay using <CaretDown className="size-4" />
                       </div>
                       <div className="font-semibold">
-                        {paymentMethod === "WALLET"
+                        {selectedPaymentMethod === "WALLET"
                           ? "Bro Wallet"
-                          : paymentMethod === "PAY_AT_STALL"
+                          : selectedPaymentMethod === "PAY_AT_STALL"
                             ? "Pay at Stall"
                             : "Razorpay"}
                       </div>
@@ -753,10 +766,20 @@ function CartPage() {
                       </DrawerHeader>
                       <div className="p-4">
                         <RadioGroup
-                          value={paymentMethod}
+                          value={selectedPaymentMethod}
                           onValueChange={(value) => setPaymentMethod(value)}
                         >
-                          <FieldLabel htmlFor="wallet">
+                          {paymentConfigLoading ? (
+                            <p className="py-4 text-sm text-muted-foreground">
+                              Loading payment methods...
+                            </p>
+                          ) : enabledPaymentMethods.length === 0 ? (
+                            <p className="py-4 text-sm text-destructive">
+                              No payment methods are currently available for this location.
+                            </p>
+                          ) : (
+                            <>
+                          {paymentConfig.walletEnabled && <FieldLabel htmlFor="wallet">
                             <Field
                               orientation="horizontal"
                               data-disabled={
@@ -814,8 +837,8 @@ function CartPage() {
                                 }
                               />
                             </Field>
-                          </FieldLabel>
-                          <FieldLabel htmlFor="razorpay">
+                          </FieldLabel>}
+                          {paymentConfig.razorpayEnabled && <FieldLabel htmlFor="razorpay">
                             <Field orientation="horizontal">
                               <FieldContent className="flex flex-row gap-2">
                                 <img
@@ -832,9 +855,9 @@ function CartPage() {
                               </FieldContent>
                               <RadioGroupItem value="RAZORPAY" id="razorpay" />
                             </Field>
-                          </FieldLabel>
+                          </FieldLabel>}
 
-                          {payAtStallEnabled && (
+                          {paymentConfig.payAtStallEnabled && (
                             <FieldLabel htmlFor="pay-at-stall">
                               <Field orientation="horizontal">
                                 <FieldContent className="flex flex-row gap-2 items-start">
@@ -863,6 +886,8 @@ function CartPage() {
                               </Field>
                             </FieldLabel>
                           )}
+                            </>
+                          )}
                         </RadioGroup>
                       </div>
 
@@ -874,9 +899,9 @@ function CartPage() {
                           >
                             Pay Using{" "}
                             <span className="font-semibold">
-                              {paymentMethod === "WALLET"
+                              {selectedPaymentMethod === "WALLET"
                                 ? "Wallet"
-                                : paymentMethod === "PAY_AT_STALL"
+                                : selectedPaymentMethod === "PAY_AT_STALL"
                                   ? "Pay at Stall"
                                   : "Razorpay"}
                             </span>
@@ -888,7 +913,7 @@ function CartPage() {
                   <Button
                     size="lg"
                     onClick={handleCheckout}
-                    disabled={submitting}
+                    disabled={submitting || paymentConfigLoading || !selectedPaymentMethod}
                     className="sm:w-1/2 h-full max-w-2xs font-medium!"
                   >
                     Place Order{" "}

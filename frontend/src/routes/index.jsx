@@ -181,6 +181,15 @@ function MenuPage() {
           <CategoryTabs categories={categories} active={category} />
         </div>
       </div>
+      <Link to="/essentials" className="container-premium block py-2">
+        <section className="overflow-hidden rounded-[14px] shadow-sm">
+          <img
+            src="/assets/essentials/essentials-product-collage.png"
+            alt="Bro & Bro Essentials: biscuits, chips, drinks and chocolates"
+            className="block h-auto w-full object-contain"
+          />
+        </section>
+      </Link>
       <HomeCampaignRails locationId={activeLocationId} />
       <HallOfHappinessSection />
 
@@ -218,7 +227,6 @@ function MenuPage() {
               </EmptyHeader>
             </Empty>
           )}
-
 
           {/* CATEGORY ROWS — compact header + carousel */}
           {Object.entries(groups).map(([catName, items]) => (

@@ -3,6 +3,7 @@ package com.broandbro.qrapp.service.bulkupload;
 import com.broandbro.qrapp.dto.bulkupload.BulkMenuRowDto;
 import com.broandbro.qrapp.enums.FulfillmentType;
 import com.broandbro.qrapp.enums.InventoryMode;
+import com.broandbro.qrapp.enums.ProductType;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -90,6 +91,18 @@ public class BulkMenuRowValidator {
 
         if (row.getLowStockThreshold() != null && row.getLowStockThreshold() < 0) {
             row.addError("Low Stock Alert", "Must be 0 or greater");
+        }
+
+        if (!isBlank(row.getProductType()) && ProductType.RETAIL_PRODUCT.name().equalsIgnoreCase(row.getProductType())) {
+            if (row.getMrp() == null || row.getMrp().compareTo(BigDecimal.ZERO) <= 0)
+                row.addError("MRP", "MRP must be greater than 0");
+            if (row.getPurchaseCost() == null || row.getPurchaseCost().compareTo(BigDecimal.ZERO) < 0)
+                row.addError("Purchase Cost", "Purchase cost must be 0 or greater");
+            if (row.getMrp() != null && row.getPrice() != null && row.getPrice().compareTo(row.getMrp()) > 0)
+                row.addError("Price", "Selling price cannot exceed MRP");
+            if (row.getTaxProfileId() == null)
+                row.addError("GST Profile ID", "Required for retail products");
+            if (row.getInventoryMode() == null) row.setInventoryMode("LIMITED");
         }
     }
 

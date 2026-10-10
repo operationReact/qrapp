@@ -145,11 +145,15 @@ public class SecurityConfig {
                                 "/menu",
                                 "/menu/**",
                                 "/categories/**",
+                                "/api/catalog/products",
                                 "/api/combos",
                                 "/api/combo-campaigns",
                                 "/api/home/campaigns",
                                 "/orders/pre-order/items"
                         ).permitAll()
+
+                        .requestMatchers("/api/catalog/**")
+                        .hasAnyRole("ADMIN", "SUPERUSER", "SUPER_ADMIN", "MANAGER")
 
                         // BYOC cart evaluation — publicly accessible (no auth needed)
                         .requestMatchers(HttpMethod.POST, "/api/combo-campaigns/evaluate").permitAll()
@@ -211,6 +215,9 @@ public class SecurityConfig {
                         .hasAnyRole("ADMIN", "SUPERUSER", "SUPER_ADMIN", "MANAGER",
                                 "FOODCOURT_SUPER_ADMIN", "FOODCOURT_ADMIN", "FOODCOURT_MANAGER",
                                 "FOODCOURT_FINANCE", "FOODCOURT_OPERATIONS", "FOODCOURT_VIEWER")
+
+                        .requestMatchers("/api/v1/partner/**")
+                        .hasAnyRole("PARTNER_ADMIN", "PARTNER_USER")
 
                         // Allow wallet endpoints to pass through (controller will handle auth)
                         .requestMatchers("/api/wallet/**").permitAll()

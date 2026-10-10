@@ -127,6 +127,16 @@ openai:
   read-timeout-seconds: ${OPENAI_READ_TIMEOUT_SECONDS:60}
   max-retries: ${OPENAI_MAX_RETRIES:3}
 
+product:
+  ai-image:
+    enabled: ${PRODUCT_AI_IMAGE_ENABLED:false}
+    max-source-bytes: ${PRODUCT_AI_IMAGE_MAX_SOURCE_BYTES:10485760}
+    max-width: ${PRODUCT_AI_IMAGE_MAX_WIDTH:4096}
+    max-height: ${PRODUCT_AI_IMAGE_MAX_HEIGHT:4096}
+    timeout-seconds: ${PRODUCT_AI_IMAGE_TIMEOUT_SECONDS:120}
+    max-generations-per-product-per-hour: ${PRODUCT_AI_IMAGE_MAX_GENERATIONS_PER_HOUR:5}
+    prompt-template: ${PRODUCT_AI_IMAGE_PROMPT_TEMPLATE:Create a single front-facing package product image for product name "{{productName}}", brand "{{brand}}", variant "{{variant}}". Use the supplied reference image as the identity source. Produce a realistic studio render with even lighting, accurate package proportions and legible packaging. Show exactly one product, centered, isolated with no extra products and no distracting background. Preserve the package design where possible. Return a transparent PNG when supported. Do not invent prices, barcodes, logos, regulatory marks, or additional text.}
+
 aws:
   s3:
     bucket-name: ${AWS_S3_BUCKET_NAME:}

@@ -20,7 +20,7 @@ import { paymentConfigOptions } from "@/query/options/orders";
 import { adminSetPaymentMethod, getAdminSettings } from "@/services/order-service";
 import { partyOrdersOptions } from "@/query/options/party-orders";
 import { adminHallOfHappinessOptions } from "@/query/options/admin-hall-of-happiness";
-import { adminCreateUserOptions, adminCustomerCompaniesOptions, adminLocationsOptions, adminLocationsPageOptions, adminUsersOptions, adminVendorsOptions, assignCustomerCompany, createAdminLocation, createAdminUser, createManagementResource, deleteAdminLocation, grantUserLocation, resetAdminUserPassword, revokeUserLocation, setAdminLocationActive, updateAdminLocation, updateCustomerCompany, updateUserRole, userLocationsOptions } from "@/query/options/management";
+import { adminCreateUserOptions, adminCustomerCompaniesOptions, adminLocationsOptions, adminLocationsPageOptions, adminPartnersOptions, adminUsersOptions, adminVendorsOptions, assignCustomerCompany, createAdminLocation, createAdminUser, createManagementResource, deleteAdminLocation, grantUserLocation, resetAdminUserPassword, revokeUserLocation, setAdminLocationActive, updateAdminLocation, updateCustomerCompany, userLocationsOptions } from "@/query/options/management";
 import { baseURL } from "@/services";
 import { ControlCenterThumbnail } from "@/components/admin/ControlCenterThumbnail";
 
@@ -32,6 +32,7 @@ const primaryNavigation = [
 
 const moreNavigation = [
   { to: "/admin/control-center/customer-companies", label: "Customer Companies", roles: [ROLE.SUPER_ADMIN] },
+  { to: "/admin/partners", label: "Partners", roles: [ROLE.SUPER_ADMIN] },
   { to: "/admin/vendors", label: "Vendors", roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN, ROLE.MANAGER] },
   { to: "/admin/control-center/access", label: "Access Management", roles: [ROLE.SUPER_ADMIN] },
   { to: "/admin/control-center/payments", label: "Payment Management", roles: [ROLE.SUPER_ADMIN] },
@@ -48,12 +49,15 @@ function ControlCenterHeader() {
   const { dashboard } = useAdminDashboard();
   const notifCount = Math.min((dashboard?.delayedOrders ?? 0) + (dashboard?.placedOrders ?? 0), 9);
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-[var(--cc-divider)] bg-white">
+    <header className="control-center-header sticky top-0 z-40 w-full border-b border-[var(--cc-divider)] bg-white">
       <div className="mx-auto grid h-14 w-full max-w-[1280px] grid-cols-[44px_minmax(0,1fr)_44px] items-center px-3 min-[360px]:px-3.5 min-[390px]:px-4 md:h-16 md:px-6">
         <button type="button" onClick={toggleSidebar} aria-label="Open menu" className="grid size-11 shrink-0 place-items-center rounded-[10px] text-[var(--cc-text)] transition-colors hover:bg-[var(--cc-primary-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--cc-primary)]/30">
           <Menu className="size-5" strokeWidth={1.9} aria-hidden="true" />
         </button>
-        <h1 className="min-w-0 text-center text-[18px] font-semibold leading-6 text-[var(--cc-text)]">Control Center</h1>
+        <div className="control-center-title min-w-0 text-center">
+          <span className="control-center-eyebrow">Admin workspace</span>
+          <h1 className="text-[17px] font-semibold leading-5 tracking-[-0.02em] text-[var(--cc-text)]">Bro &amp; Bro</h1>
+        </div>
         <button type="button" aria-label="Notifications" className="relative grid size-11 shrink-0 place-items-center rounded-[10px] text-[var(--cc-text)] transition-colors hover:bg-[var(--cc-primary-light)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--cc-primary)]/30">
           <Bell className="size-5" strokeWidth={1.9} aria-hidden="true" />
           {notifCount > 0 && <span className="absolute top-1.5 right-1.5 flex size-4 items-center justify-center rounded-full bg-[var(--cc-primary)] text-[9px] font-bold leading-none text-white">{notifCount > 9 ? "9+" : notifCount}</span>}
@@ -89,7 +93,7 @@ function ControlCenterNavigation() {
   }, [moreOpen]);
 
   return (
-    <nav aria-label="Control Center navigation" className="relative z-30 mx-auto w-full min-w-0 max-w-[1200px] box-border px-3 py-3 min-[360px]:px-3.5 min-[390px]:px-4 md:px-6">
+    <nav aria-label="Control Center navigation" className="control-center-nav relative z-30 mx-auto w-full min-w-0 max-w-[1200px] box-border px-3 py-3 min-[360px]:px-3.5 min-[390px]:px-4 md:px-6">
       <div className="flex min-h-11 w-full min-w-0 items-center gap-0.5 rounded-full border border-[var(--cc-border)] bg-white p-1 min-[360px]:gap-1">
         {visiblePrimary.map(({ to, label }) => {
           const active = pathname === to;
@@ -97,12 +101,15 @@ function ControlCenterNavigation() {
         })}
         {visibleMore.length > 0 && (
           <div ref={moreRef} className="relative min-w-0 flex-1">
-            <button type="button" aria-haspopup="menu" aria-expanded={moreOpen} onClick={() => setMoreOpen((current) => !current)} className={`flex min-h-10 w-full min-w-0 items-center justify-center gap-0.5 rounded-full px-1 text-[11px] font-semibold transition-colors min-[360px]:gap-1 min-[360px]:px-2 min-[360px]:text-xs sm:px-3 sm:text-[13px] ${moreActive || moreOpen ? "bg-[#24211F] text-white" : "text-[#24211F] hover:bg-[var(--cc-primary-light)]"}`}>
+            <button type="button" aria-haspopup="menu" aria-expanded={moreOpen} onClick={() => setMoreOpen((current) => !current)} className={`flex min-h-10 w-full min-w-0 items-center justify-center gap-0.5 rounded-full px-1 text-[11px] font-semibold transition-colors min-[360px]:gap-1 min-[360px]:px-2 min-[360px]:text-xs sm:px-3 sm:text-[13px] ${moreActive ? "bg-[#24211F] text-white" : moreOpen ? "bg-[#f3eee9] text-[#24211F] ring-1 ring-[#d9cec6]" : "text-[#24211F] hover:bg-[var(--cc-primary-light)]"}`}>
               <span>More</span>
               <MoreHorizontal className="size-4" strokeWidth={2} aria-hidden="true" />
             </button>
-            {moreOpen && <div role="menu" className="absolute right-0 top-[calc(100%+8px)] w-[min(232px,calc(100vw-32px))] rounded-[16px] border border-[var(--cc-border)] bg-white p-1.5 shadow-[0_4px_12px_rgba(0,0,0,0.08)]">
-              {visibleMore.map(({ to, label }) => <Link key={to} to={to} role="menuitem" onClick={() => setMoreOpen(false)} className={`flex min-h-10 items-center rounded-[10px] px-3 text-sm ${pathname === to || pathname.startsWith(`${to}/`) ? "bg-[var(--cc-primary-light)] font-semibold text-[var(--cc-primary-dark)]" : "text-[var(--cc-text)] hover:bg-[var(--cc-page)]"}`}>{label}</Link>)}
+            {moreOpen && <div role="menu" aria-label="More Control Center sections" className="control-center-more-menu absolute right-0 top-[calc(100%+10px)] w-[min(286px,calc(100vw-28px))] rounded-[18px] border border-[var(--cc-border)] bg-white p-2 shadow-[0_18px_42px_rgba(38,29,25,0.16)]">
+              <p className="px-3 pb-1.5 pt-1 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--cc-muted-text)]">Quick access</p>
+              <div className="border-t border-[var(--cc-divider)] pt-1">
+                {visibleMore.map(({ to, label }) => <Link key={to} to={to} role="menuitem" onClick={() => setMoreOpen(false)} className={`control-center-more-item flex min-h-11 items-center rounded-[12px] px-3 text-[13px] transition-colors ${pathname === to || pathname.startsWith(`${to}/`) ? "bg-[var(--cc-primary-light)] font-semibold text-[var(--cc-primary-dark)]" : "text-[var(--cc-text)] hover:bg-[var(--cc-page)]"}`}>{label}<span aria-hidden="true" className="ml-auto text-base text-[var(--cc-muted-text)]">›</span></Link>)}
+              </div>
             </div>}
           </div>
         )}
@@ -178,7 +185,7 @@ function ErrorState({ error }) { return error ? <p className="rounded-[10px] bor
 function ManagementCard({ to, title, count, description, theme }) {
   const isBadge = typeof count === "string";
   return (
-    <Link to={to} className="flex min-h-[92px] items-start gap-2.5 rounded-[14px] border border-[var(--cc-border)] bg-[var(--cc-card)] p-2.5 shadow-[0_1px_3px_rgba(0,0,0,0.05)] transition duration-150 hover:-translate-y-px hover:border-[var(--cc-primary)]/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--cc-primary)]/30 min-[360px]:min-h-[100px] min-[360px]:gap-3 min-[360px]:p-3 md:min-h-[96px] md:max-h-[108px]">
+    <Link to={to} className="management-card flex min-h-[92px] items-start gap-2.5 rounded-[14px] border border-[var(--cc-border)] bg-[var(--cc-card)] p-2.5 shadow-[0_1px_3px_rgba(0,0,0,0.05)] transition duration-150 hover:-translate-y-px hover:border-[var(--cc-primary)]/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--cc-primary)]/30 min-[360px]:min-h-[100px] min-[360px]:gap-3 min-[360px]:p-3 md:min-h-[96px] md:max-h-[108px]">
       <div className="flex size-10 shrink-0 items-center justify-center rounded-[12px] overflow-hidden bg-[#F8F8FA] min-[360px]:size-11 min-[390px]:size-12">
         <ControlCenterThumbnail theme={theme} className="size-full" />
       </div>
@@ -249,9 +256,9 @@ export function ControlCenterOverview() {
        ⚠️ Some dashboard data failed to load. Please refresh the page if counts are missing.
      </div>
    )}
-   <div className="space-y-6">
+   <div className="control-center-overview space-y-6">
      {groups.map((group) => (
-       <section key={group.label} className="space-y-2.5" aria-labelledby={`control-center-${group.label}`}>
+       <section key={group.label} className="control-center-group space-y-2.5" aria-labelledby={`control-center-${group.label}`}>
            <h3 id={`control-center-${group.label}`} className="text-[10px] font-bold leading-[14px] uppercase tracking-[0.08em] text-[var(--cc-muted-text)]">{group.label}</h3>
            <div className={`grid grid-cols-2 gap-2.5 ${group.label === "Organization" ? "lg:grid-cols-4" : "lg:grid-cols-2 xl:grid-cols-4"}`}>
            {group.cards.map((card) => <ManagementCard key={card.to} {...card} />)}
@@ -466,7 +473,7 @@ function LocationCard({ location, onEdit, onDelete, onToggleActive }) {
   const active = location.active ?? true;
   return <div className="flex items-center gap-3 rounded-[16px] border border-[var(--cc-border)] bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
     <LocationThumbnail key={location.locationPhotoUrl || "location-pin"} url={location.locationPhotoUrl} locationId={location.id} name={location.name} />
-    <div className="min-w-0 flex-1"><p className="break-words text-base font-semibold leading-5 text-[var(--cc-text)]">{location.name}</p><div className="mt-1 flex min-w-0 flex-wrap items-center gap-2"><span className={`shrink-0 rounded-full px-2 py-1 text-[10px] font-semibold ${active ? "bg-[var(--cc-success-bg)] text-[var(--cc-success)]" : "bg-[var(--cc-page)] text-[var(--cc-muted-text)]"}`}>{active ? "Active" : "Inactive"}</span><p className="break-all text-xs text-[#77716D]">{location.code || location.locationCode || "Generated on save"}</p></div><p className="mt-1 break-words text-[13px] leading-4 text-[var(--cc-secondary-text)]">{[location.addressLine1, location.city, location.stateUt, location.pinCode].filter(Boolean).join(", ") || location.address || "No address provided"}</p></div>
+    <div className="min-w-0 flex-1"><p className="break-words text-base font-semibold leading-5 text-[var(--cc-text)]">{location.name}</p><div className="mt-1 flex min-w-0 flex-wrap items-center gap-2"><span className={`shrink-0 rounded-full px-2 py-1 text-[10px] font-semibold ${active ? "bg-[var(--cc-success-bg)] text-[var(--cc-success)]" : "bg-[var(--cc-page)] text-[var(--cc-muted-text)]"}`}>{active ? "Active" : "Inactive"}</span><p className="break-all text-xs text-[#77716D]">{location.code || location.locationCode || "Generated on save"}</p></div><p className="mt-1 break-words text-[13px] leading-4 text-[var(--cc-secondary-text)]">{[location.addressLine1, location.city, location.stateUt, location.pinCode].filter(Boolean).join(", ") || location.address || "No address provided"}</p>{location.partnerId && <Link to="/admin/partners" className="mt-1 inline-block text-xs font-semibold text-[var(--cc-primary)] hover:underline">Primary Partner: {location.partnerName || "View partner"}{location.secondaryPartnerCount ? ` · Secondary: ${location.secondaryPartnerCount}` : ""} · {location.partnerEffectiveFrom || "Date unavailable"} to {location.partnerEffectiveTo || "ongoing"}</Link>}</div>
     <DropdownMenu><DropdownMenuTrigger className="grid size-11 shrink-0 place-items-center rounded-[10px] text-[var(--cc-muted-text)] hover:bg-[var(--cc-primary-light)]" aria-label={`Actions for ${location.name}`}><MoreVertical className="size-5" /></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onClick={() => onEdit(location)}>Edit location</DropdownMenuItem><DropdownMenuItem onClick={() => onToggleActive(location)}>{active ? "Deactivate location" : "Activate location"}</DropdownMenuItem><DropdownMenuItem onClick={() => onDelete(location)} className="text-[var(--cc-error)]">Delete location</DropdownMenuItem></DropdownMenuContent></DropdownMenu>
   </div>;
 }
@@ -495,8 +502,8 @@ function StateSelect({ value, onChange }) {
   </div>;
 }
 
-function LocationDialog({ open, onOpenChange, initial, onSave, pending, error }) {
-  const [form, setForm] = useState(() => ({ code: initial?.code || "", name: initial?.name || "", country: "India", addressLine1: initial?.addressLine1 || initial?.address || "", addressLine2: initial?.addressLine2 || "", landmark: initial?.landmark || "", city: initial?.city || "", district: initial?.district || "", stateUt: initial?.stateUt || "", pinCode: initial?.pinCode || "", active: initial?.active ?? true }));
+function LocationDialog({ open, onOpenChange, initial, partners = [], onSave, pending, error }) {
+  const [form, setForm] = useState(() => ({ code: initial?.code || "", name: initial?.name || "", country: "India", addressLine1: initial?.addressLine1 || initial?.address || "", addressLine2: initial?.addressLine2 || "", landmark: initial?.landmark || "", city: initial?.city || "", district: initial?.district || "", stateUt: initial?.stateUt || "", pinCode: initial?.pinCode || "", partnerId: initial?.partnerId ? String(initial.partnerId) : "", active: initial?.active ?? true }));
   const [locationCodeManuallyEdited, setLocationCodeManuallyEdited] = useState(Boolean(initial?.codeManuallyEdited ?? initial?.code));
   const [photo, setPhoto] = useState(null);
   const [removePhoto, setRemovePhoto] = useState(false);
@@ -544,6 +551,7 @@ function LocationDialog({ open, onOpenChange, initial, onSave, pending, error })
     <Field label="State / UT"><StateSelect value={form.stateUt} onChange={updateState} /></Field>
     <Field label="PIN Code" hint="Exactly 6 digits"><Input required inputMode="numeric" pattern="\d{6}" maxLength={6} className="h-11 rounded-[10px]" value={form.pinCode} onChange={(event) => setForm((current) => ({ ...current, pinCode: event.target.value.replace(/\D/g, "").slice(0, 6) }))} /></Field>
     <Field label="Location Code" icon={KeyRound} hint="Automatically generated. You can edit it."><Input required className="h-11 rounded-[10px] bg-[#FAF8F5] pl-10 font-semibold" value={previewCode} onChange={updateLocationCode} /></Field>
+    <label className="space-y-1.5 text-xs font-semibold sm:col-span-2"><span>Partner (optional)</span><select className="h-11 w-full rounded-[10px] border border-[var(--cc-border)] bg-white px-3 text-sm font-normal" value={form.partnerId} onChange={(event) => setForm((current) => ({ ...current, partnerId: event.target.value }))}><option value="">No partner assigned</option>{partners.filter((partner) => partner.status === "ACTIVE").map((partner) => <option key={partner.id} value={partner.id}>{partner.displayName} ({partner.partnerCode})</option>)}</select></label>
     {editing && <label className="flex h-11 items-center gap-2 text-sm sm:col-span-2"><input type="checkbox" checked={form.active} onChange={(event) => setForm((current) => ({ ...current, active: event.target.checked }))} /> Active</label>}
     <Button type="submit" className="h-11 rounded-[10px] bg-[var(--cc-primary)] font-semibold text-white hover:bg-[var(--cc-primary-dark)] disabled:bg-[#F9A0A8] sm:col-span-2" disabled={pending}>{pending ? "Saving..." : editing ? "Save Location" : "Add Location"}</Button>{error && <p className="text-sm text-[var(--cc-error)] sm:col-span-2">{error}</p>}
   </form></DialogContent></Dialog>;
@@ -578,13 +586,83 @@ function LocationFilterFields({ filters, locations, companies, onChange }) {
     .filter((location) => !filters.state || location.stateUt === filters.state)
     .map((location) => location.city).filter(Boolean))].sort();
   const countries = [...new Set(locations.map((location) => location.country).filter(Boolean))].sort();
-  const selectClass = "h-10 w-full min-w-0 rounded-[10px] border border-[var(--cc-border)] bg-white px-3 text-sm";
+  const options = [
+    {
+      label: "Status",
+      value: filters.status,
+      placeholder: "Active",
+      items: [
+        ["ACTIVE", "Active"],
+        ["INACTIVE", "Inactive"],
+        ["ALL", "All"],
+      ],
+      onChange: (value) => onChange({ status: value }),
+    },
+    {
+      label: "State",
+      value: filters.state,
+      placeholder: "All States",
+      items: [["", "All States"], ...states.map((state) => [state, state])],
+      onChange: (value) => onChange({ state: value, city: "" }),
+    },
+    {
+      label: "City",
+      value: filters.city,
+      placeholder: "All Cities",
+      items: [["", "All Cities"], ...cities.map((city) => [city, city])],
+      onChange: (value) => onChange({ city: value }),
+    },
+    {
+      label: "Country",
+      value: filters.country,
+      placeholder: "All Countries",
+      items: [["", "All Countries"], ...countries.map((country) => [country, country])],
+      onChange: (value) => onChange({ country: value }),
+    },
+    {
+      label: "Customer Company",
+      value: filters.customerCompanyId,
+      placeholder: "All Companies",
+      items: [["", "All Companies"], ...companies.map((company) => [String(company.id), company.name])],
+      onChange: (value) => onChange({ customerCompanyId: value }),
+    },
+  ];
+
   return <div className="grid min-w-0 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-    <label className="min-w-0 space-y-1 text-xs font-semibold"><span>Status</span><select className={selectClass} value={filters.status} onChange={(event) => onChange({ status: event.target.value })}><option value="ACTIVE">Active</option><option value="INACTIVE">Inactive</option><option value="ALL">All</option></select></label>
-    <label className="min-w-0 space-y-1 text-xs font-semibold"><span>State</span><select className={selectClass} value={filters.state} onChange={(event) => onChange({ state: event.target.value, city: "" })}><option value="">All States</option>{states.map((state) => <option key={state} value={state}>{state}</option>)}</select></label>
-    <label className="min-w-0 space-y-1 text-xs font-semibold"><span>City</span><select className={selectClass} value={filters.city} onChange={(event) => onChange({ city: event.target.value })}><option value="">All Cities</option>{cities.map((city) => <option key={city} value={city}>{city}</option>)}</select></label>
-    <label className="min-w-0 space-y-1 text-xs font-semibold"><span>Country</span><select className={selectClass} value={filters.country} onChange={(event) => onChange({ country: event.target.value })}><option value="">All Countries</option>{countries.map((country) => <option key={country} value={country}>{country}</option>)}</select></label>
-    <label className="min-w-0 space-y-1 text-xs font-semibold"><span>Customer Company</span><select className={selectClass} value={filters.customerCompanyId} onChange={(event) => onChange({ customerCompanyId: event.target.value })}><option value="">All Companies</option>{companies.map((company) => <option key={company.id} value={company.id}>{company.name}</option>)}</select></label>
+    {options.map((option) => (
+      <label key={option.label} className="min-w-0 space-y-1 text-xs font-semibold">
+        <span>{option.label}</span>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              type="button"
+              variant="outline"
+              className="h-10 w-full min-w-0 justify-between rounded-[10px] border-[var(--cc-border)] bg-white px-3 text-left text-sm font-normal"
+            >
+              <span className="min-w-0 truncate">
+                {option.items.find(([value]) => value === option.value)?.[1] || option.placeholder}
+              </span>
+              <ChevronDown className="size-4 shrink-0 opacity-60" aria-hidden="true" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent
+            align="start"
+            className="w-[calc(100vw-3.5rem)] max-w-[calc(100vw-3.5rem)]"
+          >
+            {option.items.map(([value, label]) => (
+              <DropdownMenuItem
+                key={`${option.label}-${value || "empty"}`}
+                onClick={() => option.onChange(value)}
+                className="min-h-10 gap-2"
+              >
+                <span className="min-w-0 flex-1 truncate">{label}</span>
+                {value === option.value && <Check className="size-4 shrink-0" />}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </label>
+    ))}
     <label className="min-w-0 space-y-1 text-xs font-semibold sm:col-span-2 lg:col-span-1"><span>Search</span><Input className="h-10 rounded-[10px] border-[var(--cc-border)]" placeholder="Name, code, city, state or PIN" value={filters.search} onChange={(event) => onChange({ search: event.target.value })} /></label>
   </div>;
 }
@@ -603,6 +681,7 @@ export function ControlCenterLocations() {
   const totalPages = pageData?.totalPages || 1;
   const { data: filterLocations = [] } = useQuery(adminLocationsOptions({ status: "ALL" }));
   const { data: companies = [] } = useQuery(adminCustomerCompaniesOptions());
+  const { data: partners = [] } = useQuery(adminPartnersOptions());
   const [locationDialogOpen, setLocationDialogOpen] = useState(false);
   const [editingLocation, setEditingLocation] = useState(null);
   const [generatedCode, setGeneratedCode] = useState("");
@@ -704,7 +783,7 @@ export function ControlCenterLocations() {
         </div>
       </DialogContent>
     </Dialog>
-    <LocationDialog key={`${editingLocation?.id || "new"}-${locationDialogOpen}-${generatedCode}`} open={locationDialogOpen} onOpenChange={setLocationDialogOpen} initial={editingLocation} pending={editingLocation ? editMutation.isPending : mutation.isPending} error={editingLocation ? editMutation.error?.response?.data?.message || editMutation.error?.message : apiError} onSave={(payload) => { const { photo, removePhoto, ...editablePayload } = payload; const previewCode = editablePayload.code; if (editingLocation) editMutation.mutate({ id: editingLocation.id, payload: { ...editablePayload, removePhoto }, photo }); else mutation.mutate({ payload: editablePayload, photo, previewCode }); }} />
+    <LocationDialog key={`${editingLocation?.id || "new"}-${locationDialogOpen}-${generatedCode}`} open={locationDialogOpen} onOpenChange={setLocationDialogOpen} initial={editingLocation} partners={partners} pending={editingLocation ? editMutation.isPending : mutation.isPending} error={editingLocation ? editMutation.error?.response?.data?.message || editMutation.error?.message : apiError} onSave={(payload) => { const { photo, removePhoto, ...editablePayload } = payload; const previewCode = editablePayload.code; if (editingLocation) editMutation.mutate({ id: editingLocation.id, payload: { ...editablePayload, removePhoto }, photo }); else mutation.mutate({ payload: editablePayload, photo, previewCode }); }} />
   </Shell>;
 }
 
@@ -1051,12 +1130,65 @@ export function ControlCenterAccess() {
   return <Shell title="Access Management" description="Manage each user's role and authorized operating locations." showLocationContext={false}>
     <div className="grid gap-5 lg:grid-cols-[minmax(18rem,.8fr)_minmax(0,1.2fr)]">
       <section className="rounded-[16px] border border-[var(--cc-border)] bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
-        <label className="mb-4 block text-[11px] font-bold uppercase tracking-[0.06em] text-[#77716D]">Location
-          <select aria-label="Filter users by location" className="mt-2 h-11 w-full rounded-[10px] border border-[var(--cc-border)] bg-white px-3 text-sm font-semibold normal-case tracking-normal text-[var(--cc-text)]" value={locationFilter} onChange={(event) => { setLocationFilter(event.target.value); setSelectedId(null); setFeedback(null); }}>
-            <option value="ALL">All locations</option>
-            {locations.map((location) => <option key={location.id} value={String(location.id)}>{location.name || location.title || `Location ${location.id}`}</option>)}
-          </select>
-        </label>
+        <div className="mb-4">
+          <span className="block text-[11px] font-bold uppercase tracking-[0.06em] text-[#77716D]">Location</span>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                type="button"
+                variant="outline"
+                aria-label="Filter users by location"
+                disabled={locationsLoading}
+                className="mt-2 h-11 w-full min-w-0 justify-between rounded-[10px] border-[var(--cc-border)] bg-white px-3 text-sm font-semibold normal-case tracking-normal text-[var(--cc-text)]"
+              >
+                <span className="min-w-0 truncate text-left">
+                  {locationFilter === "ALL"
+                    ? "All locations"
+                    : locations.find((location) => String(location.id) === String(locationFilter))?.name || "Select location"}
+                </span>
+                <ChevronDown className="size-4 shrink-0 opacity-60" aria-hidden="true" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align="start"
+              className="w-[min(28rem,calc(100vw-2rem))] max-w-[calc(100vw-2rem)]"
+            >
+              <DropdownMenuItem
+                onClick={() => {
+                  setLocationFilter("ALL");
+                  setSelectedId(null);
+                  setFeedback(null);
+                }}
+                className="min-h-10 gap-2"
+              >
+                <MapPin className="size-4 shrink-0" />
+                <span className="min-w-0 flex-1 truncate">All locations</span>
+                {locationFilter === "ALL" && <Check className="size-4 shrink-0" />}
+              </DropdownMenuItem>
+              {locations.map((location) => {
+                const value = String(location.id);
+                const selected = value === String(locationFilter);
+                return (
+                  <DropdownMenuItem
+                    key={location.id}
+                    onClick={() => {
+                      setLocationFilter(value);
+                      setSelectedId(null);
+                      setFeedback(null);
+                    }}
+                    className="min-h-10 gap-2"
+                  >
+                    <MapPin className="size-4 shrink-0" />
+                    <span className="min-w-0 flex-1 truncate">
+                      {location.name || location.title || `Location ${location.id}`}
+                    </span>
+                    {selected && <Check className="size-4 shrink-0" />}
+                  </DropdownMenuItem>
+                );
+              })}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
         <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.06em] text-[#77716D]">Select User</p>
         <Popover open={userPickerOpen} onOpenChange={setUserPickerOpen}>
           <PopoverTrigger asChild>
@@ -1176,12 +1308,47 @@ export function ControlCenterPayments() {
   return <Shell title="Payment Management" description="Configure available customer payment methods.">
     <div className="flex items-center gap-3 rounded-[16px] border border-[var(--cc-border)] bg-white p-4">
       <MapPin className="size-4 shrink-0 text-[var(--cc-primary)]" aria-hidden="true" />
-      <label className="flex min-w-0 flex-1 items-center gap-3 text-sm font-semibold text-[var(--cc-text)]">
+      <div className="flex min-w-0 flex-1 items-center gap-3 text-sm font-semibold text-[var(--cc-text)]">
         <span className="shrink-0">Location</span>
-        <select className="h-10 min-w-0 flex-1 rounded-[10px] border border-[var(--cc-border)] bg-white px-3 text-sm" value={locationId} onChange={(event) => setSelectedLocationId(event.target.value)} disabled={locationsLoading}>
-          {locations.map((location) => <option key={location.id} value={String(location.id)}>{location.name || location.title || `Location ${location.id}`}</option>)}
-        </select>
-      </label>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              type="button"
+              variant="outline"
+              aria-label="Select payment location"
+              disabled={locationsLoading}
+              className="h-10 min-w-0 flex-1 justify-between rounded-[10px] border-[var(--cc-border)] bg-white px-3 text-sm font-semibold"
+            >
+              <span className="min-w-0 truncate text-left">
+                {locations.find((location) => String(location.id) === String(locationId))?.name || "Select location"}
+              </span>
+              <ChevronDown className="size-4 shrink-0 opacity-60" aria-hidden="true" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent
+            align="start"
+            className="w-[min(28rem,calc(100vw-2rem))] max-w-[calc(100vw-2rem)]"
+          >
+            {locations.map((location) => {
+              const value = String(location.id);
+              const selected = value === String(locationId);
+              return (
+                <DropdownMenuItem
+                  key={location.id}
+                  onClick={() => setSelectedLocationId(value)}
+                  className="min-h-10 gap-2"
+                >
+                  <MapPin className="size-4 shrink-0" />
+                  <span className="min-w-0 flex-1 truncate">
+                    {location.name || location.title || `Location ${location.id}`}
+                  </span>
+                  {selected && <Check className="size-4 shrink-0" />}
+                </DropdownMenuItem>
+              );
+            })}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
     </div>
     <Card className="rounded-[16px] border-[var(--cc-border)] bg-white shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
       <CardHeader className="border-b border-[var(--cc-divider)] py-4"><CardTitle className="text-[15px] font-semibold text-[var(--cc-text)]">Payment methods</CardTitle></CardHeader>
