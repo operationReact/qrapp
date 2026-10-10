@@ -121,7 +121,7 @@ export default function HallOfHappinessSection() {
       ref={sectionRef}
       data-testid="hall-of-happiness-section"
       aria-labelledby="hall-of-happiness-heading"
-      className="mx-auto w-full min-w-0 max-w-[1280px] overflow-hidden px-[15px] sm:px-6 lg:px-8"
+      className="mx-auto w-full min-w-0 max-w-[1280px] overflow-hidden px-[15px] sm:px-6 lg:overflow-visible lg:px-8"
     >
       <div className="relative isolate mb-2.5 flex min-h-11 min-w-0 items-center justify-between gap-2 sm:mb-4 sm:items-end sm:gap-3 sm:py-2">
         <div className="absolute -inset-x-[15px] -inset-y-1.5 sm:-inset-x-6 lg:-inset-x-8">

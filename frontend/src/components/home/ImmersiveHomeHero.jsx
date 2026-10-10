@@ -142,11 +142,11 @@ export default function ImmersiveHomeHero({
       height: (() => {
         const w = window.innerWidth;
         if (w < 1024) return "min(78vw, 560px)";
-        if (w < 1280) return "420px";
-        if (w < 1536) return "450px";
-        return "470px";
+        if (w < 1280) return "320px";
+        if (w < 1536) return "340px";
+        return "360px";
       })(),
-      minHeight: 380 
+      minHeight: window.innerWidth < 1024 ? 380 : 0,
     }}>
       <CombosDrawer open={combosOpen} onOpenChange={setCombosOpen} />
       <BuildYourOwnComboDrawer open={byocOpen} onOpenChange={setByocOpen} />

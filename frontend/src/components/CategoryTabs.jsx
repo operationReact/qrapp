@@ -42,8 +42,8 @@ export default function CategoryTabs({ categories, active }) {
   ];
 
   return (
-    <div className="no-scrollbar overflow-x-auto">
-      <div className="flex min-w-max items-start gap-0.5 pb-0 [touch-action:pan-x]">
+    <div className="no-scrollbar overflow-x-auto lg:overflow-visible">
+      <div className="flex min-w-max items-start gap-0.5 pb-0 [touch-action:pan-x] lg:gap-3">
         {allCategories.map((category) => {
           const catName = getCategoryName(category);
           const isActive = active === catName;

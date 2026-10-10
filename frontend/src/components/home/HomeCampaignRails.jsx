@@ -11,9 +11,12 @@ const RAILS = [
 
 export default function HomeCampaignRails({ locationId }) {
   const { data } = useQuery(homeCampaignFeedOptions(locationId));
+  const hasCampaigns = RAILS.some(({ key }) => (data?.[key] ?? []).length > 0);
+
+  if (!hasCampaigns) return null;
 
   return (
-    <div className="container-premium space-y-5 py-4">
+    <div className="container-premium space-y-5 py-4 lg:space-y-5 lg:py-3">
       {RAILS.map(({ key, label }) => {
         const campaigns = data?.[key] ?? [];
         if (campaigns.length === 0) return null;

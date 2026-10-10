@@ -104,10 +104,12 @@ export default function Navbar({
 
   return (
     <header className={cn(
-      immersive
+      homeHeader && immersive
+        ? "lg:absolute lg:inset-x-0 lg:top-0 lg:z-40"
+        : immersive
         ? "lg:sticky lg:top-0 lg:z-40 lg:border-b lg:border-border"
         : "sticky top-0 z-40 border-b border-border",
-      homeHeader ? "bg-background" : "bg-background/95 backdrop-blur",
+      homeHeader ? "bg-background lg:bg-transparent lg:backdrop-blur-none" : "bg-background/95 backdrop-blur",
     )}>
       {!immersive && (
       <div style={{ display: window.innerWidth >= 1024 ? 'none' : 'flex' }} className={`container-premium flex items-center justify-between gap-2 py-1.5 md:gap-3 md:py-3 ${homeHeader ? "home-navbar" : ""}`}>
@@ -192,9 +194,11 @@ export default function Navbar({
         <div className="container-premium flex min-h-[76px] items-center justify-between gap-4 py-3">
           <div className="flex min-w-0 flex-1 items-center gap-4">
             <Link to="/" className="flex min-w-0 items-center gap-3">
+              <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-white/95 p-1.5 shadow-[0_3px_14px_rgba(0,0,0,0.2)] ring-1 ring-black/10">
               <svg
                 width="48"
                 height="48"
+                className="size-9"
                 aria-label="Bro & Bro"
                 viewBox="0 0 952 952"
                 fill="none"
@@ -216,6 +220,7 @@ export default function Navbar({
                   </clipPath>
                 </defs>
               </svg>
+              </span>
             </Link>
             <LocationSelector header className="w-auto min-w-0 max-w-[340px]" />
           </div>
@@ -264,7 +269,7 @@ export default function Navbar({
                  }
                }}
                aria-label="Open cart"
-               className="relative rounded-2xl"
+               className="relative grid size-11 place-items-center rounded-2xl border border-black/10 bg-white/95 text-foreground shadow-[0_3px_14px_rgba(0,0,0,0.2)] transition hover:bg-white"
              >
                <ShoppingCartSimpleIcon weight="duotone" className="size-6" />
                {cart.length > 0 && (
@@ -337,8 +342,9 @@ export default function Navbar({
                     </DropdownMenuLabel>
                   </DropdownMenuGroup>
                   <DropdownMenuSeparator />
-                  {menuItems.map(({ to, label, icon: Icon }) => (
-                    <DropdownMenuItem
+                  {menuItems.map(({ to, label, icon }) => {
+                    const Icon = icon;
+                    return <DropdownMenuItem
                       key={to}
                       render={
                         <Link to={to}>
@@ -346,8 +352,8 @@ export default function Navbar({
                           <span>{label}</span>
                         </Link>
                       }
-                    />
-                  ))}
+                    />;
+                  })}
                   <DropdownMenuSeparator className="bg-muted" />
                   <DropdownMenuItem variant="destructive" onClick={logout}>
                     <SignOutIcon weight="duotone" />
