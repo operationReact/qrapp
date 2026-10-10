@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useLocation as useRouterLocation } from "@tanstack/react-router";
 import { ArrowLeftIcon, MagnifyingGlassIcon, ShoppingCartSimpleIcon } from "@phosphor-icons/react";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -46,9 +46,13 @@ const categoryBannerFiles = {
 
 function EssentialsPage() {
   const { activeLocationId } = useLocation();
+  const { hash } = useRouterLocation();
   const { cart } = useCart();
   const [search, setSearch] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [selectedCategory, setSelectedCategory] = useState(() => {
+    const initial = hash.replace(/^#/, "");
+    return categoryNames.some(([, value]) => value === initial) ? initial : "all";
+  });
   const { data: products = [], isLoading } = useQuery(retailMenuOptions(activeLocationId));
   const heroImage = essentialsAsset("hero", "essentials-hero.png")
     || "/assets/essentials/essentials-product-collage.png";
@@ -76,7 +80,7 @@ function EssentialsPage() {
             <ArrowLeftIcon className="size-5" />
           </Link>
           <div className="min-w-0 flex-1">
-            <h1 className="text-lg font-bold">Essentials</h1>
+            <h1 className="text-lg font-bold">Snacks &amp; More</h1>
             <LocationSelector className="max-w-[220px] text-xs" />
           </div>
           <Link to="/cart" aria-label="Open cart" className="relative rounded-full p-2 hover:bg-muted">
@@ -87,7 +91,7 @@ function EssentialsPage() {
       </header>
 
       <main className="mx-auto max-w-5xl space-y-5 px-4 py-4 lg:max-w-7xl lg:space-y-6 lg:px-8 lg:py-5">
-        <img src={heroImage} alt="Bro & Bro Everyday Essentials" className="block h-auto max-h-[150px] w-full rounded-2xl object-cover lg:hidden" />
+        <img src={heroImage} alt="Bro & Bro Snacks & More" className="block h-auto max-h-[150px] w-full rounded-2xl object-cover lg:hidden" />
 
         <label className="flex h-11 items-center gap-2 rounded-full border border-border bg-card px-4 shadow-sm">
           <MagnifyingGlassIcon className="size-5 text-muted-foreground" />
@@ -125,12 +129,12 @@ function EssentialsPage() {
             <h2 className="text-xl font-bold">Popular Picks</h2>
             <span className="text-sm font-semibold text-primary">{filteredProducts.length} items</span>
           </div>
-          {isLoading ? <p className="py-8 text-center text-sm text-muted-foreground">Loading essentials...</p> : (
+          {isLoading ? <p className="py-8 text-center text-sm text-muted-foreground">Loading snacks &amp; more...</p> : (
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5 lg:gap-4">
               {filteredProducts.map((item) => <RetailProductCard key={item.id} item={item} />)}
             </div>
           )}
-          {!isLoading && filteredProducts.length === 0 && <p className="rounded-2xl border border-dashed p-8 text-center text-sm text-muted-foreground">No essentials found.</p>}
+          {!isLoading && filteredProducts.length === 0 && <p className="rounded-2xl border border-dashed p-8 text-center text-sm text-muted-foreground">No snacks &amp; more found.</p>}
         </section>
       </main>
       <MobileMenu />
