@@ -25,7 +25,7 @@ export default function RetailProductCard({ item }) {
           <img
             src={imageUrl(item) || suppliedImage}
             alt={item.name}
-            className="absolute left-1/2 top-1/2 h-1/2 w-1/2 -translate-x-1/2 -translate-y-1/2 object-contain"
+            className="absolute left-1/2 top-1/2 h-[82%] w-[82%] -translate-x-1/2 -translate-y-1/2 object-contain"
             loading="lazy"
           />
         ) : (
