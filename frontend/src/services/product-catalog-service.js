@@ -39,12 +39,48 @@ export const getCatalogHistory = (id, locationId) =>
   }).then((response) => response.data);
 
 export const uploadCatalogImage = (id, locationId, file) => {
-  const form = new FormData();
-  form.append("file", file);
-  return apiClient.post(`/api/catalog/products/${id}/image`, form, {
-    params: { locationId },
-  }).then((response) => response.data);
+  return prepareCatalogImage(file).then((preparedFile) => {
+    const form = new FormData();
+    form.append("file", preparedFile);
+    return apiClient.post(`/api/catalog/products/${id}/image`, form, {
+      params: { locationId },
+    }).then((response) => response.data);
+  });
 };
+
+const MAX_UPLOAD_BYTES = 4.5 * 1024 * 1024;
+const MAX_IMAGE_DIMENSION = 2400;
+
+async function prepareCatalogImage(file) {
+  if (!file || file.size <= MAX_UPLOAD_BYTES) return file;
+  const bitmap = await createImageBitmap(file);
+  const scale = Math.min(1, MAX_IMAGE_DIMENSION / Math.max(bitmap.width, bitmap.height));
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+  canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+  canvas.getContext("2d").drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+  bitmap.close();
+
+  let quality = 0.82;
+  let blob = await canvasToBlob(canvas, quality);
+  while (blob.size > MAX_UPLOAD_BYTES && quality > 0.5) {
+    quality -= 0.08;
+    blob = await canvasToBlob(canvas, quality);
+  }
+  if (blob.size > MAX_UPLOAD_BYTES) {
+    throw new Error("Image is too large even after compression");
+  }
+  return new File([blob], `${file.name.replace(/\.[^.]+$/, "")}.jpg`, { type: "image/jpeg" });
+}
+
+function canvasToBlob(canvas, quality) {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob((blob) => {
+      if (blob) resolve(blob);
+      else reject(new Error("Unable to compress image"));
+    }, "image/jpeg", quality);
+  });
+}
 
 export const generateProductAiImage = (id, file) => {
   const form = new FormData();
