@@ -87,13 +87,18 @@ function EssentialsPage() {
     }))
     : legacyMenuQuery.data || [];
   const isLoading = catalogQuery.isLoading || (!catalogQuery.data && legacyMenuQuery.isLoading);
+  const catalogueProducts = catalogQuery.data || [];
   const dynamicCategoryNames = Array.from(new Set(
-    products.map((product) => product.category?.name).filter(Boolean),
+    catalogueProducts.map((product) => product.categoryName?.trim()).filter(Boolean),
   )).filter((name) => !categoryNames.some(([, value]) => value === name.toLowerCase()));
   const adminCategories = categoriesQuery.data || [];
+  const productCategoryKeys = new Set(
+    catalogueProducts.map((product) => product.categoryName?.trim().toLowerCase()).filter(Boolean),
+  );
   const adminCategoryNames = adminCategories
     .map((category) => category.name?.trim())
     .filter(Boolean)
+    .filter((name) => productCategoryKeys.has(name.toLowerCase()))
     .filter((name) => !categoryNames.some(([, value]) => value === name.toLowerCase()));
   const visibleCategoryNames = [
     ...categoryNames,
@@ -102,7 +107,7 @@ function EssentialsPage() {
   ];
   const adminCategoryImages = new Map(
     adminCategories
-      .filter((category) => category.name && category.imageUrl)
+      .filter((category) => category.name && category.imageUrl && productCategoryKeys.has(category.name.trim().toLowerCase()))
       .map((category) => [
         category.name.trim().toLowerCase(),
         category.imageUrl.startsWith("http") ? category.imageUrl : `${baseURL}${category.imageUrl}`,
@@ -145,7 +150,7 @@ function EssentialsPage() {
       </header>
 
       <main className="mx-auto max-w-5xl space-y-5 px-4 py-4 lg:max-w-7xl lg:space-y-6 lg:px-8 lg:py-5">
-        <div className="relative isolate flex min-h-[235px] items-center justify-center overflow-hidden rounded-2xl border border-[#efbda9] bg-[radial-gradient(circle_at_50%_45%,#fff8d8_0%,#ffe7d7_34%,transparent_65%),linear-gradient(135deg,#fff5eb_0%,#ffd5c4_52%,#f6b7a7_100%)] px-3 py-2 shadow-[0_16px_36px_rgba(143,70,42,0.16)] lg:hidden">
+        <div className="relative isolate flex min-h-[180px] items-center justify-center overflow-hidden rounded-2xl border border-[#efbda9] bg-[radial-gradient(circle_at_50%_45%,#fff8d8_0%,#ffe7d7_34%,transparent_65%),linear-gradient(135deg,#fff5eb_0%,#ffd5c4_52%,#f6b7a7_100%)] px-3 py-2 shadow-[0_16px_36px_rgba(143,70,42,0.16)] lg:hidden">
           <span className="essentials-halo absolute left-1/2 top-1/2 size-[170px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#fff8d2]/75 blur-2xl" aria-hidden="true" />
           <span className="essentials-orbit essentials-orbit-one absolute left-1/2 top-1/2 z-0 h-[145px] w-[290px] -translate-x-1/2 -translate-y-1/2 rounded-[50%]" aria-hidden="true" />
           <span className="essentials-orbit essentials-orbit-two absolute left-1/2 top-1/2 z-0 h-[175px] w-[335px] -translate-x-1/2 -translate-y-1/2 rounded-[50%]" aria-hidden="true" />
@@ -161,7 +166,7 @@ function EssentialsPage() {
           <img
             src={heroImage}
             alt="Bro & Bro Snacks & More"
-            className="essentials-breathe relative z-10 block h-auto max-h-[210px] w-full object-contain drop-shadow-[0_12px_12px_rgba(104,51,24,0.16)]"
+            className="essentials-breathe relative z-10 block h-auto max-h-[160px] w-full object-contain drop-shadow-[0_12px_12px_rgba(104,51,24,0.16)]"
           />
         </div>
 
@@ -206,7 +211,7 @@ function EssentialsPage() {
             <span className="text-sm font-semibold text-primary">{filteredProducts.length} items</span>
           </div>
           {isLoading ? <p className="py-8 text-center text-sm text-muted-foreground">Loading snacks &amp; more...</p> : (
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5 lg:gap-4">
+            <div className="grid grid-cols-3 gap-2 sm:grid-cols-3 sm:gap-3 lg:grid-cols-5 lg:gap-4">
               {filteredProducts.map((item) => <RetailProductCard key={item.id} item={item} />)}
             </div>
           )}

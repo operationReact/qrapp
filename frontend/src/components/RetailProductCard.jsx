@@ -19,8 +19,8 @@ export default function RetailProductCard({ item }) {
   const lowStock = stockStatus === "LOW_STOCK";
 
   return (
-    <article className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
-      <div className="relative aspect-square overflow-hidden bg-[#fff1ed]">
+    <article className="overflow-hidden rounded-xl border border-border bg-card shadow-sm sm:rounded-2xl">
+      <div className="relative aspect-[4/3] overflow-hidden bg-[#fff1ed] sm:aspect-square">
         {imageUrl(item) || suppliedImage ? (
           <img
             src={imageUrl(item) || suppliedImage}
@@ -37,19 +37,16 @@ export default function RetailProductCard({ item }) {
           {outOfStock ? "Out of stock" : lowStock ? "Only a few left" : "● In Stock"}
         </span>
       </div>
-      <div className="space-y-1.5 p-3">
-        <h3 className="line-clamp-2 min-h-10 text-sm font-semibold leading-5">{item.name}</h3>
-        {item.mrp != null && (
-          <p className="text-xs text-muted-foreground">MRP {formatCurrency(item.mrp)}</p>
-        )}
+      <div className="space-y-1 p-2 sm:space-y-1.5 sm:p-3">
+        <h3 className="line-clamp-2 min-h-8 text-xs font-semibold leading-4 sm:min-h-10 sm:text-sm sm:leading-5">{item.name}</h3>
         <div className="flex items-center justify-between gap-2">
-          <strong className="text-lg leading-none">{formatCurrency(item.price)}</strong>
+          <strong className="text-sm leading-none sm:text-lg">{formatCurrency(item.price)}</strong>
           <button
             type="button"
             aria-label={`Add ${item.name} to cart`}
             disabled={outOfStock}
             onClick={() => addItem(item)}
-            className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm transition-transform active:scale-95 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground"
+            className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm transition-transform active:scale-95 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground sm:size-9"
           >
             {quantity > 0 ? <span className="text-xs font-bold">{quantity}</span> : <PlusIcon weight="bold" className="size-5" />}
           </button>
