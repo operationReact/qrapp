@@ -88,6 +88,7 @@ function ProductCatalogPage() {
   const [selectedProductId, setSelectedProductId] = useState(null);
   const [aiStudio, setAiStudio] = useState(null);
   const [editingId, setEditingId] = useState(null);
+  const [imageFile, setImageFile] = useState(null);
   const [catalogLocationId, setCatalogLocationId] = useState("");
   const selectedLocation = availableLocations.find((location) => String(location.id) === String(catalogLocationId));
   const effectiveLocationId = selectedLocation ? String(selectedLocation.id)
@@ -117,13 +118,28 @@ function ProductCatalogPage() {
     queryClient.invalidateQueries({ queryKey: ["catalog-summary", effectiveLocationId] });
   };
   const create = useMutation({
-    mutationFn: createCatalogProduct,
-    onSuccess: () => { setForm(EMPTY); setFormOpen(false); invalidate(); toast.success("Product created for this location"); },
+    mutationFn: ({ imageFile: _imageFile, ...payload }) => createCatalogProduct(payload),
+    onSuccess: (product, variables) => {
+      setForm(EMPTY);
+      setFormOpen(false);
+      setImageFile(null);
+      invalidate();
+      if (variables.imageFile && product?.id) image.mutate({ id: product.id, selected: variables.imageFile });
+      toast.success("Product created for this location");
+    },
     onError: (error) => toast.error(error?.response?.data?.message || "Unable to create product"),
   });
   const edit = useMutation({
     mutationFn: ({ id, payload }) => updateCatalogProduct(id, payload),
-    onSuccess: () => { setForm(EMPTY); setFormOpen(false); setEditingId(null); invalidate(); toast.success("Product updated"); },
+    onSuccess: (_result, variables) => {
+      setForm(EMPTY);
+      setFormOpen(false);
+      setEditingId(null);
+      setImageFile(null);
+      invalidate();
+      if (variables.imageFile) image.mutate({ id: variables.id, selected: variables.imageFile });
+      toast.success("Product updated");
+    },
     onError: (error) => toast.error(error?.response?.data?.message || "Unable to update product"),
   });
   const update = useMutation({
@@ -202,11 +218,13 @@ function ProductCatalogPage() {
 
   const openCreateForm = () => {
     setEditingId(null);
+    setImageFile(null);
     setForm({ ...EMPTY, locationId: effectiveLocationId });
     setFormOpen(true);
   };
   const openEditForm = (product) => {
     setEditingId(product.id);
+    setImageFile(null);
     setForm({
       variantIdentity: product.variantIdentity === "DEFAULT" ? "" : (product.variantIdentity || ""),
       name: product.name || "",
@@ -236,9 +254,9 @@ function ProductCatalogPage() {
     };
     if (editingId) {
       const { initialStock: _initialStock, stockQuantity: _stockQuantity, ...updatePayload } = payload;
-      edit.mutate({ id: editingId, payload: updatePayload });
+      edit.mutate({ id: editingId, payload: updatePayload, imageFile });
     } else {
-      create.mutate(payload);
+      create.mutate({ ...payload, imageFile });
     }
   };
   const clearFilters = () => {
@@ -449,6 +467,7 @@ function ProductCatalogPage() {
                 <label className="min-w-0 space-y-1.5 text-xs font-semibold text-[#514d48]">Category<LocationCombobox value={form.categoryName} options={CATEGORY_OPTIONS} placeholder="Choose category" onChange={(categoryName) => setForm((current) => ({ ...current, categoryName }))} /></label>
                 <label className="space-y-1.5 text-xs font-semibold text-[#514d48] sm:col-span-2">Description <textarea name="description" value={form.description} onChange={setField} rows={2} placeholder="Optional product description" className="w-full rounded-xl border border-[#e5e2dd] bg-[#fcfbfa] px-3 py-2 text-sm font-normal outline-none focus:border-[#ff2438] focus:bg-white focus:ring-2 focus:ring-[#ff2438]/10" /></label>
               </div></section>
+              <section className="border-t border-[#efede9] pt-4"><h3 className="text-sm font-semibold">Product image</h3><p className="mt-1 text-xs text-[#77736f]">{editingId ? "Upload a new image to replace the current product image." : "Add a JPEG, PNG or WEBP image for this product."}</p><label className="mt-3 flex min-h-11 cursor-pointer items-center justify-between gap-3 rounded-xl border border-dashed border-[#d9d4cd] bg-[#fcfbfa] px-3 py-2 text-sm font-semibold text-[#514d48] hover:border-[#ff2438] hover:bg-white"><span className="min-w-0 truncate">{imageFile ? imageFile.name : "Choose product image"}</span><span className="shrink-0 rounded-lg bg-white px-3 py-1.5 text-xs font-semibold shadow-sm">Browse</span><input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={(event) => { const selected = event.target.files?.[0]; if (selected) setImageFile(selected); }} /></label></section>
               <section className="border-t border-[#efede9] pt-4"><h3 className="text-sm font-semibold">Pricing</h3><div className="mt-3 grid gap-3 sm:grid-cols-2">{[['mrp','MRP (₹)'],['costPrice','Cost price (₹)']].map(([name,label]) => <label key={name} className="space-y-1.5 text-xs font-semibold text-[#514d48]">{label} <span className="text-[#e52b3a]">*</span><div className="flex h-11 items-center rounded-xl border border-[#e5e2dd] bg-[#fcfbfa] focus-within:border-[#ff2438] focus-within:ring-2 focus-within:ring-[#ff2438]/10"><span className="pl-3 text-sm text-[#858079]">₹</span><input name={name} value={form[name]} onChange={setField} required type="number" min="0" step="0.01" className="h-full min-w-0 flex-1 bg-transparent px-2 text-sm font-normal outline-none" placeholder="0.00" /></div></label>)}</div></section>
               {editingId && <section className="border-t border-[#efede9] pt-4"><h3 className="text-sm font-semibold">Location inventory</h3><p className="mt-1 text-xs text-[#77736f]">Set the current stock quantity for the selected location. The change is recorded as an audited adjustment.</p><div className="mt-3 grid gap-3 sm:grid-cols-2"><label className="space-y-1.5 text-xs font-semibold text-[#514d48]">Stock quantity<input name="stockQuantity" value={form.stockQuantity} onChange={setField} type="number" min="0" step="1" required className="h-11 w-full rounded-xl border border-[#e5e2dd] bg-[#fcfbfa] px-3 text-sm font-normal outline-none focus:border-[#ff2438] focus:bg-white focus:ring-2 focus:ring-[#ff2438]/10" /></label><label className="space-y-1.5 text-xs font-semibold text-[#514d48]">Low-stock threshold<input name="lowStockThreshold" value={form.lowStockThreshold} onChange={setField} type="number" min="0" step="1" className="h-11 w-full rounded-xl border border-[#e5e2dd] bg-[#fcfbfa] px-3 text-sm font-normal outline-none focus:border-[#ff2438] focus:bg-white focus:ring-2 focus:ring-[#ff2438]/10" /></label></div></section>}
               {!editingId && <section className="border-t border-[#efede9] pt-4"><h3 className="text-sm font-semibold">Initial location inventory</h3><p className="mt-1 text-xs text-[#77736f]">Stock is created only for the selected location.</p><div className="mt-3 grid gap-3 sm:grid-cols-2"><label className="space-y-1.5 text-xs font-semibold text-[#514d48]">Opening stock<input name="initialStock" value={form.initialStock} onChange={setField} type="number" min="0" step="1" disabled={!effectiveLocationId} className="h-11 w-full rounded-xl border border-[#e5e2dd] bg-[#fcfbfa] px-3 text-sm font-normal outline-none focus:border-[#ff2438] disabled:opacity-50" /></label><label className="space-y-1.5 text-xs font-semibold text-[#514d48]">Low-stock threshold<input name="lowStockThreshold" value={form.lowStockThreshold} onChange={setField} type="number" min="0" step="1" className="h-11 w-full rounded-xl border border-[#e5e2dd] bg-[#fcfbfa] px-3 text-sm font-normal outline-none focus:border-[#ff2438]" /></label></div></section>}
