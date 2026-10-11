@@ -164,7 +164,7 @@ export default function HomeEssentialsSection({ locationId }) {
         <div aria-hidden="true" className="pointer-events-none absolute -right-14 -top-20 size-52 rounded-full border-[18px] border-white/35" />
         <div aria-hidden="true" className="pointer-events-none absolute bottom-[-72px] left-[28%] size-40 rounded-full bg-[#ffd7c8]/35 blur-2xl" />
         <div className="relative flex min-h-[86px] items-center justify-between gap-2 sm:min-h-[168px] lg:min-h-[190px]">
-          <div className="relative z-10 max-w-[620px]">
+          <div className="relative z-10 max-w-[620px] lg:max-w-[390px]">
             <p className="font-sans text-[11px] font-extrabold uppercase tracking-[0.18em] sm:text-xs" style={{ color: "#d91d34" }}>
               EVERYDAY FAVOURITES
             </p>
@@ -182,7 +182,7 @@ export default function HomeEssentialsSection({ locationId }) {
             aria-hidden="true"
             width="520"
             height="260"
-            className="pointer-events-none absolute right-[16%] top-1/2 hidden h-[190px] w-[390px] -translate-y-1/2 object-contain opacity-95 lg:block xl:right-[18%] xl:h-[220px] xl:w-[470px]"
+            className="pointer-events-none absolute hidden"
           />
 
           <Link

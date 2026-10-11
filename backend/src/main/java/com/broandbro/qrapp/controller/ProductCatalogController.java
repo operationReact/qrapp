@@ -36,8 +36,17 @@ public class ProductCatalogController {
     public Page<ProductResponse> adminProducts(@RequestParam Long locationId,
                                                 @RequestParam(required = false) String search,
                                                 @RequestParam(required = false) Boolean active,
+                                                @RequestParam(required = false) String category,
+                                                @RequestParam(defaultValue = "all") String stockStatus,
+                                                @RequestParam(defaultValue = "name") String sortBy,
                                                 Pageable pageable, Authentication authentication) {
-        return catalogService.adminProducts(locationId, search, active, pageable, authentication);
+        return catalogService.adminProducts(locationId, search, active, category, stockStatus, sortBy, pageable, authentication);
+    }
+
+    @GetMapping("/admin/summary")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN', 'SUPERUSER', 'MANAGER')")
+    public ProductCatalogSummaryResponse summary(@RequestParam Long locationId, Authentication authentication) {
+        return catalogService.summary(locationId, authentication);
     }
 
     @PostMapping("/products")

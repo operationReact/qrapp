@@ -8,7 +8,7 @@ import {
 import { AdminDashboardProvider, useAdminDashboard } from "@/context/AdminDashboardContext";
 import { Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { SidebarIcon } from "@phosphor-icons/react";
+import { ArrowLeftIcon, SidebarIcon } from "@phosphor-icons/react";
 import { RoleGuard } from "@/components/RoleGuard";
 import { CAN_ACCESS_ADMIN } from "@/lib/roles";
 import { cn } from "@/lib/utils";
@@ -20,7 +20,7 @@ export const Route = createFileRoute("/admin")({
 // ── Compact sub-page header (hamburger left, optional centered title, bell right) ──
 // Reused across all admin sub-pages. Pages that need a visible page title (e.g.
 // Kitchen Queue) pass `title`; pages that render their own in-body title keep it blank.
-function SubPageHeader({ title }) {
+function SubPageHeader({ title, showBack = false }) {
   const { toggleSidebar } = useSidebar();
   const { dashboard } = useAdminDashboard();
   const notifCount = Math.min(
@@ -31,6 +31,17 @@ function SubPageHeader({ title }) {
   return (
     <header className="sticky top-0 z-40 border-b border-[var(--cc-divider)] bg-white">
       <div className={cn("flex h-14 items-center px-4 md:h-16 md:px-6", title ? "justify-between gap-2" : "justify-between")}>
+        {showBack && (
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={() => window.history.back()}
+            aria-label="Go back"
+            className="size-11 shrink-0 rounded-[10px] text-[var(--cc-text)] hover:bg-[var(--cc-primary-light)]"
+          >
+            <ArrowLeftIcon weight="bold" />
+          </Button>
+        )}
         {/* hamburger */}
         <Button
           size="icon"
@@ -88,6 +99,7 @@ function AdminLayout() {
           <SidebarInset className="min-w-0 bg-[var(--cc-page)]">
             {!hideGenericHeader && <SubPageHeader
               title={isKitchenQueue ? "Kitchen Queue" : isFoodCourt ? "Food Court Management" : isProductCatalog ? "Essentials Catalog" : undefined}
+              showBack={isProductCatalog}
             />}
             <div className="min-h-0 flex-1 flex flex-col">
               <Outlet />

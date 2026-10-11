@@ -2,6 +2,7 @@ package com.broandbro.qrapp.dto;
 
 import lombok.*;
 import java.math.BigDecimal;
+import java.time.Instant;
 
 @Data
 @Builder
@@ -17,6 +18,7 @@ public class ProductResponse {
     private String description;
     private BigDecimal mrp;
     private BigDecimal costPrice;
+    private BigDecimal profitMarginPercent;
     private BigDecimal sellingPrice;
     private BigDecimal taxableAmount;
     private BigDecimal totalTax;
@@ -30,5 +32,6 @@ public class ProductResponse {
     private Boolean available;
     private Long availableQuantity;
     private Long lowStockThreshold;
+    private Instant updatedAt;
     private java.util.List<ProductAssignmentResponse> assignments;
 }

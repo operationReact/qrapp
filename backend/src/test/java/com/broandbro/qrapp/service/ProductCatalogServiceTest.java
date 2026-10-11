@@ -65,6 +65,19 @@ class ProductCatalogServiceTest {
     }
 
     @Test
+    void returnsLocationScopedSummaryWithoutReadingCatalogueRows() {
+        ProductCatalogSummaryResponse expected = new ProductCatalogSummaryResponse(11L, 8L, 5L, 2L, 1L, 25.0);
+        when(locationProductRepository.summarizeByLocationId(11L)).thenReturn(expected);
+
+        ProductCatalogSummaryResponse actual = service.summary(11L, authentication);
+
+        assertEquals(expected, actual);
+        verify(locationAccessService).requireLocationAccess(admin, 11L);
+        verify(locationProductRepository).summarizeByLocationId(11L);
+        verify(locationProductRepository, never()).findByLocationIdOrderByProductNameAsc(anyLong());
+    }
+
+    @Test
     void rejectsNegativeStockAndLocksInventoryRow() {
         LocationProduct assignment = new LocationProduct();
         assignment.setId(44L);
@@ -89,6 +102,56 @@ class ProductCatalogServiceTest {
         verify(inventoryRepository).findByLocationProductIdForUpdate(44L);
         verify(inventoryRepository, never()).save(any());
         verify(movementRepository, never()).save(any());
+    }
+
+    @Test
+    void updatesExactStockAndRecordsCatalogueAdjustment() {
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "menuRepository", null);
+        Product product = new Product();
+        product.setId(3L);
+        product.setName("Soap");
+        product.setActive(true);
+        product.setMrp(new BigDecimal("40"));
+        product.setCostPrice(new BigDecimal("20"));
+
+        LocationProduct assignment = new LocationProduct();
+        assignment.setId(44L);
+        assignment.setProduct(product);
+        assignment.setLocation(location);
+        assignment.setVisible(true);
+        assignment.setAvailable(true);
+
+        ProductInventory inventory = new ProductInventory();
+        inventory.setAvailableQuantity(4L);
+        inventory.setLowStockThreshold(5L);
+
+        when(productRepository.findById(3L)).thenReturn(Optional.of(product));
+        when(productRepository.save(any(Product.class))).thenReturn(product);
+        when(locationProductRepository.findByProductIdAndLocationId(3L, 11L)).thenReturn(Optional.of(assignment));
+        when(locationProductRepository.save(any(LocationProduct.class))).thenReturn(assignment);
+        when(inventoryRepository.findByLocationProductId(44L)).thenReturn(Optional.of(inventory));
+        when(taxCalculationService.calculateInclusive(any(), any()))
+                .thenAnswer(invocation -> TaxCalculationService.TaxCalculationResult.zero(invocation.getArgument(0)));
+
+        ProductUpdateRequest request = new ProductUpdateRequest();
+        request.setVariantIdentity("500g");
+        request.setName("Soap");
+        request.setMrp(new BigDecimal("40"));
+        request.setCostPrice(new BigDecimal("20"));
+        request.setLocationId(11L);
+        request.setAvailableQuantity(10L);
+        request.setLowStockThreshold(3L);
+
+        service.update(3L, request, authentication);
+
+        assertEquals(10L, inventory.getAvailableQuantity());
+        assertEquals(3L, inventory.getLowStockThreshold());
+        ArgumentCaptor<ProductInventoryMovement> movementCaptor =
+                ArgumentCaptor.forClass(ProductInventoryMovement.class);
+        verify(movementRepository).save(movementCaptor.capture());
+        assertEquals("ADD_STOCK", movementCaptor.getValue().getMovementType());
+        assertEquals(6L, movementCaptor.getValue().getQuantityDelta());
+        assertEquals("Catalogue edit stock adjustment", movementCaptor.getValue().getReason());
     }
 
     @Test
