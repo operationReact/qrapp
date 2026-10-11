@@ -9,6 +9,7 @@ import { LocationSelector } from "@/components/LocationSelector";
 import MobileMenu from "@/components/shared/MobileMenu";
 import RetailProductCard from "@/components/RetailProductCard";
 import { essentialsAsset } from "@/lib/essentialsAssets";
+import { getCatalogProducts } from "@/services/product-catalog-service";
 
 export const Route = createFileRoute("/essentials")({
   component: EssentialsPage,
@@ -53,7 +54,37 @@ function EssentialsPage() {
     const initial = hash.replace(/^#/, "");
     return categoryNames.some(([, value]) => value === initial) ? initial : "all";
   });
-  const { data: products = [], isLoading } = useQuery(retailMenuOptions(activeLocationId));
+  const catalogQuery = useQuery({
+    queryKey: ["public-product-catalog", activeLocationId],
+    queryFn: () => getCatalogProducts(activeLocationId),
+    enabled: Boolean(activeLocationId),
+    staleTime: 1000 * 15,
+    refetchOnWindowFocus: true,
+  });
+  const legacyMenuQuery = useQuery(retailMenuOptions(activeLocationId));
+  const products = catalogQuery.data?.length
+    ? catalogQuery.data.map((product) => ({
+      ...product,
+      price: product.sellingPrice ?? product.mrp,
+      available: product.available !== false,
+      category: { name: product.categoryName || "Uncategorized" },
+      stockStatus: product.availableQuantity == null
+        ? "IN_STOCK"
+        : product.availableQuantity <= 0
+          ? "OUT_OF_STOCK"
+          : product.availableQuantity <= (product.lowStockThreshold ?? 0)
+            ? "LOW_STOCK"
+            : "IN_STOCK",
+    }))
+    : legacyMenuQuery.data || [];
+  const isLoading = catalogQuery.isLoading || (!catalogQuery.data && legacyMenuQuery.isLoading);
+  const dynamicCategoryNames = Array.from(new Set(
+    products.map((product) => product.category?.name).filter(Boolean),
+  )).filter((name) => !categoryNames.some(([, value]) => value === name.toLowerCase()));
+  const visibleCategoryNames = [
+    ...categoryNames,
+    ...dynamicCategoryNames.map((name) => [name, name.toLowerCase()]),
+  ];
   const heroImage = essentialsAsset("hero", "essentials-hero.png")
     || "/assets/essentials/essentials-product-collage.png";
   const categoryBanner = categoryBannerFiles[selectedCategory]
@@ -101,13 +132,13 @@ function EssentialsPage() {
         {categoryBanner && (
           <img
             src={categoryBanner}
-            alt={`${categoryNames.find(([, value]) => value === selectedCategory)?.[0]} essentials`}
+            alt={`${visibleCategoryNames.find(([, value]) => value === selectedCategory)?.[0]} essentials`}
             className="block h-auto max-h-[130px] w-full rounded-2xl object-cover lg:h-[160px] lg:max-h-none"
           />
         )}
 
         <section className="grid grid-cols-3 gap-2 sm:grid-cols-5 md:grid-cols-9 lg:gap-3">
-          {categoryNames.map(([label, value]) => (
+          {visibleCategoryNames.map(([label, value]) => (
             <button
               key={value}
               type="button"

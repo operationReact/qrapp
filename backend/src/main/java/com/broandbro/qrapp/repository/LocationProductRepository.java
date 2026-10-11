@@ -59,8 +59,6 @@ public interface LocationProductRepository extends JpaRepository<LocationProduct
     @EntityGraph(attributePaths = {"product", "product.taxProfile", "location"})
     @Query("select lp from LocationProduct lp where lp.location.id = :locationId and lp.product.active = true " +
             "and lp.visible = true and lp.available = true " +
-            "and (not exists (select 1 from ProductInventory i where i.locationProduct = lp) " +
-            "or exists (select 1 from ProductInventory i where i.locationProduct = lp and i.availableQuantity > 0)) " +
             "order by lp.product.name asc")
     List<LocationProduct> findPublicByLocationId(@Param("locationId") Long locationId);
 

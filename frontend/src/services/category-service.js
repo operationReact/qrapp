@@ -1,4 +1,5 @@
 import { apiClient } from "./index";
+import { prepareImageForUpload } from "./image-upload-utils";
 
 export const getCategoryById = (id, locationId) =>
   apiClient.get(`/categories/${id}`, { params: { locationId } }).then((r) => r.data);
@@ -28,11 +29,13 @@ export const reorderCategory = (id, displayOrder, locationId) =>
   apiClient.patch(`/categories/${id}/order`, { displayOrder }, { params: { locationId } }).then((r) => r.data);
 
 export const uploadCategoryImage = (id, file, locationId) => {
-  const fd = new FormData();
-  fd.append("image", file);
-  return apiClient
-    .post(`/categories/${id}/image`, fd, { params: { locationId } })
-    .then((r) => r.data);
+  return prepareImageForUpload(file).then((preparedFile) => {
+    const fd = new FormData();
+    fd.append("image", preparedFile);
+    return apiClient
+      .post(`/categories/${id}/image`, fd, { params: { locationId } })
+      .then((r) => r.data);
+  });
 };
 
 export const removeCategoryImage = (id, locationId) =>

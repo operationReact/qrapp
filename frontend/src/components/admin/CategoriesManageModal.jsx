@@ -123,10 +123,11 @@ function CategoryImageCell({ category, activeLocationId, onChanged }) {
         variant="ghost"
         size="icon-sm"
         title="Upload image"
+        aria-label={`Upload image for ${category.name}`}
         disabled={uploadMut.isPending}
         onClick={() => fileInputRef.current?.click()}
       >
-        <UploadSimpleIcon size={14} />
+        <UploadSimpleIcon size={16} />
       </Button>
       <Button
         type="button"
@@ -335,7 +336,7 @@ export default function CategoriesManageModal({
             Manage Categories
           </DialogTitle>
           <DialogDescription>
-            Add or remove categories used by your menu items.
+            Add categories, upload category images, or remove categories used by your menu items.
           </DialogDescription>
         </DialogHeader>
 
