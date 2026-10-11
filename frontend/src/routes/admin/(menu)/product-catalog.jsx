@@ -15,6 +15,13 @@ import {
   useComboboxAnchor,
 } from "@/components/ui/combobox";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   createCatalogProduct,
   updateCatalogProduct,
   getCatalogProducts,
@@ -28,6 +35,12 @@ import {
   discardProductAiImage,
   getCatalogSummary,
 } from "@/services/product-catalog-service";
+import {
+  createCategory,
+  getCategories,
+  removeCategoryImage,
+  uploadCategoryImage,
+} from "@/services/category-service";
 import {
   Drawer,
   DrawerClose,
@@ -83,6 +96,7 @@ function ProductCatalogPage() {
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [sortBy, setSortBy] = useState("name");
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const [categoryImagesOpen, setCategoryImagesOpen] = useState(false);
   const [page, setPage] = useState(0);
   const [stock, setStock] = useState({});
   const [selectedProductId, setSelectedProductId] = useState(null);
@@ -111,6 +125,11 @@ function ProductCatalogPage() {
   const summaryQuery = useQuery({
     queryKey: ["catalog-summary", effectiveLocationId],
     queryFn: () => getCatalogSummary(effectiveLocationId),
+    enabled: Boolean(effectiveLocationId),
+  });
+  const categoryOptionsQuery = useQuery({
+    queryKey: ["catalog-category-options", effectiveLocationId],
+    queryFn: () => getCategories(effectiveLocationId),
     enabled: Boolean(effectiveLocationId),
   });
   const invalidate = () => {
@@ -213,6 +232,7 @@ function ProductCatalogPage() {
   const editingProduct = products.find((product) => String(product.id) === String(editingId));
   const categoryNames = Array.from(new Set([
     ...CATEGORY_OPTIONS.map((category) => category.name),
+    ...(categoryOptionsQuery.data || []).map((category) => category.name),
     ...(query.data?.content || []).map((product) => product.categoryName || "Uncategorized"),
   ])).filter(Boolean).sort((a, b) => a.localeCompare(b));
 
@@ -321,13 +341,9 @@ function ProductCatalogPage() {
             </div>
             <div className="mt-3 flex items-center gap-2 px-4 pb-3 sm:hidden">
               <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-[#fff0ed] text-[#e52b3a]"><PackageIcon className="size-4" /></div>
-              <label className="min-w-0 flex-1">
-                <span className="sr-only">Filter by category</span>
-                <select aria-label="Filter by category" value={categoryFilter} onChange={(event) => { setCategoryFilter(event.target.value); setPage(0); }} className="h-10 w-full rounded-xl border border-[#e5e2dd] bg-white px-3 text-sm font-semibold text-[#393632] outline-none focus:border-[#ff2438] focus:ring-2 focus:ring-[#ff2438]/10">
-                  <option value="all">All products</option>
-                  {categoryNames.map((name) => <option key={name} value={name}>{name}</option>)}
-                </select>
-              </label>
+                <div className="min-w-0 flex-1">
+                <CatalogFilterSelect label="Category" ariaLabel="Filter by category" value={categoryFilter} onChange={(value) => { setCategoryFilter(value); setPage(0); }} options={[["all", "All products"], ...categoryNames.map((name) => [name, name])]} className="font-semibold" />
+              </div>
               <span className="shrink-0 rounded-lg bg-[#f8f7f4] px-2.5 py-2 text-xs font-bold text-[#77736f]">{overview?.total ?? "—"}</span>
             </div>
             <div className="mt-2 hidden gap-2 px-4 pb-3 sm:flex sm:flex-wrap sm:px-5 sm:pb-4">
@@ -357,34 +373,32 @@ function ProductCatalogPage() {
                          className="h-11 w-full rounded-xl border border-[#e5e2dd] bg-[#fcfbfa] pl-9 pr-3 text-sm outline-none transition placeholder:text-[#9b9792] focus:border-[#ff2438] focus:bg-white focus:ring-2 focus:ring-[#ff2438]/10" />
                 </label>
                 <div className="hidden grid-cols-2 gap-2 sm:grid-cols-3 lg:flex lg:shrink-0">
-                  <select aria-label="Filter by stock" value={stockFilter} onChange={(event) => { setStockFilter(event.target.value); setPage(0); }} className="h-11 min-w-0 rounded-xl border border-[#e5e2dd] bg-white px-2.5 text-sm outline-none focus:border-[#ff2438] sm:px-3">
-                    <option value="all">All stock</option><option value="in">In stock</option><option value="low">Low stock</option><option value="out">Out of stock</option>
-                  </select>
-                  <select aria-label="Filter by availability" value={availabilityFilter} onChange={(event) => { setAvailabilityFilter(event.target.value); setPage(0); }} className="h-11 min-w-0 rounded-xl border border-[#e5e2dd] bg-white px-2.5 text-sm outline-none focus:border-[#ff2438] sm:px-3">
-                    <option value="all">All status</option><option value="enabled">Enabled</option><option value="disabled">Disabled</option>
-                  </select>
-                  <select aria-label="Sort products" value={sortBy} onChange={(event) => setSortBy(event.target.value)} className="col-span-2 h-11 min-w-0 rounded-xl border border-[#e5e2dd] bg-white px-3 text-sm outline-none focus:border-[#ff2438] sm:col-span-1">
-                    <option value="name">Name: A–Z</option><option value="mrp">MRP: low to high</option><option value="stock">Stock: low to high</option><option value="updated">Recently updated</option>
-                  </select>
+                  <CatalogFilterSelect label="Stock" ariaLabel="Filter by stock" value={stockFilter} onChange={(value) => { setStockFilter(value); setPage(0); }} options={[["all", "All stock"], ["in", "In stock"], ["low", "Low stock"], ["out", "Out of stock"]]} className="lg:w-[150px]" />
+                  <CatalogFilterSelect label="Availability" ariaLabel="Filter by availability" value={availabilityFilter} onChange={(value) => { setAvailabilityFilter(value); setPage(0); }} options={[["all", "All status"], ["enabled", "Enabled"], ["disabled", "Disabled"]]} className="lg:w-[150px]" />
+                  <CatalogFilterSelect label="Sort by" ariaLabel="Sort products" value={sortBy} onChange={setSortBy} options={[["name", "Name: A-Z"], ["mrp", "MRP: low to high"], ["stock", "Stock: low to high"], ["updated", "Recently updated"]]} className="col-span-2 lg:w-[170px] sm:col-span-1" />
                 </div>
                 <div className="mt-2 flex min-w-0 gap-2 overflow-hidden lg:hidden">
                   <button type="button" aria-expanded={mobileFiltersOpen} onClick={() => setMobileFiltersOpen((open) => !open)} className={`inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-xl border px-3 text-sm font-semibold ${mobileFiltersOpen || stockFilter !== "all" || availabilityFilter !== "all" || categoryFilter !== "all" ? "border-[#ff2438] bg-[#fff0ed] text-[#d92335]" : "border-[#e5e2dd] bg-white text-[#514d48]"}`}>
                     <FunnelIcon className="size-4 shrink-0" /> Filters
                     {(stockFilter !== "all" || availabilityFilter !== "all" || categoryFilter !== "all") && <span className="grid size-5 place-items-center rounded-full bg-[#ff2438] text-[10px] text-white"> {[stockFilter !== "all", availabilityFilter !== "all", categoryFilter !== "all"].filter(Boolean).length} </span>}
                   </button>
-                  <select aria-label="Sort products" value={sortBy} onChange={(event) => setSortBy(event.target.value)} className="h-11 min-w-0 flex-1 rounded-xl border border-[#e5e2dd] bg-white px-3 text-sm outline-none focus:border-[#ff2438]">
-                    <option value="name">Sort: Name</option><option value="mrp">Sort: MRP</option><option value="stock">Sort: Stock</option><option value="updated">Sort: Recent</option>
-                  </select>
+                  <CatalogFilterSelect label="Sort by" ariaLabel="Sort products" value={sortBy} onChange={setSortBy} options={[["name", "Name: A-Z"], ["mrp", "MRP: low to high"], ["stock", "Stock: low to high"], ["updated", "Recently updated"]]} className="flex-1" />
                 </div>
                 {mobileFiltersOpen && <div className="mt-2 grid grid-cols-2 gap-2 rounded-xl border border-[#eeeae5] bg-[#fcfbfa] p-2 lg:hidden">
-                  <label className="col-span-2 min-w-0"><span className="sr-only">Filter by category</span><select aria-label="Filter by category" value={categoryFilter} onChange={(event) => { setCategoryFilter(event.target.value); setPage(0); }} className="h-10 w-full rounded-lg border border-[#e5e2dd] bg-white px-2.5 text-sm outline-none focus:border-[#ff2438]"><option value="all">All categories</option>{categoryNames.map((name) => <option key={name} value={name}>{name}</option>)}</select></label>
-                  <label className="min-w-0"><span className="sr-only">Filter by stock</span><select aria-label="Filter by stock" value={stockFilter} onChange={(event) => { setStockFilter(event.target.value); setPage(0); }} className="h-10 w-full rounded-lg border border-[#e5e2dd] bg-white px-2.5 text-sm outline-none focus:border-[#ff2438]"><option value="all">All stock</option><option value="in">In stock</option><option value="low">Low stock</option><option value="out">Out of stock</option></select></label>
-                  <label className="min-w-0"><span className="sr-only">Filter by availability</span><select aria-label="Filter by availability" value={availabilityFilter} onChange={(event) => { setAvailabilityFilter(event.target.value); setPage(0); }} className="h-10 w-full rounded-lg border border-[#e5e2dd] bg-white px-2.5 text-sm outline-none focus:border-[#ff2438]"><option value="all">All status</option><option value="enabled">Enabled</option><option value="disabled">Disabled</option></select></label>
+                  <div className="col-span-2 min-w-0">
+                    <CatalogFilterSelect label="Category" ariaLabel="Filter by category" value={categoryFilter} onChange={(value) => { setCategoryFilter(value); setPage(0); }} options={[["all", "All categories"], ...categoryNames.map((name) => [name, name])]} />
+                    <button type="button" onClick={() => setCategoryImagesOpen(true)} className="mt-1 px-0.5 text-[11px] font-semibold text-[#d92334] hover:underline">+ Add category</button>
+                  </div>
+                  <CatalogFilterSelect label="Stock" ariaLabel="Filter by stock" value={stockFilter} onChange={(value) => { setStockFilter(value); setPage(0); }} options={[["all", "All stock"], ["in", "In stock"], ["low", "Low stock"], ["out", "Out of stock"]]} />
+                  <CatalogFilterSelect label="Availability" ariaLabel="Filter by availability" value={availabilityFilter} onChange={(value) => { setAvailabilityFilter(value); setPage(0); }} options={[["all", "All status"], ["enabled", "Enabled"], ["disabled", "Disabled"]]} />
                 </div>}
               </div>
               <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
                 <p className="text-xs text-[#77736f] sm:text-sm"><span className="font-semibold text-[#292725]">{products.length}</span> products on this page {search || stockFilter !== "all" || availabilityFilter !== "all" || categoryFilter !== "all" ? "matching filters" : "in catalogue"}</p>
-                {(search || stockFilter !== "all" || availabilityFilter !== "all" || categoryFilter !== "all" || sortBy !== "name") && <button type="button" onClick={clearFilters} className="text-xs font-semibold text-[#e52b3a] hover:underline">Clear filters</button>}
+                <div className="flex min-w-0 flex-wrap items-center justify-end gap-3">
+                  <button type="button" onClick={() => setCategoryImagesOpen(true)} className="text-xs font-semibold text-[#514d48] hover:text-[#e52b3a] hover:underline">Manage categories</button>
+                  {(search || stockFilter !== "all" || availabilityFilter !== "all" || categoryFilter !== "all" || sortBy !== "name") && <button type="button" onClick={clearFilters} className="text-xs font-semibold text-[#e52b3a] hover:underline">Clear filters</button>}
+                </div>
               </div>
             </div>
 
@@ -452,6 +466,11 @@ function ProductCatalogPage() {
               <div className="flex gap-2"><button type="button" disabled={page === 0 || query.isLoading} onClick={() => setPage((value) => Math.max(0, value - 1))} className="h-9 flex-1 rounded-lg border border-[#e5e2dd] bg-white px-4 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-40 sm:flex-none">Previous</button><button type="button" disabled={!query.data || query.data.last || query.isLoading} onClick={() => setPage((value) => value + 1)} className="h-9 flex-1 rounded-lg border border-[#e5e2dd] bg-white px-4 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-40 sm:flex-none">Next</button></div>
             </footer>
           </section>
+          {categoryImagesOpen && <ProductCategoryImages
+            locationId={effectiveLocationId}
+            categoryNames={categoryNames}
+            onClose={() => setCategoryImagesOpen(false)}
+          />}
         </div>
 
         {/* Persistent mobile action: creation remains discoverable while browsing the catalogue. */}
@@ -464,7 +483,11 @@ function ProductCatalogPage() {
               <div className="h-0 min-h-0 flex-1 space-y-5 overflow-y-scroll overscroll-contain p-4 sm:p-6">
               <section><h3 className="text-sm font-semibold">Product information</h3><div className="mt-3 grid gap-3 sm:grid-cols-2">
                 {[['name','Product name','text'],['brand','Brand','text'],['variantIdentity','Variant / pack size','text']].map(([name,label,type]) => <label key={name} className="min-w-0 space-y-1.5 text-xs font-semibold text-[#514d48]">{label}{name === 'name' && <span className="text-[#e52b3a]"> *</span>}<input name={name} value={form[name]} placeholder={name === 'variantIdentity' ? 'e.g. 250 g, 1 L, pack of 6' : name === 'brand' ? 'Enter brand' : 'Enter product name'} onChange={setField} required={name === 'name'} type={type} className="h-11 w-full rounded-xl border border-[#e5e2dd] bg-[#fcfbfa] px-3 text-sm font-normal outline-none focus:border-[#ff2438] focus:bg-white focus:ring-2 focus:ring-[#ff2438]/10" /></label>)}
-                <label className="min-w-0 space-y-1.5 text-xs font-semibold text-[#514d48]">Category<LocationCombobox value={form.categoryName} options={CATEGORY_OPTIONS} placeholder="Choose category" onChange={(categoryName) => setForm((current) => ({ ...current, categoryName }))} /></label>
+                <label className="min-w-0 space-y-1.5 text-xs font-semibold text-[#514d48]">
+                  Category
+                  <CategoryCombobox value={form.categoryName} options={categoryNames} onChange={(categoryName) => setForm((current) => ({ ...current, categoryName }))} />
+                  <span className="block text-[11px] font-normal text-[#858079]">Select a suggestion or enter a new category name.</span>
+                </label>
                 <label className="space-y-1.5 text-xs font-semibold text-[#514d48] sm:col-span-2">Description <textarea name="description" value={form.description} onChange={setField} rows={2} placeholder="Optional product description" className="w-full rounded-xl border border-[#e5e2dd] bg-[#fcfbfa] px-3 py-2 text-sm font-normal outline-none focus:border-[#ff2438] focus:bg-white focus:ring-2 focus:ring-[#ff2438]/10" /></label>
               </div></section>
               <section className="border-t border-[#efede9] pt-4"><h3 className="text-sm font-semibold">Product image</h3><p className="mt-1 text-xs text-[#77736f]">{editingId ? "Upload a new image to replace the current product image." : "Add a JPEG, PNG or WEBP image for this product."}</p><label className="mt-3 flex min-h-11 cursor-pointer items-center justify-between gap-3 rounded-xl border border-dashed border-[#d9d4cd] bg-[#fcfbfa] px-3 py-2 text-sm font-semibold text-[#514d48] hover:border-[#ff2438] hover:bg-white"><span className="min-w-0 truncate">{imageFile ? imageFile.name : "Choose product image"}</span><span className="shrink-0 rounded-lg bg-white px-3 py-1.5 text-xs font-semibold shadow-sm">Browse</span><input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={(event) => { const selected = event.target.files?.[0]; if (selected) setImageFile(selected); }} /></label></section>
@@ -583,6 +606,133 @@ function ProductManageDrawer({ product, onClose, locationId, stock, setStock, up
   );
 }
 
+function ProductCategoryImages({ locationId, categoryNames, onClose }) {
+  const queryClient = useQueryClient();
+  const categoriesQuery = useQuery({
+    queryKey: ["catalog-category-options", locationId],
+    queryFn: () => getCategories(locationId),
+    enabled: Boolean(locationId),
+  });
+  const [busyName, setBusyName] = useState("");
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const categories = categoriesQuery.data || [];
+  const categoryByName = new Map(categories.map((category) => [category.name.trim().toLowerCase(), category]));
+  const displayNames = Array.from(new Set([...categoryNames, ...categories.map((category) => category.name)])).sort((a, b) => a.localeCompare(b));
+
+  const addCategory = async () => {
+    const name = newCategoryName.trim();
+    if (!name) return;
+    if (categoryByName.has(name.toLowerCase())) {
+      toast.error("That category already exists");
+      return;
+    }
+    setBusyName(name);
+    try {
+      await createCategory({ name }, locationId);
+      await queryClient.invalidateQueries({ queryKey: ["catalog-category-options", locationId] });
+      setNewCategoryName("");
+      toast.success(`${name} category added`);
+    } catch (error) {
+      toast.error(error?.response?.data?.message || error?.message || "Unable to add category");
+    } finally {
+      setBusyName("");
+    }
+  };
+
+  const saveImage = async (name, file) => {
+    if (!file) return;
+    setBusyName(name);
+    try {
+      let category = categoryByName.get(name.trim().toLowerCase());
+      if (!category) category = await createCategory({ name }, locationId);
+      await uploadCategoryImage(category.id, file, locationId);
+      await queryClient.invalidateQueries({ queryKey: ["catalog-category-options", locationId] });
+      toast.success(`${name} image saved`);
+    } catch (error) {
+      toast.error(error?.response?.data?.message || error?.message || "Unable to save category image");
+    } finally {
+      setBusyName("");
+    }
+  };
+
+  const removeImage = async (name) => {
+    const category = categoryByName.get(name.trim().toLowerCase());
+    if (!category) return;
+    setBusyName(name);
+    try {
+      await removeCategoryImage(category.id, locationId);
+      await queryClient.invalidateQueries({ queryKey: ["catalog-category-options", locationId] });
+      toast.success(`${name} image removed`);
+    } catch (error) {
+      toast.error(error?.response?.data?.message || error?.message || "Unable to remove category image");
+    } finally {
+      setBusyName("");
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/45 p-0 sm:items-center sm:p-4">
+      <section role="dialog" aria-modal="true" aria-labelledby="product-category-images-title" className="flex max-h-[90dvh] w-full max-w-xl flex-col overflow-hidden rounded-t-2xl bg-white shadow-2xl sm:rounded-2xl">
+        <header className="flex shrink-0 items-start justify-between gap-3 border-b border-[#ece8e2] p-4">
+          <div className="min-w-0">
+            <h2 id="product-category-images-title" className="text-base font-bold text-[#242220]">Product category images</h2>
+            <p className="mt-1 text-xs leading-5 text-[#77736f]">Upload an image for each category used in this catalogue.</p>
+          </div>
+          <button type="button" onClick={onClose} aria-label="Close category images" className="grid size-9 shrink-0 place-items-center rounded-full border border-[#e5e2dd] text-xl leading-none text-[#514d48]">×</button>
+        </header>
+        <form onSubmit={(event) => { event.preventDefault(); addCategory(); }} className="flex gap-2 border-b border-[#ece8e2] p-3 sm:p-4">
+          <input value={newCategoryName} onChange={(event) => setNewCategoryName(event.target.value)} placeholder="New category name" className="h-10 min-w-0 flex-1 rounded-lg border border-[#e5e2dd] px-3 text-sm outline-none focus:border-[#ff2438] focus:ring-2 focus:ring-[#ff2438]/10" />
+          <button type="submit" disabled={!newCategoryName.trim() || Boolean(busyName)} className="h-10 shrink-0 rounded-lg bg-[#ff2438] px-3 text-xs font-bold text-white disabled:opacity-50">Add category</button>
+        </form>
+        <div className="min-h-0 flex-1 overflow-y-auto p-3 sm:p-4">
+          {displayNames.length === 0 ? <p className="p-6 text-center text-sm text-[#77736f]">No product categories found.</p> :
+            <div className="grid gap-2">
+              {displayNames.map((name) => {
+                const category = categoryByName.get(name.trim().toLowerCase());
+                const busy = busyName === name;
+                return (
+                  <div key={name} className="flex min-w-0 items-center gap-3 rounded-xl border border-[#e9e6e1] p-2.5">
+                    {category?.imageUrl ? <img src={category.imageUrl} alt="" className="size-12 shrink-0 rounded-lg border border-[#eeeae5] object-cover" /> : <div className="grid size-12 shrink-0 place-items-center rounded-lg bg-[#f8f7f4] text-[10px] text-[#99938c]">No image</div>}
+                    <span className="min-w-0 flex-1 truncate text-sm font-semibold text-[#393632]">{name}</span>
+                    <label className={`shrink-0 cursor-pointer rounded-lg border border-[#e5e2dd] px-2.5 py-2 text-xs font-semibold text-[#514d48] hover:bg-[#f8f7f4] ${busy ? "pointer-events-none opacity-50" : ""}`}>
+                      {busy ? "Saving…" : category?.imageUrl ? "Replace" : "Upload"}
+                      <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" disabled={busy} onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ""; saveImage(name, file); }} />
+                    </label>
+                    {category?.imageUrl && <button type="button" disabled={busy} onClick={() => removeImage(name)} className="shrink-0 px-1 text-xs font-semibold text-[#d92334] disabled:opacity-50">Remove</button>}
+                  </div>
+                );
+              })}
+            </div>}
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function CatalogFilterSelect({ label, ariaLabel, value, onChange, options, className = "" }) {
+ const selectedLabel = options.find(([optionValue]) => optionValue === value)?.[1] || options[0]?.[1];
+ return (
+   <div className={`min-w-0 ${className}`}>
+     <span className="mb-1 block px-0.5 text-[10px] font-bold uppercase tracking-wide text-[#77736f]">{label}</span>
+     <Select value={value} onValueChange={onChange}>
+       <SelectTrigger
+         aria-label={ariaLabel}
+         className="h-10 w-full min-w-0 max-w-full rounded-lg border-[#e5e2dd] bg-white px-2.5 text-sm outline-none focus:border-[#ff2438] focus:ring-2 focus:ring-[#ff2438]/10 sm:h-11 sm:rounded-xl sm:px-3"
+       >
+         <SelectValue>{selectedLabel}</SelectValue>
+       </SelectTrigger>
+       <SelectContent className="max-w-[calc(100vw-1rem)]">
+         {options.map(([optionValue, optionLabel]) => (
+           <SelectItem key={optionValue} value={optionValue} className="max-w-full whitespace-normal break-words">
+             {optionLabel}
+           </SelectItem>
+         ))}
+       </SelectContent>
+     </Select>
+   </div>
+ );
+}
+
 function LocationCombobox({ value, options, placeholder, onChange }) {
   const anchor = useComboboxAnchor();
   const items = options;
@@ -615,6 +765,34 @@ function LocationCombobox({ value, options, placeholder, onChange }) {
           </ComboboxList>
         </ComboboxContent>
       </Combobox>
+  );
+}
+
+function CategoryCombobox({ value, options, onChange }) {
+  const anchor = useComboboxAnchor();
+  return (
+    <Combobox
+      items={options}
+      value={value}
+      onValueChange={onChange}
+      onInputValueChange={onChange}
+    >
+      <div ref={anchor} className="min-w-0">
+        <ComboboxInput
+          aria-label="Product category"
+          value={value}
+          placeholder="Choose or type a new category"
+          className="h-10 w-full rounded-lg"
+          onChange={(event) => onChange(event.target.value)}
+        />
+      </div>
+      <ComboboxContent anchor={anchor} className="max-w-[calc(100vw-1rem)]">
+        <ComboboxEmpty>Type a new category or choose a suggestion.</ComboboxEmpty>
+        <ComboboxList>
+          {options.map((name) => <ComboboxItem key={name} value={name}>{name}</ComboboxItem>)}
+        </ComboboxList>
+      </ComboboxContent>
+    </Combobox>
   );
 }
 
