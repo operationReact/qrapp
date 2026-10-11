@@ -65,6 +65,7 @@ upstream backend {
 server {
     listen 80;
     server_name DOMAIN;
+    client_max_body_size 25m;
 
     location /.well-known/acme-challenge/ {
         root /var/www/certbot;
