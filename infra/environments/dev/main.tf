@@ -136,7 +136,8 @@ resource "aws_s3_bucket_policy" "media" {
         Action   = ["s3:PutObject", "s3:DeleteObject", "s3:GetObject"]
         Resource = [
           "${aws_s3_bucket.media.arn}/menu-items/*",
-          "${aws_s3_bucket.media.arn}/locations/menu-images/*"
+          "${aws_s3_bucket.media.arn}/locations/menu-images/*",
+          "${aws_s3_bucket.media.arn}/products/*"
         ]
       },
       {
@@ -147,6 +148,7 @@ resource "aws_s3_bucket_policy" "media" {
         Resource = [
           "${aws_s3_bucket.media.arn}/menu-items/*",
           "${aws_s3_bucket.media.arn}/locations/menu-images/*",
+          "${aws_s3_bucket.media.arn}/products/*",
           "${aws_s3_bucket.media.arn}/hall-of-happiness/*",
           "${aws_s3_bucket.media.arn}/campaigns/*",
           "${aws_s3_bucket.media.arn}/categories/*"
