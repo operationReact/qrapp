@@ -293,8 +293,11 @@ jobs:
           else
             echo "ℹ️  Existing TLS certificate detected; skipping inline renewal (handled by certbot-renew.timer)"
           fi
-          # Keep existing HTTPS/server blocks aligned with the 5 MB Hall of Happiness
-          # upload validation and Spring's 25 MB multipart limit.
+          # Apply the upload limit at http context level so it also covers
+          # HTTPS server blocks generated or modified by certbot.
+          sudo tee /etc/nginx/conf.d/zz-broandbro-upload-limit.conf > /dev/null <<'NGINX'
+          client_max_body_size 25m;
+          NGINX
           while IFS= read -r nginx_config; do
             sudo sed -i -E 's/client_max_body_size[[:space:]]+[0-9]+[mMgG];/client_max_body_size 25m;/g' "$nginx_config"
           done < <(sudo grep -RIl --include='*.conf' 'client_max_body_size' /etc/nginx || true)
