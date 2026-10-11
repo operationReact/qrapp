@@ -17,6 +17,7 @@ import org.springframework.web.multipart.MultipartFile;
 import javax.imageio.ImageIO;
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
@@ -74,6 +75,35 @@ public class ProductCatalogService {
         return adminProductsPage(locationId, search, active, pageable, authentication);
     }
 
+    @Transactional(readOnly = true)
+    public Page<ProductResponse> adminProducts(Long locationId, String search, Boolean active,
+                                               String category, String stockStatus, String sortBy, Pageable pageable,
+                                               Authentication authentication) {
+        User actor = actor(authentication);
+        if (locationId == null) throw new IllegalArgumentException("locationId is required");
+        requireLocation(actor, locationId);
+        String normalizedSearch = search == null ? "" : search.trim();
+        String normalizedStockStatus = stockStatus == null || stockStatus.isBlank() ? "all" : stockStatus.trim().toLowerCase(Locale.ROOT);
+        if (!Set.of("all", "in", "low", "out").contains(normalizedStockStatus)) {
+            throw new IllegalArgumentException("Unsupported stock status");
+        }
+        String normalizedCategory = category == null ? "" : category.trim();
+        String normalizedSort = sortBy == null ? "name" : sortBy.trim().toLowerCase(Locale.ROOT);
+        if (!Set.of("name", "mrp", "stock", "updated").contains(normalizedSort)) {
+            throw new IllegalArgumentException("Unsupported catalogue sort");
+        }
+        return locationProductRepository.findAdminPage(locationId, normalizedSearch, active, normalizedCategory, normalizedStockStatus, normalizedSort, pageable)
+                .map(this::toResponse);
+    }
+
+    @Transactional(readOnly = true)
+    public ProductCatalogSummaryResponse summary(Long locationId, Authentication authentication) {
+        User actor = actor(authentication);
+        if (locationId == null) throw new IllegalArgumentException("locationId is required");
+        requireLocation(actor, locationId);
+        return locationProductRepository.summarizeByLocationId(locationId);
+    }
+
     private Page<ProductResponse> adminProductsPage(Long locationId, String search, Boolean active,
                                                    Pageable pageable, Authentication authentication) {
         User actor = actor(authentication);
@@ -129,6 +159,24 @@ public class ProductCatalogService {
         assignment.setAvailable(!Boolean.FALSE.equals(request.getAvailable()));
         ProductInventory inventory = inventoryRepository.findByLocationProductId(assignment.getId())
                 .orElseThrow(() -> new IllegalStateException("Inventory is not configured for this assignment"));
+        if (request.getAvailableQuantity() != null
+                && !request.getAvailableQuantity().equals(inventory.getAvailableQuantity())) {
+            long before = inventory.getAvailableQuantity();
+            long after = request.getAvailableQuantity();
+            long delta = after - before;
+            inventory.setAvailableQuantity(after);
+            inventoryRepository.save(inventory);
+
+            ProductInventoryMovement movement = new ProductInventoryMovement();
+            movement.setLocationProduct(assignment);
+            movement.setMovementType(delta > 0 ? "ADD_STOCK" : "REDUCE_STOCK");
+            movement.setQuantityDelta(delta);
+            movement.setQuantityBefore(before);
+            movement.setQuantityAfter(after);
+            movement.setReason("Catalogue edit stock adjustment");
+            movement.setChangedBy(actor.getId());
+            movementRepository.save(movement);
+        }
         inventory.setLowStockThreshold(request.getLowStockThreshold() == null ? 5L : request.getLowStockThreshold());
         inventoryRepository.save(inventory);
         syncProjection(assignment);
@@ -396,11 +444,13 @@ public class ProductCatalogService {
                 .variantIdentity(product.getVariantIdentity()).name(product.getName())
                 .brand(product.getBrand()).categoryName(product.getCategoryName())
                 .description(product.getDescription()).mrp(product.getMrp()).costPrice(product.getCostPrice())
+                .profitMarginPercent(profitMarginPercent(product.getMrp(), product.getCostPrice()))
                 .sellingPrice(product.getMrp())
                 .taxableAmount(tax.taxableAmount()).totalTax(tax.totalTax()).totalAmount(tax.totalAmount())
                 .taxProfileId(product.getTaxProfile() == null ? null : product.getTaxProfile().getId())
                 .hsnSac(product.getHsnSac()).imageUrl(product.getImageUrl()).active(product.getActive())
                 .imageKey(product.getImageKey())
+                .updatedAt(product.getUpdatedAt())
                 .visible(assignment.getVisible()).available(assignment.getAvailable())
                 .availableQuantity(inventory == null ? null : inventory.getAvailableQuantity())
                 .lowStockThreshold(inventory == null ? null : inventory.getLowStockThreshold())
@@ -429,10 +479,19 @@ public class ProductCatalogService {
         return ProductResponse.builder().id(product.getId())
                 .variantIdentity(product.getVariantIdentity()).name(product.getName()).brand(product.getBrand())
                 .categoryName(product.getCategoryName())
-                .description(product.getDescription()).mrp(product.getMrp()).costPrice(product.getCostPrice()).taxProfileId(product.getTaxProfile() == null ? null : product.getTaxProfile().getId())
+                .description(product.getDescription()).mrp(product.getMrp()).costPrice(product.getCostPrice())
+                .profitMarginPercent(profitMarginPercent(product.getMrp(), product.getCostPrice()))
+                .taxProfileId(product.getTaxProfile() == null ? null : product.getTaxProfile().getId())
                 .hsnSac(product.getHsnSac()).imageUrl(product.getImageUrl()).active(product.getActive())
                 .imageKey(product.getImageKey())
+                .updatedAt(product.getUpdatedAt())
                 .assignments(assignments).build();
+    }
+
+    private BigDecimal profitMarginPercent(BigDecimal mrp, BigDecimal costPrice) {
+        if (mrp == null || costPrice == null || mrp.signum() <= 0) return null;
+        return mrp.subtract(costPrice).multiply(BigDecimal.valueOf(100))
+                .divide(mrp, 2, RoundingMode.HALF_UP);
     }
 
     private void syncProjections(Product product) {

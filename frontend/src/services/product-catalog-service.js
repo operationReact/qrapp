@@ -5,6 +5,9 @@ export const getCatalogProducts = (locationId, admin = false, params = {}) =>
     params: { ...(locationId ? { locationId } : {}), ...params },
   }).then((response) => response.data);
 
+export const getCatalogSummary = (locationId) =>
+  apiClient.get("/api/catalog/admin/summary", { params: { locationId } }).then((response) => response.data);
+
 export const createCatalogProduct = (payload) =>
   apiClient.post("/api/catalog/products", payload).then((response) => response.data);
 

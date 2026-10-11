@@ -32,4 +32,6 @@ public class ProductUpdateRequest {
     private Boolean available = true;
     @Min(0)
     private Long lowStockThreshold = 5L;
+    @Min(0)
+    private Long availableQuantity;
 }
