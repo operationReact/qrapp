@@ -147,7 +147,8 @@ resource "aws_iam_role_policy" "media_s3" {
           "${var.media_bucket_arn}/hall-of-happiness/*",
           "${var.media_bucket_arn}/menu-items/*",
           "${var.media_bucket_arn}/campaigns/*",
-          "${var.media_bucket_arn}/categories/*"
+          "${var.media_bucket_arn}/categories/*",
+          "${var.media_bucket_arn}/products/*"
         ]
       },
       {
@@ -165,7 +166,7 @@ resource "aws_iam_role_policy" "media_s3" {
         Resource = var.media_bucket_arn
         Condition = {
           StringLike = {
-            "s3:prefix" = ["locations/menu-images/*", "hall-of-happiness/*", "menu-items/*", "campaigns/*", "categories/*", "deploy/${var.environment}/*"]
+            "s3:prefix" = ["locations/menu-images/*", "hall-of-happiness/*", "menu-items/*", "campaigns/*", "categories/*", "products/*", "deploy/${var.environment}/*"]
           }
         }
       }
