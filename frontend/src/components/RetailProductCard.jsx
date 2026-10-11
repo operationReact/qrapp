@@ -20,7 +20,7 @@ export default function RetailProductCard({ item }) {
 
   return (
     <article className="overflow-hidden rounded-xl border border-border bg-card shadow-sm sm:rounded-2xl">
-      <div className="relative aspect-square overflow-hidden bg-[#fff1ed]">
+      <div className="relative aspect-[4/3] overflow-hidden bg-[#fff1ed] sm:aspect-square">
         {imageUrl(item) || suppliedImage ? (
           <img
             src={imageUrl(item) || suppliedImage}
