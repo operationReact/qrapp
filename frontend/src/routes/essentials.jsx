@@ -87,13 +87,18 @@ function EssentialsPage() {
     }))
     : legacyMenuQuery.data || [];
   const isLoading = catalogQuery.isLoading || (!catalogQuery.data && legacyMenuQuery.isLoading);
+  const catalogueProducts = catalogQuery.data || [];
   const dynamicCategoryNames = Array.from(new Set(
-    products.map((product) => product.category?.name).filter(Boolean),
+    catalogueProducts.map((product) => product.categoryName?.trim()).filter(Boolean),
   )).filter((name) => !categoryNames.some(([, value]) => value === name.toLowerCase()));
   const adminCategories = categoriesQuery.data || [];
+  const productCategoryKeys = new Set(
+    catalogueProducts.map((product) => product.categoryName?.trim().toLowerCase()).filter(Boolean),
+  );
   const adminCategoryNames = adminCategories
     .map((category) => category.name?.trim())
     .filter(Boolean)
+    .filter((name) => productCategoryKeys.has(name.toLowerCase()))
     .filter((name) => !categoryNames.some(([, value]) => value === name.toLowerCase()));
   const visibleCategoryNames = [
     ...categoryNames,
@@ -102,7 +107,7 @@ function EssentialsPage() {
   ];
   const adminCategoryImages = new Map(
     adminCategories
-      .filter((category) => category.name && category.imageUrl)
+      .filter((category) => category.name && category.imageUrl && productCategoryKeys.has(category.name.trim().toLowerCase()))
       .map((category) => [
         category.name.trim().toLowerCase(),
         category.imageUrl.startsWith("http") ? category.imageUrl : `${baseURL}${category.imageUrl}`,
@@ -206,7 +211,7 @@ function EssentialsPage() {
             <span className="text-sm font-semibold text-primary">{filteredProducts.length} items</span>
           </div>
           {isLoading ? <p className="py-8 text-center text-sm text-muted-foreground">Loading snacks &amp; more...</p> : (
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5 lg:gap-4">
+            <div className="grid grid-cols-3 gap-2 sm:grid-cols-3 sm:gap-3 lg:grid-cols-5 lg:gap-4">
               {filteredProducts.map((item) => <RetailProductCard key={item.id} item={item} />)}
             </div>
           )}
