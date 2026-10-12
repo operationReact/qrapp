@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { ArrowLeft, FileText, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, Download, FileText, Plus, Trash2 } from "lucide-react";
 import { RoleGuard } from "@/components/RoleGuard";
 import { ROLE } from "@/lib/roles";
 import { Button } from "@/components/ui/button";
@@ -156,6 +156,24 @@ function ManualInvoicesPage() {
     }
   };
 
+  const downloadPdf = async (row) => {
+    let url;
+    try {
+      url = await getManualInvoicePdfUrl(row.id);
+      const anchor = document.createElement("a");
+      const baseName = row.invoiceNumber || `manual-invoice-${row.id}`;
+      anchor.href = url;
+      anchor.download = `${baseName.replace(/[^a-z0-9._-]+/gi, "-")}.pdf`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+    } catch {
+      toast.error("Could not download PDF");
+    } finally {
+      if (url) window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+  };
+
   const rows = query.data?.content ?? [];
   const totalPages = query.data?.totalPages ?? 1;
 
@@ -225,6 +243,9 @@ function ManualInvoicesPage() {
                     <Button size="sm" variant="outline" className="h-9 flex-1 rounded-lg" onClick={() => openPdf(row.id)}>
                       <FileText className="size-3.5" /> PDF
                     </Button>
+                    <Button size="sm" variant="outline" className="h-9 rounded-lg" onClick={() => downloadPdf(row)} aria-label={`Download PDF for ${row.customerName}`}>
+                      <Download className="size-3.5" /> Download
+                    </Button>
                     {row.status === "DRAFT" && (
                       <>
                         <RowEdit id={row.id} onReady={setEditing} />
@@ -276,6 +297,9 @@ function ManualInvoicesPage() {
                       <div className="flex flex-wrap justify-end gap-1.5">
                         <Button size="sm" variant="outline" className="h-8 rounded-lg" onClick={() => openPdf(row.id)}>
                           <FileText className="size-3.5" /> PDF
+                        </Button>
+                        <Button size="sm" variant="outline" className="h-8 rounded-lg" onClick={() => downloadPdf(row)} aria-label={`Download PDF for ${row.customerName}`}>
+                          <Download className="size-3.5" /> Download
                         </Button>
                         {row.status === "DRAFT" && (
                           <>

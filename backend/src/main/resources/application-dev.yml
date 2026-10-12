@@ -117,6 +117,12 @@ openai:
 
 # ── AWS Parameter Store Settings ────────────────────────────────────────────
 app:
+  # Runtime demo fixtures are opt-in and additionally require an exact
+  # database identity in app.demo-seed.allowed-database-identities.
+  demo-seed:
+    enabled: ${APP_DEMO_SEED_ENABLED:false}
+    startup: ${APP_DEMO_SEED_STARTUP:false}
+    allowed-database-identities: ${APP_DEMO_SEED_ALLOWED_DATABASE_IDENTITIES:}
   parameter-store:
     auto-create: false
     environment: dev
