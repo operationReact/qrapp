@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.*;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 /**
@@ -200,7 +201,7 @@ public class DemoDataService {
             OrderStatus status = i % 11 == 0 ? OrderStatus.CANCELLED : OrderStatus.COMPLETED;
             MenuItem first = orderMenu.get((i - 1) % orderMenu.size());
             MenuItem second = orderMenu.get(i % orderMenu.size());
-            order("order-" + i, orderUser, location, status, PaymentMethod.PAY_AT_STALL, 30 - i,
+            order("order-" + i, orderUser, location, status, PaymentMethod.PAY_AT_STALL, 30 - i, i,
                     line(first, 1 + (i % 2)), line(second, 1));
         }
         return verifyInternal();
@@ -240,7 +241,7 @@ public class DemoDataService {
     }
 
     private void order(String key, User u, Location l, OrderStatus status, PaymentMethod pm,
-                       int days, Line... lines) {
+                       int days, int sequence, Line... lines) {
         Order o = existing(key, Order.class, orders::findById);
         if (o != null) return;
         LocalDateTime at = LocalDateTime.now().minusDays(days);
@@ -249,7 +250,7 @@ public class DemoDataService {
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         BigDecimal tax = subtotal.multiply(new BigDecimal("0.05")).setScale(2, java.math.RoundingMode.HALF_UP);
         o = new Order();
-        o.setOrderNumber("BRO-DEMO-" + key.toUpperCase());
+        o.setOrderNumber(formatFixtureOrderNumber(l.getCode(), at.toLocalDate(), sequence));
         o.setLocationCode(l.getCode());
         o.setLocation(l);
         o.setUserId(u.getId());
@@ -298,6 +299,10 @@ public class DemoDataService {
         if (accumulatedTax.compareTo(tax) != 0) {
             throw new IllegalStateException("Demo order tax snapshot is inconsistent: " + key);
         }
+    }
+
+    static String formatFixtureOrderNumber(String locationCode, LocalDate date, int sequence) {
+        return String.format("%s-%s-%04d", locationCode, date.format(DateTimeFormatter.BASIC_ISO_DATE), sequence);
     }
 
     private static final class Line {
