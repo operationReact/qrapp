@@ -81,6 +81,14 @@ class ManualInvoiceServiceTest {
     }
 
     @Test
+    void createDraftAcceptsStateName() {
+        ManualInvoice saved = service.createDraft(standaloneRequest("Telangana"), actor);
+
+        assertEquals("36", saved.getPlaceOfSupplyStateCode());
+        assertFalse(saved.getInterState());
+    }
+
+    @Test
     void createDraftInterStateUsesIgst() {
         ManualInvoice saved = service.createDraft(standaloneRequest("27"), actor);
 

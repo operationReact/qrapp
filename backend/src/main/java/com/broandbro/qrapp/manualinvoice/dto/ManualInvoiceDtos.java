@@ -36,10 +36,13 @@ public final class ManualInvoiceDtos {
             @NotBlank @Size(max = 200) String customerName,
             @Size(max = 40) String customerPhone,
             @Size(max = 254) @Email String customerEmail,
-            @Size(max = 15) String customerGstin,
+            @Size(max = 15)
+            @Pattern(regexp = "(?i)^[0-9]{2}[a-z]{5}[0-9]{4}[a-z][1-9a-z]z[0-9a-z]$",
+                    message = "customer_gstin_invalid")
+            String customerGstin,
             @Size(max = 1000) String customerAddress,
             @Size(max = 120) String placeOfSupply,
-            @Size(max = 2) String placeOfSupplyStateCode,
+            @Size(max = 120) String placeOfSupplyStateCode,
             @Size(max = 2000) String notes,
             @DecimalMin(value = "0.00") @Digits(integer = 17, fraction = 2) BigDecimal discountAmount,
             @NotEmpty @Valid List<LineItemRequest> lineItems) {

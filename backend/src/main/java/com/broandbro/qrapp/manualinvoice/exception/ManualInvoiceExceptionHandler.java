@@ -15,6 +15,8 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
+import java.util.Objects;
+
 /**
  * Scoped to the manual invoice package so authorization, validation and concurrency
  * failures surface with the correct status instead of a generic 500.
@@ -36,6 +38,13 @@ public class ManualInvoiceExceptionHandler {
     @ExceptionHandler({MethodArgumentNotValidException.class, HttpMessageNotReadableException.class,
             MethodArgumentTypeMismatchException.class, IllegalArgumentException.class})
     public ResponseEntity<ErrorResponse> handleBadRequest(Exception ex) {
+        if (ex instanceof MethodArgumentNotValidException validation) {
+            String message = validation.getBindingResult().getFieldErrors().stream()
+                    .map(error -> Objects.requireNonNullElse(error.getDefaultMessage(), "invalid_request"))
+                    .findFirst()
+                    .orElse("invalid_request");
+            return ResponseEntity.badRequest().body(new ErrorResponse(message, message));
+        }
         return ResponseEntity.badRequest().body(new ErrorResponse("invalid_request", "invalid_request"));
     }
 
