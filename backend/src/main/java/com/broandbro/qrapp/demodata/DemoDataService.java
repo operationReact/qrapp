@@ -3,6 +3,8 @@ package com.broandbro.qrapp.demodata;
 import com.broandbro.qrapp.entity.*;
 import com.broandbro.qrapp.enums.*;
 import com.broandbro.qrapp.repository.*;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Profile;
@@ -23,6 +25,7 @@ import java.util.*;
 @Profile({"dev", "local", "prod"})
 public class DemoDataService {
     public static final String MARKER = "BRO_DEMO_2026_01";
+    private static final int DEMO_ORDER_COUNT = 100_000;
     private final JdbcTemplate jdbc;
     private final PasswordEncoder encoder;
     private final LocationRepository locations;
@@ -43,6 +46,16 @@ public class DemoDataService {
     private final String profile;
     private final boolean enabled;
     private final boolean productionApproved;
+    @PersistenceContext
+    private EntityManager entityManager;
+
+    public static String formatFixtureOrderNumber(String locationCode, LocalDate date, int sequence) {
+        if (locationCode == null || locationCode.isBlank() || date == null || sequence < 1) {
+            throw new IllegalArgumentException("Invalid fixture order number inputs");
+        }
+        return "%s-%s-%04d".formatted(
+                locationCode, date.format(java.time.format.DateTimeFormatter.BASIC_ISO_DATE), sequence);
+    }
 
     @Autowired
     public DemoDataService(JdbcTemplate jdbc, PasswordEncoder encoder, LocationRepository locations,
@@ -229,14 +242,19 @@ public class DemoDataService {
         List<User> orderUsers = new ArrayList<>(demoUsers);
         orderUsers.add(partnerAdmin);
         orderUsers.add(partnerUser);
-        for (int i = 1; i <= 1000; i++) {
+        for (int i = 1; i <= DEMO_ORDER_COUNT; i++) {
             User orderUser = orderUsers.get((i - 1) % orderUsers.size());
             OrderStatus status = i % 17 == 0 ? OrderStatus.CANCELLED : OrderStatus.COMPLETED;
             MenuItem first = orderMenu.get((i - 1) % orderMenu.size());
             MenuItem second = orderMenu.get(i % orderMenu.size());
             order("order-" + i, orderUser, location, status, PaymentMethod.PAY_AT_STALL, (i - 1) % 60,
                     line(first, 1 + (i % 2)), line(second, 1));
+            if (i % 500 == 0) {
+                entityManager.flush();
+                entityManager.clear();
+            }
         }
+        entityManager.flush();
         return verifyInternal();
     }
 
@@ -283,7 +301,9 @@ public class DemoDataService {
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         BigDecimal tax = subtotal.multiply(new BigDecimal("0.05")).setScale(2, java.math.RoundingMode.HALF_UP);
         o = new Order();
-        o.setOrderNumber("BRO-DEMO-" + key.toUpperCase());
+        int orderSequence = Integer.parseInt(key.substring(key.lastIndexOf('-') + 1));
+        o.setOrderNumber(formatFixtureOrderNumber(l.getCode(), at.toLocalDate(),
+                ((orderSequence - 1) % 9999) + 1));
         o.setLocationCode(l.getCode());
         o.setLocation(l);
         o.setUserId(u.getId());
