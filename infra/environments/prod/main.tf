@@ -171,6 +171,7 @@ module "ec2" {
   instance_type          = var.ec2_instance_type
   security_group_id      = module.security_group.ec2_sg_id
   media_bucket_arn       = data.aws_s3_bucket.media.arn
+  location_bucket_arn    = "arn:aws:s3:::broandbro-location-images-prod"
   create_media_s3_policy = true
   root_volume_size       = 30
 }

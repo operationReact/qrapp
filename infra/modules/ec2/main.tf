@@ -144,6 +144,7 @@ resource "aws_iam_role_policy" "media_s3" {
         ]
         Resource = [
           "${var.media_bucket_arn}/locations/menu-images/*",
+          "${var.media_bucket_arn}/locations/*",
           "${var.media_bucket_arn}/hall-of-happiness/*",
           "${var.media_bucket_arn}/menu-items/*",
           "${var.media_bucket_arn}/campaigns/*",
@@ -166,7 +167,36 @@ resource "aws_iam_role_policy" "media_s3" {
         Resource = var.media_bucket_arn
         Condition = {
           StringLike = {
-            "s3:prefix" = ["locations/menu-images/*", "hall-of-happiness/*", "menu-items/*", "campaigns/*", "categories/*", "products/*", "deploy/${var.environment}/*"]
+            "s3:prefix" = ["locations/*", "hall-of-happiness/*", "menu-items/*", "campaigns/*", "categories/*", "products/*", "deploy/${var.environment}/*"]
+          }
+        }
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy" "location_s3" {
+  count = var.location_bucket_arn == "" ? 0 : 1
+  name  = "broandbro-${var.environment}-location-s3"
+  role  = aws_iam_role.ec2.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid      = "AllowLocationAndInvoiceAssets"
+        Effect   = "Allow"
+        Action   = ["s3:PutObject", "s3:GetObject", "s3:DeleteObject"]
+        Resource = "${var.location_bucket_arn}/locations/*"
+      },
+      {
+        Sid      = "AllowLocationBucketList"
+        Effect   = "Allow"
+        Action   = ["s3:ListBucket"]
+        Resource = var.location_bucket_arn
+        Condition = {
+          StringLike = {
+            "s3:prefix" = ["locations/*"]
           }
         }
       }

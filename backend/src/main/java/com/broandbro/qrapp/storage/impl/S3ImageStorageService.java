@@ -162,16 +162,25 @@ public class S3ImageStorageService implements ImageStorageService {
     }
 
     public ImageStorageService.StoredContent readImage(String key) {
+        return readFromBucket(key, props.getBucketName());
+    }
+
+    @Override
+    public ImageStorageService.StoredContent readLocationImage(String key) {
+        return readFromBucket(key, props.getLocationBucketName());
+    }
+
+    private ImageStorageService.StoredContent readFromBucket(String key, String bucket) {
         if (key != null && key.startsWith("local/")) {
             String contentType = key.endsWith(".jpg") || key.endsWith(".jpeg")
                     ? "image/jpeg" : key.endsWith(".webp") ? "image/webp" : "image/png";
             return new StoredContent(readLocalImage(key), contentType);
         }
-        if (key == null || key.isBlank() || !props.isEnabled()) {
+        if (key == null || key.isBlank() || !props.isEnabled() || bucket == null || bucket.isBlank()) {
             throw new IllegalArgumentException("Image storage reference is unavailable");
         }
         var response = s3Client.getObjectAsBytes(GetObjectRequest.builder()
-                .bucket(props.getBucketName()).key(key).build());
+                .bucket(bucket).key(key).build());
         return new StoredContent(response.asByteArray(),
                 response.response().contentType() == null
                         ? "application/octet-stream"

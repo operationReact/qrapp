@@ -31,6 +31,8 @@ public interface ImageStorageService {
 
     StoredContent readImage(String key);
 
+    StoredContent readLocationImage(String key);
+
     void deleteLocationImageByKey(String key);
 
     /**

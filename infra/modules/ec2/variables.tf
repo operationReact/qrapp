@@ -19,6 +19,12 @@ variable "media_bucket_arn" {
   default     = ""
 }
 
+variable "location_bucket_arn" {
+  description = "ARN of the location and invoice asset bucket."
+  type        = string
+  default     = ""
+}
+
 variable "create_media_s3_policy" {
   description = "Set to true to attach an S3 IAM policy for the media bucket to the EC2 role. Must be true when media_bucket_arn is provided."
   type        = bool
