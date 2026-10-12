@@ -200,7 +200,7 @@ public class InvoicePdfRenderer {
                            float x, float y, float width, float height) throws IOException {
         if (key == null || key.isBlank()) return;
         try {
-            ImageStorageService.StoredContent asset = imageStorage.readImage(key);
+            ImageStorageService.StoredContent asset = imageStorage.readLocationImage(key);
             PDImageXObject image = PDImageXObject.createFromByteArray(document, asset.bytes(), "invoice-asset");
             float scale = Math.min(width / image.getWidth(), height / image.getHeight());
             float drawWidth = image.getWidth() * scale;

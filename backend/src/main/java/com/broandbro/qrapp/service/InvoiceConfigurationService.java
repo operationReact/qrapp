@@ -80,7 +80,7 @@ public class InvoiceConfigurationService {
         };
         return key == null || key.isBlank()
                 ? Optional.empty()
-                : Optional.of(storage.readImage(key));
+                : Optional.of(storage.readLocationImage(key));
     }
 
     private void validate(InvoiceConfiguration config) {
