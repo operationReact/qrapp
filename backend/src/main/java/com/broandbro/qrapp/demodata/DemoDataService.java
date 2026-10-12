@@ -177,6 +177,10 @@ public class DemoDataService {
                 .city("Bengaluru").state("Karnataka").build();
             p = partners.save(p); own("partner","partner",p.getId()); }
         if (owned("partner") != null) {
+            Optional<Partner> urbanWrk = partners.findByPartnerCodeIgnoreCase("URBANWRK");
+            if (urbanWrk.isEmpty() || urbanWrk.get().getId().equals(p.getId())) {
+                p.setPartnerCode("URBANWRK");
+            }
             p.setLegalName("UrbanWrk Workplace Services LLP");
             p.setDisplayName("UrbanWrk");
             p.setPrimaryContactName("UrbanWrk Demo Operator");
