@@ -7,7 +7,9 @@ import {
 } from "@phosphor-icons/react";
 import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { retailMenuOptions } from "@/query/options/menu";
+import { baseURL } from "@/services";
+import { getCategories } from "@/services/category-service";
+import { getCatalogProducts } from "@/services/product-catalog-service";
 import {
   Carousel,
   CarouselContent,
@@ -17,60 +19,11 @@ import {
   useCarousel,
 } from "@/components/ui/carousel";
 
-const CATEGORIES = [
-  {
-    key: "chips",
-    label: "Chips & Snacks",
-    image: "/assets/essentials/products/lays.png.png",
-    surface: "#fff0bd",
-    terms: ["chips", "snacks"],
-  },
-  {
-    key: "biscuits",
-    label: "Biscuits & Cookies",
-    image: "/assets/essentials/products/oreo.png.png",
-    surface: "#eee9ff",
-    terms: ["biscuit", "cookie"],
-  },
-  {
-    key: "chocolates",
-    label: "Chocolates",
-    image: "/assets/essentials/products/kitkat.png.png",
-    surface: "#f9dfe7",
-    terms: ["chocolate"],
-  },
-  {
-    key: "beverages",
-    routeKey: "drinks",
-    label: "Beverages",
-    image: "/assets/essentials/products/coca-cola.png.png",
-    surface: "#dff6ec",
-    terms: ["drink", "beverage", "cola", "juice", "water"],
-  },
-  {
-    key: "instant-foods",
-    routeKey: "snacks",
-    label: "Instant Foods",
-    image: "/assets/essentials/hero/essentials-snacks-banner.png.png",
-    surface: "#ffecca",
-    terms: ["instant", "noodle", "snack"],
-  },
-  {
-    key: "daily-essentials",
-    routeKey: "other",
-    label: "Daily Essentials",
-    image: "/assets/essentials/hero/essentials-basket.png",
-    surface: "#e2efff",
-    terms: ["personal", "confectionery", "daily", "other"],
-  },
-];
+const CATEGORY_SURFACES = ["#fff0bd", "#eee9ff", "#f9dfe7", "#dff6ec", "#ffecca", "#e2efff"];
 
-function matchesCategory(product, category) {
-  const text = [product?.name, product?.category?.name]
-    .filter(Boolean)
-    .join(" ")
-    .toLowerCase();
-  return category.terms.some((term) => text.includes(term));
+function resolveImageUrl(url) {
+  if (!url) return null;
+  return url.startsWith("http") ? url : `${baseURL}${url}`;
 }
 
 function CarouselStatus({ count }) {
@@ -122,16 +75,41 @@ function CarouselStatus({ count }) {
 }
 
 export default function HomeEssentialsSection({ locationId }) {
-  const { data: products = [] } = useQuery(retailMenuOptions(locationId));
+  const { data: products = [] } = useQuery({
+    queryKey: ["home-product-catalog", locationId],
+    queryFn: () => getCatalogProducts(locationId),
+    enabled: Boolean(locationId),
+    staleTime: 1000 * 30,
+  });
+  const { data: backendCategories = [] } = useQuery({
+    queryKey: ["home-product-categories", locationId],
+    queryFn: () => getCategories(locationId),
+    enabled: Boolean(locationId),
+    staleTime: 1000 * 60,
+  });
   const [reducedMotion, setReducedMotion] = useState(false);
-  const categories = useMemo(
-    () =>
-      CATEGORIES.map((category) => ({
-        ...category,
-        count: products.filter((product) => matchesCategory(product, category)).length,
-      })),
-    [products],
-  );
+  const categories = useMemo(() => {
+    const categoryImages = new Map(
+      backendCategories
+        .filter((category) => category.name)
+        .map((category) => [category.name.trim().toLowerCase(), resolveImageUrl(category.imageUrl)]),
+    );
+    const grouped = new Map();
+    products.forEach((product) => {
+      const name = product.categoryName?.trim();
+      if (!name) return;
+      const key = name.toLowerCase();
+      const current = grouped.get(key) || { key, label: name, count: 0, image: null };
+      current.count += 1;
+      current.image = current.image || resolveImageUrl(product.imageUrl);
+      grouped.set(key, current);
+    });
+    return Array.from(grouped.values()).map((category, index) => ({
+      ...category,
+      image: categoryImages.get(category.key) || category.image,
+      surface: CATEGORY_SURFACES[index % CATEGORY_SURFACES.length],
+    }));
+  }, [backendCategories, products]);
 
   useEffect(() => {
     const motionMedia = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -176,15 +154,6 @@ export default function HomeEssentialsSection({ locationId }) {
             </p>
           </div>
 
-          <img
-            src="/assets/essentials/hero/essentials-hero.png"
-            alt=""
-            aria-hidden="true"
-            width="520"
-            height="260"
-            className="pointer-events-none absolute hidden"
-          />
-
           <Link
             to="/essentials"
             className="relative z-10 inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1.5 font-sans text-[11px] font-bold shadow-[0_8px_18px_rgba(239,35,60,0.2)] transition hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ef233c] focus-visible:ring-offset-2 sm:gap-2 sm:px-6 sm:py-3.5 sm:text-base"
@@ -216,18 +185,17 @@ export default function HomeEssentialsSection({ locationId }) {
                     style={{ height: "68px", flexBasis: "68px", background: category.surface }}
                   >
                     <span className="absolute left-3 top-3 size-1.5 rounded-full bg-white/80 shadow-[0_0_0_4px_rgba(255,255,255,0.2)]" aria-hidden="true" />
-                    <img
-                      src={category.image}
-                      alt={`${category.label} category`}
-                      loading="lazy"
-                      width="320"
-                      height="220"
-                      className="h-auto w-auto object-contain"
-                      style={{ maxHeight: "50px", maxWidth: "70px" }}
-                      onError={(event) => {
-                        event.currentTarget.src = "/assets/essentials/essentials-product-collage.png";
-                      }}
-                    />
+                    {category.image && (
+                      <img
+                        src={category.image}
+                        alt={`${category.label} category`}
+                        loading="lazy"
+                        width="320"
+                        height="220"
+                        className="h-auto w-auto object-contain"
+                        style={{ maxHeight: "50px", maxWidth: "70px" }}
+                      />
+                    )}
                   </div>
                   <div className="flex min-h-0 flex-1 items-end justify-between gap-1 p-1.5 sm:gap-2 sm:p-3.5">
                     <div className="min-w-0">

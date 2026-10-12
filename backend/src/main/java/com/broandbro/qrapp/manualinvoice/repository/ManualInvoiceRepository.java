@@ -32,8 +32,10 @@ public interface ManualInvoiceRepository extends JpaRepository<ManualInvoice, Lo
               AND (:sourceType IS NULL OR mi.sourceType = :sourceType)
               AND (:from IS NULL OR mi.invoiceDate >= :from)
               AND (:to IS NULL OR mi.invoiceDate <= :to)
-              AND (:search IS NULL OR LOWER(mi.customerName) LIKE LOWER(CONCAT('%', :search, '%'))
-                   OR (mi.invoiceNumber IS NOT NULL AND LOWER(mi.invoiceNumber) LIKE LOWER(CONCAT('%', :search, '%'))))
+              AND (CAST(:search AS string) IS NULL
+                   OR LOWER(mi.customerName) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%'))
+                   OR (mi.invoiceNumber IS NOT NULL
+                       AND LOWER(mi.invoiceNumber) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%'))))
             ORDER BY mi.invoiceDate DESC, mi.id DESC
             """)
     Page<ManualInvoice> search(@Param("status") ManualInvoiceStatus status,

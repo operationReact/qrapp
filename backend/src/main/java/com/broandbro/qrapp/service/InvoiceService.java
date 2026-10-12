@@ -39,6 +39,7 @@ public class InvoiceService {
     private final TaxCalculationService taxCalculationService;
     private final InvoiceConfigurationService configurationService;
     private final ImageStorageService imageStorage;
+    private final InvoicePdfRenderer pdfRenderer;
 
     @Transactional
     public Invoice createIfAbsent(Order order) {
@@ -353,40 +354,29 @@ public class InvoiceService {
     @Transactional(readOnly = true)
     public byte[] renderPdf(Invoice invoice, Order order, List<OrderItem> items) {
         InvoiceConfiguration config = configurationService.findGlobal();
-        try (PDDocument document = new PDDocument();
-             ByteArrayOutputStream output = new ByteArrayOutputStream()) {
-            PDPage page = new PDPage(PDRectangle.A4);
-            document.addPage(page);
-            PDPageContentStream content = new PDPageContentStream(document, page);
-            float y = drawInvoiceHeader(document, content, invoice, config, false);
-            y = drawPartyDetails(content, invoice, config, y);
-            Map<Long, String> itemNames = menuRepository == null ? Map.of() : menuRepository.findAllById(
-                    items.stream().map(OrderItem::getItemId).distinct().toList()).stream()
-                    .collect(Collectors.toMap(MenuItem::getId, MenuItem::getName, (first, ignored) -> first));
-            Map<Long, MenuItem> menuItems = menuRepository == null ? Map.of() : menuRepository.findAllById(
-                    items.stream().map(OrderItem::getItemId).distinct().toList()).stream()
-                    .collect(Collectors.toMap(MenuItem::getId, item -> item, (first, ignored) -> first));
-            TaxCalculationService.TaxCalculationResult legacyTax =
-                    legacyTax(invoice, order, items, menuItems);
-            BigDecimal fallbackTaxable = nonZero(invoice.getTaxableAmount(), fallbackTaxableAmount(order));
-            y = drawItemTable(content, items, itemNames, menuItems, fallbackTaxable,
-                    MoneyService.amount(invoice.getGrandTotal()), legacyTax, config, y);
-            if (y < 330) {
-                drawContinuationMarker(content);
-                content.close();
-                page = new PDPage(PDRectangle.A4);
-                document.addPage(page);
-                content = new PDPageContentStream(document, page);
-                y = drawInvoiceHeader(document, content, invoice, config, true) - 28;
-            }
-            y = drawTotals(document, content, invoice, order, items, legacyTax, config, y);
-            drawFooterAndSignature(document, content, config, y);
-            content.close();
-            document.save(output);
-            return output.toByteArray();
-        } catch (IOException ex) {
-            throw new IllegalStateException("Invoice PDF generation failed", ex);
-        }
+        Map<Long, String> itemNames = menuRepository == null ? Map.of() : menuRepository.findAllById(
+                items.stream().map(OrderItem::getItemId).distinct().toList()).stream()
+                .collect(Collectors.toMap(MenuItem::getId, MenuItem::getName, (first, ignored) -> first));
+        BigDecimal fallbackTaxable = nonZero(invoice.getTaxableAmount(), fallbackTaxableAmount(order));
+        List<InvoicePdfRenderer.InvoicePdfModel.Line> lines = items.stream()
+                .map(item -> new InvoicePdfRenderer.InvoicePdfModel.Line(
+                        itemNames.getOrDefault(item.getItemId(), "Item " + item.getItemId()),
+                        item.getHsnSac(),
+                        BigDecimal.valueOf(item.getQuantity()),
+                        item.getGstRate(),
+                        nonZero(item.getTaxableAmount(), items.size() == 1 ? fallbackTaxable : BigDecimal.ZERO),
+                        nonZero(item.getTotalCustomerPrice(),
+                                items.size() == 1 ? invoice.getGrandTotal() : BigDecimal.ZERO)))
+                .toList();
+        return pdfRenderer.render(new InvoicePdfRenderer.InvoicePdfModel(
+                null, invoice.getInvoiceNumber(), String.valueOf(invoice.getInvoiceDate()),
+                invoice.getSupplierName(), invoice.getSupplierGstin(), invoice.getSupplierAddress(),
+                invoice.getSupplierState(), invoice.getSupplierStateCode(),
+                invoice.getCustomerName(), invoice.getCustomerPhone(), invoice.getCustomerEmail(), null, null,
+                invoice.getPlaceOfSupply(), null, invoice.getPaymentMethod(),
+                invoice.getIgstAmount() != null && invoice.getIgstAmount().compareTo(BigDecimal.ZERO) > 0,
+                fallbackTaxable, invoice.getCgstAmount(), invoice.getSgstAmount(), invoice.getIgstAmount(),
+                invoice.getGrandTotal(), lines), config);
     }
 
     private static String financialYear(LocalDate date) {

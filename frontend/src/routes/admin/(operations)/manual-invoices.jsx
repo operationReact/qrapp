@@ -49,6 +49,21 @@ const STATUS_STYLE = {
   CANCELLED: "bg-rose-100 text-rose-700",
 };
 
+const INDIAN_STATES = [
+  ["01", "Jammu and Kashmir"], ["02", "Himachal Pradesh"], ["03", "Punjab"], ["04", "Chandigarh"],
+  ["05", "Uttarakhand"], ["06", "Haryana"], ["07", "Delhi"], ["08", "Rajasthan"],
+  ["09", "Uttar Pradesh"], ["10", "Bihar"], ["11", "Sikkim"], ["12", "Arunachal Pradesh"],
+  ["13", "Nagaland"], ["14", "Manipur"], ["15", "Mizoram"], ["16", "Tripura"],
+  ["17", "Meghalaya"], ["18", "Assam"], ["19", "West Bengal"], ["20", "Jharkhand"],
+  ["21", "Odisha"], ["22", "Chhattisgarh"], ["23", "Madhya Pradesh"], ["24", "Gujarat"],
+  ["25", "Daman and Diu"], ["26", "Dadra and Nagar Haveli and Daman and Diu"], ["27", "Maharashtra"],
+  ["29", "Karnataka"], ["30", "Goa"], ["31", "Lakshadweep"],
+  ["32", "Kerala"], ["33", "Tamil Nadu"], ["34", "Puducherry"], ["35", "Andaman and Nicobar Islands"],
+  ["36", "Telangana"], ["37", "Andhra Pradesh"], ["38", "Ladakh"],
+];
+const STATE_NAME_BY_CODE = new Map(INDIAN_STATES);
+STATE_NAME_BY_CODE.set("28", "Andhra Pradesh");
+
 const emptyLine = () => ({ description: "", hsnSac: "", quantity: "1", unitPrice: "0", gstRate: "18" });
 const emptyForm = () => ({
   sourceType: "PARTY_EVENT",
@@ -62,7 +77,7 @@ const emptyForm = () => ({
   customerGstin: "",
   customerAddress: "",
   placeOfSupply: "",
-  placeOfSupplyStateCode: "",
+  placeOfSupplyState: "",
   notes: "",
   discountAmount: "0",
   lineItems: [emptyLine()],
@@ -70,6 +85,10 @@ const emptyForm = () => ({
 
 function money(value) {
   return `INR ${Number(value ?? 0).toFixed(2)}`;
+}
+
+function isValidGstin(value) {
+  return !value || /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/.test(value);
 }
 
 function toPayload(form) {
@@ -85,7 +104,9 @@ function toPayload(form) {
     customerGstin: form.customerGstin || null,
     customerAddress: form.customerAddress || null,
     placeOfSupply: form.placeOfSupply || null,
-    placeOfSupplyStateCode: form.placeOfSupplyStateCode || null,
+    placeOfSupplyStateCode: form.placeOfSupplyState
+      ? INDIAN_STATES.find(([, name]) => name === form.placeOfSupplyState)?.[0] || null
+      : null,
     notes: form.notes || null,
     discountAmount: Number(form.discountAmount || 0),
     lineItems: form.lineItems.map((l) => ({
@@ -153,7 +174,7 @@ function ManualInvoicesPage() {
               finalized invoices are immutable and carry a global manual number.
             </p>
           </div>
-          <Button className="h-11 rounded-xl bg-[#24211F] hover:bg-[#3A3530]" onClick={() => setEditing(emptyForm())}>
+          <Button className="h-11 w-full rounded-xl bg-[#24211F] hover:bg-[#3A3530] md:w-auto" onClick={() => setEditing(emptyForm())}>
             <Plus className="size-4" /> New invoice
           </Button>
         </header>
@@ -161,21 +182,21 @@ function ManualInvoicesPage() {
         <Card className="rounded-2xl border-[#E7E0D8] bg-[#FFFEFC]">
           <CardHeader className="flex flex-col gap-3 pb-2 sm:flex-row sm:items-end sm:justify-between">
             <CardTitle className="text-base">Register</CardTitle>
-            <div className="flex flex-wrap gap-2">
+            <div className="grid w-full gap-2 sm:flex sm:flex-wrap sm:justify-end">
               <Input
                 placeholder="Search number or customer"
                 value={search}
                 onChange={(e) => { setPage(0); setSearch(e.target.value); }}
-                className="h-10 w-56 rounded-xl border-[#E7E0D8] bg-white"
+                className="h-10 w-full rounded-xl border-[#E7E0D8] bg-white sm:w-56"
               />
               <Select value={status || "all"} onValueChange={(v) => { setPage(0); setStatus(v === "all" ? "" : v); }}>
-                <SelectTrigger className="h-10 w-40 rounded-xl border-[#E7E0D8] bg-white"><SelectValue placeholder="Status" /></SelectTrigger>
+                <SelectTrigger className="h-10 w-full rounded-xl border-[#E7E0D8] bg-white sm:w-40"><SelectValue placeholder="Status" /></SelectTrigger>
                 <SelectContent>
                   {STATUS_FILTERS.map((s) => <SelectItem key={s.value || "all"} value={s.value || "all"}>{s.label}</SelectItem>)}
                 </SelectContent>
               </Select>
               <Select value={sourceType || "all"} onValueChange={(v) => { setPage(0); setSourceType(v === "all" ? "" : v); }}>
-                <SelectTrigger className="h-10 w-40 rounded-xl border-[#E7E0D8] bg-white"><SelectValue placeholder="Source" /></SelectTrigger>
+                <SelectTrigger className="h-10 w-full rounded-xl border-[#E7E0D8] bg-white sm:w-40"><SelectValue placeholder="Source" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All sources</SelectItem>
                   {SOURCE_TYPES.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
@@ -183,7 +204,45 @@ function ManualInvoicesPage() {
               </Select>
             </div>
           </CardHeader>
-          <CardContent className="overflow-x-auto">
+          <CardContent className="px-3 sm:px-6">
+            <div className="space-y-3 sm:hidden">
+              {query.isLoading && <p className="py-8 text-center text-sm text-[#756D64]">Loading…</p>}
+              {!query.isLoading && rows.length === 0 && <p className="py-8 text-center text-sm text-[#756D64]">No manual invoices yet.</p>}
+              {rows.map((row) => (
+                <article key={row.id} className="rounded-xl border border-[#E7E0D8] bg-white p-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate font-semibold">{row.customerName}</p>
+                      <p className="mt-1 text-xs text-[#756D64]">{row.invoiceNumber || "Draft"} · {row.invoiceDate}</p>
+                    </div>
+                    <Badge className={`${STATUS_STYLE[row.status] || ""} shrink-0 border-0`}>{row.status}</Badge>
+                  </div>
+                  <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-[#756D64]">
+                    <div><span className="block uppercase tracking-wide text-[10px]">Source</span><span className="font-medium text-[#24211F]">{SOURCE_TYPES.find((s) => s.value === row.sourceType)?.label || row.sourceType}</span></div>
+                    <div className="text-right"><span className="block uppercase tracking-wide text-[10px]">Total</span><span className="font-semibold text-[#24211F]">{money(row.grandTotal)}</span></div>
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-2 border-t border-[#F0EBE5] pt-3">
+                    <Button size="sm" variant="outline" className="h-9 flex-1 rounded-lg" onClick={() => openPdf(row.id)}>
+                      <FileText className="size-3.5" /> PDF
+                    </Button>
+                    {row.status === "DRAFT" && (
+                      <>
+                        <RowEdit id={row.id} onReady={setEditing} />
+                        <Button type="button" size="sm" variant="default"
+                          className="h-9 rounded-lg !bg-emerald-700 !text-white hover:!bg-emerald-800"
+                          onClick={() => finalize.mutate(row.id)}>
+                          Finalize
+                        </Button>
+                      </>
+                    )}
+                    {row.status !== "CANCELLED" && (
+                      <CancelButton onCancel={(reason) => cancel.mutate({ id: row.id, reason })} />
+                    )}
+                  </div>
+                </article>
+              ))}
+            </div>
+            <div className="hidden overflow-x-auto sm:block">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -221,9 +280,11 @@ function ManualInvoicesPage() {
                         {row.status === "DRAFT" && (
                           <>
                             <RowEdit id={row.id} onReady={setEditing} />
-                            <Button size="sm" className="h-8 rounded-lg bg-emerald-700 hover:bg-emerald-800"
-                              disabled={finalize.isPending}
-                              onClick={() => finalize.mutate(row.id)}>Finalize</Button>
+                            <Button type="button" size="sm" variant="default"
+                              className="h-8 rounded-lg !bg-emerald-700 !text-white hover:!bg-emerald-800"
+                              onClick={() => finalize.mutate(row.id)}>
+                              Finalize
+                            </Button>
                           </>
                         )}
                         {row.status !== "CANCELLED" && (
@@ -235,6 +296,7 @@ function ManualInvoicesPage() {
                 ))}
               </TableBody>
             </Table>
+            </div>
             {totalPages > 1 && (
               <div className="mt-4 flex items-center justify-between text-sm text-[#756D64]">
                 <span>Page {page + 1} of {totalPages}</span>
@@ -278,7 +340,7 @@ function RowEdit({ id, onReady }) {
         customerGstin: data.customerGstin || "",
         customerAddress: data.customerAddress || "",
         placeOfSupply: data.placeOfSupply || "",
-        placeOfSupplyStateCode: data.placeOfSupplyStateCode || "",
+        placeOfSupplyState: STATE_NAME_BY_CODE.get(String(data.placeOfSupplyStateCode || "").padStart(2, "0")) || "",
         notes: data.notes || "",
         discountAmount: String(data.discountAmount ?? 0),
         lineItems: (data.lineItems || []).map((l) => ({
@@ -348,7 +410,9 @@ function InvoiceFormDialog({ initial, onClose, onSaved }) {
     onError: (e) => toast.error(e.response?.data?.code || e.response?.data?.message || "Could not save invoice"),
   });
 
+  const gstinValid = isValidGstin(form.customerGstin.trim().toUpperCase());
   const valid = form.customerName.trim()
+    && gstinValid
     && form.lineItems.length > 0
     && form.lineItems.every((l) => l.description.trim() && l.hsnSac.trim()
       && Number(l.quantity) > 0 && Number(l.gstRate) >= 0)
@@ -356,7 +420,7 @@ function InvoiceFormDialog({ initial, onClose, onSaved }) {
 
   return (
     <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
-      <DialogContent className="max-h-[92vh] max-w-3xl overflow-y-auto">
+      <DialogContent className="max-h-[92vh] w-[calc(100%-1rem)] max-w-3xl overflow-y-auto rounded-2xl p-4 sm:p-6">
         <DialogHeader><DialogTitle>{isEdit ? "Edit draft invoice" : "New manual invoice"}</DialogTitle></DialogHeader>
         <div className="grid gap-4">
           <div className="grid gap-3 sm:grid-cols-3">
@@ -394,9 +458,20 @@ function InvoiceFormDialog({ initial, onClose, onSaved }) {
             <Labeled label="Customer name"><Input value={form.customerName} onChange={(e) => set("customerName", e.target.value)} /></Labeled>
             <Labeled label="Customer phone"><Input value={form.customerPhone} onChange={(e) => set("customerPhone", e.target.value)} /></Labeled>
             <Labeled label="Customer email"><Input value={form.customerEmail} onChange={(e) => set("customerEmail", e.target.value)} /></Labeled>
-            <Labeled label="Customer GSTIN"><Input value={form.customerGstin} onChange={(e) => set("customerGstin", e.target.value)} /></Labeled>
+            <Labeled label="Customer GSTIN">
+              <Input maxLength={15} value={form.customerGstin} onChange={(e) => set("customerGstin", e.target.value.toUpperCase())} />
+              {!gstinValid && <span className="font-normal text-rose-600">Enter a valid 15-character GSTIN.</span>}
+            </Labeled>
             <Labeled label="Place of supply"><Input value={form.placeOfSupply} onChange={(e) => set("placeOfSupply", e.target.value)} /></Labeled>
-            <Labeled label="Place of supply state code"><Input value={form.placeOfSupplyStateCode} onChange={(e) => set("placeOfSupplyStateCode", e.target.value)} placeholder="e.g. 36" /></Labeled>
+            <Labeled label="State">
+              <Select value={form.placeOfSupplyState || "none"} onValueChange={(value) => set("placeOfSupplyState", value === "none" ? "" : value)}>
+                <SelectTrigger><SelectValue placeholder="Select state" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Select state</SelectItem>
+                  {INDIAN_STATES.map(([, name]) => <SelectItem key={name} value={name}>{name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </Labeled>
             <Labeled label="Customer address" className="sm:col-span-2"><Input value={form.customerAddress} onChange={(e) => set("customerAddress", e.target.value)} /></Labeled>
           </div>
 

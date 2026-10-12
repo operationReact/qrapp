@@ -24,6 +24,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -35,6 +36,26 @@ import java.util.Objects;
 @RequiredArgsConstructor
 public class ManualInvoiceService {
     static final String MANUAL_NUMBER_PREFIX = "MI";
+    private static final Map<String, String> STATE_CODES = Map.ofEntries(
+            Map.entry("jammu and kashmir", "01"), Map.entry("himachal pradesh", "02"),
+            Map.entry("punjab", "03"), Map.entry("chandigarh", "04"),
+            Map.entry("uttarakhand", "05"), Map.entry("haryana", "06"),
+            Map.entry("delhi", "07"), Map.entry("rajasthan", "08"),
+            Map.entry("uttar pradesh", "09"), Map.entry("bihar", "10"),
+            Map.entry("sikkim", "11"), Map.entry("arunachal pradesh", "12"),
+            Map.entry("nagaland", "13"), Map.entry("manipur", "14"),
+            Map.entry("mizoram", "15"), Map.entry("tripura", "16"),
+            Map.entry("meghalaya", "17"), Map.entry("assam", "18"),
+            Map.entry("west bengal", "19"), Map.entry("jharkhand", "20"),
+            Map.entry("odisha", "21"), Map.entry("orissa", "21"),
+            Map.entry("chhattisgarh", "22"), Map.entry("madhya pradesh", "23"),
+            Map.entry("gujarat", "24"), Map.entry("maharashtra", "27"),
+            Map.entry("andhra pradesh", "37"), Map.entry("karnataka", "29"),
+            Map.entry("goa", "30"), Map.entry("lakshadweep", "31"),
+            Map.entry("kerala", "32"), Map.entry("tamil nadu", "33"),
+            Map.entry("puducherry", "34"), Map.entry("pondicherry", "34"),
+            Map.entry("andaman and nicobar islands", "35"),
+            Map.entry("telangana", "36"), Map.entry("ladakh", "38"));
 
     private final ManualInvoiceRepository repository;
     private final ManualInvoiceAuditRepository auditRepository;
@@ -253,6 +274,8 @@ public class ManualInvoiceService {
     private static String normalizeStateCode(String value) {
         String trimmed = trimToNull(value);
         if (trimmed == null) return null;
+        String stateNameCode = STATE_CODES.get(trimmed.toLowerCase(Locale.ROOT));
+        if (stateNameCode != null) return stateNameCode;
         if (!trimmed.matches("(?i)(\\d{1,2}|[a-z]{2})")) {
             throw ManualInvoiceException.validation("invalid_state_code");
         }
