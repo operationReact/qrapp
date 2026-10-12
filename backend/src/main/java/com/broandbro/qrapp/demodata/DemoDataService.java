@@ -143,12 +143,35 @@ public class DemoDataService {
         if (l == null) { l = Location.builder().code("BRO_DEMO_01").name("Bro & Bro Partner Demo Centre")
                 .address("100 Synthetic Demo Street").city("Bengaluru").stateUt("Karnataka").country("India").pinCode("560001").active(true).build();
             l = locations.save(l); own("location","locations",l.getId()); }
+        if (owned("location") != null) {
+            l.setName("UrbanWrk Demo Centre");
+            l.setAddress("100 Synthetic Demo Street");
+            l.setCity("Bengaluru");
+            l.setStateUt("Karnataka");
+            l.setCountry("India");
+            l.setPinCode("560001");
+            l = locations.save(l);
+        }
         final Location location = l;
         Partner p = existing("partner", Partner.class, partners::findById);
-        if (p == null) { p = Partner.builder().partnerCode("BRO-DEMO-PARTNER").legalName("Bro & Bro Demo Partner LLP")
-                .displayName("Bro & Bro Partner Demo").primaryContactName("Demo Operator")
-                .primaryContactEmail("demo@example.invalid").primaryContactPhone("9000000001").city("Bengaluru").state("Karnataka").build();
+        if (p == null) {
+            p = partners.findByPartnerCodeIgnoreCase("URBANWRK").orElse(null);
+        }
+        if (p == null) { p = Partner.builder().partnerCode("URBANWRK").legalName("UrbanWrk Workplace Services LLP")
+                .displayName("UrbanWrk").primaryContactName("UrbanWrk Demo Operator")
+                .primaryContactEmail("urbanwrk-demo@example.invalid").primaryContactPhone("9000000001")
+                .businessType("Corporate workplace food services").logoUrl("/assets/partners/urban-work-logo.png")
+                .city("Bengaluru").state("Karnataka").build();
             p = partners.save(p); own("partner","partner",p.getId()); }
+        if (owned("partner") != null) {
+            p.setLegalName("UrbanWrk Workplace Services LLP");
+            p.setDisplayName("UrbanWrk");
+            p.setPrimaryContactName("UrbanWrk Demo Operator");
+            p.setPrimaryContactEmail("urbanwrk-demo@example.invalid");
+            p.setBusinessType("Corporate workplace food services");
+            p.setLogoUrl("/assets/partners/urban-work-logo.png");
+            p = partners.save(p);
+        }
         final Partner partner = p;
         if (owned("partner-location") == null) {
             PartnerLocation pl = PartnerLocation.builder().partner(partner).location(location)
@@ -160,11 +183,11 @@ public class DemoDataService {
         User partnerUser = partnerUser("partner-user", "9000000022", "Demo Partner User",
                 UserRole.PARTNER_USER, partner, location);
         List<User> demoUsers = new ArrayList<>();
-        for (int i=1;i<=3;i++) {
+        for (int i=1;i<=20;i++) {
             String key="user-"+i, phone="90000000"+(10+i);
             User u=existing(key,User.class,users::findById);
             if(u==null){u=User.builder().phone(phone).password(encoder.encode("demo-only-password"))
-                    .name("Demo Customer "+i).role(UserRole.CUSTOMER).defaultLocation(location).termsAccepted(true).active(true).build();
+                    .name("UrbanWrk Demo Employee "+i).role(UserRole.CUSTOMER).defaultLocation(location).termsAccepted(true).active(true).build();
                 u=users.save(u);own(key,"users",u.getId());}
             demoUsers.add(u);
             if (owned("access-"+i)==null) { UserLocationAccess a=UserLocationAccess.builder().user(u).location(location).role(UserRole.CUSTOMER).active(true).build(); a=accesses.save(a); own("access-"+i,"user_location_access",a.getId()); }
@@ -187,20 +210,31 @@ public class DemoDataService {
         MenuItem m6=menuItem("menu-breakfast","Demo Breakfast Combo",breakfast,location,v1,new BigDecimal("185.00"),"SKU-DEMO-BREAKFAST");
         MenuItem m7=menuItem("menu-shake","Demo Mango Milkshake",beverages,location,v3,new BigDecimal("130.00"),"SKU-DEMO-SHAKE");
         MenuItem m8=menuItem("menu-dessert","Demo Jaggery Payasam",desserts,location,v2,new BigDecimal("95.00"),"SKU-DEMO-PAYASAM");
-        for (int i=1;i<=3;i++) {
-            Product product = product("product-"+i, i==1?"Demo Coffee Beans":i==2?"Demo Bowl Ingredients":"Demo Millet Flour", i);
+        String[] productNames = {
+                "UrbanWrk Filter Coffee", "UrbanWrk Masala Bowl Ingredients", "UrbanWrk Millet Flour",
+                "UrbanWrk Idli Batter", "UrbanWrk Paneer", "UrbanWrk Breakfast Granola",
+                "UrbanWrk Mango Pulp", "UrbanWrk Jaggery", "UrbanWrk Rice Pack",
+                "UrbanWrk Mineral Water", "UrbanWrk Fruit Juice", "UrbanWrk Tea Bags",
+                "UrbanWrk Snack Box", "UrbanWrk Chocolate Bar", "UrbanWrk Yogurt Cup",
+                "UrbanWrk Fresh Salad Pack"
+        };
+        for (int i=1;i<=productNames.length;i++) {
+            Product product = product("product-"+i, productNames[i - 1], i);
             LocationProduct lp=locationProducts.findByProductIdAndLocationId(product.getId(),location.getId()).orElse(null);
-            if(lp==null){lp=new LocationProduct();lp.setProduct(product);lp.setLocation(location);lp.setSellingPrice(new BigDecimal(i==1?"80":"160"));lp=locationProducts.save(lp);own("location-product-"+i,"location_product",lp.getId());}
-            if(inventories.findByLocationProductId(lp.getId()).isEmpty()){ProductInventory inv=new ProductInventory();inv.setLocationProduct(lp);inv.setAvailableQuantity(i == 1 ? 65L : i == 2 ? 4L : 0L);inv.setReservedQuantity(0L);inv=inventories.save(inv);own("inventory-"+i,"product_inventory",inv.getId());}
+            long stock = i % 7 == 0 ? 0L : i % 5 == 0 ? 4L : 25L + i * 3L;
+            if(lp==null){lp=new LocationProduct();lp.setProduct(product);lp.setLocation(location);lp.setSellingPrice(new BigDecimal(45 + i * 12L));lp.setAvailable(stock > 0);lp=locationProducts.save(lp);own("location-product-"+i,"location_product",lp.getId());}
+            if(inventories.findByLocationProductId(lp.getId()).isEmpty()){ProductInventory inv=new ProductInventory();inv.setLocationProduct(lp);inv.setAvailableQuantity(stock);inv.setReservedQuantity(0L);inv.setLowStockThreshold(5L);inv=inventories.save(inv);own("inventory-"+i,"product_inventory",inv.getId());}
         }
         List<MenuItem> orderMenu = List.of(m1, m2, m3, m4, m5, m6, m7, m8);
-        List<User> orderUsers = List.of(demoUsers.get(0), demoUsers.get(1), demoUsers.get(2), partnerAdmin, partnerUser);
-        for (int i = 1; i <= 30; i++) {
+        List<User> orderUsers = new ArrayList<>(demoUsers);
+        orderUsers.add(partnerAdmin);
+        orderUsers.add(partnerUser);
+        for (int i = 1; i <= 1000; i++) {
             User orderUser = orderUsers.get((i - 1) % orderUsers.size());
-            OrderStatus status = i % 11 == 0 ? OrderStatus.CANCELLED : OrderStatus.COMPLETED;
+            OrderStatus status = i % 17 == 0 ? OrderStatus.CANCELLED : OrderStatus.COMPLETED;
             MenuItem first = orderMenu.get((i - 1) % orderMenu.size());
             MenuItem second = orderMenu.get(i % orderMenu.size());
-            order("order-" + i, orderUser, location, status, PaymentMethod.PAY_AT_STALL, 30 - i,
+            order("order-" + i, orderUser, location, status, PaymentMethod.PAY_AT_STALL, (i - 1) % 60,
                     line(first, 1 + (i % 2)), line(second, 1));
         }
         return verifyInternal();
