@@ -63,6 +63,9 @@ spring:
 
 # Allowed CORS origins (comma-separated). Defaults to frontend dev server.
 app:
+  demo-seed:
+    # Production requires an additional explicit approval beyond the normal opt-in.
+    production-approved: ${APP_DEMO_SEED_PRODUCTION_APPROVED:false}
   # ── AWS Parameter Store Configuration ────────────────────────────────────
   parameter-store:
     auto-create: false
