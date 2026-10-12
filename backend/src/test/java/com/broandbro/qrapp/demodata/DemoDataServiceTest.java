@@ -5,6 +5,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.time.LocalDate;
+
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
@@ -17,6 +19,15 @@ class DemoDataServiceTest {
                 mock(ProductRepository.class), mock(MenuRepository.class), mock(VendorRepository.class),
                 mock(LocationProductRepository.class), mock(ProductInventoryRepository.class),
                 mock(OrderRepository.class), mock(OrderItemRepository.class), identities, profile, enabled);
+    }
+
+    @Test
+    void fixtureOrderNumbersMatchTheDatabaseOrderNumberFormat() {
+        String orderNumber = DemoDataService.formatFixtureOrderNumber(
+                "BRO_DEMO_01", LocalDate.of(2026, 9, 13), 1);
+
+        assertEquals("BRO_DEMO_01-20260913-0001", orderNumber);
+        assertTrue(orderNumber.matches("^[A-Z0-9_-]+-\\d{8}-\\d{4}$"));
     }
 
     @Test
