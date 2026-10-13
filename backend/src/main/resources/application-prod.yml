@@ -95,6 +95,6 @@ app:
   # approved and its exact database identity is allowlisted.
   demo-seed:
     enabled: ${APP_DEMO_SEED_ENABLED:true}
-    startup: ${APP_DEMO_SEED_STARTUP:true}
+    startup: ${APP_DEMO_SEED_STARTUP:false}
     production-approved: ${APP_DEMO_SEED_PRODUCTION_APPROVED:true}
     allowed-database-identities: ${APP_DEMO_SEED_ALLOWED_DATABASE_IDENTITIES:broandbro/broandbro}
