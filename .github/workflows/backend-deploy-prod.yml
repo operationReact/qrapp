@@ -333,8 +333,8 @@ jobs:
             # Apply the upload limit at http context level so it also covers
             # HTTPS server blocks generated or modified by certbot.
             sudo tee /etc/nginx/conf.d/zz-broandbro-upload-limit.conf > /dev/null <<'NGINX'
-            client_max_body_size 25m;
-            NGINX
+          client_max_body_size 25m;
+          NGINX
             while IFS= read -r nginx_config; do
               sudo sed -i -E 's/client_max_body_size[[:space:]]+[0-9]+[mMgG];/client_max_body_size 25m;/g' "$nginx_config"
             done < <(sudo grep -RIl --include='*.conf' 'client_max_body_size' /etc/nginx || true)
