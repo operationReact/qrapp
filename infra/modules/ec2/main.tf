@@ -115,7 +115,7 @@ resource "aws_iam_role_policy" "ssm_read" {
     Version = "2012-10-17"
     Statement = [{
       Effect   = "Allow"
-      Action   = ["ssm:GetParameter", "ssm:GetParameters", "ssm:GetParametersByPath"]
+      Action   = ["ssm:GetParameter", "ssm:GetParameters"]
       Resource = [
         "arn:aws:ssm:*:*:parameter/broandbro/${var.environment}/*",
         "arn:aws:ssm:*:*:parameter/broandbro/backend/${var.environment}/*"
