@@ -155,25 +155,10 @@ public class DemoDataService {
                     .effectiveFrom(LocalDate.now().minusMonths(3)).createdBy("demo-fixture").updatedBy("demo-fixture").build();
             pl = partnerLocations.save(pl); own("partner-location","partner_location",pl.getId());
         }
-        Location secondLocation = existing("location-2", Location.class, locations::findById);
-        if (secondLocation == null) {
-            secondLocation = Location.builder().code("BRO_DEMO_02").name("UrbanWrk Demo Annex")
-                    .address("200 Synthetic Demo Street").city("Bengaluru").stateUt("Karnataka")
-                    .country("India").pinCode("560002").active(true).build();
-            secondLocation = locations.save(secondLocation);
-            own("location-2", "locations", secondLocation.getId());
-        }
-        if (owned("partner-location-2") == null) {
-            PartnerLocation pl = PartnerLocation.builder().partner(partner).location(secondLocation)
-                    .effectiveFrom(LocalDate.now().minusMonths(3)).createdBy("demo-fixture").updatedBy("demo-fixture").build();
-            pl = partnerLocations.save(pl); own("partner-location-2", "partner_location", pl.getId());
-        }
         User partnerAdmin = partnerUser("partner-admin", "9000000021", "Demo Partner Admin",
                 UserRole.PARTNER_ADMIN, partner, location);
         User partnerUser = partnerUser("partner-user", "9000000022", "Demo Partner User",
                 UserRole.PARTNER_USER, partner, location);
-        locationAccess("partner-admin-location-2-access", partnerAdmin, secondLocation, UserRole.PARTNER_ADMIN);
-        locationAccess("partner-user-location-2-access", partnerUser, secondLocation, UserRole.PARTNER_USER);
         List<User> demoUsers = new ArrayList<>();
         for (int i=1;i<=3;i++) {
             String key="user-"+i, phone="90000000"+(10+i);
@@ -202,26 +187,6 @@ public class DemoDataService {
         MenuItem m6=menuItem("menu-breakfast","Demo Breakfast Combo",breakfast,location,v1,new BigDecimal("185.00"),"SKU-DEMO-BREAKFAST");
         MenuItem m7=menuItem("menu-shake","Demo Mango Milkshake",beverages,location,v3,new BigDecimal("130.00"),"SKU-DEMO-SHAKE");
         MenuItem m8=menuItem("menu-dessert","Demo Jaggery Payasam",desserts,location,v2,new BigDecimal("95.00"),"SKU-DEMO-PAYASAM");
-        Category secondBreakfast = category("category-2-breakfast","Breakfast & Tiffin",secondLocation,1);
-        Category secondDosa = category("category-2-dosa","Dosa & Idli",secondLocation,2);
-        Category secondMeals = category("category-2-meals","Meals & Rice",secondLocation,3);
-        Category secondSnacks = category("category-2-snacks","Snacks & Packaged",secondLocation,4);
-        Category secondBeverages = category("category-2-beverages","Drinks & Milkshakes",secondLocation,5);
-        Category secondDesserts = category("category-2-desserts","Desserts",secondLocation,6);
-        MenuItem m9 = menuItem("menu-2-coffee","Demo Filter Coffee",secondBeverages,secondLocation,v3,
-                new BigDecimal("80.00"),"SKU-DEMO-2-COFFEE");
-        MenuItem m10 = menuItem("menu-2-meal","Demo Masala Bowl",secondMeals,secondLocation,v1,
-                new BigDecimal("220.00"),"SKU-DEMO-2-BOWL");
-        MenuItem m11 = menuItem("menu-2-bake","Demo Millet Bake",secondSnacks,secondLocation,v2,
-                new BigDecimal("160.00"),"SKU-DEMO-2-BAKE");
-        MenuItem m12 = menuItem("menu-2-idli","Demo Idli Sambar",secondDosa,secondLocation,v1,
-                new BigDecimal("110.00"),"SKU-DEMO-2-IDLI");
-        MenuItem m13 = menuItem("menu-2-breakfast","Demo Breakfast Combo",secondBreakfast,secondLocation,v1,
-                new BigDecimal("185.00"),"SKU-DEMO-2-BREAKFAST");
-        MenuItem m14 = menuItem("menu-2-shake","Demo Mango Milkshake",secondBeverages,secondLocation,v3,
-                new BigDecimal("130.00"),"SKU-DEMO-2-SHAKE");
-        MenuItem m15 = menuItem("menu-2-dessert","Demo Jaggery Payasam",secondDesserts,secondLocation,v2,
-                new BigDecimal("95.00"),"SKU-DEMO-2-PAYASAM");
         for (int i=1;i<=3;i++) {
             Product product = product("product-"+i, i==1?"Demo Coffee Beans":i==2?"Demo Bowl Ingredients":"Demo Millet Flour", i);
             LocationProduct lp=locationProducts.findByProductIdAndLocationId(product.getId(),location.getId()).orElse(null);
@@ -230,28 +195,13 @@ public class DemoDataService {
         }
         List<MenuItem> orderMenu = List.of(m1, m2, m3, m4, m5, m6, m7, m8);
         List<User> orderUsers = List.of(demoUsers.get(0), demoUsers.get(1), demoUsers.get(2), partnerAdmin, partnerUser);
-        Random random = new Random(20261013L);
-        for (int i = 1; i <= 9000; i++) {
+        for (int i = 1; i <= 30; i++) {
             User orderUser = orderUsers.get((i - 1) % orderUsers.size());
-            OrderStatus status = random.nextInt(20) == 0 ? OrderStatus.CANCELLED : OrderStatus.COMPLETED;
-            MenuItem first = orderMenu.get(random.nextInt(orderMenu.size()));
-            MenuItem second = orderMenu.get(random.nextInt(orderMenu.size()));
-            int daysAgo = random.nextInt(90);
-            order("order-" + i, orderUser, location, status, PaymentMethod.PAY_AT_STALL, daysAgo,
-                    line(first, 1 + random.nextInt(3), randomPrice(first, random)),
-                    line(second, 1 + random.nextInt(2), randomPrice(second, random)));
-        }
-        List<MenuItem> secondOrderMenu = List.of(m9, m10, m11, m12, m13, m14, m15);
-        Random secondRandom = new Random(20261014L);
-        for (int i = 1; i <= 7000; i++) {
-            User orderUser = orderUsers.get((i - 1) % orderUsers.size());
-            OrderStatus status = secondRandom.nextInt(20) == 0 ? OrderStatus.CANCELLED : OrderStatus.COMPLETED;
-            MenuItem first = secondOrderMenu.get(secondRandom.nextInt(secondOrderMenu.size()));
-            MenuItem second = secondOrderMenu.get(secondRandom.nextInt(secondOrderMenu.size()));
-            order("location-2-order-" + i, orderUser, secondLocation, status,
-                    PaymentMethod.PAY_AT_STALL, secondRandom.nextInt(90),
-                    line(first, 1 + secondRandom.nextInt(3), randomPrice(first, secondRandom)),
-                    line(second, 1 + secondRandom.nextInt(2), randomPrice(second, secondRandom)));
+            OrderStatus status = i % 11 == 0 ? OrderStatus.CANCELLED : OrderStatus.COMPLETED;
+            MenuItem first = orderMenu.get((i - 1) % orderMenu.size());
+            MenuItem second = orderMenu.get(i % orderMenu.size());
+            order("order-" + i, orderUser, location, status, PaymentMethod.PAY_AT_STALL, 30 - i,
+                    line(first, 1 + (i % 2)), line(second, 1));
         }
         return verifyInternal();
     }
@@ -281,30 +231,12 @@ public class DemoDataService {
         return u;
     }
 
-    private void locationAccess(String key, User user, Location location, UserRole role) {
-        if (owned(key) == null) {
-            UserLocationAccess access = UserLocationAccess.builder().user(user).location(location)
-                    .role(role).active(true).build();
-            access = accesses.save(access);
-            own(key, "user_location_access", access.getId());
-        }
-    }
-
     private Category category(String key,String name,Location l,int order){Category c=existing(key,Category.class,categories::findById);if(c==null){c=new Category();c.setName(name);c.setLocation(l);c.setDisplayOrder(order);c=categories.save(c);own(key,"category",c.getId());}return c;}
     private Vendor vendor(String key,String name,String phone){Vendor v=existing(key,Vendor.class,vendors::findById);if(v==null){v=new Vendor();v.setVendorName(name);v.setPhoneNumber(phone);v=vendors.save(v);own(key,"vendor",v.getId());}return v;}
     private Product product(String key,String name,int n){Product p=existing(key,Product.class,products::findById);if(p==null){p=new Product();p.setSku("DEMO-P-"+n);p.setName(name);p.setMrp(new BigDecimal("100"));p.setCostPrice(new BigDecimal("40"));p.setActive(true);p=products.save(p);own(key,"product_master",p.getId());}return p;}
     private MenuItem menuItem(String key,String name,Category c,Location l,Vendor v,BigDecimal price,String sku){MenuItem m=existing(key,MenuItem.class,menu::findById);if(m==null){m=new MenuItem();m.setName(name);m.setCategory(c);m.setLocation(l);m.setVendor(v);m.setMrp(price);m.setPurchaseCost(price.multiply(new BigDecimal(".5")));m.setSkuCode(sku);m.setProductType(ProductType.PREPARED_FOOD);m.setAvailable(true);m.setIsDeleted(false);m=menu.save(m);own(key,"menu_item",m.getId());}return m;}
     private Line line(MenuItem item, int quantity) {
-        return new Line(item, quantity, item.getMrp());
-    }
-
-    private Line line(MenuItem item, int quantity, BigDecimal unitPrice) {
-        return new Line(item, quantity, unitPrice);
-    }
-
-    private BigDecimal randomPrice(MenuItem item, Random random) {
-        BigDecimal multiplier = BigDecimal.valueOf(0.90 + random.nextDouble() * 0.40);
-        return item.getMrp().multiply(multiplier).setScale(2, java.math.RoundingMode.HALF_UP);
+        return new Line(item, quantity);
     }
 
     private void order(String key, User u, Location l, OrderStatus status, PaymentMethod pm,
@@ -313,13 +245,9 @@ public class DemoDataService {
         if (o != null) return;
         LocalDateTime at = LocalDateTime.now().minusDays(days);
         BigDecimal subtotal = Arrays.stream(lines)
-                .map(line -> line.unitPrice.multiply(BigDecimal.valueOf(line.quantity)))
+                .map(line -> line.item.getMrp().multiply(BigDecimal.valueOf(line.quantity)))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
-        BigDecimal tax = Arrays.stream(lines)
-                .map(line -> line.unitPrice.multiply(BigDecimal.valueOf(line.quantity))
-                        .multiply(new BigDecimal("0.05"))
-                        .setScale(2, java.math.RoundingMode.HALF_UP))
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal tax = subtotal.multiply(new BigDecimal("0.05")).setScale(2, java.math.RoundingMode.HALF_UP);
         o = new Order();
         o.setOrderNumber("BRO-DEMO-" + key.toUpperCase());
         o.setLocationCode(l.getCode());
@@ -340,7 +268,7 @@ public class DemoDataService {
         BigDecimal accumulatedTax = BigDecimal.ZERO;
         for (int n = 0; n < lines.length; n++) {
             Line line = lines[n];
-            BigDecimal lineTotal = line.unitPrice.multiply(BigDecimal.valueOf(line.quantity));
+            BigDecimal lineTotal = line.item.getMrp().multiply(BigDecimal.valueOf(line.quantity));
             BigDecimal lineTax = lineTotal.multiply(new BigDecimal("0.05"))
                     .setScale(2, java.math.RoundingMode.HALF_UP);
             accumulatedTax = accumulatedTax.add(lineTax);
@@ -348,11 +276,11 @@ public class DemoDataService {
             item.setOrderId(o.getId());
             item.setItemId(line.item.getId());
             item.setQuantity(line.quantity);
-            item.setSellingPriceSnapshot(line.unitPrice);
+            item.setSellingPriceSnapshot(line.item.getMrp());
             item.setCostPriceSnapshot(line.item.getPurchaseCost());
-            item.setProfitSnapshot(line.unitPrice.subtract(line.item.getPurchaseCost()));
+            item.setProfitSnapshot(line.item.getMrp().subtract(line.item.getPurchaseCost()));
             item.setLineTotal(lineTotal);
-            item.setUnitBasePrice(line.unitPrice);
+            item.setUnitBasePrice(line.item.getMrp());
             item.setGrossBaseAmount(lineTotal);
             item.setTaxableAmount(lineTotal);
             item.setGstRate(new BigDecimal("5.0000"));
@@ -361,7 +289,7 @@ public class DemoDataService {
             item.setSgstRate(new BigDecimal("2.5000"));
             item.setSgstAmount(lineTax.subtract(item.getCgstAmount()));
             item.setTotalTax(lineTax);
-            item.setUnitCustomerPrice(line.unitPrice.multiply(new BigDecimal("1.05"))
+            item.setUnitCustomerPrice(line.item.getMrp().multiply(new BigDecimal("1.05"))
                     .setScale(2, java.math.RoundingMode.HALF_UP));
             item.setTotalCustomerPrice(lineTotal.add(lineTax));
             item = orderItems.save(item);
@@ -375,11 +303,9 @@ public class DemoDataService {
     private static final class Line {
         private final MenuItem item;
         private final int quantity;
-        private final BigDecimal unitPrice;
-        private Line(MenuItem item, int quantity, BigDecimal unitPrice) {
+        private Line(MenuItem item, int quantity) {
             this.item = item;
             this.quantity = quantity;
-            this.unitPrice = unitPrice;
         }
     }
 
