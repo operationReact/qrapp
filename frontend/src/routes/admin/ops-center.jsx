@@ -8,6 +8,11 @@ import {
   triggerOpsJob,
   triggerSync,
 } from "@/services/opsService";
+import {
+  cleanupDemoData,
+  fetchDemoDataSeedStatus,
+  startDemoDataSeed,
+} from "@/services/demoDataService";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -20,7 +25,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import {
   PlayIcon,
   ArrowsClockwiseIcon,
@@ -43,6 +48,7 @@ import {
   TerminalWindowIcon,
 } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
+import { hasRole } from "@/lib/roles";
 
 export const Route = createFileRoute("/admin/ops-center")({
   component: OpsCenterPage,
@@ -278,9 +284,85 @@ function SyncCard({ config, onSync, pending }) {
   );
 }
 
+function DemoDataCard({ status, onSeed, onCleanup, pending, cleanupPending }) {
+  const running = status?.status === "RUNNING";
+  const completed = status?.status === "COMPLETED";
+  const failed = status?.status === "FAILED";
+  const statusClass = running
+    ? "bg-amber-50 text-amber-700 border-amber-200"
+    : failed
+      ? "bg-red-50 text-red-700 border-red-200"
+      : completed
+        ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+        : "bg-zinc-100 text-zinc-600 border-zinc-200";
+
+  return (
+    <div className="rounded-xl border border-amber-200 bg-amber-50/30 p-4 flex flex-col gap-3">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="size-9 rounded-lg flex items-center justify-center border border-amber-200 bg-amber-50">
+            <DatabaseIcon weight="duotone" className="size-4.5 text-amber-600" />
+          </div>
+          <div>
+            <div className="text-sm font-semibold text-zinc-900">Demo Data</div>
+            <div className="text-xs text-zinc-500">UrbanWrk test fixture</div>
+          </div>
+        </div>
+        <span className={cn("text-[10px] font-bold px-1.5 py-0.5 rounded-full border", statusClass)}>
+          {status?.status ?? "IDLE"}
+        </span>
+      </div>
+      <p className="text-xs text-zinc-600 leading-relaxed">
+        Creates the UrbanWrk locations, menu data, 16,000 test orders, and refreshes analytics.
+      </p>
+      {failed && status.error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+          {status.error}
+        </div>
+      )}
+      <Button
+        size="sm"
+        variant={failed ? "destructive" : "outline"}
+        className="w-full gap-2 h-9 text-sm font-medium"
+        onClick={onSeed}
+        disabled={pending || running}
+      >
+        {pending || running ? (
+          <>
+            <CircleNotchIcon className="size-3.5 animate-spin" />
+            Seeding…
+          </>
+        ) : (
+          <>
+            <DatabaseIcon weight="bold" className="size-3.5" />
+            {completed || failed ? "Run Seed Again" : "Create Test Data"}
+          </>
+        )}
+      </Button>
+      <Button
+        size="sm"
+        variant="outline"
+        className="w-full gap-2 h-9 text-sm font-medium border-red-300 text-red-700 hover:bg-red-50"
+        onClick={onCleanup}
+        disabled={pending || cleanupPending || running}
+      >
+        {cleanupPending ? (
+          <>
+            <CircleNotchIcon className="size-3.5 animate-spin" />
+            Removing…
+          </>
+        ) : (
+          "Remove Test Data"
+        )}
+      </Button>
+    </div>
+  );
+}
+
 // ── Health Cards ────────────────────────────────────────────────────────────
 
-function HealthCard({ title, icon: Icon, status, meta }) {
+function HealthCard({ title, icon, status, meta }) {
+  const Icon = icon;
   const isUp = status === "UP";
   return (
     <div className={cn(
@@ -362,7 +444,8 @@ function AuditTable({ entries }) {
 
 // ── Section Header ──────────────────────────────────────────────────────────
 
-function SectionHeader({ icon: Icon, title, description, actions }) {
+function SectionHeader({ icon, title, description, actions }) {
+  const Icon = icon;
   return (
     <div className="flex items-start justify-between gap-4 mb-4">
       <div className="flex items-center gap-3 min-w-0">
@@ -382,13 +465,15 @@ function SectionHeader({ icon: Icon, title, description, actions }) {
 // ── Page ────────────────────────────────────────────────────────────────────
 
 function OpsCenterPage() {
-  const { isAdmin, isSuperUser } = useAuth();
+  const { isAdmin, isSuperUser, user } = useAuth();
   const { pathname } = useLocation();
   const queryClient = useQueryClient();
 
   const [confirmJob, setConfirmJob]   = useState(null);
   const [confirmSync, setConfirmSync] = useState(null);
   const [pendingSync, setPendingSync] = useState(null);
+  const [confirmDemoCleanup, setConfirmDemoCleanup] = useState(false);
+  const canSeedDemoData = isSuperUser || hasRole(user, "SUPER_ADMIN");
 
   // ── Queries ────────────────────────────────────────────────────────────────
 
@@ -415,6 +500,14 @@ function OpsCenterPage() {
     queryFn: fetchOpsHealth,
     staleTime: 30_000,
     refetchInterval: 60_000,
+  });
+
+  const { data: demoSeedStatus } = useQuery({
+    queryKey: ["demo-data", "seed-status"],
+    queryFn: fetchDemoDataSeedStatus,
+    enabled: canSeedDemoData,
+    refetchInterval: (query) =>
+      query.state.data?.status === "RUNNING" ? 2000 : false,
   });
 
   // ── Mutations ──────────────────────────────────────────────────────────────
@@ -455,6 +548,36 @@ function OpsCenterPage() {
     },
   });
 
+  const demoSeedMutation = useMutation({
+    mutationFn: startDemoDataSeed,
+    onSuccess: () => {
+      toast.success("Demo data seed started", {
+        description: "The test data is being created in the background.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["demo-data", "seed-status"] });
+    },
+    onError: (error) => {
+      const message = error?.response?.data?.error ?? "Unable to start demo data seeding";
+      toast.error("Demo data seed failed", { description: message });
+    },
+  });
+
+  const demoCleanupMutation = useMutation({
+    mutationFn: cleanupDemoData,
+    onSuccess: () => {
+      toast.success("Demo data cleanup started", {
+        description: "Fixture records are being removed in the background.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["demo-data", "seed-status"] });
+      setConfirmDemoCleanup(false);
+    },
+    onError: (error) => {
+      const message = error?.response?.data?.error ?? "Unable to remove demo data";
+      toast.error("Demo data cleanup failed", { description: message });
+      setConfirmDemoCleanup(false);
+    },
+  });
+
   // ── Guard ──────────────────────────────────────────────────────────────────
 
   if (!isAdmin && !isSuperUser) {
@@ -466,14 +589,11 @@ function OpsCenterPage() {
   const jobs    = jobsData?.jobs ?? [];
   const entries = historyData?.entries ?? [];
 
-  const jobsByCategory = useMemo(() => {
-    const map = {};
-    for (const job of jobs) {
-      if (!map[job.category]) map[job.category] = [];
-      map[job.category].push(job);
-    }
-    return map;
-  }, [jobs]);
+  const jobsByCategory = {};
+  for (const job of jobs) {
+    if (!jobsByCategory[job.category]) jobsByCategory[job.category] = [];
+    jobsByCategory[job.category].push(job);
+  }
 
   const health = healthData ?? {};
   const schedulerStats = health.schedulers ?? {};
@@ -618,6 +738,25 @@ function OpsCenterPage() {
           </div>
         </section>
 
+        {canSeedDemoData && (
+          <section>
+            <SectionHeader
+              icon={DatabaseIcon}
+              title="Demo Data"
+              description="Super Admin only. Runs after startup so production remains available."
+            />
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+              <DemoDataCard
+                status={demoSeedStatus}
+                pending={demoSeedMutation.isPending}
+                cleanupPending={demoCleanupMutation.isPending}
+                onSeed={() => demoSeedMutation.mutate()}
+                onCleanup={() => setConfirmDemoCleanup(true)}
+              />
+            </div>
+          </section>
+        )}
+
         {/* ── Job Control ───────────────────────────────────────────────── */}
         <section>
           <SectionHeader
@@ -666,6 +805,28 @@ function OpsCenterPage() {
           </div>
         </section>
       </div>
+
+      <AlertDialog open={confirmDemoCleanup} onOpenChange={setConfirmDemoCleanup}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove all demo data?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This removes only records created by the UrbanWrk demo fixture, including its test orders and locations.
+              Real customer data is not selected.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 text-white hover:bg-red-700"
+              onClick={() => demoCleanupMutation.mutate()}
+              disabled={demoCleanupMutation.isPending}
+            >
+              {demoCleanupMutation.isPending ? "Removing…" : "Remove Test Data"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* ── Job Confirm Dialog ─────────────────────────────────────────── */}
       <AlertDialog open={!!confirmJob} onOpenChange={(v) => !v && setConfirmJob(null)}>

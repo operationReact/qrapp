@@ -384,6 +384,14 @@ public class DemoDataService {
     }
 
     private void cleanupInternal() {
+        jdbc.update("delete from analytics_daily_sales where location_id in " +
+                "(select entity_id from app_demo_fixture_manifest where marker=? and entity_type='locations')", MARKER);
+        jdbc.update("delete from analytics_hourly_orders where location_id in " +
+                "(select entity_id from app_demo_fixture_manifest where marker=? and entity_type='locations')", MARKER);
+        jdbc.update("delete from analytics_menu_item where location_id in " +
+                "(select entity_id from app_demo_fixture_manifest where marker=? and entity_type='locations')", MARKER);
+        jdbc.update("delete from analytics_coupon where location_id in " +
+                "(select entity_id from app_demo_fixture_manifest where marker=? and entity_type='locations')", MARKER);
         jdbc.query("select entity_type,entity_id from app_demo_fixture_manifest where marker=? order by case entity_type " +
                 "when 'order_item' then 1 when 'orders' then 2 when 'user_location_access' then 3 " +
                 "when 'product_inventory' then 4 when 'location_product' then 5 when 'menu_item' then 6 " +
@@ -401,6 +409,6 @@ public class DemoDataService {
                 (rs, ignored) -> { counts.put(rs.getString(1), rs.getLong(2)); return null; }, MARKER);
         return Map.of("marker",MARKER,"ownedRecords",count,"counts",counts,"locationCode","BRO_DEMO_01",
                 "safeExternalSideEffects",false,
-                "unsupportedDerivedDomains",List.of("analytics snapshots","invoices","settlements","notifications","payment webhooks"));
+                "unsupportedDerivedDomains",List.of("invoices","settlements","notifications","payment webhooks"));
     }
 }
