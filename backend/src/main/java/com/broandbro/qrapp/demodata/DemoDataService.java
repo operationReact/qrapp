@@ -23,6 +23,7 @@ import java.util.*;
 @Profile({"dev", "local", "prod"})
 public class DemoDataService {
     public static final String MARKER = "BRO_DEMO_2026_01";
+    private static final String DEMO_PASSWORD = "demo-only-password";
     private final JdbcTemplate jdbc;
     private final PasswordEncoder encoder;
     private final LocationRepository locations;
@@ -104,16 +105,28 @@ public class DemoDataService {
     }
 
     @Transactional
-    public Map<String, Object> setup() { guard(); return seed(); }
+    public Map<String, Object> setup() { guard(); repairVendorIdentitySequence(); return seed(); }
 
     @Transactional
-    public Map<String, Object> reseed() { guard(); cleanupInternal(); return seed(); }
+    public Map<String, Object> reseed() { guard(); repairVendorIdentitySequence(); cleanupInternal(); return seed(); }
 
     @Transactional
     public Map<String, Object> cleanup() { guard(); cleanupInternal(); return verifyInternal(); }
 
     @Transactional(readOnly = true)
     public Map<String, Object> verify() { guard(); return verifyInternal(); }
+
+    private void repairVendorIdentitySequence() {
+        String sequence = jdbc.queryForObject(
+                "select pg_get_serial_sequence('vendor', 'id')",
+                String.class);
+        if (sequence == null) return;
+
+        Long nextId = jdbc.queryForObject(
+                "select coalesce(max(id), 0) + 1 from vendor",
+                Long.class);
+        jdbc.queryForObject("select setval(?::regclass, ?, false)", Long.class, sequence, nextId);
+    }
 
     private Long owned(String key) {
         List<Long> ids = jdbc.query("select entity_id from app_demo_fixture_manifest where marker=? and stable_key=?",
@@ -178,9 +191,10 @@ public class DemoDataService {
         for (int i=1;i<=3;i++) {
             String key="user-"+i, phone="90000000"+(10+i);
             User u=existing(key,User.class,users::findById);
-            if(u==null){u=User.builder().phone(phone).password(encoder.encode("demo-only-password"))
+            if(u==null){u=User.builder().phone(phone).password(encoder.encode(DEMO_PASSWORD))
                     .name("Demo Customer "+i).role(UserRole.CUSTOMER).defaultLocation(location).termsAccepted(true).active(true).build();
                 u=users.save(u);own(key,"users",u.getId());}
+            else { u.setPassword(encoder.encode(DEMO_PASSWORD)); users.save(u); }
             demoUsers.add(u);
             if (owned("access-"+i)==null) { UserLocationAccess a=UserLocationAccess.builder().user(u).location(location).role(UserRole.CUSTOMER).active(true).build(); a=accesses.save(a); own("access-"+i,"user_location_access",a.getId()); }
         }
@@ -260,12 +274,12 @@ public class DemoDataService {
                              Partner partner, Location location) {
         User u = existing(key, User.class, users::findById);
         if (u == null) {
-            u = User.builder().phone(phone).password(encoder.encode("demo-only-password"))
+            u = User.builder().phone(phone).password(encoder.encode(DEMO_PASSWORD))
                     .name(name).role(role).defaultLocation(location).termsAccepted(true).active(true)
                     .build();
             u = users.save(u);
             own(key, "users", u.getId());
-        }
+        } else { u.setPassword(encoder.encode(DEMO_PASSWORD)); users.save(u); }
         if (partnerUsers != null && owned(key + "-membership") == null) {
             PartnerUser membership = PartnerUser.builder().partner(partner).user(u).active(true)
                     .createdBy("demo-fixture").updatedBy("demo-fixture").build();
@@ -321,7 +335,9 @@ public class DemoDataService {
                         .setScale(2, java.math.RoundingMode.HALF_UP))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         o = new Order();
-        o.setOrderNumber("BRO-DEMO-" + key.toUpperCase());
+        String fixtureKey = key.toUpperCase(Locale.ROOT).replace('-', '_');
+        o.setOrderNumber(String.format("%s-%s-%s-0001", l.getCode(), fixtureKey,
+                at.format(java.time.format.DateTimeFormatter.BASIC_ISO_DATE)));
         o.setLocationCode(l.getCode());
         o.setLocation(l);
         o.setUserId(u.getId());

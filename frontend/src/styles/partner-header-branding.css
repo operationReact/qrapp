@@ -148,6 +148,44 @@
   .partner-location-control { max-width: 5.8rem; }
 }
 
+@media (max-width: 800px) {
+  .partner-header-branding-group {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .partner-header-actions {
+    flex: 0 0 auto;
+    min-width: 0;
+  }
+
+  .partner-content {
+    min-width: 0;
+    padding: 1rem 0.75rem 5.5rem;
+  }
+
+  .partner-dashboard,
+  .partner-dashboard-grid,
+  .partner-section-card,
+  .partner-exec-overview {
+    min-width: 0;
+  }
+
+  .partner-dashboard-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .partner-exec-links {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .partner-location-card,
+  .partner-exec-link {
+    min-width: 0;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .partner-header-bro-logo,
   .partner-header-partner-logo,

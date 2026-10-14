@@ -120,9 +120,10 @@ app:
   # Runtime demo fixtures are opt-in and additionally require an exact
   # database identity in app.demo-seed.allowed-database-identities.
   demo-seed:
-    enabled: ${APP_DEMO_SEED_ENABLED:false}
-    startup: ${APP_DEMO_SEED_STARTUP:false}
-    allowed-database-identities: ${APP_DEMO_SEED_ALLOWED_DATABASE_IDENTITIES:}
+    # Manual seed/cleanup is available from the admin Ops Center in dev.
+    enabled: ${APP_DEMO_SEED_ENABLED:true}
+    startup: ${APP_DEMO_SEED_STARTUP:true}
+    allowed-database-identities: ${APP_DEMO_SEED_ALLOWED_DATABASE_IDENTITIES:broandbro_dev/broandbro}
   parameter-store:
     auto-create: false
     environment: dev

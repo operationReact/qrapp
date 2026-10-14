@@ -8,6 +8,7 @@ import { router } from './router'
 import "./index.css";
 import "./styles/auth-login.css";
 import "./styles/partner-header-branding.css";
+import "./styles/partner-dashboard.css";
 import ErrorBoundary from './components/ErrorBoundary';
 
 const queryClient = new QueryClient({
