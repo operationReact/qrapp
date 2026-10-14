@@ -122,7 +122,7 @@ app:
   demo-seed:
     # Manual seed/cleanup is available from the admin Ops Center in dev.
     enabled: ${APP_DEMO_SEED_ENABLED:true}
-    startup: ${APP_DEMO_SEED_STARTUP:true}
+    startup: ${APP_DEMO_SEED_STARTUP:false}
     allowed-database-identities: ${APP_DEMO_SEED_ALLOWED_DATABASE_IDENTITIES:broandbro_dev/broandbro}
   parameter-store:
     auto-create: false
