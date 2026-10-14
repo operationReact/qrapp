@@ -318,13 +318,6 @@ jobs:
             sudo systemctl daemon-reload
             sudo systemctl restart broandbro
 
-            # Repair any invalid upload-limit config left by an earlier deployment
-            # before Certbot validates the Nginx configuration.
-            sudo find /etc/nginx -type f -name '*.conf' -print0 | \
-              sudo xargs -0 -r sed -i '/^[[:space:]]*NGINX[[:space:]]*$/d'
-            printf '%s\n' 'client_max_body_size 25m;' | \
-              sudo tee /etc/nginx/conf.d/zz-broandbro-upload-limit.conf > /dev/null
-
             # Configure HTTPS after DNS points api.broandbro.in to this host.
             if [ ! -d /etc/letsencrypt/live/api.broandbro.in ]; then
               sudo certbot --nginx \
@@ -339,6 +332,9 @@ jobs:
             fi
             # Apply the upload limit at http context level so it also covers
             # HTTPS server blocks generated or modified by certbot.
+            sudo tee /etc/nginx/conf.d/zz-broandbro-upload-limit.conf > /dev/null <<'NGINX'
+          client_max_body_size 25m;
+          NGINX
             while IFS= read -r nginx_config; do
               sudo sed -i -E 's/client_max_body_size[[:space:]]+[0-9]+[mMgG];/client_max_body_size 25m;/g' "$nginx_config"
             done < <(sudo grep -RIl --include='*.conf' 'client_max_body_size' /etc/nginx || true)
