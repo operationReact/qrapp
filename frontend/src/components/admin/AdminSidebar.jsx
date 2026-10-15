@@ -61,6 +61,7 @@ function NavItem({ to, label, icon, pathname, alertCount, onNavigate }) {
                 {label !== "Dashboard" && label !== "Kitchen Queue" && <span className="ml-auto text-[#756e66]">›</span>}
               </Link>
             }
+
         />
       </SidebarMenuItem>
   );
@@ -190,6 +191,7 @@ export function AdminSidebar() {
   }, []);
 
   return (
+      <>
       <Sidebar collapsible="icon" className="admin-sidebar-shell min-h-0 min-w-0 pt-[env(safe-area-inset-top)] md:pt-0">
         <SidebarHeader className="shrink-0 border-b border-sidebar-border/60 px-3 py-3 md:px-3 md:py-4">
           <div className="flex items-center gap-2 px-1 md:hidden">
@@ -315,5 +317,6 @@ export function AdminSidebar() {
           </SidebarMenu>
         </SidebarFooter>
       </Sidebar>
+      </>
   );
 }

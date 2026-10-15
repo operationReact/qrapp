@@ -1,9 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { ArchiveIcon, CheckCircleIcon, FunnelIcon, MagnifyingGlassIcon, PackageIcon, PlusIcon, WarningIcon } from "@phosphor-icons/react";
+import { ArchiveIcon, CheckCircleIcon, FunnelIcon, MagnifyingGlassIcon, PackageIcon, PlusIcon, SidebarIcon, WarningIcon } from "@phosphor-icons/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useLocation } from "@/context/LocationContext";
+import { useSidebar } from "@/components/ui/sidebar";
 import { baseURL } from "@/services";
 import {
   Combobox,
@@ -86,6 +87,7 @@ function formatMoney(value) {
 
 function ProductCatalogPage() {
   const { availableLocations = [], activeLocationId } = useLocation();
+  const { toggleSidebar } = useSidebar();
   const queryClient = useQueryClient();
   const [form, setForm] = useState(EMPTY);
   const [formOpen, setFormOpen] = useState(false);
@@ -300,13 +302,16 @@ function ProductCatalogPage() {
               <div className="grid size-11 shrink-0 place-items-center rounded-2xl bg-[#fff0ed] text-[#e52b3a]">
                 <PackageIcon className="size-5" />
               </div>
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
                   <h1 className="truncate text-xl font-bold tracking-tight text-[#242220] sm:text-2xl">MRP Product</h1>
                   <span className="rounded-full bg-[#ece9e4] px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-[#77736f]">Workspace</span>
                 </div>
                 <p className="mt-0.5 truncate text-sm text-[#77736f]">Manage products, categories, pricing and location inventory.</p>
               </div>
+              <button type="button" onClick={toggleSidebar} aria-label="Open admin navigation" className="grid size-9 shrink-0 place-items-center rounded-xl border border-[#e5e2dd] bg-white text-[#514d48] shadow-sm hover:border-[#f6a2aa] md:hidden">
+                <SidebarIcon className="size-[17px]" />
+              </button>
             </div>
             <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-end">
               <label className="min-w-0 flex-1 space-y-1 text-[11px] font-bold uppercase tracking-wide text-[#77736f] sm:min-w-[260px]">

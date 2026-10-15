@@ -50,7 +50,7 @@ function AdminLayoutContent() {
         <AdminSidebar />
         <SidebarInset className={cn("admin-workspace flex min-h-svh min-w-0 flex-1 flex-col overflow-x-clip bg-[#f7f5f2]")}>
           {!hideGenericHeader && <SubPageHeader title={pageTitle} />}
-          <div className="flex min-h-0 min-w-0 flex-1 flex-col"><Outlet /></div>
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col"><Outlet /></div>
         </SidebarInset>
       </>
   );
