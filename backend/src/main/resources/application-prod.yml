@@ -91,10 +91,3 @@ legal:
   privacy-policy-version: ${LEGAL_PRIVACY_POLICY_VERSION:2026-01}
 
 app:
-  # Demo seeding is disabled unless this production environment is explicitly
-  # approved and its exact database identity is allowlisted.
-  demo-seed:
-    enabled: ${APP_DEMO_SEED_ENABLED:true}
-    startup: ${APP_DEMO_SEED_STARTUP:false}
-    production-approved: ${APP_DEMO_SEED_PRODUCTION_APPROVED:true}
-    allowed-database-identities: ${APP_DEMO_SEED_ALLOWED_DATABASE_IDENTITIES:broandbro/broandbro}

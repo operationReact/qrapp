@@ -32,16 +32,4 @@ public class AsyncConfig {
         return executor;
     }
 
-    @Bean("demoDataExecutor")
-    public Executor demoDataExecutor() {
-        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-        executor.setCorePoolSize(1);
-        executor.setMaxPoolSize(1);
-        executor.setQueueCapacity(1);
-        executor.setThreadNamePrefix("demo-seed-");
-        executor.setWaitForTasksToCompleteOnShutdown(true);
-        executor.setAwaitTerminationSeconds(60);
-        executor.initialize();
-        return executor;
-    }
 }
