@@ -10,6 +10,12 @@ export const getCategoryMenuItems = (id, locationId) =>
 export const getCategories = (locationId) =>
   apiClient.get("/categories", { params: { locationId } }).then((r) => r.data);
 
+export const getMrpProductCategories = (locationId) =>
+  apiClient.get("/api/catalog/admin/categories", { params: { locationId } }).then((r) => r.data);
+
+export const createMrpProductCategory = (payload, locationId) =>
+  apiClient.post("/api/catalog/admin/categories", payload, { params: { locationId } }).then((r) => r.data);
+
 export const createCategory = (payload, locationId) =>
   apiClient.post("/categories", payload, { params: { locationId } }).then((r) => r.data);
 

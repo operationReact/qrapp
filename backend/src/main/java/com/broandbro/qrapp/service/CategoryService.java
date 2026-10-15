@@ -32,6 +32,9 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class CategoryService {
 
+    public static final String MENU_CATEGORY = "MENU";
+    public static final String MRP_PRODUCT_CATEGORY = "MRP_PRODUCT";
+
     private static final long MAX_FILE_SIZE = 5 * 1024 * 1024L;
     private static final Set<String> ALLOWED_TYPES = Set.of("image/jpeg", "image/png", "image/webp");
     private static final Set<String> ALLOWED_EXTENSIONS = Set.of("jpg", "jpeg", "png", "webp");
@@ -51,6 +54,13 @@ public class CategoryService {
         return categoryRepository.findByLocationIdAndIsDeletedFalseOrderByDisplayOrderAscNameAsc(locationId);
     }
 
+    @Transactional(readOnly = true)
+    public List<Category> getAllMrpProductCategories(Long locationId) {
+        requireActiveLocation(locationId);
+        return categoryRepository.findByLocationIdAndCategoryTypeAndIsDeletedFalseOrderByDisplayOrderAscNameAsc(
+                locationId, MRP_PRODUCT_CATEGORY);
+    }
+
     public Optional<Category> getCategoryById(Long locationId, Long id) {
         requireActiveLocation(locationId);
         return categoryRepository.findByIdAndLocationIdAndIsDeletedFalse(id, locationId);
@@ -64,6 +74,16 @@ public class CategoryService {
     @CacheEvict(cacheNames = {"categories", "menu", "menuRecommended"}, allEntries = true)
     public Category createCategory(Long locationId, Category category, User user) {
         Location location = requireManagementLocation(locationId, user);
+        category.setCategoryType(MENU_CATEGORY);
+        category.setLocation(location);
+        return categoryRepository.save(category);
+    }
+
+    @Transactional
+    @CacheEvict(cacheNames = {"categories", "menu", "menuRecommended"}, allEntries = true)
+    public Category createMrpProductCategory(Long locationId, Category category, User user) {
+        Location location = requireManagementLocation(locationId, user);
+        category.setCategoryType(MRP_PRODUCT_CATEGORY);
         category.setLocation(location);
         return categoryRepository.save(category);
     }
@@ -253,4 +273,3 @@ public class CategoryService {
         return location;
     }
 }
-

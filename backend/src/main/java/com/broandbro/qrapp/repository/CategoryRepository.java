@@ -15,6 +15,9 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
     /** Active categories ordered for customer-facing display (admin-controlled order, then name). */
     List<Category> findByLocationIdAndIsDeletedFalseOrderByDisplayOrderAscNameAsc(Long locationId);
 
+    List<Category> findByLocationIdAndCategoryTypeAndIsDeletedFalseOrderByDisplayOrderAscNameAsc(
+            Long locationId, String categoryType);
+
     /** All soft-deleted categories (for the admin trash view). */
     List<Category> findByLocationIdAndIsDeletedTrue(Long locationId);
 
@@ -26,6 +29,9 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
 
     /** Find a non-deleted category by name. */
     Optional<Category> findByLocationIdAndNameAndIsDeletedFalse(Long locationId, String name);
+
+    Optional<Category> findByLocationIdAndNameAndCategoryTypeAndIsDeletedFalse(
+            Long locationId, String name, String categoryType);
 
     /** Delete all categories for a location (both active and soft-deleted). */
     @Modifying

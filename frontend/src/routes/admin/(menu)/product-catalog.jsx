@@ -36,8 +36,8 @@ import {
   getCatalogSummary,
 } from "@/services/product-catalog-service";
 import {
-  createCategory,
-  getCategories,
+  createMrpProductCategory,
+  getMrpProductCategories,
   removeCategoryImage,
   uploadCategoryImage,
 } from "@/services/category-service";
@@ -59,12 +59,6 @@ const EMPTY = {
   mrp: "", costPrice: "", locationId: "", initialStock: "0", stockQuantity: "", lowStockThreshold: "5",
 };
 
-const CATEGORY_OPTIONS = [
-  ["Biscuits", "biscuits"], ["Chips", "chips"], ["Chocolates", "chocolates"],
-  ["Drinks", "drinks"], ["Snacks", "snacks"], ["Confectionery", "confectionery"],
-  ["Personal Care", "personal care"], ["Others", "other"],
-].map(([name, id]) => ({ id, name }));
-
 function productImageSource(product) {
   if (!product?.imageUrl) return null;
   return product.imageUrl.startsWith("http") ? product.imageUrl : `${baseURL}${product.imageUrl}`;
@@ -83,6 +77,11 @@ function stockState(quantity, threshold) {
 
 function stockLabel(quantity) {
   return quantity == null ? "Not configured" : `${quantity} units`;
+}
+
+function formatMoney(value) {
+  if (value == null || value === "") return "—";
+  return `₹${new Intl.NumberFormat("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(value))}`;
 }
 
 function ProductCatalogPage() {
@@ -129,7 +128,7 @@ function ProductCatalogPage() {
   });
   const categoryOptionsQuery = useQuery({
     queryKey: ["catalog-category-options", effectiveLocationId],
-    queryFn: () => getCategories(effectiveLocationId),
+    queryFn: () => getMrpProductCategories(effectiveLocationId),
     enabled: Boolean(effectiveLocationId),
   });
   const invalidate = () => {
@@ -137,7 +136,11 @@ function ProductCatalogPage() {
     queryClient.invalidateQueries({ queryKey: ["catalog-summary", effectiveLocationId] });
   };
   const create = useMutation({
-    mutationFn: ({ imageFile: _imageFile, ...payload }) => createCatalogProduct(payload),
+    mutationFn: (variables) => {
+      const payload = { ...variables };
+      delete payload.imageFile;
+      return createCatalogProduct(payload);
+    },
     onSuccess: (product, variables) => {
       setForm(EMPTY);
       setFormOpen(false);
@@ -231,9 +234,8 @@ function ProductCatalogPage() {
   const selectedProduct = products.find((product) => product.id === selectedProductId);
   const editingProduct = products.find((product) => String(product.id) === String(editingId));
   const categoryNames = Array.from(new Set([
-    ...CATEGORY_OPTIONS.map((category) => category.name),
     ...(categoryOptionsQuery.data || []).map((category) => category.name),
-    ...(query.data?.content || []).map((product) => product.categoryName || "Uncategorized"),
+    ...(query.data?.content || []).map((product) => product.categoryName),
   ])).filter(Boolean).sort((a, b) => a.localeCompare(b));
 
   const openCreateForm = () => {
@@ -288,25 +290,34 @@ function ProductCatalogPage() {
     setMobileFiltersOpen(false);
     setPage(0);
   };
+  const hasFilters = search || stockFilter !== "all" || availabilityFilter !== "all" || categoryFilter !== "all" || sortBy !== "name";
 
   return (
-      <main className="min-h-screen min-w-0 overflow-x-hidden bg-[#f6f5f2] text-[#202124]">
-        <div className="mx-auto min-w-0 max-w-[1600px] space-y-4 px-3 py-4 pb-24 sm:px-5 sm:py-6 sm:pb-6 lg:px-8 lg:py-8">
-          <header className="flex min-w-0 flex-col gap-4 rounded-2xl border border-[#e9e6e1] bg-white p-4 shadow-sm sm:p-5 xl:flex-row xl:items-center xl:justify-between">
-            <div className="min-w-0">
-              <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-[#fff0ed] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-[#e52b3a]">
-                <PackageIcon className="size-3.5" /> Snacks &amp; More
+      <main className="min-h-screen min-w-0 overflow-x-hidden bg-[#f7f6f3] text-[#202124]">
+        <div className="mx-auto min-w-0 max-w-[1680px] space-y-4 px-3 py-3 pb-24 sm:px-5 sm:py-5 sm:pb-6 lg:px-7 lg:py-6">
+          <header className="flex min-w-0 flex-col gap-4 border-b border-[#e5e1db] pb-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="grid size-11 shrink-0 place-items-center rounded-2xl bg-[#fff0ed] text-[#e52b3a]">
+                <PackageIcon className="size-5" />
               </div>
-              <h1 className="text-xl font-bold tracking-tight sm:text-2xl lg:text-[28px]">Essentials Catalogue</h1>
-              <p className="mt-1 text-sm text-[#77736f]">Manage products, pricing and location inventory.</p>
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h1 className="truncate text-xl font-bold tracking-tight text-[#242220] sm:text-2xl">MRP Products Management</h1>
+                  <span className="rounded-full bg-[#ece9e4] px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-[#77736f]">Workspace</span>
+                </div>
+                <p className="mt-0.5 truncate text-sm text-[#77736f]">Manage products, categories, pricing and location inventory.</p>
+              </div>
             </div>
-            <div className="grid min-w-0 gap-3 sm:grid-cols-[minmax(180px,1fr)_auto] sm:items-end xl:min-w-[440px]">
-              <label className="min-w-0 space-y-1.5 text-xs font-semibold text-[#77736f]">
-                Managing location
+            <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-end">
+              <label className="min-w-0 flex-1 space-y-1 text-[11px] font-bold uppercase tracking-wide text-[#77736f] sm:min-w-[260px]">
+                Location
                 <LocationCombobox value={catalogLocationId || effectiveLocationId} options={availableLocations} placeholder="Choose a location"
                                   onChange={(locationId) => { setCatalogLocationId(locationId); setPage(0); setForm((current) => ({ ...current, locationId })); }} />
               </label>
-              <button type="button" onClick={openCreateForm} style={{ backgroundColor: "#ff2438", color: "#ffffff" }} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold shadow-sm transition hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ff2438] focus-visible:ring-offset-2">
+              <button type="button" onClick={() => setCategoryImagesOpen(true)} disabled={!effectiveLocationId} className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl border border-[#e5e2dd] bg-white px-4 text-sm font-semibold text-[#514d48] shadow-sm transition hover:border-[#d7cfc5] hover:bg-[#fffaf7] disabled:cursor-not-allowed disabled:opacity-45">
+                Manage categories
+              </button>
+              <button type="button" onClick={openCreateForm} disabled={!effectiveLocationId} style={{ backgroundColor: "#ff2438", color: "#ffffff" }} className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold shadow-sm transition hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ff2438] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-45">
                 <PlusIcon weight="bold" className="size-4" /> Add product
               </button>
             </div>
@@ -317,13 +328,13 @@ function ProductCatalogPage() {
             <div><p className="font-semibold">Select a location to manage inventory</p><p className="mt-1 text-amber-800">Choose a location above to view stock levels and make location-specific changes.</p></div>
           </div>}
 
-          {effectiveLocationId && <section aria-label="Inventory summary" className="grid grid-cols-2 gap-2.5 sm:gap-3 xl:grid-cols-5">
+          {effectiveLocationId && <section aria-label="Inventory summary" className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-5 sm:gap-3">
             {[
               { label: "Total products", value: overview?.total, icon: <PackageIcon className="size-4" />, tone: "text-slate-700", iconBg: "bg-slate-100" },
               { label: "Available", value: overview?.available, icon: <CheckCircleIcon className="size-4" />, tone: "text-emerald-700", iconBg: "bg-emerald-50" },
               { label: "Low stock", value: overview?.low, icon: <WarningIcon className="size-4" />, tone: "text-amber-700", iconBg: "bg-amber-50" },
               { label: "Out of stock", value: overview?.out, icon: <ArchiveIcon className="size-4" />, tone: "text-red-700", iconBg: "bg-red-50" },
-              { label: "Avg. profit margin", value: summaryQuery.data?.averageProfitMarginPercent == null ? null : `${Number(summaryQuery.data.averageProfitMarginPercent).toFixed(2)}%`, icon: <CheckCircleIcon className="size-4" />, tone: "text-blue-700", iconBg: "bg-blue-50", className: "col-span-2 xl:col-span-1" },
+              { label: "Avg. profit margin", value: summaryQuery.data?.averageProfitMarginPercent == null ? null : `${Number(summaryQuery.data.averageProfitMarginPercent).toFixed(2)}%`, icon: <CheckCircleIcon className="size-4" />, tone: "text-blue-700", iconBg: "bg-blue-50" },
             ].map((item) => <div key={item.label} className={`flex min-w-0 items-center gap-2.5 rounded-xl border border-[#e9e6e1] bg-white p-3 shadow-sm sm:gap-3 sm:p-4 ${item.className || ""}`}>
               <div className={`grid size-8 shrink-0 place-items-center rounded-lg sm:size-9 ${item.iconBg} ${item.tone}`}>{item.icon}</div>
               <div className="min-w-0"><p className="truncate text-xs font-medium text-[#77736f] sm:text-sm">{item.label}</p>
@@ -332,35 +343,29 @@ function ProductCatalogPage() {
             </div>)}
           </section>}
 
-          {effectiveLocationId && <section aria-label="Browse by category" className="hidden overflow-hidden rounded-2xl border border-[#e9e6e1] bg-white shadow-sm sm:block">
-            <div className="flex flex-col gap-1 px-4 pt-3 sm:px-5 sm:pt-4">
-              <div className="flex items-center justify-between gap-3">
-                <div><p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#e52b3a]">Browse catalogue</p><h2 className="mt-1 text-base font-bold tracking-tight text-[#242220] sm:text-lg">Shop by category</h2></div>
-                <span className="hidden text-xs text-[#858079] sm:block">Choose a category to narrow the list</span>
+          {effectiveLocationId && <section aria-label="Product category focus" className="min-w-0 overflow-hidden rounded-2xl border border-[#e9e6e1] bg-white shadow-sm">
+            <div className="flex items-center justify-between gap-3 px-4 py-3 sm:px-5">
+              <div className="flex min-w-0 items-center gap-2.5">
+                <div className="grid size-8 shrink-0 place-items-center rounded-lg bg-[#fff0ed] text-[#e52b3a]"><PackageIcon className="size-4" /></div>
+                <div className="min-w-0"><p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#e52b3a]">Product taxonomy</p><h2 className="truncate text-base font-bold tracking-tight text-[#242220]">Category focus</h2></div>
               </div>
+              <span className="hidden shrink-0 text-xs text-[#858079] lg:block">Choose a category to narrow the list</span>
             </div>
-            <div className="mt-3 flex items-center gap-2 px-4 pb-3 sm:hidden">
-              <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-[#fff0ed] text-[#e52b3a]"><PackageIcon className="size-4" /></div>
-                <div className="min-w-0 flex-1">
-                <CatalogFilterSelect label="Category" ariaLabel="Filter by category" value={categoryFilter} onChange={(value) => { setCategoryFilter(value); setPage(0); }} options={[["all", "All products"], ...categoryNames.map((name) => [name, name])]} className="font-semibold" />
-              </div>
-              <span className="shrink-0 rounded-lg bg-[#f8f7f4] px-2.5 py-2 text-xs font-bold text-[#77736f]">{overview?.total ?? "—"}</span>
-            </div>
-            <div className="mt-2 hidden gap-2 px-4 pb-3 sm:flex sm:flex-wrap sm:px-5 sm:pb-4">
+            <div className="no-scrollbar flex min-w-0 max-w-full gap-2 overflow-x-auto border-t border-[#f0ede8] px-4 py-3 sm:px-5">
               <button type="button" onClick={() => { setCategoryFilter("all"); setPage(0); }} aria-pressed={categoryFilter === "all"}
                       style={categoryFilter === "all" ? { backgroundColor: "#ff2438", color: "#ffffff", borderColor: "#ff2438" } : undefined}
-                      className={`inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl border px-3 text-sm font-semibold transition sm:w-auto sm:px-4 ${categoryFilter === "all" ? "shadow-sm" : "border-[#e9e6e1] bg-[#fcfbfa] text-[#514d48] hover:border-[#f6a2aa] hover:bg-[#fff6f5]"}`}>
+                      className={`inline-flex h-9 w-max shrink-0 items-center justify-center gap-2 rounded-lg border px-3 text-sm font-semibold transition sm:px-4 ${categoryFilter === "all" ? "shadow-sm" : "border-[#e9e6e1] bg-[#fcfbfa] text-[#514d48] hover:border-[#f6a2aa] hover:bg-[#fff6f5]"}`}>
                 <PackageIcon className="size-4" /> All products <span className="rounded-md bg-white/20 px-1.5 py-0.5 text-[10px]">{overview?.total ?? "—"}</span>
               </button>
               {categoryNames.map((name) => {
                 const selected = categoryFilter.toLowerCase() === name.toLowerCase();
                 return <button key={name} type="button" onClick={() => { setCategoryFilter(name); setPage(0); }} aria-pressed={selected}
-                               className={`inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl border px-3 text-sm font-semibold transition sm:w-auto sm:px-4 ${selected ? "border-[#ff2438] bg-[#fff0ed] text-[#d92335] ring-1 ring-[#ff2438]/10" : "border-[#e9e6e1] bg-white text-[#514d48] hover:border-[#f6a2aa] hover:bg-[#fff9f8]"}`}>
+                               className={`inline-flex h-9 w-max shrink-0 items-center justify-center gap-2 rounded-lg border px-3 text-sm font-semibold transition sm:px-4 ${selected ? "border-[#ff2438] bg-[#fff0ed] text-[#d92335] ring-1 ring-[#ff2438]/10" : "border-[#e9e6e1] bg-white text-[#514d48] hover:border-[#f6a2aa] hover:bg-[#fff9f8]"}`}>
                   {name}
                 </button>;
               })}
             </div>
-            <div className="border-t border-[#f0ede8] bg-[#fcfbfa] px-4 py-2.5 sm:px-5"><p className="text-xs text-[#77736f]">{categoryFilter === "all" ? "Viewing the complete catalogue" : <>Showing <strong className="text-[#393632]">{categoryFilter}</strong> products</>} · Select a category to focus on its inventory.</p></div>
+            <div className="border-t border-[#f0ede8] bg-[#fcfbfa] px-4 py-2 sm:px-5"><p className="text-xs text-[#77736f]">{categoryFilter === "all" ? "Viewing the complete catalogue" : <>Showing <strong className="text-[#393632]">{categoryFilter}</strong> products</>}</p></div>
           </section>}
 
           <section className="overflow-hidden rounded-2xl border border-[#e9e6e1] bg-white shadow-sm">
@@ -375,34 +380,38 @@ function ProductCatalogPage() {
                 <div className="hidden grid-cols-2 gap-2 sm:grid-cols-3 lg:flex lg:shrink-0">
                   <CatalogFilterSelect label="Stock" ariaLabel="Filter by stock" value={stockFilter} onChange={(value) => { setStockFilter(value); setPage(0); }} options={[["all", "All stock"], ["in", "In stock"], ["low", "Low stock"], ["out", "Out of stock"]]} className="lg:w-[150px]" />
                   <CatalogFilterSelect label="Availability" ariaLabel="Filter by availability" value={availabilityFilter} onChange={(value) => { setAvailabilityFilter(value); setPage(0); }} options={[["all", "All status"], ["enabled", "Enabled"], ["disabled", "Disabled"]]} className="lg:w-[150px]" />
-                  <CatalogFilterSelect label="Sort by" ariaLabel="Sort products" value={sortBy} onChange={setSortBy} options={[["name", "Name: A-Z"], ["mrp", "MRP: low to high"], ["stock", "Stock: low to high"], ["updated", "Recently updated"]]} className="col-span-2 lg:w-[170px] sm:col-span-1" />
+                  <CatalogFilterSelect label="Sort by" ariaLabel="Sort products" value={sortBy} onChange={(value) => { setSortBy(value); setPage(0); }} options={[["name", "Name: A-Z"], ["mrp", "MRP: low to high"], ["stock", "Stock: low to high"], ["updated", "Recently updated"]]} className="col-span-2 lg:w-[170px] sm:col-span-1" />
                 </div>
                 <div className="mt-2 flex min-w-0 gap-2 overflow-hidden lg:hidden">
                   <button type="button" aria-expanded={mobileFiltersOpen} onClick={() => setMobileFiltersOpen((open) => !open)} className={`inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-xl border px-3 text-sm font-semibold ${mobileFiltersOpen || stockFilter !== "all" || availabilityFilter !== "all" || categoryFilter !== "all" ? "border-[#ff2438] bg-[#fff0ed] text-[#d92335]" : "border-[#e5e2dd] bg-white text-[#514d48]"}`}>
                     <FunnelIcon className="size-4 shrink-0" /> Filters
                     {(stockFilter !== "all" || availabilityFilter !== "all" || categoryFilter !== "all") && <span className="grid size-5 place-items-center rounded-full bg-[#ff2438] text-[10px] text-white"> {[stockFilter !== "all", availabilityFilter !== "all", categoryFilter !== "all"].filter(Boolean).length} </span>}
                   </button>
-                  <CatalogFilterSelect label="Sort by" ariaLabel="Sort products" value={sortBy} onChange={setSortBy} options={[["name", "Name: A-Z"], ["mrp", "MRP: low to high"], ["stock", "Stock: low to high"], ["updated", "Recently updated"]]} className="flex-1" />
+                  <CatalogFilterSelect label="Sort by" ariaLabel="Sort products" value={sortBy} onChange={(value) => { setSortBy(value); setPage(0); }} options={[["name", "Name: A-Z"], ["mrp", "MRP: low to high"], ["stock", "Stock: low to high"], ["updated", "Recently updated"]]} className="flex-1" />
                 </div>
                 {mobileFiltersOpen && <div className="mt-2 grid grid-cols-2 gap-2 rounded-xl border border-[#eeeae5] bg-[#fcfbfa] p-2 lg:hidden">
-                  <div className="col-span-2 min-w-0">
-                    <CatalogFilterSelect label="Category" ariaLabel="Filter by category" value={categoryFilter} onChange={(value) => { setCategoryFilter(value); setPage(0); }} options={[["all", "All categories"], ...categoryNames.map((name) => [name, name])]} />
-                    <button type="button" onClick={() => setCategoryImagesOpen(true)} className="mt-1 px-0.5 text-[11px] font-semibold text-[#d92334] hover:underline">+ Add category</button>
-                  </div>
                   <CatalogFilterSelect label="Stock" ariaLabel="Filter by stock" value={stockFilter} onChange={(value) => { setStockFilter(value); setPage(0); }} options={[["all", "All stock"], ["in", "In stock"], ["low", "Low stock"], ["out", "Out of stock"]]} />
                   <CatalogFilterSelect label="Availability" ariaLabel="Filter by availability" value={availabilityFilter} onChange={(value) => { setAvailabilityFilter(value); setPage(0); }} options={[["all", "All status"], ["enabled", "Enabled"], ["disabled", "Disabled"]]} />
+                  <div className="col-span-2 flex items-center justify-between gap-2 border-t border-[#eeeae5] pt-2">
+                    <button type="button" onClick={clearFilters} disabled={!hasFilters} className="text-xs font-bold text-[#d92335] disabled:opacity-40">Reset all</button>
+                    <button type="button" onClick={() => setMobileFiltersOpen(false)} className="rounded-lg bg-[#292725] px-3 py-2 text-xs font-bold text-white">Apply filters</button>
+                  </div>
                 </div>}
               </div>
+              {categoryOptionsQuery.isError && <div className="mt-2 flex items-center justify-between gap-2 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">
+                <span>Categories could not be loaded.</span>
+                <button type="button" onClick={() => categoryOptionsQuery.refetch()} className="font-semibold underline">Retry</button>
+              </div>}
               <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-                <p className="text-xs text-[#77736f] sm:text-sm"><span className="font-semibold text-[#292725]">{products.length}</span> products on this page {search || stockFilter !== "all" || availabilityFilter !== "all" || categoryFilter !== "all" ? "matching filters" : "in catalogue"}</p>
+                <p className="text-xs text-[#77736f] sm:text-sm"><span className="font-semibold text-[#292725]">{products.length}</span>{query.data?.totalElements != null ? ` of ${query.data.totalElements}` : ""} products shown {hasFilters ? "after filtering" : "in catalogue"}</p>
                 <div className="flex min-w-0 flex-wrap items-center justify-end gap-3">
-                  <button type="button" onClick={() => setCategoryImagesOpen(true)} className="text-xs font-semibold text-[#514d48] hover:text-[#e52b3a] hover:underline">Manage categories</button>
                   {(search || stockFilter !== "all" || availabilityFilter !== "all" || categoryFilter !== "all" || sortBy !== "name") && <button type="button" onClick={clearFilters} className="text-xs font-semibold text-[#e52b3a] hover:underline">Clear filters</button>}
                 </div>
               </div>
             </div>
 
             {query.isError && <div className="flex items-center justify-between gap-3 bg-red-50 px-4 py-3 text-sm text-red-700"><span>Unable to load catalogue products.</span><button type="button" className="font-semibold underline" onClick={() => query.refetch()}>Retry</button></div>}
+            {summaryQuery.isError && <div className="flex items-center justify-between gap-3 border-b border-red-100 bg-red-50 px-4 py-2 text-xs text-red-700"><span>Inventory summary is temporarily unavailable.</span><button type="button" className="font-semibold underline" onClick={() => summaryQuery.refetch()}>Retry</button></div>}
             {query.isLoading ? <div className="space-y-3 p-4">{[1, 2, 3, 4].map((item) => <div key={item} className="flex animate-pulse gap-3"><div className="size-12 rounded-lg bg-slate-100" /><div className="flex-1 space-y-2 py-1"><div className="h-3 w-1/3 rounded bg-slate-100" /><div className="h-3 w-1/2 rounded bg-slate-100" /></div></div>)}</div> : <>
               {/* Mobile product cards */}
               <div className="divide-y divide-[#efede9] md:hidden">
@@ -418,8 +427,8 @@ function ProductCatalogPage() {
                           <span className={`shrink-0 rounded-full px-2 py-1 text-[10px] font-semibold ${product.active ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-600"}`}>{product.active ? "Enabled" : "Disabled"}</span>
                         </div>
                         <div className="mt-3 grid grid-cols-3 gap-1.5 rounded-xl border border-[#efede9] bg-[#fcfbfa] p-2.5 text-[11px]">
-                          <div className="min-w-0"><p className="truncate text-[#858079]">MRP</p><p className="mt-0.5 truncate font-bold text-[#242220]">₹{product.mrp}</p></div>
-                          <div className="min-w-0 border-l border-[#e9e6e1] pl-2"><p className="truncate text-[#858079]">Cost</p><p className="mt-0.5 truncate font-semibold text-[#514d48]">₹{product.costPrice}</p></div>
+                          <div className="min-w-0"><p className="truncate text-[#858079]">MRP</p><p className="mt-0.5 truncate font-bold text-[#242220]">{formatMoney(product.mrp)}</p></div>
+                          <div className="min-w-0 border-l border-[#e9e6e1] pl-2"><p className="truncate text-[#858079]">Cost</p><p className="mt-0.5 truncate font-semibold text-[#514d48]">{formatMoney(product.costPrice)}</p></div>
                           <div className="min-w-0 border-l border-[#e9e6e1] pl-2"><p className="truncate text-[#858079]">Margin</p><p className="mt-0.5 truncate font-bold text-blue-700">{product.profitMarginPercent == null ? "—" : `${product.profitMarginPercent}%`}</p></div>
                         </div>
                         <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2">
@@ -436,30 +445,39 @@ function ProductCatalogPage() {
               </div>
 
               {/* Desktop / tablet table */}
-              <div className="hidden overflow-x-auto md:block">
+              <div className="relative hidden overflow-x-auto md:block">
+                <div aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-0 z-10 w-10 bg-gradient-to-l from-white to-transparent" />
                 <table className="w-full min-w-[1020px] text-left text-sm">
                   <thead className="border-b border-[#e9e6e1] bg-[#faf9f7] text-[11px] font-semibold uppercase tracking-wide text-[#77736f]"><tr>
-                    <th className="px-4 py-3">Product</th><th className="px-3 py-3">Category</th><th className="px-3 py-3 text-right">MRP</th><th className="px-3 py-3 text-right">Cost price</th><th className="px-3 py-3 text-right">Profit margin</th><th className="px-3 py-3">Location stock</th><th className="px-3 py-3">Status</th><th className="px-4 py-3 text-right">Actions</th>
+                    <th scope="col" className="sticky left-0 z-10 bg-[#faf9f7] px-4 py-3">Product</th><th scope="col" className="px-3 py-3">Category</th><th scope="col" className="px-3 py-3 text-right">MRP</th><th scope="col" className="px-3 py-3 text-right">Cost price</th><th scope="col" className="px-3 py-3 text-right">Profit margin</th><th scope="col" className="px-3 py-3">Location stock</th><th scope="col" className="px-3 py-3">Status</th><th scope="col" className="sticky right-0 z-10 bg-[#faf9f7] px-4 py-3 text-right">Actions</th>
                   </tr></thead>
                   <tbody className="divide-y divide-[#efede9]">
                   {products.map((product) => {
                     const imageSource = productImageSource(product);
                     return <tr key={product.id} className="transition hover:bg-[#fdfcfb]">
-                      <td className="px-4 py-3"><div className="flex min-w-0 items-center gap-3">
+                      <td className="sticky left-0 z-[1] bg-white px-4 py-3"><div className="flex min-w-0 items-center gap-3">
                         {imageSource ? <img src={imageSource} alt={product.name} loading="lazy" className="size-12 shrink-0 rounded-xl border border-[#eeebe6] bg-white object-contain p-1" /> : <div className="grid size-12 shrink-0 place-items-center rounded-xl border border-dashed border-[#ddd8d1] bg-[#f8f7f4] text-[#a19b93]"><PackageIcon className="size-5" /></div>}
                         <div className="min-w-0"><p className="max-w-[260px] truncate font-semibold text-[#242220]">{product.name}</p><p className="mt-0.5 max-w-[260px] truncate text-xs text-[#858079]">{product.brand || "No brand"} · {product.variantIdentity && product.variantIdentity !== "DEFAULT" ? product.variantIdentity : "Default pack"}</p></div>
                       </div></td>
                       <td className="px-3 py-3 text-[#77736f]">{product.categoryName || "Uncategorized"}</td>
-                      <td className="px-3 py-3 text-right font-semibold tabular-nums">₹{product.mrp}</td><td className="px-3 py-3 text-right tabular-nums text-[#77736f]">₹{product.costPrice}</td><td className="px-3 py-3 text-right font-semibold tabular-nums text-blue-700">{product.profitMarginPercent == null ? "—" : `${product.profitMarginPercent}%`}</td>
+                      <td className="px-3 py-3 text-right font-semibold tabular-nums">{formatMoney(product.mrp)}</td><td className="px-3 py-3 text-right tabular-nums text-[#77736f]">{formatMoney(product.costPrice)}</td><td className="px-3 py-3 text-right font-semibold tabular-nums text-blue-700">{product.profitMarginPercent == null ? "—" : `${product.profitMarginPercent}%`}</td>
                       <td className="px-3 py-3"><div className="flex flex-col items-start gap-1"><span className="font-semibold tabular-nums">{stockLabel(product.quantity)}</span><span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${product.stock.className}`}>{product.stock.label}</span></div></td>
                       <td className="px-3 py-3"><button type="button" onClick={() => status.mutate({ id: product.id, active: !product.active })} disabled={status.isPending} className={`rounded-full px-2.5 py-1 text-xs font-semibold disabled:opacity-50 ${product.active ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-600"}`}>{product.active ? "Enabled" : "Disabled"}</button></td>
-                      <td className="px-4 py-3"><div className="flex justify-end gap-2"><button type="button" onClick={() => openEditForm(product)} className="rounded-lg border border-[#e5e2dd] px-3 py-2 text-xs font-semibold text-[#55504a] hover:bg-white">Edit</button><button type="button" onClick={() => setSelectedProductId(product.id)} className="rounded-lg bg-[#ff2438] px-3 py-2 text-xs font-semibold text-white hover:bg-[#e91e32]">Manage</button></div></td>
+                      <td className="sticky right-0 z-[1] bg-white px-4 py-3"><div className="flex justify-end gap-2"><button type="button" onClick={() => openEditForm(product)} className="rounded-lg border border-[#e5e2dd] px-3 py-2 text-xs font-semibold text-[#55504a] hover:bg-white">Edit</button><button type="button" onClick={() => setSelectedProductId(product.id)} className="rounded-lg bg-[#ff2438] px-3 py-2 text-xs font-semibold text-white hover:bg-[#e91e32]">Manage</button></div></td>
                     </tr>;
                   })}
                   </tbody>
                 </table>
               </div>
-              {!products.length && <div className="px-4 py-12 text-center"><div className="mx-auto grid size-12 place-items-center rounded-2xl bg-[#f5f3ef] text-[#8b857d]"><PackageIcon className="size-6" /></div><h3 className="mt-3 text-sm font-semibold">No products found</h3><p className="mt-1 text-xs text-[#858079]">Try changing your search or filters, or add a product to this catalogue.</p><button type="button" onClick={clearFilters} className="mt-3 text-sm font-semibold text-[#e52b3a]">Clear filters</button></div>}
+              {!products.length && <div className="px-4 py-10 text-center sm:py-14">
+                <div className="mx-auto grid size-12 place-items-center rounded-2xl bg-[#fff0ed] text-[#e52b3a]"><PackageIcon className="size-6" /></div>
+                <h3 className="mt-3 text-base font-bold text-[#242220]">No products in this view</h3>
+                <p className="mx-auto mt-1 max-w-sm text-xs leading-5 text-[#858079]">{categoryFilter !== "all" ? `There are no products in ${categoryFilter} for this location.` : "Try changing your search or filters, or add the first product to this catalogue."}</p>
+                <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+                  {hasFilters && <button type="button" onClick={clearFilters} className="h-9 rounded-lg border border-[#e5e2dd] bg-white px-3 text-xs font-semibold text-[#514d48]">Clear filters</button>}
+                  <button type="button" onClick={openCreateForm} disabled={!effectiveLocationId} className="h-9 rounded-lg bg-[#ff2438] px-3 text-xs font-semibold text-white disabled:opacity-50">Add product</button>
+                </div>
+              </div>}
             </>}
             <footer className="flex flex-col gap-3 border-t border-[#efede9] bg-[#fdfcfb] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-xs text-[#77736f]">Page {page + 1}{query.data?.totalPages ? ` of ${query.data.totalPages}` : ""}</p>
@@ -474,8 +492,6 @@ function ProductCatalogPage() {
         </div>
 
         {/* Persistent mobile action: creation remains discoverable while browsing the catalogue. */}
-        {effectiveLocationId && !formOpen && !selectedProduct && !aiStudio && <button type="button" onClick={openCreateForm} className="fixed bottom-4 right-4 z-30 inline-flex h-12 items-center gap-2 rounded-full bg-[#ff2438] px-5 text-sm font-bold text-white shadow-[0_8px_28px_rgba(255,36,56,0.32)] ring-4 ring-white sm:hidden"><PlusIcon weight="bold" className="size-4" /> Create product</button>}
-
         {formOpen && <div className="fixed inset-0 z-50 flex min-h-0 items-start justify-center overflow-y-auto bg-[#171513]/45 py-2 backdrop-blur-[2px] sm:items-center sm:overflow-hidden sm:p-4" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) { setFormOpen(false); setEditingId(null); } }}>
           <section role="dialog" aria-modal="true" aria-labelledby="catalog-form-title" className="flex h-[calc(100svh-1rem)] max-h-none w-full min-w-0 flex-col overflow-hidden rounded-2xl border border-[#e9e6e1] bg-white shadow-2xl sm:h-auto sm:max-h-[94dvh] sm:max-w-2xl">
             <header className="flex shrink-0 items-start justify-between gap-3 border-b border-[#efede9] bg-white px-4 py-4 sm:px-6"><div className="min-w-0"><p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#e52b3a]">Product catalogue</p><h2 id="catalog-form-title" className="mt-1 text-lg font-bold">{editingId ? "Edit product" : "Add new product"}</h2><p className="mt-1 text-xs text-[#77736f]">Enter product information and pricing details.</p></div><button type="button" aria-label="Close product form" onClick={() => { setFormOpen(false); setEditingId(null); }} className="grid size-9 shrink-0 place-items-center rounded-full border border-[#e5e2dd] text-xl text-[#77736f] hover:bg-[#f8f7f4]">×</button></header>
@@ -610,7 +626,7 @@ function ProductCategoryImages({ locationId, categoryNames, onClose }) {
   const queryClient = useQueryClient();
   const categoriesQuery = useQuery({
     queryKey: ["catalog-category-options", locationId],
-    queryFn: () => getCategories(locationId),
+    queryFn: () => getMrpProductCategories(locationId),
     enabled: Boolean(locationId),
   });
   const [busyName, setBusyName] = useState("");
@@ -628,7 +644,7 @@ function ProductCategoryImages({ locationId, categoryNames, onClose }) {
     }
     setBusyName(name);
     try {
-      await createCategory({ name }, locationId);
+      await createMrpProductCategory({ name }, locationId);
       await queryClient.invalidateQueries({ queryKey: ["catalog-category-options", locationId] });
       setNewCategoryName("");
       toast.success(`${name} category added`);
@@ -644,7 +660,7 @@ function ProductCategoryImages({ locationId, categoryNames, onClose }) {
     setBusyName(name);
     try {
       let category = categoryByName.get(name.trim().toLowerCase());
-      if (!category) category = await createCategory({ name }, locationId);
+      if (!category) category = await createMrpProductCategory({ name }, locationId);
       await uploadCategoryImage(category.id, file, locationId);
       await queryClient.invalidateQueries({ queryKey: ["catalog-category-options", locationId] });
       toast.success(`${name} image saved`);

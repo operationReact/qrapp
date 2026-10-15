@@ -511,12 +511,14 @@ public class ProductCatalogService {
         projection.setName(assignment.getProduct().getName());
         projection.setDescription(assignment.getProduct().getDescription());
         if (categoryRepository != null && assignment.getProduct().getCategoryName() != null) {
-            Category category = categoryRepository.findByLocationIdAndNameAndIsDeletedFalse(
-                            assignment.getLocation().getId(), assignment.getProduct().getCategoryName())
+            Category category = categoryRepository.findByLocationIdAndNameAndCategoryTypeAndIsDeletedFalse(
+                            assignment.getLocation().getId(), assignment.getProduct().getCategoryName(),
+                            CategoryService.MRP_PRODUCT_CATEGORY)
                     .orElseGet(() -> {
                         Category created = new Category();
                         created.setLocation(assignment.getLocation());
                         created.setName(assignment.getProduct().getCategoryName());
+                        created.setCategoryType(CategoryService.MRP_PRODUCT_CATEGORY);
                         created.setDisplayOrder(0);
                         created.setIsDeleted(false);
                         return categoryRepository.save(created);

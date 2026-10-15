@@ -189,8 +189,8 @@ export function AdminSidebar() {
   }, []);
 
   return (
-    <Sidebar className="admin-sidebar-shell pt-[env(safe-area-inset-top)] md:pt-0">
-      <SidebarHeader className="border-b border-sidebar-border/60 px-3 py-3 md:px-3 md:py-4">
+    <Sidebar className="admin-sidebar-shell min-h-0 min-w-0 pt-[env(safe-area-inset-top)] md:pt-0">
+      <SidebarHeader className="shrink-0 border-b border-sidebar-border/60 px-3 py-3 md:px-3 md:py-4">
         <div className="flex items-center gap-2 px-1 md:hidden">
           <div className="size-12 shrink-0 overflow-hidden rounded-full ring-1 ring-[#e7ded2]">
             {avatar
@@ -227,8 +227,8 @@ export function AdminSidebar() {
         </SidebarMenu>
       </SidebarHeader>
 
-      <nav aria-label="Admin navigation" className="contents">
-        <SidebarContent className="gap-0 px-3 py-2 md:py-4">
+      <nav aria-label="Admin navigation" className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+        <SidebarContent className="min-w-0 gap-0 overflow-y-auto overscroll-contain px-3 py-2 md:py-4">
         {renderedNavigation.map(({ section, items }) => {
           const visibleItems = items.filter((item) => hasRole(user, item.roles, activeLocationId));
           if (!visibleItems.length) return null;
@@ -240,7 +240,7 @@ export function AdminSidebar() {
         </SidebarContent>
       </nav>
 
-      <SidebarFooter className="border-t border-sidebar-border/60 px-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-3 md:px-3 md:py-4">
+      <SidebarFooter className="shrink-0 border-t border-sidebar-border/60 px-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-3 md:px-3 md:py-4">
         <SidebarMenu>
           <SidebarMenuItem>
             <div className="mb-1 flex min-h-11 items-center gap-2 rounded-xl border border-[#e7ded2] bg-[#fffdfc] px-3 py-2 shadow-[0_2px_8px_rgba(42,35,30,0.03)]">
