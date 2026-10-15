@@ -9,7 +9,7 @@ import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { baseURL } from "@/services";
 import { getCategories } from "@/services/category-service";
-import { getCatalogProducts } from "@/services/product-catalog-service";
+import { getCatalogProducts } from "@/services/mrp-product-service";
 import {
   Carousel,
   CarouselContent,
@@ -76,7 +76,7 @@ function CarouselStatus({ count }) {
 
 export default function HomeEssentialsSection({ locationId }) {
   const { data: products = [] } = useQuery({
-    queryKey: ["home-product-catalog", locationId],
+    queryKey: ["home-mrp-products", locationId],
     queryFn: () => getCatalogProducts(locationId),
     enabled: Boolean(locationId),
     staleTime: 1000 * 30,

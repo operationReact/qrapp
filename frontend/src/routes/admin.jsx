@@ -1,10 +1,7 @@
 import { createFileRoute, Outlet, useLocation } from "@tanstack/react-router";
+import { useEffect } from "react";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
-import {
-  SidebarInset,
-  SidebarProvider,
-  useSidebar,
-} from "@/components/ui/sidebar";
+import { SidebarInset, SidebarProvider, useSidebar } from "@/components/ui/sidebar";
 import { AdminDashboardProvider, useAdminDashboard } from "@/context/AdminDashboardContext";
 import { Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -13,100 +10,52 @@ import { RoleGuard } from "@/components/RoleGuard";
 import { CAN_ACCESS_ADMIN } from "@/lib/roles";
 import { cn } from "@/lib/utils";
 
-export const Route = createFileRoute("/admin")({
-  component: AdminLayout,
-});
+export const Route = createFileRoute("/admin")({ component: AdminLayout });
 
-// ── Compact sub-page header (hamburger left, optional centered title, bell right) ──
-// Reused across all admin sub-pages. Pages that need a visible page title (e.g.
-// Kitchen Queue) pass `title`; pages that render their own in-body title keep it blank.
 function SubPageHeader({ title, showBack = false }) {
   const { toggleSidebar } = useSidebar();
   const { dashboard } = useAdminDashboard();
-  const notifCount = Math.min(
-    (dashboard?.delayedOrders ?? 0) + (dashboard?.placedOrders ?? 0),
-    9,
-  );
-
+  const notificationCount = Math.min((dashboard?.delayedOrders ?? 0) + (dashboard?.placedOrders ?? 0), 9);
   return (
-    <header className="sticky top-0 z-40 border-b border-[var(--cc-divider)] bg-white">
-      <div className={cn("flex h-14 items-center px-4 md:h-16 md:px-6", title ? "justify-between gap-2" : "justify-between")}>
-        {showBack && (
-          <Button
-            size="icon"
-            variant="ghost"
-            onClick={() => window.history.back()}
-            aria-label="Go back"
-            className="size-11 shrink-0 rounded-[10px] text-[var(--cc-text)] hover:bg-[var(--cc-primary-light)]"
-          >
-            <ArrowLeftIcon weight="bold" />
-          </Button>
-        )}
-        {/* hamburger */}
-        <Button
-          size="icon"
-          variant="ghost"
-          onClick={toggleSidebar}
-          aria-label="Open menu"
-          className="size-11 shrink-0 rounded-[10px] text-[var(--cc-text)] hover:bg-[var(--cc-primary-light)]"
-        >
-          <SidebarIcon />
-        </Button>
+      <header className="admin-workspace-header sticky top-0 z-30 flex h-14 shrink-0 items-center border-b bg-white/90 px-3 backdrop-blur-xl sm:px-5 md:h-[68px]">
+        <div className="flex w-full min-w-0 items-center gap-2.5">
+          {showBack && <Button type="button" size="icon" variant="ghost" onClick={() => window.history.back()} aria-label="Go back" className="size-10 shrink-0 rounded-xl"><ArrowLeftIcon weight="bold" /></Button>}
+          <Button type="button" size="icon" variant="ghost" onClick={toggleSidebar} aria-label="Toggle navigation" className="size-10 shrink-0 rounded-xl text-stone-600 hover:bg-stone-100"><SidebarIcon size={21} /></Button>
+          {title && <h1 className="min-w-0 flex-1 truncate text-[15px] font-bold tracking-tight text-stone-900 sm:text-lg">{title}</h1>}
+          <div className="ml-auto shrink-0">
+            <Button type="button" size="icon" variant="ghost" aria-label={notificationCount ? `Notifications, ${notificationCount} alerts` : "Notifications"} className="relative size-10 rounded-xl text-stone-600 hover:bg-stone-100">
+              <Bell className="size-[18px]" />
+              {notificationCount > 0 && <span className="absolute right-1 top-1 flex size-[17px] items-center justify-center rounded-full bg-[#e51b23] text-[10px] font-bold text-white">{notificationCount}</span>}
+            </Button>
+          </div>
+        </div>
+      </header>
+  );
+}
 
-        {title && (
-          <h1 className="min-w-0 flex-1 truncate text-center text-[16px] font-bold leading-6 text-[var(--cc-text)] md:text-[18px]">
-            {title}
-          </h1>
-        )}
-
-        {/* bell — only shows badge when there are real alerts */}
-        <Button
-          aria-label="Notifications"
-          size="icon"
-          variant="ghost"
-          className="relative size-11 shrink-0 rounded-[10px] text-[var(--cc-text)] hover:bg-[var(--cc-primary-light)]"
-        >
-          <Bell className="size-[18px]" />
-          {notifCount > 0 && (
-            <span className="absolute top-1.5 right-1.5 flex size-4 items-center justify-center rounded-full bg-[var(--cc-primary)] text-[9px] font-bold leading-none text-white">
-              {notifCount}
-            </span>
-          )}
-        </Button>
-      </div>
-    </header>
+function AdminLayoutContent() {
+  const { pathname } = useLocation();
+  const { setOpenMobile } = useSidebar();
+  useEffect(() => { setOpenMobile(false); }, [pathname, setOpenMobile]);
+  const isDashboard = pathname === "/admin" || pathname === "/admin/";
+  const isControlCenter = pathname.startsWith("/admin/control-center");
+  const isPartners = pathname === "/admin/partners";
+  const isMrpProduct = pathname.startsWith("/admin/mrp-product");
+  const isKitchenQueue = pathname.startsWith("/admin/kitchen-queue");
+  const isFoodCourt = pathname.startsWith("/admin/food-court");
+  const hideGenericHeader = isDashboard || isControlCenter || isPartners || isMrpProduct;
+  const pageTitle = isKitchenQueue ? "Kitchen Queue" : isFoodCourt ? "Food Court Management" : undefined;
+  return (
+      <>
+        <AdminSidebar />
+        <SidebarInset className={cn("admin-workspace flex min-h-svh min-w-0 flex-1 flex-col overflow-x-clip bg-[#f7f5f2]")}>
+          {!hideGenericHeader && <SubPageHeader title={pageTitle} />}
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col"><Outlet /></div>
+        </SidebarInset>
+      </>
   );
 }
 
 function AdminLayout() {
-  const { pathname } = useLocation();
-  // Dashboard has its own embedded premium header — skip the layout header there
-  const isDashboard = pathname === "/admin" || pathname === "/admin/";
-  // Control Center renders its own compact 64px header (menu + title + bell)
-  // so it doesn't stack with this generic sub-page header.
-  const isControlCenter = pathname.startsWith("/admin/control-center");
-  const isPartners = pathname === "/admin/partners";
-  const isKitchenQueue = pathname.startsWith("/admin/kitchen-queue");
-  const isFoodCourt = pathname.startsWith("/admin/food-court");
-  const isProductCatalog = pathname.startsWith("/admin/product-catalog");
-  const hideGenericHeader = isDashboard || isControlCenter || isPartners || isProductCatalog;
-
-  return (
-    <RoleGuard roles={CAN_ACCESS_ADMIN}>
-      <AdminDashboardProvider>
-        <SidebarProvider>
-          <AdminSidebar />
-          <SidebarInset className="min-w-0 bg-[var(--cc-page)]">
-            {!hideGenericHeader && <SubPageHeader
-              title={isKitchenQueue ? "Kitchen Queue" : isFoodCourt ? "Food Court Management" : isProductCatalog ? "MRP Products Management" : undefined}
-              showBack={isProductCatalog}
-            />}
-            <div className="min-h-0 flex-1 flex flex-col">
-              <Outlet />
-            </div>
-          </SidebarInset>
-        </SidebarProvider>
-      </AdminDashboardProvider>
-    </RoleGuard>
-  );
+  return <RoleGuard roles={CAN_ACCESS_ADMIN}><AdminDashboardProvider><SidebarProvider><AdminLayoutContent /></SidebarProvider></AdminDashboardProvider></RoleGuard>;
 }

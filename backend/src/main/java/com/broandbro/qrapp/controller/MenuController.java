@@ -456,7 +456,7 @@ public class MenuController {
         if (existing.getCatalogProduct() != null) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of(
                     "error", "CATALOG_PROJECTION_READ_ONLY",
-                    "message", "Update the shared product or its location assignment through /api/catalog"));
+                    "message", "Update the shared product or its location assignment through /api/mrp-product"));
         }
 
         String contentType = request.getContentType();
@@ -712,7 +712,7 @@ public class MenuController {
         if (item.getCatalogProduct() != null) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of(
                     "error", "CATALOG_PROJECTION_READ_ONLY",
-                    "message", "Update the shared product or its location assignment through /api/catalog"));
+                    "message", "Update the shared product or its location assignment through /api/mrp-product"));
         }
         item.setIsDeleted(true);
         repo.save(item);
@@ -775,7 +775,7 @@ public class MenuController {
         if (item.getCatalogProduct() != null) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of(
                     "error", "CATALOG_PROJECTION_READ_ONLY",
-                    "message", "Update the shared product through /api/catalog"));
+                    "message", "Update the shared product through /api/mrp-product"));
         }
         var profile = taxProfileRepository.findById(request.taxProfileId())
                 .orElseThrow(() -> new IllegalArgumentException("Tax profile not found: " + request.taxProfileId()));
@@ -827,7 +827,7 @@ public ResponseEntity<?> updateEstimatedCost(
         if (item.getCatalogProduct() != null) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of(
                     "error", "CATALOG_PROJECTION_READ_ONLY",
-                    "message", "Update the shared product through /api/catalog"));
+                    "message", "Update the shared product through /api/mrp-product"));
         }
         BigDecimal cost = body.get("estimatedCost");
         if (cost != null && cost.compareTo(BigDecimal.ZERO) < 0) {

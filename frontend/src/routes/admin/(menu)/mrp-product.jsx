@@ -1,9 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { ArchiveIcon, CheckCircleIcon, FunnelIcon, MagnifyingGlassIcon, PackageIcon, PlusIcon, WarningIcon } from "@phosphor-icons/react";
+import { ArchiveIcon, CheckCircleIcon, FunnelIcon, MagnifyingGlassIcon, PackageIcon, PlusIcon, SidebarIcon, WarningIcon } from "@phosphor-icons/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useLocation } from "@/context/LocationContext";
+import { useSidebar } from "@/components/ui/sidebar";
 import { baseURL } from "@/services";
 import {
   Combobox,
@@ -34,7 +35,7 @@ import {
   regenerateProductAiImage,
   discardProductAiImage,
   getCatalogSummary,
-} from "@/services/product-catalog-service";
+} from "@/services/mrp-product-service";
 import {
   createMrpProductCategory,
   getMrpProductCategories,
@@ -51,7 +52,7 @@ import {
   DrawerTitle,
 } from "@/components/ui/drawer";
 
-export const Route = createFileRoute("/admin/(menu)/product-catalog")({
+export const Route = createFileRoute("/admin/(menu)/mrp-product")({
   component: ProductCatalogPage,
 });
 const EMPTY = {
@@ -86,6 +87,7 @@ function formatMoney(value) {
 
 function ProductCatalogPage() {
   const { availableLocations = [], activeLocationId } = useLocation();
+  const { toggleSidebar } = useSidebar();
   const queryClient = useQueryClient();
   const [form, setForm] = useState(EMPTY);
   const [formOpen, setFormOpen] = useState(false);
@@ -108,7 +110,7 @@ function ProductCatalogPage() {
       : catalogLocationId ? String(catalogLocationId)
           : activeLocationId ? String(activeLocationId) : "";
   const query = useQuery({
-    queryKey: ["catalog-products", effectiveLocationId, search, stockFilter, availabilityFilter, categoryFilter, sortBy, page],
+    queryKey: ["mrp-products", effectiveLocationId, search, stockFilter, availabilityFilter, categoryFilter, sortBy, page],
     queryFn: () => getCatalogProducts(effectiveLocationId, true, {
       search: search || undefined,
       stockStatus: stockFilter,
@@ -122,18 +124,18 @@ function ProductCatalogPage() {
     enabled: Boolean(effectiveLocationId),
   });
   const summaryQuery = useQuery({
-    queryKey: ["catalog-summary", effectiveLocationId],
+    queryKey: ["mrp-product-summary", effectiveLocationId],
     queryFn: () => getCatalogSummary(effectiveLocationId),
     enabled: Boolean(effectiveLocationId),
   });
   const categoryOptionsQuery = useQuery({
-    queryKey: ["catalog-category-options", effectiveLocationId],
+    queryKey: ["mrp-product-category-options", effectiveLocationId],
     queryFn: () => getMrpProductCategories(effectiveLocationId),
     enabled: Boolean(effectiveLocationId),
   });
   const invalidate = () => {
-    queryClient.invalidateQueries({ queryKey: ["catalog-products"] });
-    queryClient.invalidateQueries({ queryKey: ["catalog-summary", effectiveLocationId] });
+    queryClient.invalidateQueries({ queryKey: ["mrp-products"] });
+    queryClient.invalidateQueries({ queryKey: ["mrp-product-summary", effectiveLocationId] });
   };
   const create = useMutation({
     mutationFn: (variables) => {
@@ -173,7 +175,7 @@ function ProductCatalogPage() {
     mutationFn: ({ id, payload }) => recordCatalogMovement(id, payload),
     onSuccess: (_result, variables) => {
       invalidate();
-      const product = queryClient.getQueryData(["catalog-products", effectiveLocationId, search, stockFilter, availabilityFilter, categoryFilter, sortBy, page])?.content?.find((item) => String(item.id) === String(variables.id));
+      const product = queryClient.getQueryData(["mrp-products", effectiveLocationId, search, stockFilter, availabilityFilter, categoryFilter, sortBy, page])?.content?.find((item) => String(item.id) === String(variables.id));
       const assignment = product && selectedAssignment(product, variables.payload.locationId);
       if (assignment) setStock((all) => ({ ...all, [assignment.locationProductId]: { ...(all[assignment.locationProductId] || {}), quantity: "", reason: "" } }));
       toast.success("Stock movement recorded");
@@ -295,18 +297,21 @@ function ProductCatalogPage() {
   return (
       <main className="min-h-screen min-w-0 overflow-x-hidden bg-[#f7f6f3] text-[#202124]">
         <div className="mx-auto min-w-0 max-w-[1680px] space-y-4 px-3 py-3 pb-24 sm:px-5 sm:py-5 sm:pb-6 lg:px-7 lg:py-6">
-          <header className="flex min-w-0 flex-col gap-4 border-b border-[#e5e1db] pb-4 sm:flex-row sm:items-center sm:justify-between">
+          <header className="flex min-w-0 flex-col gap-3 border-b border-[#e5e1db] pb-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex min-w-0 items-center gap-3">
               <div className="grid size-11 shrink-0 place-items-center rounded-2xl bg-[#fff0ed] text-[#e52b3a]">
                 <PackageIcon className="size-5" />
               </div>
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
-                  <h1 className="truncate text-xl font-bold tracking-tight text-[#242220] sm:text-2xl">MRP Products Management</h1>
+                  <h1 className="truncate text-xl font-bold tracking-tight text-[#242220] sm:text-2xl">MRP Product</h1>
                   <span className="rounded-full bg-[#ece9e4] px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-[#77736f]">Workspace</span>
                 </div>
                 <p className="mt-0.5 truncate text-sm text-[#77736f]">Manage products, categories, pricing and location inventory.</p>
               </div>
+              <button type="button" onClick={toggleSidebar} aria-label="Open admin navigation" className="grid size-9 shrink-0 place-items-center rounded-xl border border-[#e5e2dd] bg-white text-[#514d48] shadow-sm hover:border-[#f6a2aa] md:hidden">
+                <SidebarIcon className="size-[17px]" />
+              </button>
             </div>
             <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-end">
               <label className="min-w-0 flex-1 space-y-1 text-[11px] font-bold uppercase tracking-wide text-[#77736f] sm:min-w-[260px]">
@@ -328,44 +333,19 @@ function ProductCatalogPage() {
             <div><p className="font-semibold">Select a location to manage inventory</p><p className="mt-1 text-amber-800">Choose a location above to view stock levels and make location-specific changes.</p></div>
           </div>}
 
-          {effectiveLocationId && <section aria-label="Inventory summary" className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-5 sm:gap-3">
+          {effectiveLocationId && <section aria-label="Inventory summary" className="mrp-product-kpi-grid grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
             {[
               { label: "Total products", value: overview?.total, icon: <PackageIcon className="size-4" />, tone: "text-slate-700", iconBg: "bg-slate-100" },
               { label: "Available", value: overview?.available, icon: <CheckCircleIcon className="size-4" />, tone: "text-emerald-700", iconBg: "bg-emerald-50" },
               { label: "Low stock", value: overview?.low, icon: <WarningIcon className="size-4" />, tone: "text-amber-700", iconBg: "bg-amber-50" },
               { label: "Out of stock", value: overview?.out, icon: <ArchiveIcon className="size-4" />, tone: "text-red-700", iconBg: "bg-red-50" },
               { label: "Avg. profit margin", value: summaryQuery.data?.averageProfitMarginPercent == null ? null : `${Number(summaryQuery.data.averageProfitMarginPercent).toFixed(2)}%`, icon: <CheckCircleIcon className="size-4" />, tone: "text-blue-700", iconBg: "bg-blue-50" },
-            ].map((item) => <div key={item.label} className={`flex min-w-0 items-center gap-2.5 rounded-xl border border-[#e9e6e1] bg-white p-3 shadow-sm sm:gap-3 sm:p-4 ${item.className || ""}`}>
-              <div className={`grid size-8 shrink-0 place-items-center rounded-lg sm:size-9 ${item.iconBg} ${item.tone}`}>{item.icon}</div>
+            ].map((item) => <div key={item.label} className={`mrp-product-kpi-card flex min-h-[68px] min-w-0 items-center gap-2 rounded-xl border border-[#e9e6e1] bg-white px-2.5 py-2 shadow-sm ${item.className || ""}`}>
+              <div className={`grid size-7 shrink-0 place-items-center rounded-lg ${item.iconBg} ${item.tone}`}>{item.icon}</div>
               <div className="min-w-0"><p className="truncate text-xs font-medium text-[#77736f] sm:text-sm">{item.label}</p>
-                <p className="mt-0.5 text-xl font-bold tracking-tight sm:text-2xl">{summaryQuery.isLoading ? <span className="inline-block h-6 w-8 animate-pulse rounded bg-slate-100" /> : (item.value ?? "—")}</p>
+                <p className="mt-0.5 text-lg font-bold tracking-tight sm:text-xl">{summaryQuery.isLoading ? <span className="inline-block h-5 w-8 animate-pulse rounded bg-slate-100" /> : (item.value ?? "—")}</p>
               </div>
             </div>)}
-          </section>}
-
-          {effectiveLocationId && <section aria-label="Product category focus" className="min-w-0 overflow-hidden rounded-2xl border border-[#e9e6e1] bg-white shadow-sm">
-            <div className="flex items-center justify-between gap-3 px-4 py-3 sm:px-5">
-              <div className="flex min-w-0 items-center gap-2.5">
-                <div className="grid size-8 shrink-0 place-items-center rounded-lg bg-[#fff0ed] text-[#e52b3a]"><PackageIcon className="size-4" /></div>
-                <div className="min-w-0"><p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#e52b3a]">Product taxonomy</p><h2 className="truncate text-base font-bold tracking-tight text-[#242220]">Category focus</h2></div>
-              </div>
-              <span className="hidden shrink-0 text-xs text-[#858079] lg:block">Choose a category to narrow the list</span>
-            </div>
-            <div className="no-scrollbar flex min-w-0 max-w-full gap-2 overflow-x-auto border-t border-[#f0ede8] px-4 py-3 sm:px-5">
-              <button type="button" onClick={() => { setCategoryFilter("all"); setPage(0); }} aria-pressed={categoryFilter === "all"}
-                      style={categoryFilter === "all" ? { backgroundColor: "#ff2438", color: "#ffffff", borderColor: "#ff2438" } : undefined}
-                      className={`inline-flex h-9 w-max shrink-0 items-center justify-center gap-2 rounded-lg border px-3 text-sm font-semibold transition sm:px-4 ${categoryFilter === "all" ? "shadow-sm" : "border-[#e9e6e1] bg-[#fcfbfa] text-[#514d48] hover:border-[#f6a2aa] hover:bg-[#fff6f5]"}`}>
-                <PackageIcon className="size-4" /> All products <span className="rounded-md bg-white/20 px-1.5 py-0.5 text-[10px]">{overview?.total ?? "—"}</span>
-              </button>
-              {categoryNames.map((name) => {
-                const selected = categoryFilter.toLowerCase() === name.toLowerCase();
-                return <button key={name} type="button" onClick={() => { setCategoryFilter(name); setPage(0); }} aria-pressed={selected}
-                               className={`inline-flex h-9 w-max shrink-0 items-center justify-center gap-2 rounded-lg border px-3 text-sm font-semibold transition sm:px-4 ${selected ? "border-[#ff2438] bg-[#fff0ed] text-[#d92335] ring-1 ring-[#ff2438]/10" : "border-[#e9e6e1] bg-white text-[#514d48] hover:border-[#f6a2aa] hover:bg-[#fff9f8]"}`}>
-                  {name}
-                </button>;
-              })}
-            </div>
-            <div className="border-t border-[#f0ede8] bg-[#fcfbfa] px-4 py-2 sm:px-5"><p className="text-xs text-[#77736f]">{categoryFilter === "all" ? "Viewing the complete catalogue" : <>Showing <strong className="text-[#393632]">{categoryFilter}</strong> products</>}</p></div>
           </section>}
 
           <section className="overflow-hidden rounded-2xl border border-[#e9e6e1] bg-white shadow-sm">
@@ -374,7 +354,7 @@ function ProductCatalogPage() {
                 <label className="relative block min-w-0 flex-1">
                   <MagnifyingGlassIcon className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#85817c]" />
                   <input value={search} onChange={(event) => { setSearch(event.target.value); setPage(0); }}
-                         placeholder="Search product, brand or pack size" aria-label="Search catalogue"
+                         placeholder="Search product, brand or pack size" aria-label="Search MRP products"
                          className="h-11 w-full rounded-xl border border-[#e5e2dd] bg-[#fcfbfa] pl-9 pr-3 text-sm outline-none transition placeholder:text-[#9b9792] focus:border-[#ff2438] focus:bg-white focus:ring-2 focus:ring-[#ff2438]/10" />
                 </label>
                 <div className="hidden grid-cols-2 gap-2 sm:grid-cols-3 lg:flex lg:shrink-0">
@@ -403,14 +383,14 @@ function ProductCatalogPage() {
                 <button type="button" onClick={() => categoryOptionsQuery.refetch()} className="font-semibold underline">Retry</button>
               </div>}
               <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-                <p className="text-xs text-[#77736f] sm:text-sm"><span className="font-semibold text-[#292725]">{products.length}</span>{query.data?.totalElements != null ? ` of ${query.data.totalElements}` : ""} products shown {hasFilters ? "after filtering" : "in catalogue"}</p>
+                <p className="text-xs text-[#77736f] sm:text-sm"><span className="font-semibold text-[#292725]">{products.length}</span>{query.data?.totalElements != null ? ` of ${query.data.totalElements}` : ""} products shown {hasFilters ? "after filtering" : "in MRP product"}</p>
                 <div className="flex min-w-0 flex-wrap items-center justify-end gap-3">
                   {(search || stockFilter !== "all" || availabilityFilter !== "all" || categoryFilter !== "all" || sortBy !== "name") && <button type="button" onClick={clearFilters} className="text-xs font-semibold text-[#e52b3a] hover:underline">Clear filters</button>}
                 </div>
               </div>
             </div>
 
-            {query.isError && <div className="flex items-center justify-between gap-3 bg-red-50 px-4 py-3 text-sm text-red-700"><span>Unable to load catalogue products.</span><button type="button" className="font-semibold underline" onClick={() => query.refetch()}>Retry</button></div>}
+            {query.isError && <div className="flex items-center justify-between gap-3 bg-red-50 px-4 py-3 text-sm text-red-700"><span>Unable to load MRP products.</span><button type="button" className="font-semibold underline" onClick={() => query.refetch()}>Retry</button></div>}
             {summaryQuery.isError && <div className="flex items-center justify-between gap-3 border-b border-red-100 bg-red-50 px-4 py-2 text-xs text-red-700"><span>Inventory summary is temporarily unavailable.</span><button type="button" className="font-semibold underline" onClick={() => summaryQuery.refetch()}>Retry</button></div>}
             {query.isLoading ? <div className="space-y-3 p-4">{[1, 2, 3, 4].map((item) => <div key={item} className="flex animate-pulse gap-3"><div className="size-12 rounded-lg bg-slate-100" /><div className="flex-1 space-y-2 py-1"><div className="h-3 w-1/3 rounded bg-slate-100" /><div className="h-3 w-1/2 rounded bg-slate-100" /></div></div>)}</div> : <>
               {/* Mobile product cards */}
@@ -472,7 +452,7 @@ function ProductCatalogPage() {
               {!products.length && <div className="px-4 py-10 text-center sm:py-14">
                 <div className="mx-auto grid size-12 place-items-center rounded-2xl bg-[#fff0ed] text-[#e52b3a]"><PackageIcon className="size-6" /></div>
                 <h3 className="mt-3 text-base font-bold text-[#242220]">No products in this view</h3>
-                <p className="mx-auto mt-1 max-w-sm text-xs leading-5 text-[#858079]">{categoryFilter !== "all" ? `There are no products in ${categoryFilter} for this location.` : "Try changing your search or filters, or add the first product to this catalogue."}</p>
+                <p className="mx-auto mt-1 max-w-sm text-xs leading-5 text-[#858079]">{categoryFilter !== "all" ? `There are no products in ${categoryFilter} for this location.` : "Try changing your search or filters, or add the first MRP product."}</p>
                 <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
                   {hasFilters && <button type="button" onClick={clearFilters} className="h-9 rounded-lg border border-[#e5e2dd] bg-white px-3 text-xs font-semibold text-[#514d48]">Clear filters</button>}
                   <button type="button" onClick={openCreateForm} disabled={!effectiveLocationId} className="h-9 rounded-lg bg-[#ff2438] px-3 text-xs font-semibold text-white disabled:opacity-50">Add product</button>
@@ -491,10 +471,10 @@ function ProductCatalogPage() {
           />}
         </div>
 
-        {/* Persistent mobile action: creation remains discoverable while browsing the catalogue. */}
+        {/* Persistent mobile action: creation remains discoverable while browsing MRP products. */}
         {formOpen && <div className="fixed inset-0 z-50 flex min-h-0 items-start justify-center overflow-y-auto bg-[#171513]/45 py-2 backdrop-blur-[2px] sm:items-center sm:overflow-hidden sm:p-4" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) { setFormOpen(false); setEditingId(null); } }}>
           <section role="dialog" aria-modal="true" aria-labelledby="catalog-form-title" className="flex h-[calc(100svh-1rem)] max-h-none w-full min-w-0 flex-col overflow-hidden rounded-2xl border border-[#e9e6e1] bg-white shadow-2xl sm:h-auto sm:max-h-[94dvh] sm:max-w-2xl">
-            <header className="flex shrink-0 items-start justify-between gap-3 border-b border-[#efede9] bg-white px-4 py-4 sm:px-6"><div className="min-w-0"><p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#e52b3a]">Product catalogue</p><h2 id="catalog-form-title" className="mt-1 text-lg font-bold">{editingId ? "Edit product" : "Add new product"}</h2><p className="mt-1 text-xs text-[#77736f]">Enter product information and pricing details.</p></div><button type="button" aria-label="Close product form" onClick={() => { setFormOpen(false); setEditingId(null); }} className="grid size-9 shrink-0 place-items-center rounded-full border border-[#e5e2dd] text-xl text-[#77736f] hover:bg-[#f8f7f4]">×</button></header>
+            <header className="flex shrink-0 items-start justify-between gap-3 border-b border-[#efede9] bg-white px-4 py-4 sm:px-6"><div className="min-w-0"><p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#e52b3a]">MRP Product</p><h2 id="catalog-form-title" className="mt-1 text-lg font-bold">{editingId ? "Edit product" : "Add new product"}</h2><p className="mt-1 text-xs text-[#77736f]">Enter product information and pricing details.</p></div><button type="button" aria-label="Close product form" onClick={() => { setFormOpen(false); setEditingId(null); }} className="grid size-9 shrink-0 place-items-center rounded-full border border-[#e5e2dd] text-xl text-[#77736f] hover:bg-[#f8f7f4]">×</button></header>
             <form className="flex h-0 min-h-0 flex-1 flex-col overflow-hidden" onSubmit={handleFormSubmit}>
               <div className="h-0 min-h-0 flex-1 space-y-5 overflow-y-scroll overscroll-contain p-4 sm:p-6">
               <section><h3 className="text-sm font-semibold">Product information</h3><div className="mt-3 grid gap-3 sm:grid-cols-2">
@@ -605,7 +585,7 @@ function ProductManageDrawer({ product, onClose, locationId, stock, setStock, up
                   }} className="mt-3 inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-[#292725] px-4 text-sm font-bold text-white hover:bg-black disabled:cursor-not-allowed disabled:opacity-40">{movement.isPending ? "Saving stock count…" : "Save counted quantity"}</button>
                 </div>
                 <div className="mt-4 rounded-xl border border-[#e9e6e1] p-3 sm:p-4"><div><h4 className="text-sm font-bold text-[#292725]">Low-stock alert</h4><p className="mt-1 text-xs leading-5 text-[#77736f]">Set the quantity at which this location should be flagged for replenishment.</p></div><div className="mt-3 flex items-end gap-3"><label className="flex-1 space-y-1.5 text-xs font-semibold text-[#514d48]">Alert threshold (units)<input type="number" min="0" step="1" inputMode="numeric" value={stockDraft.threshold ?? String(assignment.lowStockThreshold ?? product.threshold ?? 5)} onChange={(event) => setDraft({ threshold: event.target.value })} className="h-11 w-full rounded-lg border border-[#e5e2dd] bg-white px-3 text-sm font-normal outline-none focus:border-[#ff2438] focus:ring-2 focus:ring-[#ff2438]/10" /></label><button type="button" disabled={update.isPending || !Number.isInteger(Number(stockDraft.threshold ?? assignment.lowStockThreshold ?? product.threshold)) || Number(stockDraft.threshold ?? assignment.lowStockThreshold ?? product.threshold) < 0} onClick={() => update.mutate({ id: product.id, locationId: assignment.locationId, payload: { locationId: assignment.locationId, visible: assignment.visible, available: assignment.available, lowStockThreshold: Number(stockDraft.threshold ?? assignment.lowStockThreshold ?? product.threshold) } })} className="h-11 shrink-0 rounded-lg border border-[#e5e2dd] bg-white px-4 text-sm font-bold text-[#514d48] hover:bg-[#f8f7f4] disabled:opacity-50">{update.isPending ? "Saving…" : "Save alert"}</button></div></div>
-                <div className="mt-4 flex items-center justify-between gap-3 border-t border-[#efede9] pt-4"><div><p className="text-sm font-semibold">Visible in this location</p><p className="mt-0.5 text-xs text-[#77736f]">Controls catalogue visibility for this location.</p></div><button type="button" disabled={update.isPending} aria-pressed={Boolean(assignment.visible)} onClick={() => update.mutate({ id: product.id, locationId: assignment.locationId, payload: { locationId: assignment.locationId, visible: !assignment.visible, available: assignment.available, lowStockThreshold: assignment.lowStockThreshold } })} className={`relative h-6 w-11 shrink-0 rounded-full transition disabled:opacity-50 ${assignment.visible ? "bg-[#ff2438]" : "bg-[#d6d3cf]"}`}><span className={`absolute top-0.5 size-5 rounded-full bg-white shadow-sm transition ${assignment.visible ? "left-[22px]" : "left-0.5"}`} /></button></div>
+                <div className="mt-4 flex items-center justify-between gap-3 border-t border-[#efede9] pt-4"><div><p className="text-sm font-semibold">Visible in this location</p><p className="mt-0.5 text-xs text-[#77736f]">Controls MRP product visibility for this location.</p></div><button type="button" disabled={update.isPending} aria-pressed={Boolean(assignment.visible)} onClick={() => update.mutate({ id: product.id, locationId: assignment.locationId, payload: { locationId: assignment.locationId, visible: !assignment.visible, available: assignment.available, lowStockThreshold: assignment.lowStockThreshold } })} className={`relative h-6 w-11 shrink-0 rounded-full transition disabled:opacity-50 ${assignment.visible ? "bg-[#ff2438]" : "bg-[#d6d3cf]"}`}><span className={`absolute top-0.5 size-5 rounded-full bg-white shadow-sm transition ${assignment.visible ? "left-[22px]" : "left-0.5"}`} /></button></div>
               </> : <div className="mt-4 rounded-lg border border-dashed border-[#ddd8d1] bg-[#faf9f7] p-4"><p className="text-sm font-semibold">Not assigned to this location</p><p className="mt-1 text-xs leading-5 text-[#77736f]">This product has no inventory assignment for the selected location. Use the existing assignment workflow to make it available here.</p></div>}
             </section>
             </>}
@@ -613,7 +593,7 @@ function ProductManageDrawer({ product, onClose, locationId, stock, setStock, up
             {activePanel === "details" && <section className="rounded-xl border border-[#e9e6e1] bg-white p-4">
               <h3 className="text-sm font-bold text-[#292725]">Product actions</h3><p className="mt-1 text-xs text-[#77736f]">Manage product details and imagery.</p>
               <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3"><button type="button" onClick={onEdit} className="h-10 rounded-lg border border-[#e5e2dd] px-3 text-sm font-semibold text-[#514d48] hover:bg-[#f8f7f4]">Edit details</button><label className="flex h-10 cursor-pointer items-center justify-center rounded-lg border border-[#e5e2dd] px-3 text-sm font-semibold text-[#514d48] hover:bg-[#f8f7f4]">Replace image<input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={(event) => { const fileValue = event.target.files?.[0]; if (fileValue) onReplace(fileValue); }} /></label><button type="button" onClick={onAiImage} className="h-10 rounded-lg bg-[#fff0ed] px-3 text-sm font-semibold text-[#d92334] hover:bg-[#ffe5e0]">AI image studio</button></div>
-              <div className="mt-3 flex items-center justify-between gap-3 border-t border-[#efede9] pt-3"><div><p className="text-sm font-semibold">Catalogue status</p><p className="mt-0.5 text-xs text-[#77736f]">{product.active ? "This product is enabled." : "This product is disabled."}</p></div><button type="button" disabled={statusPending} onClick={onToggleStatus} className="rounded-lg border border-[#e5e2dd] px-3 py-2 text-xs font-semibold text-[#514d48] disabled:opacity-50">{statusPending ? "Saving…" : product.active ? "Disable product" : "Enable product"}</button></div>
+              <div className="mt-3 flex items-center justify-between gap-3 border-t border-[#efede9] pt-3"><div><p className="text-sm font-semibold">MRP Product status</p><p className="mt-0.5 text-xs text-[#77736f]">{product.active ? "This product is enabled." : "This product is disabled."}</p></div><button type="button" disabled={statusPending} onClick={onToggleStatus} className="rounded-lg border border-[#e5e2dd] px-3 py-2 text-xs font-semibold text-[#514d48] disabled:opacity-50">{statusPending ? "Saving…" : product.active ? "Disable product" : "Enable product"}</button></div>
             </section>}
           </div>
           <DrawerFooter className="shrink-0 border-t border-[#ece8e2] bg-white px-4 py-3 sm:px-6"><DrawerClose asChild><button type="button" className="h-10 w-full rounded-xl border border-[#e5e2dd] px-4 text-sm font-semibold text-[#514d48] hover:bg-[#f8f7f4]">Close</button></DrawerClose></DrawerFooter>
@@ -625,7 +605,7 @@ function ProductManageDrawer({ product, onClose, locationId, stock, setStock, up
 function ProductCategoryImages({ locationId, categoryNames, onClose }) {
   const queryClient = useQueryClient();
   const categoriesQuery = useQuery({
-    queryKey: ["catalog-category-options", locationId],
+    queryKey: ["mrp-product-category-options", locationId],
     queryFn: () => getMrpProductCategories(locationId),
     enabled: Boolean(locationId),
   });
@@ -645,7 +625,7 @@ function ProductCategoryImages({ locationId, categoryNames, onClose }) {
     setBusyName(name);
     try {
       await createMrpProductCategory({ name }, locationId);
-      await queryClient.invalidateQueries({ queryKey: ["catalog-category-options", locationId] });
+      await queryClient.invalidateQueries({ queryKey: ["mrp-product-category-options", locationId] });
       setNewCategoryName("");
       toast.success(`${name} category added`);
     } catch (error) {
@@ -662,7 +642,7 @@ function ProductCategoryImages({ locationId, categoryNames, onClose }) {
       let category = categoryByName.get(name.trim().toLowerCase());
       if (!category) category = await createMrpProductCategory({ name }, locationId);
       await uploadCategoryImage(category.id, file, locationId);
-      await queryClient.invalidateQueries({ queryKey: ["catalog-category-options", locationId] });
+      await queryClient.invalidateQueries({ queryKey: ["mrp-product-category-options", locationId] });
       toast.success(`${name} image saved`);
     } catch (error) {
       toast.error(error?.response?.data?.message || error?.message || "Unable to save category image");
@@ -677,7 +657,7 @@ function ProductCategoryImages({ locationId, categoryNames, onClose }) {
     setBusyName(name);
     try {
       await removeCategoryImage(category.id, locationId);
-      await queryClient.invalidateQueries({ queryKey: ["catalog-category-options", locationId] });
+      await queryClient.invalidateQueries({ queryKey: ["mrp-product-category-options", locationId] });
       toast.success(`${name} image removed`);
     } catch (error) {
       toast.error(error?.response?.data?.message || error?.message || "Unable to remove category image");
@@ -692,7 +672,7 @@ function ProductCategoryImages({ locationId, categoryNames, onClose }) {
         <header className="flex shrink-0 items-start justify-between gap-3 border-b border-[#ece8e2] p-4">
           <div className="min-w-0">
             <h2 id="product-category-images-title" className="text-base font-bold text-[#242220]">Product category images</h2>
-            <p className="mt-1 text-xs leading-5 text-[#77736f]">Upload an image for each category used in this catalogue.</p>
+            <p className="mt-1 text-xs leading-5 text-[#77736f]">Upload an image for each category used by MRP products.</p>
           </div>
           <button type="button" onClick={onClose} aria-label="Close category images" className="grid size-9 shrink-0 place-items-center rounded-full border border-[#e5e2dd] text-xl leading-none text-[#514d48]">×</button>
         </header>
