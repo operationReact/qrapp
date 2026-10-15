@@ -145,14 +145,14 @@ public class SecurityConfig {
                                 "/menu",
                                 "/menu/**",
                                 "/categories/**",
-                                "/api/catalog/products",
+                                "/api/mrp-product/products",
                                 "/api/combos",
                                 "/api/combo-campaigns",
                                 "/api/home/campaigns",
                                 "/orders/pre-order/items"
                         ).permitAll()
 
-                        .requestMatchers("/api/catalog/**")
+                        .requestMatchers("/api/mrp-product/**")
                         .hasAnyRole("ADMIN", "SUPERUSER", "SUPER_ADMIN", "MANAGER")
 
                         // BYOC cart evaluation — publicly accessible (no auth needed)

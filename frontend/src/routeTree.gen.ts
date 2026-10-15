@@ -86,7 +86,7 @@ import { Route as AdminordersKitchenQueueRouteImport } from './routes/admin/(ord
 import { Route as AdminordersHallOfHappinessRouteImport } from './routes/admin/(orders)/hall-of-happiness'
 import { Route as AdminoperationsManualInvoicesRouteImport } from './routes/admin/(operations)/manual-invoices'
 import { Route as AdminmilestonesMilestonesRouteImport } from './routes/admin/(milestones)/milestones'
-import { Route as AdminmenuProductCatalogRouteImport } from './routes/admin/(menu)/product-catalog'
+import { Route as AdminmenuMrpProductRouteImport } from './routes/admin/(menu)/mrp-product'
 import { Route as AdminmenuMenuRouteImport } from './routes/admin/(menu)/menu'
 import { Route as AdminmenuMealRolesRouteImport } from './routes/admin/(menu)/meal-roles'
 import { Route as AdminmenuManageMenuRouteImport } from './routes/admin/(menu)/manage-menu'
@@ -508,9 +508,9 @@ const AdminmilestonesMilestonesRoute =
     path: '/milestones',
     getParentRoute: () => AdminRoute,
   } as any)
-const AdminmenuProductCatalogRoute = AdminmenuProductCatalogRouteImport.update({
-  id: '/(menu)/product-catalog',
-  path: '/product-catalog',
+const AdminmenuMrpProductRoute = AdminmenuMrpProductRouteImport.update({
+  id: '/(menu)/mrp-product',
+  path: '/mrp-product',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminmenuMenuRoute = AdminmenuMenuRouteImport.update({
@@ -677,7 +677,7 @@ export interface FileRoutesByFullPath {
   '/admin/manage-menu': typeof AdminmenuManageMenuRoute
   '/admin/meal-roles': typeof AdminmenuMealRolesRoute
   '/admin/menu': typeof AdminmenuMenuRoute
-  '/admin/product-catalog': typeof AdminmenuProductCatalogRoute
+  '/admin/mrp-product': typeof AdminmenuMrpProductRoute
   '/admin/milestones': typeof AdminmilestonesMilestonesRoute
   '/admin/manual-invoices': typeof AdminoperationsManualInvoicesRoute
   '/admin/hall-of-happiness': typeof AdminordersHallOfHappinessRoute
@@ -774,7 +774,7 @@ export interface FileRoutesByTo {
   '/admin/manage-menu': typeof AdminmenuManageMenuRoute
   '/admin/meal-roles': typeof AdminmenuMealRolesRoute
   '/admin/menu': typeof AdminmenuMenuRoute
-  '/admin/product-catalog': typeof AdminmenuProductCatalogRoute
+  '/admin/mrp-product': typeof AdminmenuMrpProductRoute
   '/admin/milestones': typeof AdminmilestonesMilestonesRoute
   '/admin/manual-invoices': typeof AdminoperationsManualInvoicesRoute
   '/admin/hall-of-happiness': typeof AdminordersHallOfHappinessRoute
@@ -874,7 +874,7 @@ export interface FileRoutesById {
   '/admin/(menu)/manage-menu': typeof AdminmenuManageMenuRoute
   '/admin/(menu)/meal-roles': typeof AdminmenuMealRolesRoute
   '/admin/(menu)/menu': typeof AdminmenuMenuRoute
-  '/admin/(menu)/product-catalog': typeof AdminmenuProductCatalogRoute
+  '/admin/(menu)/mrp-product': typeof AdminmenuMrpProductRoute
   '/admin/(milestones)/milestones': typeof AdminmilestonesMilestonesRoute
   '/admin/(operations)/manual-invoices': typeof AdminoperationsManualInvoicesRoute
   '/admin/(orders)/hall-of-happiness': typeof AdminordersHallOfHappinessRoute
@@ -975,7 +975,7 @@ export interface FileRouteTypes {
     | '/admin/manage-menu'
     | '/admin/meal-roles'
     | '/admin/menu'
-    | '/admin/product-catalog'
+    | '/admin/mrp-product'
     | '/admin/milestones'
     | '/admin/manual-invoices'
     | '/admin/hall-of-happiness'
@@ -1072,7 +1072,7 @@ export interface FileRouteTypes {
     | '/admin/manage-menu'
     | '/admin/meal-roles'
     | '/admin/menu'
-    | '/admin/product-catalog'
+    | '/admin/mrp-product'
     | '/admin/milestones'
     | '/admin/manual-invoices'
     | '/admin/hall-of-happiness'
@@ -1171,7 +1171,7 @@ export interface FileRouteTypes {
     | '/admin/(menu)/manage-menu'
     | '/admin/(menu)/meal-roles'
     | '/admin/(menu)/menu'
-    | '/admin/(menu)/product-catalog'
+    | '/admin/(menu)/mrp-product'
     | '/admin/(milestones)/milestones'
     | '/admin/(operations)/manual-invoices'
     | '/admin/(orders)/hall-of-happiness'
@@ -1786,11 +1786,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminmilestonesMilestonesRouteImport
       parentRoute: typeof AdminRoute
     }
-    '/admin/(menu)/product-catalog': {
-      id: '/admin/(menu)/product-catalog'
-      path: '/product-catalog'
-      fullPath: '/admin/product-catalog'
-      preLoaderRoute: typeof AdminmenuProductCatalogRouteImport
+    '/admin/(menu)/mrp-product': {
+      id: '/admin/(menu)/mrp-product'
+      path: '/mrp-product'
+      fullPath: '/admin/mrp-product'
+      preLoaderRoute: typeof AdminmenuMrpProductRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/(menu)/menu': {
@@ -1947,7 +1947,7 @@ interface AdminRouteChildren {
   AdminmenuManageMenuRoute: typeof AdminmenuManageMenuRoute
   AdminmenuMealRolesRoute: typeof AdminmenuMealRolesRoute
   AdminmenuMenuRoute: typeof AdminmenuMenuRoute
-  AdminmenuProductCatalogRoute: typeof AdminmenuProductCatalogRoute
+  AdminmenuMrpProductRoute: typeof AdminmenuMrpProductRoute
   AdminmilestonesMilestonesRoute: typeof AdminmilestonesMilestonesRoute
   AdminoperationsManualInvoicesRoute: typeof AdminoperationsManualInvoicesRoute
   AdminordersHallOfHappinessRoute: typeof AdminordersHallOfHappinessRoute
@@ -2000,7 +2000,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminmenuManageMenuRoute: AdminmenuManageMenuRoute,
   AdminmenuMealRolesRoute: AdminmenuMealRolesRoute,
   AdminmenuMenuRoute: AdminmenuMenuRoute,
-  AdminmenuProductCatalogRoute: AdminmenuProductCatalogRoute,
+  AdminmenuMrpProductRoute: AdminmenuMrpProductRoute,
   AdminmilestonesMilestonesRoute: AdminmilestonesMilestonesRoute,
   AdminoperationsManualInvoicesRoute: AdminoperationsManualInvoicesRoute,
   AdminordersHallOfHappinessRoute: AdminordersHallOfHappinessRoute,

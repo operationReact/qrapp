@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 @RestController
-@RequestMapping("/api/catalog/products/{productId}/ai-image")
+@RequestMapping("/api/mrp-product/products/{productId}/ai-image")
 @RequiredArgsConstructor
 @Tag(name = "Product AI images")
 public class ProductImageGenerationController {

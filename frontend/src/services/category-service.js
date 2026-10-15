@@ -11,10 +11,10 @@ export const getCategories = (locationId) =>
   apiClient.get("/categories", { params: { locationId } }).then((r) => r.data);
 
 export const getMrpProductCategories = (locationId) =>
-  apiClient.get("/api/catalog/admin/categories", { params: { locationId } }).then((r) => r.data);
+  apiClient.get("/api/mrp-product/admin/categories", { params: { locationId } }).then((r) => r.data);
 
 export const createMrpProductCategory = (payload, locationId) =>
-  apiClient.post("/api/catalog/admin/categories", payload, { params: { locationId } }).then((r) => r.data);
+  apiClient.post("/api/mrp-product/admin/categories", payload, { params: { locationId } }).then((r) => r.data);
 
 export const createCategory = (payload, locationId) =>
   apiClient.post("/categories", payload, { params: { locationId } }).then((r) => r.data);

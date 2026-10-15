@@ -11,7 +11,7 @@ import RetailProductCard from "@/components/RetailProductCard";
 import { essentialsAsset } from "@/lib/essentialsAssets";
 import { baseURL } from "@/services";
 import { getCategories } from "@/services/category-service";
-import { getCatalogProducts } from "@/services/product-catalog-service";
+import { getCatalogProducts } from "@/services/mrp-product-service";
 
 export const Route = createFileRoute("/essentials")({
   component: EssentialsPage,
@@ -57,7 +57,7 @@ function EssentialsPage() {
     return categoryNames.some(([, value]) => value === initial) ? initial : "all";
   });
   const catalogQuery = useQuery({
-    queryKey: ["public-product-catalog", activeLocationId],
+    queryKey: ["public-mrp-products", activeLocationId],
     queryFn: () => getCatalogProducts(activeLocationId),
     enabled: Boolean(activeLocationId),
     staleTime: 1000 * 15,
