@@ -95,9 +95,14 @@ function PartnerShell() {
     <div className="partner-portal">
       <aside className="partner-sidebar">
         <div className="partner-sidebar-brand">
-          <img src="/bro-logo.png" alt="Bro & Bro" className="partner-bro-logo" />
-          <span className="partner-sidebar-divider" />
-          <span>Partner Portal</span>
+          <div className="partner-sidebar-logos">
+            <img src="/bro-logo.png" alt="Bro & Bro" className="partner-bro-logo" />
+            <span className="partner-sidebar-divider" aria-hidden="true" />
+            {getPartnerLogo(partner) && (
+              <img src={getPartnerLogo(partner)} alt={`${partnerDisplayName} logo`} className="partner-sidebar-partner-logo" />
+            )}
+          </div>
+          <span className="partner-sidebar-brand-label">Partner workspace</span>
         </div>
         <div className="partner-sidebar-scroll">
           <SidebarGroup label="Workspace" items={primaryNavigation} active={active} />
@@ -221,12 +226,15 @@ function SidebarGroup({ label, items, active, action }) {
         if (item.soon) return <div key={item.label} className="partner-sidebar-link is-disabled"><Icon className="size-[17px]" /><span>{item.label}</span><em>Soon</em></div>;
         return <Link key={item.to} to={item.to} className={`partner-sidebar-link ${active(item.to, item.prefix) ? "is-active" : ""}`}><Icon className="size-[17px]" /><span>{item.label}</span></Link>;
       })}
-      {action && (
+      {action && (() => {
+        const ActionIcon = action.icon;
+        return (
         <button type="button" className="partner-sidebar-link partner-sidebar-logout" onClick={action.onClick}>
-          <action.icon className="size-[17px]" />
+          <ActionIcon className="size-[17px]" />
           <span>{action.label}</span>
         </button>
-      )}
+        );
+      })()}
     </section>
   );
 }

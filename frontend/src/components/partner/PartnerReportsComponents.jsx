@@ -35,7 +35,18 @@ import {
   responseFilename,
 } from "@/lib/partnerReports";
 import { partnerReportSummaryOptions } from "@/query/options/partner-reports";
-import { downloadPartnerExecutivePdf, downloadPartnerReportCsv } from "@/services/partner-portal-service";
+import { getPartnerAnalyticsOverview, downloadPartnerExecutivePdf, downloadPartnerReportCsv } from "@/services/partner-portal-service";
+import { formatCurrency } from "@/lib/utils";
+import {
+  AreaChart,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 
 const REPORT_ICONS = { sales: ChartColumn, locations: MapPin, menu: Store, engagement: Users, finance: Wallet, feedback: MessageSquareOff };
 const PREVIEW_METRICS = 4;
@@ -162,7 +173,21 @@ export function ExecutiveOverview() {
   const today = businessToday();
   const range = resolveRange("last7", today);
   const query = useQuery(partnerReportSummaryOptions("sales", reportParams(range, "sales")));
+  const analytics = useQuery({
+    queryKey: ["partner-dashboard-pulse", range.startDate, range.endDate],
+    queryFn: () => getPartnerAnalyticsOverview(range),
+  });
   const metrics = [["gross_sales", "Gross sales"], ["orders", "Orders"], ["average_order_value", "Avg. order value"], ["sales_change_percent", "Vs previous period"]];
+  const trend = (analytics.data?.trend || []).map((point) => ({
+    ...point,
+    label: point.date?.slice(5) || "",
+    sales: Number(point.sales || 0),
+    orders: Number(point.orders || 0),
+  }));
+  const peak = (analytics.data?.hourlyDistribution || []).reduce(
+    (best, point) => Number(point.orders || 0) > Number(best?.orders || 0) ? point : best,
+    null,
+  );
   return (
     <section className="partner-section-card partner-exec-overview">
       <div className="partner-section-header">
@@ -181,6 +206,52 @@ export function ExecutiveOverview() {
           <p className="partner-rpt-muted">{formatRangeLabel(range)} · All accessible locations</p>
         </>
       )}
+      <div className="partner-exec-visuals">
+        <section className="partner-exec-chart-card">
+          <div className="partner-analytics-card-head">
+            <div><p className="partner-eyebrow">Sales pulse</p><h3>Daily gross sales</h3></div>
+            <span className="partner-chart-legend"><i />Sales</span>
+          </div>
+          <div className="partner-exec-chart">
+            {analytics.isLoading ? <div className="partner-exec-chart-loading" /> : trend.length ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={trend} margin={{ top: 8, right: 4, left: -18, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="partnerDashboardSalesFill" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#b85b4f" stopOpacity={0.28} />
+                      <stop offset="100%" stopColor="#b85b4f" stopOpacity={0.02} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid stroke="#f0e9e4" vertical={false} />
+                  <XAxis dataKey="label" tick={{ fontSize: 9, fill: "#9a8981" }} axisLine={false} tickLine={false} />
+                  <YAxis hide />
+                  <Tooltip formatter={(value) => [formatCurrency(value), "Sales"]} contentStyle={{ borderRadius: 10, borderColor: "#eaded7", fontSize: 11 }} />
+                  <Area type="monotone" dataKey="sales" stroke="#ad5146" strokeWidth={2.5} fill="url(#partnerDashboardSalesFill)" />
+                </AreaChart>
+              </ResponsiveContainer>
+            ) : <p className="partner-exec-chart-empty">Sales activity will appear here.</p>}
+          </div>
+        </section>
+        <section className="partner-exec-chart-card">
+          <div className="partner-analytics-card-head">
+            <div><p className="partner-eyebrow">Order rhythm</p><h3>Orders by day</h3></div>
+            {peak && <span className="partner-exec-peak">Peak {peak.hour}:00</span>}
+          </div>
+          <div className="partner-exec-chart">
+            {analytics.isLoading ? <div className="partner-exec-chart-loading" /> : trend.length ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={trend} margin={{ top: 8, right: 4, left: -18, bottom: 0 }}>
+                  <CartesianGrid stroke="#f0e9e4" vertical={false} />
+                  <XAxis dataKey="label" tick={{ fontSize: 9, fill: "#9a8981" }} axisLine={false} tickLine={false} />
+                  <YAxis hide />
+                  <Tooltip formatter={(value) => [value, "Orders"]} contentStyle={{ borderRadius: 10, borderColor: "#eaded7", fontSize: 11 }} />
+                  <Bar dataKey="orders" fill="#d18a68" radius={[5, 5, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : <p className="partner-exec-chart-empty">Order activity will appear here.</p>}
+          </div>
+        </section>
+      </div>
       <div className="partner-exec-links">
         {overviewLinks.map(({ to, label, detail, icon }) => {
           const Icon = icon;
