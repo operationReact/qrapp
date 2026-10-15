@@ -33,6 +33,9 @@ public class Category {
     @Column(name = "is_deleted", nullable = false)
     private Boolean isDeleted = false;
 
+    @Column(name = "category_type", nullable = false, length = 32)
+    private String categoryType = "MENU";
+
     /** Optional premium food-photography image. Falls back to the client-side icon resolver when null. */
     @Column(name = "image_url", columnDefinition = "TEXT")
     private String imageUrl;

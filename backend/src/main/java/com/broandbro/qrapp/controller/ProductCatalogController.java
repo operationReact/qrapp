@@ -2,6 +2,10 @@ package com.broandbro.qrapp.controller;
 
 import com.broandbro.qrapp.dto.*;
 import com.broandbro.qrapp.service.ProductCatalogService;
+import com.broandbro.qrapp.service.CategoryService;
+import com.broandbro.qrapp.entity.Category;
+import com.broandbro.qrapp.entity.User;
+import com.broandbro.qrapp.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
@@ -19,6 +23,25 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ProductCatalogController {
     private final ProductCatalogService catalogService;
+    private final CategoryService categoryService;
+    private final UserService userService;
+
+    @GetMapping("/admin/categories")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN', 'SUPERUSER', 'MANAGER')")
+    public List<Category> categories(@RequestParam Long locationId) {
+        return categoryService.getAllMrpProductCategories(locationId);
+    }
+
+    @PostMapping("/admin/categories")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN', 'SUPERUSER', 'MANAGER')")
+    public ResponseEntity<Category> createCategory(@RequestParam Long locationId,
+                                                    @Valid @RequestBody Category category,
+                                                    Authentication authentication) {
+        category.setId(null);
+        User currentUser = userService.findByPhone(authentication.getName()).orElseThrow();
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(categoryService.createMrpProductCategory(locationId, category, currentUser));
+    }
 
     @GetMapping("/products")
     public List<ProductResponse> products(@RequestParam Long locationId) {

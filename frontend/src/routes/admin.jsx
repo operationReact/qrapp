@@ -89,7 +89,7 @@ function AdminLayout() {
   const isKitchenQueue = pathname.startsWith("/admin/kitchen-queue");
   const isFoodCourt = pathname.startsWith("/admin/food-court");
   const isProductCatalog = pathname.startsWith("/admin/product-catalog");
-  const hideGenericHeader = isDashboard || isControlCenter || isPartners;
+  const hideGenericHeader = isDashboard || isControlCenter || isPartners || isProductCatalog;
 
   return (
     <RoleGuard roles={CAN_ACCESS_ADMIN}>
@@ -98,7 +98,7 @@ function AdminLayout() {
           <AdminSidebar />
           <SidebarInset className="min-w-0 bg-[var(--cc-page)]">
             {!hideGenericHeader && <SubPageHeader
-              title={isKitchenQueue ? "Kitchen Queue" : isFoodCourt ? "Food Court Management" : isProductCatalog ? "Essentials Catalog" : undefined}
+              title={isKitchenQueue ? "Kitchen Queue" : isFoodCourt ? "Food Court Management" : isProductCatalog ? "MRP Products Management" : undefined}
               showBack={isProductCatalog}
             />}
             <div className="min-h-0 flex-1 flex flex-col">
