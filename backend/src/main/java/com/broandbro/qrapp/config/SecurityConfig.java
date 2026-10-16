@@ -146,6 +146,7 @@ public class SecurityConfig {
                                 "/menu/**",
                                 "/categories/**",
                                 "/api/mrp-product/products",
+                                "/api/catalog/products",
                                 "/api/combos",
                                 "/api/combo-campaigns",
                                 "/api/home/campaigns",

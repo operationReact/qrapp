@@ -16,7 +16,6 @@ export default function RetailProductCard({ item }) {
   const suppliedImage = essentialsProductAsset(item.name);
   const stockStatus = item.stockStatus || (item.available === false ? "OUT_OF_STOCK" : "IN_STOCK");
   const outOfStock = stockStatus === "OUT_OF_STOCK" || item.available === false;
-  const lowStock = stockStatus === "LOW_STOCK";
 
   return (
     <article className="overflow-hidden rounded-xl border border-border bg-card shadow-sm sm:rounded-2xl">
@@ -31,11 +30,6 @@ export default function RetailProductCard({ item }) {
         ) : (
           <div className="size-full bg-[#faf7f3]" aria-hidden="true" />
         )}
-        <span className={`absolute right-2 top-2 rounded-full px-2 py-1 text-[10px] font-semibold ${
-          outOfStock ? "bg-zinc-800 text-white" : lowStock ? "bg-amber-100 text-amber-800" : "bg-emerald-100 text-emerald-700"
-        }`}>
-          {outOfStock ? "Out of stock" : lowStock ? "Only a few left" : "● In Stock"}
-        </span>
       </div>
       <div className="space-y-1 p-2 sm:space-y-1.5 sm:p-3">
         <h3 className="line-clamp-2 min-h-8 text-xs font-semibold leading-4 sm:min-h-10 sm:text-sm sm:leading-5">{item.name}</h3>

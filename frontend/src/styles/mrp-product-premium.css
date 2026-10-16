@@ -1,0 +1,119 @@
+/* Bro & Bro — premium MRP catalog layer. Import after the app's global CSS. */
+.mrp-catalog-premium {
+  --mrp-ink: #211b1b;
+  --mrp-muted: #766d6a;
+  --mrp-line: #ece5e2;
+  --mrp-page: #faf7f5;
+  --mrp-card: #fff;
+  --mrp-red: #e72d45;
+  --mrp-red-dark: #c91f37;
+  --mrp-shadow: 0 2px 4px rgb(45 25 25 / 3%), 0 12px 30px rgb(45 25 25 / 4%);
+  color: var(--mrp-ink);
+  background: var(--mrp-page) !important;
+  font-feature-settings: "ss01" on;
+}
+.mrp-catalog-premium > div { width: 100%; max-width: 1760px; margin-inline: auto; }
+.mrp-catalog-premium header { border-color: var(--mrp-line); }
+.mrp-catalog-premium h1 { letter-spacing: -.045em; }
+.mrp-catalog-premium input,
+.mrp-catalog-premium textarea { transition: border-color .16s ease, box-shadow .16s ease, background .16s ease; }
+.mrp-catalog-premium input:focus-visible,
+.mrp-catalog-premium textarea:focus-visible,
+.mrp-catalog-premium button:focus-visible { outline: 3px solid rgb(231 45 69 / 22%); outline-offset: 2px; }
+.mrp-catalog-premium button { -webkit-tap-highlight-color: transparent; }
+.mrp-catalog-premium button:disabled { cursor: not-allowed; }
+.mrp-catalog-premium section[aria-label="Inventory summary"] { gap: 12px; }
+.mrp-catalog-premium .mrp-product-kpi-card {
+  min-height: 88px !important;
+  gap: 12px !important;
+  padding: 16px !important;
+  border-color: var(--mrp-line) !important;
+  border-radius: 18px !important;
+  box-shadow: var(--mrp-shadow) !important;
+  transition: transform .18s ease, box-shadow .18s ease;
+}
+.mrp-catalog-premium .mrp-product-kpi-card:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgb(45 25 25 / 7%) !important; }
+.mrp-catalog-premium .mrp-product-kpi-card > div:first-child { width: 36px; height: 36px; border-radius: 12px; }
+.mrp-catalog-premium .mrp-product-kpi-card p:first-child { color: var(--mrp-muted); font-size: 12px; line-height: 1.35; }
+.mrp-catalog-premium .mrp-product-kpi-card p:last-child { font-size: clamp(18px, 1.35vw, 23px); letter-spacing: -.035em; }
+.mrp-catalog-premium > div > section.overflow-hidden {
+  border-color: var(--mrp-line) !important;
+  border-radius: 22px !important;
+  box-shadow: var(--mrp-shadow) !important;
+}
+.mrp-catalog-premium input[aria-label="Search MRP products"] {
+  min-height: 48px;
+  border-color: #e9e0dd;
+  border-radius: 14px;
+  background: #fff;
+  font-size: 14px;
+}
+.mrp-catalog-premium input[aria-label="Search MRP products"]:focus { border-color: var(--mrp-red); box-shadow: 0 0 0 4px rgb(231 45 69 / 9%); }
+.mrp-catalog-premium table { border-collapse: separate; border-spacing: 0; }
+.mrp-catalog-premium table thead th { padding-top: 15px; padding-bottom: 15px; font-size: 10px; letter-spacing: .075em; }
+.mrp-catalog-premium table tbody tr { transition: background .15s ease; }
+.mrp-catalog-premium table tbody td { padding-top: 16px; padding-bottom: 16px; }
+.mrp-catalog-premium table tbody tr:hover td { background-color: #fff9f8; }
+.mrp-catalog-premium table tbody tr td:first-child { border-left: 3px solid transparent; }
+.mrp-catalog-premium table tbody tr:hover td:first-child { border-left-color: var(--mrp-red); }
+.mrp-catalog-premium button[style*="background-color: rgb(255, 36, 56)"],
+.mrp-catalog-premium button[style*="background-color: #ff2438"] { border-radius: 12px; box-shadow: 0 4px 10px rgb(231 45 69 / 15%); transition: transform .15s ease, filter .15s ease, box-shadow .15s ease; }
+.mrp-catalog-premium button[style*="background-color: rgb(255, 36, 56)"]:hover,
+.mrp-catalog-premium button[style*="background-color: #ff2438"]:hover { filter: brightness(.96); box-shadow: 0 6px 14px rgb(231 45 69 / 22%); }
+.mrp-catalog-premium .divide-y > article { padding: 18px 16px; }
+.mrp-catalog-premium .divide-y > article + article { border-color: #f0e9e6; }
+.mrp-catalog-premium .divide-y > article h2 { font-size: 14px; line-height: 1.4; letter-spacing: -.015em; }
+.mrp-catalog-premium footer { border-color: var(--mrp-line); }
+.mrp-category-overlay { overscroll-behavior: contain; }
+.mrp-category-dialog {
+  height: min(86dvh, 760px);
+  min-height: min(520px, 78dvh);
+  border: 1px solid var(--mrp-line);
+  border-radius: 24px 24px 0 0 !important;
+  box-shadow: 0 -16px 55px rgb(26 15 15 / 20%);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.mrp-category-dialog > header { padding: 20px 20px 16px; }
+.mrp-category-dialog h2 { font-size: 18px; letter-spacing: -.025em; }
+.mrp-category-dialog form { padding: 14px 20px; }
+.mrp-category-dialog form input { min-height: 44px; border-radius: 12px; }
+.mrp-category-dialog form button { min-height: 44px; border-radius: 12px; }
+.mrp-category-dialog > div:last-child { padding: 16px 20px 24px; }
+.mrp-category-dialog > div:last-child > div > div { padding: 12px; border-radius: 14px; }
+.mrp-category-dialog > div:last-child > p { border: 1px dashed #e6dcd8; border-radius: 16px; background: #fcf8f6; }
+@media (min-width: 640px) {
+  .mrp-category-dialog { height: min(82dvh, 760px); min-height: 420px; border-radius: 24px !important; }
+}
+@media (max-width: 767px) {
+  .mrp-catalog-premium { min-height: 100dvh !important; }
+  .mrp-catalog-premium > div { padding: 14px 12px calc(24px + env(safe-area-inset-bottom, 0px)) !important; }
+  .mrp-catalog-premium > div > header { gap: 16px; padding-bottom: 18px; }
+  .mrp-catalog-premium > div > header > div:first-child { align-items: flex-start; }
+  .mrp-catalog-premium h1 { font-size: 23px !important; line-height: 1.15; }
+  .mrp-catalog-premium > div > header p { white-space: normal; overflow: visible; text-overflow: unset; line-height: 1.45; }
+  .mrp-catalog-premium > div > header > div:last-child { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: end; gap: 9px; }
+  .mrp-catalog-premium > div > header > div:last-child > label { grid-column: 1 / -1; min-width: 0 !important; }
+  .mrp-catalog-premium > div > header > div:last-child > button { width: 100%; min-width: 0; padding-inline: 10px; font-size: 12px; }
+  .mrp-catalog-premium .mrp-product-kpi-card { min-height: 84px !important; padding: 12px !important; gap: 9px !important; border-radius: 16px !important; }
+  .mrp-catalog-premium .mrp-product-kpi-card > div:first-child { width: 30px; height: 30px; border-radius: 10px; }
+  .mrp-catalog-premium .mrp-product-kpi-card p:first-child { font-size: 11px; white-space: normal; }
+  .mrp-catalog-premium .mrp-product-kpi-card p:last-child { font-size: 19px; }
+  .mrp-catalog-premium > div > section.overflow-hidden { border-radius: 18px !important; }
+  .mrp-catalog-premium > div > section.overflow-hidden > div:first-child { padding: 13px !important; }
+  .mrp-catalog-premium .divide-y > article { padding: 15px 13px; }
+  .mrp-catalog-premium .divide-y > article > div { gap: 10px; }
+  .mrp-catalog-premium .divide-y > article img,
+  .mrp-catalog-premium .divide-y > article > div > div:first-child { width: 58px; height: 58px; }
+  .mrp-catalog-premium .divide-y > article .grid.grid-cols-3 { padding: 10px; gap: 5px; }
+  .mrp-catalog-premium .divide-y > article button { min-height: 42px; }
+  .mrp-category-dialog { width: 100%; }
+}
+@media (max-width: 360px) {
+  .mrp-catalog-premium > div > header > div:last-child { grid-template-columns: 1fr; }
+  .mrp-catalog-premium > div > header > div:last-child > label { grid-column: auto; }
+  .mrp-catalog-premium .mrp-product-kpi-card { padding: 10px !important; }
+  .mrp-catalog-premium .mrp-product-kpi-card > div:first-child { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mrp-catalog-premium *, .mrp-category-dialog * { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; }
+}
