@@ -80,13 +80,24 @@ public class LocationCodeService {
                 location.setCode(automaticCode);
                 location.setCodeManuallyEdited(false);
             }
+        } else if (shouldRegenerateLegacyCode(location)) {
+            long sequence = location.getCodeSequence() == null
+                    ? locationRepository.nextGlobalCodeSequence()
+                    : location.getCodeSequence();
+            String regeneratedCode = prefix(location.getName(), location.getStateUt()) + "-" + formatSequence(sequence);
+            if (locationRepository.existsByCodeAndIdNot(regeneratedCode, location.getId())) {
+                throw new IllegalArgumentException("Location code already exists. Please use a different code.");
+            }
+            location.setCode(regeneratedCode);
+            location.setCodeSequence(sequence);
+            location.setCodeManuallyEdited(false);
         } else if (!Boolean.TRUE.equals(location.getCodeManuallyEdited()) && automaticCode != null) {
             if (locationRepository.existsByCodeAndIdNot(automaticCode, location.getId())) {
                 throw new IllegalArgumentException("Location code already exists. Please use a different code.");
             }
             location.setCode(automaticCode);
         }
-        return location;
+        return locationRepository.save(location);
     }
 
     public String preview(String locationName, String stateUt) {
@@ -132,6 +143,15 @@ public class LocationCodeService {
     private Long sequenceFromCode(String code) {
         String[] parts = code.split("-");
         return Long.parseLong(parts[parts.length - 1]);
+    }
+
+    private boolean shouldRegenerateLegacyCode(Location location) {
+        return location.getCodeSequence() == null
+                || !isLocationCodeFormat(location.getCode());
+    }
+
+    private boolean isLocationCodeFormat(String code) {
+        return code != null && code.matches("[A-Z0-9]+-[A-Z0-9]+-[0-9]+");
     }
 
     private String normalizeRequestedCode(String requestedCode) {

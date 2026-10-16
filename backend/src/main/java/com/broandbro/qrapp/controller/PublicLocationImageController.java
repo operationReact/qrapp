@@ -22,7 +22,7 @@ public class PublicLocationImageController {
     public ResponseEntity<ByteArrayResource> image(@PathVariable Long locationId) {
         Location location = locationRepository.findById(locationId).orElseThrow();
         if (location.getLocationPhotoKey() == null) return ResponseEntity.notFound().build();
-        ImageStorageService.StoredContent content = storage.readImage(location.getLocationPhotoKey());
+        ImageStorageService.StoredContent content = storage.readLocationImage(location.getLocationPhotoKey());
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType(content.contentType()))
                 .cacheControl(CacheControl.maxAge(java.time.Duration.ofHours(1)).cachePublic())

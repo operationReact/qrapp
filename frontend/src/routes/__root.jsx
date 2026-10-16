@@ -26,7 +26,7 @@ function SafeAreaWrapper({ children }) {
     cart && cart.length > 0
       ? { paddingBottom: "calc(var(--app-mobile-menu-height) + 86px + env(safe-area-inset-bottom))" }
       : undefined;
-  return <div className="flex min-h-screen flex-col" style={style}>{children}</div>;
+  return <div className="flex min-h-screen w-full min-w-0 flex-col" style={style}>{children}</div>;
 }
 
 SafeAreaWrapper.propTypes = {

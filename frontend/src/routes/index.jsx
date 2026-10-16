@@ -19,6 +19,7 @@ import ImmersiveHomeHero from "@/components/home/ImmersiveHomeHero";
 import HomeCampaignRails from "@/components/home/HomeCampaignRails";
 import HallOfHappinessSection from "@/components/HallOfHappinessSection";
 import HomeEssentialsSection from "@/components/home/HomeEssentialsSection";
+import LocationLandingPage from "@/components/home/LocationLandingPage";
 import React from "react";
 import { BowlFoodIcon, CaretRightIcon } from "@phosphor-icons/react";
 import {
@@ -47,7 +48,14 @@ export const Route = createFileRoute("/")({
 function MenuPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const { hash } = useLocation();
-  const { activeLocationId } = useActiveLocation();
+  const {
+    activeLocationId,
+    availableLocations,
+    setActiveLocation,
+    isLoading: locationsLoading,
+    error: locationsError,
+    refetch: refetchLocations,
+  } = useActiveLocation();
 
   const category = decodeURIComponent(hash) || "All";
 
@@ -82,6 +90,18 @@ function MenuPage() {
   }, [categoriesData]);
 
   const menuItems = menu || [];
+
+  if (!activeLocationId) {
+    return (
+      <LocationLandingPage
+        locations={availableLocations}
+        isLoading={locationsLoading}
+        error={locationsError}
+        onRetry={refetchLocations}
+        onSelect={setActiveLocation}
+      />
+    );
+  }
 
   const getCategoryName = (item) => item.category?.name || "";
   const getTagName = (item) => item.tag?.name || "";

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useLocation, useNavigate, useSearch } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { Bell, Building2, Check, ChevronDown, Eye, EyeOff, IndianRupee, KeyRound, MapPin, Menu, MoreHorizontal, MoreVertical, Plus, Search, ShieldCheck, UserRound, Wallet } from "lucide-react";
+import { Bell, Building2, Check, ChevronDown, Eye, EyeOff, Filter, IndianRupee, KeyRound, MapPin, Menu, MoreHorizontal, MoreVertical, Plus, Search, ShieldCheck, UserRound, Wallet } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,7 +15,7 @@ import { useAdminDashboard } from "@/context/AdminDashboardContext";
 import { useLocation as useActiveLocation } from "@/context/LocationContext";
 import { hasRole, ROLE } from "@/lib/roles";
 import { useAuth } from "@/context/AuthContext";
-import { INDIA_STATES_AND_UTS, locationCodePreview } from "@/lib/indiaStates";
+import { INDIA_STATES_AND_UTS, isLocationCodeFormat, locationCodePreview } from "@/lib/indiaStates";
 import { paymentConfigOptions } from "@/query/options/orders";
 import { adminSetPaymentMethod, getAdminSettings } from "@/services/order-service";
 import { partyOrdersOptions } from "@/query/options/party-orders";
@@ -399,7 +399,7 @@ function UserCard({ user, onViewAccess, onResetPassword }) {
     <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-[var(--cc-primary-light)] text-[var(--cc-primary)]"><UserRound className="size-5" /></div>
     <div className="min-w-0 flex-1"><p className="truncate text-[15px] font-semibold text-[var(--cc-text)]">{user.name || user.fullName || user.username || "Unnamed user"}</p><p className="truncate text-xs text-[var(--cc-secondary-text)]">{user.phone || user.whatsappNumber || user.email || "No phone number"}</p></div>
     <div className="hidden items-end gap-1.5 sm:flex sm:flex-col"><span className="rounded-full bg-[var(--cc-primary-light)] px-2.5 py-1 text-xs font-semibold text-[var(--cc-primary-dark)]">{humanRole(user.role || user.roles?.[0])}</span><span className={`text-xs ${active ? "text-[var(--cc-success)]" : "text-[var(--cc-muted-text)]"}`}>{active ? "Active" : "Inactive"}</span></div>
-    <DropdownMenu><DropdownMenuTrigger className="grid size-11 shrink-0 place-items-center rounded-[10px] text-[var(--cc-muted-text)] hover:bg-[var(--cc-primary-light)]" aria-label={`Actions for ${user.name || "user"}`}><MoreVertical className="size-5" /></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onClick={() => onViewAccess(user)}>View access</DropdownMenuItem><DropdownMenuItem onClick={() => onResetPassword(user)}>Reset password</DropdownMenuItem></DropdownMenuContent></DropdownMenu>
+    <DropdownMenu><DropdownMenuTrigger className="grid size-11 shrink-0 place-items-center rounded-[10px] text-[var(--cc-muted-text)] hover:bg-[var(--cc-primary-light)]" aria-label={`Actions for ${user.name || "user"}`}><MoreVertical className="size-5" /></DropdownMenuTrigger><DropdownMenuContent align="end" className="w-44 max-w-[calc(100vw-1rem)]"><DropdownMenuItem onClick={() => onViewAccess(user)}>View access</DropdownMenuItem><DropdownMenuItem onClick={() => onResetPassword(user)}>Reset password</DropdownMenuItem></DropdownMenuContent></DropdownMenu>
   </div>;
 }
 
@@ -471,20 +471,24 @@ export function ControlCenterUsers() {
 
 function LocationCard({ location, onEdit, onDelete, onToggleActive }) {
   const active = location.active ?? true;
-  return <div className="flex items-center gap-3 rounded-[16px] border border-[var(--cc-border)] bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
+  return <div className="group relative flex items-center gap-3 rounded-[18px] border border-[#EDE7E2] bg-gradient-to-br from-white via-white to-[#FFFAF8] p-3.5 shadow-[0_4px_18px_rgba(53,38,28,0.06)] transition duration-200 hover:-translate-y-0.5 hover:border-[#F4C9C0] hover:shadow-[0_10px_28px_rgba(53,38,28,0.1)]">
     <LocationThumbnail key={location.locationPhotoUrl || "location-pin"} url={location.locationPhotoUrl} locationId={location.id} name={location.name} />
-    <div className="min-w-0 flex-1"><p className="break-words text-base font-semibold leading-5 text-[var(--cc-text)]">{location.name}</p><div className="mt-1 flex min-w-0 flex-wrap items-center gap-2"><span className={`shrink-0 rounded-full px-2 py-1 text-[10px] font-semibold ${active ? "bg-[var(--cc-success-bg)] text-[var(--cc-success)]" : "bg-[var(--cc-page)] text-[var(--cc-muted-text)]"}`}>{active ? "Active" : "Inactive"}</span><p className="break-all text-xs text-[#77716D]">{location.code || location.locationCode || "Generated on save"}</p></div><p className="mt-1 break-words text-[13px] leading-4 text-[var(--cc-secondary-text)]">{[location.addressLine1, location.city, location.stateUt, location.pinCode].filter(Boolean).join(", ") || location.address || "No address provided"}</p>{location.partnerId && <Link to="/admin/partners" className="mt-1 inline-block text-xs font-semibold text-[var(--cc-primary)] hover:underline">Primary Partner: {location.partnerName || "View partner"}{location.secondaryPartnerCount ? ` · Secondary: ${location.secondaryPartnerCount}` : ""} · {location.partnerEffectiveFrom || "Date unavailable"} to {location.partnerEffectiveTo || "ongoing"}</Link>}</div>
-    <DropdownMenu><DropdownMenuTrigger className="grid size-11 shrink-0 place-items-center rounded-[10px] text-[var(--cc-muted-text)] hover:bg-[var(--cc-primary-light)]" aria-label={`Actions for ${location.name}`}><MoreVertical className="size-5" /></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onClick={() => onEdit(location)}>Edit location</DropdownMenuItem><DropdownMenuItem onClick={() => onToggleActive(location)}>{active ? "Deactivate location" : "Activate location"}</DropdownMenuItem><DropdownMenuItem onClick={() => onDelete(location)} className="text-[var(--cc-error)]">Delete location</DropdownMenuItem></DropdownMenuContent></DropdownMenu>
+    <div className="min-w-0 flex-1 self-stretch py-0.5"><div className="flex min-w-0 items-start gap-2"><p className="min-w-0 flex-1 break-words text-[15px] font-bold leading-5 tracking-[-0.01em] text-[var(--cc-text)]">{location.name}</p><span className={`mt-0.5 shrink-0 rounded-full px-2 py-1 text-[9px] font-bold uppercase tracking-[0.08em] ${active ? "bg-[#E9FAF1] text-[#16834D]" : "bg-[#F3F0EE] text-[var(--cc-muted-text)]"}`}>{active ? "Active" : "Inactive"}</span></div><p className="mt-1 font-mono text-[10px] font-semibold tracking-[0.04em] text-[#A29A93]">{location.code || location.locationCode || "CODE PENDING"}</p><p className="mt-1 break-words text-[12px] leading-[16px] text-[var(--cc-secondary-text)]">{[location.addressLine1, location.city, location.stateUt, location.pinCode].filter(Boolean).join(", ") || location.address || "No address provided"}</p>{location.partnerId && <Link to="/admin/partners" className="mt-1 inline-block max-w-full break-words text-[11px] font-semibold leading-4 text-[var(--cc-primary)] hover:underline">Primary Partner: {location.partnerName || "View partner"}{location.secondaryPartnerCount ? ` · Secondary: ${location.secondaryPartnerCount}` : ""} · {location.partnerEffectiveFrom || "Date unavailable"} to {location.partnerEffectiveTo || "ongoing"}</Link>}</div>
+    <DropdownMenu><DropdownMenuTrigger className="grid size-10 shrink-0 place-items-center self-start rounded-xl text-[var(--cc-muted-text)] transition hover:bg-[#FFF0EC] hover:text-[var(--cc-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--cc-primary)]/25" aria-label={`Actions for ${location.name}`}><MoreVertical className="size-[18px]" /></DropdownMenuTrigger><DropdownMenuContent align="end" className="w-44 max-w-[calc(100vw-1rem)]"><DropdownMenuItem onClick={() => onEdit(location)}>Edit location</DropdownMenuItem><DropdownMenuItem onClick={() => onToggleActive(location)}>{active ? "Deactivate location" : "Activate location"}</DropdownMenuItem><DropdownMenuItem onClick={() => onDelete(location)} className="text-[var(--cc-error)]">Delete location</DropdownMenuItem></DropdownMenuContent></DropdownMenu>
   </div>;
 }
 
 function LocationThumbnail({ url, locationId, name }) {
   const [failed, setFailed] = useState(false);
   if (!url || failed) {
-    return <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-[var(--cc-primary-light)] text-[var(--cc-primary)]"><MapPin className="size-5" /></div>;
+    return <div className="grid size-12 shrink-0 place-items-center rounded-[14px] bg-[#FFF0EC] text-[var(--cc-primary)] ring-4 ring-[#FFF8F5]"><MapPin className="size-5" /></div>;
   }
   const imageUrl = `${baseURL}/api/public/location-images/${locationId}`;
-  return <img src={imageUrl} alt={`${name || "Location"} photo`} loading="lazy" onError={() => setFailed(true)} className="size-10 shrink-0 rounded-xl object-cover" />;
+  return <img src={imageUrl} alt={`${name || "Location"} photo`} loading="lazy" onError={() => setFailed(true)} className="size-12 shrink-0 rounded-[14px] object-cover ring-4 ring-[#FFF8F5]" />;
+}
+
+function locationImageProxyUrl(locationId) {
+  return locationId ? `${baseURL}/api/public/location-images/${locationId}` : "";
 }
 
 function StateSelect({ value, onChange }) {
@@ -504,7 +508,9 @@ function StateSelect({ value, onChange }) {
 
 function LocationDialog({ open, onOpenChange, initial, partners = [], onSave, pending, error }) {
   const [form, setForm] = useState(() => ({ code: initial?.code || "", name: initial?.name || "", country: "India", addressLine1: initial?.addressLine1 || initial?.address || "", addressLine2: initial?.addressLine2 || "", landmark: initial?.landmark || "", city: initial?.city || "", district: initial?.district || "", stateUt: initial?.stateUt || "", pinCode: initial?.pinCode || "", partnerId: initial?.partnerId ? String(initial.partnerId) : "", active: initial?.active ?? true }));
-  const [locationCodeManuallyEdited, setLocationCodeManuallyEdited] = useState(Boolean(initial?.codeManuallyEdited ?? initial?.code));
+  const [locationCodeManuallyEdited, setLocationCodeManuallyEdited] = useState(
+    Boolean(initial?.codeManuallyEdited) && isLocationCodeFormat(initial?.code),
+  );
   const [photo, setPhoto] = useState(null);
   const [removePhoto, setRemovePhoto] = useState(false);
   const [photoError, setPhotoError] = useState("");
@@ -541,7 +547,7 @@ function LocationDialog({ open, onOpenChange, initial, partners = [], onSave, pe
   };
   return <Dialog open={open} onOpenChange={onOpenChange}><DialogContent className="max-h-[calc(100vh-32px)] w-[calc(100vw-32px)] max-w-[calc(100vw-32px)] min-w-0 overflow-y-auto rounded-[20px] border border-[var(--cc-border)] bg-white p-5 shadow-[0_12px_40px_rgba(0,0,0,0.16)] sm:max-w-2xl"><DialogHeader className="min-w-0"><DialogTitle className="text-lg font-semibold break-words">{editing ? "Edit Location" : "Add Location"}</DialogTitle><DialogDescription className="text-sm break-words text-[var(--cc-secondary-text)]">{editing ? "Update the structured operating location details." : "Create an India-based operating location."}</DialogDescription></DialogHeader><form className="grid min-w-0 gap-4 sm:grid-cols-2" onSubmit={(event) => { event.preventDefault(); onSave({ ...form, code: locationCodeManuallyEdited ? form.code : "", photo, removePhoto }); }}>
     <Field label="Location Name" icon={MapPin}><Input required className="h-11 rounded-[10px] pl-10" value={form.name} onChange={update("name")} /></Field>
-    <div className="min-w-0 space-y-1.5 sm:col-span-2"><span className="flex items-center gap-1 text-xs font-semibold text-[var(--cc-text)]">Location Photo <span className="font-normal text-[var(--cc-muted-text)]">(optional)</span></span><div className="overflow-hidden rounded-[12px] border border-dashed border-[var(--cc-border)] bg-[#FAF8F5] p-3">{photo || (initial?.locationPhotoUrl && !removePhoto) ? <div className="flex min-w-0 flex-wrap items-center gap-3"><img src={photoPreview || initial.locationPhotoUrl} alt={`${form.name || "Location"} preview`} className="h-20 w-32 max-w-full shrink-0 rounded-lg object-cover" /><div className="flex min-w-0 flex-wrap gap-2"><label className="inline-flex h-10 max-w-full cursor-pointer items-center rounded-lg border border-[var(--cc-border)] bg-white px-3 text-sm font-medium">Change Photo<input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={selectPhoto} /></label><button type="button" className="h-10 max-w-full rounded-lg border border-[var(--cc-border)] bg-white px-3 text-sm font-medium" onClick={() => { setPhoto(null); setPhotoError(""); setRemovePhoto(true); }}>Remove Photo</button></div></div> : <label className="flex min-h-24 min-w-0 cursor-pointer flex-col items-center justify-center gap-1 text-center text-sm text-[var(--cc-muted-text)]"><span className="font-medium text-[var(--cc-text)]">Upload Photo</span><span className="break-words">JPG, JPEG, PNG or WEBP · max 5 MB · recommended 16:9</span><input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={selectPhoto} /></label>}{photoError && <p className="mt-2 break-words text-xs text-[var(--cc-error)]">{photoError}</p>}</div></div>
+    <div className="min-w-0 space-y-1.5 sm:col-span-2"><span className="flex items-center gap-1 text-xs font-semibold text-[var(--cc-text)]">Location Photo <span className="font-normal text-[var(--cc-muted-text)]">(optional)</span></span><div className="overflow-hidden rounded-[12px] border border-dashed border-[var(--cc-border)] bg-[#FAF8F5] p-3">{photo || (initial?.locationPhotoUrl && !removePhoto) ? <div className="flex min-w-0 flex-wrap items-center gap-3"><img src={photoPreview || locationImageProxyUrl(initial?.id)} alt={`${form.name || "Location"} preview`} className="h-20 w-32 max-w-full shrink-0 rounded-lg object-cover" /><div className="flex min-w-0 flex-wrap gap-2"><label className="inline-flex h-10 max-w-full cursor-pointer items-center rounded-lg border border-[var(--cc-border)] bg-white px-3 text-sm font-medium">Change Photo<input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={selectPhoto} /></label><button type="button" className="h-10 max-w-full rounded-lg border border-[var(--cc-border)] bg-white px-3 text-sm font-medium" onClick={() => { setPhoto(null); setPhotoError(""); setRemovePhoto(true); }}>Remove Photo</button></div></div> : <label className="flex min-h-24 min-w-0 cursor-pointer flex-col items-center justify-center gap-1 text-center text-sm text-[var(--cc-muted-text)]"><span className="font-medium text-[var(--cc-text)]">Upload Photo</span><span className="break-words">JPG, JPEG, PNG or WEBP · max 5 MB · recommended 16:9</span><input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={selectPhoto} /></label>}{photoError && <p className="mt-2 break-words text-xs text-[var(--cc-error)]">{photoError}</p>}</div></div>
     <Field label="Country"><Input readOnly className="h-11 rounded-[10px] bg-[#FAF8F5]" value="India" /></Field>
     <Field label="Address Line 1" icon={Building2}><Input required className="h-11 rounded-[10px] pl-10" value={form.addressLine1} onChange={update("addressLine1")} /></Field>
     <Field label="Address Line 2 (optional)"><Input className="h-11 rounded-[10px]" value={form.addressLine2} onChange={update("addressLine2")} /></Field>
@@ -723,12 +729,13 @@ export function ControlCenterLocations() {
       const code = created?.code || created?.locationCode || created?.data?.code || previewCode || "";
       setGeneratedCode(code);
       queryClient.invalidateQueries({ queryKey: ["admin", "locations"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "locations-page"] });
       toast.success(code ? `Location created with code ${code}.` : "Location created.");
     },
   });
   const editMutation = useMutation({
     mutationFn: ({ id, payload, photo }) => updateAdminLocation(id, payload, photo),
-    onSuccess: () => { setLocationDialogOpen(false); setEditingLocation(null); queryClient.invalidateQueries({ queryKey: ["admin", "locations"] }); toast.success("Location updated."); },
+    onSuccess: () => { setLocationDialogOpen(false); setEditingLocation(null); queryClient.invalidateQueries({ queryKey: ["admin", "locations"] }); queryClient.invalidateQueries({ queryKey: ["admin", "locations-page"] }); toast.success("Location updated."); },
   });
   const deleteMutation = useMutation({
     mutationFn: (id) => deleteAdminLocation(id),
@@ -747,6 +754,7 @@ export function ControlCenterLocations() {
     mutationFn: (location) => setAdminLocationActive(location.id, !Boolean(location.active)),
     onSuccess: (_, location) => {
       queryClient.invalidateQueries({ queryKey: ["admin", "locations"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "locations-page"] });
       queryClient.invalidateQueries({ queryKey: ["admin", "users", "create-options"] });
       queryClient.invalidateQueries({ queryKey: ["locations"] });
       toast.success(`${location.name} ${location.active ? "deactivated" : "activated"}.`);
@@ -759,15 +767,19 @@ export function ControlCenterLocations() {
       ? "Only a Super Admin can add locations."
       : mutation.error?.response?.data?.message || mutation.error?.response?.data || mutation.error?.message;
   return <Shell title="Locations" description="Create and manage operating locations." showLocationContext={false}>
-    <div className="flex min-w-0 flex-col gap-3">
-      <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <Button variant="outline" className="h-10 w-full rounded-[10px] sm:hidden" onClick={() => { setFilterDraft(filters); setFilterOpen(true); }}>Filters{filterCount ? ` · ${filterCount}` : ""}</Button>
-        <Button className="h-11 w-full rounded-[10px] bg-[var(--cc-primary)] font-semibold text-white hover:bg-[var(--cc-primary-dark)] sm:w-auto sm:ml-auto" onClick={() => { setGeneratedCode(""); setEditingLocation(null); setLocationDialogOpen(true); }}><Plus className="size-[18px]" /> Add Location</Button>
+    <div className="flex min-w-0 flex-col gap-4">
+      <div className="flex items-center justify-between rounded-[14px] border border-[#F0E9E4] bg-[#FFFDFC] px-3.5 py-3 shadow-[0_2px_10px_rgba(53,38,28,0.03)]">
+        <div><p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#A29A93]">Workspace</p><p className="mt-0.5 text-sm font-semibold text-[var(--cc-text)]">{pageData?.totalElements ?? data.length} operating locations</p></div>
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-[#E9FAF1] px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.08em] text-[#16834D]"><span className="size-1.5 rounded-full bg-[#28B66B]" /> Live</span>
+      </div>
+      <div className="grid min-w-0 grid-cols-2 gap-2 sm:flex sm:items-center sm:justify-between">
+        <Button variant="outline" className="h-11 w-full rounded-xl border-[#E8E0DB] bg-white text-[13px] font-semibold text-[var(--cc-text)] shadow-sm hover:bg-[#FFF8F5] sm:hidden" onClick={() => { setFilterDraft(filters); setFilterOpen(true); }}><Filter className="size-4 text-[var(--cc-primary)]" /> Filters{filterCount ? ` · ${filterCount}` : ""}</Button>
+        <Button className="h-11 w-full rounded-xl bg-gradient-to-r from-[var(--cc-primary)] to-[#FF4C5C] font-semibold text-white shadow-[0_6px_16px_rgba(255,36,56,0.2)] transition hover:-translate-y-px hover:shadow-[0_8px_20px_rgba(255,36,56,0.28)] sm:ml-auto sm:w-auto sm:px-5" onClick={() => { setGeneratedCode(""); setEditingLocation(null); setLocationDialogOpen(true); }}><Plus className="size-[18px]" /> Add Location</Button>
       </div>
       <div className="hidden min-w-0 sm:block"><LocationFilterFields filters={filters} locations={filterLocations} companies={companies} onChange={changeFilter} />{filterCount > 0 && <Button type="button" variant="outline" className="mt-3 h-9" onClick={clearFilters}>Clear filters</Button>}</div>
     </div>
     <Dialog open={filterOpen} onOpenChange={setFilterOpen}><DialogContent className="max-h-[90vh] w-[calc(100vw-32px)] max-w-[calc(100vw-32px)] overflow-y-auto rounded-[20px] p-5 sm:max-w-lg"><DialogHeader><DialogTitle>Filters</DialogTitle><DialogDescription>Filter authorized operating locations.</DialogDescription></DialogHeader><LocationFilterFields filters={filterDraft} locations={filterLocations} companies={companies} onChange={(patch) => setFilterDraft((current) => ({ ...current, ...patch, ...(patch.state && !filterLocations.some((location) => location.stateUt === patch.state && location.city === current.city) ? { city: "" } : {}) }))} /><div className="flex flex-col gap-2 sm:flex-row sm:justify-end"><Button type="button" variant="outline" className="h-11" onClick={clearFilters}>Clear</Button><Button type="button" className="h-11 bg-[var(--cc-primary)] text-white hover:bg-[var(--cc-primary-dark)]" onClick={() => { const next = { ...filterDraft, page: 0 }; setFilterDraft(next); commitFilters(next); setFilterOpen(false); }}>Apply Filters</Button></div></DialogContent></Dialog>
-    {isLoading ? <p className="text-sm text-[var(--cc-muted-text)]">Loading locations...</p> : <><div className="grid gap-3 lg:grid-cols-2">{data.map((location) => <LocationCard key={location.id} location={location} onEdit={(item) => { setEditingLocation(item); setLocationDialogOpen(true); }} onToggleActive={(item) => activeMutation.mutate(item)} onDelete={(item) => { setLocationToDelete(item); setDeleteConfirmOpen(true); }} />)}{!data.length && <div className="rounded-[16px] border border-[var(--cc-border)] bg-white p-8 text-center lg:col-span-2"><p className="text-sm text-[var(--cc-muted-text)]">{filters.search ? `No locations found for "${filters.search}".` : filterCount ? "No locations match your filters." : filters.status === "ACTIVE" ? "No active locations found." : "No locations found."}</p><Button type="button" variant="outline" className="mt-3 h-10" onClick={clearFilters}>Clear Filters</Button></div>}</div>{totalPages > 1 && <div className="flex items-center justify-center gap-3 pt-2"><Button type="button" variant="outline" className="h-10" disabled={filters.page === 0} onClick={() => changeFilter({ page: filters.page - 1 })}>Previous</Button><span className="text-xs text-[var(--cc-muted-text)]">Page {filters.page + 1} of {totalPages}</span><Button type="button" variant="outline" className="h-10" disabled={filters.page + 1 >= totalPages} onClick={() => changeFilter({ page: filters.page + 1 })}>Next</Button></div>}</>}
+    {isLoading ? <p className="text-sm text-[var(--cc-muted-text)]">Loading locations...</p> : <><div className="grid gap-3.5 lg:grid-cols-2">{data.map((location) => <LocationCard key={location.id} location={location} onEdit={(item) => { setEditingLocation(item); setLocationDialogOpen(true); }} onToggleActive={(item) => activeMutation.mutate(item)} onDelete={(item) => { setLocationToDelete(item); setDeleteConfirmOpen(true); }} />)}{!data.length && <div className="rounded-[18px] border border-dashed border-[#E5DCD6] bg-white p-8 text-center shadow-sm lg:col-span-2"><p className="text-sm text-[var(--cc-muted-text)]">{filters.search ? `No locations found for "${filters.search}".` : filterCount ? "No locations match your filters." : filters.status === "ACTIVE" ? "No active locations found." : "No locations found."}</p><Button type="button" variant="outline" className="mt-3 h-10 rounded-xl" onClick={clearFilters}>Clear Filters</Button></div>}</div>{totalPages > 1 && <div className="flex items-center justify-center gap-3 pt-2"><Button type="button" variant="outline" className="h-10 rounded-xl" disabled={filters.page === 0} onClick={() => changeFilter({ page: filters.page - 1 })}>Previous</Button><span className="text-xs text-[var(--cc-muted-text)]">Page {filters.page + 1} of {totalPages}</span><Button type="button" variant="outline" className="h-10 rounded-xl" disabled={filters.page + 1 >= totalPages} onClick={() => changeFilter({ page: filters.page + 1 })}>Next</Button></div>}</>}
     <ErrorState error={error} />
     <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
       <DialogContent className="rounded-[20px] border border-[var(--cc-border)] bg-white p-5 shadow-[0_12px_40px_rgba(0,0,0,0.16)] sm:max-w-md">
