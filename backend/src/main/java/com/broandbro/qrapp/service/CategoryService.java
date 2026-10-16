@@ -51,7 +51,8 @@ public class CategoryService {
     @Cacheable(cacheNames = "categories", key = "#locationId", sync = true)
     public List<Category> getAllCategories(Long locationId) {
         requireActiveLocation(locationId);
-        return categoryRepository.findByLocationIdAndIsDeletedFalseOrderByDisplayOrderAscNameAsc(locationId);
+        return categoryRepository.findByLocationIdAndCategoryTypeAndIsDeletedFalseOrderByDisplayOrderAscNameAsc(
+                locationId, MENU_CATEGORY);
     }
 
     @Transactional(readOnly = true)

@@ -224,7 +224,7 @@ function ProductCatalogPage() {
         const threshold = assignment?.lowStockThreshold ?? product.lowStockThreshold ?? 0;
         return { ...product, assignment, quantity, threshold, stock: stockState(quantity, threshold) };
       })
-      ;
+  ;
   const overview = summaryQuery.data
       ? {
         total: summaryQuery.data.totalProducts,
@@ -295,7 +295,7 @@ function ProductCatalogPage() {
   const hasFilters = search || stockFilter !== "all" || availabilityFilter !== "all" || categoryFilter !== "all" || sortBy !== "name";
 
   return (
-      <main className="min-h-screen min-w-0 overflow-x-hidden bg-[#f7f6f3] text-[#202124]">
+      <main className="mrp-catalog-premium min-h-screen min-w-0 overflow-x-hidden bg-[#f7f6f3] text-[#202124]">
         <div className="mx-auto min-w-0 max-w-[1680px] space-y-4 px-3 py-3 pb-24 sm:px-5 sm:py-5 sm:pb-6 lg:px-7 lg:py-6">
           <header className="flex min-w-0 flex-col gap-3 border-b border-[#e5e1db] pb-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex min-w-0 items-center gap-3">
@@ -398,7 +398,7 @@ function ProductCatalogPage() {
                 {products.map((product) => {
                   const imageSource = productImageSource(product);
                   return <article key={product.id} className="p-3.5 transition hover:bg-[#fdfcfb] sm:p-4">
-                  <div className="flex min-w-0 items-start gap-3">
+                    <div className="flex min-w-0 items-start gap-3">
                       {imageSource ? <img src={imageSource} alt={product.name} loading="lazy" className="size-[68px] shrink-0 rounded-xl border border-[#eeebe6] bg-white object-contain p-1.5" /> :
                           <div className="grid size-[68px] shrink-0 place-items-center rounded-xl border border-dashed border-[#ddd8d1] bg-[#f8f7f4] text-[#a19b93]"><PackageIcon className="size-6" /></div>}
                       <div className="min-w-0 flex-1">
@@ -414,9 +414,8 @@ function ProductCatalogPage() {
                         <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2">
                           <div className="flex min-w-0 items-center gap-2"><span className="truncate text-xs font-semibold text-[#393632]">{stockLabel(product.quantity)}</span><span className={`shrink-0 rounded-full px-2 py-1 text-[10px] font-semibold ${product.stock.className}`}>{product.stock.label}</span></div>
                         </div>
-                        <div className="mt-3 grid grid-cols-2 gap-2">
-                          <button type="button" onClick={() => openEditForm(product)} className="h-10 rounded-lg border border-[#e5e2dd] bg-white px-3 text-xs font-semibold text-[#514d48] hover:bg-[#f8f7f4]">Edit</button>
-                          <button type="button" onClick={() => setSelectedProductId(product.id)} style={{ backgroundColor: "#ff2438", color: "#ffffff" }} className="h-10 rounded-lg px-3 text-xs font-semibold hover:brightness-95">Manage</button>
+                        <div className="mt-3">
+                          <button type="button" onClick={() => setSelectedProductId(product.id)} style={{ backgroundColor: "#ff2438", color: "#ffffff" }} className="h-10 w-full rounded-lg px-3 text-xs font-semibold hover:brightness-95">Open product workspace</button>
                         </div>
                       </div>
                     </div>
@@ -443,7 +442,7 @@ function ProductCatalogPage() {
                       <td className="px-3 py-3 text-right font-semibold tabular-nums">{formatMoney(product.mrp)}</td><td className="px-3 py-3 text-right tabular-nums text-[#77736f]">{formatMoney(product.costPrice)}</td><td className="px-3 py-3 text-right font-semibold tabular-nums text-blue-700">{product.profitMarginPercent == null ? "—" : `${product.profitMarginPercent}%`}</td>
                       <td className="px-3 py-3"><div className="flex flex-col items-start gap-1"><span className="font-semibold tabular-nums">{stockLabel(product.quantity)}</span><span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${product.stock.className}`}>{product.stock.label}</span></div></td>
                       <td className="px-3 py-3"><button type="button" onClick={() => status.mutate({ id: product.id, active: !product.active })} disabled={status.isPending} className={`rounded-full px-2.5 py-1 text-xs font-semibold disabled:opacity-50 ${product.active ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-600"}`}>{product.active ? "Enabled" : "Disabled"}</button></td>
-                      <td className="sticky right-0 z-[1] bg-white px-4 py-3"><div className="flex justify-end gap-2"><button type="button" onClick={() => openEditForm(product)} className="rounded-lg border border-[#e5e2dd] px-3 py-2 text-xs font-semibold text-[#55504a] hover:bg-white">Edit</button><button type="button" onClick={() => setSelectedProductId(product.id)} className="rounded-lg bg-[#ff2438] px-3 py-2 text-xs font-semibold text-white hover:bg-[#e91e32]">Manage</button></div></td>
+                      <td className="sticky right-0 z-[1] bg-white px-4 py-3"><div className="flex justify-end"><button type="button" onClick={() => setSelectedProductId(product.id)} className="rounded-lg bg-[#ff2438] px-3 py-2 text-xs font-semibold text-white hover:bg-[#e91e32]">Open workspace</button></div></td>
                     </tr>;
                   })}
                   </tbody>
@@ -465,9 +464,9 @@ function ProductCatalogPage() {
             </footer>
           </section>
           {categoryImagesOpen && <ProductCategoryImages
-            locationId={effectiveLocationId}
-            categoryNames={categoryNames}
-            onClose={() => setCategoryImagesOpen(false)}
+              locationId={effectiveLocationId}
+              categoryNames={categoryNames}
+              onClose={() => setCategoryImagesOpen(false)}
           />}
         </div>
 
@@ -477,19 +476,19 @@ function ProductCatalogPage() {
             <header className="flex shrink-0 items-start justify-between gap-3 border-b border-[#efede9] bg-white px-4 py-4 sm:px-6"><div className="min-w-0"><p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#e52b3a]">MRP Product</p><h2 id="catalog-form-title" className="mt-1 text-lg font-bold">{editingId ? "Edit product" : "Add new product"}</h2><p className="mt-1 text-xs text-[#77736f]">Enter product information and pricing details.</p></div><button type="button" aria-label="Close product form" onClick={() => { setFormOpen(false); setEditingId(null); }} className="grid size-9 shrink-0 place-items-center rounded-full border border-[#e5e2dd] text-xl text-[#77736f] hover:bg-[#f8f7f4]">×</button></header>
             <form className="flex h-0 min-h-0 flex-1 flex-col overflow-hidden" onSubmit={handleFormSubmit}>
               <div className="h-0 min-h-0 flex-1 space-y-5 overflow-y-scroll overscroll-contain p-4 sm:p-6">
-              <section><h3 className="text-sm font-semibold">Product information</h3><div className="mt-3 grid gap-3 sm:grid-cols-2">
-                {[['name','Product name','text'],['brand','Brand','text'],['variantIdentity','Variant / pack size','text']].map(([name,label,type]) => <label key={name} className="min-w-0 space-y-1.5 text-xs font-semibold text-[#514d48]">{label}{name === 'name' && <span className="text-[#e52b3a]"> *</span>}<input name={name} value={form[name]} placeholder={name === 'variantIdentity' ? 'e.g. 250 g, 1 L, pack of 6' : name === 'brand' ? 'Enter brand' : 'Enter product name'} onChange={setField} required={name === 'name'} type={type} className="h-11 w-full rounded-xl border border-[#e5e2dd] bg-[#fcfbfa] px-3 text-sm font-normal outline-none focus:border-[#ff2438] focus:bg-white focus:ring-2 focus:ring-[#ff2438]/10" /></label>)}
-                <label className="min-w-0 space-y-1.5 text-xs font-semibold text-[#514d48]">
-                  Category
-                  <CategoryCombobox value={form.categoryName} options={categoryNames} onChange={(categoryName) => setForm((current) => ({ ...current, categoryName }))} />
-                  <span className="block text-[11px] font-normal text-[#858079]">Select a suggestion or enter a new category name.</span>
-                </label>
-                <label className="space-y-1.5 text-xs font-semibold text-[#514d48] sm:col-span-2">Description <textarea name="description" value={form.description} onChange={setField} rows={2} placeholder="Optional product description" className="w-full rounded-xl border border-[#e5e2dd] bg-[#fcfbfa] px-3 py-2 text-sm font-normal outline-none focus:border-[#ff2438] focus:bg-white focus:ring-2 focus:ring-[#ff2438]/10" /></label>
-              </div></section>
-              <section className="border-t border-[#efede9] pt-4"><h3 className="text-sm font-semibold">Product image</h3><p className="mt-1 text-xs text-[#77736f]">{editingId ? "Upload a new image to replace the current product image." : "Add a JPEG, PNG or WEBP image for this product."}</p><label className="mt-3 flex min-h-11 cursor-pointer items-center justify-between gap-3 rounded-xl border border-dashed border-[#d9d4cd] bg-[#fcfbfa] px-3 py-2 text-sm font-semibold text-[#514d48] hover:border-[#ff2438] hover:bg-white"><span className="min-w-0 truncate">{imageFile ? imageFile.name : "Choose product image"}</span><span className="shrink-0 rounded-lg bg-white px-3 py-1.5 text-xs font-semibold shadow-sm">Browse</span><input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={(event) => { const selected = event.target.files?.[0]; if (selected) setImageFile(selected); }} /></label></section>
-              <section className="border-t border-[#efede9] pt-4"><h3 className="text-sm font-semibold">Pricing</h3><div className="mt-3 grid gap-3 sm:grid-cols-2">{[['mrp','MRP (₹)'],['costPrice','Cost price (₹)']].map(([name,label]) => <label key={name} className="space-y-1.5 text-xs font-semibold text-[#514d48]">{label} <span className="text-[#e52b3a]">*</span><div className="flex h-11 items-center rounded-xl border border-[#e5e2dd] bg-[#fcfbfa] focus-within:border-[#ff2438] focus-within:ring-2 focus-within:ring-[#ff2438]/10"><span className="pl-3 text-sm text-[#858079]">₹</span><input name={name} value={form[name]} onChange={setField} required type="number" min="0" step="0.01" className="h-full min-w-0 flex-1 bg-transparent px-2 text-sm font-normal outline-none" placeholder="0.00" /></div></label>)}</div></section>
-              {editingId && <section className="border-t border-[#efede9] pt-4"><h3 className="text-sm font-semibold">Location inventory</h3><p className="mt-1 text-xs text-[#77736f]">Set the current stock quantity for the selected location. The change is recorded as an audited adjustment.</p><div className="mt-3 grid gap-3 sm:grid-cols-2"><label className="space-y-1.5 text-xs font-semibold text-[#514d48]">Stock quantity<input name="stockQuantity" value={form.stockQuantity} onChange={setField} type="number" min="0" step="1" required className="h-11 w-full rounded-xl border border-[#e5e2dd] bg-[#fcfbfa] px-3 text-sm font-normal outline-none focus:border-[#ff2438] focus:bg-white focus:ring-2 focus:ring-[#ff2438]/10" /></label><label className="space-y-1.5 text-xs font-semibold text-[#514d48]">Low-stock threshold<input name="lowStockThreshold" value={form.lowStockThreshold} onChange={setField} type="number" min="0" step="1" className="h-11 w-full rounded-xl border border-[#e5e2dd] bg-[#fcfbfa] px-3 text-sm font-normal outline-none focus:border-[#ff2438] focus:bg-white focus:ring-2 focus:ring-[#ff2438]/10" /></label></div></section>}
-              {!editingId && <section className="border-t border-[#efede9] pt-4"><h3 className="text-sm font-semibold">Initial location inventory</h3><p className="mt-1 text-xs text-[#77736f]">Stock is created only for the selected location.</p><div className="mt-3 grid gap-3 sm:grid-cols-2"><label className="space-y-1.5 text-xs font-semibold text-[#514d48]">Opening stock<input name="initialStock" value={form.initialStock} onChange={setField} type="number" min="0" step="1" disabled={!effectiveLocationId} className="h-11 w-full rounded-xl border border-[#e5e2dd] bg-[#fcfbfa] px-3 text-sm font-normal outline-none focus:border-[#ff2438] disabled:opacity-50" /></label><label className="space-y-1.5 text-xs font-semibold text-[#514d48]">Low-stock threshold<input name="lowStockThreshold" value={form.lowStockThreshold} onChange={setField} type="number" min="0" step="1" className="h-11 w-full rounded-xl border border-[#e5e2dd] bg-[#fcfbfa] px-3 text-sm font-normal outline-none focus:border-[#ff2438]" /></label></div></section>}
+                <section><h3 className="text-sm font-semibold">Product information</h3><div className="mt-3 grid gap-3 sm:grid-cols-2">
+                  {[['name','Product name','text'],['brand','Brand','text'],['variantIdentity','Variant / pack size','text']].map(([name,label,type]) => <label key={name} className="min-w-0 space-y-1.5 text-xs font-semibold text-[#514d48]">{label}{name === 'name' && <span className="text-[#e52b3a]"> *</span>}<input name={name} value={form[name]} placeholder={name === 'variantIdentity' ? 'e.g. 250 g, 1 L, pack of 6' : name === 'brand' ? 'Enter brand' : 'Enter product name'} onChange={setField} required={name === 'name'} type={type} className="h-11 w-full rounded-xl border border-[#e5e2dd] bg-[#fcfbfa] px-3 text-sm font-normal outline-none focus:border-[#ff2438] focus:bg-white focus:ring-2 focus:ring-[#ff2438]/10" /></label>)}
+                  <label className="min-w-0 space-y-1.5 text-xs font-semibold text-[#514d48]">
+                    Category
+                    <CategoryCombobox value={form.categoryName} options={categoryNames} onChange={(categoryName) => setForm((current) => ({ ...current, categoryName }))} />
+                    <span className="block text-[11px] font-normal text-[#858079]">Select a suggestion or enter a new category name.</span>
+                  </label>
+                  <label className="space-y-1.5 text-xs font-semibold text-[#514d48] sm:col-span-2">Description <textarea name="description" value={form.description} onChange={setField} rows={2} placeholder="Optional product description" className="w-full rounded-xl border border-[#e5e2dd] bg-[#fcfbfa] px-3 py-2 text-sm font-normal outline-none focus:border-[#ff2438] focus:bg-white focus:ring-2 focus:ring-[#ff2438]/10" /></label>
+                </div></section>
+                <section className="border-t border-[#efede9] pt-4"><h3 className="text-sm font-semibold">Product image</h3><p className="mt-1 text-xs text-[#77736f]">{editingId ? "Upload a new image to replace the current product image." : "Add a JPEG, PNG or WEBP image for this product."}</p><label className="mt-3 flex min-h-11 cursor-pointer items-center justify-between gap-3 rounded-xl border border-dashed border-[#d9d4cd] bg-[#fcfbfa] px-3 py-2 text-sm font-semibold text-[#514d48] hover:border-[#ff2438] hover:bg-white"><span className="min-w-0 truncate">{imageFile ? imageFile.name : "Choose product image"}</span><span className="shrink-0 rounded-lg bg-white px-3 py-1.5 text-xs font-semibold shadow-sm">Browse</span><input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={(event) => { const selected = event.target.files?.[0]; if (selected) setImageFile(selected); }} /></label></section>
+                <section className="border-t border-[#efede9] pt-4"><h3 className="text-sm font-semibold">Pricing</h3><div className="mt-3 grid gap-3 sm:grid-cols-2">{[['mrp','MRP (₹)'],['costPrice','Cost price (₹)']].map(([name,label]) => <label key={name} className="space-y-1.5 text-xs font-semibold text-[#514d48]">{label} <span className="text-[#e52b3a]">*</span><div className="flex h-11 items-center rounded-xl border border-[#e5e2dd] bg-[#fcfbfa] focus-within:border-[#ff2438] focus-within:ring-2 focus-within:ring-[#ff2438]/10"><span className="pl-3 text-sm text-[#858079]">₹</span><input name={name} value={form[name]} onChange={setField} required type="number" min="0" step="0.01" className="h-full min-w-0 flex-1 bg-transparent px-2 text-sm font-normal outline-none" placeholder="0.00" /></div></label>)}</div></section>
+                {editingId && <section className="border-t border-[#efede9] pt-4"><h3 className="text-sm font-semibold">Location inventory</h3><p className="mt-1 text-xs text-[#77736f]">Set the current stock quantity for the selected location. The change is recorded as an audited adjustment.</p><div className="mt-3 grid gap-3 sm:grid-cols-2"><label className="space-y-1.5 text-xs font-semibold text-[#514d48]">Stock quantity<input name="stockQuantity" value={form.stockQuantity} onChange={setField} type="number" min="0" step="1" required className="h-11 w-full rounded-xl border border-[#e5e2dd] bg-[#fcfbfa] px-3 text-sm font-normal outline-none focus:border-[#ff2438] focus:bg-white focus:ring-2 focus:ring-[#ff2438]/10" /></label><label className="space-y-1.5 text-xs font-semibold text-[#514d48]">Low-stock threshold<input name="lowStockThreshold" value={form.lowStockThreshold} onChange={setField} type="number" min="0" step="1" className="h-11 w-full rounded-xl border border-[#e5e2dd] bg-[#fcfbfa] px-3 text-sm font-normal outline-none focus:border-[#ff2438] focus:bg-white focus:ring-2 focus:ring-[#ff2438]/10" /></label></div></section>}
+                {!editingId && <section className="border-t border-[#efede9] pt-4"><h3 className="text-sm font-semibold">Initial location inventory</h3><p className="mt-1 text-xs text-[#77736f]">Stock is created only for the selected location.</p><div className="mt-3 grid gap-3 sm:grid-cols-2"><label className="space-y-1.5 text-xs font-semibold text-[#514d48]">Opening stock<input name="initialStock" value={form.initialStock} onChange={setField} type="number" min="0" step="1" disabled={!effectiveLocationId} className="h-11 w-full rounded-xl border border-[#e5e2dd] bg-[#fcfbfa] px-3 text-sm font-normal outline-none focus:border-[#ff2438] disabled:opacity-50" /></label><label className="space-y-1.5 text-xs font-semibold text-[#514d48]">Low-stock threshold<input name="lowStockThreshold" value={form.lowStockThreshold} onChange={setField} type="number" min="0" step="1" className="h-11 w-full rounded-xl border border-[#e5e2dd] bg-[#fcfbfa] px-3 text-sm font-normal outline-none focus:border-[#ff2438]" /></label></div></section>}
               </div>
               <footer className="flex shrink-0 flex-col-reverse gap-2 border-t border-[#efede9] bg-white px-4 py-3 shadow-[0_-8px_20px_rgba(32,33,36,0.06)] sm:flex-row sm:justify-end sm:px-6"><button type="button" onClick={() => { setFormOpen(false); setEditingId(null); }} className="h-11 rounded-xl border border-[#e5e2dd] px-5 text-sm font-semibold text-[#514d48]">Cancel</button>{editingId && editingProduct && <button type="button" onClick={() => { setFormOpen(false); setAiStudio({ product: editingProduct, source: null, preview: null, session: null }); }} className="h-11 rounded-xl bg-[#fff0ed] px-5 text-sm font-semibold text-[#d92334] hover:bg-[#ffe5e0]">AI image studio</button>}<button type="submit" disabled={create.isPending || edit.isPending} style={{ backgroundColor: "#ff2438", color: "#ffffff" }} className="inline-flex h-11 min-w-[140px] items-center justify-center whitespace-nowrap rounded-xl px-5 text-sm font-semibold shadow-sm hover:bg-[#e91e32] disabled:cursor-not-allowed disabled:opacity-50">{create.isPending || edit.isPending ? "Saving…" : editingId ? "Save changes" : "Create product"}</button></footer>
             </form>
@@ -543,7 +542,7 @@ function ProductManageDrawer({ product, onClose, locationId, stock, setStock, up
                 <DrawerDescription className="mt-1 text-xs leading-5 text-[#77736f]">{product.brand || "No brand"} · {product.categoryName || "Uncategorized"} · {product.variantIdentity && product.variantIdentity !== "DEFAULT" ? product.variantIdentity : "Default pack"}</DrawerDescription>
                 <div className="mt-2 flex flex-wrap items-baseline gap-x-3"><span className="text-sm font-bold text-[#242220]">MRP ₹{product.mrp}</span><span className="text-xs text-[#77736f]">Cost ₹{product.costPrice}</span></div>
               </div>
-              <DrawerClose asChild><button type="button" aria-label="Close manage product" className="grid size-9 shrink-0 place-items-center rounded-full border border-[#e5e2dd] text-xl leading-none text-[#514d48] hover:bg-[#f8f7f4]">×</button></DrawerClose>
+              <DrawerClose asChild><button type="button" aria-label="Close product workspace" className="grid size-9 shrink-0 place-items-center rounded-full border border-[#e5e2dd] text-xl leading-none text-[#514d48] hover:bg-[#f8f7f4]">×</button></DrawerClose>
             </div>
           </DrawerHeader>
 
@@ -552,42 +551,42 @@ function ProductManageDrawer({ product, onClose, locationId, stock, setStock, up
               ["inventory", "Inventory", "Stock, movements and alerts"],
               ["details", "Product details", "Pricing, image and status"],
             ].map(([panel, label, description]) => (
-              <button key={panel} type="button" onClick={() => setActivePanel(panel)} className={`rounded-xl px-3 py-2 text-left transition ${activePanel === panel ? "bg-[#fff0ed] text-[#d92334] shadow-sm" : "text-[#77736f] hover:bg-[#f8f7f4]"}`}>
-                <span className="block text-xs font-bold">{label}</span><span className="mt-0.5 block text-[10px] leading-4">{description}</span>
-              </button>
+                <button key={panel} type="button" onClick={() => setActivePanel(panel)} className={`rounded-xl px-3 py-2 text-left transition ${activePanel === panel ? "bg-[#fff0ed] text-[#d92334] shadow-sm" : "text-[#77736f] hover:bg-[#f8f7f4]"}`}>
+                  <span className="block text-xs font-bold">{label}</span><span className="mt-0.5 block text-[10px] leading-4">{description}</span>
+                </button>
             ))}
           </div>
 
           <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain p-3 sm:p-5">
             {activePanel === "inventory" && <>
-            <section className="rounded-xl border border-[#e9e6e1] bg-white p-4">
-              <div className="flex items-center justify-between gap-3"><div><h3 className="text-sm font-bold text-[#292725]">Location inventory</h3><p className="mt-1 text-xs text-[#77736f]">{assignment?.locationName || "Selected location"}</p></div>{assignment && <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${productStock.className}`}>{stockLabel(product.quantity)} · {productStock.label}</span>}</div>
-              {assignment ? <>
-                <div className="mt-4 grid grid-cols-2 gap-3"><div className="rounded-xl border border-[#e9e6e1] bg-[#fbfaf8] p-3"><p className="text-[11px] font-semibold uppercase tracking-wide text-[#77736f]">Current stock</p><p className="mt-1 text-2xl font-bold tabular-nums text-[#242220]">{product.quantity == null ? "—" : product.quantity}<span className="ml-1 text-xs font-medium text-[#77736f]">{product.quantity == null ? "not configured" : "units"}</span></p><p className="mt-1 text-[11px] text-[#77736f]">Quantity currently recorded for this location</p></div><div className="rounded-xl border border-[#e9e6e1] bg-[#fbfaf8] p-3"><p className="text-[11px] font-semibold uppercase tracking-wide text-[#77736f]">Stock status</p><span className={`mt-2 inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${productStock.className}`}>{productStock.label}</span><p className="mt-2 text-[11px] text-[#77736f]">Alert at {assignment.lowStockThreshold ?? product.threshold} units</p></div></div>
-                <div className="mt-4 rounded-xl border border-[#e9e6e1] p-3 sm:p-4"><div className="flex items-start justify-between gap-3"><div><h4 className="text-sm font-bold text-[#292725]">Stock adjustment</h4><p className="mt-1 text-xs leading-5 text-[#77736f]">Record stock received or stock removed. Each movement needs a reason.</p></div><span className="rounded-lg bg-[#fff0ed] px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-[#d92334]">Audited movement</span></div><div className="mt-4 grid gap-3 sm:grid-cols-2"><label className="space-y-1.5 text-xs font-semibold text-[#514d48]">Quantity to move<input type="number" min="1" step="1" inputMode="numeric" value={stockDraft.quantity || ""} onChange={(event) => setDraft({ quantity: event.target.value })} placeholder="e.g. 24" className="h-11 w-full rounded-lg border border-[#e5e2dd] bg-white px-3 text-sm font-normal outline-none focus:border-[#ff2438] focus:ring-2 focus:ring-[#ff2438]/10" /></label><label className="space-y-1.5 text-xs font-semibold text-[#514d48]">Reason <span className="text-[#d92334]">*</span><input value={stockDraft.reason || ""} onChange={(event) => setDraft({ reason: event.target.value })} placeholder="Purchase receipt, damaged goods…" className="h-11 w-full rounded-lg border border-[#e5e2dd] bg-white px-3 text-sm font-normal outline-none focus:border-[#ff2438] focus:ring-2 focus:ring-[#ff2438]/10" /></label></div><div className="mt-3 grid grid-cols-2 gap-2"><button type="button" disabled={movement.isPending} onClick={() => submitMovement("ADD_STOCK")} style={{ backgroundColor: "#ff2438", color: "#ffffff" }} className="inline-flex h-11 items-center justify-center gap-2 rounded-lg px-3 text-sm font-bold shadow-sm hover:brightness-95 disabled:opacity-50">{movement.isPending ? "Saving…" : "+ Receive stock"}</button><button type="button" disabled={movement.isPending} onClick={() => submitMovement("REDUCE_STOCK")} style={{ color: "#514d48" }} className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-[#e5e2dd] bg-white px-3 text-sm font-bold hover:bg-[#f8f7f4] disabled:opacity-50">− Remove stock</button></div><p className="mt-3 rounded-lg bg-[#f8f7f4] p-2.5 text-[11px] leading-5 text-[#77736f]">This records a stock movement; it does not overwrite the current balance. The backend must reject invalid or excessive reductions.</p></div>
-                <div className="mt-4 rounded-xl border border-[#e9e6e1] bg-white p-3 sm:p-4">
-                  <h4 className="text-sm font-bold text-[#292725]">Set exact stock quantity</h4>
-                  <p className="mt-1 text-xs leading-5 text-[#77736f]">Enter the physical count from your shelf. The app records only the difference as an audited stock movement.</p>
-                  <label className="mt-3 block space-y-1.5 text-xs font-semibold text-[#514d48]">Actual counted quantity
-                    <input type="number" min="0" step="1" inputMode="numeric" value={stockDraft.targetQuantity ?? ""} onChange={(event) => setDraft({ targetQuantity: event.target.value })} placeholder={`Current: ${product.quantity}`} className="h-11 w-full rounded-lg border border-[#e5e2dd] bg-white px-3 text-sm font-normal outline-none focus:border-[#ff2438] focus:ring-2 focus:ring-[#ff2438]/10" />
-                  </label>
-                  <label className="mt-3 block space-y-1.5 text-xs font-semibold text-[#514d48]">Count / adjustment reason <span className="text-[#d92334]">*</span>
-                    <input value={stockDraft.targetReason ?? ""} onChange={(event) => setDraft({ targetReason: event.target.value })} placeholder="Physical stock count, reconciliation…" className="h-11 w-full rounded-lg border border-[#e5e2dd] bg-white px-3 text-sm font-normal outline-none focus:border-[#ff2438] focus:ring-2 focus:ring-[#ff2438]/10" />
-                  </label>
-                  <button type="button" disabled={movement.isPending || stockDraft.targetQuantity === "" || stockDraft.targetQuantity == null || !Number.isInteger(Number(stockDraft.targetQuantity)) || Number(stockDraft.targetQuantity) < 0 || !String(stockDraft.targetReason || "").trim() || Number(stockDraft.targetQuantity) === Number(product.quantity)} onClick={() => {
-                    const target = Number(stockDraft.targetQuantity);
-                    const current = Number(product.quantity);
-                    const delta = target - current;
-                    if (!Number.isInteger(target) || target < 0) { toast.error("Enter a valid whole-number stock count"); return; }
-                    if (!String(stockDraft.targetReason || "").trim()) { toast.error("Enter a reason for the stock count"); return; }
-                    if (delta === 0) { toast.info("Count matches the current stock"); return; }
-                    movement.mutate({ id: product.id, payload: { locationId: assignment.locationId, movementType: delta > 0 ? "ADD_STOCK" : "REDUCE_STOCK", quantity: Math.abs(delta), reason: `Stock reconciliation: ${String(stockDraft.targetReason).trim()} (counted ${target}; previous ${current})` } });
-                  }} className="mt-3 inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-[#292725] px-4 text-sm font-bold text-white hover:bg-black disabled:cursor-not-allowed disabled:opacity-40">{movement.isPending ? "Saving stock count…" : "Save counted quantity"}</button>
-                </div>
-                <div className="mt-4 rounded-xl border border-[#e9e6e1] p-3 sm:p-4"><div><h4 className="text-sm font-bold text-[#292725]">Low-stock alert</h4><p className="mt-1 text-xs leading-5 text-[#77736f]">Set the quantity at which this location should be flagged for replenishment.</p></div><div className="mt-3 flex items-end gap-3"><label className="flex-1 space-y-1.5 text-xs font-semibold text-[#514d48]">Alert threshold (units)<input type="number" min="0" step="1" inputMode="numeric" value={stockDraft.threshold ?? String(assignment.lowStockThreshold ?? product.threshold ?? 5)} onChange={(event) => setDraft({ threshold: event.target.value })} className="h-11 w-full rounded-lg border border-[#e5e2dd] bg-white px-3 text-sm font-normal outline-none focus:border-[#ff2438] focus:ring-2 focus:ring-[#ff2438]/10" /></label><button type="button" disabled={update.isPending || !Number.isInteger(Number(stockDraft.threshold ?? assignment.lowStockThreshold ?? product.threshold)) || Number(stockDraft.threshold ?? assignment.lowStockThreshold ?? product.threshold) < 0} onClick={() => update.mutate({ id: product.id, locationId: assignment.locationId, payload: { locationId: assignment.locationId, visible: assignment.visible, available: assignment.available, lowStockThreshold: Number(stockDraft.threshold ?? assignment.lowStockThreshold ?? product.threshold) } })} className="h-11 shrink-0 rounded-lg border border-[#e5e2dd] bg-white px-4 text-sm font-bold text-[#514d48] hover:bg-[#f8f7f4] disabled:opacity-50">{update.isPending ? "Saving…" : "Save alert"}</button></div></div>
-                <div className="mt-4 flex items-center justify-between gap-3 border-t border-[#efede9] pt-4"><div><p className="text-sm font-semibold">Visible in this location</p><p className="mt-0.5 text-xs text-[#77736f]">Controls MRP product visibility for this location.</p></div><button type="button" disabled={update.isPending} aria-pressed={Boolean(assignment.visible)} onClick={() => update.mutate({ id: product.id, locationId: assignment.locationId, payload: { locationId: assignment.locationId, visible: !assignment.visible, available: assignment.available, lowStockThreshold: assignment.lowStockThreshold } })} className={`relative h-6 w-11 shrink-0 rounded-full transition disabled:opacity-50 ${assignment.visible ? "bg-[#ff2438]" : "bg-[#d6d3cf]"}`}><span className={`absolute top-0.5 size-5 rounded-full bg-white shadow-sm transition ${assignment.visible ? "left-[22px]" : "left-0.5"}`} /></button></div>
-              </> : <div className="mt-4 rounded-lg border border-dashed border-[#ddd8d1] bg-[#faf9f7] p-4"><p className="text-sm font-semibold">Not assigned to this location</p><p className="mt-1 text-xs leading-5 text-[#77736f]">This product has no inventory assignment for the selected location. Use the existing assignment workflow to make it available here.</p></div>}
-            </section>
+              <section className="rounded-xl border border-[#e9e6e1] bg-white p-4">
+                <div className="flex items-center justify-between gap-3"><div><h3 className="text-sm font-bold text-[#292725]">Location inventory</h3><p className="mt-1 text-xs text-[#77736f]">{assignment?.locationName || "Selected location"}</p></div>{assignment && <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${productStock.className}`}>{stockLabel(product.quantity)} · {productStock.label}</span>}</div>
+                {assignment ? <>
+                  <div className="mt-4 grid grid-cols-2 gap-3"><div className="rounded-xl border border-[#e9e6e1] bg-[#fbfaf8] p-3"><p className="text-[11px] font-semibold uppercase tracking-wide text-[#77736f]">Current stock</p><p className="mt-1 text-2xl font-bold tabular-nums text-[#242220]">{product.quantity == null ? "—" : product.quantity}<span className="ml-1 text-xs font-medium text-[#77736f]">{product.quantity == null ? "not configured" : "units"}</span></p><p className="mt-1 text-[11px] text-[#77736f]">Quantity currently recorded for this location</p></div><div className="rounded-xl border border-[#e9e6e1] bg-[#fbfaf8] p-3"><p className="text-[11px] font-semibold uppercase tracking-wide text-[#77736f]">Stock status</p><span className={`mt-2 inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${productStock.className}`}>{productStock.label}</span><p className="mt-2 text-[11px] text-[#77736f]">Alert at {assignment.lowStockThreshold ?? product.threshold} units</p></div></div>
+                  <div className="mt-4 rounded-xl border border-[#e9e6e1] p-3 sm:p-4"><div className="flex items-start justify-between gap-3"><div><h4 className="text-sm font-bold text-[#292725]">Stock adjustment</h4><p className="mt-1 text-xs leading-5 text-[#77736f]">Record stock received or stock removed. Each movement needs a reason.</p></div><span className="rounded-lg bg-[#fff0ed] px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-[#d92334]">Audited movement</span></div><div className="mt-4 grid gap-3 sm:grid-cols-2"><label className="space-y-1.5 text-xs font-semibold text-[#514d48]">Quantity to move<input type="number" min="1" step="1" inputMode="numeric" value={stockDraft.quantity || ""} onChange={(event) => setDraft({ quantity: event.target.value })} placeholder="e.g. 24" className="h-11 w-full rounded-lg border border-[#e5e2dd] bg-white px-3 text-sm font-normal outline-none focus:border-[#ff2438] focus:ring-2 focus:ring-[#ff2438]/10" /></label><label className="space-y-1.5 text-xs font-semibold text-[#514d48]">Reason <span className="text-[#d92334]">*</span><input value={stockDraft.reason || ""} onChange={(event) => setDraft({ reason: event.target.value })} placeholder="Purchase receipt, damaged goods…" className="h-11 w-full rounded-lg border border-[#e5e2dd] bg-white px-3 text-sm font-normal outline-none focus:border-[#ff2438] focus:ring-2 focus:ring-[#ff2438]/10" /></label></div><div className="mt-3 grid grid-cols-2 gap-2"><button type="button" disabled={movement.isPending} onClick={() => submitMovement("ADD_STOCK")} style={{ backgroundColor: "#ff2438", color: "#ffffff" }} className="inline-flex h-11 items-center justify-center gap-2 rounded-lg px-3 text-sm font-bold shadow-sm hover:brightness-95 disabled:opacity-50">{movement.isPending ? "Saving…" : "+ Receive stock"}</button><button type="button" disabled={movement.isPending} onClick={() => submitMovement("REDUCE_STOCK")} style={{ color: "#514d48" }} className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-[#e5e2dd] bg-white px-3 text-sm font-bold hover:bg-[#f8f7f4] disabled:opacity-50">− Remove stock</button></div><p className="mt-3 rounded-lg bg-[#f8f7f4] p-2.5 text-[11px] leading-5 text-[#77736f]">This records a stock movement; it does not overwrite the current balance. The backend must reject invalid or excessive reductions.</p></div>
+                  <div className="mt-4 rounded-xl border border-[#e9e6e1] bg-white p-3 sm:p-4">
+                    <h4 className="text-sm font-bold text-[#292725]">Set exact stock quantity</h4>
+                    <p className="mt-1 text-xs leading-5 text-[#77736f]">Enter the physical count from your shelf. The app records only the difference as an audited stock movement.</p>
+                    <label className="mt-3 block space-y-1.5 text-xs font-semibold text-[#514d48]">Actual counted quantity
+                      <input type="number" min="0" step="1" inputMode="numeric" value={stockDraft.targetQuantity ?? ""} onChange={(event) => setDraft({ targetQuantity: event.target.value })} placeholder={`Current: ${product.quantity}`} className="h-11 w-full rounded-lg border border-[#e5e2dd] bg-white px-3 text-sm font-normal outline-none focus:border-[#ff2438] focus:ring-2 focus:ring-[#ff2438]/10" />
+                    </label>
+                    <label className="mt-3 block space-y-1.5 text-xs font-semibold text-[#514d48]">Count / adjustment reason <span className="text-[#d92334]">*</span>
+                      <input value={stockDraft.targetReason ?? ""} onChange={(event) => setDraft({ targetReason: event.target.value })} placeholder="Physical stock count, reconciliation…" className="h-11 w-full rounded-lg border border-[#e5e2dd] bg-white px-3 text-sm font-normal outline-none focus:border-[#ff2438] focus:ring-2 focus:ring-[#ff2438]/10" />
+                    </label>
+                    <button type="button" disabled={movement.isPending || stockDraft.targetQuantity === "" || stockDraft.targetQuantity == null || !Number.isInteger(Number(stockDraft.targetQuantity)) || Number(stockDraft.targetQuantity) < 0 || !String(stockDraft.targetReason || "").trim() || Number(stockDraft.targetQuantity) === Number(product.quantity)} onClick={() => {
+                      const target = Number(stockDraft.targetQuantity);
+                      const current = Number(product.quantity);
+                      const delta = target - current;
+                      if (!Number.isInteger(target) || target < 0) { toast.error("Enter a valid whole-number stock count"); return; }
+                      if (!String(stockDraft.targetReason || "").trim()) { toast.error("Enter a reason for the stock count"); return; }
+                      if (delta === 0) { toast.info("Count matches the current stock"); return; }
+                      movement.mutate({ id: product.id, payload: { locationId: assignment.locationId, movementType: delta > 0 ? "ADD_STOCK" : "REDUCE_STOCK", quantity: Math.abs(delta), reason: `Stock reconciliation: ${String(stockDraft.targetReason).trim()} (counted ${target}; previous ${current})` } });
+                    }} className="mt-3 inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-[#292725] px-4 text-sm font-bold text-white hover:bg-black disabled:cursor-not-allowed disabled:opacity-40">{movement.isPending ? "Saving stock count…" : "Save counted quantity"}</button>
+                  </div>
+                  <div className="mt-4 rounded-xl border border-[#e9e6e1] p-3 sm:p-4"><div><h4 className="text-sm font-bold text-[#292725]">Low-stock alert</h4><p className="mt-1 text-xs leading-5 text-[#77736f]">Set the quantity at which this location should be flagged for replenishment.</p></div><div className="mt-3 flex items-end gap-3"><label className="flex-1 space-y-1.5 text-xs font-semibold text-[#514d48]">Alert threshold (units)<input type="number" min="0" step="1" inputMode="numeric" value={stockDraft.threshold ?? String(assignment.lowStockThreshold ?? product.threshold ?? 5)} onChange={(event) => setDraft({ threshold: event.target.value })} className="h-11 w-full rounded-lg border border-[#e5e2dd] bg-white px-3 text-sm font-normal outline-none focus:border-[#ff2438] focus:ring-2 focus:ring-[#ff2438]/10" /></label><button type="button" disabled={update.isPending || !Number.isInteger(Number(stockDraft.threshold ?? assignment.lowStockThreshold ?? product.threshold)) || Number(stockDraft.threshold ?? assignment.lowStockThreshold ?? product.threshold) < 0} onClick={() => update.mutate({ id: product.id, locationId: assignment.locationId, payload: { locationId: assignment.locationId, visible: assignment.visible, available: assignment.available, lowStockThreshold: Number(stockDraft.threshold ?? assignment.lowStockThreshold ?? product.threshold) } })} className="h-11 shrink-0 rounded-lg border border-[#e5e2dd] bg-white px-4 text-sm font-bold text-[#514d48] hover:bg-[#f8f7f4] disabled:opacity-50">{update.isPending ? "Saving…" : "Save alert"}</button></div></div>
+                  <div className="mt-4 flex items-center justify-between gap-3 border-t border-[#efede9] pt-4"><div><p className="text-sm font-semibold">Visible in this location</p><p className="mt-0.5 text-xs text-[#77736f]">Controls MRP product visibility for this location.</p></div><button type="button" disabled={update.isPending} aria-pressed={Boolean(assignment.visible)} onClick={() => update.mutate({ id: product.id, locationId: assignment.locationId, payload: { locationId: assignment.locationId, visible: !assignment.visible, available: assignment.available, lowStockThreshold: assignment.lowStockThreshold } })} className={`relative h-6 w-11 shrink-0 rounded-full transition disabled:opacity-50 ${assignment.visible ? "bg-[#ff2438]" : "bg-[#d6d3cf]"}`}><span className={`absolute top-0.5 size-5 rounded-full bg-white shadow-sm transition ${assignment.visible ? "left-[22px]" : "left-0.5"}`} /></button></div>
+                </> : <div className="mt-4 rounded-lg border border-dashed border-[#ddd8d1] bg-[#faf9f7] p-4"><p className="text-sm font-semibold">Not assigned to this location</p><p className="mt-1 text-xs leading-5 text-[#77736f]">This product has no inventory assignment for the selected location. Use the existing assignment workflow to make it available here.</p></div>}
+              </section>
             </>}
 
             {activePanel === "details" && <section className="rounded-xl border border-[#e9e6e1] bg-white p-4">
@@ -667,66 +666,66 @@ function ProductCategoryImages({ locationId, categoryNames, onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/45 p-0 sm:items-center sm:p-4">
-      <section role="dialog" aria-modal="true" aria-labelledby="product-category-images-title" className="flex max-h-[90dvh] w-full max-w-xl flex-col overflow-hidden rounded-t-2xl bg-white shadow-2xl sm:rounded-2xl">
-        <header className="flex shrink-0 items-start justify-between gap-3 border-b border-[#ece8e2] p-4">
-          <div className="min-w-0">
-            <h2 id="product-category-images-title" className="text-base font-bold text-[#242220]">Product category images</h2>
-            <p className="mt-1 text-xs leading-5 text-[#77736f]">Upload an image for each category used by MRP products.</p>
+      <div className="mrp-category-overlay fixed inset-0 z-[100] flex items-end justify-center bg-black/45 p-0 backdrop-blur-[3px] sm:items-center sm:p-4">
+        <section role="dialog" aria-modal="true" aria-labelledby="product-category-images-title" className="mrp-category-dialog flex max-h-[90dvh] w-full max-w-xl flex-col overflow-hidden rounded-t-2xl bg-white shadow-2xl sm:rounded-2xl">
+          <header className="flex shrink-0 items-start justify-between gap-3 border-b border-[#ece8e2] p-4">
+            <div className="min-w-0">
+              <h2 id="product-category-images-title" className="text-base font-bold text-[#242220]">Product category images</h2>
+              <p className="mt-1 text-xs leading-5 text-[#77736f]">Upload an image for each category used by MRP products.</p>
+            </div>
+            <button type="button" onClick={onClose} aria-label="Close category images" className="grid size-9 shrink-0 place-items-center rounded-full border border-[#e5e2dd] text-xl leading-none text-[#514d48]">×</button>
+          </header>
+          <form onSubmit={(event) => { event.preventDefault(); addCategory(); }} className="flex gap-2 border-b border-[#ece8e2] p-3 sm:p-4">
+            <input value={newCategoryName} onChange={(event) => setNewCategoryName(event.target.value)} placeholder="New category name" className="h-10 min-w-0 flex-1 rounded-lg border border-[#e5e2dd] px-3 text-sm outline-none focus:border-[#ff2438] focus:ring-2 focus:ring-[#ff2438]/10" />
+            <button type="submit" disabled={!newCategoryName.trim() || Boolean(busyName)} className="h-10 shrink-0 rounded-lg bg-[#ff2438] px-3 text-xs font-bold text-white disabled:opacity-50">Add category</button>
+          </form>
+          <div className="min-h-0 flex-1 overflow-y-auto p-3 sm:p-4">
+            {displayNames.length === 0 ? <p className="p-6 text-center text-sm text-[#77736f]">No product categories found.</p> :
+                <div className="grid gap-2">
+                  {displayNames.map((name) => {
+                    const category = categoryByName.get(name.trim().toLowerCase());
+                    const busy = busyName === name;
+                    return (
+                        <div key={name} className="flex min-w-0 items-center gap-3 rounded-xl border border-[#e9e6e1] p-2.5">
+                          {category?.imageUrl ? <img src={category.imageUrl} alt="" className="size-12 shrink-0 rounded-lg border border-[#eeeae5] object-cover" /> : <div className="grid size-12 shrink-0 place-items-center rounded-lg bg-[#f8f7f4] text-[10px] text-[#99938c]">No image</div>}
+                          <span className="min-w-0 flex-1 truncate text-sm font-semibold text-[#393632]">{name}</span>
+                          <label className={`shrink-0 cursor-pointer rounded-lg border border-[#e5e2dd] px-2.5 py-2 text-xs font-semibold text-[#514d48] hover:bg-[#f8f7f4] ${busy ? "pointer-events-none opacity-50" : ""}`}>
+                            {busy ? "Saving…" : category?.imageUrl ? "Replace" : "Upload"}
+                            <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" disabled={busy} onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ""; saveImage(name, file); }} />
+                          </label>
+                          {category?.imageUrl && <button type="button" disabled={busy} onClick={() => removeImage(name)} className="shrink-0 px-1 text-xs font-semibold text-[#d92334] disabled:opacity-50">Remove</button>}
+                        </div>
+                    );
+                  })}
+                </div>}
           </div>
-          <button type="button" onClick={onClose} aria-label="Close category images" className="grid size-9 shrink-0 place-items-center rounded-full border border-[#e5e2dd] text-xl leading-none text-[#514d48]">×</button>
-        </header>
-        <form onSubmit={(event) => { event.preventDefault(); addCategory(); }} className="flex gap-2 border-b border-[#ece8e2] p-3 sm:p-4">
-          <input value={newCategoryName} onChange={(event) => setNewCategoryName(event.target.value)} placeholder="New category name" className="h-10 min-w-0 flex-1 rounded-lg border border-[#e5e2dd] px-3 text-sm outline-none focus:border-[#ff2438] focus:ring-2 focus:ring-[#ff2438]/10" />
-          <button type="submit" disabled={!newCategoryName.trim() || Boolean(busyName)} className="h-10 shrink-0 rounded-lg bg-[#ff2438] px-3 text-xs font-bold text-white disabled:opacity-50">Add category</button>
-        </form>
-        <div className="min-h-0 flex-1 overflow-y-auto p-3 sm:p-4">
-          {displayNames.length === 0 ? <p className="p-6 text-center text-sm text-[#77736f]">No product categories found.</p> :
-            <div className="grid gap-2">
-              {displayNames.map((name) => {
-                const category = categoryByName.get(name.trim().toLowerCase());
-                const busy = busyName === name;
-                return (
-                  <div key={name} className="flex min-w-0 items-center gap-3 rounded-xl border border-[#e9e6e1] p-2.5">
-                    {category?.imageUrl ? <img src={category.imageUrl} alt="" className="size-12 shrink-0 rounded-lg border border-[#eeeae5] object-cover" /> : <div className="grid size-12 shrink-0 place-items-center rounded-lg bg-[#f8f7f4] text-[10px] text-[#99938c]">No image</div>}
-                    <span className="min-w-0 flex-1 truncate text-sm font-semibold text-[#393632]">{name}</span>
-                    <label className={`shrink-0 cursor-pointer rounded-lg border border-[#e5e2dd] px-2.5 py-2 text-xs font-semibold text-[#514d48] hover:bg-[#f8f7f4] ${busy ? "pointer-events-none opacity-50" : ""}`}>
-                      {busy ? "Saving…" : category?.imageUrl ? "Replace" : "Upload"}
-                      <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" disabled={busy} onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ""; saveImage(name, file); }} />
-                    </label>
-                    {category?.imageUrl && <button type="button" disabled={busy} onClick={() => removeImage(name)} className="shrink-0 px-1 text-xs font-semibold text-[#d92334] disabled:opacity-50">Remove</button>}
-                  </div>
-                );
-              })}
-            </div>}
-        </div>
-      </section>
-    </div>
+        </section>
+      </div>
   );
 }
 
 function CatalogFilterSelect({ label, ariaLabel, value, onChange, options, className = "" }) {
- const selectedLabel = options.find(([optionValue]) => optionValue === value)?.[1] || options[0]?.[1];
- return (
-   <div className={`min-w-0 ${className}`}>
-     <span className="mb-1 block px-0.5 text-[10px] font-bold uppercase tracking-wide text-[#77736f]">{label}</span>
-     <Select value={value} onValueChange={onChange}>
-       <SelectTrigger
-         aria-label={ariaLabel}
-         className="h-10 w-full min-w-0 max-w-full rounded-lg border-[#e5e2dd] bg-white px-2.5 text-sm outline-none focus:border-[#ff2438] focus:ring-2 focus:ring-[#ff2438]/10 sm:h-11 sm:rounded-xl sm:px-3"
-       >
-         <SelectValue>{selectedLabel}</SelectValue>
-       </SelectTrigger>
-       <SelectContent className="max-w-[calc(100vw-1rem)]">
-         {options.map(([optionValue, optionLabel]) => (
-           <SelectItem key={optionValue} value={optionValue} className="max-w-full whitespace-normal break-words">
-             {optionLabel}
-           </SelectItem>
-         ))}
-       </SelectContent>
-     </Select>
-   </div>
- );
+  const selectedLabel = options.find(([optionValue]) => optionValue === value)?.[1] || options[0]?.[1];
+  return (
+      <div className={`min-w-0 ${className}`}>
+        <span className="mb-1 block px-0.5 text-[10px] font-bold uppercase tracking-wide text-[#77736f]">{label}</span>
+        <Select value={value} onValueChange={onChange}>
+          <SelectTrigger
+              aria-label={ariaLabel}
+              className="h-10 w-full min-w-0 max-w-full rounded-lg border-[#e5e2dd] bg-white px-2.5 text-sm outline-none focus:border-[#ff2438] focus:ring-2 focus:ring-[#ff2438]/10 sm:h-11 sm:rounded-xl sm:px-3"
+          >
+            <SelectValue>{selectedLabel}</SelectValue>
+          </SelectTrigger>
+          <SelectContent className="max-w-[calc(100vw-1rem)]">
+            {options.map(([optionValue, optionLabel]) => (
+                <SelectItem key={optionValue} value={optionValue} className="max-w-full whitespace-normal break-words">
+                  {optionLabel}
+                </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+  );
 }
 
 function LocationCombobox({ value, options, placeholder, onChange }) {
@@ -767,28 +766,28 @@ function LocationCombobox({ value, options, placeholder, onChange }) {
 function CategoryCombobox({ value, options, onChange }) {
   const anchor = useComboboxAnchor();
   return (
-    <Combobox
-      items={options}
-      value={value}
-      onValueChange={onChange}
-      onInputValueChange={onChange}
-    >
-      <div ref={anchor} className="min-w-0">
-        <ComboboxInput
-          aria-label="Product category"
+      <Combobox
+          items={options}
           value={value}
-          placeholder="Choose or type a new category"
-          className="h-10 w-full rounded-lg"
-          onChange={(event) => onChange(event.target.value)}
-        />
-      </div>
-      <ComboboxContent anchor={anchor} className="max-w-[calc(100vw-1rem)]">
-        <ComboboxEmpty>Type a new category or choose a suggestion.</ComboboxEmpty>
-        <ComboboxList>
-          {options.map((name) => <ComboboxItem key={name} value={name}>{name}</ComboboxItem>)}
-        </ComboboxList>
-      </ComboboxContent>
-    </Combobox>
+          onValueChange={onChange}
+          onInputValueChange={onChange}
+      >
+        <div ref={anchor} className="min-w-0">
+          <ComboboxInput
+              aria-label="Product category"
+              value={value}
+              placeholder="Choose or type a new category"
+              className="h-10 w-full rounded-lg"
+              onChange={(event) => onChange(event.target.value)}
+          />
+        </div>
+        <ComboboxContent anchor={anchor} className="max-w-[calc(100vw-1rem)]">
+          <ComboboxEmpty>Type a new category or choose a suggestion.</ComboboxEmpty>
+          <ComboboxList>
+            {options.map((name) => <ComboboxItem key={name} value={name}>{name}</ComboboxItem>)}
+          </ComboboxList>
+        </ComboboxContent>
+      </Combobox>
   );
 }
 
@@ -856,3 +855,4 @@ function ProductAiStudio({ studio, setStudio, generating, approving, regeneratin
     </section>
   </div>;
 }
+
