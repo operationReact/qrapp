@@ -185,7 +185,7 @@ export default function HomeMrpProductsSection({ locationId }) {
             {categories.map((category, index) => (
               <CarouselItem
                 key={category.key}
-                className="basis-[58%] pl-3 min-[390px]:basis-[48%] sm:basis-[34%] md:basis-1/4 lg:basis-1/5"
+                className="basis-[66%] pl-3 min-[390px]:basis-[54%] sm:basis-[40%] md:basis-[32%] lg:basis-1/4"
               >
                 <Link
                   to="/essentials"
@@ -228,13 +228,13 @@ export default function HomeMrpProductsSection({ locationId }) {
                     )}
                   </div>
                   <div className="hmp-body">
-                    <div className="min-w-0">
-                      <span className="hmp-chip">
-                        {category.count > 0 ? `${category.count} ${category.count === 1 ? "item" : "items"}` : "New"}
-                      </span>
-                      <h3 className="mt-1 line-clamp-2 font-sans text-xs font-extrabold leading-4 text-[#17212b] sm:mt-2 sm:text-[15px] sm:leading-5 lg:text-base">
+                    <div className="flex min-w-0 items-center gap-5 sm:gap-6">
+                      <h3 className="min-w-0 truncate font-sans text-[13px] font-extrabold leading-4 sm:text-lg sm:leading-6 lg:text-xl" style={{ color: "#30201c" }}>
                         {category.label}
                       </h3>
+                      <span className="hmp-chip shrink-0">
+                        {category.count > 0 ? `${category.count} ${category.count === 1 ? "item" : "items"}` : "New"}
+                      </span>
                     </div>
                   </div>
                 </Link>
