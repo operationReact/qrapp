@@ -49,6 +49,16 @@ export const uploadCatalogImage = (id, locationId, file) => {
   });
 };
 
+export const getSimilarCatalogProducts = (locationId, name) =>
+  apiClient.get("/api/mrp-product/admin/products/similar", {
+    params: { locationId, name },
+  }).then((response) => response.data);
+
+export const reuseCatalogProductImage = (id, locationId, sourceProductId) =>
+  apiClient.post(`/api/mrp-product/products/${id}/image/reuse`, null, {
+    params: { locationId, sourceProductId },
+  }).then((response) => response.data);
+
 
 export const generateProductAiImage = (id, file) => {
   const form = new FormData();
