@@ -36,6 +36,21 @@ export function publicLocationsOptions(enabled = true) {
   };
 }
 
+export function publicLocationSearchOptions({ search = "", size = 12 } = {}) {
+  return {
+    queryKey: ["locations", "public", "search", search, size],
+    queryFn: async ({ pageParam, signal }) => {
+      const response = await apiClient.get("/api/locations/public/search", {
+        params: { search: search || undefined, page: pageParam, size },
+        signal,
+      });
+      return response.data;
+    },
+    initialPageParam: 0,
+    getNextPageParam: (lastPage) => (lastPage?.hasNext ? lastPage.page + 1 : undefined),
+  };
+}
+
 export function LocationProvider({ children }) {
   const { user } = useAuth();
   const isAdmin = canAccessAdmin(user);

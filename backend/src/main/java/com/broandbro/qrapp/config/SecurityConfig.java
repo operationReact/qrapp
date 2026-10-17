@@ -197,6 +197,7 @@ public class SecurityConfig {
                         .hasAnyRole("ADMIN", "SUPERUSER", "SUPER_ADMIN")
 
                         .requestMatchers(HttpMethod.GET, "/api/locations/public").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/locations/public/search").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/locations/*/customer-companies").permitAll()
                         .requestMatchers("/api/locations/**").authenticated()
 

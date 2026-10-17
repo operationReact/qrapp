@@ -42,7 +42,7 @@ class MenuCategoryImageLocationIsolationTest {
         CategoryRepository categories = mock(CategoryRepository.class);
         LocationRepository locations = mock(LocationRepository.class);
         when(locations.findById(1L)).thenReturn(Optional.of(pragati));
-        when(categories.findByLocationIdAndIsDeletedFalseOrderByDisplayOrderAscNameAsc(1L))
+        when(categories.findByLocationIdAndCategoryTypeAndIsDeletedFalseOrderByDisplayOrderAscNameAsc(1L, "MENU"))
                 .thenReturn(List.of(category(10L, "Biryani", pragati)));
         when(categories.findByLocationIdAndNameAndIsDeletedFalse(1L, "Biryani"))
                 .thenReturn(Optional.of(category(10L, "Biryani", pragati)));

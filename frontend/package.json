@@ -18,7 +18,9 @@
     "test:partner-branding": "node --test src/lib/partnerBranding.test.js",
     "test:partner-shell": "node --test src/lib/partnerShellLogoStructure.test.js",
     "test:partner-reports": "node --test src/lib/partnerReports.test.js src/lib/partnerNotifications.test.js",
-    "test:campaign-presentation": "node --test src/components/home/campaignPresentation.test.js"
+    "test:campaign-presentation": "node --test src/components/home/campaignPresentation.test.js",
+    "test:safe-redirect": "node --test src/lib/safeRedirect.test.js",
+    "test:location-discovery": "node --test src/lib/locationDiscovery.test.js"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.1",

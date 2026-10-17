@@ -52,9 +52,6 @@ function MenuPage() {
     activeLocationId,
     availableLocations,
     setActiveLocation,
-    isLoading: locationsLoading,
-    error: locationsError,
-    refetch: refetchLocations,
   } = useActiveLocation();
 
   const category = decodeURIComponent(hash) || "All";
@@ -95,9 +92,6 @@ function MenuPage() {
     return (
       <LocationLandingPage
         locations={availableLocations}
-        isLoading={locationsLoading}
-        error={locationsError}
-        onRetry={refetchLocations}
         onSelect={setActiveLocation}
       />
     );
