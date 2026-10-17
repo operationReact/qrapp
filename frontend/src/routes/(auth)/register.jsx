@@ -149,10 +149,10 @@ export const Route = createFileRoute("/(auth)/register")({
                 className: "",
               })}
               to="/"
-              title="Back To Menu"
+              title="Back To Locations"
             >
               <CaretLeftIcon weight="bold" />
-              <span>Back To Menu</span>
+              <span>Back To Locations</span>
             </Link>
           </div>
           <div className="h-fit min-w-0 rounded-xl p-4 pt-2">
