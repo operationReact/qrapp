@@ -421,42 +421,68 @@ export const Route = createFileRoute("/admin/(menu)/menu")({
     return (
       <>
         {/* ── Header ─────────────────────────────────────────────── */}
-        <div className="px-4 pt-4 pb-2">
-          <div className="flex items-start justify-between gap-2">
-            <div>
-              <LocationSelector className="max-w-[220px]" />
-              <h1 className="text-lg font-bold tracking-tight leading-tight">
-                Menu Management
-              </h1>
-              <p className="text-[11px] text-muted-foreground mt-0.5">
-                Manage pricing, profitability and availability
-              </p>
+        <div className="px-3 pt-3 sm:px-5">
+          <div
+            className="relative overflow-hidden rounded-3xl p-4 sm:p-6"
+            style={{
+              background: "linear-gradient(135deg,#211b18 0%,#2e1f1c 55%,#4a1a1d 100%)",
+              boxShadow: "0 18px 40px -18px rgba(33,27,24,0.55)",
+            }}
+          >
+            <div
+              className="pointer-events-none absolute -right-16 -top-20 size-64 rounded-full opacity-60 blur-3xl"
+              style={{ background: "radial-gradient(circle,#e51b23 0%,transparent 70%)" }}
+              aria-hidden="true"
+            />
+            <div
+              className="pointer-events-none absolute -bottom-24 -left-10 size-56 rounded-full opacity-40 blur-3xl"
+              style={{ background: "radial-gradient(circle,#b88746 0%,transparent 70%)" }}
+              aria-hidden="true"
+            />
+            <div className="relative flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+              <div className="min-w-0">
+                <p className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em]" style={{ color: "#d9a85c" }}>
+                  <span className="inline-block h-px w-5" style={{ background: "#d9a85c" }} aria-hidden="true" />
+                  Catalog
+                </p>
+                <h1 className="mt-1 text-2xl font-bold tracking-tight text-white sm:text-3xl">
+                  Menu Management
+                </h1>
+                <p className="mt-1 text-xs sm:text-sm" style={{ color: "rgba(255,255,255,0.7)" }}>
+                  Manage pricing, profitability and availability
+                </p>
+              </div>
+              <div className="grid grid-cols-2 gap-2 sm:flex sm:shrink-0">
+                <button
+                  type="button"
+                  onClick={() => navigate({ to: "/admin/manage-menu" })}
+                  className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl px-5 text-sm font-bold text-white transition hover:brightness-110 active:scale-[0.98]"
+                  style={{
+                    background: "linear-gradient(135deg,#e51b23 0%,#f0623a 100%)",
+                    boxShadow: "0 10px 24px -10px rgba(229,27,35,0.8)",
+                  }}
+                >
+                  <PlusIcon weight="bold" className="size-4" />
+                  Add Item
+                </button>
+                <button
+                  type="button"
+                  onClick={openToolsMenu}
+                  className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-white/20 bg-white/10 px-5 text-sm font-semibold text-white backdrop-blur transition hover:bg-white/20 active:scale-[0.98]"
+                >
+                  <SlidersIcon className="size-4" />
+                  Tools
+                </button>
+              </div>
             </div>
-          </div>
-          <div className="flex gap-2 mt-2.5">
-            <Button
-              onClick={() => navigate({ to: "/admin/manage-menu" })}
-              size="sm"
-              className="gap-1.5"
-              variant="branded-secondary"
-            >
-              <PlusIcon weight="bold" className="size-3.5" />
-              Add Item
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={openToolsMenu}
-              className="gap-1.5"
-            >
-              <SlidersIcon className="size-3.5" />
-              Tools
-            </Button>
+            <div className="relative mt-5 rounded-2xl bg-white/95 p-1 shadow-inner">
+              <LocationSelector className="w-full" />
+            </div>
           </div>
         </div>
 
         {/* ── Business-value stats pills ───────────────────────────── */}
-        <div className="px-4 pb-2 flex items-center gap-2 flex-wrap">
+        <div className="px-3 sm:px-5 pt-2 pb-2 flex items-center gap-2 flex-wrap">
           <span className="inline-flex items-center rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
             Items {totalItems}
           </span>
@@ -489,7 +515,7 @@ export const Route = createFileRoute("/admin/(menu)/menu")({
         </div>
 
         {/* ── Search ──────────────────────────────────────────────── */}
-        <div className="px-4 pb-2">
+        <div className="px-3 sm:px-5 pb-2">
           <ButtonGroup className="w-full">
             <InputGroup className="h-9 flex-1">
               <InputGroupInput
@@ -520,7 +546,7 @@ export const Route = createFileRoute("/admin/(menu)/menu")({
 
         {/* ── Attention card ──────────────────────────────────────── */}
         {(missingCostCount > 0 || totalMissingImageCount > 0) && (
-          <div className="mx-4 mb-2 rounded-xl border border-amber-200 bg-amber-50 p-3 space-y-2.5">
+          <div className="mx-3 sm:mx-5 mb-2 rounded-xl border border-amber-200 bg-amber-50 p-3 space-y-2.5">
             {/* Header */}
             <div className="flex items-center gap-1.5">
               <WarningCircleIcon weight="fill" className="size-3.5 text-amber-500 shrink-0" />
@@ -608,7 +634,7 @@ export const Route = createFileRoute("/admin/(menu)/menu")({
         )}
 
         {/* CONTENT */}
-        <div className="px-4 py-2 flex flex-col gap-2">
+        <div className="px-3 sm:px-5 py-2 flex flex-col gap-2">
           <CategoriesScroll
             categories={allCategories}
             counts={categoryCounts}

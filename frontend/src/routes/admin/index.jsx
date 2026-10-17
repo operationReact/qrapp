@@ -89,14 +89,16 @@ function greeting() {
 function DashboardHeader({ rangeKey, onRangeChange, ownerName, notifications }) {
   const { toggleSidebar } = useSidebar();
   const { user } = useAuth();
+  const { activeLocationId } = useActiveLocation();
   const showRootLocationSelector = canUseRootLocationSelector(user);
   const range = getRange(rangeKey);
   const panelRef = useRef(null);
   const mobilePanelRef = useRef(null);
   const [open, setOpen] = useState(false);
+  const storageKey = `admin-notification-read:${activeLocationId ?? "all"}`;
   const [readIds, setReadIds] = useState(() => {
     try {
-      const stored = JSON.parse(window.localStorage.getItem("admin-notification-read") || "[]");
+      const stored = JSON.parse(window.localStorage.getItem(storageKey) || "[]");
       return Array.isArray(stored) ? stored : [];
     } catch {
       return [];
@@ -117,7 +119,7 @@ function DashboardHeader({ rangeKey, onRangeChange, ownerName, notifications }) 
 
   const markRead = (ids) => {
     setReadIds(ids);
-    window.localStorage.setItem("admin-notification-read", JSON.stringify(ids));
+    window.localStorage.setItem(storageKey, JSON.stringify(ids));
   };
 
   return (
@@ -453,7 +455,7 @@ function AdminDashboardPage() {
 
   return (
     <div className="min-h-screen bg-[#F8F6F3]">
-      <DashboardHeader rangeKey={rangeKey} onRangeChange={setRangeKey} ownerName={ownerName} notifications={notifications} />
+      <DashboardHeader key={activeLocationId ?? "all"} rangeKey={rangeKey} onRangeChange={setRangeKey} ownerName={ownerName} notifications={notifications} />
       <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-4 px-4 py-4 sm:px-6 lg:gap-5 lg:px-8 lg:py-5">
         <div className="order-1"><KpiStrip summary={summaryWithLive} comparison={comparisonQuery.data} periodLabel={selectedLabel} loading={summaryLoading || dashboardLoading} error={summaryError && !summaryData ? summaryError : null} onRetry={refetchSummary} /></div>
 
