@@ -96,6 +96,8 @@
   position: relative;
   z-index: 0;
   clip-path: inset(0 round 18px);
+  transform: scale(1.25);
+  transform-origin: 0 0;
   width: 116px;
   height: 116px;
   border-radius: 18px;
