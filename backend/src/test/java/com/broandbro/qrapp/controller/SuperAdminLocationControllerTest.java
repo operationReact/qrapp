@@ -121,6 +121,31 @@ class SuperAdminLocationControllerTest {
 
     @Test
     @WithMockUser(roles = "SUPER_ADMIN")
+    void createLocationPersistsCoordinatesAndRejectsOutOfRange() throws Exception {
+        when(userService.findByPhone("user")).thenReturn(Optional.of(
+                User.builder().phone("user").role(UserRole.SUPER_ADMIN).build()));
+        when(locationCodeService.create(any(Location.class), any())).thenAnswer(invocation -> {
+            Location saved = invocation.getArgument(0);
+            saved.setId(7L);
+            return saved;
+        });
+        String valid = "{\"name\":\"Hub\",\"addressLine1\":\"Road 1\",\"city\":\"Hyderabad\",\"district\":\"Hyderabad\","
+                + "\"stateUt\":\"Telangana\",\"pinCode\":\"500090\",\"latitude\":17.4401,\"longitude\":78.3489}";
+
+        mockMvc.perform(post("/api/admin/locations").principal(new org.springframework.security.authentication.UsernamePasswordAuthenticationToken("user", null, java.util.List.of())).contentType(MediaType.APPLICATION_JSON).content(valid))
+                .andExpect(status().isCreated());
+        verify(locationCodeService).create(argThat(saved ->
+                saved.getLatitude().compareTo(new java.math.BigDecimal("17.4401")) == 0
+                        && saved.getLongitude().compareTo(new java.math.BigDecimal("78.3489")) == 0), any());
+
+        String outOfRange = valid.replace("\"latitude\":17.4401", "\"latitude\":95");
+        mockMvc.perform(post("/api/admin/locations").principal(new org.springframework.security.authentication.UsernamePasswordAuthenticationToken("user", null, java.util.List.of())).contentType(MediaType.APPLICATION_JSON).content(outOfRange))
+                .andExpect(status().isBadRequest());
+        verify(locationCodeService, times(1)).create(any(Location.class), any());
+    }
+
+    @Test
+    @WithMockUser(roles = "SUPER_ADMIN")
     void createUserRejectsInvalidPhoneBeforeService() throws Exception {
         when(userService.findByPhone("user")).thenReturn(Optional.of(
                 User.builder().phone("user").role(UserRole.SUPER_ADMIN).build()));

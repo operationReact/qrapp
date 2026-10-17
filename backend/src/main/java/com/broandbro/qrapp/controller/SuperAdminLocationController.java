@@ -86,6 +86,8 @@ public class SuperAdminLocationController {
                 .stateUt(request.getStateUt().trim())
                 .pinCode(request.getPinCode().trim())
                 .active(request.getActive()).build();
+        l.setLatitude(request.getLatitude());
+        l.setLongitude(request.getLongitude());
         l.setAddress(formatAddress(l));
         Location saved = locationCodeService.create(l, request.getCode());
         syncPartner(saved, request.getPartnerId(), authentication);
@@ -131,6 +133,8 @@ public class SuperAdminLocationController {
         l.setDistrict(request.getDistrict().trim());
         l.setStateUt(request.getStateUt().trim());
         l.setPinCode(request.getPinCode().trim());
+        l.setLatitude(request.getLatitude());
+        l.setLongitude(request.getLongitude());
         l.setAddress(formatAddress(l));
         l.setActive(request.getActive());
         Location saved = locationCodeService.update(l, request.getCode());
