@@ -400,6 +400,7 @@ public class ProductCatalogService {
         product.setVariantIdentity(variant);
         product.setName(request.getName().trim());
         product.setBrand(normalizeOptional(request.getBrand()));
+        product.setCategoryName(normalizeOptional(request.getCategoryName()));
         product.setDescription(request.getDescription());
         product.setMrp(request.getMrp());
         product.setCostPrice(request.getCostPrice());
