@@ -36,6 +36,21 @@ export function publicLocationsOptions(enabled = true) {
   };
 }
 
+export function publicLocationSearchOptions({ search = "", size = 12 } = {}) {
+  return {
+    queryKey: ["locations", "public", "search", search, size],
+    queryFn: async ({ pageParam, signal }) => {
+      const response = await apiClient.get("/api/locations/public/search", {
+        params: { search: search || undefined, page: pageParam, size },
+        signal,
+      });
+      return response.data;
+    },
+    initialPageParam: 0,
+    getNextPageParam: (lastPage) => (lastPage?.hasNext ? lastPage.page + 1 : undefined),
+  };
+}
+
 export function LocationProvider({ children }) {
   const { user } = useAuth();
   const isAdmin = canAccessAdmin(user);
@@ -70,13 +85,19 @@ export function LocationProvider({ children }) {
   }, [assignedLocations, availableLocations, user, usePublicLocations]);
   const allLocationsSelected = allowAllLocations && isAllLocationsSelection(storedLocation);
   const defaultLocation = user?.defaultLocation || user?.info?.defaultLocation;
+  const persistedPublicSelection = usePublicLocations && storedLocation?.selectedByUser === true;
+  const persistedLocation = scopedLocations.find(
+    (item) => String(item.id) === String(storedLocation?.id),
+  );
   const baseLocation = allLocationsSelected
     ? ALL_LOCATIONS
-    : scopedLocations.find((item) => String(item.id) === String(storedLocation?.id))
-    || scopedLocations.find((item) => String(item.id) === String(defaultLocation?.id))
-    || scopedLocations.find((item) => item.code === "PRAGATI_NAGAR")
-    || scopedLocations[0]
-    || null;
+    : usePublicLocations
+      ? (persistedPublicSelection ? persistedLocation : null)
+      : persistedLocation
+        || scopedLocations.find((item) => String(item.id) === String(defaultLocation?.id))
+        || scopedLocations.find((item) => item.code === "PRAGATI_NAGAR")
+        || scopedLocations[0]
+        || null;
   const overrideLocation = useMemo(
     () => resolveSectionOverride(sectionOverride, scopedLocations),
     [sectionOverride, scopedLocations],
@@ -101,6 +122,10 @@ export function LocationProvider({ children }) {
       return () => window.clearTimeout(timer);
     }
     if (!locationQuerySuccess) return;
+    if (usePublicLocations && storedLocation && !persistedPublicSelection) {
+      const timer = window.setTimeout(() => setStoredLocation(null), 0);
+      return () => window.clearTimeout(timer);
+    }
     if (storedLocation && !scopedLocations.some((item) => String(item.id) === String(storedLocation.id))) {
       const timer = window.setTimeout(() => setStoredLocation(null), 0);
       return () => window.clearTimeout(timer);
@@ -108,7 +133,8 @@ export function LocationProvider({ children }) {
       const timer = window.setTimeout(() => setStoredLocation(baseLocation), 0);
       return () => window.clearTimeout(timer);
     }
-  }, [baseLocation, allLocationsSelected, allowAllLocations, scopedLocations, locationQuerySuccess, storedLocation]);
+  }, [baseLocation, allLocationsSelected, allowAllLocations, scopedLocations, locationQuerySuccess,
+    storedLocation, usePublicLocations, persistedPublicSelection]);
 
   const setActiveLocation = useCallback((location) => {
     // A root-level selection supersedes any transient section override.
@@ -119,9 +145,14 @@ export function LocationProvider({ children }) {
       return;
     }
     const next = location && scopedLocations.find((item) => String(item.id) === String(location.id));
-    setStoredLocation(next || null);
+    setStoredLocation(next ? { ...next, selectedByUser: true } : null);
     setEffectiveLocationId(activeLocationScopeId(next));
   }, [allowAllLocations, scopedLocations]);
+  const clearActiveLocation = useCallback(() => {
+    setSectionOverride(null);
+    setStoredLocation(null);
+    setEffectiveLocationId(null);
+  }, []);
   // Section-level selection: transient override, never persisted, and only
   // among assigned locations (never the "All Locations" sentinel).
   const setSectionLocation = useCallback((location) => {
@@ -136,14 +167,14 @@ export function LocationProvider({ children }) {
   const value = useMemo(() => ({
     activeLocation, activeLocationId, availableLocations: scopedLocations,
     isAllLocations, canSelectAllLocations: allowAllLocations, allLocationsOption: ALL_LOCATIONS,
-    setActiveLocation, locations: scopedLocations, selectLocation: setActiveLocation,
+    setActiveLocation, clearActiveLocation, locations: scopedLocations, selectLocation: setActiveLocation,
     sectionLocation: overrideLocation, hasSectionOverride: Boolean(overrideLocation),
     setSectionLocation, clearSectionLocation,
     isLoading: locationQuery.isLoading,
     error: locationQuery.error,
     refetch: locationQuery.refetch,
   }), [activeLocation, activeLocationId, scopedLocations, isAllLocations, allowAllLocations,
-    setActiveLocation, overrideLocation, setSectionLocation, clearSectionLocation,
+    setActiveLocation, clearActiveLocation, overrideLocation, setSectionLocation, clearSectionLocation,
     locationQuery.isLoading, locationQuery.error, locationQuery.refetch]);
   return <LocationContext.Provider value={value}>{children}</LocationContext.Provider>;
 }
@@ -153,7 +184,7 @@ export function useLocation() {
     activeLocation: null, activeLocationId: null, availableLocations: [], locations: [],
     isAllLocations: false, canSelectAllLocations: false, allLocationsOption: ALL_LOCATIONS,
     setActiveLocation: () => {}, selectLocation: () => {},
-    sectionLocation: null, hasSectionOverride: false,
+    clearActiveLocation: () => {}, sectionLocation: null, hasSectionOverride: false,
     setSectionLocation: () => {}, clearSectionLocation: () => {},
     isLoading: false, error: null,
   };

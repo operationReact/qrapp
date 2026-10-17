@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useLocation } from "@tanstack/react-router";
 import { useState, useEffect, useRef } from "react";
 import { Link } from "@tanstack/react-router";
 import { useMutation } from "@tanstack/react-query";
@@ -21,10 +21,14 @@ import {
 import { RegistrationPurposeControl } from "@/components/registration-purpose-control";
 import { useAuth } from "@/context/AuthContext";
 import { extractApiError } from "@/lib/apiError";
+import { canAccessAdmin } from "@/lib/roles";
+import { getSafeRedirect } from "@/lib/safeRedirect";
 
 export const Route = createFileRoute("/(auth)/login")({
   component: function UserLogin() {
     const { setUser } = useAuth();
+    const location = useLocation();
+    const from = getSafeRedirect(location.state?.from);
 
     const [identifier, setIdentifier] = useState("");
     const [password, setPassword] = useState("");
@@ -52,8 +56,14 @@ export const Route = createFileRoute("/(auth)/login")({
         setUser({ ...data.user, token: data.token });
         if (data.mustChangePassword || data.user?.mustChangePassword) {
           window.location.assign("/change-password");
+        } else if (from) {
+          window.location.assign(from);
         } else {
-          window.location.assign(data.user?.role?.startsWith("PARTNER_") ? "/partner" : "/admin");
+          const role = data.user?.role || "";
+          let target = "/";
+          if (role.startsWith("PARTNER_")) target = "/partner";
+          else if (canAccessAdmin(data.user)) target = "/admin";
+          window.location.assign(target);
         }
       },
     });
@@ -200,6 +210,7 @@ export const Route = createFileRoute("/(auth)/login")({
 
                 <Link
                   to="/register"
+                  state={from ? { from } : undefined}
                   className={`${buttonVariants({ variant: "outline", size: "lg" })} auth-login-create`}
                 >
                   Create Account

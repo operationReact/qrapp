@@ -17,6 +17,7 @@ export function LocationSelector({ className = "", home = false, header = false,
     activeLocation,
     availableLocations,
     setActiveLocation,
+    clearActiveLocation,
     isLoading,
     error,
     refetch,
@@ -97,6 +98,18 @@ export function LocationSelector({ className = "", home = false, header = false,
           <DrawerDescription>Choose where you want to browse the menu.</DrawerDescription>
         </DrawerHeader>
         <div className="px-4 pb-4">
+          {activeLocation && !isAllLocations && (
+            <button
+              type="button"
+              className="mb-3 flex min-h-11 w-full items-center justify-center rounded-xl border border-[#e5e2dd] bg-[#fcfbfa] px-3 text-sm font-semibold text-[#514d48] transition hover:bg-[#f8f7f4] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+              onClick={() => {
+                clearActiveLocation();
+                setOpen(false);
+              }}
+            >
+              Browse all locations
+            </button>
+          )}
           <div className="grid gap-2">
             {showAllLocations && (
               <button

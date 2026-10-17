@@ -84,6 +84,22 @@ class LocationCodeServiceTest {
                 .hasMessage("Location code already exists. Please use a different code.");
     }
 
+    @Test
+    void regeneratesLegacyCodeWhenNoCodeIsRequested() {
+        Location location = location("Meenakshi Towers", "Telangana");
+        location.setId(2L);
+        location.setCode("MEENAKSHI_TOWERS");
+        location.setCodeManuallyEdited(true);
+        when(locationRepository.nextGlobalCodeSequence()).thenReturn(4L);
+        when(locationRepository.existsByCodeAndIdNot("MEENAKSHI-TG-004", 2L)).thenReturn(false);
+
+        new LocationCodeService(locationRepository).update(location, "");
+
+        assertThat(location.getCode()).isEqualTo("MEENAKSHI-TG-004");
+        assertThat(location.getCodeSequence()).isEqualTo(4L);
+        assertThat(location.getCodeManuallyEdited()).isFalse();
+    }
+
     private Location location(String name, String state) {
         return Location.builder().name(name).stateUt(state).build();
     }

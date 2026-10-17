@@ -43,7 +43,7 @@ spring:
       validation-timeout: 5000
       keepalive-time: 30000
       connection-test-query: SELECT 1
-      connection-init-sql: "SET statement_timeout = '8s'"
+      connection-init-sql: "SET statement_timeout = '60s'"
       # Enable OS-level TCP keep-alives on the JDBC socket so idle pooled
       # connections to the remote (AWS RDS) Postgres instance aren't silently
       # dropped by NAT/firewall idle-connection reaping. Without this, the

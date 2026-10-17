@@ -30,7 +30,7 @@ spring:
       validation-timeout: ${SPRING_DATASOURCE_HIKARI_VALIDATION_TIMEOUT:5000}
       keepalive-time: ${SPRING_DATASOURCE_HIKARI_KEEPALIVE_TIME:30000}
       connection-test-query: SELECT 1
-      connection-init-sql: "SET statement_timeout = '8s'"
+      connection-init-sql: "SET statement_timeout = '60s'"
       # See application-dev.yml for rationale: keeps idle pooled connections
       # alive at the OS/socket level so they aren't silently dropped, which
       # otherwise stalls the next request for the full connection-timeout.

@@ -12,6 +12,9 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -21,6 +24,7 @@ import java.util.Optional;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest({LocationController.class, SuperAdminLocationController.class})
@@ -94,6 +98,23 @@ class LocationSecurityFilterChainTest {
         mvc.perform(get("/api/locations/public"))
                 .andExpect(status().isOk());
     }
+
+    @Test
+    void unauthenticatedUsersCanSearchPublicLocationsWithNormalizedPaging() throws Exception {
+        when(locations.findForAdminFilters(eq(true), eq(""), eq(""), eq(""), isNull(), eq("gebbs"),
+                any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(a), PageRequest.of(0, 12), 1));
+
+        mvc.perform(get("/api/locations/public/search").param("search", "  GeBBS  "))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.hasNext").value(false))
+                .andExpect(jsonPath("$.content[0].id").value(1));
+
+        mvc.perform(get("/api/locations/public/search").param("size", "51"))
+                .andExpect(status().isBadRequest());
+    }
+
 
     @Test
     void superAdminCanCreateLocation() throws Exception {

@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { locationCodePreview } from "./indiaStates.js";
+import { isLocationCodeFormat, locationCodePreview } from "./indiaStates.js";
 
 test("suggests a code from name and state", () => {
   assert.equal(locationCodePreview("GeBBS Healthcare Solutions", "Telangana"), "GEBBS-TG-001");
@@ -15,4 +15,9 @@ test("returns an empty suggestion until name and state are available", () => {
 
 test("normalizes punctuation and whitespace", () => {
   assert.equal(locationCodePreview("  ABC  &  Food Court! ", "Andhra Pradesh"), "ABC-AP-001");
+});
+
+test("identifies legacy codes that must be regenerated", () => {
+  assert.equal(isLocationCodeFormat("GEBBS-TG-001"), true);
+  assert.equal(isLocationCodeFormat("MEENAKSHI_TOWERS"), false);
 });

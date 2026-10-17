@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { useNavigate, useSearch } from "@tanstack/react-router";
+import { useLocation, useNavigate, useSearch } from "@tanstack/react-router";
 import { useMutation, useQuery } from "@tanstack/react-query";
 
 import { requestRegistrationOTP, verifyRegistrationOTP } from "@/services/auth-service";
@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/combobox";
 import { useAuth } from "@/context/AuthContext";
 import { extractApiError } from "@/lib/apiError";
+import { getSafeRedirect } from "@/lib/safeRedirect";
 import { SPECIAL_DAY_TYPES } from "@/content/specialDayOptions";
 import { RegistrationPurposeControl } from "@/components/registration-purpose-control";
 
@@ -33,6 +34,8 @@ export const Route = createFileRoute("/(auth)/register")({
     const navigate = useNavigate();
     const { setUser } = useAuth();
     const search = useSearch({ strict: false });
+    const location = useLocation();
+    const from = getSafeRedirect(location.state?.from);
 
     const [phone, setPhone] = useState("");
     const [name, setName] = useState("");
@@ -82,7 +85,7 @@ export const Route = createFileRoute("/(auth)/register")({
         termsAccepted,
       }),
       onSuccess: () => {
-        navigate({ to: "/register", search: { verify: true } });
+        navigate({ to: "/register", search: { verify: true }, state: from ? { from } : undefined });
       },
       onError: (err) => {
         const code = err?.response?.data;
@@ -103,7 +106,8 @@ export const Route = createFileRoute("/(auth)/register")({
       }
       setUser({ token, info: data.user || { phone, name } });
       setUserAuth(token);
-      navigate({ to: "/" });
+      if (from) window.location.assign(from);
+      else navigate({ to: "/" });
     };
 
     const handleGenerateOTP = (e) => {
@@ -400,6 +404,7 @@ export const Route = createFileRoute("/(auth)/register")({
                 <Link
                   className={buttonVariants({ variant: "ghost", size: "lg" })}
                   to="/login"
+                  state={from ? { from } : undefined}
                 >
                   Already Have An Account?
                 </Link>

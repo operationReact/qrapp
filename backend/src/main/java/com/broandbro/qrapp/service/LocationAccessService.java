@@ -70,6 +70,12 @@ public class LocationAccessService {
         return locationRepository.findByActiveTrueOrderByNameAsc();
     }
 
+    public org.springframework.data.domain.Page<Location> searchPublicCustomerLocations(String search, int page, int size) {
+        return locationRepository.findForAdminFilters(true, "", "", "", null, search,
+                org.springframework.data.domain.PageRequest.of(page, size,
+                        org.springframework.data.domain.Sort.by("name").ascending()));
+    }
+
     public void requireSuperAdmin(User user) {
         if (user == null || !isSuperAdmin(user)) {
             throw new AccessDeniedException("super_admin_required");

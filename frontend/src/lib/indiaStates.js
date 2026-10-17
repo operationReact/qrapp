@@ -40,3 +40,7 @@ export function locationCodePreview(name, stateUt, sequence = 1) {
   const stateCode = INDIA_STATE_CODES[stateUt];
   return prefix && stateCode ? `${prefix}-${stateCode}-${String(sequence).padStart(3, "0")}` : "";
 }
+
+export function isLocationCodeFormat(value) {
+  return /^[A-Z0-9]+-[A-Z0-9]+-\d+$/.test(String(value || "").trim().toUpperCase());
+}
