@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/mrp-product")
@@ -41,6 +42,15 @@ public class ProductCatalogController {
         User currentUser = userService.findByPhone(authentication.getName()).orElseThrow();
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(categoryService.createMrpProductCategory(locationId, category, currentUser));
+    }
+
+    @PutMapping("/admin/categories/{categoryId}/video")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN', 'SUPERUSER', 'MANAGER')")
+    public Category setCategoryVideo(@PathVariable Long categoryId, @RequestParam Long locationId,
+                                     @RequestBody Map<String, String> body,
+                                     Authentication authentication) {
+        User currentUser = userService.findByPhone(authentication.getName()).orElseThrow();
+        return categoryService.setMrpProductCategoryVideo(locationId, categoryId, body.get("videoKey"), currentUser);
     }
 
     @GetMapping("/products")

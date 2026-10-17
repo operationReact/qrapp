@@ -3,6 +3,7 @@
 .hmp-tile {
   position: relative;
   isolation: isolate;
+  contain: paint;
   display: flex;
   flex-direction: column;
   height: auto;
@@ -84,6 +85,20 @@
   mask-image: radial-gradient(ellipse at center, #000 55%, transparent 85%);
   filter: drop-shadow(0 8px 8px rgba(60, 30, 20, 0.2));
   transition: transform 0.55s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.hmp-float--video {
+  animation: none;
+}
+
+.hmp-video {
+  display: block;
+  position: relative;
+  z-index: 0;
+  clip-path: inset(0 round 18px);
+  width: 116px;
+  height: 116px;
+  border-radius: 18px;
 }
 
 .hmp-tile:hover .hmp-img {

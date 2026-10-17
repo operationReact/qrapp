@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import jakarta.validation.Valid;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.springframework.security.core.Authentication;
@@ -36,10 +37,20 @@ public class CategoryController {
     @GetMapping("/product-images")
     public ResponseEntity<List<Map<String, String>>> getProductCategoryImages(@RequestParam Long locationId) {
         List<Map<String, String>> images = categoryService.getAllMrpProductCategories(locationId).stream()
-                .filter(category -> category.getImageUrl() != null && !category.getImageUrl().isBlank())
-                .map(category -> Map.of("name", category.getName(), "imageUrl", category.getImageUrl()))
+                .filter(category -> hasText(category.getImageUrl()) || hasText(category.getVideoKey()))
+                .map(category -> {
+                    Map<String, String> entry = new HashMap<>();
+                    entry.put("name", category.getName());
+                    entry.put("imageUrl", category.getImageUrl());
+                    entry.put("videoKey", category.getVideoKey());
+                    return entry;
+                })
                 .toList();
         return ResponseEntity.ok(images);
+    }
+
+    private static boolean hasText(String value) {
+        return value != null && !value.isBlank();
     }
 
     @GetMapping("/{id}")

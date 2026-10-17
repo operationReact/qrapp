@@ -54,6 +54,13 @@ export const Route = createFileRoute("/(auth)/login")({
         }
         setUserAuth(data.token);
         setUser({ ...data.user, token: data.token });
+        if (!canAccessAdmin(data.user)) {
+          const defaultLocation = data.user?.defaultLocation;
+          const stored = (() => { try { return JSON.parse(localStorage.getItem("active-location") || "null"); } catch { return null; } })();
+          if (defaultLocation?.id && !stored?.selectedByUser) {
+            localStorage.setItem("active-location", JSON.stringify({ ...defaultLocation, selectedByUser: true }));
+          }
+        }
         if (data.mustChangePassword || data.user?.mustChangePassword) {
           window.location.assign("/change-password");
         } else if (from) {

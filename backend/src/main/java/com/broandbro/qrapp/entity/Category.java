@@ -56,4 +56,8 @@ public class Category {
     /** TRUE when {@link #imageUrl} was produced via the admin-triggered AI generation flow. */
     @Column(name = "ai_generated_image", nullable = false)
     private Boolean aiGeneratedImage = false;
+
+    /** File name of a bundled square (1:1), 3-second video chosen for this category; null when unset. */
+    @Column(name = "video_key", length = 255)
+    private String videoKey;
 }

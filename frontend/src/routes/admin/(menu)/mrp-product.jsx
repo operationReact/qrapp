@@ -43,10 +43,14 @@ import {
   createMrpProductCategory,
   getMrpProductCategories,
   removeCategoryImage,
+  setMrpProductCategoryVideo,
   uploadCategoryImage,
   getCategoryImageSources,
   reuseCategoryImage,
 } from "@/services/category-service";
+import { CATEGORY_VIDEOS, getCategoryVideoSrc, validateCategoryVideo } from "@/lib/categoryVideos";
+
+const NO_VIDEO = "__none__";
 import {
   Drawer,
   DrawerClose,
@@ -954,6 +958,28 @@ function ProductCategoryImages({ locationId, categoryNames, onClose }) {
     }
   };
 
+  const saveVideo = async (name, videoKey) => {
+    const category = categoryByName.get(name.trim().toLowerCase());
+    if (!category) return;
+    if (videoKey) {
+      const check = await validateCategoryVideo(getCategoryVideoSrc(videoKey));
+      if (!check.ok) {
+        toast.error(`${videoKey}: ${check.message}`);
+        return;
+      }
+    }
+    setBusyName(name);
+    try {
+      await setMrpProductCategoryVideo(category.id, videoKey || null, locationId);
+      await queryClient.invalidateQueries({ queryKey: ["mrp-product-category-options", locationId] });
+      toast.success(videoKey ? `${name} video set` : `${name} video removed`);
+    } catch (error) {
+      toast.error(error?.response?.data?.message || error?.message || "Unable to save category video");
+    } finally {
+      setBusyName("");
+    }
+  };
+
   const openReuse = async (name) => {
     if (reuse?.name === name) {
       setReuse(null);
@@ -1017,6 +1043,29 @@ function ProductCategoryImages({ locationId, categoryNames, onClose }) {
                             <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" disabled={busy} onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ""; saveImage(name, file); }} />
                           </label>
                           {category?.imageUrl && <button type="button" disabled={busy} onClick={() => removeImage(name)} className="shrink-0 px-1 text-xs font-semibold text-[#d92334] disabled:opacity-50">Remove</button>}
+                        </div>
+                        <div className="flex min-w-0 items-center gap-2 pl-[60px]">
+                          <span className="shrink-0 text-xs font-semibold text-[#77736f]">Video (1:1, ≤3s)</span>
+                          {CATEGORY_VIDEOS.length === 0 ? (
+                            <span className="min-w-0 truncate text-xs text-[#99938c]">Add .mp4 files to src/assets/category-videos</span>
+                          ) : (
+                            <Select value={category?.videoKey || NO_VIDEO} onValueChange={(value) => saveVideo(name, value === NO_VIDEO ? "" : value)} disabled={busy || !category}>
+                              <SelectTrigger aria-label={`Video for ${name}`} className="mrp-cf-trigger h-9 min-w-0 flex-1 max-w-full text-xs">
+                                <SelectValue className="mrp-cf-value truncate">{category?.videoKey || "No video"}</SelectValue>
+                              </SelectTrigger>
+                              <SelectContent className="mrp-cf-popup max-w-[calc(100vw-1rem)]">
+                                <SelectItem value={NO_VIDEO} className="mrp-cf-item">No video</SelectItem>
+                                {CATEGORY_VIDEOS.map((video) => (
+                                  <SelectItem key={video.key} value={video.key} className="mrp-cf-item max-w-full">
+                                    <span className="flex min-w-0 items-center gap-2.5">
+                                      <video src={video.src} className="size-9 shrink-0 rounded-lg object-cover" muted playsInline preload="metadata" aria-hidden="true" />
+                                      <span className="truncate">{video.key}</span>
+                                    </span>
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          )}
                         </div>
                         {reuse?.name === name && (
                           <div className="grid gap-2 rounded-lg bg-[#fff7f5] p-2.5">

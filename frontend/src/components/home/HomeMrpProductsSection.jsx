@@ -9,6 +9,7 @@ import { useQuery } from "@tanstack/react-query";
 import { baseURL } from "@/services";
 import { getCategories, getProductCategoryImages } from "@/services/category-service";
 import { getCatalogProducts } from "@/services/mrp-product-service";
+import { getCategoryVideoSrc } from "@/lib/categoryVideos";
 import "@/styles/home-mrp-products.css";
 import {
   Carousel,
@@ -101,6 +102,11 @@ export default function HomeMrpProductsSection({ locationId }) {
     productCategoryImages
       .filter((category) => category.name && category.imageUrl)
       .forEach((category) => categoryImages.set(category.name.trim().toLowerCase(), resolveImageUrl(category.imageUrl)));
+    const categoryVideos = new Map(
+      productCategoryImages
+        .filter((category) => category.name && category.videoKey)
+        .map((category) => [category.name.trim().toLowerCase(), getCategoryVideoSrc(category.videoKey)]),
+    );
     const grouped = new Map();
     products.forEach((product) => {
       const name = product.categoryName?.trim();
@@ -114,6 +120,7 @@ export default function HomeMrpProductsSection({ locationId }) {
     return Array.from(grouped.values()).map((category) => ({
       ...category,
       image: categoryImages.get(category.key) || category.image,
+      video: categoryVideos.get(category.key) || null,
     }));
   }, [backendCategories, productCategoryImages, products]);
 
@@ -188,7 +195,22 @@ export default function HomeMrpProductsSection({ locationId }) {
                   aria-label={`Shop ${category.label}, ${category.count} ${category.count === 1 ? "product" : "products"}`}
                 >
                   <div className="hmp-stage">
-                    {category.image ? (
+                    {category.video ? (
+                      <span className="hmp-float hmp-float--video">
+                        <video
+                          src={category.video}
+                          className="hmp-video"
+                          width="116"
+                          height="116"
+                          muted
+                          autoPlay
+                          loop
+                          playsInline
+                          preload="metadata"
+                          aria-hidden="true"
+                        />
+                      </span>
+                    ) : category.image ? (
                       <span className="hmp-float">
                         <img
                           src={category.image}

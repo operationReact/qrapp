@@ -46,6 +46,8 @@ public class CategoryService {
     private static final long MAX_FILE_SIZE = 5 * 1024 * 1024L;
     private static final Set<String> ALLOWED_TYPES = Set.of("image/jpeg", "image/png", "image/webp");
     private static final Set<String> ALLOWED_EXTENSIONS = Set.of("jpg", "jpeg", "png", "webp");
+    private static final java.util.regex.Pattern CATEGORY_VIDEO_KEY_PATTERN =
+            java.util.regex.Pattern.compile("^[A-Za-z0-9][A-Za-z0-9._-]{0,200}\\.mp4$");
 
     private final CategoryRepository categoryRepository;
     private final MenuRepository     menuRepository;
@@ -202,6 +204,30 @@ public class CategoryService {
         category.setImageUrl(null);
         category.setImageKey(null);
         category.setAiGeneratedImage(false);
+        return categoryRepository.save(category);
+    }
+
+    /**
+     * Assigns (or clears, when blank) a bundled 1:1 3-second video to an MRP product category.
+     * The file itself lives in the frontend bundle, so only its file name format is validated here.
+     */
+    @Transactional
+    @CacheEvict(cacheNames = "categories", allEntries = true)
+    public Category setMrpProductCategoryVideo(Long locationId, Long id, String videoKey, User user) {
+        requireManagementLocation(locationId, user);
+        Category category = categoryRepository.findByIdAndLocationIdAndIsDeletedFalse(id, locationId)
+                .orElseThrow(() -> new RuntimeException("Category not found: " + id));
+        if (!MRP_PRODUCT_CATEGORY.equals(category.getCategoryType())) {
+            throw new IllegalArgumentException("Videos can only be assigned to product categories");
+        }
+        String normalized = videoKey == null ? null : videoKey.trim();
+        if (normalized != null && normalized.isEmpty()) {
+            normalized = null;
+        }
+        if (normalized != null && !CATEGORY_VIDEO_KEY_PATTERN.matcher(normalized).matches()) {
+            throw new IllegalArgumentException("Invalid video file name: " + normalized);
+        }
+        category.setVideoKey(normalized);
         return categoryRepository.save(category);
     }
 
