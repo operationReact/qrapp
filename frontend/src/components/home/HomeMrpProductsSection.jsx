@@ -229,7 +229,7 @@ export default function HomeMrpProductsSection({ locationId }) {
                   </div>
                   <div className="hmp-body">
                     <div className="flex min-w-0 items-center gap-5 sm:gap-6">
-                      <h3 className="min-w-0 truncate font-sans text-[13px] font-extrabold leading-4 text-[#17212b] sm:text-lg sm:leading-6 lg:text-xl">
+                      <h3 className="min-w-0 truncate font-sans text-[13px] font-extrabold leading-4 sm:text-lg sm:leading-6 lg:text-xl" style={{ color: "#30201c" }}>
                         {category.label}
                       </h3>
                       <span className="hmp-chip shrink-0">

@@ -10,7 +10,7 @@
   min-height: 0;
   overflow: hidden;
   border-radius: 18px;
-  border: 1px solid rgba(255, 255, 255, 0.9);
+  border: 1px solid #f4dcd3;
   background: #fff;
   box-shadow: 0 10px 24px -14px rgba(122, 47, 27, 0.28), 0 2px 6px rgba(122, 47, 27, 0.05);
   transition:
@@ -140,12 +140,12 @@
 
 .hmp-chip {
   align-self: flex-start;
-  padding: 3px 9px;
+  padding: 3px 11px;
   border-radius: 999px;
-  background: #fff0ec;
-  color: #d91d34;
+  background: #ffe2da;
+  color: #c8102e;
   font-size: 10px;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: 0.02em;
   white-space: nowrap;
 }
