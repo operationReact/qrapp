@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.repository.query.Param;
+import java.util.List;
 import java.util.Optional;
 
 public interface ProductRepository extends JpaRepository<Product, Long> {
@@ -14,6 +15,8 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     boolean existsBySkuIgnoreCaseAndVariantIdentityIgnoreCase(String sku, String variantIdentity);
 
     Page<Product> findAllByOrderByNameAscIdAsc(Pageable pageable);
+
+    List<Product> findTop10ByNameIgnoreCaseOrderByIdAsc(String name);
 
     Page<Product> findByActiveOrderByNameAscIdAsc(Boolean active, Pageable pageable);
 

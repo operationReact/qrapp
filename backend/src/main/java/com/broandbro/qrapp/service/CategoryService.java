@@ -2,6 +2,7 @@ package com.broandbro.qrapp.service;
 
 import com.broandbro.qrapp.entity.Category;
 import com.broandbro.qrapp.entity.Location;
+import com.broandbro.qrapp.entity.ProductImageAsset;
 import com.broandbro.qrapp.entity.User;
 import com.broandbro.qrapp.exception.FileTooLargeException;
 import com.broandbro.qrapp.exception.InvalidImageException;
@@ -10,6 +11,7 @@ import com.broandbro.qrapp.prompt.CategoryImagePromptBuilder;
 import com.broandbro.qrapp.repository.CategoryRepository;
 import com.broandbro.qrapp.repository.LocationRepository;
 import com.broandbro.qrapp.repository.MenuRepository;
+import com.broandbro.qrapp.repository.ProductImageAssetRepository;
 import com.broandbro.qrapp.service.ai.ImageGenerationService;
 import com.broandbro.qrapp.storage.ImageStorageService;
 import lombok.RequiredArgsConstructor;
@@ -17,13 +19,19 @@ import lombok.extern.slf4j.Slf4j;
 import com.broandbro.qrapp.prompt.CategoryImageQuality;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
@@ -47,6 +55,7 @@ public class CategoryService {
     private final ImageGenerationService imageGenerationService;
     private final FoodImagePromptBuilder promptBuilder;
     private final CategoryImagePromptBuilder categoryPromptBuilder;
+    private final ProductImageAssetRepository imageAssetRepository;
 
     @Cacheable(cacheNames = "categories", key = "#locationId", sync = true)
     public List<Category> getAllCategories(Long locationId) {
@@ -121,17 +130,64 @@ public class CategoryService {
         requireManagementLocation(locationId, user);
         Category category = categoryRepository.findByIdAndLocationIdAndIsDeletedFalse(id, locationId)
                 .orElseThrow(() -> new RuntimeException("Category not found: " + id));
-        String folder = "categories/" + category.getId();
-        ImageStorageService.StoredImage stored;
+        byte[] raw;
         try {
-            String contentType = file.getContentType() == null ? "" : file.getContentType().toLowerCase(Locale.ROOT);
-            stored = imageStorage.uploadImageWithKey(file.getBytes(), folder, contentType);
+            raw = file.getBytes();
         } catch (IOException e) {
             throw new InvalidImageException("Could not read category image");
         }
-        deleteExistingImage(category);
-        category.setImageUrl(stored.url());
-        category.setImageKey(stored.key());
+        String contentType = file.getContentType().toLowerCase(Locale.ROOT);
+        attachImageAsset(category, findOrStoreImageAsset(raw, contentType));
+        category.setAiGeneratedImage(false);
+        return categoryRepository.save(category);
+    }
+
+    /**
+     * Lists active categories of the same type and name in other locations the user can
+     * manage, so an admin can reuse their image instead of uploading a duplicate.
+     */
+    @Transactional(readOnly = true)
+    public List<CategoryImageSource> imageSources(Long locationId, Long id, User user) {
+        requireManagementLocation(locationId, user);
+        Category category = categoryRepository.findByIdAndLocationIdAndIsDeletedFalse(id, locationId)
+                .orElseThrow(() -> new RuntimeException("Category not found: " + id));
+        List<Long> otherLocations = locationAccessService.getAccessibleLocations(user).stream()
+                .map(Location::getId)
+                .filter(candidate -> !candidate.equals(locationId))
+                .toList();
+        if (otherLocations.isEmpty()) return List.of();
+        return categoryRepository.findImageSourcesByName(category.getName(), category.getCategoryType(), otherLocations)
+                .stream()
+                .map(source -> new CategoryImageSource(source.getId(), source.getName(),
+                        source.getLocation().getId(), source.getLocation().getName(), source.getImageUrl()))
+                .toList();
+    }
+
+    /**
+     * Points a category at the image asset of another category. Both share one stored
+     * object; it is released only when no product or category references it.
+     */
+    @Transactional
+    @CacheEvict(cacheNames = "categories", allEntries = true)
+    public Category reuseCategoryImage(Long locationId, Long id, Long sourceCategoryId, User user) {
+        requireManagementLocation(locationId, user);
+        Category category = categoryRepository.findByIdAndLocationIdAndIsDeletedFalse(id, locationId)
+                .orElseThrow(() -> new RuntimeException("Category not found: " + id));
+        if (Objects.equals(category.getId(), sourceCategoryId)) {
+            throw new IllegalArgumentException("Choose a different category to reuse the image from");
+        }
+        Category source = categoryRepository.findById(sourceCategoryId)
+                .filter(candidate -> !Boolean.TRUE.equals(candidate.getIsDeleted()))
+                .orElseThrow(() -> new RuntimeException("Source category not found: " + sourceCategoryId));
+        requireManagementLocation(source.getLocation().getId(), user);
+        if (!Objects.equals(category.getCategoryType(), source.getCategoryType())) {
+            throw new IllegalArgumentException("Images can only be reused between categories of the same type");
+        }
+        ProductImageAsset asset = source.getImageAsset();
+        if (asset == null) {
+            throw new InvalidImageException("This image cannot be shared yet. Re-upload it once to make it reusable.");
+        }
+        attachImageAsset(category, asset);
         category.setAiGeneratedImage(false);
         return categoryRepository.save(category);
     }
@@ -196,12 +252,93 @@ public class CategoryService {
     public record CategoryImageOption(Long categoryId, String imageUrl, String prompt) {}
 
     private void deleteExistingImage(Category category) {
-        if (category.getImageKey() != null) {
+        ProductImageAsset asset = category.getImageAsset();
+        if (asset != null) {
+            category.setImageAsset(null);
+            releaseImageAsset(asset);
+        } else if (category.getImageKey() != null) {
             imageStorage.deleteLocationImageByKey(category.getImageKey());
         } else if (category.getImageUrl() != null) {
             imageStorage.deleteImageByUrl(category.getImageUrl());
         }
     }
+
+    private ProductImageAsset findOrStoreImageAsset(byte[] raw, String contentType) {
+        String sha256 = sha256Hex(raw);
+        return imageAssetRepository.findByContentSha256(sha256).orElseGet(() -> {
+            ImageStorageService.StoredImage stored = imageStorage.uploadImageWithKey(raw, "categories/assets", contentType);
+            ProductImageAsset asset = new ProductImageAsset();
+            asset.setContentSha256(sha256);
+            asset.setImageUrl(stored.url());
+            asset.setImageKey(stored.key());
+            asset.setContentType(contentType);
+            asset.setSizeBytes(raw.length);
+            asset.setRefCount(0);
+            return imageAssetRepository.save(asset);
+        });
+    }
+
+    /** Points the category at {@code requested}, adjusting ref counts and releasing the previous image. */
+    private void attachImageAsset(Category category, ProductImageAsset requested) {
+        ProductImageAsset next = imageAssetRepository.findByIdForUpdate(requested.getId())
+                .orElseThrow(() -> new IllegalStateException("Image asset not found"));
+        ProductImageAsset previous = category.getImageAsset();
+        String previousKey = category.getImageKey();
+        String previousUrl = category.getImageUrl();
+        boolean unchanged = previous != null && Objects.equals(previous.getId(), next.getId());
+        if (!unchanged) {
+            next.setRefCount(next.getRefCount() + 1);
+            imageAssetRepository.save(next);
+        }
+        category.setImageAsset(next);
+        category.setImageUrl(next.getImageUrl());
+        category.setImageKey(next.getImageKey());
+        if (unchanged) return;
+        if (previous != null) {
+            releaseImageAsset(previous);
+        } else if (previousKey != null) {
+            imageStorage.deleteLocationImageByKey(previousKey);
+        } else if (previousUrl != null && !previousUrl.isBlank()) {
+            imageStorage.deleteImageByUrl(previousUrl);
+        }
+    }
+
+    private void releaseImageAsset(ProductImageAsset requested) {
+        ProductImageAsset asset = imageAssetRepository.findByIdForUpdate(requested.getId()).orElse(requested);
+        int remaining = Math.max(0, asset.getRefCount() - 1);
+        asset.setRefCount(remaining);
+        if (remaining > 0) {
+            imageAssetRepository.save(asset);
+            return;
+        }
+        imageAssetRepository.delete(asset);
+        String key = asset.getImageKey();
+        runAfterCommit(() -> imageStorage.deleteImageByKey(key));
+    }
+
+    private void runAfterCommit(Runnable action) {
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    action.run();
+                }
+            });
+        } else {
+            action.run();
+        }
+    }
+
+    private static String sha256Hex(byte[] bytes) {
+        try {
+            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(bytes));
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 unavailable", e);
+        }
+    }
+
+    /** A same-named category in another location that already has a shared image. */
+    public record CategoryImageSource(Long categoryId, String name, Long locationId, String locationName, String imageUrl) {}
 
     private void validateImage(MultipartFile file) {
         if (file == null || file.isEmpty()) {

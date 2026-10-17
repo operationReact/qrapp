@@ -29,6 +29,7 @@ class ProductCatalogServiceTest {
     @Mock LocationAccessService locationAccessService;
     @Mock UserService userService;
     @Mock ImageStorageService imageStorageService;
+    @Mock ProductImageAssetRepository imageAssetRepository;
     @Spy ProductImageEnhancer productImageEnhancer = new ProductImageEnhancer();
     @Mock TaxCalculationService taxCalculationService;
     @Mock Authentication authentication;
@@ -163,6 +164,136 @@ class ProductCatalogServiceTest {
         assertThrows(IllegalArgumentException.class,
                 () -> service.uploadImage(3L, 11L, file, authentication));
         verify(imageStorageService, never()).uploadImageWithKey(any(), anyString(), anyString());
+    }
+
+    @Test
+    void identicalUploadReusesSharedAssetWithoutStoringAgain() throws Exception {
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "menuRepository", null);
+        ProductImageAsset asset = sharedAsset(9L, "https://cdn.example/assets/a.jpg", "assets/a.jpg", 1);
+        Product product = productWithAssignment(3L);
+        byte[] png = pngBytes();
+
+        when(imageAssetRepository.findByContentSha256(anyString())).thenReturn(Optional.of(asset));
+        when(imageAssetRepository.findByIdForUpdate(9L)).thenReturn(Optional.of(asset));
+        when(productRepository.findById(3L)).thenReturn(Optional.of(product));
+        when(productRepository.save(any(Product.class))).thenAnswer(i -> i.getArgument(0));
+        when(locationProductRepository.findByProductIdAndLocationId(3L, 11L))
+                .thenReturn(Optional.of(assignmentOf(product, 44L)));
+        when(taxCalculationService.calculateInclusive(any(), any()))
+                .thenAnswer(invocation -> TaxCalculationService.TaxCalculationResult.zero(invocation.getArgument(0)));
+
+        service.uploadImage(3L, 11L, new MockMultipartFile("file", "p.png", "image/png", png), authentication);
+
+        verify(productImageEnhancer, never()).enhance(any());
+        verify(imageStorageService, never()).uploadImageWithKey(any(), anyString(), anyString());
+        assertSame(asset, product.getImageAsset());
+        assertEquals(2, asset.getRefCount());
+        assertEquals("https://cdn.example/assets/a.jpg", product.getImageUrl());
+    }
+
+    @Test
+    void reuseImageSharesSourceAssetAndIncrementsRefCount() {
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "menuRepository", null);
+        ProductImageAsset asset = sharedAsset(9L, "https://cdn.example/assets/a.jpg", "assets/a.jpg", 1);
+        Product source = new Product();
+        source.setId(4L);
+        source.setName("Soap");
+        source.setImageAsset(asset);
+        Product product = productWithAssignment(3L);
+
+        when(productRepository.findById(3L)).thenReturn(Optional.of(product));
+        when(productRepository.findById(4L)).thenReturn(Optional.of(source));
+        when(imageAssetRepository.findByIdForUpdate(9L)).thenReturn(Optional.of(asset));
+        when(productRepository.save(any(Product.class))).thenAnswer(i -> i.getArgument(0));
+        when(locationProductRepository.findByProductIdAndLocationId(3L, 11L))
+                .thenReturn(Optional.of(assignmentOf(product, 44L)));
+        when(taxCalculationService.calculateInclusive(any(), any()))
+                .thenAnswer(invocation -> TaxCalculationService.TaxCalculationResult.zero(invocation.getArgument(0)));
+
+        service.reuseImage(3L, 11L, 4L, authentication);
+
+        assertSame(asset, product.getImageAsset());
+        assertEquals(2, asset.getRefCount());
+        verify(imageStorageService, never()).deleteImageByKey(anyString());
+    }
+
+    @Test
+    void replacingSharedImageWithDirectUrlDeletesAssetOnlyWhenUnreferenced() {
+        ProductImageAsset asset = sharedAsset(9L, "https://cdn.example/assets/a.jpg", "assets/a.jpg", 1);
+        Product product = new Product();
+        product.setId(3L);
+        product.setName("Soap");
+        product.setActive(true);
+        product.setMrp(new BigDecimal("40"));
+        product.setCostPrice(new BigDecimal("20"));
+        product.setImageAsset(asset);
+        product.setImageUrl(asset.getImageUrl());
+        product.setImageKey(asset.getImageKey());
+
+        when(productRepository.findById(3L)).thenReturn(Optional.of(product));
+        when(productRepository.save(any(Product.class))).thenAnswer(i -> i.getArgument(0));
+        when(imageAssetRepository.findByIdForUpdate(9L)).thenReturn(Optional.of(asset));
+        when(locationProductRepository.findByProductIdAndLocationId(3L, 11L))
+                .thenReturn(Optional.of(assignmentOf(product, 44L)));
+        when(locationProductRepository.save(any(LocationProduct.class))).thenAnswer(i -> i.getArgument(0));
+        when(inventoryRepository.findByLocationProductId(44L)).thenReturn(Optional.of(new ProductInventory()));
+        when(taxCalculationService.calculateInclusive(any(), any()))
+                .thenAnswer(invocation -> TaxCalculationService.TaxCalculationResult.zero(invocation.getArgument(0)));
+
+        ProductUpdateRequest request = new ProductUpdateRequest();
+        request.setVariantIdentity("DEFAULT");
+        request.setName("Soap");
+        request.setMrp(new BigDecimal("40"));
+        request.setCostPrice(new BigDecimal("20"));
+        request.setImageUrl("https://cdn.example/other.png");
+        request.setLocationId(11L);
+
+        service.update(3L, request, authentication);
+
+        assertNull(product.getImageAsset());
+        assertEquals("https://cdn.example/other.png", product.getImageUrl());
+        assertEquals(0, asset.getRefCount());
+        verify(imageAssetRepository).delete(asset);
+        verify(imageStorageService).deleteImageByKey("assets/a.jpg");
+    }
+
+    private static ProductImageAsset sharedAsset(Long id, String url, String key, int refCount) {
+        ProductImageAsset asset = new ProductImageAsset();
+        asset.setId(id);
+        asset.setImageUrl(url);
+        asset.setImageKey(key);
+        asset.setContentType("image/jpeg");
+        asset.setSizeBytes(1024L);
+        asset.setContentSha256("a".repeat(64));
+        asset.setRefCount(refCount);
+        return asset;
+    }
+
+    private Product productWithAssignment(Long productId) {
+        Product product = new Product();
+        product.setId(productId);
+        product.setName("Soap");
+        product.setActive(true);
+        product.setMrp(new BigDecimal("40"));
+        product.setCostPrice(new BigDecimal("20"));
+        return product;
+    }
+
+    private LocationProduct assignmentOf(Product product, Long assignmentId) {
+        LocationProduct assignment = new LocationProduct();
+        assignment.setId(assignmentId);
+        assignment.setProduct(product);
+        assignment.setLocation(location);
+        assignment.setVisible(true);
+        assignment.setAvailable(true);
+        return assignment;
+    }
+
+    private static byte[] pngBytes() throws Exception {
+        java.awt.image.BufferedImage image = new java.awt.image.BufferedImage(10, 10, java.awt.image.BufferedImage.TYPE_INT_RGB);
+        java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
+        javax.imageio.ImageIO.write(image, "png", out);
+        return out.toByteArray();
     }
 
     @Test

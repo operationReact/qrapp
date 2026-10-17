@@ -44,6 +44,12 @@ public class Category {
     @Column(name = "image_key", columnDefinition = "TEXT")
     private String imageKey;
 
+    /** Shared, ref-counted image object; null for legacy categories still using {@link #imageKey}. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "image_asset_id")
+    @JsonIgnore
+    private ProductImageAsset imageAsset;
+
     @Column(name = "display_order", nullable = false)
     private Integer displayOrder = 0;
 

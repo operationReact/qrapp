@@ -131,6 +131,27 @@ public class CategoryController {
         return ResponseEntity.ok(updated);
     }
 
+    @GetMapping("/{id}/image-sources")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPERUSER', 'SUPER_ADMIN', 'MANAGER')")
+    public List<CategoryService.CategoryImageSource> imageSources(
+            @PathVariable Long id,
+            @RequestParam Long locationId,
+            Authentication authentication) {
+        return categoryService.imageSources(locationId, id, currentUser(authentication));
+    }
+
+    @PostMapping("/{id}/image/reuse")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPERUSER', 'SUPER_ADMIN', 'MANAGER')")
+    public ResponseEntity<Category> reuseImage(
+            @PathVariable Long id,
+            @RequestParam Long locationId,
+            @RequestParam Long sourceCategoryId,
+            Authentication authentication) {
+        Category updated = categoryService.reuseCategoryImage(
+                locationId, id, sourceCategoryId, currentUser(authentication));
+        return ResponseEntity.ok(updated);
+    }
+
     /**
      * Synchronously generates a single AI image option for the admin to preview.
      * Nothing is persisted until {@code POST /{id}/apply-generated-image} is called.

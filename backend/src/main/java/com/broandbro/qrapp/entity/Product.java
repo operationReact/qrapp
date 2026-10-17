@@ -55,6 +55,10 @@ public class Product {
     @Column(name = "image_key", columnDefinition = "TEXT")
     private String imageKey;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "image_asset_id")
+    private ProductImageAsset imageAsset;
+
     @Column(name = "is_active", nullable = false)
     private Boolean active = true;
 

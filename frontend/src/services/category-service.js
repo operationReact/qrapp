@@ -47,6 +47,16 @@ export const uploadCategoryImage = (id, file, locationId) => {
 export const removeCategoryImage = (id, locationId) =>
   apiClient.delete(`/categories/${id}/image`, { params: { locationId } }).then((r) => r.data);
 
+/** Same-named MRP categories in other locations that already have a shared image. */
+export const getCategoryImageSources = (id, locationId) =>
+  apiClient.get(`/categories/${id}/image-sources`, { params: { locationId } }).then((r) => r.data);
+
+/** Points this category at the shared image of another category (no duplicate file is stored). */
+export const reuseCategoryImage = (id, locationId, sourceCategoryId) =>
+  apiClient
+    .post(`/categories/${id}/image/reuse`, null, { params: { locationId, sourceCategoryId } })
+    .then((r) => r.data);
+
 /** Synchronously generates ONE AI image option for admin preview. Nothing is persisted yet. */
 export const generateCategoryImage = (id, locationId, additionalPrompt) =>
   apiClient

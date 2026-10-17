@@ -31,6 +31,14 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
     Optional<Category> findByLocationIdAndNameAndCategoryTypeAndIsDeletedFalse(
             Long locationId, String name, String categoryType);
 
+    /** Active categories of the given type and name that already have a shared image, in the given locations. */
+    @Query("select c from Category c join fetch c.location l join fetch c.imageAsset " +
+            "where lower(c.name) = lower(:name) and c.categoryType = :categoryType " +
+            "and c.isDeleted = false and l.id in :locationIds order by c.id")
+    List<Category> findImageSourcesByName(@Param("name") String name,
+                                          @Param("categoryType") String categoryType,
+                                          @Param("locationIds") java.util.Collection<Long> locationIds);
+
     /** Delete all categories for a location (both active and soft-deleted). */
     @Modifying
     @Query("DELETE FROM Category c WHERE c.location.id = :locationId")

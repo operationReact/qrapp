@@ -14,12 +14,19 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
+
 import javax.imageio.ImageIO;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.Set;
 
 @Service
@@ -40,6 +47,7 @@ public class ProductCatalogService {
     private final UserService userService;
     private final ImageStorageService imageStorageService;
     private final ProductImageEnhancer productImageEnhancer;
+    private final ProductImageAssetRepository imageAssetRepository;
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private CategoryRepository categoryRepository;
     @org.springframework.beans.factory.annotation.Autowired(required = false)
@@ -275,23 +283,141 @@ public class ProductCatalogService {
         validateImage(file);
         Product product = productRepository.findById(productId).orElseThrow(() -> new EntityNotFoundException("Product not found"));
         LocationProduct selectedAssignment = assignment(productId, locationId);
-        String oldUrl = product.getImageUrl();
-        ImageStorageService.StoredImage stored;
+        byte[] raw;
         try {
-            ProductImageEnhancer.Enhanced enhanced = productImageEnhancer.enhance(file.getBytes());
-            stored = imageStorageService.uploadImageWithKey(enhanced.bytes(),
-                    "products/" + productId, enhanced.contentType());
+            raw = file.getBytes();
         } catch (IOException e) {
             throw new IllegalArgumentException("Unable to read image");
         }
-        product.setImageUrl(stored.url());
-        product.setImageKey(stored.key());
-        productRepository.save(product);
-        if (oldUrl != null && !oldUrl.isBlank()) {
-            imageStorageService.deleteImageByUrl(oldUrl);
-        }
+        attachImageAsset(product, findOrStoreImageAsset(raw));
         syncProjections(product);
         return toResponse(selectedAssignment);
+    }
+
+    /**
+     * Lists products with the same name so an admin can assign an existing product
+     * (and its shared image) to this location instead of creating a duplicate.
+     */
+    @Transactional(readOnly = true)
+    public List<ProductSimilarResponse> similarProducts(Long locationId, String name, Authentication authentication) {
+        User actor = actor(authentication);
+        requireLocation(actor, locationId);
+        String normalized = name == null ? "" : name.trim();
+        if (normalized.length() < 2) return List.of();
+        return productRepository.findTop10ByNameIgnoreCaseOrderByIdAsc(normalized).stream()
+                .map(product -> ProductSimilarResponse.of(product,
+                        locationProductRepository.findByProductIdOrderByLocationNameAsc(product.getId()).stream()
+                                .anyMatch(assignment -> locationId.equals(assignment.getLocation().getId()))))
+                .toList();
+    }
+
+    /**
+     * Points a product at the image asset of another product. Both products share
+     * one stored object; the object is released only when no product references it.
+     */
+    @Transactional
+    public ProductResponse reuseImage(Long productId, Long locationId, Long sourceProductId,
+                                      Authentication authentication) {
+        User actor = actor(authentication);
+        requireLocation(actor, locationId);
+        if (productId.equals(sourceProductId)) {
+            throw new IllegalArgumentException("Choose a different product to reuse the image from");
+        }
+        Product product = productRepository.findById(productId).orElseThrow(() -> new EntityNotFoundException("Product not found"));
+        LocationProduct selectedAssignment = assignment(productId, locationId);
+        Product source = productRepository.findById(sourceProductId)
+                .orElseThrow(() -> new EntityNotFoundException("Source product not found"));
+        ProductImageAsset asset = source.getImageAsset();
+        if (asset == null) {
+            throw new IllegalArgumentException("This image cannot be shared yet. Re-upload it once to make it reusable.");
+        }
+        attachImageAsset(product, asset);
+        syncProjections(product);
+        return toResponse(selectedAssignment);
+    }
+
+    private ProductImageAsset findOrStoreImageAsset(byte[] raw) {
+        String sha256 = sha256Hex(raw);
+        return imageAssetRepository.findByContentSha256(sha256).orElseGet(() -> {
+            try {
+                ProductImageEnhancer.Enhanced enhanced = productImageEnhancer.enhance(raw);
+                ImageStorageService.StoredImage stored = imageStorageService.uploadImageWithKey(
+                        enhanced.bytes(), "products/assets", enhanced.contentType());
+                ProductImageAsset asset = new ProductImageAsset();
+                asset.setContentSha256(sha256);
+                asset.setImageUrl(stored.url());
+                asset.setImageKey(stored.key());
+                asset.setContentType(enhanced.contentType());
+                asset.setSizeBytes(enhanced.bytes().length);
+                asset.setRefCount(0);
+                return imageAssetRepository.save(asset);
+            } catch (IOException e) {
+                throw new IllegalArgumentException("Unable to read image");
+            }
+        });
+    }
+
+    private void attachImageAsset(Product product, ProductImageAsset requested) {
+        ProductImageAsset next = imageAssetRepository.findByIdForUpdate(requested.getId())
+                .orElseThrow(() -> new IllegalStateException("Image asset not found"));
+        ProductImageAsset previous = product.getImageAsset();
+        String previousUrl = product.getImageUrl();
+        boolean unchanged = previous != null && Objects.equals(previous.getId(), next.getId());
+        if (!unchanged) {
+            next.setRefCount(next.getRefCount() + 1);
+            imageAssetRepository.save(next);
+        }
+        product.setImageAsset(next);
+        product.setImageUrl(next.getImageUrl());
+        product.setImageKey(next.getImageKey());
+        productRepository.save(product);
+        if (unchanged) return;
+        if (previous != null) {
+            releaseImageAsset(previous);
+        } else if (previousUrl != null && !previousUrl.isBlank() && !previousUrl.equals(next.getImageUrl())) {
+            imageStorageService.deleteImageByUrl(previousUrl);
+        }
+    }
+
+    private void detachImageAsset(Product product) {
+        ProductImageAsset previous = product.getImageAsset();
+        if (previous == null) return;
+        product.setImageAsset(null);
+        releaseImageAsset(previous);
+    }
+
+    private void releaseImageAsset(ProductImageAsset requested) {
+        ProductImageAsset asset = imageAssetRepository.findByIdForUpdate(requested.getId()).orElse(requested);
+        int remaining = Math.max(0, asset.getRefCount() - 1);
+        asset.setRefCount(remaining);
+        if (remaining > 0) {
+            imageAssetRepository.save(asset);
+            return;
+        }
+        imageAssetRepository.delete(asset);
+        String key = asset.getImageKey();
+        runAfterCommit(() -> imageStorageService.deleteImageByKey(key));
+    }
+
+    private void runAfterCommit(Runnable action) {
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    action.run();
+                }
+            });
+        } else {
+            action.run();
+        }
+    }
+
+    private static String sha256Hex(byte[] bytes) {
+        try {
+            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(bytes));
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 unavailable", e);
+        }
     }
 
     /**
@@ -304,11 +430,13 @@ public class ProductCatalogService {
                                                Authentication authentication) {
         Product product = requireProductImageAccess(productId, authentication);
         String previousUrl = product.getImageUrl();
+        boolean wasShared = product.getImageAsset() != null;
+        detachImageAsset(product);
         product.setImageUrl(imageUrl);
         product.setImageKey(imageKey);
         productRepository.save(product);
         syncProjections(product);
-        if (previousUrl != null && !previousUrl.isBlank() && !previousUrl.equals(imageUrl)) {
+        if (!wasShared && previousUrl != null && !previousUrl.isBlank() && !previousUrl.equals(imageUrl)) {
             imageStorageService.deleteImageByUrl(previousUrl);
         }
         return toGlobalResponse(product);
@@ -405,7 +533,11 @@ public class ProductCatalogService {
         product.setMrp(request.getMrp());
         product.setCostPrice(request.getCostPrice());
         product.setHsnSac(request.getHsnSac());
-        if (request.getImageUrl() != null) {
+        if (request.getImageUrl() != null && !request.getImageUrl().equals(product.getImageUrl())) {
+            if (product.getImageAsset() != null) {
+                detachImageAsset(product);
+                product.setImageKey(null);
+            }
             product.setImageUrl(request.getImageUrl());
         }
         product.setActive(request.getActive() == null || request.getActive());

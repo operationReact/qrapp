@@ -141,6 +141,22 @@ public class ProductCatalogController {
         return catalogService.uploadImage(productId, locationId, file, authentication);
     }
 
+    @PostMapping("/products/{productId}/image/reuse")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN', 'SUPERUSER', 'MANAGER')")
+    @CacheEvict(cacheNames = {"menu", "menuRecommended"}, allEntries = true)
+    public ProductResponse reuseImage(@PathVariable Long productId, @RequestParam Long locationId,
+                                      @RequestParam Long sourceProductId,
+                                      Authentication authentication) {
+        return catalogService.reuseImage(productId, locationId, sourceProductId, authentication);
+    }
+
+    @GetMapping("/admin/products/similar")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN', 'SUPERUSER', 'MANAGER')")
+    public List<ProductSimilarResponse> similar(@RequestParam Long locationId, @RequestParam String name,
+                                                Authentication authentication) {
+        return catalogService.similarProducts(locationId, name, authentication);
+    }
+
     @PostMapping("/products/{productId}/inventory/movements")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN', 'SUPERUSER', 'MANAGER')")
     public ProductResponse movement(@PathVariable Long productId,
