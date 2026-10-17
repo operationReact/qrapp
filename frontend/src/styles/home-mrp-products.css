@@ -1,0 +1,203 @@
+/* Premium category tiles for the home "Snacks & More" section. */
+
+.hmp-tile {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  height: auto;
+  min-height: 0;
+  overflow: hidden;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  background: #fff;
+  box-shadow: 0 10px 24px -14px rgba(122, 47, 27, 0.28), 0 2px 6px rgba(122, 47, 27, 0.05);
+  transition:
+    transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1),
+    box-shadow 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+  animation: hmp-rise 0.65s cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
+  animation-delay: var(--hmp-delay, 0ms);
+}
+
+.hmp-tile:hover,
+.hmp-tile:focus-visible {
+  transform: translateY(-5px);
+  box-shadow: 0 20px 36px -14px rgba(239, 35, 60, 0.38), 0 4px 10px rgba(122, 47, 27, 0.08);
+}
+
+.hmp-tile::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background: linear-gradient(110deg, transparent 30%, rgba(255, 255, 255, 0.6) 50%, transparent 70%);
+  transform: translateX(-120%);
+  transition: transform 0.9s ease;
+}
+
+.hmp-tile:hover::after {
+  transform: translateX(120%);
+}
+
+.hmp-stage {
+  position: relative;
+  flex: 0 0 auto;
+  padding: 12px 8px 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: linear-gradient(180deg, #fffdfb 0%, #fbf4ef 100%);
+}
+
+.hmp-stage::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 92px;
+  height: 92px;
+  border-radius: 999px;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0) 70%);
+}
+
+.hmp-float {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: hmp-float 4.2s ease-in-out infinite;
+  animation-delay: var(--hmp-delay, 0ms);
+}
+
+.hmp-img {
+  max-height: 84px;
+  max-width: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  mix-blend-mode: multiply;
+  -webkit-mask-image: radial-gradient(ellipse at center, #000 55%, transparent 85%);
+  mask-image: radial-gradient(ellipse at center, #000 55%, transparent 85%);
+  filter: drop-shadow(0 8px 8px rgba(60, 30, 20, 0.2));
+  transition: transform 0.55s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.hmp-tile:hover .hmp-img {
+  transform: scale(1.14) rotate(-5deg);
+}
+
+.hmp-initial {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #ff5a6b, #d91d34);
+  color: #fff;
+  font-family: var(--font-sans, inherit);
+  font-size: 18px;
+  font-weight: 800;
+  box-shadow: 0 8px 16px -6px rgba(217, 29, 52, 0.55);
+}
+
+.hmp-body {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 8px 9px 9px;
+}
+
+.hmp-chip {
+  align-self: flex-start;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: #fff0ec;
+  color: #d91d34;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+
+
+@media (min-width: 640px) {
+  .hmp-tile {
+    min-height: 0;
+    border-radius: 22px;
+  }
+  .hmp-stage {
+    flex-basis: auto;
+    padding: 16px 12px 10px;
+  }
+  .hmp-img {
+    max-height: 120px;
+    max-width: 100%;
+  }
+  .hmp-initial {
+    width: 72px;
+    height: 72px;
+    font-size: 28px;
+  }
+  .hmp-body {
+    gap: 8px;
+    padding: 14px 16px 16px;
+  }
+  .hmp-chip {
+    font-size: 11px;
+    padding: 3px 9px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .hmp-tile {
+    min-height: 0;
+  }
+  .hmp-stage {
+    flex-basis: auto;
+  }
+}
+
+@keyframes hmp-rise {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes hmp-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hmp-tile,
+  .hmp-tile::after,
+  .hmp-float,
+  .hmp-img {
+    animation: none;
+    transition: none;
+  }
+  .hmp-tile:hover,
+  .hmp-tile:focus-visible,
+  .hmp-tile:hover .hmp-img {
+    transform: none;
+  }
+}

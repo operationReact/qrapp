@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import Autoplay from "embla-carousel-autoplay";
 import {
-  ArrowRightIcon,
   CaretLeftIcon,
   CaretRightIcon,
 } from "@phosphor-icons/react";
@@ -10,6 +9,7 @@ import { useQuery } from "@tanstack/react-query";
 import { baseURL } from "@/services";
 import { getCategories, getProductCategoryImages } from "@/services/category-service";
 import { getCatalogProducts } from "@/services/mrp-product-service";
+import "@/styles/home-mrp-products.css";
 import {
   Carousel,
   CarouselContent,
@@ -18,8 +18,6 @@ import {
   CarouselPrevious,
   useCarousel,
 } from "@/components/ui/carousel";
-
-const CATEGORY_SURFACES = ["#fff0bd", "#eee9ff", "#f9dfe7", "#dff6ec", "#ffecca", "#e2efff"];
 
 function resolveImageUrl(url) {
   if (!url) return null;
@@ -113,10 +111,9 @@ export default function HomeMrpProductsSection({ locationId }) {
       current.image = current.image || resolveImageUrl(product.imageUrl);
       grouped.set(key, current);
     });
-    return Array.from(grouped.values()).map((category, index) => ({
+    return Array.from(grouped.values()).map((category) => ({
       ...category,
       image: categoryImages.get(category.key) || category.image,
-      surface: CATEGORY_SURFACES[index % CATEGORY_SURFACES.length],
     }));
   }, [backendCategories, productCategoryImages, products]);
 
@@ -169,7 +166,6 @@ export default function HomeMrpProductsSection({ locationId }) {
             style={{ backgroundColor: "#ef233c", color: "#ffffff" }}
           >
             Shop Now
-            <ArrowRightIcon weight="bold" className="size-4 sm:size-5" />
           </Link>
         </div>
 
@@ -179,45 +175,45 @@ export default function HomeMrpProductsSection({ locationId }) {
           className="relative mt-2 sm:mt-6 lg:mt-4"
         >
           <CarouselContent className="-ml-3 touch-pan-x cursor-grab py-1 pr-1 active:cursor-grabbing">
-            {categories.map((category) => (
+            {categories.map((category, index) => (
               <CarouselItem
                 key={category.key}
-                className="basis-[48%] pl-3 min-[390px]:basis-[43%] sm:basis-1/3 md:basis-1/4 lg:basis-1/6"
+                className="basis-[58%] pl-3 min-[390px]:basis-[48%] sm:basis-[34%] md:basis-1/4 lg:basis-1/5"
               >
                 <Link
                   to="/essentials"
                   hash={category.routeKey || category.key}
-                  className="group flex h-[132px] flex-col overflow-hidden rounded-[16px] border border-white/80 bg-white shadow-[0_6px_16px_rgba(122,47,27,0.07)] transition hover:-translate-y-1 hover:shadow-[0_12px_24px_rgba(122,47,27,0.12)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ef233c] sm:h-[224px] lg:h-[246px]"
+                  className="group hmp-tile w-full focus-visible:outline-none"
+                  style={{ "--hmp-delay": `${Math.min(index, 8) * 80}ms` }}
+                  aria-label={`Shop ${category.label}, ${category.count} ${category.count === 1 ? "product" : "products"}`}
                 >
-                  <div
-                    className="relative flex shrink-0 items-center justify-center overflow-hidden p-2"
-                    style={{ height: "68px", flexBasis: "68px", background: category.surface }}
-                  >
-                    <span className="absolute left-3 top-3 size-1.5 rounded-full bg-white/80 shadow-[0_0_0_4px_rgba(255,255,255,0.2)]" aria-hidden="true" />
-                    {category.image && (
-                      <img
-                        src={category.image}
-                        alt={`${category.label} category`}
-                        loading="lazy"
-                        width="320"
-                        height="220"
-                        className="h-auto w-auto object-contain"
-                        style={{ maxHeight: "50px", maxWidth: "70px" }}
-                      />
+                  <div className="hmp-stage">
+                    {category.image ? (
+                      <span className="hmp-float">
+                        <img
+                          src={category.image}
+                          alt=""
+                          loading="lazy"
+                          width="320"
+                          height="220"
+                          className="hmp-img"
+                        />
+                      </span>
+                    ) : (
+                      <span className="hmp-float">
+                        <span className="hmp-initial" aria-hidden="true">{category.label.charAt(0).toUpperCase()}</span>
+                      </span>
                     )}
                   </div>
-                  <div className="flex min-h-0 flex-1 items-end justify-between gap-1 p-1.5 sm:gap-2 sm:p-3.5">
+                  <div className="hmp-body">
                     <div className="min-w-0">
-                      <h3 className="line-clamp-2 font-sans text-[10px] font-bold leading-3 text-[#17212b] sm:text-sm lg:text-[15px]">
+                      <span className="hmp-chip">
+                        {category.count > 0 ? `${category.count} ${category.count === 1 ? "item" : "items"}` : "New"}
+                      </span>
+                      <h3 className="mt-1 line-clamp-2 font-sans text-xs font-extrabold leading-4 text-[#17212b] sm:mt-2 sm:text-[15px] sm:leading-5 lg:text-base">
                         {category.label}
                       </h3>
-                      <p className="mt-0.5 font-sans text-[9px] font-medium text-[#7a838b] sm:mt-1 sm:text-xs">
-                        {category.count > 0 ? `${category.count} ${category.count === 1 ? "product" : "products"}` : "Explore range"}
-                      </p>
                     </div>
-                    <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-[#fff0ec] text-[#ef233c] transition group-hover:bg-[#ef233c] group-hover:text-white sm:size-8">
-                    <ArrowRightIcon weight="bold" className="size-4" />
-                    </span>
                   </div>
                 </Link>
               </CarouselItem>
