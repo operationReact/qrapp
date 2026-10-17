@@ -364,6 +364,64 @@ function ProductCatalogPage() {
           .mrp-hdr-eyebrow { font-size: 11px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; color: #d92334; }
           .mrp-hdr-h1 { margin-top: 4px; font-size: 24px; line-height: 1.15; font-weight: 800; letter-spacing: -.01em; color: #242220; }
           .mrp-hdr-sub { margin-top: 6px; font-size: 14px; line-height: 1.5; color: #77736f; }
+          .mrp-dw-card { background: #ffffff; border: 1px solid #ece8e2; border-radius: 20px; box-shadow: 0 1px 2px rgba(36,34,32,.04), 0 16px 32px -24px rgba(36,34,32,.28); }
+          .mrp-dw-hero { position: relative; overflow: hidden; border-radius: 18px; border: 1px solid #f4d6d9; background: linear-gradient(135deg,#ffffff 0%,#fff1f1 100%); box-shadow: inset 0 1px 0 #ffffff, 0 12px 24px -20px rgba(217,26,43,.45); }
+          .mrp-dw-hero::after { content: ""; position: absolute; right: -40px; top: -40px; width: 140px; height: 140px; border-radius: 9999px; background: radial-gradient(circle, rgba(255,36,56,.14) 0%, rgba(255,36,56,0) 70%); pointer-events: none; }
+          .mrp-dw-kicker { font-size: 10.5px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; color: #d92334; }
+          .mrp-dw-label { font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: #8a847d; }
+          .mrp-dw-tile { border-radius: 14px; border: 1px solid #ece8e2; background: #fdfcfb; padding: 12px; }
+          .mrp-dw-input { display: block; width: 100%; height: 44px; border-radius: 12px; border: 1px solid #e6e0da; background: #ffffff; padding: 0 12px; font-size: 14px; font-weight: 500; color: #242220; outline: none; transition: border-color .2s ease, box-shadow .2s ease; }
+          .mrp-dw-input::placeholder { color: #b0a9a1; }
+          .mrp-dw-input:focus { border-color: #ff2438; box-shadow: 0 0 0 4px rgba(255,36,56,.12); }
+          .mrp-dw-ghost { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 44px; border-radius: 12px; border: 1px solid #e6e0da; background: #ffffff; color: #514d48; font-size: 14px; font-weight: 700; box-shadow: 0 1px 2px rgba(36,34,32,.04); transition: border-color .2s ease, color .2s ease, transform .2s ease; }
+          .mrp-dw-ghost:hover:not(:disabled) { border-color: rgba(255,36,56,.4); color: #d92334; }
+          .mrp-dw-ghost:disabled { opacity: .45; cursor: not-allowed; }
+          .mrp-dw-badge { border-radius: 8px; background: #fff0ed; padding: 4px 8px; font-size: 10px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: #d92334; }
+          .mrp-dw-note { border-radius: 12px; border: 1px dashed #ecdcd9; background: #fbf7f5; padding: 12px; font-size: 11px; line-height: 1.5; color: #77736f; }
+          .mrp-kpi-strip { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; overflow: hidden; border-radius: 16px; border: 1px solid #ece8e2; background: #f1ede8; box-shadow: 0 1px 2px rgba(36,34,32,.04); }
+          .mrp-kpi-cell { display: flex; align-items: center; gap: 10px; min-width: 0; padding: 10px 12px; background: #ffffff; }
+          @media (min-width: 640px) { .mrp-kpi-strip { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+          @media (min-width: 1024px) { .mrp-kpi-strip { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
+          .mrp-loc-field { display: flex; align-items: center; width: 100%; min-width: 0; height: 50px; border-radius: 14px; border: 1px solid #e6e0da; background: linear-gradient(180deg,#ffffff 0%,#fdfbfa 100%); box-shadow: 0 1px 2px rgba(36,34,32,.05), inset 0 1px 0 #ffffff; transition: border-color .2s ease, box-shadow .2s ease; }
+          .mrp-loc-field:focus-within, .mrp-loc-field[data-open] { border-color: #ff2438; box-shadow: 0 0 0 4px rgba(255,36,56,.12); }
+          .mrp-loc-field input { width: 100%; min-width: 0; height: 100%; padding: 0 14px; border: 0; background: transparent; font-size: 15px; font-weight: 700; color: #242220; outline: none; box-shadow: none; }
+          .mrp-loc-field input::placeholder { color: #b0a9a1; font-weight: 500; }
+          [data-slot="combobox-content"].mrp-loc-popup { border: 1px solid #f1e4e2; border-radius: 16px; background: #ffffff; box-shadow: 0 24px 48px -20px rgba(36,34,32,.35), 0 0 0 1px rgba(255,36,56,.04); padding: 6px; }
+          .mrp-loc-item { margin: 2px 0; border-radius: 12px; padding: 10px 36px 10px 12px; font-size: 14px; font-weight: 600; color: #393632; }
+          .mrp-loc-item[data-highlighted] { background: #fff0ed; color: #b71c26; }
+          .mrp-loc-item [data-slot="combobox-item-indicator"], .mrp-loc-item svg { color: #d92334; }
+          .mrp-mc { background: linear-gradient(180deg,#ffffff 0%,#fffdfc 100%); }
+          .mrp-mc-card { border: 1px solid #f1e4e2; border-radius: 20px; background: #ffffff; padding: 14px; box-shadow: 0 1px 2px rgba(36,34,32,.04), 0 12px 24px -18px rgba(36,34,32,.35); }
+          .mrp-mc-title { font-size: 15px; line-height: 1.3; font-weight: 800; color: #242220; letter-spacing: -.01em; }
+          .mrp-mc-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+          .mrp-mc-stat { border-radius: 14px; border: 1px solid #f7e7e4; background: linear-gradient(180deg,#fff8f6 0%,#fff 100%); padding: 9px 10px; min-width: 0; }
+          .mrp-mc-label { font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #9a928a; }
+          .mrp-mc-value { margin-top: 3px; font-size: 14px; font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+          .mrp-mc-units { display: inline-flex; align-items: center; height: 24px; padding: 0 10px; border-radius: 999px; background: #f7f4f1; color: #393632; font-size: 12px; font-weight: 700; }
+          .mrp-mc-cta { display: flex; align-items: center; justify-content: center; width: 100%; height: 44px; border-radius: 14px; background: linear-gradient(135deg,#ff2438 0%,#d91a2b 100%); color: #ffffff; font-size: 13px; font-weight: 800; letter-spacing: .01em; box-shadow: 0 10px 20px -10px rgba(217,26,43,.6); transition: transform .15s ease, box-shadow .15s ease; }
+          .mrp-mc-cta:hover { box-shadow: 0 14px 24px -10px rgba(217,26,43,.65); }
+          .mrp-mc-cta:active { transform: scale(.98); }
+          .mrp-switch { position: relative; display: inline-block; width: 42px; height: 24px; border-radius: 999px; background: linear-gradient(180deg,#d6d1ca 0%,#c4bfb8 100%); box-shadow: inset 0 1px 2px rgba(0,0,0,.12); transition: background .25s ease, box-shadow .25s ease; }
+          .mrp-switch[data-on="true"] { background: linear-gradient(135deg,#ff2438 0%,#d91a2b 100%); box-shadow: 0 4px 10px -3px rgba(217,26,43,.5), inset 0 1px 2px rgba(0,0,0,.08); }
+          .mrp-switch-knob { position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.25); transition: transform .25s cubic-bezier(.4,0,.2,1); }
+          .mrp-switch[data-on="true"] .mrp-switch-knob { transform: translateX(18px); }
+          button[role="switch"]:focus-visible { outline: 2px solid #ff2438; outline-offset: 3px; border-radius: 999px; }
+          .mrp-mc-cat { display: inline-flex; align-items: center; min-width: 0; max-width: 100%; height: 24px; padding: 0 10px; border-radius: 999px; background: linear-gradient(180deg,#fff3f0 0%,#ffe6e1 100%); box-shadow: inset 0 0 0 1px #ffd3cd; color: #b71c26; font-size: 11px; font-weight: 800; letter-spacing: .02em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+          .mrp-mc-status { margin-top: 12px; display: flex; align-items: center; justify-content: space-between; gap: 10px; border-radius: 14px; border: 1px solid #f1e4e2; background: #fffdfc; padding: 8px 12px; }
+          .mrp-mc-status-label { font-size: 12px; font-weight: 700; color: #514d48; }
+          .mrp-clear-btn { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 12px 0 10px; border-radius: 999px; border: 1px solid #ffd3cd; background: linear-gradient(180deg,#fff7f5 0%,#ffeae6 100%); color: #d92334; font-size: 12px; font-weight: 800; box-shadow: 0 1px 2px rgba(217,35,52,.08); transition: transform .15s ease, box-shadow .2s ease, background .2s ease; }
+          .mrp-clear-btn:hover { background: linear-gradient(180deg,#ffeee9 0%,#ffdcd5 100%); box-shadow: 0 6px 14px -8px rgba(217,35,52,.5); }
+          .mrp-clear-btn:active { transform: scale(.97); }
+          .mrp-clear-btn:focus-visible { outline: none; box-shadow: 0 0 0 4px rgba(255,36,56,.16); }
+          [data-slot="select-trigger"].mrp-cf-trigger { display: flex; align-items: center; gap: 10px; border-radius: 14px; border: 1px solid #e6e0da; background: linear-gradient(180deg,#ffffff 0%,#fdfbfa 100%); padding: 0 12px 0 8px; box-shadow: 0 1px 2px rgba(36,34,32,.05), inset 0 1px 0 #ffffff; color: #242220; transition: border-color .2s ease, box-shadow .2s ease; }
+          [data-slot="select-trigger"].mrp-cf-trigger:hover { border-color: #f5b5ad; }
+          [data-slot="select-trigger"].mrp-cf-trigger[data-popup-open], [data-slot="select-trigger"].mrp-cf-trigger:focus-visible { border-color: #ff2438; box-shadow: 0 0 0 4px rgba(255,36,56,.12); outline: none; }
+          .mrp-cf-label { flex-shrink: 0; display: inline-flex; align-items: center; height: 26px; padding: 0 9px; border-radius: 8px; background: #fff0ed; color: #d92334; font-size: 10px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+          .mrp-cf-value { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; font-weight: 700; color: #242220; }
+          [data-slot="select-content"].mrp-cf-popup { border: 1px solid #f1e4e2; border-radius: 16px; background: #ffffff; padding: 6px; box-shadow: 0 24px 48px -20px rgba(36,34,32,.35); }
+          .mrp-cf-item { margin: 2px 0; border-radius: 12px; padding: 9px 36px 9px 12px; font-size: 14px; font-weight: 600; color: #393632; }
+          .mrp-cf-item[data-highlighted] { background: #fff0ed; color: #b71c26; }
+          .mrp-cf-item svg { color: #d92334; }
           .mrp-hdr-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
           .mrp-hdr-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 44px; padding: 0 14px; border-radius: 12px; font-size: 14px; font-weight: 700; white-space: nowrap; min-width: 0; cursor: pointer; }
           .mrp-hdr-btn-ghost { background: #ffffff; color: #514d48; border: 1px solid #e5e2dd; transition: border-color .2s ease, color .2s ease; }
@@ -412,23 +470,22 @@ function ProductCatalogPage() {
             <div><p className="font-semibold">Select a location to manage inventory</p><p className="mt-1 text-amber-800">Choose a location above to view stock levels and make location-specific changes.</p></div>
           </div>}
 
-          {effectiveLocationId && <section aria-label="Inventory summary" className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+          {effectiveLocationId && <section aria-label="Inventory summary" className="mrp-kpi-strip mrp-rise">
             {[
               { label: "Total products", value: overview?.total, icon: PackageIcon, accent: "#ff2438", soft: "#fff0ed" },
               { label: "Available", value: overview?.available, icon: CheckCircleIcon, accent: "#16a34a", soft: "#ecfdf3" },
               { label: "Low stock", value: overview?.low, icon: WarningIcon, accent: "#d97706", soft: "#fff7e6" },
               { label: "Out of stock", value: overview?.out, icon: ArchiveIcon, accent: "#b91c1c", soft: "#fdecec" },
               { label: "Avg. profit margin", value: summaryQuery.data?.averageProfitMarginPercent == null ? null : `${Number(summaryQuery.data.averageProfitMarginPercent).toFixed(2)}%`, icon: SparkleIcon, accent: "#7c3aed", soft: "#f3ecff" },
-            ].map((item, index) => {
+            ].map((item) => {
               const Icon = item.icon;
               return (
-                <div key={item.label} className={`mrp-rise relative overflow-hidden rounded-2xl border border-[#ece8e2] bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${index === 4 ? "col-span-2 lg:col-span-1" : ""}`} style={{ animationDelay: `${index * 60}ms` }}>
-                  <span aria-hidden="true" className="absolute inset-x-0 top-0 h-1" style={{ background: item.accent }} />
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="truncate text-xs font-semibold text-[#77736f]">{item.label}</p>
-                    <span className="grid size-8 shrink-0 place-items-center rounded-xl" style={{ background: item.soft, color: item.accent }}><Icon className="size-4" /></span>
+                <div key={item.label} className="mrp-kpi-cell">
+                  <span className="grid size-7 shrink-0 place-items-center rounded-lg" style={{ background: item.soft, color: item.accent }}><Icon className="size-3.5" /></span>
+                  <div className="min-w-0">
+                    <p className="truncate text-[11px] font-semibold text-[#77736f]">{item.label}</p>
+                    <p className="text-base font-extrabold tabular-nums leading-tight text-[#242220]">{summaryQuery.isLoading ? <span className="mrp-skeleton inline-block h-4 w-10 rounded" /> : (item.value ?? "—")}</p>
                   </div>
-                  <p className="mt-3 text-2xl font-extrabold tabular-nums tracking-tight text-[#242220]">{summaryQuery.isLoading ? <span className="mrp-skeleton inline-block h-7 w-14 rounded-lg" /> : (item.value ?? "—")}</p>
                 </div>
               );
             })}
@@ -448,6 +505,7 @@ function ProductCatalogPage() {
                                options={[["all", "All"], ["in", "In stock"], ["low", "Low"], ["out", "Out"]]} />
                   <FilterPills ariaLabel="Filter by availability" label="Status" value={availabilityFilter} onChange={(value) => { setAvailabilityFilter(value); setPage(0); }}
                                options={[["all", "All"], ["enabled", "Enabled"], ["disabled", "Disabled"]]} />
+                  <CatalogFilterSelect label="Category" ariaLabel="Filter by category" value={categoryFilter} onChange={(value) => { setCategoryFilter(value); setPage(0); }} options={[["all", "All categories"], ...categoryNames.map((name) => [name, name])]} className="w-full sm:w-[200px]" />
                   <CatalogFilterSelect label="Sort by" ariaLabel="Sort products" value={sortBy} onChange={(value) => { setSortBy(value); setPage(0); }} options={[["name", "Name: A-Z"], ["mrp", "MRP: low to high"], ["stock", "Stock: low to high"], ["updated", "Recently updated"]]} className="w-full sm:w-[190px]" />
                 </div>
               </div>
@@ -459,7 +517,7 @@ function ProductCatalogPage() {
 
             <div className="flex flex-wrap items-center justify-between gap-2 bg-[#fdfbfa] px-4 py-2.5 text-xs text-[#77736f] sm:px-5">
               <p><span className="font-bold text-[#242220]">{products.length}</span>{query.data?.totalElements != null ? ` of ${query.data.totalElements}` : ""} products {hasFilters ? "after filtering" : "in this location"}</p>
-              {hasFilters && <button type="button" onClick={clearFilters} className="font-semibold text-[#d92334] hover:underline">Clear filters</button>}
+              {hasFilters && <button type="button" onClick={clearFilters} className="mrp-clear-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" className="size-3.5" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>Clear filters</button>}
             </div>
 
             {query.isError && <div className="flex items-center justify-between gap-3 bg-red-50 px-4 py-3 text-sm text-red-700"><span>Unable to load MRP products.</span><button type="button" className="font-semibold underline" onClick={() => query.refetch()}>Retry</button></div>}
@@ -469,25 +527,30 @@ function ProductCatalogPage() {
               <div className="divide-y divide-[#f1ede8] md:hidden">
                 {products.map((product, index) => {
                   const imageSource = productImageSource(product);
-                  return <article key={product.id} className="mrp-rise p-3.5 transition hover:bg-[#fffafa] sm:p-4" style={{ animationDelay: `${Math.min(index, 8) * 40}ms` }}>
-                    <div className="flex min-w-0 items-start gap-3">
-                      <ProductThumb name={product.name} imageSource={imageSource} size="lg" />
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="min-w-0"><h2 className="break-words text-sm font-bold leading-5 text-[#242220]">{product.name}</h2><p className="mt-0.5 truncate text-xs text-[#858079]">{product.brand || "No brand"}{product.variantIdentity && product.variantIdentity !== "DEFAULT" ? ` · ${product.variantIdentity}` : ""}</p></div>
-                          <div className="shrink-0"><StatusToggle active={product.active} disabled={status.isPending} onClick={() => status.mutate({ id: product.id, active: !product.active })} /></div>
-                        </div>
-                        <div className="mt-3 grid grid-cols-3 gap-px overflow-hidden rounded-xl border border-[#f1ede8] bg-[#f1ede8] text-[11px]">
-                          <div className="bg-[#fdfbfa] p-2"><p className="text-[#858079]">MRP</p><p className="mt-0.5 truncate font-bold text-[#242220]">{formatMoney(product.mrp)}</p></div>
-                          <div className="bg-[#fdfbfa] p-2"><p className="text-[#858079]">Cost</p><p className="mt-0.5 truncate font-semibold text-[#514d48]">{formatMoney(product.costPrice)}</p></div>
-                          <div className="bg-[#fdfbfa] p-2"><p className="text-[#858079]">Margin</p><p className="mt-0.5 truncate font-bold text-blue-700">{product.profitMarginPercent == null ? "—" : `${product.profitMarginPercent}%`}</p></div>
-                        </div>
-                        <div className="mt-2.5 flex flex-wrap items-center gap-2">
-                          <span className="text-xs font-bold text-[#393632]">{stockLabel(product.quantity)}</span>
-                          <StockBadge stock={product.stock} />
-                        </div>
-                        <button type="button" onClick={() => setSelectedProductId(product.id)} className="mt-3 h-10 w-full rounded-xl border border-[#ffd3cd] bg-[#fff7f5] px-3 text-xs font-bold text-[#d92334] transition hover:bg-[#ffe9e5]">Open product workspace</button>
+                  return <article key={product.id} className="mrp-rise mrp-mc p-3 sm:p-4" style={{ animationDelay: `${Math.min(index, 8) * 40}ms` }}>
+                    <div className="mrp-mc-card">
+                      <div className="flex min-w-0 items-start gap-3" style={{ display: "flex", width: "100%" }}>
+                        <ProductThumb name={product.name} imageSource={imageSource} size="lg" />
+                        <div style={{ flex: "1 1 0%", minWidth: 0 }}>
+                          <h2 className="mrp-mc-title" style={{ overflowWrap: "anywhere" }}>{product.name}</h2>
+                          <p className="mt-0.5 truncate text-xs text-[#858079]">{product.brand || "No brand"}{product.variantIdentity && product.variantIdentity !== "DEFAULT" ? ` · ${product.variantIdentity}` : ""}</p>
+                       </div>
                       </div>
+                      <div className="mrp-mc-stats mt-3.5">
+                        <div className="mrp-mc-stat"><p className="mrp-mc-label">MRP</p><p className="mrp-mc-value text-[#242220]">{formatMoney(product.mrp)}</p></div>
+                        <div className="mrp-mc-stat"><p className="mrp-mc-label">Cost</p><p className="mrp-mc-value text-[#514d48]">{formatMoney(product.costPrice)}</p></div>
+                        <div className="mrp-mc-stat"><p className="mrp-mc-label">Margin</p><p className="mrp-mc-value text-[#d92334]">{product.profitMarginPercent == null ? "—" : `${product.profitMarginPercent}%`}</p></div>
+                      </div>
+                      <div className="mt-3 flex flex-nowrap items-center gap-1.5 min-w-0">
+                        <span className="mrp-mc-cat">{product.categoryName || "Uncategorized"}</span>
+                        <span className="mrp-mc-units">{stockLabel(product.quantity)}</span>
+                        <StockBadge stock={product.stock} />
+                      </div>
+                      <div className="mrp-mc-status">
+                        <span className="mrp-mc-status-label">Show on menu</span>
+                        <StatusToggle showLabel active={product.active} disabled={status.isPending} onClick={() => status.mutate({ id: product.id, active: !product.active })} />
+                      </div>
+                      <button type="button" onClick={() => setSelectedProductId(product.id)} className="mrp-mc-cta" style={{ marginTop: 14 }}>Open product workspace</button>
                     </div>
                   </article>;
                 })}
@@ -511,7 +574,7 @@ function ProductCatalogPage() {
                       <td className="px-3 py-3 text-right tabular-nums text-[#77736f]">{formatMoney(product.costPrice)}</td>
                       <td className="px-3 py-3 text-right"><span className="inline-flex rounded-lg bg-blue-50 px-2 py-1 text-xs font-bold tabular-nums text-blue-700">{product.profitMarginPercent == null ? "—" : `${product.profitMarginPercent}%`}</span></td>
                       <td className="px-3 py-3"><div className="flex flex-col items-start gap-1.5"><span className="text-sm font-bold tabular-nums">{stockLabel(product.quantity)}</span><StockBadge stock={product.stock} /></div></td>
-                      <td className="px-3 py-3"><StatusToggle active={product.active} disabled={status.isPending} onClick={() => status.mutate({ id: product.id, active: !product.active })} /></td>
+                      <td className="px-3 py-3"><StatusToggle showLabel active={product.active} disabled={status.isPending} onClick={() => status.mutate({ id: product.id, active: !product.active })} /></td>
                       <td className="sticky right-0 z-[1] bg-white px-4 py-3 group-hover:bg-[#fffafa]">                      <div className="flex justify-end"><button type="button" onClick={() => setSelectedProductId(product.id)} className="inline-flex h-9 items-center gap-1.5 whitespace-nowrap rounded-xl border border-[#ffd3cd] bg-[#fff7f5] px-3.5 text-xs font-bold text-[#d92334] transition hover:bg-[#ffe9e5]">Open workspace<span aria-hidden="true">→</span></button></div></td>
                     </tr>;
                   })}
@@ -657,17 +720,17 @@ function ProductManageDrawer({ product, onClose, locationId, stock, setStock, up
       },
     });
   };
-  const inputClass = "h-11 w-full rounded-xl border border-[#e5e2dd] bg-[#fcfbfa] px-3 text-sm font-normal outline-none transition focus:border-[#ff2438] focus:bg-white focus:ring-4 focus:ring-[#ff2438]/10";
-  const cardClass = "rounded-2xl bg-white p-4 shadow-sm border border-[#ece8e2] sm:p-5";
+  const inputClass = "mrp-dw-input";
+  const cardClass = "mrp-dw-card p-4 sm:p-5";
   const brandButton = { background: "linear-gradient(135deg,#ff2438 0%,#d91a2b 100%)", color: "#ffffff" };
   return (
       <Drawer open onOpenChange={(open) => { if (!open) onClose(); }}>
-        <DrawerContent className="flex h-[100dvh] max-h-[100dvh] flex-col overflow-hidden rounded-none border-0 bg-[#f6f4f1] sm:ml-auto sm:max-w-[580px]">
-          <DrawerHeader className="relative shrink-0 overflow-hidden px-5 pb-5 pt-5 text-left text-[#242220]" style={{ background: "linear-gradient(180deg,#fff7f7 0%,#ffffff 100%)" }}>
+        <DrawerContent style={{ height: "100dvh", maxHeight: "100dvh", marginTop: 0, background: "radial-gradient(120% 45% at 50% 0%,#ffe6e8 0%,rgba(255,230,232,0) 65%),#f7f3f1" }} className="flex h-[100dvh] max-h-[100dvh] flex-col overflow-hidden rounded-none border-0 sm:ml-auto sm:max-w-[580px]">
+          <DrawerHeader className="relative shrink-0 overflow-hidden px-5 pb-5 pt-5 text-left text-[#242220]" style={{ background: "linear-gradient(180deg,#fff5f5 0%,#ffffff 100%)", boxShadow: "inset 0 4px 0 #ff2438, 0 1px 0 #f1dcdd" }}>
             
             
             <div className="relative flex items-start gap-4">
-              {imageSource ? <img src={imageSource} alt={product.name} className="size-[76px] shrink-0 rounded-2xl border border-[#ece8e2] bg-white object-contain p-1.5 shadow-sm" /> : <div className="grid size-[76px] shrink-0 place-items-center rounded-2xl border border-dashed border-[#ddd8d1] bg-[#f8f7f4] text-[#a19b93]"><PackageIcon className="size-7" /></div>}
+              {imageSource ? <img src={imageSource} alt={product.name} style={{ width: 76, height: 76, minWidth: 76 }} className="shrink-0 rounded-2xl border border-[#ece8e2] bg-white object-contain p-1.5 shadow-sm" /> : <div style={{ width: 76, height: 76, minWidth: 76 }} className="grid shrink-0 place-items-center rounded-2xl border border-dashed border-[#ddd8d1] bg-[#f8f7f4] text-[#a19b93]"><PackageIcon className="size-7" /></div>}
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
                   <DrawerTitle className="min-w-0 text-lg font-extrabold leading-6 tracking-tight text-[#242220]">{product.name}</DrawerTitle>
@@ -697,7 +760,7 @@ function ProductManageDrawer({ product, onClose, locationId, stock, setStock, up
             </div>
           </div>
 
-          <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-4 pb-6 pt-4 sm:px-5">
+          <div data-vaul-no-drag className="min-h-0 flex-1 touch-pan-y space-y-4 overflow-y-auto overscroll-contain px-4 pb-6 pt-4 sm:px-5">
             {activePanel === "inventory" && <>
               <section className={cardClass}>
                 <div className="flex items-start justify-between gap-3">
@@ -708,26 +771,26 @@ function ProductManageDrawer({ product, onClose, locationId, stock, setStock, up
                   {assignment && <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-bold ${productStock.className}`}>{stockLabel(product.quantity)} · {productStock.label}</span>}
                 </div>
                 {assignment ? <>
-                  <div className="mt-4 overflow-hidden rounded-2xl border border-[#f3dcdf] p-4 text-[#242220]" style={{ background: "linear-gradient(135deg,#fff7f7 0%,#ffffff 100%)" }}>
-                    <div className="flex items-end justify-between gap-3">
+                  <div className="mrp-dw-hero mt-4 p-4 text-[#242220]">
+                    <div className="relative flex items-end justify-between gap-3">
                       <div>
-                        <p className="text-[11px] font-semibold uppercase tracking-wide text-[#77736f]">Current stock</p>
-                        <p className="mt-1 text-4xl font-extrabold tabular-nums leading-none">{product.quantity == null ? "—" : product.quantity}<span className="ml-2 text-sm font-medium text-[#77736f]">{product.quantity == null ? "not configured" : "units"}</span></p>
+                        <p className="mrp-dw-label">Current stock</p>
+                        <p className="mt-1 text-4xl font-extrabold tabular-nums leading-none tracking-tight">{product.quantity == null ? "—" : product.quantity}<span className="ml-2 text-sm font-medium text-[#77736f]">{product.quantity == null ? "not configured" : "units"}</span></p>
                       </div>
                       <div className="text-right">
-                        <p className="text-[11px] font-semibold uppercase tracking-wide text-[#77736f]">Alert at</p>
+                        <p className="mrp-dw-label">Alert at</p>
                         <p className="mt-1 text-lg font-bold">{threshold} units</p>
                       </div>
                     </div>
-                    <div className="mt-4 h-2.5 overflow-hidden rounded-full bg-[#f1efeb]">
-                      <div className="h-full rounded-full transition-all duration-700 ease-out" style={{ width: `${fillPercent}%`, background: "linear-gradient(90deg,#ff2438 0%,#ff8a95 100%)" }} />
+                    <div className="relative mt-4 h-2.5 overflow-hidden rounded-full bg-[#f1e4e4]">
+                      <div className="h-full rounded-full transition-all duration-700 ease-out" style={{ width: `${fillPercent}%`, background: "linear-gradient(90deg,#ff2438 0%,#ff8a95 100%)", boxShadow: "0 0 12px rgba(255,36,56,.35)" }} />
                     </div>
-                    <p className="mt-2 text-[11px] text-[#a19b93]">Bar shows stock against three times the alert level.</p>
+                    <p className="relative mt-2 text-[11px] text-[#a19b93]">Bar shows stock against three times the alert level.</p>
                   </div>
 
                   <div className="mt-4 grid grid-cols-2 gap-3">
-                    <div className="rounded-xl bg-[#fbfaf8] p-3 border border-[#ece8e2]"><p className="text-[11px] font-semibold uppercase tracking-wide text-[#77736f]">Stock status</p><span className={`mt-2 inline-flex rounded-full px-2.5 py-1 text-xs font-bold ${productStock.className}`}>{productStock.label}</span></div>
-                    <div className="rounded-xl bg-[#fbfaf8] p-3 border border-[#ece8e2]"><p className="text-[11px] font-semibold uppercase tracking-wide text-[#77736f]">Visibility</p><span className={`mt-2 inline-flex rounded-full px-2.5 py-1 text-xs font-bold ${assignment.visible ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-600"}`}>{assignment.visible ? "Visible" : "Hidden"}</span></div>
+                    <div className="mrp-dw-tile"><p className="mrp-dw-label">Stock status</p><span className={`mt-2 inline-flex rounded-full px-2.5 py-1 text-xs font-bold ${productStock.className}`}>{productStock.label}</span></div>
+                    <div className="mrp-dw-tile"><p className="mrp-dw-label">Visibility</p><span className={`mt-2 inline-flex rounded-full px-2.5 py-1 text-xs font-bold ${assignment.visible ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-600"}`}>{assignment.visible ? "Visible" : "Hidden"}</span></div>
                   </div>
                 </> : <div className="mt-4 rounded-xl border border-dashed border-[#ddd8d1] bg-[#faf9f7] p-4"><p className="text-sm font-semibold">Not assigned to this location</p><p className="mt-1 text-xs leading-5 text-[#77736f]">This product has no inventory assignment for the selected location. Use the existing assignment workflow to make it available here.</p></div>}
               </section>
@@ -736,7 +799,7 @@ function ProductManageDrawer({ product, onClose, locationId, stock, setStock, up
                 <section className={cardClass}>
                   <div className="flex items-start justify-between gap-3">
                     <div><h4 className="text-sm font-bold text-[#242220]">Stock adjustment</h4><p className="mt-1 text-xs leading-5 text-[#77736f]">Record stock received or removed. Every movement needs a reason.</p></div>
-                    <span className="shrink-0 rounded-lg bg-[#fff0ed] px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-[#d92334]">Audited</span>
+                    <span className="mrp-dw-badge shrink-0">Audited</span>
                   </div>
                   <div className="mt-4 grid gap-3 sm:grid-cols-2">
                     <label className="space-y-1.5 text-xs font-semibold text-[#514d48]">Quantity to move<input type="number" min="1" step="1" inputMode="numeric" value={stockDraft.quantity || ""} onChange={(event) => setDraft({ quantity: event.target.value })} placeholder="e.g. 24" className={inputClass} /></label>
@@ -744,9 +807,9 @@ function ProductManageDrawer({ product, onClose, locationId, stock, setStock, up
                   </div>
                   <div className="mt-4 grid grid-cols-2 gap-2">
                     <button type="button" disabled={movement.isPending} onClick={() => submitMovement("ADD_STOCK")} style={brandButton} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl text-sm font-bold shadow-sm shadow-[#ff2438]/20 transition hover:brightness-105 active:scale-[0.98] disabled:opacity-50"><PlusIcon className="size-4" weight="bold" />{movement.isPending ? "Saving…" : "Receive stock"}</button>
-                    <button type="button" disabled={movement.isPending} onClick={() => submitMovement("REDUCE_STOCK")} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-[#e5e2dd] bg-white text-sm font-bold text-[#514d48] transition hover:border-[#ff2438]/40 hover:text-[#d92334] active:scale-[0.98] disabled:opacity-50"><MinusIcon className="size-4" weight="bold" />Remove stock</button>
+                    <button type="button" disabled={movement.isPending} onClick={() => submitMovement("REDUCE_STOCK")} className="mrp-dw-ghost active:scale-[0.98]"><MinusIcon className="size-4" weight="bold" />Remove stock</button>
                   </div>
-                  <p className="mt-3 rounded-xl bg-[#f8f7f4] p-3 text-[11px] leading-5 text-[#77736f]">This records a stock movement; it does not overwrite the current balance. The backend rejects invalid or excessive reductions.</p>
+                  <p className="mrp-dw-note mt-3">This records a stock movement; it does not overwrite the current balance. The backend rejects invalid or excessive reductions.</p>
                 </section>
 
                 <section className={cardClass}>
@@ -764,7 +827,7 @@ function ProductManageDrawer({ product, onClose, locationId, stock, setStock, up
                     if (!String(stockDraft.targetReason || "").trim()) { toast.error("Enter a reason for the stock count"); return; }
                     if (delta === 0) { toast.info("Count matches the current stock"); return; }
                     movement.mutate({ id: product.id, payload: { locationId: assignment.locationId, movementType: delta > 0 ? "ADD_STOCK" : "REDUCE_STOCK", quantity: Math.abs(delta), reason: `Stock reconciliation: ${String(stockDraft.targetReason).trim()} (counted ${target}; previous ${current})` } });
-                  }} className="mt-4 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-[#e5e2dd] bg-white text-sm font-bold text-[#242220] transition hover:border-[#ff2438]/40 hover:text-[#d92334] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40">{movement.isPending ? "Saving stock count…" : "Save counted quantity"}</button>
+                  }} className="mrp-dw-ghost mt-4 w-full active:scale-[0.99]">{movement.isPending ? "Saving stock count…" : "Save counted quantity"}</button>
                 </section>
 
                 <section className={cardClass}>
@@ -772,7 +835,7 @@ function ProductManageDrawer({ product, onClose, locationId, stock, setStock, up
                   <p className="mt-1 text-xs leading-5 text-[#77736f]">Set the quantity at which this location should be flagged for replenishment.</p>
                   <div className="mt-3 flex items-end gap-3">
                     <label className="flex-1 space-y-1.5 text-xs font-semibold text-[#514d48]">Alert threshold (units)<input type="number" min="0" step="1" inputMode="numeric" value={stockDraft.threshold ?? String(assignment.lowStockThreshold ?? product.threshold ?? 5)} onChange={(event) => setDraft({ threshold: event.target.value })} className={inputClass} /></label>
-                    <button type="button" disabled={update.isPending || !Number.isInteger(Number(stockDraft.threshold ?? assignment.lowStockThreshold ?? product.threshold)) || Number(stockDraft.threshold ?? assignment.lowStockThreshold ?? product.threshold) < 0} onClick={() => update.mutate({ id: product.id, locationId: assignment.locationId, payload: { locationId: assignment.locationId, visible: assignment.visible, available: assignment.available, lowStockThreshold: Number(stockDraft.threshold ?? assignment.lowStockThreshold ?? product.threshold) } })} className="h-11 shrink-0 rounded-xl border border-[#e5e2dd] bg-white px-4 text-sm font-bold text-[#514d48] transition hover:border-[#ff2438]/40 hover:text-[#d92334] disabled:opacity-50">{update.isPending ? "Saving…" : "Save alert"}</button>
+                    <button type="button" disabled={update.isPending || !Number.isInteger(Number(stockDraft.threshold ?? assignment.lowStockThreshold ?? product.threshold)) || Number(stockDraft.threshold ?? assignment.lowStockThreshold ?? product.threshold) < 0} onClick={() => update.mutate({ id: product.id, locationId: assignment.locationId, payload: { locationId: assignment.locationId, visible: assignment.visible, available: assignment.available, lowStockThreshold: Number(stockDraft.threshold ?? assignment.lowStockThreshold ?? product.threshold) } })} className="mrp-dw-ghost shrink-0 px-5">{update.isPending ? "Saving…" : "Save alert"}</button>
                   </div>
                 </section>
 
@@ -987,12 +1050,13 @@ function StockBadge({ stock }) {
   return <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold ${stock.className}`}><span className="size-1.5 rounded-full bg-current" />{stock.label}</span>;
 }
 
-function StatusToggle({ active, disabled, onClick }) {
+function StatusToggle({ active, disabled, onClick, showLabel = false }) {
+  const label = active ? "Enabled" : "Disabled";
   return (
-    <button type="button" onClick={onClick} disabled={disabled} aria-pressed={Boolean(active)}
-            className={`inline-flex h-7 items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 text-[11px] font-bold transition disabled:opacity-50 ${active ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 hover:bg-emerald-100" : "bg-[#f1efeb] text-[#77736f] ring-1 ring-[#e5e2dd] hover:bg-[#e9e6e1]"}`}>
-      <span className={`size-1.5 rounded-full ${active ? "bg-emerald-500" : "bg-[#b5afa8]"}`} />
-      {active ? "Enabled" : "Disabled"}
+    <button type="button" role="switch" aria-checked={Boolean(active)} aria-label={label} onClick={onClick} disabled={disabled}
+            className="inline-flex shrink-0 items-center gap-2 disabled:opacity-50">
+      <span className="mrp-switch" data-on={active ? "true" : "false"}><span className="mrp-switch-knob" /></span>
+      {showLabel && <span className={`text-[11px] font-bold ${active ? "text-emerald-700" : "text-[#77736f]"}`}>{label}</span>}
     </button>
   );
 }
@@ -1026,14 +1090,14 @@ function CatalogFilterSelect({ label, ariaLabel, value, onChange, options, class
         <Select value={value} onValueChange={onChange}>
           <SelectTrigger
               aria-label={ariaLabel}
-              className="h-10 w-full min-w-0 max-w-full rounded-xl border-[#ece8e2] bg-white px-3 text-sm outline-none transition focus:border-[#ff2438] focus:ring-4 focus:ring-[#ff2438]/10"
+              className="mrp-cf-trigger h-11 w-full min-w-0 max-w-full"
           >
-            <span className="mr-1 text-[11px] font-bold uppercase tracking-wide text-[#a19b93]">{label}</span>
-            <SelectValue>{selectedLabel}</SelectValue>
+            <span className="mrp-cf-label">{label}</span>
+            <SelectValue className="mrp-cf-value">{selectedLabel}</SelectValue>
           </SelectTrigger>
-          <SelectContent className="max-w-[calc(100vw-1rem)]">
+          <SelectContent className="mrp-cf-popup max-w-[calc(100vw-1rem)]">
             {options.map(([optionValue, optionLabel]) => (
-                <SelectItem key={optionValue} value={optionValue} className="max-w-full whitespace-normal break-words">
+                <SelectItem key={optionValue} value={optionValue} className="mrp-cf-item max-w-full whitespace-normal break-words">
                   {optionLabel}
                 </SelectItem>
             ))}
@@ -1062,15 +1126,15 @@ function LocationCombobox({ value, options, placeholder, onChange }) {
           <ComboboxInput
               aria-label="Select location"
               placeholder={placeholder}
-              className="h-10 w-full min-w-0 rounded-lg"
+              className="mrp-loc-field"
           />
         </div>
-        <ComboboxContent anchor={anchor}>
+        <ComboboxContent anchor={anchor} className="mrp-loc-popup">
           <ComboboxEmpty>No matching locations.</ComboboxEmpty>
           <ComboboxList>
             {items.map((location) => {
               const label = location.name || location.title || `Location ${location.id}`;
-              return <ComboboxItem key={location.id} value={label}>{label}</ComboboxItem>;
+              return <ComboboxItem key={location.id} value={label} className="mrp-loc-item">{label}</ComboboxItem>;
             })}
           </ComboboxList>
         </ComboboxContent>
