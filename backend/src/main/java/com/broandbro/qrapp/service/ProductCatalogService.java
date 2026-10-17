@@ -39,6 +39,7 @@ public class ProductCatalogService {
     private final LocationAccessService locationAccessService;
     private final UserService userService;
     private final ImageStorageService imageStorageService;
+    private final ProductImageEnhancer productImageEnhancer;
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private CategoryRepository categoryRepository;
     @org.springframework.beans.factory.annotation.Autowired(required = false)
@@ -277,8 +278,9 @@ public class ProductCatalogService {
         String oldUrl = product.getImageUrl();
         ImageStorageService.StoredImage stored;
         try {
-            stored = imageStorageService.uploadImageWithKey(file.getBytes(),
-                    "products/" + productId, file.getContentType());
+            ProductImageEnhancer.Enhanced enhanced = productImageEnhancer.enhance(file.getBytes());
+            stored = imageStorageService.uploadImageWithKey(enhanced.bytes(),
+                    "products/" + productId, enhanced.contentType());
         } catch (IOException e) {
             throw new IllegalArgumentException("Unable to read image");
         }

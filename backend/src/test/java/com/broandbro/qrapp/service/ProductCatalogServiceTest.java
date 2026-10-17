@@ -29,6 +29,7 @@ class ProductCatalogServiceTest {
     @Mock LocationAccessService locationAccessService;
     @Mock UserService userService;
     @Mock ImageStorageService imageStorageService;
+    @Spy ProductImageEnhancer productImageEnhancer = new ProductImageEnhancer();
     @Mock TaxCalculationService taxCalculationService;
     @Mock Authentication authentication;
     @InjectMocks ProductCatalogService service;
