@@ -49,6 +49,8 @@ import {
   reuseCategoryImage,
 } from "@/services/category-service";
 import { CATEGORY_VIDEOS, getCategoryVideoSrc, validateCategoryVideo } from "@/lib/categoryVideos";
+
+const NO_VIDEO = "__none__";
 import {
   Drawer,
   DrawerClose,
@@ -1047,18 +1049,22 @@ function ProductCategoryImages({ locationId, categoryNames, onClose }) {
                           {CATEGORY_VIDEOS.length === 0 ? (
                             <span className="min-w-0 truncate text-xs text-[#99938c]">Add .mp4 files to src/assets/category-videos</span>
                           ) : (
-                            <select
-                              value={category?.videoKey || ""}
-                              disabled={busy || !category}
-                              onChange={(event) => saveVideo(name, event.target.value)}
-                              aria-label={`Video for ${name}`}
-                              className="h-8 min-w-0 flex-1 rounded-lg border border-[#e5e2dd] bg-white px-2 text-xs text-[#393632] disabled:opacity-50"
-                            >
-                              <option value="">No video</option>
-                              {CATEGORY_VIDEOS.map((video) => (
-                                <option key={video.key} value={video.key}>{video.key}</option>
-                              ))}
-                            </select>
+                            <Select value={category?.videoKey || NO_VIDEO} onValueChange={(value) => saveVideo(name, value === NO_VIDEO ? "" : value)} disabled={busy || !category}>
+                              <SelectTrigger aria-label={`Video for ${name}`} className="mrp-cf-trigger h-9 min-w-0 flex-1 max-w-full text-xs">
+                                <SelectValue className="mrp-cf-value truncate">{category?.videoKey || "No video"}</SelectValue>
+                              </SelectTrigger>
+                              <SelectContent className="mrp-cf-popup max-w-[calc(100vw-1rem)]">
+                                <SelectItem value={NO_VIDEO} className="mrp-cf-item">No video</SelectItem>
+                                {CATEGORY_VIDEOS.map((video) => (
+                                  <SelectItem key={video.key} value={video.key} className="mrp-cf-item max-w-full">
+                                    <span className="flex min-w-0 items-center gap-2.5">
+                                      <video src={video.src} className="size-9 shrink-0 rounded-lg object-cover" muted playsInline preload="metadata" aria-hidden="true" />
+                                      <span className="truncate">{video.key}</span>
+                                    </span>
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                           )}
                         </div>
                         {reuse?.name === name && (

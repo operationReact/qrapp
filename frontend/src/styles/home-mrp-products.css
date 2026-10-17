@@ -95,6 +95,7 @@
   display: block;
   position: relative;
   z-index: 0;
+  clip-path: inset(0 round 18px);
   width: 116px;
   height: 116px;
   border-radius: 18px;
