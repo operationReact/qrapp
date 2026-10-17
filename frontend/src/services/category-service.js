@@ -10,6 +10,9 @@ export const getCategoryMenuItems = (id, locationId) =>
 export const getCategories = (locationId) =>
   apiClient.get("/categories", { params: { locationId } }).then((r) => r.data);
 
+export const getProductCategoryImages = (locationId) =>
+  apiClient.get("/categories/product-images", { params: { locationId } }).then((r) => r.data);
+
 export const getMrpProductCategories = (locationId) =>
   apiClient.get("/api/mrp-product/admin/categories", { params: { locationId } }).then((r) => r.data);
 
