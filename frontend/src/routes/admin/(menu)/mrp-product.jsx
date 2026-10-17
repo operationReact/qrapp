@@ -305,9 +305,9 @@ function ProductCatalogPage() {
         <div className="mx-auto min-w-0 max-w-[1680px] space-y-4 px-3 py-3 pb-24 sm:px-5 sm:py-5 sm:pb-6 lg:px-7 lg:py-6">
           <header className="flex min-w-0 flex-col gap-3 border-b border-[#e5e1db] pb-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex min-w-0 items-center gap-3">
-              <div className="grid size-11 shrink-0 place-items-center rounded-2xl bg-[#fff0ed] text-[#e52b3a]">
-                <PackageIcon className="size-5" />
-              </div>
+              <button type="button" onClick={toggleSidebar} aria-label="Open admin navigation" className="grid size-9 shrink-0 place-items-center rounded-xl border border-[#e5e2dd] bg-white text-[#514d48] shadow-sm hover:border-[#f6a2aa]">
+                <SidebarIcon className="size-[17px]" />
+              </button>
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
                   <h1 className="truncate text-xl font-bold tracking-tight text-[#242220] sm:text-2xl">MRP Product</h1>
@@ -315,9 +315,6 @@ function ProductCatalogPage() {
                 </div>
                 <p className="mt-0.5 truncate text-sm text-[#77736f]">Manage products, categories, pricing and location inventory.</p>
               </div>
-              <button type="button" onClick={toggleSidebar} aria-label="Open admin navigation" className="grid size-9 shrink-0 place-items-center rounded-xl border border-[#e5e2dd] bg-white text-[#514d48] shadow-sm hover:border-[#f6a2aa] md:hidden">
-                <SidebarIcon className="size-[17px]" />
-              </button>
             </div>
             <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-end">
               <label className="min-w-0 flex-1 space-y-1 text-[11px] font-bold uppercase tracking-wide text-[#77736f] sm:min-w-[260px]">

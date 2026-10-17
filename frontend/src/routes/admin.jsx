@@ -2,8 +2,7 @@ import { createFileRoute, Outlet, useLocation } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
 import { SidebarInset, SidebarProvider, useSidebar } from "@/components/ui/sidebar";
-import { AdminDashboardProvider, useAdminDashboard } from "@/context/AdminDashboardContext";
-import { Bell } from "lucide-react";
+import { AdminDashboardProvider } from "@/context/AdminDashboardContext";
 import { Button } from "@/components/ui/button";
 import { ArrowLeftIcon, SidebarIcon } from "@phosphor-icons/react";
 import { RoleGuard } from "@/components/RoleGuard";
@@ -14,20 +13,12 @@ export const Route = createFileRoute("/admin")({ component: AdminLayout });
 
 function SubPageHeader({ title, showBack = false }) {
   const { toggleSidebar } = useSidebar();
-  const { dashboard } = useAdminDashboard();
-  const notificationCount = Math.min((dashboard?.delayedOrders ?? 0) + (dashboard?.placedOrders ?? 0), 9);
   return (
       <header className="admin-workspace-header sticky top-0 z-30 flex h-14 shrink-0 items-center border-b bg-white/90 px-3 backdrop-blur-xl sm:px-5 md:h-[68px]">
         <div className="flex w-full min-w-0 items-center gap-2.5">
           {showBack && <Button type="button" size="icon" variant="ghost" onClick={() => window.history.back()} aria-label="Go back" className="size-10 shrink-0 rounded-xl"><ArrowLeftIcon weight="bold" /></Button>}
           <Button type="button" size="icon" variant="ghost" onClick={toggleSidebar} aria-label="Toggle navigation" className="size-10 shrink-0 rounded-xl text-stone-600 hover:bg-stone-100"><SidebarIcon size={21} /></Button>
           {title && <h1 className="min-w-0 flex-1 truncate text-[15px] font-bold tracking-tight text-stone-900 sm:text-lg">{title}</h1>}
-          <div className="ml-auto shrink-0">
-            <Button type="button" size="icon" variant="ghost" aria-label={notificationCount ? `Notifications, ${notificationCount} alerts` : "Notifications"} className="relative size-10 rounded-xl text-stone-600 hover:bg-stone-100">
-              <Bell className="size-[18px]" />
-              {notificationCount > 0 && <span className="absolute right-1 top-1 flex size-[17px] items-center justify-center rounded-full bg-[#e51b23] text-[10px] font-bold text-white">{notificationCount}</span>}
-            </Button>
-          </div>
         </div>
       </header>
   );
@@ -38,12 +29,11 @@ function AdminLayoutContent() {
   const { setOpenMobile } = useSidebar();
   useEffect(() => { setOpenMobile(false); }, [pathname, setOpenMobile]);
   const isDashboard = pathname === "/admin" || pathname === "/admin/";
-  const isControlCenter = pathname.startsWith("/admin/control-center");
-  const isPartners = pathname === "/admin/partners";
+  const isControlCenterHome = pathname === "/admin/control-center" || pathname === "/admin/control-center/";
   const isMrpProduct = pathname.startsWith("/admin/mrp-product");
   const isKitchenQueue = pathname.startsWith("/admin/kitchen-queue");
   const isFoodCourt = pathname.startsWith("/admin/food-court");
-  const hideGenericHeader = isDashboard || isControlCenter || isPartners || isMrpProduct;
+  const hideGenericHeader = isDashboard || isControlCenterHome || isMrpProduct;
   const pageTitle = isKitchenQueue ? "Kitchen Queue" : isFoodCourt ? "Food Court Management" : undefined;
   return (
       <>

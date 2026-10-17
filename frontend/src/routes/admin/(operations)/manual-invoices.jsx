@@ -1,8 +1,8 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { ArrowLeft, Download, FileText, Plus, Trash2 } from "lucide-react";
+import { Download, FileText, Plus, Trash2 } from "lucide-react";
 import { RoleGuard } from "@/components/RoleGuard";
 import { ROLE } from "@/lib/roles";
 import { Button } from "@/components/ui/button";
@@ -182,9 +182,6 @@ function ManualInvoicesPage() {
       <div className="mx-auto max-w-6xl space-y-4 sm:space-y-6">
         <header className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
           <div>
-            <Link to="/admin" className="mb-3 inline-flex min-h-10 items-center gap-2 rounded-xl border border-[#E7E0D8] bg-white px-3 text-sm font-semibold text-[#5C554E] transition hover:border-[#B8893C] hover:text-[#24211F]">
-              <ArrowLeft className="size-4" aria-hidden="true" /> Back to Dashboard
-            </Link>
             <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#B8893C]">Operations</p>
             <h1 className="mt-1 text-2xl font-bold tracking-tight sm:text-3xl">Manual Invoices</h1>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-[#756D64]">
