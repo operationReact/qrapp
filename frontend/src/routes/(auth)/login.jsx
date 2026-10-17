@@ -109,10 +109,10 @@ export const Route = createFileRoute("/(auth)/login")({
                 className: "",
               })}
               to="/"
-              title="Back To Menu"
+              title="Back To Locations"
             >
               <CaretLeftIcon weight="bold" />
-              <span>Back To Menu</span>
+              <span>Back To Locations</span>
             </Link>
             </div>
             <div className="auth-login-heading">

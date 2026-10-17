@@ -1,3 +1,4 @@
+import "@/styles/admin-profile-card.css";
 import {
   Sidebar,
   SidebarContent,
@@ -99,29 +100,36 @@ function MobileLocationSelector() {
   }, [open]);
 
   if (isLoading) {
-    return <div className="h-10 w-24 shrink-0 animate-pulse rounded-xl bg-[#f3e7d3]" aria-label="Loading locations" />;
+    return <div className="h-11 w-full animate-pulse rounded-xl bg-[#f3e7d3]" aria-label="Loading locations" />;
   }
 
   return (
-      <div ref={popoverRef} className="relative shrink-0">
+      <div ref={popoverRef} className="relative min-w-0 w-full">
         <button
             type="button"
-            className="flex h-10 w-[148px] min-[380px]:w-[160px] min-[420px]:w-[176px] items-center gap-2 rounded-full border border-[#dfd0c0] bg-gradient-to-b from-white to-[#fffaf4] px-3 text-left text-[#29231e] shadow-[0_3px_12px_rgba(78,55,35,0.10),inset_0_1px_0_rgba(255,255,255,0.9)] transition-all hover:-translate-y-px hover:border-[#cdb99f] hover:shadow-[0_5px_16px_rgba(78,55,35,0.14)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#e51b23]/30"
+            className="flex min-h-11 w-full min-w-0 items-center gap-2.5 rounded-xl border px-3 py-1.5 text-left text-[#211b18] transition-all hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ffd98a]/70"
+            style={{ background: "linear-gradient(180deg, #fffdf9 0%, #fff3e3 100%)", borderColor: "rgba(255,217,138,0.9)", boxShadow: "0 6px 16px rgba(60,0,0,0.25), inset 0 1px 0 #ffffff" }}
             onClick={() => setOpen((current) => !current)}
             aria-label={`Select location, currently ${locationName}`}
             aria-expanded={open}
         >
-        <span className="grid size-6 shrink-0 place-items-center rounded-full bg-[#fff0ed] text-[#e51b23]">
-          {isAllLocations ? <Globe2 className="size-[13px]" aria-hidden="true" /> : <MapPin className="size-[13px]" aria-hidden="true" />}
+        <span className="grid size-8 shrink-0 place-items-center rounded-lg" style={{ background: "linear-gradient(135deg, #fff0ef, #ffe0dc)", color: "#e51b23" }}>
+          {isAllLocations ? <Globe2 className="size-4" aria-hidden="true" /> : <MapPin className="size-4" aria-hidden="true" />}
         </span>
-          <span className="min-w-0 flex-1 truncate text-[11px] font-semibold tracking-[-0.01em] text-[#29231e]">{locationName}</span>
-          <ChevronDown className={cn("size-3.5 shrink-0 text-[#a58d78] transition-transform", open && "rotate-180 text-[#e51b23]")} aria-hidden="true" />
+          <span className="min-w-0 flex-1">
+            <span className="block text-[10px] font-bold uppercase tracking-[0.08em] text-[#b88746]">Location</span>
+            <span className="block truncate text-sm font-semibold tracking-[-0.01em]" style={{ color: "#211b18" }}>{locationName}</span>
+          </span>
+          <span className={cn("grid size-6 shrink-0 place-items-center rounded-full transition-transform", open && "rotate-180")} style={{ background: "#fff0ef" }}>
+            <ChevronDown className="size-3.5" style={{ color: "#e51b23" }} aria-hidden="true" />
+          </span>
         </button>
         {open && (
-            <div className="absolute right-0 top-[calc(100%+8px)] z-20 w-64 max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-[#dfd0c0] bg-[#fffdfc]/95 p-1.5 shadow-[0_18px_45px_rgba(42,35,30,0.18)] backdrop-blur-xl">
+            <div className="absolute inset-x-0 top-[calc(100%+8px)] z-30 overflow-hidden rounded-2xl p-1.5" style={{ background: "#fffdf9", border: "1px solid #ecd9bf", boxShadow: "0 18px 45px rgba(60,0,0,0.30)" }}>
               <button
                   type="button"
-                  className={cn("flex min-h-11 w-full items-center gap-2 rounded-xl px-2.5 text-left text-sm", isAllLocations ? "bg-[#fff0f0] font-semibold text-[#e51b23]" : "text-[#29231e] hover:bg-[#f7f3ec]")}
+                  className="flex min-h-11 w-full items-center gap-2 rounded-xl px-2.5 text-left text-sm"
+                  style={{ color: isAllLocations ? "#e51b23" : "#211b18", background: isAllLocations ? "#fff0ef" : "transparent", fontWeight: isAllLocations ? 600 : 400 }}
                   onClick={() => {
                     setActiveLocation(allLocationsOption || ALL_LOCATIONS);
                     setOpen(false);
@@ -138,7 +146,8 @@ function MobileLocationSelector() {
                     <button
                         key={location.id}
                         type="button"
-                        className={cn("flex min-h-11 w-full items-center gap-2 rounded-xl px-2.5 text-left text-sm", selected ? "bg-[#fff0f0] font-semibold text-[#e51b23]" : "text-[#29231e] hover:bg-[#f7f3ec]")}
+                        className="flex min-h-11 w-full items-center gap-2 rounded-xl px-2.5 text-left text-sm"
+                        style={{ color: selected ? "#e51b23" : "#211b18", background: selected ? "#fff0ef" : "transparent", fontWeight: selected ? 600 : 400 }}
                         onClick={() => {
                           setActiveLocation(location);
                           setOpen(false);
@@ -194,23 +203,26 @@ export function AdminSidebar() {
       <>
       <Sidebar collapsible="icon" className="admin-sidebar-shell min-h-0 min-w-0 pt-[env(safe-area-inset-top)] md:pt-0">
         <SidebarHeader className="shrink-0 border-b border-sidebar-border/60 px-3 py-3 md:px-3 md:py-4">
-          <div className="flex items-center gap-2 px-1 md:hidden">
-            <div className="size-12 shrink-0 overflow-hidden rounded-full ring-1 ring-[#e7ded2]">
+          <div style={{ background: "linear-gradient(135deg, #e51b23 0%, #c4161d 52%, #7f0d13 100%)", borderColor: "rgba(255,217,138,0.45)", boxShadow: "0 16px 34px rgba(229,27,35,0.28), inset 0 1px 0 rgba(255,255,255,0.22)" }} className="bb-admin-profile-card flex flex-col gap-3 rounded-2xl border p-3.5 text-white md:hidden">
+            <span aria-hidden="true" className="bb-admin-sheen" />
+            <div className="flex min-w-0 items-center gap-3">
+            <div className="bb-admin-avatar size-11 shrink-0 overflow-hidden rounded-full" style={{ border: "2px solid #ffd98a" }}>
               {avatar
                   ? <img src={avatar} alt="" className="size-full object-cover" />
                   : <GeneratedAvatar seed={avatarSeed} size={48} className="size-full" />}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-[15px] font-semibold leading-tight text-[#29231e]">{userName}</p>
-              <p className="flex items-center gap-1 truncate text-[11px] font-medium leading-tight text-[#b88746]">
+              <p className="truncate text-[15px] font-semibold leading-tight text-white">{userName}</p>
+              <p className="flex items-center gap-1 truncate text-[11px] font-semibold leading-tight text-[#ffe3a3]">
                 {roleLabel}
-                {isSuperAdmin && <CrownIcon weight="fill" className="size-[13px] shrink-0 text-[#b88746]" aria-hidden="true" />}
+                {isSuperAdmin && <CrownIcon weight="fill" className="bb-admin-crown size-[13px] shrink-0 text-[#ffd98a]" aria-hidden="true" />}
               </p>
             </div>
-            {showLocationSelector && <MobileLocationSelector />}
-            <button type="button" onClick={closeMobile} aria-label="Close admin menu" className="grid size-10 shrink-0 place-items-center rounded-xl text-[#29231e] transition-colors hover:bg-[#f3e7d3] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#e51b23]/30">
+            <button type="button" onClick={closeMobile} aria-label="Close admin menu"             className="grid size-9 shrink-0 place-items-center rounded-xl text-white transition-colors hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ffd98a]/60">
               <X className="size-[18px]" aria-hidden="true" />
             </button>
+            </div>
+            {showLocationSelector && <MobileLocationSelector />}
           </div>
 
           {/* Desktop collapse/expand control. Mobile uses the close button above. */}

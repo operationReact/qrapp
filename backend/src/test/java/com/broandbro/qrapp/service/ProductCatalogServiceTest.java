@@ -29,6 +29,7 @@ class ProductCatalogServiceTest {
     @Mock LocationAccessService locationAccessService;
     @Mock UserService userService;
     @Mock ImageStorageService imageStorageService;
+    @Spy ProductImageEnhancer productImageEnhancer = new ProductImageEnhancer();
     @Mock TaxCalculationService taxCalculationService;
     @Mock Authentication authentication;
     @InjectMocks ProductCatalogService service;
@@ -141,9 +142,11 @@ class ProductCatalogServiceTest {
         request.setLocationId(11L);
         request.setAvailableQuantity(10L);
         request.setLowStockThreshold(3L);
+        request.setCategoryName("  Beverages ");
 
         service.update(3L, request, authentication);
 
+        assertEquals("Beverages", product.getCategoryName());
         assertEquals(10L, inventory.getAvailableQuantity());
         assertEquals(3L, inventory.getLowStockThreshold());
         ArgumentCaptor<ProductInventoryMovement> movementCaptor =

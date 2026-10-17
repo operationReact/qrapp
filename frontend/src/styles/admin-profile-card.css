@@ -1,0 +1,55 @@
+.bb-admin-profile-card {
+  position: relative;
+  z-index: 20;
+  isolation: isolate;
+}
+
+.bb-admin-sheen {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.bb-admin-sheen::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 35%, rgba(255, 233, 190, 0.28) 50%, transparent 65%);
+  transform: translateX(-120%);
+  animation: bb-admin-sheen 6s ease-in-out infinite;
+}
+
+.bb-admin-profile-card .bb-admin-avatar {
+  animation: bb-admin-ring 3.2s ease-in-out infinite;
+}
+
+.bb-admin-profile-card .bb-admin-crown {
+  display: inline-block;
+  animation: bb-admin-bob 2.6s ease-in-out infinite;
+}
+
+@keyframes bb-admin-sheen {
+  0%, 55% { transform: translateX(-120%); }
+  100% { transform: translateX(120%); }
+}
+
+@keyframes bb-admin-ring {
+  0%, 100% { box-shadow: 0 0 0 3px rgba(255, 217, 138, 0.30), 0 6px 14px rgba(60, 0, 0, 0.30); }
+  50% { box-shadow: 0 0 0 6px rgba(255, 217, 138, 0.10), 0 6px 14px rgba(60, 0, 0, 0.30); }
+}
+
+@keyframes bb-admin-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bb-admin-sheen::before,
+  .bb-admin-profile-card .bb-admin-avatar,
+  .bb-admin-profile-card .bb-admin-crown {
+    animation: none;
+  }
+}
