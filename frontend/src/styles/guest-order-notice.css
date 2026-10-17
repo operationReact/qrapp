@@ -1,0 +1,131 @@
+.guest-notice {
+  margin: 12px 16px 4px;
+}
+
+.guest-notice__inner {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+  border-radius: 22px;
+  background: #ffffff;
+  border: 1px solid #ece6e0;
+  box-shadow: 0 10px 28px rgba(32, 25, 20, 0.08);
+  position: relative;
+  overflow: hidden;
+}
+
+.guest-notice__inner::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: linear-gradient(180deg, #ff2438, #ffb020);
+}
+
+.guest-notice__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #fff0ef;
+  color: #ff2438;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.guest-notice__title {
+  margin: 8px 0 4px;
+  font-family: "DM Serif Display", serif;
+  font-weight: 400;
+  font-size: 22px;
+  line-height: 1.15;
+  color: #202a35;
+  overflow-wrap: anywhere;
+}
+
+.guest-notice__text {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #737c87;
+}
+
+.guest-notice__actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.guest-notice__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 46px;
+  padding: 0 16px;
+  border-radius: 16px;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.guest-notice__btn:focus-visible {
+  outline: 3px solid #ffb020;
+  outline-offset: 2px;
+}
+
+.guest-notice__btn--primary {
+  background: #202a35;
+  color: #ffffff;
+}
+
+.guest-notice__btn--ghost {
+  background: #ffffff;
+  color: #202a35;
+  border: 1px solid #e7e2de;
+}
+
+.guest-notice__btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(32, 25, 20, 0.12);
+}
+
+@media (min-width: 768px) {
+  .guest-notice {
+    margin: 16px auto 4px;
+    max-width: 1280px;
+    padding: 0 24px;
+  }
+
+  .guest-notice__inner {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    padding: 20px 28px 20px 32px;
+  }
+
+  .guest-notice__title {
+    font-size: 28px;
+  }
+
+  .guest-notice__actions {
+    display: flex;
+    flex-shrink: 0;
+  }
+
+  .guest-notice__btn {
+    min-width: 170px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .guest-notice__btn {
+    transition: none;
+  }
+}

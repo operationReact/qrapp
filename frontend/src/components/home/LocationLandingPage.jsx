@@ -217,7 +217,7 @@ export default function LocationLandingPage({ locations = [], onSelect }) {
         <div className="loc-container loc-hero-inner">
           <div style={{ position: "relative", zIndex: 1, minWidth: 0 }}>
             <p className="loc-eyebrow">Welcome to</p>
-            <h1 className="loc-title">BRO & BRO Food court</h1>
+            <h1 className="loc-title">BRO & BRO Food Court</h1>
             <p className="loc-lede">Choose a location to explore its menu.</p>
           </div>
           <div className="loc-art" aria-hidden="true">

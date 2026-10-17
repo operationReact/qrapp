@@ -121,7 +121,7 @@ export default function HallOfHappinessSection() {
       ref={sectionRef}
       data-testid="hall-of-happiness-section"
       aria-labelledby="hall-of-happiness-heading"
-      className="mx-auto w-full min-w-0 max-w-[1280px] overflow-hidden px-[15px] sm:px-6 lg:overflow-visible lg:px-8"
+      className="home-desktop-align mx-auto w-full min-w-0 max-w-[1280px] overflow-hidden px-[15px] sm:px-6 lg:overflow-visible lg:px-8"
     >
       <div className="relative isolate mb-2.5 flex min-h-11 min-w-0 items-center justify-between gap-2 sm:mb-4 sm:items-end sm:gap-3 sm:py-2">
         <div className="absolute -inset-x-[15px] -inset-y-1.5 sm:-inset-x-6 lg:-inset-x-8">
@@ -133,7 +133,7 @@ export default function HallOfHappinessSection() {
             Memories we made together
           </p>
           <h2 id="hall-of-happiness-heading" className="flex min-w-0 items-baseline whitespace-nowrap text-[clamp(16px,4.7vw,18px)] font-bold leading-[1.1] tracking-tight sm:block sm:text-3xl sm:font-extrabold sm:leading-tight">
-            <span className={`text-[clamp(15px,4.4vw,17px)] sm:text-[1em] ${hasEnteredViewport ? "hall-header-title" : "hall-header-title hall-header-title-pending"}`}>Bro &amp; Bro</span>
+            <span className={`hall-brand-word text-[clamp(15px,4.4vw,17px)] sm:text-[1em] ${hasEnteredViewport ? "hall-header-title" : "hall-header-title hall-header-title-pending"}`}>Bro &amp; Bro</span>
             <span className={`mx-1 text-[clamp(15px,4.4vw,17px)] text-muted-foreground sm:hidden ${hasEnteredViewport ? "hall-header-separator" : "hall-header-separator hall-header-separator-pending"}`}>·</span>
             <span className={`bg-gradient-to-r from-rose-600 to-amber-500 bg-clip-text text-transparent sm:block ${hasEnteredViewport ? "hall-header-accent" : "hall-header-accent hall-header-accent-pending"}`}>Hall of Happiness</span>
           </h2>

@@ -1,5 +1,5 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { createFileRoute, Link, useNavigate, useRouter } from "@tanstack/react-router";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { menuOptions, categoriesOptions } from "@/query/options/menu";
 import Navbar from "../components/shared/Navbar";
@@ -12,6 +12,7 @@ import {
   CarouselItem,
 } from "@/components/ui/carousel";
 import { usePreferences } from "@/context/PreferencesContext";
+import { useAuth } from "@/context/AuthContext";
 import MobileMenu from "../components/shared/MobileMenu";
 import { useLocation } from "@tanstack/react-router";
 import { useLocation as useActiveLocation } from "@/context/LocationContext";
@@ -20,6 +21,7 @@ import HomeCampaignRails from "@/components/home/HomeCampaignRails";
 import HallOfHappinessSection from "@/components/HallOfHappinessSection";
 import HomeEssentialsSection from "@/components/home/HomeEssentialsSection";
 import LocationLandingPage from "@/components/home/LocationLandingPage";
+import GuestOrderNotice from "@/components/home/GuestOrderNotice";
 import React from "react";
 import { BowlFoodIcon, CaretRightIcon } from "@phosphor-icons/react";
 import {
@@ -48,14 +50,48 @@ export const Route = createFileRoute("/")({
 function MenuPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const { hash } = useLocation();
+  const router = useRouter();
+  const navigate = useNavigate();
   const {
     activeLocationId,
     availableLocations,
     setActiveLocation,
+    clearActiveLocation,
   } = useActiveLocation();
+
+  const availableLocationsRef = useRef(availableLocations);
+  const activeLocationIdRef = useRef(activeLocationId);
+  useEffect(() => {
+    availableLocationsRef.current = availableLocations;
+    activeLocationIdRef.current = activeLocationId;
+  }, [availableLocations, activeLocationId]);
+
+  const handleLocationSelect = (location) => {
+    setActiveLocation(location);
+    navigate({ to: "/", state: { menuLocationId: location.id } });
+  };
+
+  useEffect(() => {
+    let previousState = router.state.location.state;
+    return router.history.subscribe(({ location: next, action }) => {
+      const leavingMenu = previousState?.menuLocationId;
+      previousState = next.state;
+      if (next.pathname !== "/") return;
+      if (action.type === "BACK" && leavingMenu) {
+        clearActiveLocation();
+        return;
+      }
+      const selectedId = next.state?.menuLocationId;
+      if (selectedId && String(selectedId) !== String(activeLocationIdRef.current)) {
+        const location = availableLocationsRef.current.find((item) => String(item.id) === String(selectedId));
+        if (location) setActiveLocation(location);
+      }
+    });
+  }, [router, clearActiveLocation, setActiveLocation]);
 
   const category = decodeURIComponent(hash) || "All";
 
+  const { user } = useAuth();
   const { preferences, setPreferences } = usePreferences();
   const vegFilter = preferences.segmentedFilter;
   const handleSegmentedFilterChange = (value) => {
@@ -92,7 +128,7 @@ function MenuPage() {
     return (
       <LocationLandingPage
         locations={availableLocations}
-        onSelect={setActiveLocation}
+        onSelect={handleLocationSelect}
       />
     );
   }
@@ -190,6 +226,14 @@ function MenuPage() {
         />
       </div>
 
+      {!user?.token && (
+        <GuestOrderNotice
+          locationId={activeLocationId}
+          locationName={
+            availableLocations.find((item) => String(item.id) === String(activeLocationId))?.name
+          }
+        />
+      )}
       <div className="container-premium home-controls flex flex-col gap-2 py-1.5 md:gap-2 md:py-2 lg:gap-3 lg:py-1">
         {/* Desktop search/filter is now inside the hero overlay; show categories only below hero */}
         <div className="container-premium -mx-[0.875rem] w-auto px-0 md:mx-0 md:w-auto md:px-0">
