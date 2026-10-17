@@ -96,11 +96,17 @@
   position: relative;
   z-index: 0;
   clip-path: inset(0 round 18px);
-  transform: scale(1.25);
+  transform: scale(var(--hmp-video-zoom, 1.25));
   transform-origin: 0 0;
   width: 116px;
   height: 116px;
   border-radius: 18px;
+  box-shadow: 0 0 0 4px #fff, 0 12px 24px -12px rgba(122, 47, 27, 0.4);
+  transition: transform 0.55s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.hmp-tile:hover .hmp-video {
+  --hmp-video-zoom: 1.32;
 }
 
 .hmp-tile:hover .hmp-img {
@@ -134,11 +140,11 @@
 
 .hmp-chip {
   align-self: flex-start;
-  padding: 2px 7px;
+  padding: 3px 9px;
   border-radius: 999px;
   background: #fff0ec;
   color: #d91d34;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.02em;
   white-space: nowrap;
