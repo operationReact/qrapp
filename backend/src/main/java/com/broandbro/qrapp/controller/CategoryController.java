@@ -33,6 +33,15 @@ public class CategoryController {
         return ResponseEntity.ok(categories);
     }
 
+    @GetMapping("/product-images")
+    public ResponseEntity<List<Map<String, String>>> getProductCategoryImages(@RequestParam Long locationId) {
+        List<Map<String, String>> images = categoryService.getAllMrpProductCategories(locationId).stream()
+                .filter(category -> category.getImageUrl() != null && !category.getImageUrl().isBlank())
+                .map(category -> Map.of("name", category.getName(), "imageUrl", category.getImageUrl()))
+                .toList();
+        return ResponseEntity.ok(images);
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<Category> getCategoryById(@PathVariable Long id, @RequestParam Long locationId) {
         return categoryService.getCategoryById(locationId, id)

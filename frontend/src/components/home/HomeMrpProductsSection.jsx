@@ -8,7 +8,7 @@ import {
 import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { baseURL } from "@/services";
-import { getCategories } from "@/services/category-service";
+import { getCategories, getProductCategoryImages } from "@/services/category-service";
 import { getCatalogProducts } from "@/services/mrp-product-service";
 import {
   Carousel,
@@ -74,7 +74,7 @@ function CarouselStatus({ count }) {
   );
 }
 
-export default function HomeEssentialsSection({ locationId }) {
+export default function HomeMrpProductsSection({ locationId }) {
   const { data: products = [] } = useQuery({
     queryKey: ["home-mrp-products", locationId],
     queryFn: () => getCatalogProducts(locationId),
@@ -87,6 +87,12 @@ export default function HomeEssentialsSection({ locationId }) {
     enabled: Boolean(locationId),
     staleTime: 1000 * 60,
   });
+  const { data: productCategoryImages = [] } = useQuery({
+    queryKey: ["home-product-category-images", locationId],
+    queryFn: () => getProductCategoryImages(locationId),
+    enabled: Boolean(locationId),
+    staleTime: 1000 * 60,
+  });
   const [reducedMotion, setReducedMotion] = useState(false);
   const categories = useMemo(() => {
     const categoryImages = new Map(
@@ -94,6 +100,9 @@ export default function HomeEssentialsSection({ locationId }) {
         .filter((category) => category.name)
         .map((category) => [category.name.trim().toLowerCase(), resolveImageUrl(category.imageUrl)]),
     );
+    productCategoryImages
+      .filter((category) => category.name && category.imageUrl)
+      .forEach((category) => categoryImages.set(category.name.trim().toLowerCase(), resolveImageUrl(category.imageUrl)));
     const grouped = new Map();
     products.forEach((product) => {
       const name = product.categoryName?.trim();
@@ -109,7 +118,7 @@ export default function HomeEssentialsSection({ locationId }) {
       image: categoryImages.get(category.key) || category.image,
       surface: CATEGORY_SURFACES[index % CATEGORY_SURFACES.length],
     }));
-  }, [backendCategories, products]);
+  }, [backendCategories, productCategoryImages, products]);
 
   useEffect(() => {
     const motionMedia = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -137,7 +146,7 @@ export default function HomeEssentialsSection({ locationId }) {
   );
 
   return (
-    <section className="container-premium py-1 md:py-3 lg:py-4" aria-labelledby="home-essentials-heading">
+    <section className="container-premium py-1 md:py-3 lg:py-4" aria-labelledby="home-mrp-products-heading">
       <div className="relative overflow-hidden rounded-[20px] border border-[#f4cfc3] bg-[radial-gradient(circle_at_90%_0%,rgba(255,224,211,0.8),transparent_34%),linear-gradient(120deg,#fffaf6_0%,#ffebe2_100%)] px-2.5 py-2 shadow-[0_14px_36px_rgba(143,70,42,0.08)] sm:rounded-[28px] sm:px-6 sm:py-6 lg:rounded-[32px] lg:px-8 lg:py-7">
         <div aria-hidden="true" className="pointer-events-none absolute -right-14 -top-20 size-52 rounded-full border-[18px] border-white/35" />
         <div aria-hidden="true" className="pointer-events-none absolute bottom-[-72px] left-[28%] size-40 rounded-full bg-[#ffd7c8]/35 blur-2xl" />
@@ -146,7 +155,7 @@ export default function HomeEssentialsSection({ locationId }) {
             <p className="font-sans text-[11px] font-extrabold uppercase tracking-[0.18em] sm:text-xs" style={{ color: "#d91d34" }}>
               EVERYDAY FAVOURITES
             </p>
-            <h2 id="home-essentials-heading" className="mt-1 font-sans text-2xl font-extrabold leading-tight tracking-[-0.035em] sm:mt-2 sm:text-4xl lg:text-[46px]" style={{ color: "#30201c" }}>
+            <h2 id="home-mrp-products-heading" className="mt-1 font-sans text-2xl font-extrabold leading-tight tracking-[-0.035em] sm:mt-2 sm:text-4xl lg:text-[46px]" style={{ color: "#30201c" }}>
               Snacks <span style={{ color: "#d92d45" }}>&amp; More</span>
             </h2>
             <p className="mt-1 max-w-[520px] font-sans text-[11px] font-medium leading-3.5 sm:mt-3 sm:text-base sm:leading-5 lg:text-lg" style={{ color: "#80645b" }}>

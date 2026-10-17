@@ -39,8 +39,7 @@ function AuthenticatedRoot() {
   const location = useLocation();
   const isPublicEntry =
     location.pathname === "/" ||
-    location.pathname === "/home" ||
-    location.pathname === "/login";
+    location.pathname === "/home";
   const targetPath = canAccessAdmin(user) ? "/admin" : "/";
   const isAdminRoute = location.pathname === "/admin" || location.pathname.startsWith("/admin/");
 

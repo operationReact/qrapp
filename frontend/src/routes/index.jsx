@@ -19,7 +19,7 @@ import { useLocation as useActiveLocation } from "@/context/LocationContext";
 import ImmersiveHomeHero from "@/components/home/ImmersiveHomeHero";
 import HomeCampaignRails from "@/components/home/HomeCampaignRails";
 import HallOfHappinessSection from "@/components/HallOfHappinessSection";
-import HomeEssentialsSection from "@/components/home/HomeEssentialsSection";
+import HomeMrpProductsSection from "@/components/home/HomeMrpProductsSection";
 import LocationLandingPage from "@/components/home/LocationLandingPage";
 import GuestOrderNotice from "@/components/home/GuestOrderNotice";
 import React from "react";
@@ -240,7 +240,7 @@ function MenuPage() {
           <CategoryTabs categories={categories} active={category} />
         </div>
       </div>
-      <HomeEssentialsSection locationId={activeLocationId} />
+      <HomeMrpProductsSection locationId={activeLocationId} />
       <HomeCampaignRails locationId={activeLocationId} />
       <HallOfHappinessSection />
 

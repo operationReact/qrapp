@@ -227,9 +227,6 @@ public class ProductCatalogService {
         if (locationProductRepository.existsByProductIdAndLocationId(productId, request.getLocationId())) {
             throw new IllegalArgumentException("Product is already assigned to this location");
         }
-        if (!locationProductRepository.findByProductIdOrderByLocationNameAsc(productId).isEmpty()) {
-            throw new IllegalArgumentException("A catalog product can belong to only one location");
-        }
         LocationProduct assignment = new LocationProduct();
         assignment.setProduct(product);
         assignment.setLocation(activeLocation(request.getLocationId()));

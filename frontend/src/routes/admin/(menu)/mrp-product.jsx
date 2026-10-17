@@ -372,6 +372,9 @@ function ProductCatalogPage() {
           .mrp-dw-tile { border-radius: 14px; border: 1px solid #ece8e2; background: #fdfcfb; padding: 12px; }
           .mrp-dw-input { display: block; width: 100%; height: 44px; border-radius: 12px; border: 1px solid #e6e0da; background: #ffffff; padding: 0 12px; font-size: 14px; font-weight: 500; color: #242220; outline: none; transition: border-color .2s ease, box-shadow .2s ease; }
           .mrp-dw-input::placeholder { color: #b0a9a1; }
+          .mrp-money { display: flex; align-items: center; height: 44px; border-radius: 12px; border: 1px solid #ece8e2; background: #fbf8f6; transition: border-color .2s ease, box-shadow .2s ease, background .2s ease; }
+          .mrp-money:focus-within { border-color: #ff2438; background: #fff; box-shadow: 0 0 0 4px rgba(255,36,56,.12); }
+          .mrp-money-input, .mrp-money-input:focus, .mrp-money-input:focus-visible { flex: 1 1 0; min-width: 0; height: 100%; padding: 0 8px; border: 0; background: transparent; font-size: 14px; font-weight: 500; color: #242220; outline: none !important; box-shadow: none !important; }
           .mrp-dw-input:focus { border-color: #ff2438; box-shadow: 0 0 0 4px rgba(255,36,56,.12); }
           .mrp-dw-ghost { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 44px; border-radius: 12px; border: 1px solid #e6e0da; background: #ffffff; color: #514d48; font-size: 14px; font-weight: 700; box-shadow: 0 1px 2px rgba(36,34,32,.04); transition: border-color .2s ease, color .2s ease, transform .2s ease; }
           .mrp-dw-ghost:hover:not(:disabled) { border-color: rgba(255,36,56,.4); color: #d92334; }
@@ -382,10 +385,12 @@ function ProductCatalogPage() {
           .mrp-kpi-cell { display: flex; align-items: center; gap: 10px; min-width: 0; padding: 10px 12px; background: #ffffff; }
           @media (min-width: 640px) { .mrp-kpi-strip { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
           @media (min-width: 1024px) { .mrp-kpi-strip { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
-          .mrp-loc-field { display: flex; align-items: center; width: 100%; min-width: 0; height: 50px; border-radius: 14px; border: 1px solid #e6e0da; background: linear-gradient(180deg,#ffffff 0%,#fdfbfa 100%); box-shadow: 0 1px 2px rgba(36,34,32,.05), inset 0 1px 0 #ffffff; transition: border-color .2s ease, box-shadow .2s ease; }
-          .mrp-loc-field:focus-within, .mrp-loc-field[data-open] { border-color: #ff2438; box-shadow: 0 0 0 4px rgba(255,36,56,.12); }
-          .mrp-loc-field input { width: 100%; min-width: 0; height: 100%; padding: 0 14px; border: 0; background: transparent; font-size: 15px; font-weight: 700; color: #242220; outline: none; box-shadow: none; }
+          .mrp-loc-field { display: flex; align-items: center; width: 100%; min-width: 0; height: 50px; border-radius: 14px; border: 1px solid #e6e0da !important; background: linear-gradient(180deg,#ffffff 0%,#fdfbfa 100%); box-shadow: 0 1px 2px rgba(36,34,32,.05), inset 0 1px 0 #ffffff !important; outline: none !important; transition: border-color .2s ease, box-shadow .2s ease; }
+          .mrp-loc-field:focus-within, .mrp-loc-field[data-open] { border-color: #ff2438 !important; box-shadow: 0 0 0 4px rgba(255,36,56,.12) !important; }
+          .mrp-loc-field input, .mrp-loc-field [data-slot="input-group-control"], .mrp-loc-field button { outline: none !important; box-shadow: none !important; }
+          .mrp-loc-field input { width: 100%; min-width: 0; height: 100%; padding: 0 14px; border: 0; background: transparent; font-size: 15px; font-weight: 700; color: #242220; }
           .mrp-loc-field input::placeholder { color: #b0a9a1; font-weight: 500; }
+          .mrp-cat-field { height: 44px; border-radius: 12px; }
           [data-slot="combobox-content"].mrp-loc-popup { border: 1px solid #f1e4e2; border-radius: 16px; background: #ffffff; box-shadow: 0 24px 48px -20px rgba(36,34,32,.35), 0 0 0 1px rgba(255,36,56,.04); padding: 6px; }
           .mrp-loc-item { margin: 2px 0; border-radius: 12px; padding: 10px 36px 10px 12px; font-size: 14px; font-weight: 600; color: #393632; }
           .mrp-loc-item[data-highlighted] { background: #fff0ed; color: #b71c26; }
@@ -660,7 +665,7 @@ function ProductCatalogPage() {
                 </section>
                 <section className="space-y-3">
                   <h3 className={sectionTitleClass}>Pricing</h3>
-                  <div className="grid gap-3 sm:grid-cols-2">{[['mrp','MRP (₹)'],['costPrice','Cost price (₹)']].map(([name,label]) => <label key={name} className={labelClass}>{label} <span className="text-[#d92334]">*</span><div className="flex h-11 items-center rounded-xl border border-[#ece8e2] bg-[#fbf8f6] transition focus-within:border-[#ff2438] focus-within:bg-white focus-within:ring-4 focus-within:ring-[#ff2438]/10"><span className="pl-3 text-sm text-[#858079]">₹</span><input name={name} value={form[name]} onChange={setField} required type="number" min="0" step="0.01" className="h-full min-w-0 flex-1 bg-transparent px-2 text-sm font-normal outline-none" placeholder="0.00" /></div></label>)}</div>
+                  <div className="grid gap-3 sm:grid-cols-2">{[['mrp','MRP (₹)'],['costPrice','Cost price (₹)']].map(([name,label]) => <label key={name} className={labelClass}>{label} <span className="text-[#d92334]">*</span><div className="mrp-money"><span className="pl-3 text-sm text-[#858079]">₹</span><input name={name} value={form[name]} onChange={setField} required type="number" min="0" step="0.01" className="mrp-money-input" placeholder="0.00" /></div></label>)}</div>
                 </section>
                 {editingId && <section className="space-y-3">
                   <h3 className={sectionTitleClass}>Location inventory</h3>
@@ -1156,7 +1161,7 @@ function CategoryCombobox({ value, options, onChange }) {
               aria-label="Product category"
               value={value}
               placeholder="Choose or type a new category"
-              className="h-10 w-full rounded-lg"
+              className="mrp-loc-field mrp-cat-field"
               onChange={(event) => onChange(event.target.value)}
           />
         </div>
