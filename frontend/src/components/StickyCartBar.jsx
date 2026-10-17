@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from "@tanstack/react-router";
 import { Button } from "./ui/button";
 import { Cart } from "@boxicons/react";
 import { useAuth } from "@/context/AuthContext";
+import { useLocation as useActiveLocation } from "@/context/LocationContext";
 import { useByocDiscount } from "@/hooks/useByocDiscount";
 import { useScrollVisibility } from "@/hooks/useScrollVisibility";
 import ComboProgressBanner from "@/components/ComboProgressBanner";
@@ -28,6 +29,7 @@ export default function StickyCartBar() {
   const navigate = useNavigate();
   const location = useLocation();
   const { isAdmin } = useAuth();
+  const { activeLocationId } = useActiveLocation();
   const visible = useScrollVisibility();
 
   const totalItems = cart.reduce((s, i) => s + (i.quantity || 0), 0);
@@ -37,9 +39,11 @@ export default function StickyCartBar() {
   const { campaigns: byocCampaigns } = useByocDiscount(cart, totalItems > 0);
   const primaryByoc = byocCampaigns[0] ?? null;
 
-  // Only show the sticky cart bar on the landing page (home)
   if (location && !stickyCartBarVisibleRoutes.includes(location.pathname))
     return null;
+
+  // "/" shows the location picker until a location is selected; the cart belongs to the menu
+  if (location?.pathname === "/" && !activeLocationId) return null;
 
   if (isAdmin) return null;
 

@@ -44,7 +44,9 @@ export const Route = createFileRoute("/(auth)/register")({
     const [specialDayType, setSpecialDayType] = useState("");
     const [specialDayCustomLabel, setSpecialDayCustomLabel] = useState("");
     const [password, setPassword] = useState("");
-    const [defaultLocationId, setDefaultLocationId] = useState("");
+    const [defaultLocationId, setDefaultLocationId] = useState(() =>
+      search?.location ? String(search.location) : "",
+    );
     const [customerCompanyId, setCustomerCompanyId] = useState("");
     const [termsAccepted, setTermsAccepted] = useState(false);
     const [customerCompanySearch, setCustomerCompanySearch] = useState("");
@@ -277,6 +279,9 @@ export const Route = createFileRoute("/(auth)/register")({
               </Field>
               <Field>
                 <FieldLabel>Birth Date</FieldLabel>
+                <p className="-mt-1 mb-2 text-xs leading-relaxed text-muted-foreground">
+                  Add your birthday to receive exclusive birthday offers on that day.
+                </p>
                 <FieldContent>
                   <RegistrationPurposeControl type="date" label="Birth Date">
                     <Input
@@ -291,6 +296,9 @@ export const Route = createFileRoute("/(auth)/register")({
               </Field>
               <Field>
                 <FieldLabel>❤️ Special Day <span className="text-muted-foreground">(optional)</span></FieldLabel>
+                <p className="-mt-1 mb-2 text-xs leading-relaxed text-muted-foreground">
+                  Add an anniversary or any day that matters to you to receive exclusive offers on that day.
+                </p>
                 <FieldContent>
                   <div className="grid gap-2 sm:grid-cols-2">
                     <RegistrationPurposeControl type="date" label="Special Day">

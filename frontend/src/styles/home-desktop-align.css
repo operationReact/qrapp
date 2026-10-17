@@ -1,0 +1,29 @@
+@media (min-width: 1024px) {
+  section.home-desktop-align,
+  .guest-notice.home-desktop-align {
+    max-width: 1200px;
+    padding-inline: 2rem;
+  }
+}
+
+@media (min-width: 1280px) {
+  section.home-desktop-align,
+  .guest-notice.home-desktop-align {
+    max-width: 1440px;
+    padding-inline: 3rem;
+  }
+}
+
+@media (min-width: 1536px) {
+  section.home-desktop-align,
+  .guest-notice.home-desktop-align {
+    max-width: 1600px;
+    padding-inline: 4rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  section.home-desktop-align .hall-brand-word {
+    margin-right: 0.3em;
+  }
+}
