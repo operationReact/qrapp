@@ -1,7 +1,7 @@
 /* Vendor portal. Scoped under .vp-page so it cannot leak into other screens. */
 .vp-page {
-  --vp-accent: #b5482c;
-  --vp-accent-hover: #953a22;
+  --vp-accent: #ff2438;
+  --vp-accent-hover: #e01e31;
   --vp-ink: #1f1a17;
   --vp-muted: #8a7f74;
   --vp-line: #e8e2db;
