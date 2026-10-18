@@ -395,9 +395,7 @@ public class UserService {
                 throw new IllegalArgumentException("invalid_current_password");
             }
             user.setPassword(passwordEncoder.encode(newPassword));
-            if (isPartnerRole(user.getRole())) {
-                user.setMustChangePassword(false);
-            }
+            user.setMustChangePassword(false);
         }
 
         User saved = userRepository.save(user);
@@ -442,9 +440,5 @@ public class UserService {
         if (Boolean.TRUE.equals(u.getIsSuperUser())) return UserRole.SUPER_ADMIN;
         if (Boolean.TRUE.equals(u.getIsAdmin())) return UserRole.ADMIN;
         return UserRole.CUSTOMER;
-    }
-
-    private boolean isPartnerRole(UserRole role) {
-        return role == UserRole.PARTNER_ADMIN || role == UserRole.PARTNER_USER;
     }
 }

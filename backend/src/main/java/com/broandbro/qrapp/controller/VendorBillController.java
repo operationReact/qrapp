@@ -1,5 +1,6 @@
 package com.broandbro.qrapp.controller;
 
+import com.broandbro.qrapp.dto.LocationResponse;
 import com.broandbro.qrapp.dto.VendorBillActionRequest;
 import com.broandbro.qrapp.dto.VendorBillRequest;
 import com.broandbro.qrapp.dto.VendorBillResponse;
@@ -22,6 +23,11 @@ import java.util.List;
 public class VendorBillController {
     private final VendorBillService vendorBillService;
     private final UserService userService;
+
+    @GetMapping("/locations")
+    public List<LocationResponse> locations(Authentication authentication) {
+        return vendorBillService.vendorLocations(requireUser(authentication));
+    }
 
     @GetMapping
     public List<VendorBillResponse> list(@RequestParam Long locationId, Authentication authentication) {

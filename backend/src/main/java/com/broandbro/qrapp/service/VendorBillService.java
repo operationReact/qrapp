@@ -1,6 +1,7 @@
 package com.broandbro.qrapp.service;
 
 import com.broandbro.qrapp.dto.CreateUserRequest;
+import com.broandbro.qrapp.dto.LocationResponse;
 import com.broandbro.qrapp.dto.UserResponse;
 import com.broandbro.qrapp.dto.VendorAccountResponse;
 import com.broandbro.qrapp.dto.VendorBillRequest;
@@ -57,6 +58,15 @@ public class VendorBillService {
     // ----- vendor side -----
 
     @Transactional(readOnly = true)
+    public List<LocationResponse> vendorLocations(User vendor) {
+        return accessRepository.findByUserIdAndActiveTrueAndLocationActiveTrueOrderByLocationNameAsc(vendor.getId())
+                .stream()
+                .filter(access -> access.getRole() == UserRole.VENDOR)
+                .map(access -> LocationResponse.from(access.getLocation()))
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
     public List<VendorBillResponse> listForVendor(User vendor, Long locationId) {
         requireRole(vendor, locationId, Set.of(UserRole.VENDOR));
         return billRepository.findByLocationIdAndVendorUserIdOrderByCreatedAtDesc(locationId, vendor.getId())
@@ -77,6 +87,7 @@ public class VendorBillService {
         bill.setLocation(location);
         bill.setVendorUser(vendor);
         bill.setStatus(VendorBillStatus.DRAFT);
+        bill.setInvoiceNumber(nextInvoiceNumber());
         applyDraft(bill, vendor, request);
         addEvent(bill, vendor, role, VendorBillEventType.CREATED, null);
         if (submit) {
@@ -269,10 +280,6 @@ public class VendorBillService {
         if (request == null) {
             throw new IllegalArgumentException("bill_required");
         }
-        String invoiceNumber = request.invoiceNumber() == null ? "" : request.invoiceNumber().trim();
-        if (invoiceNumber.isEmpty() || invoiceNumber.length() > 80) {
-            throw new IllegalArgumentException("invoice_number_invalid");
-        }
         if (request.invoiceDate() == null) {
             throw new IllegalArgumentException("invoice_date_required");
         }
@@ -282,7 +289,6 @@ public class VendorBillService {
         }
 
         bill.setVendorName(vendor.getName());
-        bill.setInvoiceNumber(invoiceNumber);
         bill.setInvoiceDate(request.invoiceDate());
         bill.setNotes(normalizeMessage(request.notes()));
 
@@ -312,6 +318,11 @@ public class VendorBillService {
             total = total.add(item.getLineTotal());
         }
         bill.setTotalAmount(total.setScale(2, RoundingMode.HALF_UP));
+    }
+
+    /** Invoice numbers come from a global sequence so they stay unique across all locations. */
+    private String nextInvoiceNumber() {
+        return String.format("VB-INV-%06d", billRepository.nextInvoiceSequence());
     }
 
     private void addEvent(VendorBill bill, User actor, UserRole role, VendorBillEventType type, String message) {
