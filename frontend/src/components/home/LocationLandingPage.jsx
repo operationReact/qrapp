@@ -1,14 +1,17 @@
 import { Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import {
   ArrowRight,
-  ChefHat,
+  ConciergeBell,
+  Coffee,
+  Leaf,
   MapPin,
   Navigation,
   RefreshCw,
   Search,
   Store,
+  Users,
   Utensils,
   X,
 } from "lucide-react";
@@ -30,6 +33,18 @@ const LOGO_ASPECT_RATIO = 1.9;
 const SERVER_PAGE_SIZE = 12;
 const LOCAL_PAGE_SIZE = 12;
 const SEARCH_DEBOUNCE_MS = 300;
+
+// Positions are percentages of the hero; delays stagger the drift so motes never move in lockstep.
+const MOTES = [
+  { id: 0, style: { left: "6%", top: "22%", "--mote-size": "6px", "--mote-delay": "0s", "--mote-dur": "11s" } },
+  { id: 1, style: { left: "16%", top: "68%", "--mote-size": "4px", "--mote-delay": "-3s", "--mote-dur": "13s" } },
+  { id: 2, style: { left: "30%", top: "38%", "--mote-size": "5px", "--mote-delay": "-6s", "--mote-dur": "12s" } },
+  { id: 3, style: { left: "44%", top: "78%", "--mote-size": "3px", "--mote-delay": "-2s", "--mote-dur": "10s" } },
+  { id: 4, style: { left: "52%", top: "16%", "--mote-size": "5px", "--mote-delay": "-8s", "--mote-dur": "14s" } },
+  { id: 5, style: { left: "62%", top: "60%", "--mote-size": "4px", "--mote-delay": "-4s", "--mote-dur": "12s" } },
+  { id: 6, style: { left: "78%", top: "30%", "--mote-size": "6px", "--mote-delay": "-1s", "--mote-dur": "13s" } },
+  { id: 7, style: { left: "90%", top: "72%", "--mote-size": "4px", "--mote-delay": "-7s", "--mote-dur": "11s" } },
+];
 
 const FILTERS = [
   { id: "all", label: "All locations" },
@@ -77,7 +92,28 @@ function useDebouncedValue(value, delay) {
 }
 
 export default function LocationLandingPage({ locations = [], onSelect }) {
+  const heroRef = useRef(null);
   const [rawQuery, setRawQuery] = useState("");
+
+  useEffect(() => {
+    const hero = heroRef.current;
+    if (!hero || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return undefined;
+    let frame = 0;
+    const update = () => {
+      frame = 0;
+      const offset = Math.min(window.scrollY, 600);
+      hero.style.setProperty("--scroll-y", `${(offset * 0.12).toFixed(1)}px`);
+    };
+    const onScroll = () => {
+      if (!frame) frame = requestAnimationFrame(update);
+    };
+    update();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      if (frame) cancelAnimationFrame(frame);
+    };
+  }, []);
   const query = useDebouncedValue(rawQuery.trim(), SEARCH_DEBOUNCE_MS);
   const [filter, setFilter] = useState("all");
   const [localLimit, setLocalLimit] = useState(LOCAL_PAGE_SIZE);
@@ -107,6 +143,10 @@ export default function LocationLandingPage({ locations = [], onSelect }) {
       .filter((location) => matchesLocationQuery(location, query))
       .map((location) => ({ location })),
     [recentEntries, locations, query],
+  );
+  const recentIds = useMemo(
+    () => new Set(resolveRecentLocations(recentEntries, locations).map((location) => String(location.id))),
+    [recentEntries, locations],
   );
 
   const localRows = filter === "nearby" ? nearby.rows : recentRows;
@@ -206,34 +246,74 @@ export default function LocationLandingPage({ locations = [], onSelect }) {
               <span className="loc-brand-sub">Food Court</span>
             </span>
           </Link>
-          <Link to="/login" className="loc-signin">
-            Sign in
-          </Link>
+          <div className="loc-header-actions">
+            <nav className="loc-nav" aria-label="Site">
+              <a href="#loc-locations" className="loc-nav-link">Locations</a>
+            </nav>
+            <Link to="/login" className="loc-signin">
+              Sign in
+            </Link>
+          </div>
         </div>
       </header>
 
-      <section className="loc-hero">
+      <section className="loc-hero" ref={heroRef}>
         <div className="loc-hero-ring" aria-hidden="true" />
+        <div className="loc-motes" aria-hidden="true">
+          {MOTES.map((mote) => (
+            <span key={mote.id} className="loc-mote" style={mote.style} />
+          ))}
+        </div>
         <div className="loc-container loc-hero-inner">
           <div style={{ position: "relative", zIndex: 1, minWidth: 0 }}>
             <p className="loc-eyebrow">Welcome to</p>
-            <h1 className="loc-title">BRO & BRO Food Court</h1>
-            <p className="loc-lede">Choose a location to explore its menu.</p>
+            <h1 className="loc-title">
+              BRO &amp; BRO <span className="loc-title-accent">Food Court</span>
+            </h1>
+            <p className="loc-lede">Great food. Work. Meet. Repeat.</p>
           </div>
-          <div className="loc-art" aria-hidden="true">
-            <div className="loc-art-halo" />
-            <div className="loc-art-plate" />
-            <div className="loc-art-core">
-              <ChefHat size={48} strokeWidth={1.4} />
+          <div
+            className="loc-art"
+            onPointerMove={(event) => {
+              if (
+                event.pointerType !== "mouse" ||
+                window.matchMedia("(hover: none), (prefers-reduced-motion: reduce)").matches
+              ) {
+                return;
+              }
+              const rect = event.currentTarget.getBoundingClientRect();
+              const x = (event.clientX - rect.left) / rect.width - 0.5;
+              const y = (event.clientY - rect.top) / rect.height - 0.5;
+              event.currentTarget.style.setProperty("--tilt-x", `${(-y * 6).toFixed(2)}deg`);
+              event.currentTarget.style.setProperty("--tilt-y", `${(x * 6).toFixed(2)}deg`);
+            }}
+            onPointerLeave={(event) => {
+              event.currentTarget.style.setProperty("--tilt-x", "0deg");
+              event.currentTarget.style.setProperty("--tilt-y", "0deg");
+            }}
+          >
+            <div className="loc-art-stage">
+              <div className="loc-art-frame">
+                <picture>
+                  <source srcSet="/3d/bro-bro-corporate-food-court.webp" type="image/webp" />
+                  <img
+                    src="/3d/bro-bro-corporate-food-court.png"
+                    alt="Bro & Bro food court building with Biryani, South Indian, Burgers, Chaat and Beverages counters"
+                    width="1774"
+                    height="887"
+                    className="loc-art-img"
+                    fetchPriority="high"
+                    decoding="async"
+                  />
+                </picture>
+                <span className="loc-art-sheen" aria-hidden="true" />
+              </div>
             </div>
-            <Utensils className="loc-art-utensil" size={36} strokeWidth={1.5} />
-            <span className="loc-art-dot loc-art-dot--a" />
-            <span className="loc-art-dot loc-art-dot--b" />
           </div>
         </div>
       </section>
 
-      <section className="loc-container loc-section">
+      <section id="loc-locations" className="loc-container loc-section">
         <div className="loc-search" role="search">
           <Search size={20} aria-hidden="true" className="loc-search-icon" />
           <input
@@ -344,6 +424,7 @@ export default function LocationLandingPage({ locations = [], onSelect }) {
                 key={location.id}
                 location={location}
                 distanceKm={distanceKm}
+                isRecent={recentIds.has(String(location.id))}
                 onSelect={handleSelect}
               />
             ))}
@@ -370,6 +451,29 @@ export default function LocationLandingPage({ locations = [], onSelect }) {
           </div>
         )}
 
+        <ul className="loc-features" aria-label="Why Bro & Bro">
+          <li className="loc-feature">
+            <ConciergeBell size={24} aria-hidden="true" />
+            <p className="loc-feature-title">Multiple cuisines</p>
+            <p className="loc-feature-text">Biryani, South Indian, Burgers, Chaat &amp; more</p>
+          </li>
+          <li className="loc-feature">
+            <Users size={24} aria-hidden="true" />
+            <p className="loc-feature-title">Corporate locations</p>
+            <p className="loc-feature-text">Inside top IT parks &amp; business hubs</p>
+          </li>
+          <li className="loc-feature">
+            <Leaf size={24} aria-hidden="true" />
+            <p className="loc-feature-title">Hygienic &amp; fresh</p>
+            <p className="loc-feature-text">Quality food, every day</p>
+          </li>
+          <li className="loc-feature">
+            <Coffee size={24} aria-hidden="true" />
+            <p className="loc-feature-title">Quick &amp; convenient</p>
+            <p className="loc-feature-text">Dine-in, takeaway &amp; delivery</p>
+          </li>
+        </ul>
+
         <div className="loc-cue">
           <div className="loc-cue-icon" aria-hidden="true">
             <Utensils size={20} />
@@ -388,7 +492,7 @@ export default function LocationLandingPage({ locations = [], onSelect }) {
   );
 }
 
-function LocationCard({ location, distanceKm, onSelect }) {
+function LocationCard({ location, distanceKm, isRecent, onSelect }) {
   const image = locationImage(location);
   const addressLines = locationAddressLines(location);
   const name = location.name || location.title || "Food court";
@@ -409,15 +513,18 @@ function LocationCard({ location, distanceKm, onSelect }) {
               : "Browse the menu at this food court"}
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => onSelect(location)}
-          className="loc-cta"
-          aria-label={`Explore ${name}`}
-        >
-          Explore Food Court
-          <ArrowRight size={16} aria-hidden="true" />
-        </button>
+        <div className="loc-card-foot">
+          {isRecent ? <span className="loc-badge">Recently visited</span> : <span />}
+          <button
+            type="button"
+            onClick={() => onSelect(location)}
+            className="loc-cta"
+            aria-label={`Explore ${name}`}
+            title={`Explore ${name}`}
+          >
+            <ArrowRight size={18} aria-hidden="true" />
+          </button>
+        </div>
       </div>
     </article>
   );

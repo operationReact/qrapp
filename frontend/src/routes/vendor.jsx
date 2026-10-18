@@ -1,5 +1,5 @@
-import { createFileRoute, Link, Outlet, useLocation, useNavigate } from "@tanstack/react-router";
-import { LogOut, ReceiptText, UserRound } from "lucide-react";
+import { createFileRoute, Link, Outlet, useLocation } from "@tanstack/react-router";
+import { ReceiptText, UserRound } from "lucide-react";
 import { RoleGuard } from "@/components/RoleGuard";
 import { useAuth } from "@/context/AuthContext";
 import { ROLE } from "@/lib/roles";
@@ -16,14 +16,8 @@ const navigation = [
 
 function VendorLayout() {
   const { pathname } = useLocation();
-  const navigate = useNavigate();
-  const { user, setUser } = useAuth();
+  const { user } = useAuth();
   const current = pathname.replace(/\/+$/, "") || "/";
-
-  const logout = () => {
-    setUser(null);
-    navigate({ to: "/login" });
-  };
 
   return (
     <div className="vp-page">
@@ -33,10 +27,6 @@ function VendorLayout() {
             <img src="/bro-logo.png" alt="Bro & Bro" className="vp-nav__logo" />
             <span className="vp-nav__who">{user?.name || "Vendor"}</span>
           </div>
-          <button type="button" className="vp-nav__logout" onClick={logout}>
-            <LogOut size={16} />
-            <span>Log out</span>
-          </button>
         </div>
         <div className="vp-nav__links">
           {navigation.map((item) => {
