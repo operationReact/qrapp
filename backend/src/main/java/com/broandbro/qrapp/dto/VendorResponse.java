@@ -12,6 +12,7 @@ public class VendorResponse {
     private String phoneNumber;
     private String alternatePhoneNumber;
     private String address;
+    private Long locationId;
     private Boolean isActive;
     private Instant createdAt;
     private Instant updatedAt;

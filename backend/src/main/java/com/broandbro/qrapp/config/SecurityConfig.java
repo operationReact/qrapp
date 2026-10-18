@@ -193,6 +193,9 @@ public class SecurityConfig {
                         .requestMatchers("/api/admin/hall-of-happiness/**")
                         .hasAnyRole("ADMIN", "SUPERUSER", "SUPER_ADMIN", "MANAGER")
 
+                        .requestMatchers("/api/admin/vendor-bills/**")
+                        .hasAnyRole("ADMIN", "SUPERUSER", "SUPER_ADMIN", "MANAGER")
+
                         .requestMatchers("/api/admin/**")
                         .hasAnyRole("ADMIN", "SUPERUSER", "SUPER_ADMIN")
 
@@ -220,6 +223,9 @@ public class SecurityConfig {
 
                         .requestMatchers("/api/v1/partner/**")
                         .hasAnyRole("PARTNER_ADMIN", "PARTNER_USER")
+
+                        .requestMatchers("/api/vendor/**")
+                        .hasRole("VENDOR")
 
                         // Allow wallet endpoints to pass through (controller will handle auth)
                         .requestMatchers("/api/wallet/**").permitAll()

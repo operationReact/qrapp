@@ -69,6 +69,7 @@ export const Route = createFileRoute("/(auth)/login")({
           const role = data.user?.role || "";
           let target = "/";
           if (role.startsWith("PARTNER_")) target = "/partner";
+          else if (role === "VENDOR") target = "/vendor";
           else if (canAccessAdmin(data.user)) target = "/admin";
           window.location.assign(target);
         }
