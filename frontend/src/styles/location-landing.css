@@ -213,21 +213,24 @@
   letter-spacing: -0.02em;
   color: #292725;
   overflow-wrap: anywhere;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.8), 0 10px 24px rgba(90, 40, 25, 0.08);
+}
+
+.loc-title-accent {
   background-image: linear-gradient(
     100deg,
-    #292725 0%,
-    #292725 35%,
-    #c9a24d 47%,
-    #ff2438 53%,
-    #c9a24d 59%,
-    #292725 71%,
-    #292725 100%
+    #c9a24d 0%,
+    #c9a24d 30%,
+    #ff2438 50%,
+    #c9a24d 70%,
+    #c9a24d 100%
   );
   background-size: 250% 100%;
   background-position: 100% 50%;
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
+  text-shadow: none;
   animation: loc-title-shimmer 6s ease-in-out infinite;
 }
 
@@ -244,19 +247,19 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .loc-title {
+  .loc-title-accent {
     animation: none;
     background-image: none;
-    -webkit-text-fill-color: #292725;
+    -webkit-text-fill-color: #c9a24d;
   }
 }
 
 .loc-lede {
-  margin: 10px 0 0;
+  margin: 14px 0 0;
   max-width: 36rem;
-  font-size: 15px;
+  font-size: 16px;
   line-height: 1.6;
-  color: #77736f;
+  color: #5c5752;
 }
 
 .loc-art {
@@ -298,18 +301,124 @@
   animation: loc-art-shadow 7s ease-in-out infinite;
 }
 
-.loc-art-img {
-  display: block;
-  width: 100%;
-  height: auto;
+.loc-art-frame {
+  position: relative;
   max-width: 280px;
   margin: 0 auto;
-  object-fit: contain;
-  background: transparent;
   filter: drop-shadow(0 14px 18px rgba(90, 40, 25, 0.16));
   -webkit-mask-image: linear-gradient(to bottom, #000 88%, transparent 100%);
   mask-image: linear-gradient(to bottom, #000 88%, transparent 100%);
   animation: loc-art-float 7s ease-in-out infinite;
+}
+
+.loc-art-img {
+  display: block;
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+  background: transparent;
+}
+
+/* Light sweep clipped to the render's alpha so only the building catches the highlight. */
+.loc-art-sheen {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(105deg, transparent 42%, rgba(255, 240, 214, 0.5) 50%, transparent 58%) 0 0 / 260% 100% no-repeat;
+  mix-blend-mode: soft-light;
+  -webkit-mask: url("/3d/bro-bro-corporate-food-court.webp") center / 100% 100% no-repeat;
+  mask: url("/3d/bro-bro-corporate-food-court.webp") center / 100% 100% no-repeat;
+  animation: loc-art-sheen 8s ease-in-out 1.2s infinite;
+}
+
+/* Warm motes drifting behind the render; they hold still on mobile, where space is tight. */
+.loc-motes {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  translate: 0 calc(var(--scroll-y, 0px) * -0.5);
+}
+
+.loc-mote {
+  position: absolute;
+  width: var(--mote-size, 4px);
+  height: var(--mote-size, 4px);
+  border-radius: 999px;
+  background: radial-gradient(circle, #ffd2b8 0%, rgba(255, 182, 140, 0) 70%);
+  opacity: 0;
+  animation: loc-mote-drift var(--mote-dur, 12s) ease-in-out var(--mote-delay, 0s) infinite;
+}
+
+@media (max-width: 639px) {
+  .loc-mote:nth-child(n + 6) {
+    display: none;
+  }
+}
+
+.loc-hero-ring {
+  translate: 0 var(--scroll-y, 0px);
+}
+
+.loc-art {
+  translate: 0 calc(var(--scroll-y, 0px) * -0.3);
+}
+
+.loc-eyebrow,
+.loc-lede {
+  animation: loc-rise 0.7s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+.loc-lede {
+  animation-delay: 0.15s;
+}
+
+.loc-grid > .loc-card {
+  animation: loc-rise 0.6s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+.loc-grid > .loc-card:nth-child(2) { animation-delay: 0.06s; }
+.loc-grid > .loc-card:nth-child(3) { animation-delay: 0.12s; }
+.loc-grid > .loc-card:nth-child(4) { animation-delay: 0.18s; }
+.loc-grid > .loc-card:nth-child(5) { animation-delay: 0.24s; }
+.loc-grid > .loc-card:nth-child(n + 6) { animation-delay: 0.3s; }
+
+@keyframes loc-rise {
+  from {
+    opacity: 0;
+    translate: 0 12px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+@keyframes loc-art-sheen {
+  0%,
+  100% {
+    background-position: 120% 0;
+  }
+  45% {
+    background-position: -20% 0;
+  }
+}
+
+@keyframes loc-mote-drift {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0);
+  }
+  20% {
+    opacity: 0.7;
+  }
+  80% {
+    opacity: 0.5;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(10px, -36px);
+  }
 }
 
 @keyframes loc-art-enter {
@@ -348,8 +457,13 @@
 @media (prefers-reduced-motion: reduce) {
   .loc-art,
   .loc-art-stage,
-  .loc-art-img,
-  .loc-art::before {
+  .loc-art-frame,
+  .loc-art-sheen,
+  .loc-art::before,
+  .loc-mote,
+  .loc-eyebrow,
+  .loc-lede,
+  .loc-grid > .loc-card {
     animation: none;
     transition: none;
     transform: none;
@@ -359,12 +473,20 @@
   .loc-art {
     opacity: 1;
   }
+
+  .loc-motes {
+    display: none;
+  }
+
+  .loc-hero-ring {
+    translate: none;
+  }
 }
 
 
 
 @media (min-width: 640px) {
-  .loc-art-img {
+  .loc-art-frame {
     max-width: 360px;
   }
 
@@ -392,7 +514,7 @@
     max-width: 480px;
   }
 
-  .loc-art-img {
+  .loc-art-frame {
     max-width: none;
   }
 }

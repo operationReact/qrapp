@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import {
   ArrowRight,
@@ -29,6 +29,18 @@ const LOGO_ASPECT_RATIO = 1.9;
 const SERVER_PAGE_SIZE = 12;
 const LOCAL_PAGE_SIZE = 12;
 const SEARCH_DEBOUNCE_MS = 300;
+
+// Positions are percentages of the hero; delays stagger the drift so motes never move in lockstep.
+const MOTES = [
+  { id: 0, style: { left: "6%", top: "22%", "--mote-size": "6px", "--mote-delay": "0s", "--mote-dur": "11s" } },
+  { id: 1, style: { left: "16%", top: "68%", "--mote-size": "4px", "--mote-delay": "-3s", "--mote-dur": "13s" } },
+  { id: 2, style: { left: "30%", top: "38%", "--mote-size": "5px", "--mote-delay": "-6s", "--mote-dur": "12s" } },
+  { id: 3, style: { left: "44%", top: "78%", "--mote-size": "3px", "--mote-delay": "-2s", "--mote-dur": "10s" } },
+  { id: 4, style: { left: "52%", top: "16%", "--mote-size": "5px", "--mote-delay": "-8s", "--mote-dur": "14s" } },
+  { id: 5, style: { left: "62%", top: "60%", "--mote-size": "4px", "--mote-delay": "-4s", "--mote-dur": "12s" } },
+  { id: 6, style: { left: "78%", top: "30%", "--mote-size": "6px", "--mote-delay": "-1s", "--mote-dur": "13s" } },
+  { id: 7, style: { left: "90%", top: "72%", "--mote-size": "4px", "--mote-delay": "-7s", "--mote-dur": "11s" } },
+];
 
 const FILTERS = [
   { id: "all", label: "All locations" },
@@ -76,7 +88,28 @@ function useDebouncedValue(value, delay) {
 }
 
 export default function LocationLandingPage({ locations = [], onSelect }) {
+  const heroRef = useRef(null);
   const [rawQuery, setRawQuery] = useState("");
+
+  useEffect(() => {
+    const hero = heroRef.current;
+    if (!hero || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return undefined;
+    let frame = 0;
+    const update = () => {
+      frame = 0;
+      const offset = Math.min(window.scrollY, 600);
+      hero.style.setProperty("--scroll-y", `${(offset * 0.12).toFixed(1)}px`);
+    };
+    const onScroll = () => {
+      if (!frame) frame = requestAnimationFrame(update);
+    };
+    update();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      if (frame) cancelAnimationFrame(frame);
+    };
+  }, []);
   const query = useDebouncedValue(rawQuery.trim(), SEARCH_DEBOUNCE_MS);
   const [filter, setFilter] = useState("all");
   const [localLimit, setLocalLimit] = useState(LOCAL_PAGE_SIZE);
@@ -211,12 +244,19 @@ export default function LocationLandingPage({ locations = [], onSelect }) {
         </div>
       </header>
 
-      <section className="loc-hero">
+      <section className="loc-hero" ref={heroRef}>
         <div className="loc-hero-ring" aria-hidden="true" />
+        <div className="loc-motes" aria-hidden="true">
+          {MOTES.map((mote) => (
+            <span key={mote.id} className="loc-mote" style={mote.style} />
+          ))}
+        </div>
         <div className="loc-container loc-hero-inner">
           <div style={{ position: "relative", zIndex: 1, minWidth: 0 }}>
             <p className="loc-eyebrow">Welcome to</p>
-            <h1 className="loc-title">BRO & BRO Food Court</h1>
+            <h1 className="loc-title">
+              BRO &amp; BRO <span className="loc-title-accent">Food Court</span>
+            </h1>
             <p className="loc-lede">Choose a location to explore its menu.</p>
           </div>
           <div
@@ -240,15 +280,21 @@ export default function LocationLandingPage({ locations = [], onSelect }) {
             }}
           >
             <div className="loc-art-stage">
-              <img
-                src="/3d/bro-bro-corporate-food-court.png"
-                alt="Bro & Bro food court building with Biryani, South Indian, Burgers, Chaat and Beverages counters"
-                width="1774"
-                height="887"
-                className="loc-art-img"
-                fetchPriority="high"
-                decoding="async"
-              />
+              <div className="loc-art-frame">
+                <picture>
+                  <source srcSet="/3d/bro-bro-corporate-food-court.webp" type="image/webp" />
+                  <img
+                    src="/3d/bro-bro-corporate-food-court.png"
+                    alt="Bro & Bro food court building with Biryani, South Indian, Burgers, Chaat and Beverages counters"
+                    width="1774"
+                    height="887"
+                    className="loc-art-img"
+                    fetchPriority="high"
+                    decoding="async"
+                  />
+                </picture>
+                <span className="loc-art-sheen" aria-hidden="true" />
+              </div>
             </div>
           </div>
         </div>
