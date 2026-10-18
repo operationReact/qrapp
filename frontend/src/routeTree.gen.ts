@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as WalletRouteImport } from './routes/wallet'
+import { Route as VendorRouteImport } from './routes/vendor'
 import { Route as TermsAndConditionsRouteImport } from './routes/terms-and-conditions'
 import { Route as SuccessRouteImport } from './routes/success'
 import { Route as SearchRouteImport } from './routes/search'
@@ -49,6 +50,7 @@ import { Route as PartnerInsightsRouteImport } from './routes/partner/insights'
 import { Route as PartnerFeedbackRouteImport } from './routes/partner/feedback'
 import { Route as CategoriesCategoryIdRouteImport } from './routes/categories.$categoryId'
 import { Route as AdminVendorsRouteImport } from './routes/admin/vendors'
+import { Route as AdminVendorBillsRouteImport } from './routes/admin/vendor-bills'
 import { Route as AdminPartnersRouteImport } from './routes/admin/partners'
 import { Route as AdminOpsCenterRouteImport } from './routes/admin/ops-center'
 import { Route as AdminCustomerCompaniesRouteImport } from './routes/admin/customer-companies'
@@ -110,6 +112,11 @@ import { Route as AdminmenuCombosCreateRouteImport } from './routes/admin/(menu)
 const WalletRoute = WalletRouteImport.update({
   id: '/wallet',
   path: '/wallet',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const VendorRoute = VendorRouteImport.update({
+  id: '/vendor',
+  path: '/vendor',
   getParentRoute: () => rootRouteImport,
 } as any)
 const TermsAndConditionsRoute = TermsAndConditionsRouteImport.update({
@@ -306,6 +313,11 @@ const CategoriesCategoryIdRoute = CategoriesCategoryIdRouteImport.update({
 const AdminVendorsRoute = AdminVendorsRouteImport.update({
   id: '/vendors',
   path: '/vendors',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminVendorBillsRoute = AdminVendorBillsRouteImport.update({
+  id: '/vendor-bills',
+  path: '/vendor-bills',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminPartnersRoute = AdminPartnersRouteImport.update({
@@ -644,6 +656,7 @@ export interface FileRoutesByFullPath {
   '/search': typeof SearchRoute
   '/success': typeof SuccessRoute
   '/terms-and-conditions': typeof TermsAndConditionsRoute
+  '/vendor': typeof VendorRoute
   '/wallet': typeof WalletRoute
   '/forget-password': typeof authForgetPasswordRoute
   '/login': typeof authLoginRoute
@@ -651,6 +664,7 @@ export interface FileRoutesByFullPath {
   '/admin/customer-companies': typeof AdminCustomerCompaniesRoute
   '/admin/ops-center': typeof AdminOpsCenterRoute
   '/admin/partners': typeof AdminPartnersRoute
+  '/admin/vendor-bills': typeof AdminVendorBillsRoute
   '/admin/vendors': typeof AdminVendorsRoute
   '/categories/$categoryId': typeof CategoriesCategoryIdRoute
   '/partner/feedback': typeof PartnerFeedbackRoute
@@ -741,6 +755,7 @@ export interface FileRoutesByTo {
   '/search': typeof SearchRoute
   '/success': typeof SuccessRoute
   '/terms-and-conditions': typeof TermsAndConditionsRoute
+  '/vendor': typeof VendorRoute
   '/wallet': typeof WalletRoute
   '/forget-password': typeof authForgetPasswordRoute
   '/login': typeof authLoginRoute
@@ -748,6 +763,7 @@ export interface FileRoutesByTo {
   '/admin/customer-companies': typeof AdminCustomerCompaniesRoute
   '/admin/ops-center': typeof AdminOpsCenterRoute
   '/admin/partners': typeof AdminPartnersRoute
+  '/admin/vendor-bills': typeof AdminVendorBillsRoute
   '/admin/vendors': typeof AdminVendorsRoute
   '/categories/$categoryId': typeof CategoriesCategoryIdRoute
   '/partner/feedback': typeof PartnerFeedbackRoute
@@ -841,6 +857,7 @@ export interface FileRoutesById {
   '/search': typeof SearchRoute
   '/success': typeof SuccessRoute
   '/terms-and-conditions': typeof TermsAndConditionsRoute
+  '/vendor': typeof VendorRoute
   '/wallet': typeof WalletRoute
   '/(auth)/forget-password': typeof authForgetPasswordRoute
   '/(auth)/login': typeof authLoginRoute
@@ -848,6 +865,7 @@ export interface FileRoutesById {
   '/admin/customer-companies': typeof AdminCustomerCompaniesRoute
   '/admin/ops-center': typeof AdminOpsCenterRoute
   '/admin/partners': typeof AdminPartnersRoute
+  '/admin/vendor-bills': typeof AdminVendorBillsRoute
   '/admin/vendors': typeof AdminVendorsRoute
   '/categories/$categoryId': typeof CategoriesCategoryIdRoute
   '/partner/feedback': typeof PartnerFeedbackRoute
@@ -942,6 +960,7 @@ export interface FileRouteTypes {
     | '/search'
     | '/success'
     | '/terms-and-conditions'
+    | '/vendor'
     | '/wallet'
     | '/forget-password'
     | '/login'
@@ -949,6 +968,7 @@ export interface FileRouteTypes {
     | '/admin/customer-companies'
     | '/admin/ops-center'
     | '/admin/partners'
+    | '/admin/vendor-bills'
     | '/admin/vendors'
     | '/categories/$categoryId'
     | '/partner/feedback'
@@ -1039,6 +1059,7 @@ export interface FileRouteTypes {
     | '/search'
     | '/success'
     | '/terms-and-conditions'
+    | '/vendor'
     | '/wallet'
     | '/forget-password'
     | '/login'
@@ -1046,6 +1067,7 @@ export interface FileRouteTypes {
     | '/admin/customer-companies'
     | '/admin/ops-center'
     | '/admin/partners'
+    | '/admin/vendor-bills'
     | '/admin/vendors'
     | '/categories/$categoryId'
     | '/partner/feedback'
@@ -1138,6 +1160,7 @@ export interface FileRouteTypes {
     | '/search'
     | '/success'
     | '/terms-and-conditions'
+    | '/vendor'
     | '/wallet'
     | '/(auth)/forget-password'
     | '/(auth)/login'
@@ -1145,6 +1168,7 @@ export interface FileRouteTypes {
     | '/admin/customer-companies'
     | '/admin/ops-center'
     | '/admin/partners'
+    | '/admin/vendor-bills'
     | '/admin/vendors'
     | '/categories/$categoryId'
     | '/partner/feedback'
@@ -1238,6 +1262,7 @@ export interface RootRouteChildren {
   SearchRoute: typeof SearchRoute
   SuccessRoute: typeof SuccessRoute
   TermsAndConditionsRoute: typeof TermsAndConditionsRoute
+  VendorRoute: typeof VendorRoute
   WalletRoute: typeof WalletRoute
   authForgetPasswordRoute: typeof authForgetPasswordRoute
   authLoginRoute: typeof authLoginRoute
@@ -1252,6 +1277,13 @@ declare module '@tanstack/react-router' {
       path: '/wallet'
       fullPath: '/wallet'
       preLoaderRoute: typeof WalletRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/vendor': {
+      id: '/vendor'
+      path: '/vendor'
+      fullPath: '/vendor'
+      preLoaderRoute: typeof VendorRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/terms-and-conditions': {
@@ -1525,6 +1557,13 @@ declare module '@tanstack/react-router' {
       path: '/vendors'
       fullPath: '/admin/vendors'
       preLoaderRoute: typeof AdminVendorsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/vendor-bills': {
+      id: '/admin/vendor-bills'
+      path: '/vendor-bills'
+      fullPath: '/admin/vendor-bills'
+      preLoaderRoute: typeof AdminVendorBillsRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/partners': {
@@ -1933,6 +1972,7 @@ interface AdminRouteChildren {
   AdminCustomerCompaniesRoute: typeof AdminCustomerCompaniesRoute
   AdminOpsCenterRoute: typeof AdminOpsCenterRoute
   AdminPartnersRoute: typeof AdminPartnersRoute
+  AdminVendorBillsRoute: typeof AdminVendorBillsRoute
   AdminVendorsRoute: typeof AdminVendorsRoute
   AdminIndexRoute: typeof AdminIndexRoute
   AdmincouponsCouponsRoute: typeof AdmincouponsCouponsRoute
@@ -1986,6 +2026,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminCustomerCompaniesRoute: AdminCustomerCompaniesRoute,
   AdminOpsCenterRoute: AdminOpsCenterRoute,
   AdminPartnersRoute: AdminPartnersRoute,
+  AdminVendorBillsRoute: AdminVendorBillsRoute,
   AdminVendorsRoute: AdminVendorsRoute,
   AdminIndexRoute: AdminIndexRoute,
   AdmincouponsCouponsRoute: AdmincouponsCouponsRoute,
@@ -2128,6 +2169,7 @@ const rootRouteChildren: RootRouteChildren = {
   SearchRoute: SearchRoute,
   SuccessRoute: SuccessRoute,
   TermsAndConditionsRoute: TermsAndConditionsRoute,
+  VendorRoute: VendorRoute,
   WalletRoute: WalletRoute,
   authForgetPasswordRoute: authForgetPasswordRoute,
   authLoginRoute: authLoginRoute,

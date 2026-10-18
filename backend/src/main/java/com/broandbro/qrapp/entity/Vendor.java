@@ -17,8 +17,6 @@ public class Vendor {
     private String alternatePhoneNumber;
     @Column(columnDefinition = "TEXT")
     private String address;
-    @Column(name = "is_active")
-    private Boolean isActive = true;
     @Column(name = "created_at", updatable = false)
     private Instant createdAt;
     @Column(name = "updated_at")
@@ -29,7 +27,6 @@ public class Vendor {
     public void prePersist() {
         this.createdAt = Instant.now();
         this.updatedAt = this.createdAt;
-        if (this.isActive == null) this.isActive = true;
     }
     @PreUpdate
     public void preUpdate() {

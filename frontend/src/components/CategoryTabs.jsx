@@ -2,6 +2,7 @@ import PropTypes from "prop-types";
 import { useState } from "react";
 import { buttonVariants } from "./ui/button";
 import { cn } from "@/lib/utils";
+import "../styles/category-tabs.css";
 import {
   FALLBACK_ICON_SRC,
   getCategoryDisplayName,
@@ -17,7 +18,7 @@ function CategoryTile({ resolved, failed, onError }) {
       loading="lazy"
       decoding="async"
       onError={onError}
-      className={usePhoto ? "size-full object-cover" : "size-[30px]"}
+      className={usePhoto ? "category-tile__img" : "category-tile__icon"}
     />
   );
 }
@@ -42,8 +43,10 @@ export default function CategoryTabs({ categories, active }) {
   ];
 
   return (
-    <div className="no-scrollbar overflow-x-auto lg:overflow-visible">
-      <div className="flex min-w-max items-start gap-0.5 pb-0 [touch-action:pan-x] lg:gap-3">
+    <div className="category-marquee">
+      <div className="category-marquee__track">
+        {[false, true].map((isCopy) => (
+        <div key={isCopy ? "copy" : "main"} className="category-marquee__group" aria-hidden={isCopy || undefined}>
         {allCategories.map((category) => {
           const catName = getCategoryName(category);
           const isActive = active === catName;
@@ -53,6 +56,7 @@ export default function CategoryTabs({ categories, active }) {
           return (
           <a
             href={`/#${catName}`}
+            tabIndex={isCopy ? -1 : undefined}
             key={category.id || catName}
             className={buttonVariants({
               size: "sm",
@@ -64,11 +68,10 @@ export default function CategoryTabs({ categories, active }) {
             })}
           >
             <span className={cn(
-              "grid place-items-center overflow-hidden rounded-[16px] text-[29px] shadow-[0_4px_10px_rgba(41,47,67,0.05)] transition-colors h-[50px] w-[50px] md:h-[60px] md:w-[60px] lg:h-[72px] lg:w-[72px]",
-              isPhoto ? "bg-muted" : "bg-[#f4f7fb]",
-              isActive && !isAllActive && !isPhoto && "bg-primary text-primary-foreground shadow-[0_7px_16px_rgba(241,32,70,0.22)]",
-              isActive && isPhoto && "ring-2 ring-primary ring-offset-2",
-              isAllActive && "border border-primary/20 bg-primary/10 text-primary shadow-none",
+              "category-tile",
+              isPhoto ? "category-tile--photo" : "category-tile--icon",
+              isActive && "is-active",
+              isAllActive && "is-all",
             )}>
               <CategoryTileImage resolved={resolved} />
             </span>
@@ -78,6 +81,8 @@ export default function CategoryTabs({ categories, active }) {
           </a>
           );
         })}
+        </div>
+        ))}
       </div>
     </div>
   );

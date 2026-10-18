@@ -226,7 +226,7 @@ public class SuperAdminLocationController {
         return new CreateUserOptionsResponse(
                 locationRepository.findByActiveTrueOrderByNameAsc().stream()
                         .map(LocationResponse::from).toList(),
-                List.of(UserRole.ADMIN, UserRole.MANAGER, UserRole.KITCHEN_STAFF));
+                List.of(UserRole.ADMIN, UserRole.MANAGER, UserRole.KITCHEN_STAFF, UserRole.VENDOR));
     }
 
     @PostMapping("/users")

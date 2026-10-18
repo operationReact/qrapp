@@ -687,8 +687,12 @@ public class MenuController {
                 item.setVendor(null);
             } else {
                 Long vendorId = Long.parseLong(vendorIdValue);
-                item.setVendor(vendorRepository.findById(vendorId)
-                        .orElseThrow(() -> new IllegalArgumentException("vendor_not_found")));
+                com.broandbro.qrapp.entity.Vendor vendor = vendorRepository.findById(vendorId)
+                        .orElseThrow(() -> new IllegalArgumentException("vendor_not_found"));
+                if (item.getLocation() != null && !vendorRepository.isLinkedToLocation(vendorId, item.getLocation().getId())) {
+                    throw new IllegalArgumentException("vendor_location_mismatch");
+                }
+                item.setVendor(vendor);
             }
         }
         if (fulfillmentTypeValue != null && !fulfillmentTypeValue.isBlank()) {

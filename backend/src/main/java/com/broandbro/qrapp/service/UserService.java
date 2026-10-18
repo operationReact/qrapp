@@ -417,7 +417,7 @@ public class UserService {
         return trimmed.isEmpty() ? null : trimmed;
     }
 
-    private UserResponse toResponse(User u) {
+    public UserResponse toResponse(User u) {
         UserResponse r = new UserResponse();
         r.setId(u.getId());
         r.setPhone(u.getPhone());
