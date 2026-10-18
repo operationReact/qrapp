@@ -1,5 +1,5 @@
 import PropTypes from "prop-types";
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { buttonVariants } from "./ui/button";
 import { cn } from "@/lib/utils";
@@ -13,6 +13,7 @@ import "../styles/category-tabs.css";
 const AUTO_SCROLL_PX_PER_SEC = 36;
 const RESUME_DELAY_MS = 2500;
 const STEP_RATIO = 0.6;
+const MAX_COPIES = 24;
 
 function CategoryTile({ resolved, failed, onError }) {
   const usePhoto = resolved.isPhoto && !failed;
@@ -155,6 +156,16 @@ export default function CategoryTabs({ categories, active }) {
   const [allTile, ...rollingCategories] = allCategories;
   const loops = rollingCategories.length > 0;
 
+  const [copies, setCopies] = useState(1);
+
+  // Repeat the rolling set until one group is wider than the viewport, so the loop always has room to move.
+  useLayoutEffect(() => {
+    const el = scrollerRef.current;
+    if (!loops || !el || copies >= MAX_COPIES) return;
+    const group = el.querySelector(".category-marquee__group");
+    if (group && group.offsetWidth <= el.clientWidth) setCopies((c) => c + 1);
+  }, [loops, copies, rollingCategories.length]);
+
   useStripMotion(wrapperRef, scrollerRef, loops, controlRef);
 
   const renderTile = (category, isCopy) => {
@@ -204,7 +215,11 @@ export default function CategoryTabs({ categories, active }) {
         <div className="category-marquee__track">
           {[false, true].map((isCopy) => (
             <div key={isCopy ? "copy" : "main"} className="category-marquee__group" aria-hidden={isCopy || undefined}>
-              {rollingCategories.map((category) => renderTile(category, isCopy))}
+              {Array.from({ length: copies }, (_, rep) => (
+                <Fragment key={rep}>
+                  {rollingCategories.map((category) => renderTile(category, isCopy || rep > 0))}
+                </Fragment>
+              ))}
             </div>
           ))}
         </div>
