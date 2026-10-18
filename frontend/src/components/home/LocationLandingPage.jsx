@@ -3,11 +3,15 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import {
   ArrowRight,
+  ConciergeBell,
+  Coffee,
+  Leaf,
   MapPin,
   Navigation,
   RefreshCw,
   Search,
   Store,
+  Users,
   Utensils,
   X,
 } from "lucide-react";
@@ -140,6 +144,10 @@ export default function LocationLandingPage({ locations = [], onSelect }) {
       .map((location) => ({ location })),
     [recentEntries, locations, query],
   );
+  const recentIds = useMemo(
+    () => new Set(resolveRecentLocations(recentEntries, locations).map((location) => String(location.id))),
+    [recentEntries, locations],
+  );
 
   const localRows = filter === "nearby" ? nearby.rows : recentRows;
   const rows = isAll ? serverRows : localRows.slice(0, localLimit);
@@ -238,9 +246,14 @@ export default function LocationLandingPage({ locations = [], onSelect }) {
               <span className="loc-brand-sub">Food Court</span>
             </span>
           </Link>
-          <Link to="/login" className="loc-signin">
-            Sign in
-          </Link>
+          <div className="loc-header-actions">
+            <nav className="loc-nav" aria-label="Site">
+              <a href="#loc-locations" className="loc-nav-link">Locations</a>
+            </nav>
+            <Link to="/login" className="loc-signin">
+              Sign in
+            </Link>
+          </div>
         </div>
       </header>
 
@@ -257,7 +270,7 @@ export default function LocationLandingPage({ locations = [], onSelect }) {
             <h1 className="loc-title">
               BRO &amp; BRO <span className="loc-title-accent">Food Court</span>
             </h1>
-            <p className="loc-lede">Choose a location to explore its menu.</p>
+            <p className="loc-lede">Great food. Work. Meet. Repeat.</p>
           </div>
           <div
             className="loc-art"
@@ -300,7 +313,7 @@ export default function LocationLandingPage({ locations = [], onSelect }) {
         </div>
       </section>
 
-      <section className="loc-container loc-section">
+      <section id="loc-locations" className="loc-container loc-section">
         <div className="loc-search" role="search">
           <Search size={20} aria-hidden="true" className="loc-search-icon" />
           <input
@@ -411,6 +424,7 @@ export default function LocationLandingPage({ locations = [], onSelect }) {
                 key={location.id}
                 location={location}
                 distanceKm={distanceKm}
+                isRecent={recentIds.has(String(location.id))}
                 onSelect={handleSelect}
               />
             ))}
@@ -437,6 +451,29 @@ export default function LocationLandingPage({ locations = [], onSelect }) {
           </div>
         )}
 
+        <ul className="loc-features" aria-label="Why Bro & Bro">
+          <li className="loc-feature">
+            <ConciergeBell size={24} aria-hidden="true" />
+            <p className="loc-feature-title">Multiple cuisines</p>
+            <p className="loc-feature-text">Biryani, South Indian, Burgers, Chaat &amp; more</p>
+          </li>
+          <li className="loc-feature">
+            <Users size={24} aria-hidden="true" />
+            <p className="loc-feature-title">Corporate locations</p>
+            <p className="loc-feature-text">Inside top IT parks &amp; business hubs</p>
+          </li>
+          <li className="loc-feature">
+            <Leaf size={24} aria-hidden="true" />
+            <p className="loc-feature-title">Hygienic &amp; fresh</p>
+            <p className="loc-feature-text">Quality food, every day</p>
+          </li>
+          <li className="loc-feature">
+            <Coffee size={24} aria-hidden="true" />
+            <p className="loc-feature-title">Quick &amp; convenient</p>
+            <p className="loc-feature-text">Dine-in, takeaway &amp; delivery</p>
+          </li>
+        </ul>
+
         <div className="loc-cue">
           <div className="loc-cue-icon" aria-hidden="true">
             <Utensils size={20} />
@@ -455,7 +492,7 @@ export default function LocationLandingPage({ locations = [], onSelect }) {
   );
 }
 
-function LocationCard({ location, distanceKm, onSelect }) {
+function LocationCard({ location, distanceKm, isRecent, onSelect }) {
   const image = locationImage(location);
   const addressLines = locationAddressLines(location);
   const name = location.name || location.title || "Food court";
@@ -476,15 +513,18 @@ function LocationCard({ location, distanceKm, onSelect }) {
               : "Browse the menu at this food court"}
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => onSelect(location)}
-          className="loc-cta"
-          aria-label={`Explore ${name}`}
-        >
-          Explore Food Court
-          <ArrowRight size={16} aria-hidden="true" />
-        </button>
+        <div className="loc-card-foot">
+          {isRecent ? <span className="loc-badge">Recently visited</span> : <span />}
+          <button
+            type="button"
+            onClick={() => onSelect(location)}
+            className="loc-cta"
+            aria-label={`Explore ${name}`}
+            title={`Explore ${name}`}
+          >
+            <ArrowRight size={18} aria-hidden="true" />
+          </button>
+        </div>
       </div>
     </article>
   );
