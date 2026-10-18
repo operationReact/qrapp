@@ -3,7 +3,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import {
   ArrowRight,
-  ChefHat,
   MapPin,
   Navigation,
   RefreshCw,
@@ -220,15 +219,37 @@ export default function LocationLandingPage({ locations = [], onSelect }) {
             <h1 className="loc-title">BRO & BRO Food Court</h1>
             <p className="loc-lede">Choose a location to explore its menu.</p>
           </div>
-          <div className="loc-art" aria-hidden="true">
-            <div className="loc-art-halo" />
-            <div className="loc-art-plate" />
-            <div className="loc-art-core">
-              <ChefHat size={48} strokeWidth={1.4} />
+          <div
+            className="loc-art"
+            onPointerMove={(event) => {
+              if (
+                event.pointerType !== "mouse" ||
+                window.matchMedia("(hover: none), (prefers-reduced-motion: reduce)").matches
+              ) {
+                return;
+              }
+              const rect = event.currentTarget.getBoundingClientRect();
+              const x = (event.clientX - rect.left) / rect.width - 0.5;
+              const y = (event.clientY - rect.top) / rect.height - 0.5;
+              event.currentTarget.style.setProperty("--tilt-x", `${(-y * 6).toFixed(2)}deg`);
+              event.currentTarget.style.setProperty("--tilt-y", `${(x * 6).toFixed(2)}deg`);
+            }}
+            onPointerLeave={(event) => {
+              event.currentTarget.style.setProperty("--tilt-x", "0deg");
+              event.currentTarget.style.setProperty("--tilt-y", "0deg");
+            }}
+          >
+            <div className="loc-art-stage">
+              <img
+                src="/3d/bro-bro-corporate-food-court.png"
+                alt="Bro & Bro food court building with Biryani, South Indian, Burgers, Chaat and Beverages counters"
+                width="1774"
+                height="887"
+                className="loc-art-img"
+                fetchPriority="high"
+                decoding="async"
+              />
             </div>
-            <Utensils className="loc-art-utensil" size={36} strokeWidth={1.5} />
-            <span className="loc-art-dot loc-art-dot--a" />
-            <span className="loc-art-dot loc-art-dot--b" />
           </div>
         </div>
       </section>
