@@ -36,8 +36,10 @@ import { Route as BusinessInformationRouteImport } from './routes/business-infor
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AboutUsRouteImport } from './routes/about-us'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as VendorIndexRouteImport } from './routes/vendor/index'
 import { Route as PartnerIndexRouteImport } from './routes/partner/index'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
+import { Route as VendorProfileRouteImport } from './routes/vendor/profile'
 import { Route as PartnerUsersRouteImport } from './routes/partner/users'
 import { Route as PartnerReportsRouteImport } from './routes/partner/reports'
 import { Route as PartnerProfileRouteImport } from './routes/partner/profile'
@@ -245,6 +247,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const VendorIndexRoute = VendorIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => VendorRoute,
+} as any)
 const PartnerIndexRoute = PartnerIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -254,6 +261,11 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AdminRoute,
+} as any)
+const VendorProfileRoute = VendorProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => VendorRoute,
 } as any)
 const PartnerUsersRoute = PartnerUsersRouteImport.update({
   id: '/users',
@@ -656,7 +668,7 @@ export interface FileRoutesByFullPath {
   '/search': typeof SearchRoute
   '/success': typeof SuccessRoute
   '/terms-and-conditions': typeof TermsAndConditionsRoute
-  '/vendor': typeof VendorRoute
+  '/vendor': typeof VendorRouteWithChildren
   '/wallet': typeof WalletRoute
   '/forget-password': typeof authForgetPasswordRoute
   '/login': typeof authLoginRoute
@@ -677,8 +689,10 @@ export interface FileRoutesByFullPath {
   '/partner/profile': typeof PartnerProfileRoute
   '/partner/reports': typeof PartnerReportsRoute
   '/partner/users': typeof PartnerUsersRoute
+  '/vendor/profile': typeof VendorProfileRoute
   '/admin/': typeof AdminIndexRoute
   '/partner/': typeof PartnerIndexRoute
+  '/vendor/': typeof VendorIndexRoute
   '/admin/coupons': typeof AdmincouponsCouponsRoute
   '/admin/food-court': typeof AdminfoodcourtFoodCourtRoute
   '/admin/auto-suggestions': typeof AdmingrowthAutoSuggestionsRoute
@@ -755,7 +769,6 @@ export interface FileRoutesByTo {
   '/search': typeof SearchRoute
   '/success': typeof SuccessRoute
   '/terms-and-conditions': typeof TermsAndConditionsRoute
-  '/vendor': typeof VendorRoute
   '/wallet': typeof WalletRoute
   '/forget-password': typeof authForgetPasswordRoute
   '/login': typeof authLoginRoute
@@ -776,8 +789,10 @@ export interface FileRoutesByTo {
   '/partner/profile': typeof PartnerProfileRoute
   '/partner/reports': typeof PartnerReportsRoute
   '/partner/users': typeof PartnerUsersRoute
+  '/vendor/profile': typeof VendorProfileRoute
   '/admin': typeof AdminIndexRoute
   '/partner': typeof PartnerIndexRoute
+  '/vendor': typeof VendorIndexRoute
   '/admin/coupons': typeof AdmincouponsCouponsRoute
   '/admin/food-court': typeof AdminfoodcourtFoodCourtRoute
   '/admin/auto-suggestions': typeof AdmingrowthAutoSuggestionsRoute
@@ -857,7 +872,7 @@ export interface FileRoutesById {
   '/search': typeof SearchRoute
   '/success': typeof SuccessRoute
   '/terms-and-conditions': typeof TermsAndConditionsRoute
-  '/vendor': typeof VendorRoute
+  '/vendor': typeof VendorRouteWithChildren
   '/wallet': typeof WalletRoute
   '/(auth)/forget-password': typeof authForgetPasswordRoute
   '/(auth)/login': typeof authLoginRoute
@@ -878,8 +893,10 @@ export interface FileRoutesById {
   '/partner/profile': typeof PartnerProfileRoute
   '/partner/reports': typeof PartnerReportsRoute
   '/partner/users': typeof PartnerUsersRoute
+  '/vendor/profile': typeof VendorProfileRoute
   '/admin/': typeof AdminIndexRoute
   '/partner/': typeof PartnerIndexRoute
+  '/vendor/': typeof VendorIndexRoute
   '/admin/(coupons)/coupons': typeof AdmincouponsCouponsRoute
   '/admin/(foodcourt)/food-court': typeof AdminfoodcourtFoodCourtRoute
   '/admin/(growth)/auto-suggestions': typeof AdmingrowthAutoSuggestionsRoute
@@ -981,8 +998,10 @@ export interface FileRouteTypes {
     | '/partner/profile'
     | '/partner/reports'
     | '/partner/users'
+    | '/vendor/profile'
     | '/admin/'
     | '/partner/'
+    | '/vendor/'
     | '/admin/coupons'
     | '/admin/food-court'
     | '/admin/auto-suggestions'
@@ -1059,7 +1078,6 @@ export interface FileRouteTypes {
     | '/search'
     | '/success'
     | '/terms-and-conditions'
-    | '/vendor'
     | '/wallet'
     | '/forget-password'
     | '/login'
@@ -1080,8 +1098,10 @@ export interface FileRouteTypes {
     | '/partner/profile'
     | '/partner/reports'
     | '/partner/users'
+    | '/vendor/profile'
     | '/admin'
     | '/partner'
+    | '/vendor'
     | '/admin/coupons'
     | '/admin/food-court'
     | '/admin/auto-suggestions'
@@ -1181,8 +1201,10 @@ export interface FileRouteTypes {
     | '/partner/profile'
     | '/partner/reports'
     | '/partner/users'
+    | '/vendor/profile'
     | '/admin/'
     | '/partner/'
+    | '/vendor/'
     | '/admin/(coupons)/coupons'
     | '/admin/(foodcourt)/food-court'
     | '/admin/(growth)/auto-suggestions'
@@ -1262,7 +1284,7 @@ export interface RootRouteChildren {
   SearchRoute: typeof SearchRoute
   SuccessRoute: typeof SuccessRoute
   TermsAndConditionsRoute: typeof TermsAndConditionsRoute
-  VendorRoute: typeof VendorRoute
+  VendorRoute: typeof VendorRouteWithChildren
   WalletRoute: typeof WalletRoute
   authForgetPasswordRoute: typeof authForgetPasswordRoute
   authLoginRoute: typeof authLoginRoute
@@ -1461,6 +1483,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/vendor/': {
+      id: '/vendor/'
+      path: '/'
+      fullPath: '/vendor/'
+      preLoaderRoute: typeof VendorIndexRouteImport
+      parentRoute: typeof VendorRoute
+    }
     '/partner/': {
       id: '/partner/'
       path: '/'
@@ -1474,6 +1503,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/'
       preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof AdminRoute
+    }
+    '/vendor/profile': {
+      id: '/vendor/profile'
+      path: '/profile'
+      fullPath: '/vendor/profile'
+      preLoaderRoute: typeof VendorProfileRouteImport
+      parentRoute: typeof VendorRoute
     }
     '/partner/users': {
       id: '/partner/users'
@@ -2143,6 +2179,19 @@ const PartnerRouteChildren: PartnerRouteChildren = {
 const PartnerRouteWithChildren =
   PartnerRoute._addFileChildren(PartnerRouteChildren)
 
+interface VendorRouteChildren {
+  VendorProfileRoute: typeof VendorProfileRoute
+  VendorIndexRoute: typeof VendorIndexRoute
+}
+
+const VendorRouteChildren: VendorRouteChildren = {
+  VendorProfileRoute: VendorProfileRoute,
+  VendorIndexRoute: VendorIndexRoute,
+}
+
+const VendorRouteWithChildren =
+  VendorRoute._addFileChildren(VendorRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutUsRoute: AboutUsRoute,
@@ -2169,7 +2218,7 @@ const rootRouteChildren: RootRouteChildren = {
   SearchRoute: SearchRoute,
   SuccessRoute: SuccessRoute,
   TermsAndConditionsRoute: TermsAndConditionsRoute,
-  VendorRoute: VendorRoute,
+  VendorRoute: VendorRouteWithChildren,
   WalletRoute: WalletRoute,
   authForgetPasswordRoute: authForgetPasswordRoute,
   authLoginRoute: authLoginRoute,

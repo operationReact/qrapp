@@ -1,4 +1,83 @@
-/* Customer category strip tiles. Kept in CSS because utility classes are not generated from source in this app. */
+/* Customer category strip. Kept in CSS because utility classes are not generated from source in this app. */
+.category-strip {
+  --category-gap: 4px;
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--category-gap);
+  width: 100%;
+}
+
+@media (min-width: 1024px) {
+  .category-strip {
+    --category-gap: 12px;
+  }
+}
+
+.category-strip__item {
+  flex-shrink: 0;
+}
+
+.category-strip__nav {
+  display: none;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  margin-top: 18px;
+  border-radius: 999px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  color: #1f2937;
+  box-shadow: 0 6px 14px -8px rgba(20, 14, 10, 0.35);
+  cursor: pointer;
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+
+.category-strip__nav:hover {
+  color: var(--primary);
+  border-color: var(--primary);
+}
+
+@media (min-width: 768px) {
+  .category-strip__nav {
+    display: inline-flex;
+  }
+}
+
+@media (min-width: 1024px) {
+  .category-strip__nav {
+    margin-top: 26px;
+  }
+}
+
+.category-marquee {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.category-marquee::-webkit-scrollbar {
+  display: none;
+}
+
+.category-marquee__track {
+  display: flex;
+  width: max-content;
+}
+
+.category-marquee__group {
+  display: flex;
+  flex-shrink: 0;
+  align-items: flex-start;
+  gap: var(--category-gap);
+  padding-right: var(--category-gap);
+}
+
 .category-tile {
   position: relative;
   display: block;
@@ -74,51 +153,5 @@ a:hover .category-tile {
     width: 84px;
     height: 84px;
     border-radius: 22px;
-  }
-}
-/* Endless loop: the list is rendered twice and the track moves by exactly one copy. */
-.category-marquee {
-  --category-gap: 2px;
-  overflow: hidden;
-  width: 100%;
-}
-
-.category-marquee__track {
-  display: flex;
-  width: max-content;
-  animation: category-marquee var(--category-marquee-duration, 30s) linear infinite;
-}
-
-.category-marquee__group {
-  display: flex;
-  flex-shrink: 0;
-  align-items: flex-start;
-  gap: var(--category-gap);
-  padding-right: var(--category-gap);
-}
-
-.category-marquee:hover .category-marquee__track,
-.category-marquee:focus-within .category-marquee__track {
-  animation-play-state: paused;
-}
-
-@keyframes category-marquee {
-  from { transform: translate3d(0, 0, 0); }
-  to { transform: translate3d(-50%, 0, 0); }
-}
-
-@media (min-width: 1024px) {
-  .category-marquee {
-    --category-gap: 12px;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .category-marquee {
-    overflow-x: auto;
-  }
-
-  .category-marquee__track {
-    animation: none;
   }
 }

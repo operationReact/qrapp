@@ -38,6 +38,9 @@ export function vendorErrorMessage(error, fallback = "Something went wrong. Plea
 export const listVendorBills = (locationId) =>
   apiClient.get(vendorPath, { params: { locationId } }).then((r) => r.data);
 
+export const listVendorLocations = () =>
+  apiClient.get(`${vendorPath}/locations`).then((r) => r.data);
+
 export const createVendorBill = (locationId, payload, submit = false) =>
   apiClient.post(vendorPath, payload, { params: { locationId, submit } }).then((r) => r.data);
 
