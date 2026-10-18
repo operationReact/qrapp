@@ -1,8 +1,8 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { KeyRound, MapPin, Save, UserRound } from "lucide-react";
+import { KeyRound, LogOut, MapPin, Save, UserRound } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { getCurrentUser, updateCurrentUser } from "@/services/auth-service";
 
@@ -23,9 +23,15 @@ function errorMessage(error, fallback) {
 
 function VendorProfile() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const { user, setUser } = useAuth();
   const profileQuery = useQuery({ queryKey: PROFILE_KEY, queryFn: getCurrentUser });
   const profile = profileQuery.data;
+
+  const logout = () => {
+    setUser(null);
+    navigate({ to: "/login" });
+  };
 
   if (profileQuery.isLoading) return <div className="vp-body"><p className="vp-empty">Loading profile…</p></div>;
   if (profileQuery.isError || !profile) {
@@ -46,8 +52,10 @@ function VendorProfile() {
         <div>
           <p className="vp-eyebrow">Vendor account</p>
           <h1 className="vp-title">Your profile</h1>
-          <p className="vp-subtitle">Keep your contact details up to date.</p>
         </div>
+        <button type="button" className="vp-btn vp-btn--ghost" onClick={logout}>
+          <LogOut size={16} /> Log out
+        </button>
       </header>
 
       <div className="vp-profile-grid">
