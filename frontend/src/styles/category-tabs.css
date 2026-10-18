@@ -1,0 +1,124 @@
+/* Customer category strip tiles. Kept in CSS because utility classes are not generated from source in this app. */
+.category-tile {
+  position: relative;
+  display: block;
+  width: 64px;
+  height: 64px;
+  overflow: hidden;
+  border-radius: 18px;
+  background: #f4f7fb;
+  box-shadow: 0 8px 18px -10px rgba(20, 14, 10, 0.45), 0 0 0 1px rgba(20, 14, 10, 0.06);
+  transition: box-shadow 0.25s ease, transform 0.25s ease, background-color 0.25s ease;
+}
+
+.category-tile--photo::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(to top, rgba(20, 14, 10, 0.28), transparent 45%);
+  border-radius: inherit;
+}
+
+.category-tile--icon {
+  display: grid;
+  place-items: center;
+}
+
+.category-tile__img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.45s ease;
+}
+
+.category-tile__icon {
+  display: block;
+  width: 30px;
+  height: 30px;
+}
+
+a:hover .category-tile__img {
+  transform: scale(1.08);
+}
+
+a:hover .category-tile {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 26px -12px rgba(20, 14, 10, 0.5), 0 0 0 1px rgba(20, 14, 10, 0.06);
+}
+
+.category-tile.is-active {
+  box-shadow: 0 0 0 2.5px #fff, 0 0 0 4.5px var(--primary), 0 12px 22px -10px rgba(241, 32, 70, 0.55);
+}
+
+.category-tile--icon.is-active {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+
+.category-tile--icon.is-all {
+  background: color-mix(in oklab, var(--primary) 12%, white);
+  color: var(--primary);
+}
+
+@media (min-width: 768px) {
+  .category-tile {
+    width: 68px;
+    height: 68px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .category-tile {
+    width: 84px;
+    height: 84px;
+    border-radius: 22px;
+  }
+}
+/* Endless loop: the list is rendered twice and the track moves by exactly one copy. */
+.category-marquee {
+  --category-gap: 2px;
+  overflow: hidden;
+  width: 100%;
+}
+
+.category-marquee__track {
+  display: flex;
+  width: max-content;
+  animation: category-marquee var(--category-marquee-duration, 30s) linear infinite;
+}
+
+.category-marquee__group {
+  display: flex;
+  flex-shrink: 0;
+  align-items: flex-start;
+  gap: var(--category-gap);
+  padding-right: var(--category-gap);
+}
+
+.category-marquee:hover .category-marquee__track,
+.category-marquee:focus-within .category-marquee__track {
+  animation-play-state: paused;
+}
+
+@keyframes category-marquee {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(-50%, 0, 0); }
+}
+
+@media (min-width: 1024px) {
+  .category-marquee {
+    --category-gap: 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .category-marquee {
+    overflow-x: auto;
+  }
+
+  .category-marquee__track {
+    animation: none;
+  }
+}

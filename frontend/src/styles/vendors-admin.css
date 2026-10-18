@@ -1,0 +1,34 @@
+/* Responsive rules for the Vendor Management page. Tailwind utilities are not generated for these, so they live here. */
+.vendor-location-filter {
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  .vendor-location-filter {
+    width: 260px;
+  }
+}
+
+.vendor-tabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+}
+
+@media (min-width: 640px) {
+  .vendor-tabs {
+    display: inline-flex;
+    grid-template-columns: none;
+    gap: 0;
+  }
+}
+
+[data-slot="select-trigger"].vendor-select-trigger {
+  width: 100%;
+}
+
+@media (min-width: 640px) {
+  [data-slot="select-trigger"].vendor-select-trigger {
+    width: 320px;
+  }
+}
