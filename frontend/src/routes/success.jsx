@@ -44,6 +44,15 @@ function SuccessPage() {
           </CardHeader>
 
           <CardContent className="grid gap-3 mt-2">
+            <div
+              role="status"
+              className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900"
+            >
+              <span className="font-semibold">Need to cancel?</span>
+              <span>
+                You can cancel this order from the Orders page until the kitchen starts preparing it. Once preparation begins, cancellation is no longer possible.
+              </span>
+            </div>
             <div className="relative overflow-hidden rounded-md bg-linear-to-br from-green-50 to-green-100/50 p-2">
               <div className="flex items-center gap-2">
                 <span className="rounded-full bg-green-500/10 p-1.5">

@@ -31,9 +31,9 @@ public class LocationAccessService {
                             && locationId.equals(a.getLocation().getId()))
                     .isPresent();
         }
-        // Remaining roles (e.g. CUSTOMER) are limited to their default location.
-        return user.getDefaultLocation() != null
-                && locationId.equals(user.getDefaultLocation().getId());
+        // Remaining roles (e.g. CUSTOMER) may order from any active location.
+        // The default location only decides what is preselected on login.
+        return true;
     }
 
     public void requireLocationAccess(User user, Long locationId) {

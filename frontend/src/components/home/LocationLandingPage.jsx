@@ -513,8 +513,23 @@ function LocationCard({ location, distanceKm, isRecent, onSelect }) {
   const addressLines = locationAddressLines(location);
   const name = location.name || location.title || "Food court";
 
+  const handleKeyDown = (event) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      onSelect(location);
+    }
+  };
+
   return (
-    <article className="loc-card">
+    <article
+      className="loc-card"
+      role="button"
+      tabIndex={0}
+      onClick={() => onSelect(location)}
+      onKeyDown={handleKeyDown}
+      aria-label={`Explore ${name}`}
+      style={{ cursor: "pointer" }}
+    >
       <LocationImage image={image} name={name} />
       <div className="loc-card-body">
         <h3 className="loc-card-name">{name}</h3>
@@ -531,20 +546,15 @@ function LocationCard({ location, distanceKm, isRecent, onSelect }) {
         </div>
         <div className="loc-card-foot">
           {isRecent ? <span className="loc-badge">Recently visited</span> : <span />}
-          <button
-            type="button"
-            onClick={() => onSelect(location)}
-            className="loc-cta"
-            aria-label={`Explore ${name}`}
-            title={`Explore ${name}`}
-          >
+          <span className="loc-cta" aria-hidden="true">
             <ArrowRight size={18} aria-hidden="true" />
-          </button>
+          </span>
         </div>
       </div>
     </article>
   );
 }
+
 
 function LocationImage({ image, name }) {
   const [failed, setFailed] = useState(false);

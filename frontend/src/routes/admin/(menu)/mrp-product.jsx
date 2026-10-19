@@ -637,11 +637,16 @@ function ProductCatalogPage() {
                     </label>
                     <label className={labelClass}>
                       Food type
-                      <select name="isVeg" value={form.isVeg} onChange={setField} className={fieldClass}>
-                        <option value="">Not specified</option>
-                        <option value="true">Veg</option>
-                        <option value="false">Non veg</option>
-                      </select>
+                      <Select value={form.isVeg === "" ? "unspecified" : form.isVeg} onValueChange={(value) => setForm((current) => ({ ...current, isVeg: value === "unspecified" ? "" : value }))}>
+                        <SelectTrigger aria-label="Food type" className="mrp-cf-trigger h-11 w-full min-w-0 max-w-full">
+                          <SelectValue>{form.isVeg === "true" ? "Veg" : form.isVeg === "false" ? "Non veg" : "Not specified"}</SelectValue>
+                        </SelectTrigger>
+                        <SelectContent className="mrp-cf-popup max-w-[calc(100vw-1rem)]">
+                          <SelectItem value="unspecified" className="mrp-cf-item max-w-full whitespace-normal break-words">Not specified</SelectItem>
+                          <SelectItem value="true" className="mrp-cf-item max-w-full whitespace-normal break-words">Veg</SelectItem>
+                          <SelectItem value="false" className="mrp-cf-item max-w-full whitespace-normal break-words">Non veg</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </label>
                     <label className={`${labelClass} sm:col-span-2`}>Description <textarea name="description" value={form.description} onChange={setField} rows={2} placeholder="Optional product description" className="w-full rounded-xl border border-[#ece8e2] bg-[#fbf8f6] px-3 py-2 text-sm font-normal outline-none transition focus:border-[#ff2438] focus:bg-white focus:ring-4 focus:ring-[#ff2438]/10" /></label>
                   </div>

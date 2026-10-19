@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { parseApiError } from "@/lib/api-error-parser";
@@ -234,7 +234,7 @@ function OrderItemsDrawer({ order }) {
         <Button
           type="button"
           variant="outline"
-          className="min-h-11 flex-1 gap-2 rounded-xl"
+          className="min-h-11 w-full min-w-0 gap-2 rounded-xl"
           aria-label={`View items for order ${order.orderNumber}`}
         >
           <CookingPotIcon weight="duotone" aria-hidden="true" />
@@ -319,16 +319,6 @@ function RefundNote({ order }) {
 function CancelOrderButton({ order }) {
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [now, setNow] = useState(() => Date.now());
-  const deadline = order.cancellable && order.cancellableUntil
-    ? new Date(order.cancellableUntil).getTime()
-    : null;
-
-  useEffect(() => {
-    if (deadline === null) return undefined;
-    const timer = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(timer);
-  }, [deadline]);
 
   const cancelMutation = useMutation({
     mutationFn: () => cancelMyOrder(order.id),
@@ -344,20 +334,16 @@ function CancelOrderButton({ order }) {
     },
   });
 
-  if (deadline === null) return null;
-  const remainingSeconds = Math.ceil((deadline - now) / 1000);
-  if (remainingSeconds <= 0) return null;
-
   return (
-    <div className="mt-3 flex justify-end">
+    <div className="col-span-2">
       <Button
         type="button"
         variant="outline"
-        className="min-h-11 gap-2 rounded-xl border-red-200 text-red-700 hover:bg-red-50"
+        className="min-h-11 w-full gap-2 rounded-xl border-red-200 text-red-700 hover:bg-red-50"
         onClick={() => setDialogOpen(true)}
       >
         <XCircleIcon weight="duotone" aria-hidden="true" />
-        Cancel order ({remainingSeconds}s left)
+        Cancel order
       </Button>
       <AlertDialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <AlertDialogContent className="rounded-[20px]">
@@ -405,11 +391,11 @@ function SupportRequestButton({ order }) {
   const trimmedLength = message.trim().length;
 
   return (
-    <div className="mt-3 flex justify-end">
+    <div className="col-span-2">
       <Button
         type="button"
         variant="outline"
-        className="min-h-11 gap-2 rounded-xl"
+        className="min-h-11 w-full gap-2 rounded-xl"
         onClick={() => setDialogOpen(true)}
       >
         Raise support request
@@ -530,15 +516,15 @@ export default function OrderCard({ order }) {
         <OrderItemsPreview order={order} />
       </section>
 
-      <div className="mt-4 flex min-w-0 items-center justify-between gap-3 border-t border-border pt-3">
+      <footer className="mt-4 min-w-0 space-y-3 border-t border-border pt-3">
         <PaymentStatus status={order.paymentStatus} />
-        <div className="flex min-w-0 flex-1 justify-end gap-2">
+        <div className="grid min-w-0 grid-cols-2 gap-2">
           <OrderItemsDrawer order={order} />
           {canDownloadInvoice && (
             <Button
               type="button"
               variant="secondary"
-              className="min-h-11 shrink-0 gap-2 rounded-xl"
+              className="min-h-11 w-full min-w-0 gap-2 rounded-xl"
               disabled={downloadingInvoice}
               onClick={handleInvoiceDownload}
             >
@@ -549,7 +535,7 @@ export default function OrderCard({ order }) {
           {order.cancellable && <CancelOrderButton order={order} />}
           {(status === "COMPLETED" || status === "CANCELLED") && <SupportRequestButton order={order} />}
         </div>
-      </div>
+      </footer>
     </article>
   );
 }
