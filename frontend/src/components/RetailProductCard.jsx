@@ -4,6 +4,7 @@ import { useCart } from "@/context/CartContext";
 import { baseURL } from "@/services";
 import { formatCurrency } from "@/lib/utils";
 import { essentialsProductAsset } from "@/lib/essentialsAssets";
+import QuantitySelector from "@/components/QuantitySelector";
 
 function imageUrl(item) {
   if (!item.imageUrl) return null;
@@ -11,7 +12,7 @@ function imageUrl(item) {
 }
 
 export default function RetailProductCard({ item }) {
-  const { cart, addItem } = useCart();
+  const { cart, addItem, decreaseItem } = useCart();
   const quantity = cart.find((entry) => entry.id === item.id)?.quantity || 0;
   const suppliedImage = essentialsProductAsset(item.name);
   const stockStatus = item.stockStatus || (item.available === false ? "OUT_OF_STOCK" : "IN_STOCK");
@@ -33,17 +34,26 @@ export default function RetailProductCard({ item }) {
       </div>
       <div className="space-y-1 p-2 sm:space-y-1.5 sm:p-3">
         <h3 className="line-clamp-2 min-h-8 text-xs font-semibold leading-4 sm:min-h-10 sm:text-sm sm:leading-5">{item.name}</h3>
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5">
           <strong className="text-sm leading-none sm:text-lg">{formatCurrency(item.price)}</strong>
-          <button
-            type="button"
-            aria-label={`Add ${item.name} to cart`}
-            disabled={outOfStock}
-            onClick={() => addItem(item)}
-            className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm transition-transform active:scale-95 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground sm:size-9"
-          >
-            {quantity > 0 ? <span className="text-xs font-bold">{quantity}</span> : <PlusIcon weight="bold" className="size-5" />}
-          </button>
+          {quantity > 0 ? (
+            <QuantitySelector
+              compact
+              qty={quantity}
+              onAdd={() => addItem(item)}
+              onRemove={() => decreaseItem(item)}
+            />
+          ) : (
+            <button
+              type="button"
+              aria-label={`Add ${item.name} to cart`}
+              disabled={outOfStock}
+              onClick={() => addItem(item)}
+              className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm transition-transform active:scale-95 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground sm:size-9"
+            >
+              <PlusIcon weight="bold" className="size-5" />
+            </button>
+          )}
         </div>
       </div>
     </article>
