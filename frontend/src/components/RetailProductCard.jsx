@@ -20,6 +20,16 @@ export default function RetailProductCard({ item }) {
   return (
     <article className="overflow-hidden rounded-xl border border-border bg-card shadow-sm sm:rounded-2xl">
       <div className="relative aspect-[4/3] overflow-hidden bg-[#fff1ed] sm:aspect-square">
+        {typeof item.isVeg === "boolean" && (
+          <span
+            role="img"
+            aria-label={item.isVeg ? "Veg" : "Non veg"}
+            title={item.isVeg ? "Veg" : "Non veg"}
+            className={`absolute left-1 top-1 z-10 flex size-5 items-center rounded-sm border-2 bg-white p-0.5 ${item.isVeg ? "border-accent-400" : "border-red-600"}`}
+          >
+            <span className={`size-full rounded-full ${item.isVeg ? "bg-accent-400" : "bg-red-600"}`} />
+          </span>
+        )}
         {imageUrl(item) || suppliedImage ? (
           <img
             src={imageUrl(item) || suppliedImage}

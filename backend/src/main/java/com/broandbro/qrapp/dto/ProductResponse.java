@@ -25,6 +25,7 @@ public class ProductResponse {
     private BigDecimal totalAmount;
     private Long taxProfileId;
     private String hsnSac;
+    private Boolean isVeg;
     private String imageUrl;
     private String imageKey;
     private Boolean active;
