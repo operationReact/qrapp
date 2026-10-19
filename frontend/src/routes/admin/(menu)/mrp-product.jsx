@@ -44,6 +44,7 @@ import {
   getMrpProductCategories,
   removeCategoryImage,
   setMrpProductCategoryVideo,
+  renameMrpProductCategory,
   uploadCategoryImage,
   getCategoryImageSources,
   reuseCategoryImage,
@@ -896,6 +897,7 @@ function ProductCategoryImages({ locationId, categoryNames, onClose }) {
   });
   const [busyName, setBusyName] = useState("");
   const [newCategoryName, setNewCategoryName] = useState("");
+  const [renameDraft, setRenameDraft] = useState(null);
   const [reuse, setReuse] = useState(null);
   const sourcesQuery = useQuery({
     queryKey: ["mrp-category-image-sources", locationId, reuse?.id],
@@ -922,6 +924,29 @@ function ProductCategoryImages({ locationId, categoryNames, onClose }) {
       toast.success(`${name} category added`);
     } catch (error) {
       toast.error(error?.response?.data?.message || error?.message || "Unable to add category");
+    } finally {
+      setBusyName("");
+    }
+  };
+
+  const saveRename = async (name) => {
+    const nextName = renameDraft?.value.trim() || "";
+    if (!nextName || nextName === name) {
+      setRenameDraft(null);
+      return;
+    }
+    setBusyName(name);
+    try {
+      let category = categoryByName.get(name.trim().toLowerCase());
+      if (!category) category = await createMrpProductCategory({ name }, locationId);
+      await renameMrpProductCategory(category.id, nextName, locationId);
+      await queryClient.invalidateQueries({ queryKey: ["mrp-product-category-options", locationId] });
+      await queryClient.invalidateQueries({ queryKey: ["mrp-products"] });
+      setRenameDraft(null);
+      setReuse(null);
+      toast.success(`Renamed to ${nextName}`);
+    } catch (error) {
+      toast.error(error?.response?.data?.message || error?.message || "Unable to rename category");
     } finally {
       setBusyName("");
     }
@@ -1036,7 +1061,18 @@ function ProductCategoryImages({ locationId, categoryNames, onClose }) {
                         <div key={name} className="grid min-w-0 gap-2 rounded-xl border border-[#e9e6e1] p-2.5">
                         <div className="flex min-w-0 items-center gap-3">
                           {category?.imageUrl ? <img src={category.imageUrl} alt="" className="size-12 shrink-0 rounded-lg border border-[#eeeae5] object-cover" /> : <div className="grid size-12 shrink-0 place-items-center rounded-lg bg-[#f8f7f4] text-[10px] text-[#99938c]">No image</div>}
-                          <span className="min-w-0 flex-1 truncate text-sm font-semibold text-[#393632]">{name}</span>
+                          {renameDraft?.from === name ? (
+                            <form onSubmit={(event) => { event.preventDefault(); saveRename(name); }} className="flex min-w-0 flex-1 items-center gap-2">
+                              <input autoFocus value={renameDraft.value} onChange={(event) => setRenameDraft({ from: name, value: event.target.value })} onKeyDown={(event) => { if (event.key === "Escape") setRenameDraft(null); }} aria-label={`New name for ${name}`} className="h-9 min-w-0 flex-1 rounded-lg border border-[#e5e2dd] px-2.5 text-sm outline-none focus:border-[#ff2438] focus:ring-2 focus:ring-[#ff2438]/10" />
+                              <button type="submit" disabled={busy || !renameDraft.value.trim()} className="mrp-btn-brand h-9 shrink-0 rounded-lg px-3 text-xs font-bold disabled:opacity-50">Save</button>
+                              <button type="button" onClick={() => setRenameDraft(null)} className="shrink-0 px-1 text-xs font-semibold text-[#514d48]">Cancel</button>
+                            </form>
+                          ) : (
+                            <>
+                              <span className="min-w-0 flex-1 truncate text-sm font-semibold text-[#393632]">{name}</span>
+                              <button type="button" disabled={busy} onClick={() => setRenameDraft({ from: name, value: name })} className="shrink-0 rounded-lg border border-[#e5e2dd] px-2.5 py-2 text-xs font-semibold text-[#514d48] disabled:opacity-50">Rename</button>
+                            </>
+                          )}
                           <button type="button" disabled={busy} onClick={() => openReuse(name)} className="shrink-0 rounded-lg border border-[#ffd3cd] bg-[#fff7f5] px-2.5 py-2 text-xs font-semibold text-[#d92334] disabled:opacity-50">Reuse</button>
                           <label className={`shrink-0 cursor-pointer rounded-lg border border-[#e5e2dd] px-2.5 py-2 text-xs font-semibold text-[#514d48] hover:bg-[#f8f7f4] ${busy ? "pointer-events-none opacity-50" : ""}`}>
                             {busy ? "Saving…" : category?.imageUrl ? "Replace" : "Upload"}

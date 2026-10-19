@@ -6,6 +6,7 @@ import {
   ConciergeBell,
   Coffee,
   Leaf,
+  LogOut,
   MapPin,
   Navigation,
   RefreshCw,
@@ -235,7 +236,7 @@ export default function LocationLandingPage({ locations = [], onSelect }) {
   const countLabel = totalCount
     ? `${totalCount} ${totalCount === 1 ? "location" : "locations"}`
     : "Locations";
-  const { user } = useAuth();
+  const { user, setUser } = useAuth();
   const displayName = user?.name || user?.fullName || user?.username || user?.phone || "Account";
 
   return (
@@ -254,10 +255,15 @@ export default function LocationLandingPage({ locations = [], onSelect }) {
               <a href="#loc-locations" className="loc-nav-link">Locations</a>
             </nav>
             {user?.token ? (
-              <Link to="/profile" className="loc-user" aria-label={`Signed in as ${displayName}`}>
-                <span className="loc-user-avatar" aria-hidden="true">{displayName.charAt(0).toUpperCase()}</span>
-                <span className="loc-user-name">{displayName}</span>
-              </Link>
+              <>
+                <Link to="/profile" className="loc-user" aria-label={`Signed in as ${displayName}`}>
+                  <span className="loc-user-avatar" aria-hidden="true">{displayName.charAt(0).toUpperCase()}</span>
+                  <span className="loc-user-name">{displayName}</span>
+                </Link>
+                <button type="button" className="loc-logout" onClick={() => setUser(null)} aria-label="Log out" title="Log out">
+                  <LogOut size={18} aria-hidden="true" />
+                </button>
+              </>
             ) : (
               <Link to="/login" className="loc-signin">
                 Sign in

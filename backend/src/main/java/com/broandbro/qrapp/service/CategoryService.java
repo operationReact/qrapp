@@ -2,6 +2,7 @@ package com.broandbro.qrapp.service;
 
 import com.broandbro.qrapp.entity.Category;
 import com.broandbro.qrapp.entity.Location;
+import com.broandbro.qrapp.entity.LocationProduct;
 import com.broandbro.qrapp.entity.ProductImageAsset;
 import com.broandbro.qrapp.entity.User;
 import com.broandbro.qrapp.exception.FileTooLargeException;
@@ -9,9 +10,11 @@ import com.broandbro.qrapp.exception.InvalidImageException;
 import com.broandbro.qrapp.prompt.FoodImagePromptBuilder;
 import com.broandbro.qrapp.prompt.CategoryImagePromptBuilder;
 import com.broandbro.qrapp.repository.CategoryRepository;
+import com.broandbro.qrapp.repository.LocationProductRepository;
 import com.broandbro.qrapp.repository.LocationRepository;
 import com.broandbro.qrapp.repository.MenuRepository;
 import com.broandbro.qrapp.repository.ProductImageAssetRepository;
+import com.broandbro.qrapp.repository.ProductRepository;
 import com.broandbro.qrapp.service.ai.ImageGenerationService;
 import com.broandbro.qrapp.storage.ImageStorageService;
 import lombok.RequiredArgsConstructor;
@@ -58,6 +61,8 @@ public class CategoryService {
     private final FoodImagePromptBuilder promptBuilder;
     private final CategoryImagePromptBuilder categoryPromptBuilder;
     private final ProductImageAssetRepository imageAssetRepository;
+    private final LocationProductRepository locationProductRepository;
+    private final ProductRepository productRepository;
 
     @Cacheable(cacheNames = "categories", key = "#locationId", sync = true)
     public List<Category> getAllCategories(Long locationId) {
@@ -98,6 +103,40 @@ public class CategoryService {
         category.setCategoryType(MRP_PRODUCT_CATEGORY);
         category.setLocation(location);
         return categoryRepository.save(category);
+    }
+
+    @Transactional
+    @CacheEvict(cacheNames = {"categories", "menu", "menuRecommended"}, allEntries = true)
+    public Category renameMrpProductCategory(Long locationId, Long id, String newName, User user) {
+        requireManagementLocation(locationId, user);
+        String name = newName == null ? "" : newName.trim();
+        if (name.isEmpty()) {
+            throw new IllegalArgumentException("Category name is required");
+        }
+        Category category = categoryRepository.findByIdAndLocationIdAndIsDeletedFalse(id, locationId)
+                .filter(existing -> MRP_PRODUCT_CATEGORY.equals(existing.getCategoryType()))
+                .orElseThrow(() -> new RuntimeException("Category not found: " + id));
+        boolean nameTaken = categoryRepository.findByLocationIdAndNameAndCategoryTypeAndIsDeletedFalse(
+                        locationId, name, MRP_PRODUCT_CATEGORY)
+                .filter(other -> !other.getId().equals(id))
+                .isPresent();
+        if (nameTaken) {
+            throw new IllegalArgumentException("A product category named \"" + name + "\" already exists");
+        }
+        String oldName = category.getName();
+        category.setName(name);
+        Category saved = categoryRepository.save(category);
+        // Products store their category by name; keep this location's products aligned so the next catalog sync
+        // doesn't recreate the old category. Menu projections reference the Category row and update automatically.
+        locationProductRepository.findByLocationIdOrderByProductNameAsc(locationId).stream()
+                .map(LocationProduct::getProduct)
+                .filter(product -> oldName.equals(product.getCategoryName()))
+                .distinct()
+                .forEach(product -> {
+                    product.setCategoryName(name);
+                    productRepository.save(product);
+                });
+        return saved;
     }
 
     @CacheEvict(cacheNames = {"categories", "menu", "menuRecommended"}, allEntries = true)
