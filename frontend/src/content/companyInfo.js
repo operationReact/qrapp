@@ -266,7 +266,7 @@ export const companyInfoPages = {
           {
             question: "How can I cancel an order?",
             answer:
-              "Cancellation depends on the order stage. Contact support as early as possible after placing the order.",
+              "You can cancel from the Orders page within 1 minute of placing the order, as long as preparation has not started. After that, contact support.",
           },
           {
             question: "How can I contact support?",
@@ -364,7 +364,7 @@ export const companyInfoPages = {
       {
         title: "7. Cancellations, refunds and order issues",
         bullets: [
-          "The current customer application does not provide a self-service order-cancellation or refund endpoint. Do not assume that an order can be cancelled after submission or after preparation has started.",
+          "Customers can cancel from the Orders page within 1 minute of placing the order, as long as preparation has not started. Admin and kitchen staff can cancel before the order is completed, with a recorded reason. Completed orders cannot be cancelled; raise a support request from the Orders page for any issue. Wallet and online payments are refunded automatically; pay-at-stall refunds are handled manually by the stall team.",
           "If you need to request cancellation, or receive an incorrect, missing or materially damaged item, contact support as soon as possible with the order number, payment reference and a clear description. The operator will review the order status, preparation and payment records.",
           "The current backend does not define an automatic refund schedule, refund eligibility rule, refund amount, refund destination or refund timeline. Any refund, replacement, correction or other resolution is therefore subject to case review, applicable law, the payment provider’s process and the operator’s confirmed business policy.",
           "For a failed or apparently duplicated online payment, contact support before making another payment. A bank or payment-provider debit may require reconciliation before any action can be taken.",
@@ -463,8 +463,8 @@ export const companyInfoPages = {
       {
         title: "Order cancellation",
         bullets: [
-          "Orders can usually be cancelled only before preparation begins.",
-          "Once preparation starts, cancellation may no longer be possible.",
+          "Customers can cancel within 1 minute of placing the order, before preparation begins.",
+          "Admin and kitchen staff can cancel before the order is completed. Completed orders cannot be cancelled; raise a support request from the Orders page instead.",
           "If payment was taken but the order was not created, contact support immediately.",
         ],
       },

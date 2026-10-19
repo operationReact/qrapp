@@ -7,6 +7,7 @@ import {
   AlertTriangle,
   LoaderCircle,
   CreditCard,
+  XCircle,
 } from "lucide-react";
 import {
   Dialog,
@@ -22,7 +23,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { getAdminOrder, updateOrderStatusAdmin, downloadAdminInvoice } from "@/services/order-service";
+import {
+  getAdminOrder,
+  updateOrderStatusAdmin,
+  downloadAdminInvoice,
+  getOrderSupportRequests,
+  resolveOrderSupportRequest,
+  completeManualRefund,
+} from "@/services/order-service";
 import { cn, isOrderPaid, formatAge } from "@/lib/utils";
 import { parseApiError, getBusinessErrorMessage } from "@/lib/api-error-parser";
 import { useMarkOrderAsPaid } from "@/hooks/useOrderMutations";
@@ -177,6 +185,92 @@ function PaymentConfirmationDialog({
   );
 }
 
+const CANCEL_REASONS = [
+  { value: "customer_requested", label: "Customer requested cancellation" },
+  { value: "item_unavailable", label: "Item unavailable" },
+  { value: "kitchen_issue", label: "Kitchen issue" },
+  { value: "payment_issue", label: "Payment issue" },
+  { value: "duplicate_order", label: "Duplicate order" },
+  { value: "other", label: "Other" },
+];
+
+function CancelOrderDialog({ isOpen, onOpenChange, order, onConfirm, isLoading }) {
+  const [selectedReason, setSelectedReason] = useState("");
+  const [otherReason, setOtherReason] = useState("");
+
+  const handleConfirm = () => {
+    if (!selectedReason) {
+      toast.error("Please select a reason for cancelling.");
+      return;
+    }
+    if (selectedReason === "other" && !otherReason.trim()) {
+      toast.error("Please describe the reason.");
+      return;
+    }
+    onConfirm(selectedReason === "other" ? otherReason.trim() : selectedReason);
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="text-left">Cancel Order {order?.orderNumber}?</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-2">
+          <p className="text-sm text-gray-700">
+            Stock will be restored. Wallet and online payments are refunded automatically.
+            Pay-at-stall orders need a manual refund.
+          </p>
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-900">Reason (required)</label>
+            <Select value={selectedReason} onValueChange={setSelectedReason}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select a reason" />
+              </SelectTrigger>
+              <SelectContent>
+                {CANCEL_REASONS.map((reason) => (
+                  <SelectItem key={reason.value} value={reason.value}>
+                    {reason.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {selectedReason === "other" && (
+              <input
+                type="text"
+                value={otherReason}
+                onChange={(event) => setOtherReason(event.target.value)}
+                maxLength={200}
+                placeholder="Describe the reason"
+                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+              />
+            )}
+          </div>
+        </div>
+        <DialogFooter className="gap-2">
+          <button
+            type="button"
+            onClick={() => onOpenChange(false)}
+            disabled={isLoading}
+            className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+          >
+            Keep Order
+          </button>
+          <button
+            type="button"
+            onClick={handleConfirm}
+            disabled={isLoading}
+            className="inline-flex items-center gap-2 rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+          >
+            {isLoading && <LoaderCircle className="h-4 w-4 animate-spin" />}
+            Cancel Order
+          </button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function StageControlDialog({
   isOpen,
   onOpenChange,
@@ -311,12 +405,43 @@ export function KitchenQueueOrderDetailPanel({
   const [isBackwardMove, setIsBackwardMove] = useState(false);
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [invoiceDownloading, setInvoiceDownloading] = useState(false);
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [manualRefundReference, setManualRefundReference] = useState("");
 
   // Fetch order details
   const { data: order, isLoading, error } = useQuery({
     queryKey: ["orders", "admin", orderId, { locationId }],
     queryFn: () => getAdminOrder(orderId, locationId),
     enabled: isOpen && !!orderId,
+  });
+
+  const { data: supportRequests = [] } = useQuery({
+    queryKey: ["orders", "admin", orderId, "support-requests", { locationId }],
+    queryFn: () => getOrderSupportRequests(orderId, locationId),
+    enabled: isOpen && !!orderId,
+  });
+
+  const resolveSupportMutation = useMutation({
+    mutationFn: (requestId) => resolveOrderSupportRequest(orderId, requestId, locationId),
+    onSuccess: () => {
+      toast.success("Support request marked resolved");
+      queryClient.invalidateQueries({ queryKey: ["orders", "admin", orderId, "support-requests"] });
+    },
+    onError: (error) => {
+      toast.error(parseApiError(error).message || "Could not resolve request");
+    },
+  });
+
+  const manualRefundMutation = useMutation({
+    mutationFn: (reference) => completeManualRefund(orderId, reference, locationId),
+    onSuccess: () => {
+      toast.success("Refund marked complete");
+      setManualRefundReference("");
+      queryClient.invalidateQueries({ queryKey: ["orders", "admin", orderId] });
+    },
+    onError: (error) => {
+      toast.error(parseApiError(error).message || "Could not complete refund");
+    },
   });
 
   // Use shared hook for payment mutations
@@ -352,6 +477,7 @@ export function KitchenQueueOrderDetailPanel({
     onSuccess: () => {
       toast.success("Order updated successfully");
       setStageControlOpen(false);
+      setCancelDialogOpen(false);
       setTargetStatus(null);
       // Invalidate all relevant queries
       queryClient.invalidateQueries({ queryKey: ["orders", "admin", "live"] });
@@ -368,6 +494,10 @@ export function KitchenQueueOrderDetailPanel({
 
   const handleStageConfirm = (reason) => {
     stageMutation.mutate({ status: targetStatus, reason });
+  };
+
+  const handleCancelConfirm = (reason) => {
+    stageMutation.mutate({ status: "CANCELLED", reason });
   };
 
   const handleMarkAsPaid = () => {
@@ -465,7 +595,7 @@ export function KitchenQueueOrderDetailPanel({
                           : "bg-yellow-100 text-yellow-700"
                       )}
                     >
-                      {paid ? "PAID" : "UNPAID"}
+                      {order.refundStatus === "REFUNDED" ? "REFUNDED" : paid ? "PAID" : "UNPAID"}
                     </span>
                   </div>
 
@@ -586,6 +716,110 @@ export function KitchenQueueOrderDetailPanel({
                   </div>
                 </div>
 
+                {order.status === "CANCELLED" && (
+                  <div className="space-y-1 rounded-lg bg-red-50 p-3 text-sm">
+                    <p className="font-semibold text-red-800">
+                      Cancelled{order.cancelReason ? `: ${order.cancelReason}` : ""}
+                    </p>
+                    {order.cancelledBy && (
+                      <p className="text-xs text-red-700">
+                        By {order.cancelledBy}
+                        {order.cancelledAt ? ` at ${new Date(order.cancelledAt).toLocaleString()}` : ""}
+                      </p>
+                    )}
+                    {order.refundStatus === "REFUNDED" && (
+                      <p className="text-xs text-emerald-700">
+                        Refunded ₹{Number(order.refundAmount || 0).toFixed(2)}
+                        {order.refundReference ? ` (ref ${order.refundReference})` : ""}
+                      </p>
+                    )}
+                    {order.refundStatus === "PENDING" && (
+                      <p className="text-xs text-amber-700">
+                        Refund of ₹{Number(order.refundAmount || order.grandTotal || 0).toFixed(2)} is being processed. Reopen the order to see the latest status.
+                      </p>
+                    )}
+                    {order.refundStatus === "MANUAL_REQUIRED" && (
+                      <div className="space-y-2">
+                        <p className="text-xs font-semibold text-amber-700">
+                          Automatic refund needs attention. Return ₹{Number(order.refundAmount || order.grandTotal || 0).toFixed(2)} to the customer, or verify it on the Razorpay dashboard, then enter the reference below.
+                        </p>
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={manualRefundReference}
+                            onChange={(e) => setManualRefundReference(e.target.value)}
+                            placeholder="Refund reference"
+                            maxLength={120}
+                            className="flex-1 rounded border border-slate-300 px-2 py-1 text-xs"
+                          />
+                          <button
+                            type="button"
+                            disabled={!manualRefundReference.trim() || manualRefundMutation.isPending}
+                            onClick={() => manualRefundMutation.mutate(manualRefundReference.trim())}
+                            className="rounded bg-emerald-600 px-3 py-1 text-xs font-semibold text-white disabled:opacity-50"
+                          >
+                            {manualRefundMutation.isPending ? "Saving..." : "Mark refunded"}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {order.availableTransitions?.includes("CANCELLED") && (
+                  <div className="space-y-2">
+                    <h3 className="text-sm font-semibold text-gray-900">Cancel Order</h3>
+                    <button
+                      type="button"
+                      onClick={() => setCancelDialogOpen(true)}
+                      className="inline-flex items-center gap-2 rounded-md border border-red-200 px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-50"
+                    >
+                      <XCircle className="h-4 w-4" />
+                      Cancel order and refund
+                    </button>
+                  </div>
+                )}
+
+                {supportRequests.length > 0 && (
+                  <div className="space-y-3">
+                    <h3 className="text-sm font-semibold text-gray-900">Support requests</h3>
+                    <div className="space-y-2">
+                      {supportRequests.map((req) => (
+                        <div key={req.id} className="space-y-2 rounded-lg border border-gray-200 p-3 text-sm">
+                          <div className="flex items-center justify-between gap-2">
+                            <span
+                              className={cn(
+                                "rounded-full px-2 py-0.5 text-xs font-semibold",
+                                req.status === "RESOLVED"
+                                  ? "bg-emerald-100 text-emerald-800"
+                                  : "bg-amber-100 text-amber-800"
+                              )}
+                            >
+                              {req.status}
+                            </span>
+                            {req.createdAt && (
+                              <span className="text-xs text-gray-500">
+                                {new Date(req.createdAt).toLocaleString()}
+                              </span>
+                            )}
+                          </div>
+                          <p className="whitespace-pre-wrap text-gray-800">{req.message}</p>
+                          {req.status === "OPEN" && (
+                            <button
+                              type="button"
+                              onClick={() => resolveSupportMutation.mutate(req.id)}
+                              disabled={resolveSupportMutation.isPending}
+                              className="rounded-md border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                            >
+                              Mark resolved
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* Timeline/History */}
                 {order.history && order.history.length > 0 && (
                   <div className="space-y-3">
@@ -615,6 +849,14 @@ export function KitchenQueueOrderDetailPanel({
         targetStatus={targetStatus}
         isBackward={isBackwardMove}
         onConfirm={handleStageConfirm}
+        isLoading={stageMutation.isPending}
+      />
+
+      <CancelOrderDialog
+        isOpen={cancelDialogOpen}
+        onOpenChange={setCancelDialogOpen}
+        order={order}
+        onConfirm={handleCancelConfirm}
         isLoading={stageMutation.isPending}
       />
 

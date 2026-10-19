@@ -2,6 +2,7 @@ package com.broandbro.qrapp.controller;
 
 import com.broandbro.qrapp.config.RazorpayProperties;
 import com.broandbro.qrapp.service.RazorpayWebhookService;
+import com.broandbro.qrapp.service.RefundService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -77,6 +78,16 @@ public class WebhookController {
                 event, valueOrNone(razorpayPaymentId), valueOrNone(razorpayOrderId));
 
         try {
+            if (event.startsWith("refund.")) {
+                RefundService.ProviderRefundUpdate update = refundUpdateFrom(event, root);
+                log.info("[Webhook] refund event={} providerRefundId={} paymentId={} refundKeyPresent={}",
+                        event, valueOrNone(update.providerRefundId()), valueOrNone(update.paymentId()),
+                        update.refundKey() != null);
+                RazorpayWebhookService.ProcessingResult result =
+                        webhookService.processRefundEvent(razorpayEventId, event, update);
+                log.info("[Webhook] processing={} response=200", result);
+                return ResponseEntity.ok().build();
+            }
             RazorpayWebhookService.ProcessingResult result =
                     webhookService.process(razorpayEventId, event, razorpayPaymentId, razorpayOrderId);
             log.info("[Webhook] processing={} response=200", result);
@@ -86,6 +97,15 @@ public class WebhookController {
             log.info("[Webhook] response=503");
             return ResponseEntity.status(503).build();
         }
+    }
+
+    private RefundService.ProviderRefundUpdate refundUpdateFrom(String event, JsonNode root) {
+        String providerRefundId = textAt(root, "payload", "refund", "entity", "id");
+        String paymentId = textAt(root, "payload", "refund", "entity", "payment_id");
+        String refundKey = textAt(root, "payload", "refund", "entity", "notes", "refund_key");
+        JsonNode amount = root.at("/payload/refund/entity/amount");
+        Long amountPaise = amount.isIntegralNumber() ? amount.asLong() : null;
+        return new RefundService.ProviderRefundUpdate(event, providerRefundId, refundKey, paymentId, amountPaise);
     }
 
     private String extractOrderId(String event, JsonNode root) {
