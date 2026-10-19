@@ -453,7 +453,7 @@ function OrderMenuRow({ tone = "default", iconNode, title, hint, onSelect, disab
   return (
     <DropdownMenuItem
       disabled={disabled}
-      onSelect={onSelect}
+      onClick={onSelect}
       className={cn("gap-3 rounded-xl px-2 py-2", className)}
     >
       <span className={cn("flex size-9 shrink-0 items-center justify-center rounded-lg", MENU_TILE_TONES[tone])}>

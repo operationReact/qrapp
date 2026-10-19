@@ -116,7 +116,7 @@ export default function Navbar({
         {homeHeader ? (
           <>
             <LocationSelector header className="min-w-0 flex-1" />
-            {!isAdmin && user ? (
+            {user ? (
               <Link
                 to="/wallet"
                 aria-label="Open wallet"
