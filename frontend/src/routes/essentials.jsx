@@ -39,10 +39,19 @@ function EssentialsPage() {
   const { hash } = useRouterLocation();
   const { cart } = useCart();
   const [search, setSearch] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState(() => {
-    const initial = hash.replace(/^#/, "");
-    return categoryNames.some(([, value]) => value === initial) ? initial : "all";
-  });
+  const hashCategory = (() => {
+    try {
+      return decodeURIComponent(hash.replace(/^#/, "")).trim().toLowerCase();
+    } catch {
+      return "";
+    }
+  })();
+  const [pickedCategory, setPickedCategory] = useState(hashCategory || "all");
+  const [syncedHash, setSyncedHash] = useState(hashCategory);
+  if (syncedHash !== hashCategory) {
+    setSyncedHash(hashCategory);
+    if (hashCategory) setPickedCategory(hashCategory);
+  }
   const catalogQuery = useQuery({
     queryKey: ["public-mrp-products", activeLocationId],
     queryFn: () => getCatalogProducts(activeLocationId),
@@ -98,6 +107,9 @@ function EssentialsPage() {
     ...adminCategoryNames.map((name) => [name, name.toLowerCase()]),
     ...dynamicCategoryNames.map((name) => [name, name.toLowerCase()]),
   ].filter(([, value]) => categoryHasItems(value));
+  const selectedCategory = pickedCategory === "all" || visibleCategoryNames.some(([, value]) => value === pickedCategory)
+      ? pickedCategory
+      : "all";
   const categoryBanner = categoryBannerFiles[selectedCategory]
       ? essentialsAsset("hero", categoryBannerFiles[selectedCategory])
       : null;
@@ -153,7 +165,7 @@ function EssentialsPage() {
                   key={value}
                   type="button"
                   aria-pressed={selectedCategory === value}
-                  onClick={() => setSelectedCategory(value)}
+                  onClick={() => setPickedCategory(value)}
                   className={`min-h-10 shrink-0 rounded-xl px-4 text-xs font-semibold transition ${
                     selectedCategory === value
                       ? "bg-foreground text-background shadow-sm"

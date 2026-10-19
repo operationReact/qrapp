@@ -1,10 +1,9 @@
 import PropTypes from "prop-types";
-import { PlusIcon } from "@phosphor-icons/react";
+import { MinusIcon, PlusIcon } from "@phosphor-icons/react";
 import { useCart } from "@/context/CartContext";
 import { baseURL } from "@/services";
 import { formatCurrency } from "@/lib/utils";
 import { essentialsProductAsset } from "@/lib/essentialsAssets";
-import QuantitySelector from "@/components/QuantitySelector";
 
 function imageUrl(item) {
   if (!item.imageUrl) return null;
@@ -37,12 +36,25 @@ export default function RetailProductCard({ item }) {
         <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5">
           <strong className="text-sm leading-none sm:text-lg">{formatCurrency(item.price)}</strong>
           {quantity > 0 ? (
-            <QuantitySelector
-              compact
-              qty={quantity}
-              onAdd={() => addItem(item)}
-              onRemove={() => decreaseItem(item)}
-            />
+            <div className="flex h-8 w-full items-center justify-between rounded-full bg-primary/5 px-1 ring-1 ring-primary/20">
+              <button
+                type="button"
+                aria-label={`Remove one ${item.name}`}
+                onClick={() => decreaseItem(item)}
+                className="flex size-6 items-center justify-center rounded-full bg-background text-primary shadow-xs transition-transform active:scale-90"
+              >
+                <MinusIcon weight="bold" className="size-3" />
+              </button>
+              <span className="text-sm font-bold tabular-nums leading-none">{quantity}</span>
+              <button
+                type="button"
+                aria-label={`Add one more ${item.name}`}
+                onClick={() => addItem(item)}
+                className="flex size-6 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm transition-transform active:scale-90"
+              >
+                <PlusIcon weight="bold" className="size-3" />
+              </button>
+            </div>
           ) : (
             <button
               type="button"
