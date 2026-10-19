@@ -138,6 +138,25 @@ public class Order {
      */
     @Column(name = "grand_total", precision = 10, scale = 2)
     private BigDecimal grandTotal;
+    @Column(name = "razorpay_payment_id", length = 64)
+    private String razorpayPaymentId;
+    @Column(name = "cancelled_at")
+    private LocalDateTime cancelledAt;
+    @Column(name = "cancelled_by", length = 120)
+    private String cancelledBy;
+    @Column(name = "cancel_reason", length = 500)
+    private String cancelReason;
+    @Column(name = "refund_status", length = 32)
+    private String refundStatus;
+    @Column(name = "refund_amount", precision = 10, scale = 2)
+    private BigDecimal refundAmount;
+    @Column(name = "refund_reference", length = 120)
+    private String refundReference;
+
+    /** Optimistic lock: concurrent writers get an OptimisticLockException instead of silently overwriting each other. */
+    @Version
+    @Column(name = "version", nullable = false)
+    private Long version;
 
     // Explicit getter to ensure callers can use getId() even if Lombok is not processed
     public Long getId() {

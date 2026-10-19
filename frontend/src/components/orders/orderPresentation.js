@@ -48,6 +48,11 @@ const ORDER_STATUS_META = {
 };
 
 const PAYMENT_STATUS_META = {
+  REFUNDED: {
+    label: "Refunded",
+    icon: CheckCircleIcon,
+    tone: "text-slate-700",
+  },
   PAID: {
     label: "Paid",
     icon: CheckCircleIcon,

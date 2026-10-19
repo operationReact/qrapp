@@ -3,6 +3,12 @@ import { apiClient } from "./index";
 export const getMyOrders = () =>
   apiClient.get("/orders/me").then((r) => r.data);
 
+export const cancelMyOrder = (orderId) =>
+  apiClient.post(`/orders/${orderId}/cancel`).then((r) => r.data);
+
+export const raiseOrderSupportRequest = (orderId, message) =>
+  apiClient.post(`/orders/${orderId}/support-request`, { message }).then((r) => r.data);
+
 export const downloadInvoice = (orderId) =>
   apiClient.get(`/orders/${orderId}/invoice`, { responseType: "blob" }).then((r) => r.data);
 
@@ -48,6 +54,35 @@ export const getLiveOrdersAdmin = ({ limit = 12, locationId } = {}) => {
 export const getAdminOrder = (id, locationId) => {
   const params = locationId != null ? { locationId } : undefined;
   return apiClient.get(`/admin/orders/${id}`, params ? { params } : undefined).then((r) => r.data);
+};
+
+export const getOrderSupportRequests = (orderId, locationId) => {
+  const params = locationId != null ? { locationId } : undefined;
+  return apiClient
+    .get(`/admin/orders/${orderId}/support-requests`, params ? { params } : undefined)
+    .then((r) => r.data);
+};
+
+export const resolveOrderSupportRequest = (orderId, requestId, locationId) => {
+  const params = locationId != null ? { locationId } : undefined;
+  return apiClient
+    .post(
+      `/admin/orders/${orderId}/support-requests/${requestId}/resolve`,
+      undefined,
+      params ? { params } : undefined
+    )
+    .then((r) => r.data);
+};
+
+export const completeManualRefund = (orderId, reference, locationId) => {
+  const params = locationId != null ? { locationId } : undefined;
+  return apiClient
+    .post(
+      `/admin/orders/${orderId}/refund/manual-complete`,
+      { reference },
+      params ? { params } : undefined
+    )
+    .then((r) => r.data);
 };
 
 export const downloadAdminInvoice = (orderId) =>

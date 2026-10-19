@@ -3,10 +3,14 @@ package com.broandbro.qrapp.controller;
 import com.broandbro.qrapp.dto.AdminOrderDashboardResponse;
 import com.broandbro.qrapp.dto.AdminOrderResponse;
 import com.broandbro.qrapp.dto.AdminOrderUpdateRequest;
+import com.broandbro.qrapp.dto.ManualRefundCompleteRequest;
+import com.broandbro.qrapp.dto.OrderSupportRequestResponse;
 import com.broandbro.qrapp.dto.UpdateStatusRequest;
 import com.broandbro.qrapp.entity.User;
 import com.broandbro.qrapp.service.LocationAccessService;
 import com.broandbro.qrapp.service.OrderService;
+import com.broandbro.qrapp.service.OrderSupportService;
+import com.broandbro.qrapp.service.RefundService;
 import com.broandbro.qrapp.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -29,6 +33,8 @@ import java.util.Optional;
 public class AdminController {
 
     private final OrderService orderService;
+    private final OrderSupportService orderSupportService;
+    private final RefundService refundService;
     private final UserService userService;
     private final LocationAccessService locationAccessService;
 
@@ -88,6 +94,44 @@ public class AdminController {
         User user = requireUser(authentication);
         Optional<List<Long>> scope = locationAccessService.resolveDashboardLocationScope(user, locationId);
         orderService.assertOrderWithinScope(id, scope);
+        return ResponseEntity.ok(orderService.getAdminOrder(id));
+    }
+
+    @GetMapping("/orders/{id}/support-requests")
+    public ResponseEntity<List<OrderSupportRequestResponse>> listSupportRequests(@PathVariable Long id,
+                                                                                 @RequestParam(required = false) Long locationId,
+                                                                                 Authentication authentication) {
+        User user = requireUser(authentication);
+        Optional<List<Long>> scope = locationAccessService.resolveDashboardLocationScope(user, locationId);
+        orderService.assertOrderWithinScope(id, scope);
+        return ResponseEntity.ok(orderSupportService.listForOrder(id).stream()
+                .map(OrderSupportRequestResponse::from)
+                .toList());
+    }
+
+    @PostMapping("/orders/{id}/support-requests/{requestId}/resolve")
+    public ResponseEntity<OrderSupportRequestResponse> resolveSupportRequest(@PathVariable Long id,
+                                                                             @PathVariable Long requestId,
+                                                                             @RequestParam(required = false) Long locationId,
+                                                                             Authentication authentication) {
+        User user = requireUser(authentication);
+        locationAccessService.requireNonKitchenAdmin(user, locationId);
+        Optional<List<Long>> scope = locationAccessService.resolveDashboardLocationScope(user, locationId);
+        orderService.assertOrderWithinScope(id, scope);
+        return ResponseEntity.ok(OrderSupportRequestResponse.from(
+                orderSupportService.resolveRequest(id, requestId, authentication.getName())));
+    }
+
+    @PostMapping("/orders/{id}/refund/manual-complete")
+    public ResponseEntity<AdminOrderResponse> completeManualRefund(@PathVariable Long id,
+                                                                   @Valid @RequestBody ManualRefundCompleteRequest request,
+                                                                   @RequestParam(required = false) Long locationId,
+                                                                   Authentication authentication) {
+        User user = requireUser(authentication);
+        locationAccessService.requireNonKitchenAdmin(user, locationId);
+        Optional<List<Long>> scope = locationAccessService.resolveDashboardLocationScope(user, locationId);
+        orderService.assertOrderWithinScope(id, scope);
+        refundService.completeManualRefund(id, request.reference(), authentication.getName());
         return ResponseEntity.ok(orderService.getAdminOrder(id));
     }
 

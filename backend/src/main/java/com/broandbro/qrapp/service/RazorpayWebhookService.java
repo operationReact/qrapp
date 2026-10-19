@@ -14,6 +14,22 @@ public class RazorpayWebhookService {
 
     private final RazorpayWebhookEventRepository eventRepository;
     private final OrderService orderService;
+    private final RefundService refundService;
+
+    /** Handles refund.* events. Shares the event-id dedupe table with payment events. */
+    @Transactional
+    public ProcessingResult processRefundEvent(String eventId, String event, RefundService.ProviderRefundUpdate update) {
+        if (StringUtils.hasText(eventId)) {
+            int claimed = eventRepository.claimEvent(eventId, event, null, update.paymentId());
+            if (claimed == 0) {
+                log.info("[Webhook] duplicate refund event ignored eventId={} event={}", eventId, event);
+                return ProcessingResult.DUPLICATE;
+            }
+        }
+        return refundService.applyProviderRefundEvent(update)
+                ? ProcessingResult.REFUND_UPDATED
+                : ProcessingResult.IGNORED;
+    }
 
     @Transactional
     public ProcessingResult process(String eventId, String event, String paymentId, String orderId) {
@@ -28,7 +44,7 @@ public class RazorpayWebhookService {
         return switch (event) {
             case "payment.authorized", "payment.captured", "order.paid" -> {
                 if (StringUtils.hasText(orderId)) {
-                    orderService.markOrderPaidByRazorpayOrderId(orderId);
+                    orderService.markOrderPaidByRazorpayOrderId(orderId, paymentId);
                     yield ProcessingResult.PAID;
                 }
                 log.info("[Webhook] event={} has no order ID; acknowledged without business update", event);
@@ -46,6 +62,6 @@ public class RazorpayWebhookService {
     }
 
     public enum ProcessingResult {
-        PAID, IGNORED, DUPLICATE
+        PAID, REFUND_UPDATED, IGNORED, DUPLICATE
     }
 }

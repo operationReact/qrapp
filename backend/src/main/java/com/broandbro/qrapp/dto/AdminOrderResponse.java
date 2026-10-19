@@ -30,6 +30,8 @@ public class AdminOrderResponse {
     private LocalDateTime scheduledAt;
     private boolean preOrder;
     private double total;
+    /** Sum of item quantities across the order. */
+    private int totalItems;
     private BigDecimal baseAmount;
     private BigDecimal discountAmount;
     private BigDecimal taxableAmount;
@@ -39,7 +41,13 @@ public class AdminOrderResponse {
     private BigDecimal totalTax;
     private BigDecimal customerPaid;
     private boolean invoiceAvailable;
-    private int totalItems;
+    private String cancelReason;
+    private LocalDateTime cancelledAt;
+    private String cancelledBy;
+    /** NOT_REQUIRED, REFUNDED or MANUAL_REQUIRED; null when the order was never cancelled. */
+    private String refundStatus;
+    private BigDecimal refundAmount;
+    private String refundReference;
     private String adminNote;
     private String assignedAdmin;
     private boolean live;

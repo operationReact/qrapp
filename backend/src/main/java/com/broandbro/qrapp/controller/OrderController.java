@@ -1,6 +1,7 @@
 package com.broandbro.qrapp.controller;
 
 import com.broandbro.qrapp.dto.CreateOrderRequest;
+import com.broandbro.qrapp.dto.CreateOrderSupportRequest;
 import com.broandbro.qrapp.dto.CreatePreOrderRequest;
 import com.broandbro.qrapp.dto.UserOrderSummaryResponse;
 import com.broandbro.qrapp.entity.Order;
@@ -15,6 +16,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -38,6 +40,7 @@ public class OrderController {
     private final UserService userService;
     private final WalletService walletService;
     private final AppSettingService appSettingService;
+    private final OrderSupportService orderSupportService;
 
     @PostMapping
     @Transactional
@@ -109,6 +112,39 @@ public class OrderController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
         return ResponseEntity.ok(service.getOrdersForUser(currentUser));
+    }
+
+    @PostMapping("/{orderId}/cancel")
+    @Transactional
+    public ResponseEntity<Map<String, Object>> cancelMyOrder(@PathVariable Long orderId,
+                                                             Authentication authentication) {
+        User currentUser = resolveCurrentUser(authentication);
+        if (currentUser == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        Order order = service.cancelOrderByCustomer(orderId, currentUser);
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("orderId", order.getId());
+        body.put("status", order.getStatus());
+        body.put("refundStatus", order.getRefundStatus());
+        body.put("refundAmount", order.getRefundAmount());
+        return ResponseEntity.ok(body);
+    }
+
+    @PostMapping("/{orderId}/support-request")
+    public ResponseEntity<Map<String, Object>> raiseSupportRequest(@PathVariable Long orderId,
+                                                                   @Valid @RequestBody CreateOrderSupportRequest req,
+                                                                   Authentication authentication) {
+        User currentUser = resolveCurrentUser(authentication);
+        if (currentUser == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        var request = orderSupportService.raiseRequest(orderId, currentUser, req.getMessage());
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("requestId", request.getId());
+        body.put("orderId", request.getOrderId());
+        body.put("status", request.getStatus());
+        return ResponseEntity.status(HttpStatus.CREATED).body(body);
     }
 
     @PostMapping("/pre-order")

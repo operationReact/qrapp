@@ -17,6 +17,10 @@ public class UserOrderSummaryResponse {
     private LocalDateTime scheduledAt;
     private boolean preOrder;
     private boolean invoiceAvailable;
+    /** True while the customer can still cancel (ORDER_PLACED/PRE_ORDERED within the 1-minute window). */
+    private boolean cancellable;
+    private LocalDateTime cancellableUntil;
+    private String refundStatus;
     private double total;
     private List<ItemSummary> items = new ArrayList<>();
 

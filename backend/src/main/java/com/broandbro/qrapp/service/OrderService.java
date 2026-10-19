@@ -76,6 +76,8 @@ public class OrderService {
     private static final Set<OrderStatus> LIVE_STATUSES = EnumSet.of(OrderStatus.ORDER_PLACED, OrderStatus.PREPARING, OrderStatus.READY);
     private static final Collection<PaymentMethod> COD_PAYMENT_METHODS = List.of(PaymentMethod.PAY_AT_STALL, PaymentMethod.WALLET);
     private static final String PRE_ORDER_ONLY_TAG = "PreOrderOnly";
+    private static final long CUSTOMER_CANCEL_WINDOW_SECONDS = 60;
+    private static final String CUSTOMER_CANCEL_REASON = "Cancelled by customer";
 
     private final OrderRepository orderRepo;
     private final OrderItemRepository orderItemRepo;
@@ -94,6 +96,7 @@ public class OrderService {
     private final com.broandbro.qrapp.repository.LocationRepository locationRepository;
     private final InvoiceService invoiceService;
     private final TaxCalculationService taxCalculationService;
+    private final RefundService refundService;
     @Autowired
     private InventoryService inventoryService;
 
@@ -455,6 +458,9 @@ public class OrderService {
             summary.setScheduledAt(order.getScheduledAt());
             summary.setPreOrder(order.isPreOrder());
             summary.setInvoiceAvailable(order.getId() != null && order.getGrandTotal() != null);
+            summary.setCancellableUntil(customerCancelDeadline(order));
+            summary.setCancellable(isCustomerCancellable(order, BusinessTime.now()));
+            summary.setRefundStatus(order.getRefundStatus());
 
             double total = 0;
             List<UserOrderSummaryResponse.ItemSummary> itemSummaries = new ArrayList<>();
@@ -676,10 +682,9 @@ public class OrderService {
                                                AdminOrderUpdateRequest request,
                                                String actor,
                                                Optional<List<Long>> locationScope) {
-        Order order = orderRepo.findById(orderId)
+        Order order = orderRepo.findByIdForUpdate(orderId)
                 .orElseThrow(() -> new IllegalArgumentException("Order not found: " + orderId));
         assertOrderWithinScope(order, locationScope);
-
         boolean hasStatusChange = request != null && request.getStatus() != null && !request.getStatus().isBlank();
         boolean hasNoteChange = request != null && request.getAdminNote() != null;
         boolean hasPaymentStatusChange = request != null && request.getPaymentStatus() != null && !request.getPaymentStatus().isBlank();
@@ -712,6 +717,10 @@ public class OrderService {
                 }
                 if (nextStatus == OrderStatus.CANCELLED) {
                     restoreRetailInventory(order);
+                    order.setCancelledAt(now);
+                    order.setCancelledBy(normalizedActor);
+                    order.setCancelReason(trimToNull(request.getReason()));
+                    refundService.initiateCancellationRefund(order, now);
                 }
             }
 
@@ -754,6 +763,57 @@ public class OrderService {
                 .orElseThrow(() -> new IllegalArgumentException("Order not found: " + orderId));
     }
 
+    /**
+     * Customer self-cancel: only for their own order, while still ORDER_PLACED/PRE_ORDERED,
+     * and within {@link #CUSTOMER_CANCEL_WINDOW_SECONDS} of placement.
+     */
+    @Transactional
+    public Order cancelOrderByCustomer(Long orderId, User user) {
+        Order order = orderRepo.findByIdForUpdate(orderId)
+                .orElseThrow(() -> new IllegalArgumentException("Order not found: " + orderId));
+        boolean owns = (user.getId() != null && user.getId().equals(order.getUserId()))
+                || (user.getPhone() != null && user.getPhone().equals(order.getPhone()));
+        if (!owns) {
+            throw new IllegalArgumentException("Order not found: " + orderId);
+        }
+
+        LocalDateTime now = BusinessTime.now();
+        if (!isCustomerCancellable(order, now)) {
+            throw new IllegalArgumentException(
+                    "This order can no longer be cancelled. Orders can be cancelled within 1 minute of placing them, before the kitchen starts preparing.");
+        }
+
+        OrderStatus previousStatus = order.getStatus();
+        String actor = "CUSTOMER:" + user.getId();
+        validateTransition(previousStatus, OrderStatus.CANCELLED, order, CUSTOMER_CANCEL_REASON);
+
+        order.setStatus(OrderStatus.CANCELLED);
+        order.setLastStatusChangedAt(now);
+        order.setCancelledAt(now);
+        order.setCancelledBy(actor);
+        order.setCancelReason(CUSTOMER_CANCEL_REASON);
+        restoreRetailInventory(order);
+        refundService.initiateCancellationRefund(order, now);
+        orderRepo.save(order);
+
+        recordStatusHistory(order.getId(), previousStatus, OrderStatus.CANCELLED,
+                null, actor, now, CUSTOMER_CANCEL_REASON, null, "STATUS_CHANGE");
+        return order;
+    }
+
+    private LocalDateTime customerCancelDeadline(Order order) {
+        if (order.getCreatedAt() == null
+                || (order.getStatus() != OrderStatus.ORDER_PLACED && order.getStatus() != OrderStatus.PRE_ORDERED)) {
+            return null;
+        }
+        return order.getCreatedAt().plusSeconds(CUSTOMER_CANCEL_WINDOW_SECONDS);
+    }
+
+    private boolean isCustomerCancellable(Order order, LocalDateTime now) {
+        LocalDateTime deadline = customerCancelDeadline(order);
+        return deadline != null && !now.isAfter(deadline);
+    }
+
     private void restoreRetailInventory(Order order) {
         orderItemRepo.findAllByOrderId(order.getId()).forEach(item ->
                 menuRepository.findById(item.getItemId()).ifPresent(menuItem -> {
@@ -765,7 +825,7 @@ public class OrderService {
     }
 
     @Transactional
-    public void markOrderPaidByRazorpayOrderId(String razorpayOrderId) {
+    public void markOrderPaidByRazorpayOrderId(String razorpayOrderId, String razorpayPaymentId) {
         Order order = orderRepo.findByRazorpayOrderId(razorpayOrderId)
                .orElseThrow(() -> new IllegalArgumentException("Order not found for razorpayOrderId: " + razorpayOrderId));
 
@@ -780,6 +840,9 @@ public class OrderService {
 
        order.setPaymentStatus("PAID");
        order.setPaymentMethod(PaymentMethod.RAZORPAY);
+        if (razorpayPaymentId != null && !razorpayPaymentId.isBlank()) {
+            order.setRazorpayPaymentId(razorpayPaymentId.trim());
+        }
        orderRepo.save(order);
 
        log.info("[PaymentGateway] Order payment confirmed | orderId={} orderNumber={} paymentStatus=PAID | Now eligible for Kitchen Queue",
@@ -921,6 +984,12 @@ public class OrderService {
         response.setTotalTax(taxSummary.totalTax());
         response.setCustomerPaid(MoneyService.amount(order.getGrandTotal()));
         response.setInvoiceAvailable(order.getId() != null && order.getGrandTotal() != null);
+        response.setCancelReason(order.getCancelReason());
+        response.setCancelledAt(order.getCancelledAt());
+        response.setCancelledBy(order.getCancelledBy());
+        response.setRefundStatus(order.getRefundStatus());
+        response.setRefundAmount(order.getRefundAmount());
+        response.setRefundReference(order.getRefundReference());
 
         int totalItems = 0;
         double total = 0;
@@ -1433,6 +1502,10 @@ public class OrderService {
      * Corrective transitions require a reason for audit trail.
      */
     private boolean isCorrectiveTransition(OrderStatus from, OrderStatus to) {
+        // Cancellation always needs a reason for the audit trail
+        if (to == OrderStatus.CANCELLED) {
+            return true;
+        }
         // COMPLETED → READY is a corrective transition
         if (from == OrderStatus.COMPLETED && to == OrderStatus.READY) {
             return true;
@@ -1463,7 +1536,7 @@ public class OrderService {
             case DELIVERED -> List.of();
             // Cancelled: terminal state, no transitions
             case CANCELLED -> List.of();
-            // Completed: corrective transition back to READY (requires reason and authorization)
+            // Completed: corrective transition back to READY (requires reason and authorization); cannot be cancelled
             case COMPLETED -> List.of(OrderStatus.READY);
         };
     }

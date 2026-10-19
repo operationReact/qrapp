@@ -167,6 +167,30 @@ public class WalletService {
         executeWalletDebit(user, wallet, validateAmount(amount), orderId, "Order #" + orderId + " paid from wallet");
     }
 
+    /** Credits back the amount paid from wallet for a cancelled order. Returns the refund reference. */
+    @Transactional
+    public String creditOrderRefund(User user, Long orderId, BigDecimal amount) {
+        BigDecimal refundAmount = validateAmount(amount);
+        Wallet wallet = getOrCreateWallet(user);
+        wallet.setBalance(wallet.getBalance().add(refundAmount));
+        walletRepository.save(wallet);
+
+        String referenceId = "wallet_refund_" + UUID.randomUUID();
+        WalletTransaction transaction = WalletTransaction.builder()
+                .wallet(wallet)
+                .amount(refundAmount)
+                .type(TransactionType.CREDIT)
+                .status(TransactionStatus.SUCCESS)
+                .referenceId(referenceId)
+                .orderId(orderId)
+                .description("Refund for cancelled order #" + orderId)
+                .balanceAfter(wallet.getBalance())
+                .build();
+        txRepository.save(transaction);
+        evictWalletCache(user);
+        return referenceId;
+    }
+
     @CacheEvict(value = "walletBalance", key = "#user.id", condition = "#user != null && #user.id != null")
     public void evictWalletCache(User user) {
         // Annotation-driven cache eviction only.

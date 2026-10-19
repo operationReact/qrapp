@@ -1,5 +1,17 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { parseApiError } from "@/lib/api-error-parser";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
@@ -19,9 +31,17 @@ import {
   CookingPotIcon,
   ImageIcon,
   DownloadSimpleIcon,
+  XCircleIcon,
 } from "@phosphor-icons/react";
 import { baseURL } from "@/services";
-import { downloadInvoice } from "@/services/order-service";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { cancelMyOrder, downloadInvoice, raiseOrderSupportRequest } from "@/services/order-service";
 import {
   formatOrderDate,
   formatOrderTime,
@@ -278,6 +298,166 @@ export function OrderCardSkeleton() {
   );
 }
 
+function RefundNote({ order }) {
+  if (order.refundStatus === "REFUNDED") {
+    return (
+      <p className="mt-3 text-xs font-semibold text-emerald-700">
+        Refund of ₹{Number(order.total || 0).toFixed(2)} has been processed.
+      </p>
+    );
+  }
+  if (order.refundStatus === "MANUAL_REQUIRED") {
+    return (
+      <p className="mt-3 text-xs font-semibold text-amber-700">
+        Refund of ₹{Number(order.total || 0).toFixed(2)} will be handled by the stall team.
+      </p>
+    );
+  }
+  return null;
+}
+
+function CancelOrderButton({ order }) {
+  const queryClient = useQueryClient();
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [now, setNow] = useState(() => Date.now());
+  const deadline = order.cancellable && order.cancellableUntil
+    ? new Date(order.cancellableUntil).getTime()
+    : null;
+
+  useEffect(() => {
+    if (deadline === null) return undefined;
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, [deadline]);
+
+  const cancelMutation = useMutation({
+    mutationFn: () => cancelMyOrder(order.id),
+    onSuccess: () => {
+      toast.success("Your order has been cancelled.");
+      setDialogOpen(false);
+      queryClient.invalidateQueries({ queryKey: ["orders", "my"] });
+    },
+    onError: (error) => {
+      toast.error(parseApiError(error).message || "Unable to cancel this order.");
+      setDialogOpen(false);
+      queryClient.invalidateQueries({ queryKey: ["orders", "my"] });
+    },
+  });
+
+  if (deadline === null) return null;
+  const remainingSeconds = Math.ceil((deadline - now) / 1000);
+  if (remainingSeconds <= 0) return null;
+
+  return (
+    <div className="mt-3 flex justify-end">
+      <Button
+        type="button"
+        variant="outline"
+        className="min-h-11 gap-2 rounded-xl border-red-200 text-red-700 hover:bg-red-50"
+        onClick={() => setDialogOpen(true)}
+      >
+        <XCircleIcon weight="duotone" aria-hidden="true" />
+        Cancel order ({remainingSeconds}s left)
+      </Button>
+      <AlertDialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <AlertDialogContent className="rounded-[20px]">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancel this order?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {order.orderNumber} will be cancelled.
+              {order.paymentStatus === "PAID" && " Your payment will be refunded."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={cancelMutation.isPending}>Keep order</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => cancelMutation.mutate()}
+              disabled={cancelMutation.isPending}
+              className="bg-red-600 text-white hover:bg-red-700"
+            >
+              {cancelMutation.isPending ? "Cancelling..." : "Yes, cancel"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+}
+
+function SupportRequestButton({ order }) {
+  const queryClient = useQueryClient();
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [message, setMessage] = useState("");
+
+  const supportMutation = useMutation({
+    mutationFn: () => raiseOrderSupportRequest(order.id, message.trim()),
+    onSuccess: () => {
+      toast.success("Support request raised. Our team will get back to you.");
+      setMessage("");
+      setDialogOpen(false);
+      queryClient.invalidateQueries({ queryKey: ["orders", "my"] });
+    },
+    onError: (error) => {
+      toast.error(parseApiError(error).message || "Unable to raise a support request.");
+    },
+  });
+
+  const trimmedLength = message.trim().length;
+
+  return (
+    <div className="mt-3 flex justify-end">
+      <Button
+        type="button"
+        variant="outline"
+        className="min-h-11 gap-2 rounded-xl"
+        onClick={() => setDialogOpen(true)}
+      >
+        Raise support request
+      </Button>
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-left">Support request for {order.orderNumber}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2 py-2">
+            <label htmlFor={`support-message-${order.id}`} className="text-sm font-medium text-gray-900">
+              What went wrong?
+            </label>
+            <textarea
+              id={`support-message-${order.id}`}
+              value={message}
+              onChange={(event) => setMessage(event.target.value)}
+              maxLength={1000}
+              rows={4}
+              placeholder="Describe the issue (at least 10 characters)"
+              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+            />
+            <p className="text-xs text-gray-500">{trimmedLength}/1000</p>
+          </div>
+          <DialogFooter className="gap-2">
+            <button
+              type="button"
+              onClick={() => setDialogOpen(false)}
+              disabled={supportMutation.isPending}
+              className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+            >
+              Close
+            </button>
+            <button
+              type="button"
+              onClick={() => supportMutation.mutate()}
+              disabled={supportMutation.isPending || trimmedLength < 10}
+              className="rounded-md bg-gray-900 px-4 py-2 text-sm font-semibold text-white hover:bg-gray-800 disabled:opacity-50"
+            >
+              {supportMutation.isPending ? "Sending..." : "Send request"}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
 export default function OrderCard({ order }) {
   const [downloadingInvoice, setDownloadingInvoice] = useState(false);
   const status = normalizeOrderStatus(order.status);
@@ -339,6 +519,7 @@ export default function OrderCard({ order }) {
         <OrderProgress status={status} />
       </div>
 
+      {status === "CANCELLED" && <RefundNote order={order} />}
       <section className="mt-4 min-w-0" aria-label="Order items">
         <div className="mb-2 flex items-center justify-between gap-3">
           <h3 className="text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground">Items</h3>
@@ -365,6 +546,8 @@ export default function OrderCard({ order }) {
               {downloadingInvoice ? "Downloading..." : "Invoice"}
             </Button>
           )}
+          {order.cancellable && <CancelOrderButton order={order} />}
+          {(status === "COMPLETED" || status === "CANCELLED") && <SupportRequestButton order={order} />}
         </div>
       </div>
     </article>
