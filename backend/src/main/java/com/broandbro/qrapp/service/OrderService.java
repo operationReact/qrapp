@@ -76,7 +76,6 @@ public class OrderService {
     private static final Set<OrderStatus> LIVE_STATUSES = EnumSet.of(OrderStatus.ORDER_PLACED, OrderStatus.PREPARING, OrderStatus.READY);
     private static final Collection<PaymentMethod> COD_PAYMENT_METHODS = List.of(PaymentMethod.PAY_AT_STALL, PaymentMethod.WALLET);
     private static final String PRE_ORDER_ONLY_TAG = "PreOrderOnly";
-    private static final long CUSTOMER_CANCEL_WINDOW_SECONDS = 60;
     private static final String CUSTOMER_CANCEL_REASON = "Cancelled by customer";
 
     private final OrderRepository orderRepo;
@@ -451,6 +450,8 @@ public class OrderService {
         for (Order order : orders) {
             UserOrderSummaryResponse summary = new UserOrderSummaryResponse();
             summary.setId(order.getId());
+            summary.setLocationId(order.getLocation() != null ? order.getLocation().getId() : null);
+            summary.setLocationName(order.getLocation() != null ? order.getLocation().getName() : null);
             summary.setOrderNumber(order.getOrderNumber());
             summary.setStatus(order.getStatus());
             summary.setPaymentStatus(order.getPaymentStatus());
@@ -458,8 +459,7 @@ public class OrderService {
             summary.setScheduledAt(order.getScheduledAt());
             summary.setPreOrder(order.isPreOrder());
             summary.setInvoiceAvailable(order.getId() != null && order.getGrandTotal() != null);
-            summary.setCancellableUntil(customerCancelDeadline(order));
-            summary.setCancellable(isCustomerCancellable(order, BusinessTime.now()));
+            summary.setCancellable(isCustomerCancellable(order));
             summary.setRefundStatus(order.getRefundStatus());
 
             double total = 0;
@@ -764,8 +764,8 @@ public class OrderService {
     }
 
     /**
-     * Customer self-cancel: only for their own order, while still ORDER_PLACED/PRE_ORDERED,
-     * and within {@link #CUSTOMER_CANCEL_WINDOW_SECONDS} of placement.
+     * Customer self-cancel: only for their own order, and only until the kitchen starts
+     * preparing it (see {@link #isCustomerCancellable(Order)}).
      */
     @Transactional
     public Order cancelOrderByCustomer(Long orderId, User user) {
@@ -778,9 +778,9 @@ public class OrderService {
         }
 
         LocalDateTime now = BusinessTime.now();
-        if (!isCustomerCancellable(order, now)) {
+        if (!isCustomerCancellable(order)) {
             throw new IllegalArgumentException(
-                    "This order can no longer be cancelled. Orders can be cancelled within 1 minute of placing them, before the kitchen starts preparing.");
+                    "This order can no longer be cancelled because the kitchen has started preparing it.");
         }
 
         OrderStatus previousStatus = order.getStatus();
@@ -801,17 +801,9 @@ public class OrderService {
         return order;
     }
 
-    private LocalDateTime customerCancelDeadline(Order order) {
-        if (order.getCreatedAt() == null
-                || (order.getStatus() != OrderStatus.ORDER_PLACED && order.getStatus() != OrderStatus.PRE_ORDERED)) {
-            return null;
-        }
-        return order.getCreatedAt().plusSeconds(CUSTOMER_CANCEL_WINDOW_SECONDS);
-    }
-
-    private boolean isCustomerCancellable(Order order, LocalDateTime now) {
-        LocalDateTime deadline = customerCancelDeadline(order);
-        return deadline != null && !now.isAfter(deadline);
+    /** Customers may cancel until preparation starts: PRE_ORDERED or ORDER_PLACED only. */
+    private boolean isCustomerCancellable(Order order) {
+        return order.getStatus() == OrderStatus.ORDER_PLACED || order.getStatus() == OrderStatus.PRE_ORDERED;
     }
 
     private void restoreRetailInventory(Order order) {

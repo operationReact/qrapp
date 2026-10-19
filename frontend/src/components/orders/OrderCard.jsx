@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { parseApiError } from "@/lib/api-error-parser";
@@ -26,13 +26,28 @@ import {
 } from "@/components/ui/drawer";
 import { cn } from "@/lib/utils";
 import {
+  ArrowCounterClockwiseIcon,
   CalendarIcon,
+  ChatCircleTextIcon,
   CheckCircleIcon,
   CookingPotIcon,
   ImageIcon,
-  DownloadSimpleIcon,
+  DotsThreeVerticalIcon,
+  ReceiptIcon,
   XCircleIcon,
 } from "@phosphor-icons/react";
+import { useNavigate } from "@tanstack/react-router";
+import { useCart } from "@/context/CartContext";
+import { useLocation as useActiveLocation } from "@/context/LocationContext";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { baseURL } from "@/services";
 import {
   Dialog,
@@ -120,10 +135,10 @@ function PaymentStatus({ status }) {
   const Icon = meta.icon;
 
   return (
-    <div className={cn("flex min-w-0 items-center gap-1.5 text-sm font-semibold", meta.tone)}>
-      <Icon weight="duotone" className="size-4 shrink-0" aria-hidden="true" />
-      <span>{meta.label}</span>
-    </div>
+    <Badge className={cn("h-7 rounded-full border px-2.5 text-xs font-semibold", meta.tone)}>
+      <Icon weight="duotone" aria-hidden="true" />
+      {meta.label}
+    </Badge>
   );
 }
 
@@ -134,18 +149,25 @@ function OrderProgress({ status }) {
 
   if (normalizedStatus === "CANCELLED") {
     return (
-      <div className="flex items-center gap-2 rounded-xl border border-red-100 bg-red-50 px-3 py-2 text-xs font-semibold text-red-800">
-        <StatusIcon weight="duotone" className="size-4 shrink-0" aria-hidden="true" />
-        <span>This order was cancelled.</span>
+      <div className="flex min-w-0 items-start gap-3 rounded-xl border border-red-200/70 bg-linear-to-br from-red-50 to-rose-50 p-3">
+        <span className="grid size-8 shrink-0 place-items-center rounded-full bg-red-100 text-red-600 ring-1 ring-red-200/70">
+          <StatusIcon weight="duotone" className="size-4" aria-hidden="true" />
+        </span>
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-red-800">Order cancelled</p>
+          <p className="mt-0.5 text-xs leading-relaxed text-red-700/80">This order will not be prepared.</p>
+        </div>
       </div>
     );
   }
 
   if (normalizedStatus === "COMPLETED") {
     return (
-      <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700">
-        <CheckCircleIcon weight="fill" className="size-4 shrink-0 text-emerald-600" aria-hidden="true" />
-        <span>Order completed</span>
+      <div className="flex min-w-0 items-center gap-3 rounded-xl border border-emerald-200/70 bg-linear-to-br from-emerald-50 to-teal-50 p-3">
+        <span className="grid size-8 shrink-0 place-items-center rounded-full bg-emerald-100 text-emerald-600 ring-1 ring-emerald-200/70">
+          <CheckCircleIcon weight="fill" className="size-4" aria-hidden="true" />
+        </span>
+        <p className="text-sm font-semibold text-emerald-800">Order completed</p>
       </div>
     );
   }
@@ -154,7 +176,7 @@ function OrderProgress({ status }) {
 
   return (
     <div
-      className="flex min-w-0 items-center gap-1"
+      className="flex min-w-0 items-center gap-1 rounded-xl border border-border/70 bg-muted/30 p-3"
       aria-label={`Order progress: ${statusMeta.label}`}
     >
       {PROGRESS_STAGES.map((stage, index) => {
@@ -234,7 +256,7 @@ function OrderItemsDrawer({ order }) {
         <Button
           type="button"
           variant="outline"
-          className="min-h-11 flex-1 gap-2 rounded-xl"
+          className="min-h-11 w-full min-w-0 gap-2 rounded-xl"
           aria-label={`View items for order ${order.orderNumber}`}
         >
           <CookingPotIcon weight="duotone" aria-hidden="true" />
@@ -316,77 +338,50 @@ function RefundNote({ order }) {
   return null;
 }
 
-function CancelOrderButton({ order }) {
+function CancelOrderDialog({ order, open, onOpenChange }) {
   const queryClient = useQueryClient();
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [now, setNow] = useState(() => Date.now());
-  const deadline = order.cancellable && order.cancellableUntil
-    ? new Date(order.cancellableUntil).getTime()
-    : null;
-
-  useEffect(() => {
-    if (deadline === null) return undefined;
-    const timer = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(timer);
-  }, [deadline]);
 
   const cancelMutation = useMutation({
     mutationFn: () => cancelMyOrder(order.id),
     onSuccess: () => {
       toast.success("Your order has been cancelled.");
-      setDialogOpen(false);
+      onOpenChange(false);
       queryClient.invalidateQueries({ queryKey: ["orders", "my"] });
     },
     onError: (error) => {
       toast.error(parseApiError(error).message || "Unable to cancel this order.");
-      setDialogOpen(false);
+      onOpenChange(false);
       queryClient.invalidateQueries({ queryKey: ["orders", "my"] });
     },
   });
 
-  if (deadline === null) return null;
-  const remainingSeconds = Math.ceil((deadline - now) / 1000);
-  if (remainingSeconds <= 0) return null;
-
   return (
-    <div className="mt-3 flex justify-end">
-      <Button
-        type="button"
-        variant="outline"
-        className="min-h-11 gap-2 rounded-xl border-red-200 text-red-700 hover:bg-red-50"
-        onClick={() => setDialogOpen(true)}
-      >
-        <XCircleIcon weight="duotone" aria-hidden="true" />
-        Cancel order ({remainingSeconds}s left)
-      </Button>
-      <AlertDialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <AlertDialogContent className="rounded-[20px]">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Cancel this order?</AlertDialogTitle>
-            <AlertDialogDescription>
-              {order.orderNumber} will be cancelled.
-              {order.paymentStatus === "PAID" && " Your payment will be refunded."}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={cancelMutation.isPending}>Keep order</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => cancelMutation.mutate()}
-              disabled={cancelMutation.isPending}
-              className="bg-red-600 text-white hover:bg-red-700"
-            >
-              {cancelMutation.isPending ? "Cancelling..." : "Yes, cancel"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </div>
+    <AlertDialog open={open} onOpenChange={onOpenChange}>
+      <AlertDialogContent className="rounded-[20px]">
+        <AlertDialogHeader>
+          <AlertDialogTitle>Cancel this order?</AlertDialogTitle>
+          <AlertDialogDescription>
+            {order.orderNumber} will be cancelled.
+            {order.paymentStatus === "PAID" && " Your payment will be refunded."}
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={cancelMutation.isPending}>Keep order</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={() => cancelMutation.mutate()}
+            disabled={cancelMutation.isPending}
+            className="bg-red-600 text-white hover:bg-red-700"
+          >
+            {cancelMutation.isPending ? "Cancelling..." : "Yes, cancel"}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }
 
-function SupportRequestButton({ order }) {
+function SupportRequestDialog({ order, open, onOpenChange }) {
   const queryClient = useQueryClient();
-  const [dialogOpen, setDialogOpen] = useState(false);
   const [message, setMessage] = useState("");
 
   const supportMutation = useMutation({
@@ -394,7 +389,7 @@ function SupportRequestButton({ order }) {
     onSuccess: () => {
       toast.success("Support request raised. Our team will get back to you.");
       setMessage("");
-      setDialogOpen(false);
+      onOpenChange(false);
       queryClient.invalidateQueries({ queryKey: ["orders", "my"] });
     },
     onError: (error) => {
@@ -405,64 +400,111 @@ function SupportRequestButton({ order }) {
   const trimmedLength = message.trim().length;
 
   return (
-    <div className="mt-3 flex justify-end">
-      <Button
-        type="button"
-        variant="outline"
-        className="min-h-11 gap-2 rounded-xl"
-        onClick={() => setDialogOpen(true)}
-      >
-        Raise support request
-      </Button>
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-left">Support request for {order.orderNumber}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-2 py-2">
-            <label htmlFor={`support-message-${order.id}`} className="text-sm font-medium text-gray-900">
-              What went wrong?
-            </label>
-            <textarea
-              id={`support-message-${order.id}`}
-              value={message}
-              onChange={(event) => setMessage(event.target.value)}
-              maxLength={1000}
-              rows={4}
-              placeholder="Describe the issue (at least 10 characters)"
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
-            />
-            <p className="text-xs text-gray-500">{trimmedLength}/1000</p>
-          </div>
-          <DialogFooter className="gap-2">
-            <button
-              type="button"
-              onClick={() => setDialogOpen(false)}
-              disabled={supportMutation.isPending}
-              className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-            >
-              Close
-            </button>
-            <button
-              type="button"
-              onClick={() => supportMutation.mutate()}
-              disabled={supportMutation.isPending || trimmedLength < 10}
-              className="rounded-md bg-gray-900 px-4 py-2 text-sm font-semibold text-white hover:bg-gray-800 disabled:opacity-50"
-            >
-              {supportMutation.isPending ? "Sending..." : "Send request"}
-            </button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="text-left">Support request for {order.orderNumber}</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-2 py-2">
+          <label htmlFor={`support-message-${order.id}`} className="text-sm font-medium text-gray-900">
+            What went wrong?
+          </label>
+          <textarea
+            id={`support-message-${order.id}`}
+            value={message}
+            onChange={(event) => setMessage(event.target.value)}
+            maxLength={1000}
+            rows={4}
+            placeholder="Describe the issue (at least 10 characters)"
+            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+          />
+          <p className="text-xs text-gray-500">{trimmedLength}/1000</p>
+        </div>
+        <DialogFooter className="gap-2">
+          <button
+            type="button"
+            onClick={() => onOpenChange(false)}
+            disabled={supportMutation.isPending}
+            className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+          >
+            Close
+          </button>
+          <button
+            type="button"
+            onClick={() => supportMutation.mutate()}
+            disabled={supportMutation.isPending || trimmedLength < 10}
+            className="rounded-md bg-gray-900 px-4 py-2 text-sm font-semibold text-white hover:bg-gray-800 disabled:opacity-50"
+          >
+            {supportMutation.isPending ? "Sending..." : "Send request"}
+          </button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+const MENU_TILE_TONES = {
+  default: "bg-muted text-foreground",
+  brand: "bg-primary/10 text-primary",
+  danger: "bg-red-50 text-red-600",
+};
+
+function OrderMenuRow({ tone = "default", iconNode, title, hint, onSelect, disabled, className }) {
+  return (
+    <DropdownMenuItem
+      disabled={disabled}
+      onSelect={onSelect}
+      className={cn("gap-3 rounded-xl px-2 py-2", className)}
+    >
+      <span className={cn("flex size-9 shrink-0 items-center justify-center rounded-lg", MENU_TILE_TONES[tone])}>
+        {iconNode}
+      </span>
+      <span className="flex min-w-0 flex-col">
+        <span className="text-sm font-semibold leading-tight">{title}</span>
+        <span className="text-xs font-normal text-muted-foreground">{hint}</span>
+      </span>
+    </DropdownMenuItem>
   );
 }
 
 export default function OrderCard({ order }) {
   const [downloadingInvoice, setDownloadingInvoice] = useState(false);
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [supportOpen, setSupportOpen] = useState(false);
+  const [reorderOpen, setReorderOpen] = useState(false);
+  const { addItemsToLocationCart } = useCart();
+  const { activeLocationId, setActiveLocation, availableLocations } = useActiveLocation();
+  const navigate = useNavigate();
   const status = normalizeOrderStatus(order.status);
-  const itemCount = Array.isArray(order.items) ? order.items.length : 0;
   const canDownloadInvoice = order.invoiceAvailable && status === "COMPLETED";
+  const canRaiseSupport = status === "COMPLETED" || status === "CANCELLED";
+  const canReorder = Array.isArray(order.items) && order.items.some((item) => item.itemId != null);
+  const hasMenuActions = canDownloadInvoice || order.cancellable || canRaiseSupport;
+
+  const confirmReorder = () => {
+    const target = availableLocations.find((loc) => String(loc.id) === String(order.locationId));
+    if (!target) {
+      toast.error("This location is not available right now.");
+      return;
+    }
+    const items = order.items
+      .filter((item) => item.itemId != null && item.quantity > 0)
+      .map((item) => ({
+        id: item.itemId,
+        name: item.name,
+        imageUrl: item.imageUrl ?? undefined,
+        price: Number(item.price),
+        isVeg: item.isVeg ?? undefined,
+        quantity: item.quantity,
+      }));
+    addItemsToLocationCart(target.id, items);
+    if (String(target.id) !== String(activeLocationId)) {
+      setActiveLocation(target);
+    }
+    setReorderOpen(false);
+    toast.success(`Items added to your ${target.name} cart.`);
+    navigate({ to: "/cart" });
+  };
 
   const handleInvoiceDownload = async () => {
     if (downloadingInvoice) return;
@@ -485,11 +527,12 @@ export default function OrderCard({ order }) {
   };
 
   return (
-    <article className="box-border w-full min-w-0 max-w-full rounded-2xl border border-border bg-card p-3.5 shadow-sm transition-shadow hover:shadow-md sm:p-4">
+    <article className="relative box-border w-full min-w-0 max-w-full overflow-hidden rounded-[28px] border border-stone-200 bg-white p-4 shadow-[0_1px_2px_rgba(28,25,23,0.04),0_8px_24px_-12px_rgba(28,25,23,0.12)] transition-shadow duration-300 hover:shadow-[0_2px_4px_rgba(28,25,23,0.05),0_16px_32px_-14px_rgba(28,25,23,0.18)] sm:p-5">
       <header className="flex min-w-0 items-start gap-3">
         <div className="min-w-0 flex-1">
-          <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1.5">
             <StatusBadge status={status} />
+            {status !== "CANCELLED" && <PaymentStatus status={order.paymentStatus} />}
           </div>
           <div className="mt-3 min-w-0">
             <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
@@ -515,41 +558,109 @@ export default function OrderCard({ order }) {
         </div>
       </header>
 
-      <div className="mt-4 min-w-0 rounded-xl border border-border/70 bg-muted/30 p-3">
+      <div className="mt-4 min-w-0">
         <OrderProgress status={status} />
       </div>
 
       {status === "CANCELLED" && <RefundNote order={order} />}
-      <section className="mt-4 min-w-0" aria-label="Order items">
-        <div className="mb-2 flex items-center justify-between gap-3">
-          <h3 className="text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground">Items</h3>
-          <span className="shrink-0 text-xs font-semibold text-muted-foreground">
-            {itemCount} {itemCount === 1 ? "item" : "items"}
-          </span>
-        </div>
+      <section className="mt-3 min-w-0" aria-label="Order items">
         <OrderItemsPreview order={order} />
       </section>
 
-      <div className="mt-4 flex min-w-0 items-center justify-between gap-3 border-t border-border pt-3">
-        <PaymentStatus status={order.paymentStatus} />
-        <div className="flex min-w-0 flex-1 justify-end gap-2">
+      <footer className="mt-3 flex min-w-0 items-center gap-2 border-t border-border pt-3">
+        <div className="min-w-0 flex-1">
           <OrderItemsDrawer order={order} />
-          {canDownloadInvoice && (
-            <Button
-              type="button"
-              variant="secondary"
-              className="min-h-11 shrink-0 gap-2 rounded-xl"
-              disabled={downloadingInvoice}
-              onClick={handleInvoiceDownload}
-            >
-              <DownloadSimpleIcon weight="duotone" aria-hidden="true" />
-              {downloadingInvoice ? "Downloading..." : "Invoice"}
-            </Button>
-          )}
-          {order.cancellable && <CancelOrderButton order={order} />}
-          {(status === "COMPLETED" || status === "CANCELLED") && <SupportRequestButton order={order} />}
         </div>
-      </div>
+        {canReorder && (
+          <Button
+            type="button"
+            className="h-11 shrink-0 gap-1.5 rounded-xl px-4 text-sm font-semibold shadow-sm"
+            onClick={() => setReorderOpen(true)}
+          >
+            <ArrowCounterClockwiseIcon weight="bold" aria-hidden="true" />
+            Reorder
+          </Button>
+        )}
+        <AlertDialog open={reorderOpen} onOpenChange={setReorderOpen}>
+          <AlertDialogContent className="rounded-[20px]">
+            <AlertDialogHeader>
+              <AlertDialogTitle>Reorder from {order.locationName || "this location"}?</AlertDialogTitle>
+              <AlertDialogDescription>
+                The items from {order.orderNumber} will be added to your {order.locationName || "location"} cart.
+                Your active location will switch to {order.locationName || "this location"}. Confirm to continue.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Not now</AlertDialogCancel>
+              <AlertDialogAction onClick={confirmReorder} className="rounded-xl">
+                Confirm reorder
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+        {hasMenuActions && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="size-11 shrink-0 rounded-xl"
+                aria-label={`More actions for order ${order.orderNumber}`}
+              >
+                <DotsThreeVerticalIcon weight="bold" aria-hidden="true" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align="end"
+              className="w-64 min-w-64 rounded-2xl p-1.5 shadow-xl"
+            >
+              <DropdownMenuGroup>
+                <DropdownMenuLabel className="truncate px-2 pt-1.5 pb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+                  Order {order.orderNumber}
+                </DropdownMenuLabel>
+              </DropdownMenuGroup>
+              {canDownloadInvoice && (
+                <OrderMenuRow
+                  iconNode={<ReceiptIcon weight="duotone" aria-hidden="true" />}
+                  title={downloadingInvoice ? "Downloading..." : "Invoice"}
+                  hint="Download PDF"
+                  disabled={downloadingInvoice}
+                  onSelect={handleInvoiceDownload}
+                />
+              )}
+              {canRaiseSupport && (
+                <OrderMenuRow
+                  iconNode={<ChatCircleTextIcon weight="duotone" aria-hidden="true" />}
+                  title="Raise support request"
+                  hint="Get help with this order"
+                  onSelect={() => setSupportOpen(true)}
+                />
+              )}
+              {order.cancellable && (
+                <>
+                  <DropdownMenuSeparator className="my-1.5" />
+                  <OrderMenuRow
+                    tone="danger"
+                    iconNode={<XCircleIcon weight="duotone" aria-hidden="true" />}
+                    title="Cancel order"
+                    hint="Available until preparation starts"
+                    onSelect={() => setCancelOpen(true)}
+                    className="text-red-600 focus:bg-red-50 focus:text-red-700"
+                  />
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
+      </footer>
+
+      {order.cancellable && (
+        <CancelOrderDialog order={order} open={cancelOpen} onOpenChange={setCancelOpen} />
+      )}
+      {canRaiseSupport && (
+        <SupportRequestDialog order={order} open={supportOpen} onOpenChange={setSupportOpen} />
+      )}
     </article>
   );
 }

@@ -93,6 +93,27 @@ class LocationAccessServiceTest {
     }
 
     @Test
+    void customerCanOrderFromAnyActiveLocation() {
+        Location defaultLocation = Location.builder().id(6L).active(true).code("PRAGATI_NAGAR").build();
+        Location otherLocation = Location.builder().id(9L).active(true).code("OTHER").build();
+        User user = User.builder().id(8L).role(UserRole.CUSTOMER).defaultLocation(defaultLocation).build();
+        when(locations.findById(9L)).thenReturn(java.util.Optional.of(otherLocation));
+
+        assertTrue(service.canAccessLocation(user, 9L));
+        assertDoesNotThrow(() -> service.requireLocationAccess(user, 9L));
+    }
+
+    @Test
+    void customerCannotOrderFromInactiveLocation() {
+        Location defaultLocation = Location.builder().id(6L).active(true).code("PRAGATI_NAGAR").build();
+        User user = User.builder().id(8L).role(UserRole.CUSTOMER).defaultLocation(defaultLocation).build();
+        when(locations.findById(9L)).thenReturn(java.util.Optional.of(
+                Location.builder().id(9L).active(false).build()));
+
+        assertFalse(service.canAccessLocation(user, 9L));
+    }
+
+    @Test
     void inactiveAndInvalidLocationsAreDeniedEvenForAdmin() {
         User user = User.builder().id(2L).role(UserRole.ADMIN).build();
         when(locations.findById(3L)).thenReturn(java.util.Optional.of(

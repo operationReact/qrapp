@@ -66,7 +66,7 @@ export const Route = createFileRoute("/admin/(menu)/mrp-product")({
   component: ProductCatalogPage,
 });
 const EMPTY = {
-  variantIdentity: "", name: "", brand: "", categoryName: "", description: "",
+  variantIdentity: "", name: "", brand: "", categoryName: "", description: "", isVeg: "",
   mrp: "", costPrice: "", locationId: "", initialStock: "0", stockQuantity: "", lowStockThreshold: "5",
 };
 
@@ -308,6 +308,7 @@ function ProductCatalogPage() {
       name: product.name || "",
       brand: product.brand || "",
       categoryName: product.categoryName || "",
+      isVeg: product.isVeg == null ? "" : String(product.isVeg),
       description: product.description || "",
       mrp: product.mrp ?? "",
       costPrice: product.costPrice ?? "",
@@ -324,6 +325,7 @@ function ProductCatalogPage() {
     const payload = {
       ...form,
       locationId: effectiveLocationId ? Number(effectiveLocationId) : null,
+      isVeg: form.isVeg === "" ? null : form.isVeg === "true",
       mrp: Number(form.mrp),
       costPrice: Number(form.costPrice),
       initialStock: Number(form.initialStock || 0),
@@ -577,7 +579,7 @@ function ProductCatalogPage() {
                     return <tr key={product.id} className="group transition hover:bg-[#fffafa]">
                       <td className="sticky left-0 z-[1] bg-white px-4 py-3 group-hover:bg-[#fffafa]"><div className="flex min-w-0 items-center gap-3">
                         <ProductThumb name={product.name} imageSource={imageSource} />
-                        <div className="min-w-0"><p className="max-w-[260px] truncate font-bold text-[#242220]">{product.name}</p><p className="mt-0.5 max-w-[260px] truncate text-xs text-[#858079]">{product.brand || "No brand"} · {product.variantIdentity && product.variantIdentity !== "DEFAULT" ? product.variantIdentity : "Default pack"}</p></div>
+                        <div className="min-w-0"><p className="max-w-[260px] truncate font-bold text-[#242220]">{product.name}{product.isVeg != null && <span className={`ml-2 inline-flex rounded-md px-1.5 py-0.5 align-middle text-[10px] font-bold ${product.isVeg ? "bg-[#eef8f0] text-[#1f7a3d]" : "bg-[#fff0ed] text-[#d92334]"}`}>{product.isVeg ? "Veg" : "Non veg"}</span>}</p><p className="mt-0.5 max-w-[260px] truncate text-xs text-[#858079]">{product.brand || "No brand"} · {product.variantIdentity && product.variantIdentity !== "DEFAULT" ? product.variantIdentity : "Default pack"}</p></div>
                       </div></td>
                       <td className="px-3 py-3"><span className="inline-flex rounded-lg bg-[#f6f2ef] px-2 py-1 text-xs font-semibold text-[#514d48]">{product.categoryName || "Uncategorized"}</span></td>
                       <td className="px-3 py-3 text-right font-bold tabular-nums">{formatMoney(product.mrp)}</td>
@@ -632,6 +634,19 @@ function ProductCatalogPage() {
                       Category
                       <CategoryCombobox value={form.categoryName} options={categoryNames} onChange={(categoryName) => setForm((current) => ({ ...current, categoryName }))} />
                       <span className="block text-[11px] font-normal text-[#858079]">Select a suggestion or enter a new category name.</span>
+                    </label>
+                    <label className={labelClass}>
+                      Food type
+                      <Select value={form.isVeg === "" ? "unspecified" : form.isVeg} onValueChange={(value) => setForm((current) => ({ ...current, isVeg: value === "unspecified" ? "" : value }))}>
+                        <SelectTrigger aria-label="Food type" className="mrp-cf-trigger h-11 w-full min-w-0 max-w-full">
+                          <SelectValue>{form.isVeg === "true" ? "Veg" : form.isVeg === "false" ? "Non veg" : "Not specified"}</SelectValue>
+                        </SelectTrigger>
+                        <SelectContent className="mrp-cf-popup max-w-[calc(100vw-1rem)]">
+                          <SelectItem value="unspecified" className="mrp-cf-item max-w-full whitespace-normal break-words">Not specified</SelectItem>
+                          <SelectItem value="true" className="mrp-cf-item max-w-full whitespace-normal break-words">Veg</SelectItem>
+                          <SelectItem value="false" className="mrp-cf-item max-w-full whitespace-normal break-words">Non veg</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </label>
                     <label className={`${labelClass} sm:col-span-2`}>Description <textarea name="description" value={form.description} onChange={setField} rows={2} placeholder="Optional product description" className="w-full rounded-xl border border-[#ece8e2] bg-[#fbf8f6] px-3 py-2 text-sm font-normal outline-none transition focus:border-[#ff2438] focus:bg-white focus:ring-4 focus:ring-[#ff2438]/10" /></label>
                   </div>

@@ -24,6 +24,7 @@ public class ProductRequest {
     private Long taxProfileId;
     @Size(max = 20)
     private String hsnSac;
+    private Boolean isVeg;
     private String imageUrl;
     private Boolean active = true;
     @NotNull

@@ -514,6 +514,7 @@ public class ProductCatalogService {
         product.setMrp(request.getMrp());
         product.setCostPrice(request.getCostPrice());
         product.setHsnSac(request.getHsnSac());
+        product.setIsVeg(request.getIsVeg());
         product.setImageUrl(request.getImageUrl());
         product.setActive(request.getActive() == null || request.getActive());
         product.setTaxProfile(request.getTaxProfileId() == null ? null :
@@ -530,6 +531,7 @@ public class ProductCatalogService {
         product.setMrp(request.getMrp());
         product.setCostPrice(request.getCostPrice());
         product.setHsnSac(request.getHsnSac());
+        product.setIsVeg(request.getIsVeg());
         if (request.getImageUrl() != null && !request.getImageUrl().equals(product.getImageUrl())) {
             if (product.getImageAsset() != null) {
                 detachImageAsset(product);
@@ -582,6 +584,7 @@ public class ProductCatalogService {
                 .taxProfileId(product.getTaxProfile() == null ? null : product.getTaxProfile().getId())
                 .hsnSac(product.getHsnSac()).imageUrl(product.getImageUrl()).active(product.getActive())
                 .imageKey(product.getImageKey())
+                .isVeg(product.getIsVeg())
                 .updatedAt(product.getUpdatedAt())
                 .visible(assignment.getVisible()).available(assignment.getAvailable())
                 .availableQuantity(inventory == null ? null : inventory.getAvailableQuantity())
@@ -616,6 +619,7 @@ public class ProductCatalogService {
                 .taxProfileId(product.getTaxProfile() == null ? null : product.getTaxProfile().getId())
                 .hsnSac(product.getHsnSac()).imageUrl(product.getImageUrl()).active(product.getActive())
                 .imageKey(product.getImageKey())
+                .isVeg(product.getIsVeg())
                 .updatedAt(product.getUpdatedAt())
                 .assignments(assignments).build();
     }
@@ -675,6 +679,7 @@ public class ProductCatalogService {
         projection.setInventoryMode(com.broandbro.qrapp.enums.InventoryMode.LIMITED);
         projection.setTaxProfile(assignment.getProduct().getTaxProfile());
         projection.setHsnSac(assignment.getProduct().getHsnSac());
+        projection.setIsVeg(assignment.getProduct().getIsVeg());
         menuRepository.save(projection);
         if (pricingService != null && sellingPriceHistoryRepository != null
                 && assignment.getProduct().getMrp() != null

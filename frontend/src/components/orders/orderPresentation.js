@@ -10,19 +10,19 @@ import {
 
 const ORDER_STATUS_META = {
   ORDER_PLACED: {
-    label: "Placed",
+    label: "Order placed",
     icon: PackageIcon,
     tone: "border-amber-200 bg-amber-50 text-amber-800",
     step: 0,
   },
   PLACED: {
-    label: "Placed",
+    label: "Order placed",
     icon: PackageIcon,
     tone: "border-amber-200 bg-amber-50 text-amber-800",
     step: 0,
   },
   PREPARING: {
-    label: "Preparing",
+    label: "Being prepared",
     icon: CookingPotIcon,
     tone: "border-orange-200 bg-orange-50 text-orange-800",
     step: 1,
@@ -51,32 +51,32 @@ const PAYMENT_STATUS_META = {
   REFUNDED: {
     label: "Refunded",
     icon: CheckCircleIcon,
-    tone: "text-slate-700",
+    tone: "border-slate-200 bg-slate-50 text-slate-700",
   },
   PAID: {
     label: "Paid",
     icon: CheckCircleIcon,
-    tone: "text-emerald-700",
+    tone: "border-emerald-200 bg-emerald-50 text-emerald-800",
   },
   PENDING: {
-    label: "Pending",
+    label: "Payment pending",
     icon: ClockIcon,
-    tone: "text-amber-700",
+    tone: "border-amber-200 bg-amber-50 text-amber-800",
   },
   PROCESSING: {
-    label: "Payment Processing",
+    label: "Payment processing",
     icon: ClockIcon,
-    tone: "text-blue-700",
+    tone: "border-blue-200 bg-blue-50 text-blue-800",
   },
   PAYMENT_PROCESSING: {
     label: "Payment Processing",
     icon: ClockIcon,
-    tone: "text-blue-700",
+    tone: "border-blue-200 bg-blue-50 text-blue-800",
   },
   FAILED: {
     label: "Payment Failed",
     icon: WarningCircleIcon,
-    tone: "text-red-700",
+    tone: "border-red-200 bg-red-50 text-red-800",
   },
 };
 
@@ -90,7 +90,7 @@ const FALLBACK_ORDER_STATUS = {
 const FALLBACK_PAYMENT_STATUS = {
   label: "Pending",
   icon: ClockIcon,
-  tone: "text-amber-700",
+  tone: "border-amber-200 bg-amber-50 text-amber-800",
 };
 
 export const ORDER_STATUS_FILTER_ORDER = [

@@ -231,6 +231,29 @@ export function CartProvider({ children }) {
     return { ok: true };
   };
 
+  const addItemsToLocationCart = (targetLocationId, items) => {
+    const merge = (current) => {
+      const next = [...current];
+      for (const item of items) {
+        const index = next.findIndex((i) => String(i.id) === String(item.id));
+        if (index >= 0) {
+          next[index] = { ...next[index], quantity: next[index].quantity + item.quantity };
+        } else {
+          next.push({ ...item, locationId: targetLocationId });
+        }
+      }
+      return next;
+    };
+    if (String(targetLocationId) === String(activeLocationId)) {
+      setCart(merge);
+      return;
+    }
+    // Other location: its cart is not in memory, so write its storage directly.
+    // The location switch that follows loads it.
+    const key = getLocationCartKey(targetLocationId);
+    writeLS(key, merge(readLS(key, [])));
+  };
+
   const decreaseItem = (item) => {
     setCart(prevCart => {
       const existing = prevCart.find(i => i.id === item.id);
@@ -298,6 +321,7 @@ export function CartProvider({ children }) {
       value={{
         cart,
         addItem,
+        addItemsToLocationCart,
         decreaseItem,
         removeItem,
         clearCart,
