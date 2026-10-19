@@ -3,6 +3,9 @@ import PropTypes from "prop-types";
 import Autoplay from "embla-carousel-autoplay";
 import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
+import { WalletIcon } from "@phosphor-icons/react";
+import { useAuth } from "@/context/AuthContext";
+import { walletBalanceOptions } from "@/query/options/wallet";
 import {
   Carousel,
   CarouselContent,
@@ -112,6 +115,12 @@ export default function ImmersiveHomeHero({
   showOverlayControls = true,
 }) {
   const { data } = useQuery(homeCampaignFeedOptions(locationId));
+  const { user } = useAuth();
+  const { data: walletData, isLoading: loadingWallet } = useQuery({
+    ...walletBalanceOptions,
+    enabled: !!user?.token,
+  });
+  const walletBalance = walletData?.balance ?? null;
   const heroCampaigns = data?.hero ?? [];
   const slides = heroCampaigns.length > 0 ? heroCampaigns : [{ id: "fallback", title: null }];
 
@@ -225,9 +234,29 @@ export default function ImmersiveHomeHero({
           {/* Mobile only: Location, Search + Filters */}
           <div className="lg:hidden absolute inset-x-0 top-0 z-20 flex items-center justify-between gap-2 p-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
             <LocationSelector overlay className="min-w-0 flex-1" />
-            <Link to="/" className="shrink-0 rounded-xl bg-white/95 p-1.5 shadow-md" aria-label="BRO & BRO">
-              <img src="/bro-logo.png" alt="BRO & BRO" className="h-7 w-7 object-contain" />
-            </Link>
+            {user ? (
+              <Link
+                to="/wallet"
+                aria-label="Open wallet"
+                className="touch-manipulation relative flex min-h-10 shrink-0 items-center gap-2 rounded-xl border border-white/25 bg-black/25 px-3 text-white backdrop-blur-sm"
+              >
+                <WalletIcon weight="fill" className="size-4 shrink-0 text-amber-300" aria-hidden="true" />
+                <span className="flex flex-col items-start leading-tight">
+                  <span className="block text-[9px] font-semibold uppercase tracking-[0.06em] text-white/70">Wallet</span>
+                  <span className="block text-[13px] font-bold tabular-nums drop-shadow-sm">
+                    {loadingWallet
+                      ? "..."
+                      : walletBalance == null
+                        ? "—"
+                        : `₹${walletBalance.toFixed(0)}`}
+                  </span>
+                </span>
+              </Link>
+            ) : (
+              <Link to="/" className="shrink-0 rounded-xl bg-white/95 p-1.5 shadow-md" aria-label="BRO & BRO">
+                <img src="/bro-logo.png" alt="BRO & BRO" className="h-7 w-7 object-contain" />
+              </Link>
+            )}
           </div>
 
           {/* Mobile only: Search + Filters below header */}
