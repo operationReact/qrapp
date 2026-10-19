@@ -38,7 +38,9 @@ class CategoryImageAssetTest {
     private final CategoryService service = new CategoryService(
             categories, mock(MenuRepository.class), locations, access, storage,
             mock(ImageGenerationService.class), mock(FoodImagePromptBuilder.class),
-            mock(CategoryImagePromptBuilder.class), assets);
+            mock(CategoryImagePromptBuilder.class), assets,
+            mock(com.broandbro.qrapp.repository.LocationProductRepository.class),
+            mock(com.broandbro.qrapp.repository.ProductRepository.class));
 
     @Test
     void imageSourcesListsSameNamedMrpCategoriesOnlyFromOtherAccessibleLocations() {

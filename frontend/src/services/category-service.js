@@ -19,6 +19,9 @@ export const getMrpProductCategories = (locationId) =>
 export const createMrpProductCategory = (payload, locationId) =>
   apiClient.post("/api/mrp-product/admin/categories", payload, { params: { locationId } }).then((r) => r.data);
 
+export const renameMrpProductCategory = (id, name, locationId) =>
+  apiClient.patch(`/api/mrp-product/admin/categories/${id}`, { name }, { params: { locationId } }).then((r) => r.data);
+
 /** Assigns a bundled video (file name from src/assets/category-videos) or clears it when videoKey is null. */
 export const setMrpProductCategoryVideo = (id, videoKey, locationId) =>
   apiClient

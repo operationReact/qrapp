@@ -53,6 +53,15 @@ public class ProductCatalogController {
         return categoryService.setMrpProductCategoryVideo(locationId, categoryId, body.get("videoKey"), currentUser);
     }
 
+    @PatchMapping("/admin/categories/{categoryId}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN', 'SUPERUSER', 'MANAGER')")
+    public Category renameCategory(@PathVariable Long categoryId, @RequestParam Long locationId,
+                                   @RequestBody Map<String, String> body,
+                                   Authentication authentication) {
+        User currentUser = userService.findByPhone(authentication.getName()).orElseThrow();
+        return categoryService.renameMrpProductCategory(locationId, categoryId, body.get("name"), currentUser);
+    }
+
     @GetMapping("/products")
     public List<ProductResponse> products(@RequestParam Long locationId) {
         return catalogService.publicProducts(locationId);
