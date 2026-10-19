@@ -1,5 +1,5 @@
 import PropTypes from "prop-types";
-import { Fragment, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { buttonVariants } from "./ui/button";
 import { cn } from "@/lib/utils";
@@ -13,7 +13,6 @@ import "../styles/category-tabs.css";
 const AUTO_SCROLL_PX_PER_SEC = 36;
 const RESUME_DELAY_MS = 2500;
 const STEP_RATIO = 0.6;
-const MAX_COPIES = 24;
 
 function CategoryTile({ resolved, failed, onError }) {
   const usePhoto = resolved.isPhoto && !failed;
@@ -40,8 +39,7 @@ function CategoryTileImage({ resolved }) {
   );
 }
 
-// Loops the scroller endlessly while keeping manual scrolling usable.
-// Content is rendered twice, so wrapping by half the scroll width is seamless.
+// Auto-scrolls to the end, rests, then returns to the start. Manual scrolling is native and stops at both ends.
 function useStripMotion(wrapperRef, scrollerRef, enabled, controlRef) {
   useEffect(() => {
     const wrapper = wrapperRef.current;
@@ -49,58 +47,41 @@ function useStripMotion(wrapperRef, scrollerRef, enabled, controlRef) {
     if (!enabled || !wrapper || !el) return undefined;
 
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const half = () => el.scrollWidth / 2;
-    const loopable = () => half() > el.clientWidth;
+    const maxScroll = () => Math.max(0, el.scrollWidth - el.clientWidth);
     let pos = el.scrollLeft;
     let written = pos;
-    let target = null;
+    let atEnd = false;
     let hovering = false;
     let resumeAt = 0;
     let last = performance.now();
     let frame = 0;
 
     const pauseFor = () => {
-      target = null;
       resumeAt = performance.now() + RESUME_DELAY_MS;
-    };
-    const wrap = () => {
-      const h = half();
-      if (h <= 0) return false;
-      let shifted = false;
-      while (pos >= h) {
-        pos -= h;
-        if (target !== null) target -= h;
-        shifted = true;
-      }
-      while (pos < 0) {
-        pos += h;
-        if (target !== null) target += h;
-        shifted = true;
-      }
-      return shifted;
     };
     const tick = (now) => {
       const dt = Math.min(now - last, 64);
       last = now;
-      if (Math.abs(el.scrollLeft - written) >= 1) pos = el.scrollLeft;
-      const canLoop = loopable();
-      if (!canLoop) target = null;
-      let moving = false;
-      if (target !== null) {
-        moving = true;
-        const distance = target - pos;
-        if (Math.abs(distance) < 0.5) {
-          pos = target;
-          target = null;
-        } else {
-          pos += distance * Math.min(1, dt / 140);
-        }
-      } else if (!reduceMotion && !hovering && now >= resumeAt && canLoop) {
-        moving = true;
-        pos += (AUTO_SCROLL_PX_PER_SEC * dt) / 1000;
+      if (Math.abs(el.scrollLeft - written) >= 1) {
+        // The user moved the strip themselves.
+        pos = el.scrollLeft;
+        atEnd = false;
+        pauseFor();
       }
-      const wrapped = canLoop && wrap();
-      if (moving || wrapped) el.scrollLeft = pos;
+      if (atEnd) {
+        if (now >= resumeAt) {
+          atEnd = false;
+          pos = 0;
+          el.scrollLeft = pos;
+        }
+      } else if (!reduceMotion && !hovering && now >= resumeAt && maxScroll() > 0) {
+        pos = Math.min(pos + (AUTO_SCROLL_PX_PER_SEC * dt) / 1000, maxScroll());
+        el.scrollLeft = pos;
+        if (pos >= maxScroll()) {
+          atEnd = true;
+          resumeAt = now + RESUME_DELAY_MS;
+        }
+      }
       written = el.scrollLeft;
       frame = requestAnimationFrame(tick);
     };
@@ -119,12 +100,7 @@ function useStripMotion(wrapperRef, scrollerRef, enabled, controlRef) {
     controlRef.current = {
       step(direction) {
         pauseFor();
-        const amount = el.clientWidth * STEP_RATIO * direction;
-        if (!loopable()) {
-          el.scrollBy({ left: amount, behavior: "smooth" });
-          return;
-        }
-        target = (target ?? pos) + amount;
+        el.scrollBy({ left: el.clientWidth * STEP_RATIO * direction, behavior: "smooth" });
       },
     };
 
@@ -155,16 +131,6 @@ export default function CategoryTabs({ categories, active }) {
   ];
   const [allTile, ...rollingCategories] = allCategories;
   const loops = rollingCategories.length > 0;
-
-  const [copies, setCopies] = useState(1);
-
-  // Repeat the rolling set until one group is wider than the viewport, so the loop always has room to move.
-  useLayoutEffect(() => {
-    const el = scrollerRef.current;
-    if (!loops || !el || copies >= MAX_COPIES) return;
-    const group = el.querySelector(".category-marquee__group");
-    if (group && group.offsetWidth <= el.clientWidth) setCopies((c) => c + 1);
-  }, [loops, copies, rollingCategories.length]);
 
   useStripMotion(wrapperRef, scrollerRef, loops, controlRef);
 
@@ -213,15 +179,9 @@ export default function CategoryTabs({ categories, active }) {
       )}
       <div ref={scrollerRef} className="category-marquee">
         <div className="category-marquee__track">
-          {[false, true].map((isCopy) => (
-            <div key={isCopy ? "copy" : "main"} className="category-marquee__group" aria-hidden={isCopy || undefined}>
-              {Array.from({ length: copies }, (_, rep) => (
-                <Fragment key={rep}>
-                  {rollingCategories.map((category) => renderTile(category, isCopy || rep > 0))}
-                </Fragment>
-              ))}
-            </div>
-          ))}
+          <div className="category-marquee__group">
+            {rollingCategories.map((category) => renderTile(category, false))}
+          </div>
         </div>
       </div>
       {loops && (
