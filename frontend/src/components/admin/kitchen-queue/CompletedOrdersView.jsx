@@ -37,27 +37,30 @@ const DATE_FILTERS = [
   { key: "all", label: "All time" },
 ];
 
+function toLocalIsoDate(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
 function getDateRange(filter) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate() + 1);
   const yesterday = new Date(today);
   yesterday.setDate(yesterday.getDate() - 1);
   const last7 = new Date(today);
-  last7.setDate(last7.getDate() - 7);
+  last7.setDate(last7.getDate() - 6);
 
   switch (filter) {
-    case "today":
-      return { from: today.toISOString().split('T')[0], to: today.toISOString().split('T')[0] };
     case "yesterday":
-      return { from: yesterday.toISOString().split('T')[0], to: yesterday.toISOString().split('T')[0] };
+      return { from: toLocalIsoDate(yesterday), to: toLocalIsoDate(yesterday) };
     case "last7":
-      return { from: last7.toISOString().split('T')[0], to: today.toISOString().split('T')[0] };
+      return { from: toLocalIsoDate(last7), to: toLocalIsoDate(today) };
     case "all":
       return { from: null, to: null };
     default:
-      return { from: today.toISOString().split('T')[0], to: today.toISOString().split('T')[0] };
+      return { from: toLocalIsoDate(today), to: toLocalIsoDate(today) };
   }
 }
 
@@ -87,12 +90,12 @@ function CompletedOrderCard({ order, onExpand }) {
     >
       <div className="p-3.5 sm:p-4">
         <div className="flex items-start justify-between gap-2 mb-2">
-          <h2 className="shrink-0 text-base font-extrabold leading-tight text-[#171717]">
+          <h2 className="min-w-0 flex-1 break-words text-base font-extrabold leading-tight text-[#171717]">
             {String(order.orderNumber ?? order.id).startsWith("#")
               ? order.orderNumber ?? order.id
               : `#${order.orderNumber ?? order.id}`}
           </h2>
-          <div className="flex items-center gap-1 text-xs font-bold text-[#10B981]">
+          <div className="flex shrink-0 items-center gap-1 whitespace-nowrap text-xs font-bold text-[#10B981]">
             <div className="size-1.5 rounded-full bg-[#10B981]" aria-hidden="true" />
             Completed
           </div>
@@ -166,7 +169,7 @@ export function CompletedOrdersView({
   const dateRange = getDateRange(dateFilter);
 
   // Fetch completed orders
-  const { data: ordersData = {}, isLoading, isFetching, isError, refetch } = useQuery({
+  const { data: ordersData = {}, isLoading, isError, refetch } = useQuery({
     ...adminOrdersOptions({
       page,
       size: 20,
@@ -174,6 +177,8 @@ export function CompletedOrdersView({
       paymentStatus: paymentFilter === "ALL" ? undefined : paymentFilter,
       query: debouncedSearch || undefined,
       locationId: activeLocationId,
+      from: dateRange.from || undefined,
+      to: dateRange.to || undefined,
     }),
     enabled: !!activeLocationId,
   });
