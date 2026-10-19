@@ -450,6 +450,8 @@ public class OrderService {
         for (Order order : orders) {
             UserOrderSummaryResponse summary = new UserOrderSummaryResponse();
             summary.setId(order.getId());
+            summary.setLocationId(order.getLocation() != null ? order.getLocation().getId() : null);
+            summary.setLocationName(order.getLocation() != null ? order.getLocation().getName() : null);
             summary.setOrderNumber(order.getOrderNumber());
             summary.setStatus(order.getStatus());
             summary.setPaymentStatus(order.getPaymentStatus());

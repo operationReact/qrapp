@@ -10,6 +10,8 @@ import java.util.List;
 @Data
 public class UserOrderSummaryResponse {
     private Long id;
+    private Long locationId;
+    private String locationName;
     private String orderNumber;
     private OrderStatus status;
     private String paymentStatus;

@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Link, useLocation } from "@tanstack/react-router";
 import { buttonVariants } from "@/components/ui/button";
-import { ArchiveIcon, CreditCardIcon, WalletIcon, GiftIcon } from "@phosphor-icons/react";
+import { ArchiveIcon, ClockCountdownIcon, CreditCardIcon, WalletIcon, GiftIcon } from "@phosphor-icons/react";
 import {
   Card,
   CardContent,
@@ -46,12 +46,44 @@ function SuccessPage() {
           <CardContent className="grid gap-3 mt-2">
             <div
               role="status"
-              className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900"
+              className="relative overflow-hidden rounded-xl border border-amber-200/80 bg-linear-to-br from-amber-50 via-white to-amber-100/60 p-4 shadow-sm"
             >
-              <span className="font-semibold">Need to cancel?</span>
-              <span>
-                You can cancel this order from the Orders page until the kitchen starts preparing it. Once preparation begins, cancellation is no longer possible.
-              </span>
+              <div className="flex items-start gap-3">
+                <span className="grid size-9 shrink-0 place-items-center rounded-full bg-amber-500/15 text-amber-700 ring-1 ring-amber-300/60">
+                  <ClockCountdownIcon weight="duotone" className="size-5" />
+                </span>
+                <div className="min-w-0">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-amber-700">
+                    Cancellation window
+                  </p>
+                  <h3 className="mt-0.5 text-sm font-semibold text-stone-900">
+                    Need to cancel? You have time.
+                  </h3>
+                  <p className="mt-1 text-xs leading-relaxed text-stone-600">
+                    Cancel from the Orders page until the kitchen starts preparing your food.
+                  </p>
+                </div>
+              </div>
+
+              <ol className="relative mt-4 grid grid-cols-3 text-center text-[11px] font-medium text-stone-600">
+                <li className="relative flex flex-col items-center gap-1.5">
+                  <span className="absolute left-1/2 top-[5px] h-px w-full bg-green-400" aria-hidden="true" />
+                  <span className="relative z-10 grid size-3 place-items-center rounded-full bg-green-500 ring-4 ring-amber-50" />
+                  <span className="text-green-700">Placed</span>
+                </li>
+                <li className="relative flex flex-col items-center gap-1.5">
+                  <span className="absolute left-1/2 top-[5px] h-px w-full bg-stone-300" aria-hidden="true" />
+                  <span className="relative z-10 grid size-3 place-items-center rounded-full bg-amber-500 ring-4 ring-amber-50 animate-pulse" />
+                  <span className="font-semibold text-amber-700">Cancel cutoff</span>
+                </li>
+                <li className="relative flex flex-col items-center gap-1.5">
+                  <span className="relative z-10 grid size-3 place-items-center rounded-full bg-stone-300 ring-4 ring-amber-50" />
+                  <span className="text-stone-400">Ready</span>
+                </li>
+              </ol>
+              <p className="mt-3 rounded-md bg-white/70 px-2.5 py-1.5 text-center text-[11px] text-stone-600 ring-1 ring-amber-200/70">
+                Cancellation closes the moment the kitchen starts preparing.
+              </p>
             </div>
             <div className="relative overflow-hidden rounded-md bg-linear-to-br from-green-50 to-green-100/50 p-2">
               <div className="flex items-center gap-2">

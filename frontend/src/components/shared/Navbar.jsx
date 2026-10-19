@@ -116,13 +116,30 @@ export default function Navbar({
         {homeHeader ? (
           <>
             <LocationSelector header className="min-w-0 flex-1" />
-            <Link to="/" className="shrink-0" aria-label="BRO & BRO">
-              <img
-                src="/bro-logo.png"
-                alt="BRO & BRO"
-                className="h-9 w-9 rounded-none object-contain"
-              />
-            </Link>
+            {!isAdmin && user ? (
+              <Link
+                to="/wallet"
+                aria-label="Open wallet"
+                className="inline-flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border border-border bg-card px-2.5 text-sm font-semibold text-foreground shadow-sm"
+              >
+                <WalletIcon weight="duotone" className="size-4 text-primary" aria-hidden="true" />
+                <span>
+                  {loadingBalance
+                    ? "..."
+                    : walletBalance == null
+                      ? "Wallet"
+                      : `₹${walletBalance.toFixed(0)}`}
+                </span>
+              </Link>
+            ) : (
+              <Link to="/" className="shrink-0" aria-label="BRO & BRO">
+                <img
+                  src="/bro-logo.png"
+                  alt="BRO & BRO"
+                  className="h-9 w-9 rounded-none object-contain"
+                />
+              </Link>
+            )}
           </>
         ) : (
           <>
