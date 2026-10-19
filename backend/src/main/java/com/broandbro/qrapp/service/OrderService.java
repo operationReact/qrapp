@@ -504,6 +504,8 @@ public class OrderService {
                                                    Optional<String> query,
                                                    boolean liveOnly,
                                                    Optional<List<Long>> locationScope,
+                                                   Optional<LocalDate> fromDate,
+                                                   Optional<LocalDate> toDate,
                                                    Pageable pageable) {
         // Pre-orders are managed exclusively via /admin/pre-orders — exclude them here
         Specification<Order> specification = (root, cq, cb) -> cb.isFalse(root.get("preOrder"));
@@ -511,6 +513,16 @@ public class OrderService {
         Specification<Order> locationSpec = locationScopeSpec(locationScope);
         if (locationSpec != null) {
             specification = specification.and(locationSpec);
+        }
+
+        if (fromDate.isPresent()) {
+            LocalDateTime start = fromDate.get().atStartOfDay();
+            specification = specification.and((root, cq, cb) -> cb.greaterThanOrEqualTo(root.get("createdAt"), start));
+        }
+
+        if (toDate.isPresent()) {
+            LocalDateTime endExclusive = toDate.get().plusDays(1).atStartOfDay();
+            specification = specification.and((root, cq, cb) -> cb.lessThan(root.get("createdAt"), endExclusive));
         }
 
         if (status.isPresent() && !status.get().isBlank()) {

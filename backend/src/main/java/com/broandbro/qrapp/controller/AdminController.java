@@ -18,6 +18,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -51,11 +52,14 @@ public class AdminController {
                                                                @RequestParam Optional<String> query,
                                                                @RequestParam(defaultValue = "false") boolean liveOnly,
                                                                @RequestParam(required = false) Long locationId,
+                                                               @RequestParam(required = false) LocalDate from,
+                                                               @RequestParam(required = false) LocalDate to,
                                                                Authentication authentication,
                                                                Pageable pageable) {
                                                                User user = requireUser(authentication);
                                                                Optional<List<Long>> scope = locationAccessService.resolveDashboardLocationScope(user, locationId);
-        return ResponseEntity.ok(orderService.getAdminOrders(status, paymentStatus, query, liveOnly, scope, pageable));
+        return ResponseEntity.ok(orderService.getAdminOrders(status, paymentStatus, query, liveOnly, scope,
+                Optional.ofNullable(from), Optional.ofNullable(to), pageable));
     }
 
     @GetMapping("/orders/live")

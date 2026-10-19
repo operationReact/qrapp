@@ -19,6 +19,8 @@ export const getOrdersAdmin = ({
   query,
   liveOnly,
   locationId,
+  from,
+  to,
 } = {}) => {
   const params = { page, size };
   if (status) params.status = status;
@@ -26,6 +28,8 @@ export const getOrdersAdmin = ({
   if (query) params.query = query;
   if (typeof liveOnly === "boolean") params.liveOnly = liveOnly;
   if (locationId != null) params.locationId = locationId;
+  if (from) params.from = from;
+  if (to) params.to = to;
   return apiClient.get("/admin/orders", { params }).then((r) => r.data);
 };
 
