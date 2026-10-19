@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Autoplay from "embla-carousel-autoplay";
 import {
   CaretLeftIcon,
@@ -23,6 +23,43 @@ import {
 function resolveImageUrl(url) {
   if (!url) return null;
   return url.startsWith("http") ? url : `${baseURL}${url}`;
+}
+
+function AutoplayVideo({ src, className, width, height }) {
+  const ref = useRef(null);
+
+  useEffect(() => {
+    const video = ref.current;
+    if (!video) return undefined;
+
+    // iOS Safari ignores the muted attribute for autoplay unless the property is set.
+    video.muted = true;
+    const tryPlay = () => {
+      const result = video.play();
+      if (result?.catch) result.catch(() => {});
+    };
+
+    tryPlay();
+    video.addEventListener("loadeddata", tryPlay);
+    return () => video.removeEventListener("loadeddata", tryPlay);
+  }, [src]);
+
+  return (
+    <video
+      ref={ref}
+      src={src}
+      className={className}
+      width={width}
+      height={height}
+      muted
+      autoPlay
+      loop
+      playsInline
+      preload="auto"
+      disablePictureInPicture
+      aria-hidden="true"
+    />
+  );
 }
 
 function CarouselStatus({ count }) {
@@ -197,18 +234,13 @@ export default function HomeMrpProductsSection({ locationId }) {
                   <div className="hmp-stage">
                     {category.video ? (
                       <span className="hmp-float hmp-float--video">
-                        <video
+                        <AutoplayVideo
                           src={category.video}
                           className="hmp-video"
                           width="116"
                           height="116"
-                          muted
-                          autoPlay
-                          loop
-                          playsInline
-                          preload="metadata"
-                          aria-hidden="true"
                         />
+
                       </span>
                     ) : category.image ? (
                       <span className="hmp-float">
