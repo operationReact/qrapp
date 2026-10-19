@@ -87,11 +87,17 @@ function EssentialsPage() {
       .filter(Boolean)
       .filter((name) => productCategoryKeys.has(name.toLowerCase()))
       .filter((name) => !categoryNames.some(([, value]) => value === name.toLowerCase()));
+  const availableCategoryKeys = new Set(
+      products.map((product) => (product.category?.name || "").trim().toLowerCase()).filter(Boolean),
+  );
+  const categoryHasItems = (value) => value === "all"
+      || availableCategoryKeys.has(value)
+      || (value === "drinks" && availableCategoryKeys.has("packaged drinks"));
   const visibleCategoryNames = [
     ...categoryNames,
     ...adminCategoryNames.map((name) => [name, name.toLowerCase()]),
     ...dynamicCategoryNames.map((name) => [name, name.toLowerCase()]),
-  ];
+  ].filter(([, value]) => categoryHasItems(value));
   const categoryBanner = categoryBannerFiles[selectedCategory]
       ? essentialsAsset("hero", categoryBannerFiles[selectedCategory])
       : null;

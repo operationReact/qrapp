@@ -124,6 +124,13 @@ function MenuPage() {
 
   const menuItems = menu || [];
 
+  const categoriesWithItems = useMemo(() => {
+    const populated = new Set(
+      (menu || []).map((item) => (item.category?.name || "").trim().toLowerCase()).filter(Boolean),
+    );
+    return categories.filter((category) => populated.has(category.name.trim().toLowerCase()));
+  }, [categories, menu]);
+
   if (!activeLocationId) {
     return (
       <LocationLandingPage
@@ -237,7 +244,7 @@ function MenuPage() {
       <div className="container-premium home-controls flex flex-col gap-2 py-1.5 md:gap-2 md:py-2 lg:gap-3 lg:py-1">
         {/* Desktop search/filter is now inside the hero overlay; show categories only below hero */}
         <div className="container-premium -mx-[0.875rem] w-auto px-0 md:mx-0 md:w-auto md:px-0">
-          <CategoryTabs categories={categories} active={category} />
+          <CategoryTabs categories={categoriesWithItems} active={category} />
         </div>
       </div>
       <HomeMrpProductsSection locationId={activeLocationId} />
