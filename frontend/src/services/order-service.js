@@ -87,6 +87,13 @@ export const completeManualRefund = (orderId, reference, locationId) => {
     .then((r) => r.data);
 };
 
+export const retryEscalatedRefund = (orderId, locationId) => {
+  const params = locationId != null ? { locationId } : undefined;
+  return apiClient
+    .post(`/admin/orders/${orderId}/refund/retry`, undefined, params ? { params } : undefined)
+    .then((r) => r.data);
+};
+
 export const downloadAdminInvoice = (orderId) =>
   apiClient.get(`/admin/orders/${orderId}/invoice`, { responseType: "blob" }).then((r) => r.data);
 

@@ -19,7 +19,7 @@ import {
 import { toast } from "sonner";
 import { LocationSelector } from "@/components/LocationSelector";
 import { SectionLocationSelector } from "@/components/SectionLocationSelector";
-import { getOrdersAdmin, getAdminOrder, completeManualRefund } from "@/services/order-service";
+import { getOrdersAdmin, getAdminOrder, completeManualRefund, retryEscalatedRefund } from "@/services/order-service";
 import { useAuth } from "@/context/AuthContext";
 import { useLocation as useActiveLocation } from "@/context/LocationContext";
 import { canUseRootLocationSelector } from "@/lib/sectionLocation";
@@ -280,6 +280,18 @@ function RefundsPage() {
     },
     onError: (error) => {
       toast.error(error?.response?.data?.message || "Could not complete the refund");
+    },
+  });
+
+  const retryRefundMutation = useMutation({
+    mutationFn: (orderId) => retryEscalatedRefund(orderId, activeLocationId),
+    onSuccess: () => {
+      toast.success("Retry started. The refund will be attempted again shortly.");
+      queryClient.invalidateQueries({ queryKey: ["admin", "refunds"] });
+      queryClient.invalidateQueries({ queryKey: ["orders", "admin"] });
+    },
+    onError: (error) => {
+      toast.error(error?.response?.data?.message || "Could not retry the refund");
     },
   });
 
@@ -590,6 +602,8 @@ function RefundsPage() {
           onReferenceChange={(value) => setManualReferences((current) => ({ ...current, [selectedOrder?.id]: value }))}
           onProcess={() => submitManualRefund(selectedOrder.id)}
           submitting={manualRefundMutation.isPending}
+          onRetry={() => retryRefundMutation.mutate(selectedOrder.id)}
+          retrying={retryRefundMutation.isPending}
         />
       </div>
     </main>
@@ -614,7 +628,7 @@ const DETAIL_TABS = [
   { value: "items", label: "Items" },
 ];
 
-function OrderDetailPanel({ order, loading, isOpen, tab, onTab, onClose, reference, onReferenceChange, onProcess, submitting }) {
+function OrderDetailPanel({ order, loading, isOpen, tab, onTab, onClose, reference, onReferenceChange, onProcess, submitting, onRetry, retrying }) {
   if (!order) {
     return (
       <aside className={cn("rf-detail", isOpen && "rf-detail--open")} aria-label="Order refund details">
@@ -726,9 +740,14 @@ function OrderDetailPanel({ order, loading, isOpen, tab, onTab, onClose, referen
               onChange={(event) => onReferenceChange(event.target.value)}
               placeholder="Refund reference (Razorpay or bank)"
             />
-            <button type="button" className="rf-btn rf-btn--primary" onClick={onProcess} disabled={submitting}>
+            <button type="button" className="rf-btn rf-btn--primary" onClick={onProcess} disabled={submitting || retrying}>
               Process refund
             </button>
+            {order.paymentMethod === "RAZORPAY" && (
+              <button type="button" className="rf-btn" onClick={onRetry} disabled={submitting || retrying}>
+                {retrying ? "Retrying..." : "Retry refund"}
+              </button>
+            )}
           </>
         ) : (
           <p className="rf-note">No refund action needed.</p>

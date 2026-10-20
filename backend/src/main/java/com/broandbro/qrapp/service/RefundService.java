@@ -360,6 +360,31 @@ public class RefundService {
         return refund;
     }
 
+    /**
+     * Gives an escalated Razorpay refund one more automatic attempt. The attempt count is set just below the limit
+     * (not reset), so the next claim still runs the refund-key reconciliation before any resend.
+     */
+    @Transactional
+    public OrderRefund retryEscalatedRefund(Long orderId, String actor) {
+        OrderRefund refund = refundRepo.findFirstByOrderIdAndStatusOrderByIdDesc(orderId, OrderRefund.STATUS_MANUAL_REQUIRED)
+                .orElseThrow(() -> new IllegalArgumentException("No refund is awaiting manual action for this order."));
+        if (!OrderRefund.METHOD_RAZORPAY.equals(refund.getMethod()) || refund.getPaymentId() == null) {
+            throw new IllegalArgumentException("Only Razorpay refunds can be retried. Complete this refund manually instead.");
+        }
+        Order order = orderRepo.findByIdForUpdate(orderId)
+                .orElseThrow(() -> new IllegalArgumentException("Order not found: " + orderId));
+        LocalDateTime now = BusinessTime.now();
+        refund.setStatus(OrderRefund.STATUS_PENDING);
+        refund.setAttempts(MAX_ATTEMPTS - 1);
+        refund.setNextAttemptAt(now);
+        refund.setFailureReason(null);
+        refund.setUpdatedAt(now);
+        applyOrderRefundStatus(order, refund);
+        log.info("[Refund] Manual retry requested | refundId={} orderId={} actor={}", refund.getId(), orderId, actor);
+        eventPublisher.publishEvent(new RefundRequestedEvent(refund.getId()));
+        return refund;
+    }
+
     private void applyOrderRefundStatus(Order order, OrderRefund refund) {
         switch (refund.getStatus()) {
             case OrderRefund.STATUS_SUCCEEDED -> {

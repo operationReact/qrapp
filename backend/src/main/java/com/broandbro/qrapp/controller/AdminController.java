@@ -136,6 +136,18 @@ public class AdminController {
         return ResponseEntity.ok(orderService.getAdminOrder(id));
     }
 
+    @PostMapping("/orders/{id}/refund/retry")
+    public ResponseEntity<AdminOrderResponse> retryEscalatedRefund(@PathVariable Long id,
+                                                                   @RequestParam(required = false) Long locationId,
+                                                                   Authentication authentication) {
+        User user = requireUser(authentication);
+        locationAccessService.requireNonKitchenAdmin(user, locationId);
+        Optional<List<Long>> scope = locationAccessService.resolveDashboardLocationScope(user, locationId);
+        orderService.assertOrderWithinScope(id, scope);
+        refundService.retryEscalatedRefund(id, authentication.getName());
+        return ResponseEntity.ok(orderService.getAdminOrder(id));
+    }
+
     @PatchMapping("/orders/{id}")
     public ResponseEntity<AdminOrderResponse> updateOrder(@PathVariable Long id,
                                                           @Valid @RequestBody AdminOrderUpdateRequest request,
