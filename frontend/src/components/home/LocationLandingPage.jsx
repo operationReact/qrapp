@@ -242,7 +242,7 @@ export default function LocationLandingPage({ locations = [], onSelect }) {
             <img src="/bro-logo.png" alt="Bro & Bro" />
             <span style={{ minWidth: 0 }}>
               <span className="loc-brand-name">Bro &amp; Bro</span>
-              <span className="loc-brand-sub">Food Court</span>
+              <span className="loc-brand-sub">Food Court Group</span>
             </span>
           </Link>
           <div className="loc-header-actions">
@@ -279,9 +279,9 @@ export default function LocationLandingPage({ locations = [], onSelect }) {
           <div style={{ position: "relative", zIndex: 1, minWidth: 0 }}>
             <p className="loc-eyebrow">Welcome to</p>
             <h1 className="loc-title">
-              BRO &amp; BRO <span className="loc-title-accent">Food Court</span>
+              BRO &amp; BRO <span className="loc-title-accent">Food Court Group</span>
             </h1>
-            <p className="loc-lede">Great food. Work. Meet. Repeat.</p>
+            <p className="loc-lede">Every location. One standard.</p>
           </div>
           <div
             className="loc-art"

@@ -276,6 +276,8 @@
 
 .loc-title-accent {
   display: block;
+  white-space: nowrap;
+  font-size: 0.85em;
   background-image: linear-gradient(
     100deg,
     #c9a24d 0%,
@@ -314,12 +316,25 @@
 }
 
 .loc-lede {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   margin: 14px 0 0;
-  padding-left: 42px;
   max-width: 36rem;
-  font-size: 16px;
-  line-height: 1.6;
-  color: #5c5752;
+  font-family: var(--loc-font-display);
+  font-size: 19px;
+  font-style: italic;
+  line-height: 1.4;
+  letter-spacing: 0.01em;
+  color: #6b5f52;
+}
+
+.loc-lede::before {
+  content: "";
+  flex-shrink: 0;
+  width: 28px;
+  height: 1px;
+  background: #c9a24d;
 }
 
 .loc-art {
