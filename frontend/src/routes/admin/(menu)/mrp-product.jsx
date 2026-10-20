@@ -1074,17 +1074,11 @@ function ProductCategoryImages({ locationId, categoryNames, onClose }) {
                     const busy = busyName === name;
                     return (
                         <div key={name} className="grid min-w-0 gap-2 rounded-xl border border-[#e9e6e1] p-2.5">
-                        <div className="flex min-w-0 items-center gap-3">
+                        <div className="flex min-w-0 flex-wrap items-center gap-2 sm:gap-3">
                           {category?.imageUrl ? <img src={category.imageUrl} alt="" className="size-12 shrink-0 rounded-lg border border-[#eeeae5] object-cover" /> : <div className="grid size-12 shrink-0 place-items-center rounded-lg bg-[#f8f7f4] text-[10px] text-[#99938c]">No image</div>}
-                          {renameDraft?.from === name ? (
-                            <form onSubmit={(event) => { event.preventDefault(); saveRename(name); }} className="flex min-w-0 flex-1 items-center gap-2">
-                              <input autoFocus value={renameDraft.value} onChange={(event) => setRenameDraft({ from: name, value: event.target.value })} onKeyDown={(event) => { if (event.key === "Escape") setRenameDraft(null); }} aria-label={`New name for ${name}`} className="h-9 min-w-0 flex-1 rounded-lg border border-[#e5e2dd] px-2.5 text-sm outline-none focus:border-[#ff2438] focus:ring-2 focus:ring-[#ff2438]/10" />
-                              <button type="submit" disabled={busy || !renameDraft.value.trim()} className="mrp-btn-brand h-9 shrink-0 rounded-lg px-3 text-xs font-bold disabled:opacity-50">Save</button>
-                              <button type="button" onClick={() => setRenameDraft(null)} className="shrink-0 px-1 text-xs font-semibold text-[#514d48]">Cancel</button>
-                            </form>
-                          ) : (
+                          {renameDraft?.from !== name && (
                             <>
-                              <span className="min-w-0 flex-1 truncate text-sm font-semibold text-[#393632]">{name}</span>
+                              <span className="min-w-[6rem] flex-1 truncate text-sm font-semibold text-[#393632]">{name}</span>
                               <button type="button" disabled={busy} onClick={() => setRenameDraft({ from: name, value: name })} className="shrink-0 rounded-lg border border-[#e5e2dd] px-2.5 py-2 text-xs font-semibold text-[#514d48] disabled:opacity-50">Rename</button>
                             </>
                           )}
@@ -1095,6 +1089,13 @@ function ProductCategoryImages({ locationId, categoryNames, onClose }) {
                           </label>
                           {category?.imageUrl && <button type="button" disabled={busy} onClick={() => removeImage(name)} className="shrink-0 px-1 text-xs font-semibold text-[#d92334] disabled:opacity-50">Remove</button>}
                         </div>
+                        {renameDraft?.from === name && (
+                          <form onSubmit={(event) => { event.preventDefault(); saveRename(name); }} className="flex min-w-0 items-center gap-2 pl-[60px]">
+                            <input autoFocus value={renameDraft.value} onChange={(event) => setRenameDraft({ from: name, value: event.target.value })} onKeyDown={(event) => { if (event.key === "Escape") setRenameDraft(null); }} aria-label={`New name for ${name}`} className="h-9 min-w-0 flex-1 rounded-lg border border-[#e5e2dd] px-2.5 text-sm outline-none focus:border-[#ff2438] focus:ring-2 focus:ring-[#ff2438]/10" />
+                            <button type="submit" disabled={busy || !renameDraft.value.trim()} className="mrp-btn-brand h-9 shrink-0 rounded-lg px-3 text-xs font-bold disabled:opacity-50">Save</button>
+                            <button type="button" onClick={() => setRenameDraft(null)} className="shrink-0 px-1 text-xs font-semibold text-[#514d48]">Cancel</button>
+                          </form>
+                        )}
                         <div className="flex min-w-0 items-center gap-2 pl-[60px]">
                           <span className="shrink-0 text-xs font-semibold text-[#77736f]">Video (1:1, ≤3s)</span>
                           {CATEGORY_VIDEOS.length === 0 ? (

@@ -552,6 +552,7 @@ function RefundsPage() {
                     <div className="rf-col-refund">
                       <RefundBadge status={order.refundStatus} />
                       {order.refundReference && <span className="rf-cell-sub rf-mono">{order.refundReference}</span>}
+                      {order.refundFailureReason && <span className="rf-cell-sub rf-refund-issue" title={order.refundFailureReason}>{order.refundFailureReason}</span>}
                     </div>
                     <div className="rf-col-date">
                       <span className="rf-cell-title">{formatDay(order.cancelledAt || order.createdAt)}</span>
@@ -679,6 +680,7 @@ function OrderDetailPanel({ order, loading, isOpen, tab, onTab, onClose, referen
             <KvRow label="Cancelled on">{formatDate(order.cancelledAt)}</KvRow>
             <KvRow label="Cancelled by">{formatActor(order.cancelledBy)}</KvRow>
             <KvRow label="Refund reference">{order.refundReference || DASH}</KvRow>
+            <KvRow label="Refund issue">{order.refundFailureReason || DASH}</KvRow>
             <KvRow label="Reason">{order.cancelReason || "No reason given"}</KvRow>
             <KvRow label="Admin note">{order.adminNote || DASH}</KvRow>
           </dl>

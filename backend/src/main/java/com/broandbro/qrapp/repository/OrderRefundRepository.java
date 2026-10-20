@@ -19,6 +19,8 @@ public interface OrderRefundRepository extends JpaRepository<OrderRefund, Long> 
 
     Optional<OrderRefund> findFirstByProviderRefundId(String providerRefundId);
 
+    List<OrderRefund> findAllByOrderIdInOrderByIdDesc(Collection<Long> orderIds);
+
     List<OrderRefund> findByPaymentIdAndStatusIn(String paymentId, Collection<String> statuses);
 
     List<OrderRefund> findTop50ByStatusInAndNextAttemptAtLessThanEqualOrderByNextAttemptAtAsc(

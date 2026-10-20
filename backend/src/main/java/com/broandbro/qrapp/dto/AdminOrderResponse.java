@@ -48,6 +48,8 @@ public class AdminOrderResponse {
     private String refundStatus;
     private BigDecimal refundAmount;
     private String refundReference;
+    /** Why the latest refund failed or needs manual action; null once it has succeeded. */
+    private String refundFailureReason;
     private String adminNote;
     private String assignedAdmin;
     private boolean live;
