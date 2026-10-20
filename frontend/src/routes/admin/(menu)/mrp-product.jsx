@@ -67,7 +67,7 @@ export const Route = createFileRoute("/admin/(menu)/mrp-product")({
   component: ProductCatalogPage,
 });
 const EMPTY = {
-  variantIdentity: "", name: "", brand: "", categoryName: "", description: "", isVeg: "",
+  variantIdentity: "", name: "", brand: "", categoryName: "", description: "", isVeg: "true",
   mrp: "", costPrice: "", locationId: "", initialStock: "0", stockQuantity: "", lowStockThreshold: "5",
 };
 
@@ -309,7 +309,7 @@ function ProductCatalogPage() {
       name: product.name || "",
       brand: product.brand || "",
       categoryName: product.categoryName || "",
-      isVeg: product.isVeg == null ? "" : String(product.isVeg),
+      isVeg: product.isVeg === false ? "false" : "true",
       description: product.description || "",
       mrp: product.mrp ?? "",
       costPrice: product.costPrice ?? "",
@@ -326,7 +326,7 @@ function ProductCatalogPage() {
     const payload = {
       ...form,
       locationId: effectiveLocationId ? Number(effectiveLocationId) : null,
-      isVeg: form.isVeg === "" ? null : form.isVeg === "true",
+      isVeg: form.isVeg === "true",
       mrp: Number(form.mrp),
       costPrice: Number(form.costPrice),
       initialStock: Number(form.initialStock || 0),
@@ -638,12 +638,11 @@ function ProductCatalogPage() {
                     </label>
                     <label className={labelClass}>
                       Food type
-                      <Select value={form.isVeg === "" ? "unspecified" : form.isVeg} onValueChange={(value) => setForm((current) => ({ ...current, isVeg: value === "unspecified" ? "" : value }))}>
+                      <Select value={form.isVeg} onValueChange={(value) => setForm((current) => ({ ...current, isVeg: value }))}>
                         <SelectTrigger aria-label="Food type" className="mrp-cf-trigger h-11 w-full min-w-0 max-w-full">
-                          <SelectValue>{form.isVeg === "true" ? "Veg" : form.isVeg === "false" ? "Non veg" : "Not specified"}</SelectValue>
+                          <SelectValue>{form.isVeg === "false" ? "Non veg" : "Veg"}</SelectValue>
                         </SelectTrigger>
                         <SelectContent className="mrp-cf-popup max-w-[calc(100vw-1rem)]">
-                          <SelectItem value="unspecified" className="mrp-cf-item max-w-full whitespace-normal break-words">Not specified</SelectItem>
                           <SelectItem value="true" className="mrp-cf-item max-w-full whitespace-normal break-words">Veg</SelectItem>
                           <SelectItem value="false" className="mrp-cf-item max-w-full whitespace-normal break-words">Non veg</SelectItem>
                         </SelectContent>

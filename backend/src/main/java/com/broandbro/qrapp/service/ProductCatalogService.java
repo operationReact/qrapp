@@ -514,7 +514,7 @@ public class ProductCatalogService {
         product.setMrp(request.getMrp());
         product.setCostPrice(request.getCostPrice());
         product.setHsnSac(request.getHsnSac());
-        product.setIsVeg(request.getIsVeg());
+        product.setIsVeg(request.getIsVeg() == null ? Boolean.TRUE : request.getIsVeg());
         product.setImageUrl(request.getImageUrl());
         product.setActive(request.getActive() == null || request.getActive());
         product.setTaxProfile(request.getTaxProfileId() == null ? null :
@@ -531,7 +531,7 @@ public class ProductCatalogService {
         product.setMrp(request.getMrp());
         product.setCostPrice(request.getCostPrice());
         product.setHsnSac(request.getHsnSac());
-        product.setIsVeg(request.getIsVeg());
+        product.setIsVeg(request.getIsVeg() == null ? Boolean.TRUE : request.getIsVeg());
         if (request.getImageUrl() != null && !request.getImageUrl().equals(product.getImageUrl())) {
             if (product.getImageAsset() != null) {
                 detachImageAsset(product);

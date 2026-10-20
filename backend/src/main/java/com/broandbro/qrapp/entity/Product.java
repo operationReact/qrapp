@@ -49,8 +49,8 @@ public class Product {
     @Column(name = "hsn_sac", length = 20)
     private String hsnSac;
 
-    /** NULL = not specified, TRUE = veg, FALSE = non veg. */
-    @Column(name = "is_veg")
+    /** TRUE = veg (default), FALSE = non veg. */
+    @Column(name = "is_veg", nullable = false)
     private Boolean isVeg;
 
     @Column(name = "image_url", columnDefinition = "TEXT")
