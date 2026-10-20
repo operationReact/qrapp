@@ -17,7 +17,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useEffect, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { Empty, EmptyDescription, EmptyHeader } from "./ui/empty";
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { getCartRecommendations, getRecommendedBundle, getMealRecommendation } from "@/services/recommendation-service";
 import { PlusCircleIcon, PlusIcon, PlusMinusIcon, SparkleIcon } from "@phosphor-icons/react";
 import ComboProgressBanner from "@/components/ComboProgressBanner";
@@ -59,6 +59,7 @@ function SmartUpsellSection({ cart, addItem, decreaseItem, isOpen }) {
     enabled:  isOpen && cart.length > 0 && !upsellDone,
     staleTime: 1000 * 60 * 3,
     retry:    false,
+    placeholderData: keepPreviousData,
   });
   const hasMeal = !mealLoading && !mealError && !!(meal?.mealItems?.length);
 
@@ -69,6 +70,7 @@ function SmartUpsellSection({ cart, addItem, decreaseItem, isOpen }) {
     enabled:  isOpen && cart.length > 0 && !upsellDone && !mealLoading && !hasMeal,
     staleTime: 1000 * 60 * 3,
     retry:    false,
+    placeholderData: keepPreviousData,
   });
   const hasBundle = !bundleLoading && !bundleError && !!(bundle?.bundleItems?.length);
 
@@ -81,6 +83,7 @@ function SmartUpsellSection({ cart, addItem, decreaseItem, isOpen }) {
       isOpen && cart.length > 0 && !upsellDone &&
       !mealLoading && !hasMeal && !bundleLoading && !hasBundle,
     staleTime: 1000 * 60 * 2,
+    placeholderData: keepPreviousData,
   });
   const suggestions = recsData?.suggestions ?? [];
 
@@ -138,13 +141,7 @@ function SmartUpsellSection({ cart, addItem, decreaseItem, isOpen }) {
     (!hasMeal && bundleLoading) ||
     (!hasMeal && !hasBundle && recsLoading);
 
-  if (showSkeleton) {
-    return (
-      <div className="px-3 pt-2 pb-1">
-        <div className="h-36 rounded-2xl bg-zinc-100/70 animate-pulse" />
-      </div>
-    );
-  }
+  if (showSkeleton) return null;
 
   if (hasMeal) {
     return (

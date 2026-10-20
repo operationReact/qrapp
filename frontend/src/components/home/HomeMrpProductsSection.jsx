@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+﻿import { useEffect, useMemo, useRef, useState } from "react";
 import Autoplay from "embla-carousel-autoplay";
 import {
+  ArrowRightIcon,
   CaretLeftIcon,
   CaretRightIcon,
 } from "@phosphor-icons/react";
@@ -11,6 +12,7 @@ import { getCategories, getProductCategoryImages } from "@/services/category-ser
 import { getCatalogProducts } from "@/services/mrp-product-service";
 import { getCategoryVideoSrc } from "@/lib/categoryVideos";
 import "@/styles/home-mrp-products.css";
+import "@/styles/home-mrp-premium.css";
 import {
   Carousel,
   CarouselContent,
@@ -34,14 +36,55 @@ function AutoplayVideo({ src, className, width, height }) {
 
     // iOS Safari ignores the muted attribute for autoplay unless the property is set.
     video.muted = true;
+
+    let resumeListenersAttached = false;
+    const resumeOnGesture = () => {
+      tryPlay();
+    };
+    const detachGestureListeners = () => {
+      if (!resumeListenersAttached) return;
+      resumeListenersAttached = false;
+      ["touchstart", "pointerdown", "scroll"].forEach((eventName) =>
+        window.removeEventListener(eventName, resumeOnGesture, true),
+      );
+    };
     const tryPlay = () => {
       const result = video.play();
-      if (result?.catch) result.catch(() => {});
+      if (result?.then) {
+        result.then(detachGestureListeners, () => {
+          // iOS blocks autoplay in some states (Low Power Mode, off-screen); resume on the next user gesture.
+          if (resumeListenersAttached) return;
+          resumeListenersAttached = true;
+          ["touchstart", "pointerdown", "scroll"].forEach((eventName) =>
+            window.addEventListener(eventName, resumeOnGesture, { capture: true, passive: true }),
+          );
+        });
+      }
     };
 
-    tryPlay();
+    const observer = typeof IntersectionObserver === "undefined"
+      ? null
+      : new IntersectionObserver(
+          ([entry]) => {
+            if (entry.isIntersecting) {
+              tryPlay();
+            } else {
+              video.pause();
+            }
+          },
+          { threshold: 0.25 },
+        );
+    if (observer) observer.observe(video);
+    else tryPlay();
+
     video.addEventListener("loadeddata", tryPlay);
-    return () => video.removeEventListener("loadeddata", tryPlay);
+    video.addEventListener("canplay", tryPlay);
+    return () => {
+      observer?.disconnect();
+      video.removeEventListener("loadeddata", tryPlay);
+      video.removeEventListener("canplay", tryPlay);
+      detachGestureListeners();
+    };
   }, [src]);
 
   return (
@@ -216,7 +259,7 @@ export default function HomeMrpProductsSection({ locationId }) {
         <Carousel
           opts={{ align: "start", loop: true }}
           plugins={autoplay ? [autoplay] : undefined}
-          className="relative mt-2 sm:mt-6 lg:mt-4"
+          className="hmp-carousel relative mt-2 sm:mt-6 lg:mt-4"
         >
           <CarouselContent className="-ml-3 touch-pan-x cursor-grab py-1 pr-1 active:cursor-grabbing">
             {categories.map((category, index) => (

@@ -28,6 +28,7 @@ export const getOrdersAdmin = ({
   locationId,
   from,
   to,
+  dateField,
 } = {}) => {
   const params = { page, size };
   if (status) params.status = status;
@@ -38,6 +39,7 @@ export const getOrdersAdmin = ({
   if (locationId != null) params.locationId = locationId;
   if (from) params.from = from;
   if (to) params.to = to;
+  if (dateField) params.dateField = dateField;
   return apiClient.get("/admin/orders", { params }).then((r) => r.data);
 };
 

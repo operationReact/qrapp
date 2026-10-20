@@ -26,6 +26,12 @@
   box-shadow: 0 20px 36px -14px rgba(239, 35, 60, 0.38), 0 4px 10px rgba(122, 47, 27, 0.08);
 }
 
+.hmp-tile:active {
+  transform: translateY(-2px) scale(0.98);
+  border-color: #ef233c;
+  box-shadow: 0 0 0 2px rgba(239, 35, 60, 0.35), 0 16px 28px -12px rgba(239, 35, 60, 0.45);
+}
+
 .hmp-tile::after {
   content: "";
   position: absolute;

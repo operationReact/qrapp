@@ -4,6 +4,7 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import Navbar from "@/components/shared/Navbar";
 import { useQuery } from "@tanstack/react-query";
 import { myOrdersOptions } from "@/query/options/orders";
+import "@/styles/orders-filter-chips.css";
 import OrderCard, { OrderCardSkeleton } from "@/components/orders/OrderCard";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -186,7 +187,7 @@ function OrdersPage() {
                 style={{ top: navOffset }}
                 className="sticky z-30 -mx-4 border-b border-border/70 bg-background/85 px-4 pt-2 pb-3 shadow-[0_8px_24px_-18px_rgba(0,0,0,0.35)] backdrop-blur-xl sm:-mx-1 sm:px-1"
               >
-                <TabsList className="flex h-auto! w-full flex-wrap justify-start gap-2 rounded-none bg-transparent p-0 group-data-horizontal/tabs:h-auto">
+                <TabsList className="grid h-auto! w-full grid-cols-2 gap-2 rounded-none bg-transparent p-0 group-data-horizontal/tabs:h-auto sm:flex sm:flex-wrap sm:justify-start">
                   {ORDER_STATUS_FILTER_ORDER.map((status) => {
                     const meta = status === "ALL" ? null : getOrderStatusMeta(status);
                     const Icon = meta?.icon ?? ReceiptIcon;
@@ -195,11 +196,11 @@ function OrdersPage() {
                       <TabsTrigger
                         key={status}
                         value={status}
-                        className="group h-9 flex-none gap-1.5 rounded-full border border-border bg-card px-3 text-[13px] font-semibold text-muted-foreground shadow-sm transition-all hover:border-foreground/20 hover:text-foreground data-active:border-transparent data-active:bg-foreground data-active:text-background data-active:shadow-md dark:data-active:bg-foreground dark:data-active:text-background"
+                        className="group orders-filter-chip h-10 min-w-0 justify-center gap-1.5 rounded-full px-3 text-[13px] font-semibold"
                       >
                         <Icon size={15} weight="bold" aria-hidden="true" />
                         {getStatusFilterLabel(status)}
-                        <span className="rounded-full bg-muted px-1.5 text-[11px] font-bold tabular-nums text-muted-foreground group-data-[active]:bg-background/20 group-data-[active]:text-background">
+                        <span className="orders-filter-chip__count">
                           {count}
                         </span>
                       </TabsTrigger>

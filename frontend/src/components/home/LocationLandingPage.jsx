@@ -146,11 +146,6 @@ export default function LocationLandingPage({ locations = [], onSelect }) {
       .map((location) => ({ location })),
     [recentEntries, locations, query],
   );
-  const recentIds = useMemo(
-    () => new Set(resolveRecentLocations(recentEntries, locations).map((location) => String(location.id))),
-    [recentEntries, locations],
-  );
-
   const localRows = filter === "nearby" ? nearby.rows : recentRows;
   const rows = isAll ? serverRows : localRows.slice(0, localLimit);
   const totalCount = isAll ? serverTotal : localRows.length;
@@ -247,7 +242,7 @@ export default function LocationLandingPage({ locations = [], onSelect }) {
             <img src="/bro-logo.png" alt="Bro & Bro" />
             <span style={{ minWidth: 0 }}>
               <span className="loc-brand-name">Bro &amp; Bro</span>
-              <span className="loc-brand-sub">Food Court</span>
+              <span className="loc-brand-sub">Food Court Group</span>
             </span>
           </Link>
           <div className="loc-header-actions">
@@ -284,9 +279,9 @@ export default function LocationLandingPage({ locations = [], onSelect }) {
           <div style={{ position: "relative", zIndex: 1, minWidth: 0 }}>
             <p className="loc-eyebrow">Welcome to</p>
             <h1 className="loc-title">
-              BRO &amp; BRO <span className="loc-title-accent">Food Court</span>
+              BRO &amp; BRO <span className="loc-title-accent">Food Court Group</span>
             </h1>
-            <p className="loc-lede">Great food. Work. Meet. Repeat.</p>
+            <p className="loc-lede">Every location. One standard.</p>
           </div>
           <div
             className="loc-art"
@@ -373,6 +368,7 @@ export default function LocationLandingPage({ locations = [], onSelect }) {
             <span className="loc-count" aria-live="polite">{countLabel}</span>
           )}
         </div>
+        <p className="loc-section-hint">Tap a food court to view its menu and order.</p>
 
         {filter === "nearby" && geo.status === "granted" && nearby.withoutCoordinates > 0 && (
           <p className="loc-note" role="status">
@@ -440,7 +436,6 @@ export default function LocationLandingPage({ locations = [], onSelect }) {
                 key={location.id}
                 location={location}
                 distanceKm={distanceKm}
-                isRecent={recentIds.has(String(location.id))}
                 onSelect={handleSelect}
               />
             ))}
@@ -508,7 +503,7 @@ export default function LocationLandingPage({ locations = [], onSelect }) {
   );
 }
 
-function LocationCard({ location, distanceKm, isRecent, onSelect }) {
+function LocationCard({ location, distanceKm, onSelect }) {
   const image = locationImage(location);
   const addressLines = locationAddressLines(location);
   const name = location.name || location.title || "Food court";
@@ -545,8 +540,8 @@ function LocationCard({ location, distanceKm, isRecent, onSelect }) {
           </p>
         </div>
         <div className="loc-card-foot">
-          {isRecent ? <span className="loc-badge">Recently visited</span> : <span />}
           <span className="loc-cta" aria-hidden="true">
+            View menu
             <ArrowRight size={18} aria-hidden="true" />
           </span>
         </div>

@@ -228,6 +228,7 @@ function RefundsPage() {
     query: appliedQuery || undefined,
     from: from || undefined,
     to: to || undefined,
+    dateField: "cancelledAt",
     locationId: activeLocationId,
   }), [appliedQuery, from, to, activeLocationId]);
 

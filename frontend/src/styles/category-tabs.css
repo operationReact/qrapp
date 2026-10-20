@@ -18,6 +18,13 @@
   flex-shrink: 0;
 }
 
+/* The mobile button is 74px around a 64px tile; pull the first tile flush with the content edge. */
+@media (max-width: 767px) {
+  .category-strip > .category-strip__item:first-child {
+    margin-left: -5px;
+  }
+}
+
 .category-strip__nav {
   display: none;
   flex-shrink: 0;

@@ -1,0 +1,4 @@
+/* Slides carry pl-3 for gutter spacing; pull the track back so the first card lines up with the heading. */
+.hall-carousel-content {
+  margin-left: -0.75rem;
+}

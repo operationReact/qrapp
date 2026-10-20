@@ -1,0 +1,12 @@
+﻿/* Pulls the home Snacks & More carousel slightly forward on small screens. */
+.hmp-carousel {
+  margin-left: -6px;
+  margin-right: -6px;
+}
+
+@media (min-width: 640px) {
+  .hmp-carousel {
+    margin-left: 0;
+    margin-right: 0;
+  }
+}

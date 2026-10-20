@@ -348,24 +348,41 @@ function RefundTracker({ order }) {
 
   const requested = status === "PENDING" || status === "MANUAL_REQUIRED" || status === "REFUNDED";
   const completed = status === "REFUNDED";
+  // For Razorpay, REFUNDED is set only after Razorpay confirms the bank credit. PENDING covers both "not yet sent" and "with the bank".
+  const bankRefund = order.paymentMethod === "RAZORPAY";
   const headline = {
     REFUNDED: { label: "Refunded", tone: "bg-emerald-50 text-emerald-700 ring-emerald-200", Icon: CheckCircleIcon },
     PENDING: { label: "Refund processing", tone: "bg-amber-50 text-amber-700 ring-amber-200", Icon: ClockIcon },
     MANUAL_REQUIRED: { label: "Awaiting stall refund", tone: "bg-rose-50 text-rose-700 ring-rose-200", Icon: WarningCircleIcon },
   }[status] ?? { label: status, tone: "bg-slate-50 text-slate-700 ring-slate-200", Icon: ClockIcon };
   const message = {
-    REFUNDED: "Your refund has been completed.",
-    PENDING: "We have started your refund. This page updates when it completes.",
+    REFUNDED: bankRefund
+      ? "Razorpay confirmed the refund has been credited to your original payment method. Your bank may take a little time to show it."
+      : "Your refund has been completed.",
+    PENDING: bankRefund
+      ? "Your refund is on its way to your original payment method. It can take up to 7 working days to be credited to your account."
+      : "We have started your refund. This page updates when it completes.",
     MANUAL_REQUIRED: "The stall team will complete this refund for you.",
   }[status];
 
   const steps = [
     { key: "cancelled", label: "Order cancelled", detail: cancelledLabel, state: "done" },
-    { key: "requested", label: "Refund requested", detail: `₹${refundAmount}`, state: requested ? "done" : "pending" },
+    {
+      key: "requested",
+      label: "Refund requested",
+      detail: `₹${refundAmount}`,
+      state: requested ? "done" : "pending",
+    },
     {
       key: "completed",
-      label: "Refund completed",
-      detail: completed ? null : status === "MANUAL_REQUIRED" ? "Stall team to pay out" : "Processing",
+      label: bankRefund ? "Credited to your account" : "Refund completed",
+      detail: completed
+        ? null
+        : bankRefund
+          ? "Up to 7 working days after it is sent"
+          : status === "MANUAL_REQUIRED"
+            ? "Stall team to pay out"
+            : "Processing",
       state: completed ? "done" : requested ? "current" : "pending",
     },
   ];

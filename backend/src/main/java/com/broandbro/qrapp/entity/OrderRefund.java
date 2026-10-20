@@ -17,6 +17,8 @@ import java.time.LocalDateTime;
 public class OrderRefund {
     public static final String STATUS_PENDING = "PENDING";
     public static final String STATUS_PROCESSING = "PROCESSING";
+    /** Razorpay accepted the refund; the amount is with the bank and is not confirmed as credited yet. */
+    public static final String STATUS_PROVIDER_ACCEPTED = "PROVIDER_ACCEPTED";
     public static final String STATUS_SUCCEEDED = "SUCCEEDED";
     public static final String STATUS_FAILED = "FAILED";
     public static final String STATUS_MANUAL_REQUIRED = "MANUAL_REQUIRED";

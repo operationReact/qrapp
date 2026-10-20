@@ -90,17 +90,57 @@ class RefundServiceTest {
     }
 
     @Test
-    void successfulProviderRefundCompletesOrderRefund() {
+    void successfulProviderRefundWaitsForBankCreditWebhook() {
+        when(razorpayService.refundPayment(eq("pay_1"), eq(15000L), eq(KEY))).thenReturn("rfnd_1");
+
+        service.processRefund(5L);
+
+        assertEquals(OrderRefund.STATUS_PROVIDER_ACCEPTED, refund.getStatus());
+        assertEquals("rfnd_1", refund.getProviderRefundId());
+        assertNull(refund.getCompletedAt());
+        assertNull(refund.getNextAttemptAt());
+        assertEquals("PENDING", order.getRefundStatus());
+        assertEquals("PAID", order.getPaymentStatus());
+        assertNull(order.getRefundReference());
+    }
+
+    @Test
+    void acceptanceNeverDowngradesRefundAlreadySettledByWebhook() {
+        refund.setStatus(OrderRefund.STATUS_SUCCEEDED);
         when(razorpayService.refundPayment(eq("pay_1"), eq(15000L), eq(KEY))).thenReturn("rfnd_1");
 
         service.processRefund(5L);
 
         assertEquals(OrderRefund.STATUS_SUCCEEDED, refund.getStatus());
-        assertEquals("rfnd_1", refund.getProviderRefundId());
+    }
+
+    @Test
+    void failedWebhookAfterAcceptanceRequiresManualReviewInsteadOfResend() {
+        refund.setStatus(OrderRefund.STATUS_PROVIDER_ACCEPTED);
+        refund.setProviderRefundId("rfnd_1");
+        when(refundRepo.findByIdempotencyKey(KEY)).thenReturn(Optional.of(refund));
+
+        service.applyProviderRefundEvent(
+                new RefundService.ProviderRefundUpdate("refund.failed", "rfnd_1", KEY, "pay_1", 15000L));
+
+        assertEquals(OrderRefund.STATUS_MANUAL_REQUIRED, refund.getStatus());
+        assertNull(refund.getNextAttemptAt());
+        assertEquals("MANUAL_REQUIRED", order.getRefundStatus());
+    }
+
+    @Test
+    void processedWebhookAfterAcceptanceCompletesRefund() {
+        refund.setStatus(OrderRefund.STATUS_PROVIDER_ACCEPTED);
+        refund.setProviderRefundId("rfnd_7");
+        when(refundRepo.findByIdempotencyKey(KEY)).thenReturn(Optional.of(refund));
+
+        service.applyProviderRefundEvent(
+                new RefundService.ProviderRefundUpdate("refund.processed", "rfnd_7", KEY, "pay_1", 15000L));
+
+        assertEquals(OrderRefund.STATUS_SUCCEEDED, refund.getStatus());
         assertNotNull(refund.getCompletedAt());
         assertEquals("REFUNDED", order.getRefundStatus());
-        assertEquals("REFUNDED", order.getPaymentStatus());
-        assertEquals("rfnd_1", order.getRefundReference());
+        assertEquals("rfnd_7", order.getRefundReference());
     }
 
     @Test
@@ -123,7 +163,7 @@ class RefundServiceTest {
         service.processRefund(5L);
 
         verify(razorpayService, never()).refundPayment(any(), anyLong(), any());
-        assertEquals(OrderRefund.STATUS_SUCCEEDED, refund.getStatus());
+        assertEquals(OrderRefund.STATUS_PROVIDER_ACCEPTED, refund.getStatus());
         assertEquals("rfnd_9", refund.getProviderRefundId());
     }
 
