@@ -142,7 +142,7 @@ export default function CategoryTabs({ categories, active }) {
     const isPhoto = resolved.isPhoto;
     return (
       <a
-        href={`/#${catName}`}
+        href={`/#${encodeURIComponent(catName)}`}
         tabIndex={isCopy ? -1 : undefined}
         key={category.id || catName}
         className={buttonVariants({

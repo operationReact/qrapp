@@ -12,6 +12,7 @@ import com.broandbro.qrapp.entity.Location;
 import com.broandbro.qrapp.entity.MenuItem;
 import com.broandbro.qrapp.entity.Order;
 import com.broandbro.qrapp.entity.OrderItem;
+import com.broandbro.qrapp.entity.OrderRefund;
 import com.broandbro.qrapp.entity.OrderStatusHistory;
 import com.broandbro.qrapp.entity.User;
 import com.broandbro.qrapp.enums.OrderPriority;
@@ -31,6 +32,7 @@ import com.broandbro.qrapp.promotion.repository.PromotionRepository;
 import com.broandbro.qrapp.promotion.repository.PromotionUsageRepository;
 import com.broandbro.qrapp.repository.MenuRepository;
 import com.broandbro.qrapp.repository.OrderItemRepository;
+import com.broandbro.qrapp.repository.OrderRefundRepository;
 import com.broandbro.qrapp.repository.OrderRepository;
 import com.broandbro.qrapp.repository.OrderStatusHistoryRepository;
 import com.broandbro.qrapp.repository.PaymentEventRepository;
@@ -77,8 +79,10 @@ public class OrderService {
     private static final Collection<PaymentMethod> COD_PAYMENT_METHODS = List.of(PaymentMethod.PAY_AT_STALL, PaymentMethod.WALLET);
     private static final String PRE_ORDER_ONLY_TAG = "PreOrderOnly";
     private static final String CUSTOMER_CANCEL_REASON = "Cancelled by customer";
+    private static final Set<String> REFUND_PROBLEM_STATUSES = Set.of("FAILED", "MANUAL_REQUIRED");
 
     private final OrderRepository orderRepo;
+    private final OrderRefundRepository orderRefundRepository;
     private final OrderItemRepository orderItemRepo;
     private final MenuRepository menuRepository;
     private final OrderStatusHistoryRepository orderStatusHistoryRepository;
@@ -939,10 +943,21 @@ public class OrderService {
                 : userRepository.findAllById(userIds).stream()
                         .collect(Collectors.toMap(User::getId, u -> u));
 
+        // Newest refund first, so the first row per order is its latest attempt.
+        Map<Long, OrderRefund> latestRefundByOrderId = orderIds.isEmpty()
+                ? Map.of()
+                : orderRefundRepository.findAllByOrderIdInOrderByIdDesc(orderIds).stream()
+                .collect(Collectors.toMap(OrderRefund::getOrderId, r -> r, (first, ignored) -> first));
+
         LocalDateTime now = BusinessTime.now();
         List<AdminOrderResponse> responses = new ArrayList<>();
         for (Order order : orders) {
-            responses.add(toAdminOrderResponse(order, itemsByOrderId.getOrDefault(order.getId(), List.of()), menuById, historyByOrderId.getOrDefault(order.getId(), List.of()), now, userById));
+            AdminOrderResponse response = toAdminOrderResponse(order, itemsByOrderId.getOrDefault(order.getId(), List.of()), menuById, historyByOrderId.getOrDefault(order.getId(), List.of()), now, userById);
+            OrderRefund latestRefund = latestRefundByOrderId.get(order.getId());
+            if (latestRefund != null && REFUND_PROBLEM_STATUSES.contains(latestRefund.getStatus())) {
+                response.setRefundFailureReason(latestRefund.getFailureReason());
+            }
+            responses.add(response);
         }
         return responses;
     }
