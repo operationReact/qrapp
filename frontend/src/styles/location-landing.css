@@ -455,6 +455,7 @@
 .loc-header-actions {
   display: flex;
   align-items: center;
+  flex-shrink: 0;
   gap: 10px;
 }
 
@@ -462,6 +463,19 @@
   .loc-nav-link {
     padding: 0 8px;
     font-size: 14px;
+  }
+
+  .loc-nav {
+    display: none;
+  }
+
+  .loc-user {
+    max-width: none;
+    padding: 0 4px;
+  }
+
+  .loc-user-name {
+    display: none;
   }
 
   .loc-title {
