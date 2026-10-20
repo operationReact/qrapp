@@ -1087,6 +1087,7 @@ function ProductCategoryImages({ locationId, categoryNames, onClose }) {
                             {busy ? "Saving…" : category?.imageUrl ? "Replace" : "Upload"}
                             <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" disabled={busy} onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ""; saveImage(name, file); }} />
                           </label>
+                          {category?.imageUrl && <button type="button" disabled={busy} onClick={() => removeImage(name)} className="shrink-0 px-1 text-xs font-semibold text-[#d92334] disabled:opacity-50">Remove</button>}
                         </div>
                         {renameDraft?.from === name && (
                           <form onSubmit={(event) => { event.preventDefault(); saveRename(name); }} className="flex min-w-0 items-center gap-2 pl-[60px]">
