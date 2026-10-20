@@ -52,7 +52,7 @@ function SearchPage() {
     const haystack = [
       menuItem.name,
       menuItem.description,
-      menuItem.category.name,
+      menuItem.category?.name,
       menuItem.tag?.name,
     ]
       .filter(Boolean)
