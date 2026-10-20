@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+﻿import { useEffect, useMemo, useRef, useState } from "react";
 import Autoplay from "embla-carousel-autoplay";
 import {
+  ArrowRightIcon,
   CaretLeftIcon,
   CaretRightIcon,
 } from "@phosphor-icons/react";
@@ -35,14 +36,55 @@ function AutoplayVideo({ src, className, width, height }) {
 
     // iOS Safari ignores the muted attribute for autoplay unless the property is set.
     video.muted = true;
+
+    let resumeListenersAttached = false;
+    const resumeOnGesture = () => {
+      tryPlay();
+    };
+    const detachGestureListeners = () => {
+      if (!resumeListenersAttached) return;
+      resumeListenersAttached = false;
+      ["touchstart", "pointerdown", "scroll"].forEach((eventName) =>
+        window.removeEventListener(eventName, resumeOnGesture, true),
+      );
+    };
     const tryPlay = () => {
       const result = video.play();
-      if (result?.catch) result.catch(() => {});
+      if (result?.then) {
+        result.then(detachGestureListeners, () => {
+          // iOS blocks autoplay in some states (Low Power Mode, off-screen); resume on the next user gesture.
+          if (resumeListenersAttached) return;
+          resumeListenersAttached = true;
+          ["touchstart", "pointerdown", "scroll"].forEach((eventName) =>
+            window.addEventListener(eventName, resumeOnGesture, { capture: true, passive: true }),
+          );
+        });
+      }
     };
 
-    tryPlay();
+    const observer = typeof IntersectionObserver === "undefined"
+      ? null
+      : new IntersectionObserver(
+          ([entry]) => {
+            if (entry.isIntersecting) {
+              tryPlay();
+            } else {
+              video.pause();
+            }
+          },
+          { threshold: 0.25 },
+        );
+    if (observer) observer.observe(video);
+    else tryPlay();
+
     video.addEventListener("loadeddata", tryPlay);
-    return () => video.removeEventListener("loadeddata", tryPlay);
+    video.addEventListener("canplay", tryPlay);
+    return () => {
+      observer?.disconnect();
+      video.removeEventListener("loadeddata", tryPlay);
+      video.removeEventListener("canplay", tryPlay);
+      detachGestureListeners();
+    };
   }, [src]);
 
   return (
@@ -189,12 +231,12 @@ export default function HomeMrpProductsSection({ locationId }) {
 
   return (
     <section className="container-premium py-1 md:py-3 lg:py-4" aria-labelledby="home-mrp-products-heading">
-      <div className="hmp-banner px-2.5 py-2 sm:rounded-[28px] sm:px-6 sm:py-6 lg:rounded-[32px] lg:px-8 lg:py-7">
+      <div className="relative overflow-hidden rounded-[20px] border border-[#f4cfc3] bg-[radial-gradient(circle_at_90%_0%,rgba(255,224,211,0.8),transparent_34%),linear-gradient(120deg,#fffaf6_0%,#ffebe2_100%)] px-2.5 py-2 shadow-[0_14px_36px_rgba(143,70,42,0.08)] sm:rounded-[28px] sm:px-6 sm:py-6 lg:rounded-[32px] lg:px-8 lg:py-7">
         <div aria-hidden="true" className="pointer-events-none absolute -right-14 -top-20 size-52 rounded-full border-[18px] border-white/35" />
         <div aria-hidden="true" className="pointer-events-none absolute bottom-[-72px] left-[28%] size-40 rounded-full bg-[#ffd7c8]/35 blur-2xl" />
         <div className="relative flex min-h-[86px] items-center justify-between gap-2 sm:min-h-[168px] lg:min-h-[190px]">
           <div className="relative z-10 max-w-[620px] lg:max-w-[390px]">
-            <p className="hmp-eyebrow font-sans text-[11px] font-extrabold uppercase tracking-[0.18em] sm:text-xs" style={{ color: "#d91d34" }}>
+            <p className="font-sans text-[11px] font-extrabold uppercase tracking-[0.18em] sm:text-xs" style={{ color: "#d91d34" }}>
               EVERYDAY FAVOURITES
             </p>
             <h2 id="home-mrp-products-heading" className="mt-1 font-sans text-2xl font-extrabold leading-tight tracking-[-0.035em] sm:mt-2 sm:text-4xl lg:text-[46px]" style={{ color: "#30201c" }}>
@@ -207,8 +249,8 @@ export default function HomeMrpProductsSection({ locationId }) {
 
           <Link
             to="/essentials"
-            className="hmp-cta relative z-10 inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1.5 font-sans text-[11px] font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ef233c] focus-visible:ring-offset-2 sm:gap-2 sm:px-6 sm:py-3.5 sm:text-base"
-            style={{ color: "#ffffff" }}
+            className="relative z-10 inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1.5 font-sans text-[11px] font-bold shadow-[0_8px_18px_rgba(239,35,60,0.2)] transition hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ef233c] focus-visible:ring-offset-2 sm:gap-2 sm:px-6 sm:py-3.5 sm:text-base"
+            style={{ backgroundColor: "#ef233c", color: "#ffffff" }}
           >
             Shop Now
           </Link>
@@ -217,7 +259,7 @@ export default function HomeMrpProductsSection({ locationId }) {
         <Carousel
           opts={{ align: "start", loop: true }}
           plugins={autoplay ? [autoplay] : undefined}
-          className="relative mt-2 sm:mt-6 lg:mt-4"
+          className="hmp-carousel relative mt-2 sm:mt-6 lg:mt-4"
         >
           <CarouselContent className="-ml-3 touch-pan-x cursor-grab py-1 pr-1 active:cursor-grabbing">
             {categories.map((category, index) => (
