@@ -1074,20 +1074,24 @@ function ProductCategoryImages({ locationId, categoryNames, onClose }) {
                     const busy = busyName === name;
                     return (
                         <div key={name} className="grid min-w-0 gap-2 rounded-xl border border-[#e9e6e1] p-2.5">
-                        <div className="flex min-w-0 flex-wrap items-center gap-2 sm:gap-3">
+                        <div className="flex min-w-0 items-start gap-3">
                           {category?.imageUrl ? <img src={category.imageUrl} alt="" className="size-12 shrink-0 rounded-lg border border-[#eeeae5] object-cover" /> : <div className="grid size-12 shrink-0 place-items-center rounded-lg bg-[#f8f7f4] text-[10px] text-[#99938c]">No image</div>}
-                          {renameDraft?.from !== name && (
-                            <>
-                              <span className="min-w-[6rem] flex-1 truncate text-sm font-semibold text-[#393632]">{name}</span>
-                              <button type="button" disabled={busy} onClick={() => setRenameDraft({ from: name, value: name })} className="shrink-0 rounded-lg border border-[#e5e2dd] px-2.5 py-2 text-xs font-semibold text-[#514d48] disabled:opacity-50">Rename</button>
-                            </>
-                          )}
-                          <button type="button" disabled={busy} onClick={() => openReuse(name)} className="shrink-0 rounded-lg border border-[#ffd3cd] bg-[#fff7f5] px-2.5 py-2 text-xs font-semibold text-[#d92334] disabled:opacity-50">Reuse</button>
-                          <label className={`shrink-0 cursor-pointer rounded-lg border border-[#e5e2dd] px-2.5 py-2 text-xs font-semibold text-[#514d48] hover:bg-[#f8f7f4] ${busy ? "pointer-events-none opacity-50" : ""}`}>
-                            {busy ? "Saving…" : category?.imageUrl ? "Replace" : "Upload"}
-                            <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" disabled={busy} onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ""; saveImage(name, file); }} />
-                          </label>
-                          {category?.imageUrl && <button type="button" disabled={busy} onClick={() => removeImage(name)} className="shrink-0 px-1 text-xs font-semibold text-[#d92334] disabled:opacity-50">Remove</button>}
+                          <div className="flex min-w-0 flex-1 flex-col gap-2">
+                            {renameDraft?.from !== name && (
+                              <span className="truncate text-sm font-semibold text-[#393632]">{name}</span>
+                            )}
+                            <div className="flex min-w-0 flex-wrap items-center gap-2">
+                              {renameDraft?.from !== name && (
+                                <button type="button" disabled={busy} onClick={() => setRenameDraft({ from: name, value: name })} className="shrink-0 rounded-lg border border-[#e5e2dd] px-2.5 py-2 text-xs font-semibold text-[#514d48] disabled:opacity-50">Rename</button>
+                              )}
+                              <button type="button" disabled={busy} onClick={() => openReuse(name)} className="shrink-0 rounded-lg border border-[#ffd3cd] bg-[#fff7f5] px-2.5 py-2 text-xs font-semibold text-[#d92334] disabled:opacity-50">Reuse</button>
+                              <label className={`shrink-0 cursor-pointer rounded-lg border border-[#e5e2dd] px-2.5 py-2 text-xs font-semibold text-[#514d48] hover:bg-[#f8f7f4] ${busy ? "pointer-events-none opacity-50" : ""}`}>
+                                {busy ? "Saving…" : category?.imageUrl ? "Replace" : "Upload"}
+                                <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" disabled={busy} onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ""; saveImage(name, file); }} />
+                              </label>
+                              {category?.imageUrl && <button type="button" disabled={busy} onClick={() => removeImage(name)} className="shrink-0 px-1 text-xs font-semibold text-[#d92334] disabled:opacity-50">Remove</button>}
+                            </div>
+                          </div>
                         </div>
                         {renameDraft?.from === name && (
                           <form onSubmit={(event) => { event.preventDefault(); saveRename(name); }} className="flex min-w-0 items-center gap-2 pl-[60px]">
