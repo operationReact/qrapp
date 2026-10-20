@@ -55,6 +55,7 @@ public class AdminController {
     @GetMapping("/orders")
     public ResponseEntity<Page<AdminOrderResponse>> listOrders(@RequestParam Optional<String> status,
                                                                @RequestParam Optional<String> paymentStatus,
+                                                               @RequestParam Optional<String> refundStatus,
                                                                @RequestParam Optional<String> query,
                                                                @RequestParam(defaultValue = "false") boolean liveOnly,
                                                                @RequestParam(required = false) Long locationId,
@@ -64,7 +65,7 @@ public class AdminController {
                                                                Pageable pageable) {
                                                                User user = requireUser(authentication);
                                                                Optional<List<Long>> scope = locationAccessService.resolveDashboardLocationScope(user, locationId);
-        return ResponseEntity.ok(orderService.getAdminOrders(status, paymentStatus, query, liveOnly, scope,
+        return ResponseEntity.ok(orderService.getAdminOrders(status, paymentStatus, refundStatus, query, liveOnly, scope,
                 Optional.ofNullable(from), Optional.ofNullable(to), pageable));
     }
 

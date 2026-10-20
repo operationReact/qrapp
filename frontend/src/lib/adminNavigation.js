@@ -7,6 +7,7 @@ import {
   ConfettiIcon,
   BuildingOfficeIcon,
   FileTextIcon,
+  ArrowsCounterClockwiseIcon,
 } from "@phosphor-icons/react";
 import { ROLE } from "./roles";
 
@@ -32,6 +33,7 @@ export const ADMIN_NAVIGATION = [
     { to: "/admin/party-orders", label: "Party Orders", icon: UsersThreeIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN] },
     { to: "/admin/hall-of-happiness", label: "Hall of Happiness", icon: ConfettiIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN] },
     { to: "/admin/pre-orders", label: "Pre-Orders", icon: CalendarCheckIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN] },
+    { to: "/admin/refunds", label: "Refunds & Cancellations", icon: ArrowsCounterClockwiseIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN] },
   ] },
   { section: "Offers", items: [
     { to: "/admin/promotions", label: "Promotions", icon: TicketIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN] },

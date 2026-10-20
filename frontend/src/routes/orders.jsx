@@ -17,7 +17,7 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty";
-import { ArchiveIcon } from "@phosphor-icons/react";
+import { ArchiveIcon, ReceiptIcon } from "@phosphor-icons/react";
 import {
   getOrderStatusMeta,
   getStatusFilterLabel,
@@ -50,6 +50,21 @@ function OrdersPage() {
   });
 
   const [activeFilter, setActiveFilter] = useState("ALL");
+  const [navOffset, setNavOffset] = useState(0);
+
+  useEffect(() => {
+    const header = document.querySelector("header");
+    if (!header) return undefined;
+    const update = () => setNavOffset(header.getBoundingClientRect().height);
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(header);
+    window.addEventListener("resize", update);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", update);
+    };
+  }, []);
   const orders = useMemo(
     () => (Array.isArray(ordersData) ? ordersData.filter(Boolean) : []),
     [ordersData],
@@ -65,6 +80,15 @@ function OrdersPage() {
         : orders.filter((order) => normalizeOrderStatus(order.status) === activeFilter),
     [activeFilter, orders],
   );
+
+  const statusCounts = useMemo(() => {
+    const counts = { ALL: orders.length };
+    for (const order of orders) {
+      const status = normalizeOrderStatus(order.status);
+      counts[status] = (counts[status] ?? 0) + 1;
+    }
+    return counts;
+  }, [orders]);
 
   const emptyState = {
     ALL: {
@@ -158,17 +182,29 @@ function OrdersPage() {
 
           {!loading && !error && orders.length > 0 && (
             <Tabs value={activeFilter} onValueChange={setActiveFilter} className="min-w-0">
-              <div className="min-w-0 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                <TabsList className="flex min-w-full w-max justify-start rounded-xl bg-muted p-1">
-                  {ORDER_STATUS_FILTER_ORDER.map((status) => (
-                    <TabsTrigger
-                      className="min-h-11 shrink-0 px-4 text-sm! font-semibold!"
-                      key={status}
-                      value={status}
-                    >
-                      {getStatusFilterLabel(status)}
-                    </TabsTrigger>
-                  ))}
+              <div
+                style={{ top: navOffset }}
+                className="sticky z-30 -mx-4 border-b border-border/70 bg-background/85 px-4 pt-2 pb-3 shadow-[0_8px_24px_-18px_rgba(0,0,0,0.35)] backdrop-blur-xl sm:-mx-1 sm:px-1"
+              >
+                <TabsList className="flex h-auto! w-full flex-wrap justify-start gap-2 rounded-none bg-transparent p-0 group-data-horizontal/tabs:h-auto">
+                  {ORDER_STATUS_FILTER_ORDER.map((status) => {
+                    const meta = status === "ALL" ? null : getOrderStatusMeta(status);
+                    const Icon = meta?.icon ?? ReceiptIcon;
+                    const count = statusCounts[status] ?? 0;
+                    return (
+                      <TabsTrigger
+                        key={status}
+                        value={status}
+                        className="group h-9 flex-none gap-1.5 rounded-full border border-border bg-card px-3 text-[13px] font-semibold text-muted-foreground shadow-sm transition-all hover:border-foreground/20 hover:text-foreground data-active:border-transparent data-active:bg-foreground data-active:text-background data-active:shadow-md dark:data-active:bg-foreground dark:data-active:text-background"
+                      >
+                        <Icon size={15} weight="bold" aria-hidden="true" />
+                        {getStatusFilterLabel(status)}
+                        <span className="rounded-full bg-muted px-1.5 text-[11px] font-bold tabular-nums text-muted-foreground group-data-[active]:bg-background/20 group-data-[active]:text-background">
+                          {count}
+                        </span>
+                      </TabsTrigger>
+                    );
+                  })}
                 </TabsList>
               </div>
 

@@ -42,6 +42,7 @@ function AuthenticatedRoot() {
     location.pathname === "/home";
   const targetPath = canAccessAdmin(user) ? "/admin" : "/";
   const isAdminRoute = location.pathname === "/admin" || location.pathname.startsWith("/admin/");
+  const isOrdersRoute = location.pathname === "/orders";
 
   useEffect(() => {
     if (
@@ -81,7 +82,7 @@ function AuthenticatedRoot() {
       <SafeAreaWrapper>
         <HeadContent />
         <Outlet />
-        {!isAdminRoute && <SiteFooter />}
+        {!isAdminRoute && !isOrdersRoute && <SiteFooter />}
       </SafeAreaWrapper>
       <Toast />
       <Toaster />
