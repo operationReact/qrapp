@@ -22,6 +22,10 @@ export const createMrpProductCategory = (payload, locationId) =>
 export const renameMrpProductCategory = (id, name, locationId) =>
   apiClient.patch(`/api/mrp-product/admin/categories/${id}`, { name }, { params: { locationId } }).then((r) => r.data);
 
+/** Deletes an MRP product category; the backend rejects it while products still use the category. */
+export const deleteMrpProductCategory = (id, locationId) =>
+  apiClient.delete(`/api/mrp-product/admin/categories/${id}`, { params: { locationId } }).then((r) => r.data);
+
 /** Assigns a bundled video (file name from src/assets/category-videos) or clears it when videoKey is null. */
 export const setMrpProductCategoryVideo = (id, videoKey, locationId) =>
   apiClient

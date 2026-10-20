@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { ArchiveIcon, CheckCircleIcon, MagnifyingGlassIcon, PackageIcon, PlusIcon, SidebarIcon, WarningIcon, PencilSimpleIcon, ImageIcon, SparkleIcon, MinusIcon } from "@phosphor-icons/react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useLocation } from "@/context/LocationContext";
 import { useSidebar } from "@/components/ui/sidebar";
@@ -45,6 +45,7 @@ import {
   removeCategoryImage,
   setMrpProductCategoryVideo,
   renameMrpProductCategory,
+  deleteMrpProductCategory,
   uploadCategoryImage,
   getCategoryImageSources,
   reuseCategoryImage,
@@ -922,6 +923,14 @@ function ProductCategoryImages({ locationId, categoryNames, onClose }) {
   const imageSources = sourcesQuery.data || [];
   const categories = categoriesQuery.data || [];
   const categoryByName = new Map(categories.map((category) => [category.name.trim().toLowerCase(), category]));
+  const usageQueries = useQueries({
+    queries: categories.map((category) => ({
+      queryKey: ["mrp-products", "category-usage", locationId, category.name],
+      queryFn: () => getCatalogProducts(locationId, true, { category: category.name, size: 1 }).then((page) => page.totalElements),
+      enabled: Boolean(locationId),
+    })),
+  });
+  const usageByName = new Map(categories.map((category, index) => [category.name.trim().toLowerCase(), usageQueries[index]]));
   const displayNames = Array.from(new Set([...categoryNames, ...categories.map((category) => category.name)])).sort((a, b) => a.localeCompare(b));
 
   const addCategory = async () => {
@@ -993,6 +1002,22 @@ function ProductCategoryImages({ locationId, categoryNames, onClose }) {
       toast.success(`${name} image removed`);
     } catch (error) {
       toast.error(error?.response?.data?.message || error?.message || "Unable to remove category image");
+    } finally {
+      setBusyName("");
+    }
+  };
+
+  const deleteEmptyCategory = async (name) => {
+    const category = categoryByName.get(name.trim().toLowerCase());
+    if (!category) return;
+    if (!window.confirm(`Delete the "${name}" category? It has no products attached.`)) return;
+    setBusyName(name);
+    try {
+      await deleteMrpProductCategory(category.id, locationId);
+      await queryClient.invalidateQueries({ queryKey: ["mrp-product-category-options", locationId] });
+      toast.success(`${name} deleted`);
+    } catch (error) {
+      toast.error(error?.response?.data?.message || error?.message || "Unable to delete category");
     } finally {
       setBusyName("");
     }
@@ -1090,6 +1115,9 @@ function ProductCategoryImages({ locationId, categoryNames, onClose }) {
                                 <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" disabled={busy} onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ""; saveImage(name, file); }} />
                               </label>
                               {category?.imageUrl && <button type="button" disabled={busy} onClick={() => removeImage(name)} className="shrink-0 px-1 text-xs font-semibold text-[#d92334] disabled:opacity-50">Remove</button>}
+                              {category && usageByName.get(name.trim().toLowerCase())?.data === 0 && (
+                                <button type="button" disabled={busy} onClick={() => deleteEmptyCategory(name)} className="shrink-0 rounded-lg border border-[#ffd3cd] px-2.5 py-2 text-xs font-semibold text-[#d92334] disabled:opacity-50">Delete</button>
+                              )}
                             </div>
                           </div>
                         </div>
