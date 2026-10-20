@@ -61,12 +61,13 @@ public class AdminController {
                                                                @RequestParam(required = false) Long locationId,
                                                                @RequestParam(required = false) LocalDate from,
                                                                @RequestParam(required = false) LocalDate to,
+                                                               @RequestParam(required = false) String dateField,
                                                                Authentication authentication,
                                                                Pageable pageable) {
                                                                User user = requireUser(authentication);
                                                                Optional<List<Long>> scope = locationAccessService.resolveDashboardLocationScope(user, locationId);
         return ResponseEntity.ok(orderService.getAdminOrders(status, paymentStatus, refundStatus, query, liveOnly, scope,
-                Optional.ofNullable(from), Optional.ofNullable(to), pageable));
+                Optional.ofNullable(from), Optional.ofNullable(to), Optional.ofNullable(dateField), pageable));
     }
 
     @GetMapping("/orders/live")

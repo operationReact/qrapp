@@ -522,6 +522,7 @@ public class OrderService {
                                                    Optional<List<Long>> locationScope,
                                                    Optional<LocalDate> fromDate,
                                                    Optional<LocalDate> toDate,
+                                                   Optional<String> dateField,
                                                    Pageable pageable) {
         // Pre-orders are managed exclusively via /admin/pre-orders — exclude them here
         Specification<Order> specification = (root, cq, cb) -> cb.isFalse(root.get("preOrder"));
@@ -531,14 +532,16 @@ public class OrderService {
             specification = specification.and(locationSpec);
         }
 
+        // Cancellation views filter by when the order was cancelled; everything else keeps the placed-date default.
+        String rangeField = "cancelledAt".equalsIgnoreCase(dateField.orElse("")) ? "cancelledAt" : "createdAt";
         if (fromDate.isPresent()) {
             LocalDateTime start = fromDate.get().atStartOfDay();
-            specification = specification.and((root, cq, cb) -> cb.greaterThanOrEqualTo(root.get("createdAt"), start));
+            specification = specification.and((root, cq, cb) -> cb.greaterThanOrEqualTo(root.get(rangeField), start));
         }
 
         if (toDate.isPresent()) {
             LocalDateTime endExclusive = toDate.get().plusDays(1).atStartOfDay();
-            specification = specification.and((root, cq, cb) -> cb.lessThan(root.get("createdAt"), endExclusive));
+            specification = specification.and((root, cq, cb) -> cb.lessThan(root.get(rangeField), endExclusive));
         }
 
         if (status.isPresent() && !status.get().isBlank()) {

@@ -48,8 +48,10 @@ public class RefundService {
     static final String ORDER_REFUND_REFUNDED = "REFUNDED";
     static final String ORDER_REFUND_MANUAL_REQUIRED = "MANUAL_REQUIRED";
 
+    /** Statuses a webhook may still settle. PROVIDER_ACCEPTED rows have no retry timer, so the sweeper never picks them up. */
     private static final List<String> ACTIVE_STATUSES =
-            List.of(OrderRefund.STATUS_PENDING, OrderRefund.STATUS_FAILED, OrderRefund.STATUS_PROCESSING);
+            List.of(OrderRefund.STATUS_PENDING, OrderRefund.STATUS_FAILED, OrderRefund.STATUS_PROCESSING,
+                    OrderRefund.STATUS_PROVIDER_ACCEPTED);
 
     private final OrderRefundRepository refundRepo;
     private final OrderRepository orderRepo;
@@ -182,7 +184,7 @@ public class RefundService {
     private void attempt(OrderRefund refund) {
         Long id = refund.getId();
         try {
-            markSucceeded(id, obtainProviderRefundId(refund));
+            markProviderAccepted(id, obtainProviderRefundId(refund));
         } catch (RazorpayService.RefundException e) {
             if (e.isDefinite()) {
                 markFailed(id, e.getMessage());
@@ -210,18 +212,36 @@ public class RefundService {
         return razorpayService.refundPayment(refund.getPaymentId(), amountPaise, refund.getIdempotencyKey());
     }
 
-    private void markSucceeded(Long refundId, String providerRefundId) {
+    /**
+     * Razorpay accepting the refund does not mean the bank has credited it (that can take up to 7 working days),
+     * so the row stays open until the refund.processed webhook confirms it.
+     */
+    private void markProviderAccepted(Long refundId, String providerRefundId) {
         tx.executeWithoutResult(status -> {
             OrderRefund refund = refundRepo.findById(refundId).orElseThrow();
+            if (OrderRefund.STATUS_SUCCEEDED.equals(refund.getStatus())
+                    || OrderRefund.STATUS_MANUAL_REQUIRED.equals(refund.getStatus())) {
+                // A webhook or admin already settled this row before our write landed; never downgrade it.
+                return;
+            }
             LocalDateTime now = BusinessTime.now();
-            refund.setStatus(OrderRefund.STATUS_SUCCEEDED);
             refund.setProviderRefundId(providerRefundId);
-            refund.setCompletedAt(now);
             refund.setNextAttemptAt(null);
             refund.setFailureReason(null);
             refund.setUpdatedAt(now);
+            if (OrderRefund.STATUS_FAILED.equals(refund.getStatus())) {
+                // refund.failed arrived before this write. The provider refund exists, so a resend could duplicate it.
+                refund.setStatus(OrderRefund.STATUS_MANUAL_REQUIRED);
+                refund.setFailureReason(truncate("Razorpay reported the refund as failed; verify on the Razorpay dashboard"));
+                orderRepo.findByIdForUpdate(refund.getOrderId())
+                        .ifPresent(order -> applyOrderRefundStatus(order, refund));
+                return;
+            }
+            refund.setStatus(OrderRefund.STATUS_PROVIDER_ACCEPTED);
             orderRepo.findByIdForUpdate(refund.getOrderId())
                     .ifPresent(order -> applyOrderRefundStatus(order, refund));
+            log.info("[Refund] Accepted by Razorpay; awaiting bank credit | refundId={} providerRefundId={}",
+                    refundId, providerRefundId);
         });
     }
 
@@ -313,6 +333,15 @@ public class RefundService {
                 || OrderRefund.STATUS_MANUAL_REQUIRED.equals(refund.getStatus())) {
             log.info("[Refund] Ignoring failed webhook for settled refund | refundId={} status={}",
                     refund.getId(), refund.getStatus());
+            return;
+        }
+        if (OrderRefund.STATUS_PROVIDER_ACCEPTED.equals(refund.getStatus())) {
+            // Razorpay accepted this refund earlier; an automatic resend could pay the customer twice.
+            refund.setStatus(OrderRefund.STATUS_MANUAL_REQUIRED);
+            refund.setFailureReason(truncate("Razorpay reported the accepted refund as failed; verify on the Razorpay dashboard"));
+            refund.setNextAttemptAt(null);
+            applyOrderRefundStatus(order, refund);
+            log.warn("[Refund] Accepted refund later failed; manual verification required | refundId={}", refund.getId());
             return;
         }
         refund.setStatus(OrderRefund.STATUS_FAILED);

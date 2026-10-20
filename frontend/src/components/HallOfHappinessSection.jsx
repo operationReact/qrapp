@@ -8,6 +8,7 @@ import { useLocation as useActiveLocation } from "@/context/LocationContext";
 import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
 import { Skeleton } from "@/components/ui/skeleton";
 import CelebrationAmbientLayer from "@/components/home/CelebrationAmbientLayer";
+import "@/styles/hall-of-happiness.css";
 
 const SOURCE_BADGES = {
   CUSTOMER: { label: "Customer Memory", icon: CameraIcon },
@@ -163,7 +164,7 @@ export default function HallOfHappinessSection() {
           opts={{ align: "start", loop: photos.length > 1 }}
           plugins={photos.length > 1 ? [autoplay] : []}
         >
-          <CarouselContent className="no-scrollbar ml-0 overflow-visible px-0">
+          <CarouselContent className="no-scrollbar hall-carousel-content overflow-visible px-0">
             {photos.map((photo, index) => (
               <CarouselItem
                 key={photo.id}

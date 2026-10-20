@@ -1,0 +1,79 @@
+/* Premium "Everyday Favourites" banner. Kept in CSS because arbitrary utility classes are not reliably generated in this app. */
+.hmp-banner {
+  position: relative;
+  overflow: hidden;
+  border-radius: 20px;
+  border: 1px solid rgba(217, 29, 52, 0.12);
+  background:
+    radial-gradient(circle at 92% 0%, rgba(255, 255, 255, 0.95), transparent 38%),
+    radial-gradient(circle at 0% 100%, rgba(255, 214, 196, 0.55), transparent 45%),
+    linear-gradient(125deg, #fffdfb 0%, #fff3ec 55%, #ffe6dc 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 1px 2px rgba(143, 70, 42, 0.06),
+    0 18px 40px -18px rgba(143, 70, 42, 0.28);
+}
+
+.hmp-banner::before {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(115deg, transparent 35%, rgba(255, 255, 255, 0.55) 50%, transparent 65%);
+  transform: translateX(-100%);
+  animation: hmp-banner-sheen 7s ease-in-out infinite;
+}
+
+@keyframes hmp-banner-sheen {
+  0%, 60% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.hmp-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px 3px 8px;
+  border-radius: 999px;
+  background: rgba(217, 29, 52, 0.07);
+  border: 1px solid rgba(217, 29, 52, 0.14);
+}
+
+.hmp-eyebrow::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: #d91d34;
+  box-shadow: 0 0 0 3px rgba(217, 29, 52, 0.15);
+}
+
+.hmp-cta {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(180deg, #f5364d 0%, #d91d34 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    0 10px 22px -8px rgba(217, 29, 52, 0.55);
+  letter-spacing: 0.01em;
+  transition: transform 0.25s ease, box-shadow 0.25s ease, filter 0.25s ease;
+}
+
+.hmp-cta:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    0 14px 26px -8px rgba(217, 29, 52, 0.6);
+  filter: none;
+}
+
+.hmp-cta:active {
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hmp-banner::before {
+    animation: none;
+    display: none;
+  }
+}
