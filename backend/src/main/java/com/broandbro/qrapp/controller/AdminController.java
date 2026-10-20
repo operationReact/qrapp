@@ -55,6 +55,7 @@ public class AdminController {
     @GetMapping("/orders")
     public ResponseEntity<Page<AdminOrderResponse>> listOrders(@RequestParam Optional<String> status,
                                                                @RequestParam Optional<String> paymentStatus,
+                                                               @RequestParam Optional<String> refundStatus,
                                                                @RequestParam Optional<String> query,
                                                                @RequestParam(defaultValue = "false") boolean liveOnly,
                                                                @RequestParam(required = false) Long locationId,
@@ -64,7 +65,7 @@ public class AdminController {
                                                                Pageable pageable) {
                                                                User user = requireUser(authentication);
                                                                Optional<List<Long>> scope = locationAccessService.resolveDashboardLocationScope(user, locationId);
-        return ResponseEntity.ok(orderService.getAdminOrders(status, paymentStatus, query, liveOnly, scope,
+        return ResponseEntity.ok(orderService.getAdminOrders(status, paymentStatus, refundStatus, query, liveOnly, scope,
                 Optional.ofNullable(from), Optional.ofNullable(to), pageable));
     }
 
@@ -132,6 +133,18 @@ public class AdminController {
         Optional<List<Long>> scope = locationAccessService.resolveDashboardLocationScope(user, locationId);
         orderService.assertOrderWithinScope(id, scope);
         refundService.completeManualRefund(id, request.reference(), authentication.getName());
+        return ResponseEntity.ok(orderService.getAdminOrder(id));
+    }
+
+    @PostMapping("/orders/{id}/refund/retry")
+    public ResponseEntity<AdminOrderResponse> retryEscalatedRefund(@PathVariable Long id,
+                                                                   @RequestParam(required = false) Long locationId,
+                                                                   Authentication authentication) {
+        User user = requireUser(authentication);
+        locationAccessService.requireNonKitchenAdmin(user, locationId);
+        Optional<List<Long>> scope = locationAccessService.resolveDashboardLocationScope(user, locationId);
+        orderService.assertOrderWithinScope(id, scope);
+        refundService.retryEscalatedRefund(id, authentication.getName());
         return ResponseEntity.ok(orderService.getAdminOrder(id));
     }
 

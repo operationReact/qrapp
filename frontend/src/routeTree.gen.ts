@@ -88,6 +88,7 @@ import { Route as AdminordersPartyOrdersRouteImport } from './routes/admin/(orde
 import { Route as AdminordersOperationalQueueRouteImport } from './routes/admin/(orders)/operational-queue'
 import { Route as AdminordersKitchenQueueRouteImport } from './routes/admin/(orders)/kitchen-queue'
 import { Route as AdminordersHallOfHappinessRouteImport } from './routes/admin/(orders)/hall-of-happiness'
+import { Route as AdminoperationsRefundsRouteImport } from './routes/admin/(operations)/refunds'
 import { Route as AdminoperationsManualInvoicesRouteImport } from './routes/admin/(operations)/manual-invoices'
 import { Route as AdminmilestonesMilestonesRouteImport } from './routes/admin/(milestones)/milestones'
 import { Route as AdminmenuMrpProductRouteImport } from './routes/admin/(menu)/mrp-product'
@@ -520,6 +521,11 @@ const AdminordersHallOfHappinessRoute =
     path: '/hall-of-happiness',
     getParentRoute: () => AdminRoute,
   } as any)
+const AdminoperationsRefundsRoute = AdminoperationsRefundsRouteImport.update({
+  id: '/(operations)/refunds',
+  path: '/refunds',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminoperationsManualInvoicesRoute =
   AdminoperationsManualInvoicesRouteImport.update({
     id: '/(operations)/manual-invoices',
@@ -708,6 +714,7 @@ export interface FileRoutesByFullPath {
   '/admin/mrp-product': typeof AdminmenuMrpProductRoute
   '/admin/milestones': typeof AdminmilestonesMilestonesRoute
   '/admin/manual-invoices': typeof AdminoperationsManualInvoicesRoute
+  '/admin/refunds': typeof AdminoperationsRefundsRoute
   '/admin/hall-of-happiness': typeof AdminordersHallOfHappinessRoute
   '/admin/kitchen-queue': typeof AdminordersKitchenQueueRoute
   '/admin/operational-queue': typeof AdminordersOperationalQueueRoute
@@ -808,6 +815,7 @@ export interface FileRoutesByTo {
   '/admin/mrp-product': typeof AdminmenuMrpProductRoute
   '/admin/milestones': typeof AdminmilestonesMilestonesRoute
   '/admin/manual-invoices': typeof AdminoperationsManualInvoicesRoute
+  '/admin/refunds': typeof AdminoperationsRefundsRoute
   '/admin/hall-of-happiness': typeof AdminordersHallOfHappinessRoute
   '/admin/kitchen-queue': typeof AdminordersKitchenQueueRoute
   '/admin/operational-queue': typeof AdminordersOperationalQueueRoute
@@ -912,6 +920,7 @@ export interface FileRoutesById {
   '/admin/(menu)/mrp-product': typeof AdminmenuMrpProductRoute
   '/admin/(milestones)/milestones': typeof AdminmilestonesMilestonesRoute
   '/admin/(operations)/manual-invoices': typeof AdminoperationsManualInvoicesRoute
+  '/admin/(operations)/refunds': typeof AdminoperationsRefundsRoute
   '/admin/(orders)/hall-of-happiness': typeof AdminordersHallOfHappinessRoute
   '/admin/(orders)/kitchen-queue': typeof AdminordersKitchenQueueRoute
   '/admin/(orders)/operational-queue': typeof AdminordersOperationalQueueRoute
@@ -1017,6 +1026,7 @@ export interface FileRouteTypes {
     | '/admin/mrp-product'
     | '/admin/milestones'
     | '/admin/manual-invoices'
+    | '/admin/refunds'
     | '/admin/hall-of-happiness'
     | '/admin/kitchen-queue'
     | '/admin/operational-queue'
@@ -1117,6 +1127,7 @@ export interface FileRouteTypes {
     | '/admin/mrp-product'
     | '/admin/milestones'
     | '/admin/manual-invoices'
+    | '/admin/refunds'
     | '/admin/hall-of-happiness'
     | '/admin/kitchen-queue'
     | '/admin/operational-queue'
@@ -1220,6 +1231,7 @@ export interface FileRouteTypes {
     | '/admin/(menu)/mrp-product'
     | '/admin/(milestones)/milestones'
     | '/admin/(operations)/manual-invoices'
+    | '/admin/(operations)/refunds'
     | '/admin/(orders)/hall-of-happiness'
     | '/admin/(orders)/kitchen-queue'
     | '/admin/(orders)/operational-queue'
@@ -1847,6 +1859,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminordersHallOfHappinessRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/(operations)/refunds': {
+      id: '/admin/(operations)/refunds'
+      path: '/refunds'
+      fullPath: '/admin/refunds'
+      preLoaderRoute: typeof AdminoperationsRefundsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/(operations)/manual-invoices': {
       id: '/admin/(operations)/manual-invoices'
       path: '/manual-invoices'
@@ -2026,6 +2045,7 @@ interface AdminRouteChildren {
   AdminmenuMrpProductRoute: typeof AdminmenuMrpProductRoute
   AdminmilestonesMilestonesRoute: typeof AdminmilestonesMilestonesRoute
   AdminoperationsManualInvoicesRoute: typeof AdminoperationsManualInvoicesRoute
+  AdminoperationsRefundsRoute: typeof AdminoperationsRefundsRoute
   AdminordersHallOfHappinessRoute: typeof AdminordersHallOfHappinessRoute
   AdminordersKitchenQueueRoute: typeof AdminordersKitchenQueueRoute
   AdminordersOperationalQueueRoute: typeof AdminordersOperationalQueueRoute
@@ -2080,6 +2100,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminmenuMrpProductRoute: AdminmenuMrpProductRoute,
   AdminmilestonesMilestonesRoute: AdminmilestonesMilestonesRoute,
   AdminoperationsManualInvoicesRoute: AdminoperationsManualInvoicesRoute,
+  AdminoperationsRefundsRoute: AdminoperationsRefundsRoute,
   AdminordersHallOfHappinessRoute: AdminordersHallOfHappinessRoute,
   AdminordersKitchenQueueRoute: AdminordersKitchenQueueRoute,
   AdminordersOperationalQueueRoute: AdminordersOperationalQueueRoute,

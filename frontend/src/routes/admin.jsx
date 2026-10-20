@@ -14,7 +14,7 @@ export const Route = createFileRoute("/admin")({ component: AdminLayout });
 function SubPageHeader({ title, showBack = false }) {
   const { toggleSidebar } = useSidebar();
   return (
-      <header className="admin-workspace-header sticky top-0 z-30 flex h-14 shrink-0 items-center border-b bg-white/90 px-3 backdrop-blur-xl sm:px-5 md:h-[68px]">
+      <header className={cn("admin-workspace-header sticky top-0 z-30 flex h-14 shrink-0 items-center border-b bg-white/90 px-3 backdrop-blur-xl sm:px-5 md:h-[68px]", !title && "md:hidden")}>
         <div className="flex w-full min-w-0 items-center gap-2.5">
           {showBack && <Button type="button" size="icon" variant="ghost" onClick={() => window.history.back()} aria-label="Go back" className="size-10 shrink-0 rounded-xl"><ArrowLeftIcon weight="bold" /></Button>}
           <Button type="button" size="icon" variant="ghost" onClick={toggleSidebar} aria-label="Toggle navigation" className="size-10 shrink-0 rounded-xl text-stone-600 hover:bg-stone-100"><SidebarIcon size={21} /></Button>

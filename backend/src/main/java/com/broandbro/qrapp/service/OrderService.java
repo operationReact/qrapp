@@ -461,6 +461,11 @@ public class OrderService {
             summary.setInvoiceAvailable(order.getId() != null && order.getGrandTotal() != null);
             summary.setCancellable(isCustomerCancellable(order));
             summary.setRefundStatus(order.getRefundStatus());
+            summary.setRefundAmount(order.getRefundAmount());
+            summary.setRefundReference(order.getRefundReference());
+            summary.setCancelledAt(order.getCancelledAt());
+            summary.setCancelReason(order.getCancelReason());
+            summary.setPaymentMethod(order.getPaymentMethod() != null ? order.getPaymentMethod().name() : null);
 
             double total = 0;
             List<UserOrderSummaryResponse.ItemSummary> itemSummaries = new ArrayList<>();
@@ -507,6 +512,7 @@ public class OrderService {
     @Transactional(readOnly = true)
     public Page<AdminOrderResponse> getAdminOrders(Optional<String> status,
                                                    Optional<String> paymentStatus,
+                                                   Optional<String> refundStatus,
                                                    Optional<String> query,
                                                    boolean liveOnly,
                                                    Optional<List<Long>> locationScope,
@@ -539,6 +545,11 @@ public class OrderService {
         if (paymentStatus.isPresent() && !paymentStatus.get().isBlank()) {
             String normalizedPaymentStatus = paymentStatus.get().trim().toUpperCase(Locale.ROOT);
             specification = specification.and((root, cq, cb) -> cb.equal(cb.upper(root.get("paymentStatus")), normalizedPaymentStatus));
+        }
+
+        if (refundStatus.isPresent() && !refundStatus.get().isBlank()) {
+            String normalizedRefundStatus = refundStatus.get().trim().toUpperCase(Locale.ROOT);
+            specification = specification.and((root, cq, cb) -> cb.equal(cb.upper(root.get("refundStatus")), normalizedRefundStatus));
         }
 
         if (liveOnly) {

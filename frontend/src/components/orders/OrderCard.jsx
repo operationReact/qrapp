@@ -30,10 +30,12 @@ import {
   CalendarIcon,
   ChatCircleTextIcon,
   CheckCircleIcon,
+  ClockIcon,
   CookingPotIcon,
   ImageIcon,
   DotsThreeVerticalIcon,
   ReceiptIcon,
+  WarningCircleIcon,
   XCircleIcon,
 } from "@phosphor-icons/react";
 import { useNavigate } from "@tanstack/react-router";
@@ -320,23 +322,120 @@ export function OrderCardSkeleton() {
   );
 }
 
-function RefundNote({ order }) {
-  if (order.refundStatus === "REFUNDED") {
+const REFUND_DESTINATION = {
+  RAZORPAY: "Original payment method",
+  WALLET: "Wallet balance",
+  PAY_AT_STALL: "Handled by stall team",
+};
+
+function RefundTracker({ order }) {
+  const status = order.refundStatus;
+  if (!status) return null;
+
+  const refundAmount = Number(order.refundAmount ?? order.total ?? 0).toFixed(2);
+  const cancelledAt = order.cancelledAt || order.createdAt;
+  const cancelledLabel = cancelledAt
+    ? `${formatOrderDate(cancelledAt)}, ${formatOrderTime(cancelledAt)}`
+    : null;
+
+  if (status === "NOT_REQUIRED") {
     return (
-      <p className="mt-3 text-xs font-semibold text-emerald-700">
-        Refund of ₹{Number(order.total || 0).toFixed(2)} has been processed.
-      </p>
+      <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs font-medium text-slate-600">
+        No refund is due because no payment was collected.
+      </div>
     );
   }
-  if (order.refundStatus === "MANUAL_REQUIRED") {
-    return (
-      <p className="mt-3 text-xs font-semibold text-amber-700">
-        Refund of ₹{Number(order.total || 0).toFixed(2)} will be handled by the stall team.
-      </p>
-    );
-  }
-  return null;
+
+  const requested = status === "PENDING" || status === "MANUAL_REQUIRED" || status === "REFUNDED";
+  const completed = status === "REFUNDED";
+  const headline = {
+    REFUNDED: { label: "Refunded", tone: "bg-emerald-50 text-emerald-700 ring-emerald-200", Icon: CheckCircleIcon },
+    PENDING: { label: "Refund processing", tone: "bg-amber-50 text-amber-700 ring-amber-200", Icon: ClockIcon },
+    MANUAL_REQUIRED: { label: "Awaiting stall refund", tone: "bg-rose-50 text-rose-700 ring-rose-200", Icon: WarningCircleIcon },
+  }[status] ?? { label: status, tone: "bg-slate-50 text-slate-700 ring-slate-200", Icon: ClockIcon };
+  const message = {
+    REFUNDED: "Your refund has been completed.",
+    PENDING: "We have started your refund. This page updates when it completes.",
+    MANUAL_REQUIRED: "The stall team will complete this refund for you.",
+  }[status];
+
+  const steps = [
+    { key: "cancelled", label: "Order cancelled", detail: cancelledLabel, state: "done" },
+    { key: "requested", label: "Refund requested", detail: `₹${refundAmount}`, state: requested ? "done" : "pending" },
+    {
+      key: "completed",
+      label: "Refund completed",
+      detail: completed ? null : status === "MANUAL_REQUIRED" ? "Stall team to pay out" : "Processing",
+      state: completed ? "done" : requested ? "current" : "pending",
+    },
+  ];
+
+  const HeadlineIcon = headline.Icon;
+  const destination = REFUND_DESTINATION[order.paymentMethod];
+
+  return (
+    <div className="mt-3 space-y-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Refund amount</p>
+          <p className="text-lg font-bold text-slate-900">₹{refundAmount}</p>
+        </div>
+        <span className={cn("inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ring-1", headline.tone)}>
+          <HeadlineIcon size={14} weight="bold" />
+          {headline.label}
+        </span>
+      </div>
+
+      <ol className="space-y-2.5">
+        {steps.map((step) => (
+          <li key={step.key} className="flex items-start gap-2.5">
+            <span
+              className={cn(
+                "mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full",
+                step.state === "done" && "bg-emerald-500 text-white",
+                step.state === "current" && "bg-amber-400 text-white",
+                step.state === "pending" && "bg-slate-200",
+              )}
+              aria-hidden="true"
+            >
+              {step.state === "done" && <CheckCircleIcon size={12} weight="bold" />}
+            </span>
+            <div className="min-w-0">
+              <p className={cn("text-xs font-semibold", step.state === "pending" ? "text-slate-400" : "text-slate-800")}>
+                {step.label}
+              </p>
+              {step.detail && <p className="text-[11px] text-slate-500">{step.detail}</p>}
+            </div>
+          </li>
+        ))}
+      </ol>
+
+      <dl className="grid grid-cols-2 gap-x-3 gap-y-1.5 border-t border-slate-100 pt-2.5 text-xs">
+        {destination && (
+          <>
+            <dt className="text-slate-500">Refund to</dt>
+            <dd className="text-right font-semibold text-slate-800">{destination}</dd>
+          </>
+        )}
+        {order.refundReference && (
+          <>
+            <dt className="text-slate-500">Reference</dt>
+            <dd className="break-all text-right font-mono text-[11px] font-semibold text-slate-800">{order.refundReference}</dd>
+          </>
+        )}
+        {order.cancelReason && (
+          <>
+            <dt className="text-slate-500">Reason</dt>
+            <dd className="text-right font-semibold text-slate-800">{order.cancelReason}</dd>
+          </>
+        )}
+      </dl>
+
+      {message && <p className="text-xs text-slate-600">{message}</p>}
+    </div>
+  );
 }
+
 
 function CancelOrderDialog({ order, open, onOpenChange }) {
   const queryClient = useQueryClient();
@@ -562,7 +661,7 @@ export default function OrderCard({ order }) {
         <OrderProgress status={status} />
       </div>
 
-      {status === "CANCELLED" && <RefundNote order={order} />}
+      {status === "CANCELLED" && <RefundTracker order={order} />}
       <section className="mt-3 min-w-0" aria-label="Order items">
         <OrderItemsPreview order={order} />
       </section>

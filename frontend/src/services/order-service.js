@@ -22,6 +22,7 @@ export const getOrdersAdmin = ({
   size = 10,
   status,
   paymentStatus,
+  refundStatus,
   query,
   liveOnly,
   locationId,
@@ -31,6 +32,7 @@ export const getOrdersAdmin = ({
   const params = { page, size };
   if (status) params.status = status;
   if (paymentStatus) params.paymentStatus = paymentStatus;
+  if (refundStatus) params.refundStatus = refundStatus;
   if (query) params.query = query;
   if (typeof liveOnly === "boolean") params.liveOnly = liveOnly;
   if (locationId != null) params.locationId = locationId;
@@ -82,6 +84,13 @@ export const completeManualRefund = (orderId, reference, locationId) => {
       { reference },
       params ? { params } : undefined
     )
+    .then((r) => r.data);
+};
+
+export const retryEscalatedRefund = (orderId, locationId) => {
+  const params = locationId != null ? { locationId } : undefined;
+  return apiClient
+    .post(`/admin/orders/${orderId}/refund/retry`, undefined, params ? { params } : undefined)
     .then((r) => r.data);
 };
 
