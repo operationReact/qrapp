@@ -139,6 +139,26 @@ public class CategoryService {
         return saved;
     }
 
+    @Transactional
+    @CacheEvict(cacheNames = {"categories", "menu", "menuRecommended"}, allEntries = true)
+    public void deleteMrpProductCategory(Long locationId, Long id, User user) {
+        requireManagementLocation(locationId, user);
+        Category category = categoryRepository.findByIdAndLocationIdAndIsDeletedFalse(id, locationId)
+                .filter(existing -> MRP_PRODUCT_CATEGORY.equals(existing.getCategoryType()))
+                .orElseThrow(() -> new RuntimeException("Category not found: " + id));
+        long productCount = locationProductRepository.findByLocationIdOrderByProductNameAsc(locationId).stream()
+                .map(LocationProduct::getProduct)
+                .filter(product -> category.getName().equalsIgnoreCase(product.getCategoryName()))
+                .distinct()
+                .count();
+        if (productCount > 0) {
+            throw new IllegalArgumentException("\"" + category.getName() + "\" still has " + productCount
+                    + " product(s). Move or remove them before deleting this category.");
+        }
+        category.setIsDeleted(true);
+        categoryRepository.save(category);
+    }
+
     @CacheEvict(cacheNames = {"categories", "menu", "menuRecommended"}, allEntries = true)
     public Category updateCategory(Long locationId, Long id, Category category, User user) {
         requireManagementLocation(locationId, user);

@@ -62,6 +62,15 @@ public class ProductCatalogController {
         return categoryService.renameMrpProductCategory(locationId, categoryId, body.get("name"), currentUser);
     }
 
+    @DeleteMapping("/admin/categories/{categoryId}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN', 'SUPERUSER', 'MANAGER')")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteCategory(@PathVariable Long categoryId, @RequestParam Long locationId,
+                               Authentication authentication) {
+        User currentUser = userService.findByPhone(authentication.getName()).orElseThrow();
+        categoryService.deleteMrpProductCategory(locationId, categoryId, currentUser);
+    }
+
     @GetMapping("/products")
     public List<ProductResponse> products(@RequestParam Long locationId) {
         return catalogService.publicProducts(locationId);

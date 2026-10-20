@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { ArchiveIcon, CheckCircleIcon, MagnifyingGlassIcon, PackageIcon, PlusIcon, SidebarIcon, WarningIcon, PencilSimpleIcon, ImageIcon, SparkleIcon, MinusIcon } from "@phosphor-icons/react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useLocation } from "@/context/LocationContext";
 import { useSidebar } from "@/components/ui/sidebar";
@@ -45,6 +45,7 @@ import {
   removeCategoryImage,
   setMrpProductCategoryVideo,
   renameMrpProductCategory,
+  deleteMrpProductCategory,
   uploadCategoryImage,
   getCategoryImageSources,
   reuseCategoryImage,
@@ -66,7 +67,7 @@ export const Route = createFileRoute("/admin/(menu)/mrp-product")({
   component: ProductCatalogPage,
 });
 const EMPTY = {
-  variantIdentity: "", name: "", brand: "", categoryName: "", description: "", isVeg: "",
+  variantIdentity: "", name: "", brand: "", categoryName: "", description: "", isVeg: "true",
   mrp: "", costPrice: "", locationId: "", initialStock: "0", stockQuantity: "", lowStockThreshold: "5",
 };
 
@@ -308,7 +309,7 @@ function ProductCatalogPage() {
       name: product.name || "",
       brand: product.brand || "",
       categoryName: product.categoryName || "",
-      isVeg: product.isVeg == null ? "" : String(product.isVeg),
+      isVeg: product.isVeg === false ? "false" : "true",
       description: product.description || "",
       mrp: product.mrp ?? "",
       costPrice: product.costPrice ?? "",
@@ -325,7 +326,7 @@ function ProductCatalogPage() {
     const payload = {
       ...form,
       locationId: effectiveLocationId ? Number(effectiveLocationId) : null,
-      isVeg: form.isVeg === "" ? null : form.isVeg === "true",
+      isVeg: form.isVeg === "true",
       mrp: Number(form.mrp),
       costPrice: Number(form.costPrice),
       initialStock: Number(form.initialStock || 0),
@@ -349,9 +350,9 @@ function ProductCatalogPage() {
   };
   const hasFilters = search || stockFilter !== "all" || availabilityFilter !== "all" || categoryFilter !== "all" || sortBy !== "name";
 
-  const fieldClass = "h-11 w-full rounded-xl border border-[#ece8e2] bg-[#fbf8f6] px-3 text-sm font-normal outline-none transition placeholder:text-[#a8a29b] focus:border-[#ff2438] focus:bg-white focus:ring-4 focus:ring-[#ff2438]/10";
-  const sectionTitleClass = "text-[11px] font-extrabold uppercase tracking-[0.14em] text-[#858079]";
-  const labelClass = "min-w-0 space-y-1.5 text-xs font-semibold text-[#514d48]";
+  const fieldClass = "mrp-pf-input";
+  const sectionTitleClass = "mrp-pf-sec";
+  const labelClass = "mrp-pf-label min-w-0 space-y-1.5";
   return (
       <main className="mrp-catalog-premium relative min-h-screen min-w-0 overflow-x-hidden bg-[#fbf8f6] text-[#242220]">
         <style>{`
@@ -363,6 +364,27 @@ function ProductCatalogPage() {
           .mrp-btn-brand:disabled { opacity: .5; transform: none; cursor: not-allowed; }
           .mrp-skeleton { background: linear-gradient(90deg,#f3efeb 25%,#fbf8f6 50%,#f3efeb 75%); background-size: 200% 100%; animation: mrpShimmer 1.4s linear infinite; }
           @media (prefers-reduced-motion: reduce) { .mrp-rise, .mrp-skeleton { animation: none; } }
+          .mrp-pf-head { position: relative; background: linear-gradient(120deg,#fff1f2 0%,#ffffff 55%,#fff8ec 100%); border-bottom: 1px solid #f1e4e1; }
+          .mrp-pf-head::after { content: ""; position: absolute; left: 20px; right: 20px; bottom: -1px; height: 2px; border-radius: 2px; background: linear-gradient(90deg,#ff2438 0%,#e7b04a 60%,rgba(231,176,74,0) 100%); }
+          .mrp-pf-eyebrow { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; background: #ffffff; border: 1px solid #ffd3d8; box-shadow: 0 1px 2px rgba(36,34,32,.04); font-size: 10px; font-weight: 800; letter-spacing: .18em; text-transform: uppercase; color: #d92334; }
+          .mrp-pf-title { margin-top: 10px; font-size: 22px; font-weight: 800; letter-spacing: -0.01em; color: #242220; }
+          .mrp-pf-sub { margin-top: 4px; font-size: 12px; color: #77736f; }
+          .mrp-pf-body { counter-reset: mrp-pf-sec; }
+          .mrp-pf-sec { display: flex; align-items: center; gap: 10px; font-size: 11px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: #3b3834; }
+          .mrp-pf-sec::before { counter-increment: mrp-pf-sec; content: counter(mrp-pf-sec, decimal-leading-zero); display: grid; place-items: center; width: 28px; height: 22px; border-radius: 8px; background: #fff0ed; color: #d92334; font-size: 10px; letter-spacing: 0; }
+          .mrp-pf-sec::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg,#ece8e2,rgba(236,232,226,0)); }
+          .mrp-pf-label { font-size: 12px; font-weight: 700; color: #3b3834; }
+          .mrp-pf-input { height: 46px; width: 100%; padding: 0 14px; border-radius: 14px; border: 1px solid #e4dcd3; background: #ffffff; font-size: 14px; font-weight: 500; color: #242220; outline: none; box-shadow: inset 0 1px 2px rgba(36,34,32,.04); transition: border-color .2s ease, box-shadow .2s ease; }
+          .mrp-pf-input::placeholder { color: #aaa39c; font-weight: 400; }
+          .mrp-pf-input:hover { border-color: #d9cfc4; }
+          .mrp-pf-input:focus { border-color: #ff2438; box-shadow: 0 0 0 4px rgba(255,36,56,.10); }
+          .mrp-pf-textarea { height: auto; min-height: 76px; padding: 10px 14px; resize: vertical; }
+          .mrp-pf-drop { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 56px; padding: 10px 12px; border-radius: 16px; border: 1.5px dashed #e0cfc4; background: linear-gradient(135deg,#fffaf8 0%,#ffffff 100%); cursor: pointer; transition: border-color .2s ease, box-shadow .2s ease; }
+          .mrp-pf-drop:hover { border-color: #ff2438; box-shadow: 0 8px 20px -14px rgba(255,36,56,.5); }
+          .mrp-pf-browse { flex: none; padding: 7px 14px; border-radius: 10px; background: linear-gradient(135deg,#ff2438 0%,#d91a2b 100%); color: #ffffff; font-size: 12px; font-weight: 700; box-shadow: 0 6px 14px -8px rgba(255,36,56,.7); }
+          .mrp-pf-current { display: flex; align-items: center; gap: 12px; padding: 8px; border-radius: 16px; background: #ffffff; border: 1px solid #efe7e0; }
+          .mrp-pf-current img { width: 56px; height: 56px; flex: none; border-radius: 12px; object-fit: cover; border: 1px solid #eeeae5; }
+          .mrp-pf-foot { background: #ffffff; box-shadow: 0 -10px 24px -18px rgba(36,34,32,.25); }
           .mrp-hdr { display: grid; gap: 20px; position: relative; overflow: hidden; padding: 20px; border-radius: 24px; background: #ffffff; border: 1px solid #ece8e2; box-shadow: 0 1px 2px rgba(36,34,32,.04), 0 12px 28px -20px rgba(217,26,43,.35); }
           .mrp-hdr::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 5px; background: linear-gradient(180deg,#ff2438 0%,#d91a2b 100%); }
           .mrp-hdr-top { display: flex; align-items: flex-start; gap: 14px; min-width: 0; }
@@ -379,7 +401,7 @@ function ProductCatalogPage() {
           .mrp-dw-tile { border-radius: 14px; border: 1px solid #ece8e2; background: #fdfcfb; padding: 12px; }
           .mrp-dw-input { display: block; width: 100%; height: 44px; border-radius: 12px; border: 1px solid #e6e0da; background: #ffffff; padding: 0 12px; font-size: 14px; font-weight: 500; color: #242220; outline: none; transition: border-color .2s ease, box-shadow .2s ease; }
           .mrp-dw-input::placeholder { color: #b0a9a1; }
-          .mrp-money { display: flex; align-items: center; height: 44px; border-radius: 12px; border: 1px solid #ece8e2; background: #fbf8f6; transition: border-color .2s ease, box-shadow .2s ease, background .2s ease; }
+          .mrp-money { display: flex; align-items: center; height: 46px; border-radius: 14px; border: 1px solid #e4dcd3; background: #ffffff; box-shadow: inset 0 1px 2px rgba(36,34,32,.04); transition: border-color .2s ease, box-shadow .2s ease, background .2s ease; }
           .mrp-money:focus-within { border-color: #ff2438; background: #fff; box-shadow: 0 0 0 4px rgba(255,36,56,.12); }
           .mrp-money-input, .mrp-money-input:focus, .mrp-money-input:focus-visible { flex: 1 1 0; min-width: 0; height: 100%; padding: 0 8px; border: 0; background: transparent; font-size: 14px; font-weight: 500; color: #242220; outline: none !important; box-shadow: none !important; }
           .mrp-dw-input:focus { border-color: #ff2438; box-shadow: 0 0 0 4px rgba(255,36,56,.12); }
@@ -620,12 +642,12 @@ function ProductCatalogPage() {
 
         {formOpen && <div className="fixed inset-0 z-50 flex min-h-0 items-start justify-center overflow-y-auto bg-[#1f1614]/40 py-2 backdrop-blur-sm sm:items-center sm:overflow-hidden sm:p-4" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) { setFormOpen(false); setEditingId(null); } }}>
           <section role="dialog" aria-modal="true" aria-labelledby="catalog-form-title" className="mrp-rise flex h-[calc(100svh-1rem)] max-h-none w-full min-w-0 flex-col overflow-hidden rounded-3xl bg-white shadow-2xl sm:h-auto sm:max-h-[94dvh] sm:max-w-2xl">
-            <header className="flex shrink-0 items-start justify-between gap-3 px-5 py-4 sm:px-6" style={{ background: "linear-gradient(135deg,#fff7f7 0%,#ffffff 100%)" }}>
-              <div className="min-w-0"><p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#d92334]">MRP Product</p><h2 id="catalog-form-title" className="mt-1 text-lg font-extrabold text-[#242220]">{editingId ? "Edit product" : "Add new product"}</h2><p className="mt-1 text-xs text-[#77736f]">Enter product information and pricing details.</p></div>
+            <header className="mrp-pf-head flex shrink-0 items-start justify-between gap-3 px-5 py-5 sm:px-6">
+              <div className="min-w-0"><span className="mrp-pf-eyebrow">MRP Product</span><h2 id="catalog-form-title" className="mrp-pf-title">{editingId ? "Edit product" : "Add new product"}</h2><p className="mrp-pf-sub">Enter product information and pricing details.</p></div>
               <button type="button" aria-label="Close product form" onClick={() => { setFormOpen(false); setEditingId(null); }} className="grid size-9 shrink-0 place-items-center rounded-full border border-[#e5e2dd] bg-white text-xl leading-none text-[#77736f] transition hover:bg-[#f8f7f4]">×</button>
             </header>
             <form className="flex h-0 min-h-0 flex-1 flex-col overflow-hidden" onSubmit={handleFormSubmit}>
-              <div className="h-0 min-h-0 flex-1 space-y-6 overflow-y-scroll overscroll-contain p-4 sm:p-6">
+              <div className="mrp-pf-body h-0 min-h-0 flex-1 space-y-6 overflow-y-scroll overscroll-contain p-4 sm:p-6">
                 <section className="space-y-3">
                   <h3 className={sectionTitleClass}>Product information</h3>
                   <div className="grid gap-3 sm:grid-cols-2">
@@ -637,18 +659,17 @@ function ProductCatalogPage() {
                     </label>
                     <label className={labelClass}>
                       Food type
-                      <Select value={form.isVeg === "" ? "unspecified" : form.isVeg} onValueChange={(value) => setForm((current) => ({ ...current, isVeg: value === "unspecified" ? "" : value }))}>
+                      <Select value={form.isVeg} onValueChange={(value) => setForm((current) => ({ ...current, isVeg: value }))}>
                         <SelectTrigger aria-label="Food type" className="mrp-cf-trigger h-11 w-full min-w-0 max-w-full">
-                          <SelectValue>{form.isVeg === "true" ? "Veg" : form.isVeg === "false" ? "Non veg" : "Not specified"}</SelectValue>
+                          <SelectValue>{form.isVeg === "false" ? "Non veg" : "Veg"}</SelectValue>
                         </SelectTrigger>
                         <SelectContent className="mrp-cf-popup max-w-[calc(100vw-1rem)]">
-                          <SelectItem value="unspecified" className="mrp-cf-item max-w-full whitespace-normal break-words">Not specified</SelectItem>
                           <SelectItem value="true" className="mrp-cf-item max-w-full whitespace-normal break-words">Veg</SelectItem>
                           <SelectItem value="false" className="mrp-cf-item max-w-full whitespace-normal break-words">Non veg</SelectItem>
                         </SelectContent>
                       </Select>
                     </label>
-                    <label className={`${labelClass} sm:col-span-2`}>Description <textarea name="description" value={form.description} onChange={setField} rows={2} placeholder="Optional product description" className="w-full rounded-xl border border-[#ece8e2] bg-[#fbf8f6] px-3 py-2 text-sm font-normal outline-none transition focus:border-[#ff2438] focus:bg-white focus:ring-4 focus:ring-[#ff2438]/10" /></label>
+                    <label className={`${labelClass} sm:col-span-2`}>Description <textarea name="description" value={form.description} onChange={setField} rows={2} placeholder="Optional product description" className="mrp-pf-input mrp-pf-textarea" /></label>
                   </div>
                 </section>
                 {visibleSimilar.length > 0 && (
@@ -681,7 +702,8 @@ function ProductCatalogPage() {
                 <section className="space-y-3">
                   <h3 className={sectionTitleClass}>Product image</h3>
                   <p className="text-xs leading-5 text-[#77736f]">{editingId ? "Upload a new image to replace the current product image." : "Add a JPEG, PNG or WEBP image for this product."} Images are auto-enhanced: subject cropped, tone balanced, sharpened and framed on a square card.</p>
-                  <label className="flex min-h-12 cursor-pointer items-center justify-between gap-3 rounded-xl border border-dashed border-[#e0d6cd] bg-[#fbf8f6] px-3 py-2 text-sm font-semibold text-[#514d48] transition hover:border-[#ff2438] hover:bg-white"><span className="min-w-0 truncate">{imageFile ? imageFile.name : "Choose product image"}</span><span className="shrink-0 rounded-lg bg-white px-3 py-1.5 text-xs font-bold text-[#d92334] shadow-sm">Browse</span><input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={(event) => { const selected = event.target.files?.[0]; if (selected) setImageFile(selected); }} /></label>
+                  {editingProduct?.imageUrl && !imageFile && <div className="mrp-pf-current"><img src={productImageSource(editingProduct)} alt="" /><div className="min-w-0"><p className="text-sm font-bold text-[#242220]">Current image</p><p className="text-xs text-[#77736f]">Shown to customers on the product card.</p></div></div>}
+                  <label className="mrp-pf-drop"><span className="min-w-0 truncate text-sm font-semibold text-[#514d48]">{imageFile ? imageFile.name : "Choose product image"}</span><span className="mrp-pf-browse">Browse</span><input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={(event) => { const selected = event.target.files?.[0]; if (selected) setImageFile(selected); }} /></label>
                 </section>
                 <section className="space-y-3">
                   <h3 className={sectionTitleClass}>Pricing</h3>
@@ -698,7 +720,7 @@ function ProductCatalogPage() {
                   <div className="grid gap-3 sm:grid-cols-2"><label className={labelClass}>Opening stock<input name="initialStock" value={form.initialStock} onChange={setField} type="number" min="0" step="1" disabled={!effectiveLocationId} className={`${fieldClass} disabled:opacity-50`} /></label><label className={labelClass}>Low-stock threshold<input name="lowStockThreshold" value={form.lowStockThreshold} onChange={setField} type="number" min="0" step="1" className={fieldClass} /></label></div>
                 </section>}
               </div>
-              <footer className="flex shrink-0 flex-col-reverse gap-2 border-t border-[#f1ede8] bg-white px-4 py-3 shadow-[0_-8px_20px_rgba(32,33,36,0.05)] sm:flex-row sm:justify-end sm:px-6">
+              <footer className="mrp-pf-foot flex shrink-0 flex-col-reverse gap-2 border-t border-[#f1ede8] px-4 py-3 sm:flex-row sm:justify-end sm:px-6">
                 <button type="button" onClick={() => { setFormOpen(false); setEditingId(null); }} className="h-11 rounded-xl border border-[#e5e2dd] bg-white px-5 text-sm font-semibold text-[#514d48] transition hover:bg-[#f8f7f4]">Cancel</button>
                 {editingId && editingProduct && <button type="button" onClick={() => { setFormOpen(false); setAiStudio({ product: editingProduct, source: null, preview: null, session: null }); }} className="h-11 rounded-xl bg-[#fff0ed] px-5 text-sm font-semibold text-[#d92334] transition hover:bg-[#ffe3df]">AI image studio</button>}
                 <button type="submit" disabled={create.isPending || edit.isPending} className="mrp-btn-brand inline-flex h-11 min-w-[140px] items-center justify-center whitespace-nowrap rounded-xl px-5 text-sm font-bold">{create.isPending || edit.isPending ? "Saving…" : editingId ? "Save changes" : "Create product"}</button>
@@ -922,6 +944,14 @@ function ProductCategoryImages({ locationId, categoryNames, onClose }) {
   const imageSources = sourcesQuery.data || [];
   const categories = categoriesQuery.data || [];
   const categoryByName = new Map(categories.map((category) => [category.name.trim().toLowerCase(), category]));
+  const usageQueries = useQueries({
+    queries: categories.map((category) => ({
+      queryKey: ["mrp-products", "category-usage", locationId, category.name],
+      queryFn: () => getCatalogProducts(locationId, true, { category: category.name, size: 1 }).then((page) => page.totalElements),
+      enabled: Boolean(locationId),
+    })),
+  });
+  const usageByName = new Map(categories.map((category, index) => [category.name.trim().toLowerCase(), usageQueries[index]]));
   const displayNames = Array.from(new Set([...categoryNames, ...categories.map((category) => category.name)])).sort((a, b) => a.localeCompare(b));
 
   const addCategory = async () => {
@@ -993,6 +1023,22 @@ function ProductCategoryImages({ locationId, categoryNames, onClose }) {
       toast.success(`${name} image removed`);
     } catch (error) {
       toast.error(error?.response?.data?.message || error?.message || "Unable to remove category image");
+    } finally {
+      setBusyName("");
+    }
+  };
+
+  const deleteEmptyCategory = async (name) => {
+    const category = categoryByName.get(name.trim().toLowerCase());
+    if (!category) return;
+    if (!window.confirm(`Delete the "${name}" category? It has no products attached.`)) return;
+    setBusyName(name);
+    try {
+      await deleteMrpProductCategory(category.id, locationId);
+      await queryClient.invalidateQueries({ queryKey: ["mrp-product-category-options", locationId] });
+      toast.success(`${name} deleted`);
+    } catch (error) {
+      toast.error(error?.response?.data?.message || error?.message || "Unable to delete category");
     } finally {
       setBusyName("");
     }
@@ -1090,6 +1136,9 @@ function ProductCategoryImages({ locationId, categoryNames, onClose }) {
                                 <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" disabled={busy} onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ""; saveImage(name, file); }} />
                               </label>
                               {category?.imageUrl && <button type="button" disabled={busy} onClick={() => removeImage(name)} className="shrink-0 px-1 text-xs font-semibold text-[#d92334] disabled:opacity-50">Remove</button>}
+                              {category && usageByName.get(name.trim().toLowerCase())?.data === 0 && (
+                                <button type="button" disabled={busy} onClick={() => deleteEmptyCategory(name)} className="shrink-0 rounded-lg border border-[#ffd3cd] px-2.5 py-2 text-xs font-semibold text-[#d92334] disabled:opacity-50">Delete</button>
+                              )}
                             </div>
                           </div>
                         </div>

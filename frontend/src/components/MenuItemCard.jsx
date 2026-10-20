@@ -11,6 +11,7 @@ import {
 import { cn, formatCurrency } from "@/lib/utils";
 import QuantitySelector from "./QuantitySelector";
 import CustomerPreOrderDialog from "./CustomerPreOrderDialog";
+import ProductDetailDialog from "./ProductDetailDialog";
 
 const PRE_ORDER_ONLY_TAG = "PreOrderOnly";
 
@@ -27,6 +28,7 @@ export default function MenuItemCard({
   const { cart, addItem, decreaseItem } = useCart();
   const [imgError, setImgError] = useState(false);
   const [preOrderOpen, setPreOrderOpen] = useState(false);
+  const [detailOpen, setDetailOpen] = useState(false);
 
   const preOrderOnly = isPreOrderOnly(item);
 
@@ -86,7 +88,17 @@ export default function MenuItemCard({
         }
       >
         {/* Image */}
-        <div className="relative aspect-[1.45] w-full md:aspect-[4/3]">
+        <button
+          type="button"
+          onClick={() => {
+            if (!preOrderOnly) setDetailOpen(true);
+          }}
+          aria-label={preOrderOnly ? undefined : `View ${item.name} details`}
+          className={cn(
+            "relative block aspect-[1.45] w-full text-left md:aspect-[4/3]",
+            !preOrderOnly && "cursor-pointer",
+          )}
+        >
           {imageSrc && !imgError ? (
             <img
               src={imageSrc}
@@ -148,7 +160,7 @@ export default function MenuItemCard({
               )}
             />
           </div>
-        </div>
+        </button>
 
         {/* Details */}
         <div className="space-y-1 p-2 md:space-y-2 md:p-3">
@@ -209,6 +221,15 @@ export default function MenuItemCard({
           initialItem={item}
           open={preOrderOpen}
           onOpenChange={setPreOrderOpen}
+        />
+      )}
+      {!preOrderOnly && (
+        <ProductDetailDialog
+          item={item}
+          imageSrc={imageSrc && !imgError ? imageSrc : null}
+          open={detailOpen}
+          onOpenChange={setDetailOpen}
+          outOfStock={isUnavailable}
         />
       )}
     </>
