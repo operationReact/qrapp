@@ -14,9 +14,24 @@ export const fetchOpsJob = (jobId) =>
 export const triggerOpsJob = (jobId) =>
   apiClient.post(`/api/admin/ops/jobs/${jobId}/trigger`).then((r) => r.data);
 
-/** Fetch the execution audit log (newest first). */
-export const fetchOpsHistory = () =>
-  apiClient.get("/api/admin/ops/jobs/history").then((r) => r.data);
+/** Pause automatic runs of a scheduled job. Manual triggers still work. Returns the updated job. */
+export const pauseOpsJob = (jobId) =>
+  apiClient.post(`/api/admin/ops/jobs/${jobId}/pause`).then((r) => r.data);
+
+/** Resume automatic runs of a paused job. Returns the updated job. */
+export const resumeOpsJob = (jobId) =>
+  apiClient.post(`/api/admin/ops/jobs/${jobId}/resume`).then((r) => r.data);
+
+/**
+ * Fetch persisted scheduler runs, newest first.
+ * Optional filters: jobId, status (RUNNING | SUCCESS | FAILED | SKIPPED). Paged via page/size.
+ */
+export const fetchSchedulerRuns = ({ jobId, status, page = 0, size = 20 } = {}) =>
+  apiClient
+    .get("/api/admin/ops/runs", {
+      params: { jobId: jobId || undefined, status: status || undefined, page, size },
+    })
+    .then((r) => r.data);
 
 // ── Sync ──────────────────────────────────────────────────────────────────
 

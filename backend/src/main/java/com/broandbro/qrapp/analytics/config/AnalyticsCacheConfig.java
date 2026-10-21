@@ -112,7 +112,7 @@ public class AnalyticsCacheConfig {
     @Bean("analyticsTaskScheduler")
     public ThreadPoolTaskScheduler analyticsTaskScheduler() {
         ThreadPoolTaskScheduler scheduler = new ThreadPoolTaskScheduler();
-        scheduler.setPoolSize(3);
+        scheduler.setPoolSize(6);
         scheduler.setThreadNamePrefix("analytics-scheduler-");
         scheduler.setWaitForTasksToCompleteOnShutdown(true);
         scheduler.setAwaitTerminationSeconds(60);

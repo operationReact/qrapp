@@ -1,6 +1,8 @@
 package com.broandbro.qrapp.whatsapp;
 
 import lombok.extern.slf4j.Slf4j;
+import com.broandbro.qrapp.ops.SchedulerJobControl;
+import com.broandbro.qrapp.ops.SchedulerJobIds;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -14,15 +16,20 @@ import java.util.UUID;
 public class WhatsAppWebhookProcessor {
 
     private final JdbcTemplate jdbcTemplate;
+    private final SchedulerJobControl schedulerJobControl;
     private final String processorId = UUID.randomUUID().toString();
 
-    public WhatsAppWebhookProcessor(JdbcTemplate jdbcTemplate) {
+    public WhatsAppWebhookProcessor(JdbcTemplate jdbcTemplate, SchedulerJobControl schedulerJobControl) {
         this.jdbcTemplate = jdbcTemplate;
+        this.schedulerJobControl = schedulerJobControl;
     }
 
     @Scheduled(fixedDelayString = "${whatsapp.webhook.processor-interval-ms:1000}")
     @Transactional
     public void processPendingScheduled() {
+        if (schedulerJobControl.isPaused(SchedulerJobIds.WHATSAPP_OUTBOX)) {
+            return;
+        }
         processPending();
     }
 

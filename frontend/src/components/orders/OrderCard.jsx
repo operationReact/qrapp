@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { parseApiError } from "@/lib/api-error-parser";
@@ -328,6 +328,19 @@ const REFUND_DESTINATION = {
   PAY_AT_STALL: "Handled by stall team",
 };
 
+function paymentViaLabel(refund) {
+  if (!refund?.paymentMethod) return null;
+  const method = refund.paymentMethod.toLowerCase();
+  if (method === "upi") return refund.paymentVpa ? `${refund.paymentVpa} · UPI` : "UPI";
+  if (method === "card") return refund.paymentCardLast4 ? `Card ending ${refund.paymentCardLast4}` : "Card";
+  if (method === "netbanking") return refund.paymentBank ? `${refund.paymentBank} · Net banking` : "Net banking";
+  return capitalizeWord(method);
+}
+
+function capitalizeWord(value) {
+  return value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
+}
+
 function RefundTracker({ order }) {
   const status = order.refundStatus;
   if (!status) return null;
@@ -365,7 +378,7 @@ function RefundTracker({ order }) {
   }[status] ?? { label: status, tone: "bg-slate-50 text-slate-700 ring-slate-200", Icon: ClockIcon };
   const message = {
     REFUNDED: bankRefund
-      ? "Razorpay confirmed the refund has been credited to your original payment method. Your bank may take a little time to show it."
+      ? "Razorpay has processed your refund to your original payment method. Your bank may take 5–7 working days to show it."
       : "Your refund has been completed.",
     PENDING: bankRefund
       ? "Your refund is on its way to your original payment method. It can take up to 7 working days to be credited to your account."
@@ -397,6 +410,17 @@ function RefundTracker({ order }) {
 
   const HeadlineIcon = headline.Icon;
   const destination = REFUND_DESTINATION[order.paymentMethod];
+  const latestRefund = order.refunds?.[0];
+  const speed = latestRefund?.speedProcessed || latestRefund?.speedRequested;
+  const detailRows = [
+    ["Refund ID", latestRefund?.providerRefundId || order.refundReference, true],
+    ["Initiated on", requestedLabel],
+    ["Payment ID", latestRefund?.paymentId, true],
+    ["Original payment", latestRefund?.paymentAmount != null ? `₹${Number(latestRefund.paymentAmount).toFixed(2)}` : null],
+    ["Paid via", paymentViaLabel(latestRefund)],
+    ["Speed", speed ? capitalizeWord(speed) : null],
+    bankRefund ? ["RRN", latestRefund?.acquirerArn || "Awaiting from bank", true] : null,
+  ].filter((row) => row && row[1]);
 
   return (
     <div className="mt-3 space-y-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
@@ -442,12 +466,12 @@ function RefundTracker({ order }) {
             <dd className="text-right font-semibold text-slate-800">{destination}</dd>
           </>
         )}
-        {order.refundReference && (
-          <>
-            <dt className="text-slate-500">Reference</dt>
-            <dd className="break-all text-right font-mono text-[11px] font-semibold text-slate-800">{order.refundReference}</dd>
-          </>
-        )}
+        {detailRows.map(([label, value, mono]) => (
+          <Fragment key={label}>
+            <dt className="text-slate-500">{label}</dt>
+            <dd className={cn("break-all text-right font-semibold text-slate-800", mono && "font-mono text-[11px]")}>{value}</dd>
+          </Fragment>
+        ))}
         {order.cancelReason && (
           <>
             <dt className="text-slate-500">Reason</dt>

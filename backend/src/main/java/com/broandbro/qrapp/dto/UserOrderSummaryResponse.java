@@ -34,6 +34,8 @@ public class UserOrderSummaryResponse {
     private String paymentMethod;
     private double total;
     private List<ItemSummary> items = new ArrayList<>();
+    /** Refund attempts for this order, newest first; empty when no refund was created. */
+    private List<RefundAttemptResponse> refunds = new ArrayList<>();
 
     @Data
     public static class ItemSummary {

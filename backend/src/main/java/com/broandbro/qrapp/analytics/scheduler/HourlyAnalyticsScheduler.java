@@ -2,6 +2,8 @@ package com.broandbro.qrapp.analytics.scheduler;
 
 import com.broandbro.qrapp.analytics.config.AnalyticsCacheConfig;
 import com.broandbro.qrapp.analytics.repository.HourlyOrderAnalyticsRepository;
+import com.broandbro.qrapp.ops.SchedulerJobIds;
+import com.broandbro.qrapp.ops.SchedulerRunRecorder;
 import com.broandbro.qrapp.time.BusinessTime;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -11,6 +13,8 @@ import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -27,6 +31,7 @@ public class HourlyAnalyticsScheduler {
 
     private final HourlyOrderAnalyticsRepository hourlyRepo;
     private final CacheManager analyticsCacheManager;
+    private final SchedulerRunRecorder runRecorder;
 
     // ── Scheduled job ──────────────────────────────────────────────────────────
 
@@ -34,27 +39,36 @@ public class HourlyAnalyticsScheduler {
      * Fires every hour at :02 (configurable via {@code analytics.cron.hourly-orders}).
      * Upserts the previous full hour and the current partial hour.
      */
-   @Scheduled(cron = "${analytics.cron.hourly-orders:0 * * * * *}",
+   @Scheduled(cron = "${analytics.cron.hourly-orders:0 2 * * * *}",
                zone = "Asia/Kolkata")
     public void computeCurrentHourSnapshot() {
-        LocalDateTime now = BusinessTime.now();
-        LocalDate today  = now.toLocalDate();
-        int currentHour  = now.getHour();
+        runRecorder.runScheduled(SchedulerJobIds.HOURLY_ANALYTICS, () -> {
+            LocalDateTime now = BusinessTime.now();
+            LocalDate today  = now.toLocalDate();
+            int currentHour  = now.getHour();
 
-        log.info("[HourlyScheduler] Running for date={} hour={}", today, currentHour);
+            log.info("[HourlyScheduler] Running for date={} hour={}", today, currentHour);
 
-        // 1. Finalize the previous completed hour (if not midnight)
-        if (currentHour > 0) {
-            executeUpsert(today, currentHour - 1);
-        } else {
-            // Midnight edge: finalise hour 23 of the previous day
-            executeUpsert(today.minusDays(1), 23);
-        }
+            // Each bucket is attempted even if an earlier one fails; the run is marked failed at the end.
+            List<String> failures = new ArrayList<>();
 
-        // 2. Refresh current partial hour for live dashboard accuracy
-        executeUpsert(today, currentHour);
+            // 1. Finalize the previous completed hour (if not midnight)
+            if (currentHour > 0) {
+               attempt(failures, today, currentHour - 1);
+            } else {
+               // Midnight edge: finalise hour 23 of the previous day
+               attempt(failures, today.minusDays(1), 23);
+            }
 
-        evictHourlyCaches();
+            // 2. Refresh current partial hour for live dashboard accuracy
+            attempt(failures, today, currentHour);
+
+            evictHourlyCaches();
+
+            if (!failures.isEmpty()) {
+               throw new IllegalStateException("Hourly bucket upsert failed for: " + String.join(", ", failures));
+            }
+        });
     }
 
     // ── Public API ─────────────────────────────────────────────────────────────
@@ -65,11 +79,13 @@ public class HourlyAnalyticsScheduler {
             hourlyRepo.upsertHourlySnapshot(date, hour);
             long elapsed = System.currentTimeMillis() - start;
             log.debug("[HourlyScheduler] Upserted bucket date={} hour={} in {}ms", date, hour, elapsed);
-        } catch (Exception ex) {
+        } catch (RuntimeException ex) {
             log.error("[HourlyScheduler] Failed to upsert bucket date={} hour={}: {}",
-                    date, hour, ex.getMessage(), ex);
+                   date, hour, ex.getMessage(), ex);
+            throw ex;
         }
     }
+
 
     /**
      * Backfills all 24 hourly buckets for the given date.
@@ -91,6 +107,14 @@ public class HourlyAnalyticsScheduler {
     }
 
     // ── Private helpers ────────────────────────────────────────────────────────
+
+    private void attempt(List<String> failures, LocalDate date, int hour) {
+        try {
+            executeUpsert(date, hour);
+        } catch (RuntimeException ex) {
+            failures.add(date + " hour " + hour);
+        }
+    }
 
     private void evictHourlyCaches() {
         evict(AnalyticsCacheConfig.CACHE_HOURLY_ORDERS);

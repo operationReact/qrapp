@@ -4,6 +4,9 @@ import com.broandbro.qrapp.entity.Order;
 import com.broandbro.qrapp.entity.OrderRefund;
 import com.broandbro.qrapp.entity.User;
 import com.broandbro.qrapp.enums.PaymentMethod;
+import com.broandbro.qrapp.ops.SchedulerJobControl;
+import com.broandbro.qrapp.ops.SchedulerJobIds;
+import com.broandbro.qrapp.ops.SchedulerRunRecorder;
 import com.broandbro.qrapp.repository.OrderRefundRepository;
 import com.broandbro.qrapp.repository.OrderRepository;
 import com.broandbro.qrapp.repository.UserRepository;
@@ -53,6 +56,11 @@ public class RefundService {
             List.of(OrderRefund.STATUS_PENDING, OrderRefund.STATUS_FAILED, OrderRefund.STATUS_PROCESSING,
                     OrderRefund.STATUS_PROVIDER_ACCEPTED);
 
+    /** Statuses a webhook can still match, including PROCESSED_BY_GATEWAY, which awaits an ARN. */
+    private static final List<String> MATCHABLE_STATUSES =
+            List.of(OrderRefund.STATUS_PENDING, OrderRefund.STATUS_FAILED, OrderRefund.STATUS_PROCESSING,
+                    OrderRefund.STATUS_PROVIDER_ACCEPTED, OrderRefund.STATUS_PROCESSED_BY_GATEWAY);
+
     private final OrderRefundRepository refundRepo;
     private final OrderRepository orderRepo;
     private final UserRepository userRepository;
@@ -61,6 +69,8 @@ public class RefundService {
     private final ApplicationEventPublisher eventPublisher;
     private final TransactionTemplate requiresNewTx;
     private final TransactionTemplate tx;
+    private final SchedulerRunRecorder runRecorder;
+    private final SchedulerJobControl schedulerJobControl;
 
     public RefundService(OrderRefundRepository refundRepo,
                          OrderRepository orderRepo,
@@ -68,13 +78,17 @@ public class RefundService {
                          RazorpayService razorpayService,
                          WalletService walletService,
                          ApplicationEventPublisher eventPublisher,
-                         PlatformTransactionManager transactionManager) {
+                         PlatformTransactionManager transactionManager,
+                         SchedulerRunRecorder runRecorder,
+                         SchedulerJobControl schedulerJobControl) {
         this.refundRepo = refundRepo;
         this.orderRepo = orderRepo;
         this.userRepository = userRepository;
         this.razorpayService = razorpayService;
         this.walletService = walletService;
         this.eventPublisher = eventPublisher;
+        this.runRecorder = runRecorder;
+        this.schedulerJobControl = schedulerJobControl;
         this.tx = new TransactionTemplate(transactionManager);
         this.requiresNewTx = new TransactionTemplate(transactionManager);
         this.requiresNewTx.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
@@ -143,12 +157,22 @@ public class RefundService {
         processRefund(event.refundId());
     }
 
-    /** Safety net: picks up refunds whose immediate attempt failed or whose process died mid-flight. */
+    /**
+     * Safety net: picks up refunds whose immediate attempt failed or whose process died mid-flight.
+     * Only runs that find due refunds are recorded, so the 60-second poll does not fill the run history.
+     */
     @Scheduled(initialDelay = 60_000, fixedDelay = 60_000)
     public void sweepDueRefunds() {
+        if (schedulerJobControl.isPaused(SchedulerJobIds.REFUND_SWEEP)) {
+            return;
+        }
         LocalDateTime now = BusinessTime.now();
-        refundRepo.findTop50ByStatusInAndNextAttemptAtLessThanEqualOrderByNextAttemptAtAsc(ACTIVE_STATUSES, now)
-                .forEach(refund -> processRefund(refund.getId()));
+        List<OrderRefund> due = refundRepo.findTop50ByStatusInAndNextAttemptAtLessThanEqualOrderByNextAttemptAtAsc(ACTIVE_STATUSES, now);
+        if (due.isEmpty()) {
+            return;
+        }
+        runRecorder.runScheduled(SchedulerJobIds.REFUND_SWEEP,
+                () -> due.forEach(refund -> processRefund(refund.getId())));
     }
 
     /** Attempts a refund once. Never throws; every outcome is recorded on the refund row. */
@@ -220,6 +244,7 @@ public class RefundService {
         tx.executeWithoutResult(status -> {
             OrderRefund refund = refundRepo.findById(refundId).orElseThrow();
             if (OrderRefund.STATUS_SUCCEEDED.equals(refund.getStatus())
+                    || OrderRefund.STATUS_PROCESSED_BY_GATEWAY.equals(refund.getStatus())
                     || OrderRefund.STATUS_MANUAL_REQUIRED.equals(refund.getStatus())) {
                 // A webhook or admin already settled this row before our write landed; never downgrade it.
                 return;
@@ -248,7 +273,8 @@ public class RefundService {
     private void markFailed(Long refundId, String reason) {
         tx.executeWithoutResult(status -> {
             OrderRefund refund = refundRepo.findById(refundId).orElseThrow();
-            if (OrderRefund.STATUS_SUCCEEDED.equals(refund.getStatus())) {
+            if (OrderRefund.STATUS_SUCCEEDED.equals(refund.getStatus())
+                    || OrderRefund.STATUS_PROCESSED_BY_GATEWAY.equals(refund.getStatus())) {
                 return;
             }
             LocalDateTime now = BusinessTime.now();
@@ -264,7 +290,8 @@ public class RefundService {
     private void markAmbiguous(Long refundId, String reason) {
         tx.executeWithoutResult(status -> {
             OrderRefund refund = refundRepo.findById(refundId).orElseThrow();
-            if (OrderRefund.STATUS_SUCCEEDED.equals(refund.getStatus())) {
+            if (OrderRefund.STATUS_SUCCEEDED.equals(refund.getStatus())
+                    || OrderRefund.STATUS_PROCESSED_BY_GATEWAY.equals(refund.getStatus())) {
                 return;
             }
             // Status stays PROCESSING and nextAttemptAt keeps the lease, so the sweeper retries only after the lease expires.
@@ -274,9 +301,27 @@ public class RefundService {
         });
     }
 
-    /** Refund details extracted from a Razorpay refund webhook. {@code amountPaise} may be null when absent. */
+    /**
+     * Refund details extracted from a Razorpay refund webhook. {@code amountPaise} is the refund amount and
+     * {@code paymentAmountPaise} the original payment amount; either may be null when absent.
+     */
     public record ProviderRefundUpdate(String event, String providerRefundId, String refundKey,
-                                       String paymentId, Long amountPaise) {}
+                                       String paymentId, Long amountPaise,
+                                       String speedRequested, String speedProcessed, String acquirerArn,
+                                       String paymentMethod, String paymentVpa, String paymentBank,
+                                       String paymentCardLast4, Long paymentAmountPaise) {
+        public ProviderRefundUpdate(String event, String providerRefundId, String refundKey,
+                                    String paymentId, Long amountPaise) {
+            this(event, providerRefundId, refundKey, paymentId, amountPaise, null, null, null, null, null, null, null, null);
+        }
+
+        public ProviderRefundUpdate(String event, String providerRefundId, String refundKey,
+                                    String paymentId, Long amountPaise,
+                                    String speedRequested, String speedProcessed, String acquirerArn) {
+            this(event, providerRefundId, refundKey, paymentId, amountPaise, speedRequested, speedProcessed, acquirerArn,
+                    null, null, null, null, null);
+        }
+    }
 
     /**
      * Applies a Razorpay refund webhook to our refund record. Returns false when the refund was not issued by us.
@@ -296,13 +341,21 @@ public class RefundService {
         LocalDateTime now = BusinessTime.now();
 
         switch (update.event()) {
-            case "refund.processed" -> markSucceededFromProvider(refund, order, update.providerRefundId(), now);
-            case "refund.failed" -> markFailedFromProvider(refund, order, now);
+            case "refund.processed" -> {
+                applyProviderDetails(refund, order, update, now);
+                markProcessedFromProvider(refund, order, update.providerRefundId(), now);
+            }
+            case "refund.failed" -> {
+                applyProviderDetails(refund, order, update, now);
+                markFailedFromProvider(refund, order, now);
+            }
             case "refund.created" -> {
                 if (refund.getProviderRefundId() == null && update.providerRefundId() != null) {
                     refund.setProviderRefundId(update.providerRefundId());
                 }
+                applyProviderDetails(refund, order, update, now);
             }
+            case "refund.speed_changed" -> applyProviderDetails(refund, order, update, now);
             default -> log.info("[Refund] Webhook event acknowledged without state change | event={} refundId={}",
                     update.event(), refund.getId());
         }
@@ -310,26 +363,70 @@ public class RefundService {
         return true;
     }
 
-    private void markSucceededFromProvider(OrderRefund refund, Order order, String providerRefundId, LocalDateTime now) {
-        if (OrderRefund.STATUS_SUCCEEDED.equals(refund.getStatus())) {
+    /**
+     * Speed and ARN are recorded when present. An ARN is the bank-credit confirmation, so it promotes a
+     * PROCESSED_BY_GATEWAY refund to SUCCEEDED. Speed alone never changes the status.
+     */
+    private void applyProviderDetails(OrderRefund refund, Order order, ProviderRefundUpdate update, LocalDateTime now) {
+        if (update.speedRequested() != null) {
+            refund.setSpeedRequested(update.speedRequested());
+        }
+        if (update.speedProcessed() != null) {
+            refund.setSpeedProcessed(update.speedProcessed());
+        }
+        if (update.acquirerArn() != null) {
+            refund.setAcquirerArn(update.acquirerArn());
+            if (OrderRefund.STATUS_PROCESSED_BY_GATEWAY.equals(refund.getStatus())) {
+                refund.setStatus(OrderRefund.STATUS_SUCCEEDED);
+                refund.setCompletedAt(now);
+                applyOrderRefundStatus(order, refund);
+                log.info("[Refund] Bank credit confirmed by ARN | refundId={} orderId={}", refund.getId(), refund.getOrderId());
+            }
+        }
+        if (update.paymentMethod() != null) {
+            refund.setPaymentMethod(update.paymentMethod());
+        }
+        if (update.paymentVpa() != null) {
+            refund.setPaymentVpa(update.paymentVpa());
+        }
+        if (update.paymentBank() != null) {
+            refund.setPaymentBank(update.paymentBank());
+        }
+        if (update.paymentCardLast4() != null) {
+            refund.setPaymentCardLast4(update.paymentCardLast4());
+        }
+        if (update.paymentAmountPaise() != null) {
+            refund.setPaymentAmount(BigDecimal.valueOf(update.paymentAmountPaise(), 2));
+        }
+    }
+
+    /**
+     * Razorpay "processed" is final on their side, but the bank may still take days to credit. Without an ARN the
+     * refund is PROCESSED_BY_GATEWAY; with one it is SUCCEEDED.
+     */
+    private void markProcessedFromProvider(OrderRefund refund, Order order, String providerRefundId, LocalDateTime now) {
+        if (OrderRefund.STATUS_SUCCEEDED.equals(refund.getStatus())
+                || OrderRefund.STATUS_PROCESSED_BY_GATEWAY.equals(refund.getStatus())) {
             // Keep the first recorded reference (for example, one entered by an admin on manual completion).
             if (refund.getProviderRefundId() == null) {
                 refund.setProviderRefundId(providerRefundId);
             }
             return;
         }
-        refund.setStatus(OrderRefund.STATUS_SUCCEEDED);
+        boolean credited = refund.getAcquirerArn() != null;
+        refund.setStatus(credited ? OrderRefund.STATUS_SUCCEEDED : OrderRefund.STATUS_PROCESSED_BY_GATEWAY);
         refund.setProviderRefundId(providerRefundId != null ? providerRefundId : refund.getProviderRefundId());
         refund.setCompletedAt(now);
         refund.setNextAttemptAt(null);
         refund.setFailureReason(null);
         applyOrderRefundStatus(order, refund);
-        log.info("[Refund] Confirmed by Razorpay webhook | refundId={} orderId={} providerRefundId={}",
-                refund.getId(), refund.getOrderId(), providerRefundId);
+        log.info("[Refund] Processed by Razorpay | refundId={} orderId={} providerRefundId={} bankCredited={}",
+                refund.getId(), refund.getOrderId(), providerRefundId, credited);
     }
 
     private void markFailedFromProvider(OrderRefund refund, Order order, LocalDateTime now) {
         if (OrderRefund.STATUS_SUCCEEDED.equals(refund.getStatus())
+                || OrderRefund.STATUS_PROCESSED_BY_GATEWAY.equals(refund.getStatus())
                 || OrderRefund.STATUS_MANUAL_REQUIRED.equals(refund.getStatus())) {
             log.info("[Refund] Ignoring failed webhook for settled refund | refundId={} status={}",
                     refund.getId(), refund.getStatus());
@@ -366,7 +463,7 @@ public class RefundService {
         if (update.paymentId() == null || update.amountPaise() == null) {
             return Optional.empty();
         }
-        return refundRepo.findByPaymentIdAndStatusIn(update.paymentId(), ACTIVE_STATUSES).stream()
+        return refundRepo.findByPaymentIdAndStatusIn(update.paymentId(), MATCHABLE_STATUSES).stream()
                 .filter(r -> r.getAmount().movePointRight(2).longValue() == update.amountPaise())
                 .findFirst();
     }
@@ -416,7 +513,7 @@ public class RefundService {
 
     private void applyOrderRefundStatus(Order order, OrderRefund refund) {
         switch (refund.getStatus()) {
-            case OrderRefund.STATUS_SUCCEEDED -> {
+            case OrderRefund.STATUS_SUCCEEDED, OrderRefund.STATUS_PROCESSED_BY_GATEWAY -> {
                 order.setRefundStatus(ORDER_REFUND_REFUNDED);
                 order.setPaymentStatus("REFUNDED");
                 order.setRefundReference(refund.getProviderRefundId());

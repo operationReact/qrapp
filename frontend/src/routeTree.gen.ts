@@ -56,6 +56,7 @@ import { Route as AdminVendorBillsRouteImport } from './routes/admin/vendor-bill
 import { Route as AdminPartnersRouteImport } from './routes/admin/partners'
 import { Route as AdminOpsCenterRouteImport } from './routes/admin/ops-center'
 import { Route as AdminCustomerCompaniesRouteImport } from './routes/admin/customer-companies'
+import { Route as AdminBackgroundTasksRouteImport } from './routes/admin/background-tasks'
 import { Route as authRegisterRouteImport } from './routes/(auth)/register'
 import { Route as authLoginRouteImport } from './routes/(auth)/login'
 import { Route as authForgetPasswordRouteImport } from './routes/(auth)/forget-password'
@@ -347,6 +348,11 @@ const AdminOpsCenterRoute = AdminOpsCenterRouteImport.update({
 const AdminCustomerCompaniesRoute = AdminCustomerCompaniesRouteImport.update({
   id: '/customer-companies',
   path: '/customer-companies',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminBackgroundTasksRoute = AdminBackgroundTasksRouteImport.update({
+  id: '/background-tasks',
+  path: '/background-tasks',
   getParentRoute: () => AdminRoute,
 } as any)
 const authRegisterRoute = authRegisterRouteImport.update({
@@ -685,6 +691,7 @@ export interface FileRoutesByFullPath {
   '/forget-password': typeof authForgetPasswordRoute
   '/login': typeof authLoginRoute
   '/register': typeof authRegisterRoute
+  '/admin/background-tasks': typeof AdminBackgroundTasksRoute
   '/admin/customer-companies': typeof AdminCustomerCompaniesRoute
   '/admin/ops-center': typeof AdminOpsCenterRoute
   '/admin/partners': typeof AdminPartnersRoute
@@ -787,6 +794,7 @@ export interface FileRoutesByTo {
   '/forget-password': typeof authForgetPasswordRoute
   '/login': typeof authLoginRoute
   '/register': typeof authRegisterRoute
+  '/admin/background-tasks': typeof AdminBackgroundTasksRoute
   '/admin/customer-companies': typeof AdminCustomerCompaniesRoute
   '/admin/ops-center': typeof AdminOpsCenterRoute
   '/admin/partners': typeof AdminPartnersRoute
@@ -893,6 +901,7 @@ export interface FileRoutesById {
   '/(auth)/forget-password': typeof authForgetPasswordRoute
   '/(auth)/login': typeof authLoginRoute
   '/(auth)/register': typeof authRegisterRoute
+  '/admin/background-tasks': typeof AdminBackgroundTasksRoute
   '/admin/customer-companies': typeof AdminCustomerCompaniesRoute
   '/admin/ops-center': typeof AdminOpsCenterRoute
   '/admin/partners': typeof AdminPartnersRoute
@@ -1000,6 +1009,7 @@ export interface FileRouteTypes {
     | '/forget-password'
     | '/login'
     | '/register'
+    | '/admin/background-tasks'
     | '/admin/customer-companies'
     | '/admin/ops-center'
     | '/admin/partners'
@@ -1102,6 +1112,7 @@ export interface FileRouteTypes {
     | '/forget-password'
     | '/login'
     | '/register'
+    | '/admin/background-tasks'
     | '/admin/customer-companies'
     | '/admin/ops-center'
     | '/admin/partners'
@@ -1207,6 +1218,7 @@ export interface FileRouteTypes {
     | '/(auth)/forget-password'
     | '/(auth)/login'
     | '/(auth)/register'
+    | '/admin/background-tasks'
     | '/admin/customer-companies'
     | '/admin/ops-center'
     | '/admin/partners'
@@ -1647,6 +1659,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminCustomerCompaniesRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/background-tasks': {
+      id: '/admin/background-tasks'
+      path: '/background-tasks'
+      fullPath: '/admin/background-tasks'
+      preLoaderRoute: typeof AdminBackgroundTasksRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/(auth)/register': {
       id: '/(auth)/register'
       path: '/register'
@@ -2043,6 +2062,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AdminRouteChildren {
+  AdminBackgroundTasksRoute: typeof AdminBackgroundTasksRoute
   AdminCustomerCompaniesRoute: typeof AdminCustomerCompaniesRoute
   AdminOpsCenterRoute: typeof AdminOpsCenterRoute
   AdminPartnersRoute: typeof AdminPartnersRoute
@@ -2099,6 +2119,7 @@ interface AdminRouteChildren {
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
+  AdminBackgroundTasksRoute: AdminBackgroundTasksRoute,
   AdminCustomerCompaniesRoute: AdminCustomerCompaniesRoute,
   AdminOpsCenterRoute: AdminOpsCenterRoute,
   AdminPartnersRoute: AdminPartnersRoute,

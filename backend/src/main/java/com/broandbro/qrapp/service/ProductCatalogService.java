@@ -253,6 +253,44 @@ public class ProductCatalogService {
     }
 
     @Transactional
+    public CopyAssignmentsResponse copyAssignments(CopyAssignmentsRequest request, Authentication authentication) {
+        User actor = actor(authentication);
+        Long sourceId = request.sourceLocationId();
+        Long targetId = request.targetLocationId();
+        requireLocation(actor, sourceId);
+        requireLocation(actor, targetId);
+        if (sourceId.equals(targetId)) throw new IllegalArgumentException("Source and target locations must be different");
+        java.util.Set<Long> wanted = request.productIds() == null ? null : new java.util.HashSet<>(request.productIds());
+        int copied = 0;
+        int alreadyAtTarget = 0;
+        int inactive = 0;
+        for (LocationProduct source : locationProductRepository.findByLocationIdOrderByProductNameAsc(sourceId)) {
+            Long productId = source.getProduct().getId();
+            if (wanted != null && !wanted.contains(productId)) continue;
+            if (!Boolean.TRUE.equals(source.getProduct().getActive())) {
+                inactive += 1;
+                continue;
+            }
+            if (locationProductRepository.existsByProductIdAndLocationId(productId, targetId)) {
+                alreadyAtTarget += 1;
+                continue;
+            }
+            ProductAssignmentRequest assignment = new ProductAssignmentRequest();
+            assignment.setLocationId(targetId);
+            assignment.setMrp(source.getMrp());
+            assignment.setCostPrice(source.getCostPrice());
+            assignment.setCategoryName(source.getCategoryName());
+            assignment.setVisible(true);
+            assignment.setAvailable(true);
+            assignment.setLowStockThreshold(5L);
+            assignment.setInitialStock(0L);
+            assign(productId, assignment, authentication);
+            copied += 1;
+        }
+        return new CopyAssignmentsResponse(copied, alreadyAtTarget, inactive);
+    }
+
+    @Transactional
     public ProductResponse updateAssignment(Long productId, Long locationId,
                                             ProductAssignmentRequest request, Authentication authentication) {
         if (!locationId.equals(request.getLocationId())) {
@@ -321,28 +359,94 @@ public class ProductCatalogService {
      * returned; other locations' MRP, cost and category are never exposed to this location's admins.
      */
     @Transactional(readOnly = true)
-    public org.springframework.data.domain.Page<ProductSimilarResponse> globalCatalogue(Long locationId, String search,
+    public org.springframework.data.domain.Page<ProductSimilarResponse> globalCatalogue(Long locationId,
+                                                                                       GlobalCatalogueFilter filter,
                                                                                        Pageable pageable,
                                                                                        Authentication authentication) {
         User actor = actor(authentication);
         requireLocation(actor, locationId);
-        List<String> tokens = searchTokens(search);
-        java.util.Set<Long> assignedProductIds = locationProductRepository.findByLocationIdOrderByProductNameAsc(locationId)
-                .stream().map(assignment -> assignment.getProduct().getId()).collect(java.util.stream.Collectors.toSet());
+        List<String> tokens = searchTokens(filter.search());
+        String brand = filter.brand() == null || filter.brand().isBlank() ? null : filter.brand().trim();
+        String sort = filter.sort() == null || filter.sort().isBlank()
+                ? (tokens.isEmpty() ? "name" : "relevance")
+                : filter.sort().trim().toLowerCase(Locale.ROOT);
+
+        java.util.Map<Long, LocationProduct> latestAssignmentByProduct = new java.util.HashMap<>();
+        java.util.Set<Long> assignedProductIds = new java.util.HashSet<>();
+        java.util.Set<Long> sourceProductIds = new java.util.HashSet<>();
+        Long sourceLocationId = filter.sourceLocationId();
+        if (sourceLocationId != null) requireLocation(actor, sourceLocationId);
+        for (LocationProduct assignment : locationProductRepository.findAll()) {
+            Long productId = assignment.getProduct().getId();
+            if (locationId.equals(assignment.getLocation().getId())) assignedProductIds.add(productId);
+            if (sourceLocationId != null && sourceLocationId.equals(assignment.getLocation().getId())) sourceProductIds.add(productId);
+            latestAssignmentByProduct.merge(productId, assignment,
+                    (a, b) -> a.getUpdatedAt().isAfter(b.getUpdatedAt()) ? a : b);
+        }
+
         List<ScoredProduct> matches = productRepository.findAll().stream()
                 .filter(product -> Boolean.TRUE.equals(product.getActive()))
+                .filter(product -> brand == null || brand.equalsIgnoreCase(product.getBrand()))
+                .filter(product -> filter.veg() == null || filter.veg().equals(product.getIsVeg()))
+                .filter(product -> filter.hasImage() == null || filter.hasImage() == hasImage(product))
+                .filter(product -> filter.inLocation() == null
+                        || filter.inLocation() == assignedProductIds.contains(product.getId()))
+                .filter(product -> sourceLocationId == null || sourceProductIds.contains(product.getId()))
                 .map(product -> new ScoredProduct(product, tokens.isEmpty() ? 1 : matchScore(product, tokens)))
                 .filter(scored -> scored.score() > 0)
-                .sorted(java.util.Comparator.comparingInt(ScoredProduct::score).reversed()
-                        .thenComparing(scored -> scored.product().getName(), String.CASE_INSENSITIVE_ORDER))
+                .sorted(catalogueOrder(sort))
                 .toList();
+
         int start = (int) Math.min(pageable.getOffset(), matches.size());
         int end = (int) Math.min((long) start + pageable.getPageSize(), matches.size());
         List<ProductSimilarResponse> content = matches.subList(start, end).stream()
                 .map(scored -> ProductSimilarResponse.of(scored.product(),
-                        assignedProductIds.contains(scored.product().getId())))
+                        assignedProductIds.contains(scored.product().getId()),
+                        latestAssignmentByProduct.get(scored.product().getId())))
                 .toList();
         return new org.springframework.data.domain.PageImpl<>(content, pageable, matches.size());
+    }
+
+    /** Distinct brand names across active catalogue products, for the brand filter. */
+    @Transactional(readOnly = true)
+    public List<String> catalogueBrands(Long locationId, Authentication authentication) {
+        requireLocation(actor(authentication), locationId);
+        return productRepository.findAll().stream()
+                .filter(product -> Boolean.TRUE.equals(product.getActive()))
+                .map(Product::getBrand)
+                .filter(brand -> brand != null && !brand.isBlank())
+                .map(String::trim)
+                .distinct()
+                .sorted(String.CASE_INSENSITIVE_ORDER)
+                .toList();
+    }
+
+    private static boolean hasImage(Product product) {
+        return product.getImageUrl() != null && !product.getImageUrl().isBlank();
+    }
+
+    private static java.util.Comparator<ScoredProduct> catalogueOrder(String sort) {
+        java.util.Comparator<ScoredProduct> byName = java.util.Comparator
+                .comparing((ScoredProduct s) -> s.product().getName(), String.CASE_INSENSITIVE_ORDER)
+                .thenComparing(s -> s.product().getId());
+        return switch (sort) {
+            case "brand" -> java.util.Comparator
+                    .comparing((ScoredProduct s) -> java.util.Objects.toString(s.product().getBrand(), "~"),
+                            String.CASE_INSENSITIVE_ORDER)
+                    .thenComparing(byName);
+            case "updated" -> java.util.Comparator
+                    .comparing((ScoredProduct s) -> s.product().getUpdatedAt(),
+                            java.util.Comparator.nullsLast(java.util.Comparator.reverseOrder()))
+                    .thenComparing(byName);
+            case "newest" -> java.util.Comparator
+                    .comparing((ScoredProduct s) -> s.product().getCreatedAt(),
+                            java.util.Comparator.nullsLast(java.util.Comparator.reverseOrder()))
+                    .thenComparing(byName);
+            case "relevance" -> java.util.Comparator
+                    .comparingInt((ScoredProduct s) -> s.score()).reversed()
+                    .thenComparing(byName);
+            default -> byName;
+        };
     }
 
     private record ScoredProduct(Product product, int score) {}

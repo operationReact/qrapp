@@ -2,6 +2,8 @@ package com.broandbro.qrapp.analytics.scheduler;
 
 import com.broandbro.qrapp.analytics.config.AnalyticsCacheConfig;
 import com.broandbro.qrapp.analytics.repository.UserPreferenceAnalyticsRepository;
+import com.broandbro.qrapp.ops.SchedulerJobIds;
+import com.broandbro.qrapp.ops.SchedulerRunRecorder;
 import com.broandbro.qrapp.repository.UserRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -31,14 +33,17 @@ public class UserPreferenceScheduler {
     private final UserPreferenceAnalyticsRepository userPrefRepo;
     private final UserRepository userRepository;
     private final CacheManager analyticsCacheManager;
+    private final SchedulerRunRecorder runRecorder;
 
     public UserPreferenceScheduler(
             UserPreferenceAnalyticsRepository userPrefRepo,
             UserRepository userRepository,
-            @Qualifier("analyticsCacheManager") CacheManager analyticsCacheManager) {
+            @Qualifier("analyticsCacheManager") CacheManager analyticsCacheManager,
+            SchedulerRunRecorder runRecorder) {
         this.userPrefRepo = userPrefRepo;
         this.userRepository = userRepository;
         this.analyticsCacheManager = analyticsCacheManager;
+        this.runRecorder = runRecorder;
     }
 
     // ── Scheduled job ──────────────────────────────────────────────────────────
@@ -47,9 +52,13 @@ public class UserPreferenceScheduler {
      * Runs daily at 01:00 (configurable via {@code analytics.cron.user-preferences}).
      * Full rebuild of all user preference snapshots.
      */
-    @Scheduled(cron = "${analytics.cron.user-preferences:0 * * * * *}",
+    @Scheduled(cron = "${analytics.cron.user-preferences:0 0 1 * * *}",
                zone = "Asia/Kolkata")
     public void rebuildAllUserSnapshots() {
+        runRecorder.runScheduled(SchedulerJobIds.USER_PREFERENCES, this::rebuildAllSnapshotsNow);
+    }
+
+    private void rebuildAllSnapshotsNow() {
         log.info("[UserPrefScheduler] Starting full user preference rebuild");
         long start  = System.currentTimeMillis();
         int  page   = 0;
@@ -81,6 +90,9 @@ public class UserPreferenceScheduler {
         long elapsed = System.currentTimeMillis() - start;
         log.info("[UserPrefScheduler] Rebuild done. total={}, failed={}, elapsed={}ms",
                 total, failed, elapsed);
+        if (failed > 0) {
+            throw new IllegalStateException(failed + " of " + (total + failed) + " user snapshots failed");
+        }
     }
 
     // ── Public API ─────────────────────────────────────────────────────────────

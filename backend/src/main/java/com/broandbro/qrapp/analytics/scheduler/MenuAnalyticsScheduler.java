@@ -2,6 +2,9 @@ package com.broandbro.qrapp.analytics.scheduler;
 
 import com.broandbro.qrapp.analytics.config.AnalyticsCacheConfig;
 import com.broandbro.qrapp.analytics.repository.MenuItemAnalyticsRepository;
+import com.broandbro.qrapp.ops.SchedulerJobIds;
+import com.broandbro.qrapp.ops.SchedulerRunRecorder;
+import com.broandbro.qrapp.time.BusinessTime;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.CacheManager;
@@ -23,6 +26,7 @@ public class MenuAnalyticsScheduler {
 
     private final MenuItemAnalyticsRepository menuItemRepo;
     private final CacheManager analyticsCacheManager;
+    private final SchedulerRunRecorder runRecorder;
 
     // ── Scheduled job ──────────────────────────────────────────────────────────
 
@@ -30,12 +34,14 @@ public class MenuAnalyticsScheduler {
      * Runs at 00:10 every day (configurable via {@code analytics.cron.menu-items}).
      * Computes the previous day's item performance.
      */
-    @Scheduled(cron = "${analytics.cron.menu-items:0 */2 * * * *}",
+    @Scheduled(cron = "${analytics.cron.menu-items:0 10 0 * * *}",
                zone = "Asia/Kolkata")
     public void computeYesterdaySnapshot() {
-        LocalDate yesterday = LocalDate.now().minusDays(1);
-        log.info("[MenuAnalyticsScheduler] Starting snapshot for {}", yesterday);
-        executeUpsert(yesterday);
+        runRecorder.runScheduled(SchedulerJobIds.MENU_ANALYTICS, () -> {
+            LocalDate yesterday = BusinessTime.today().minusDays(1);
+            log.info("[MenuAnalyticsScheduler] Starting snapshot for {}", yesterday);
+            executeUpsert(yesterday);
+        });
     }
 
     /**
@@ -44,9 +50,11 @@ public class MenuAnalyticsScheduler {
     @Scheduled(cron = "${analytics.cron.menu-items-intraday:0 30 12 * * *}",
                zone = "Asia/Kolkata")
     public void computeTodayPartialSnapshot() {
-        LocalDate today = LocalDate.now();
-        log.info("[MenuAnalyticsScheduler] Intraday refresh for {}", today);
-        executeUpsert(today);
+        runRecorder.runScheduled(SchedulerJobIds.MENU_ANALYTICS_INTRADAY, () -> {
+            LocalDate today = BusinessTime.today();
+            log.info("[MenuAnalyticsScheduler] Intraday refresh for {}", today);
+            executeUpsert(today);
+        });
     }
 
     // ── Public API ─────────────────────────────────────────────────────────────
@@ -58,8 +66,9 @@ public class MenuAnalyticsScheduler {
             evictMenuCaches();
             long elapsed = System.currentTimeMillis() - start;
             log.info("[MenuAnalyticsScheduler] Snapshot complete for {} in {}ms", targetDate, elapsed);
-        } catch (Exception ex) {
+        } catch (RuntimeException ex) {
             log.error("[MenuAnalyticsScheduler] Failed for {}: {}", targetDate, ex.getMessage(), ex);
+            throw ex;
         }
     }
 
