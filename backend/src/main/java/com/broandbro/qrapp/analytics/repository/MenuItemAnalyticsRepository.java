@@ -302,9 +302,10 @@ public interface MenuItemAnalyticsRepository extends JpaRepository<MenuItemAnaly
                FROM menu_item mi
                LEFT JOIN category c ON c.id = mi.category_id
                LEFT JOIN order_item oi ON oi.item_id = mi.id
-               LEFT JOIN orders o ON o.id = oi.order_id
-                   AND o.created_at::date = :targetDate
-                   AND o.status = 'COMPLETED'
+                   AND oi.order_id IN (
+                       SELECT o.id FROM orders o
+                       WHERE o.created_at::date = :targetDate
+                         AND o.status = 'COMPLETED')
                GROUP BY mi.id, mi.name, mi.location_id, mi.category_id, c.name, mi.estimated_cost
            ),
            ranked AS (

@@ -181,9 +181,23 @@ public class ProductCatalogController {
     @GetMapping("/admin/global-products")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN', 'SUPERUSER', 'MANAGER')")
     public Page<ProductSimilarResponse> globalProducts(@RequestParam Long locationId,
-                                                       @RequestParam(required = false) String search,
+                                                       @ModelAttribute GlobalCatalogueFilter filter,
                                                        Pageable pageable, Authentication authentication) {
-        return catalogService.globalCatalogue(locationId, search, pageable, authentication);
+        return catalogService.globalCatalogue(locationId, filter, pageable, authentication);
+    }
+
+    @GetMapping("/admin/global-products/brands")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN', 'SUPERUSER', 'MANAGER')")
+    public List<String> globalProductBrands(@RequestParam Long locationId, Authentication authentication) {
+        return catalogService.catalogueBrands(locationId, authentication);
+    }
+
+    @PostMapping("/admin/copy-assignments")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN', 'SUPERUSER', 'MANAGER')")
+    @CacheEvict(cacheNames = {"menu", "menuRecommended"}, allEntries = true)
+    public CopyAssignmentsResponse copyAssignments(@Valid @RequestBody CopyAssignmentsRequest request,
+                                                   Authentication authentication) {
+        return catalogService.copyAssignments(request, authentication);
     }
 
     @GetMapping("/admin/products/similar")

@@ -8,6 +8,7 @@ import {
   BuildingOfficeIcon,
   FileTextIcon,
   ArrowsCounterClockwiseIcon,
+  ClockCounterClockwiseIcon,
 } from "@phosphor-icons/react";
 import { ROLE } from "./roles";
 
@@ -59,5 +60,6 @@ export const ADMIN_NAVIGATION = [
   { section: "System", items: [
     { to: "/admin/global-controls", label: "Settings", icon: SlidersIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN] },
     { to: "/admin/ops-center", label: "Operations Center", icon: TerminalWindowIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN] },
+    { to: "/admin/background-tasks", label: "Background Tasks", icon: ClockCounterClockwiseIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN] },
   ] },
 ];

@@ -1,5 +1,6 @@
 package com.broandbro.qrapp.whatsapp;
 
+import com.broandbro.qrapp.ops.SchedulerJobControl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -27,7 +28,7 @@ class WhatsAppWebhookProcessorTest {
 
     @BeforeEach
     void setUp() {
-        processor = new WhatsAppWebhookProcessor(jdbcTemplate);
+        processor = new WhatsAppWebhookProcessor(jdbcTemplate, mock(SchedulerJobControl.class));
         lenient().when(jdbcTemplate.update(anyString())).thenReturn(0);
         lenient().when(jdbcTemplate.update(anyString(), any(Object[].class))).thenReturn(1);
     }
@@ -45,7 +46,7 @@ class WhatsAppWebhookProcessorTest {
 
     @Test
     void marksBusinessFailureRetryable() {
-        WhatsAppWebhookProcessor failingProcessor = new WhatsAppWebhookProcessor(jdbcTemplate) {
+        WhatsAppWebhookProcessor failingProcessor = new WhatsAppWebhookProcessor(jdbcTemplate, mock(SchedulerJobControl.class)) {
             @Override
             protected void processBusinessEvent(WhatsAppWebhookOutboxRecord record) {
                 throw new IllegalStateException("business failure");

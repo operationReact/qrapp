@@ -3,6 +3,7 @@ package com.broandbro.qrapp.controller;
 import com.broandbro.qrapp.ops.SchedulerRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -21,7 +22,9 @@ import java.util.Map;
  *   GET  /api/admin/ops/jobs              — list all jobs + current state
  *   GET  /api/admin/ops/jobs/{id}         — single job state
  *   POST /api/admin/ops/jobs/{id}/trigger — manually trigger a job
- *   GET  /api/admin/ops/jobs/history      — execution audit log
+ *   POST /api/admin/ops/jobs/{id}/pause   — pause automatic runs (manual triggers still work)
+ *   POST /api/admin/ops/jobs/{id}/resume  — resume automatic runs
+ *   GET  /api/admin/ops/runs              — persisted run history (paged, filterable)
  *   POST /api/admin/ops/sync/{type}       — trigger a data sync operation
  *   GET  /api/admin/ops/health            — system health snapshot
  * </pre>
@@ -92,17 +95,54 @@ public class AdminOpsController {
     }
 
     /**
-     * GET /api/admin/ops/jobs/history
-     * Returns the in-memory execution audit log (newest first, up to 200 entries).
+     * POST /api/admin/ops/jobs/{id}/pause
+     * Stops automatic runs of a scheduled job. Manual triggers still work. Returns the updated job.
      */
-    @GetMapping("/jobs/history")
-    public ResponseEntity<Map<String, Object>> getHistory() {
-        List<SchedulerRegistry.AuditEntry> entries = registry.getAuditLog();
-        return ResponseEntity.ok(Map.of(
-                "entries", entries,
-                "count",   entries.size(),
-                "timestamp", Instant.now().toString()
-        ));
+    @PostMapping("/jobs/{id}/pause")
+    public ResponseEntity<?> pauseJob(@PathVariable String id, Authentication auth) {
+        return setPaused(id, true, auth);
+    }
+
+    /**
+     * POST /api/admin/ops/jobs/{id}/resume
+     * Re-enables automatic runs of a paused job. Returns the updated job.
+     */
+    @PostMapping("/jobs/{id}/resume")
+    public ResponseEntity<?> resumeJob(@PathVariable String id, Authentication auth) {
+        return setPaused(id, false, auth);
+    }
+
+    private ResponseEntity<?> setPaused(String id, boolean paused, Authentication auth) {
+        String actor = auth != null ? auth.getName() : "admin";
+        try {
+            return ResponseEntity.ok(registry.setJobPaused(id, paused, actor));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.badRequest().body(Map.of("error", ex.getMessage(), "jobId", id));
+        } catch (IllegalStateException ex) {
+            return ResponseEntity.status(409).body(Map.of("error", ex.getMessage(), "jobId", id));
+        }
+    }
+
+    /**
+     * GET /api/admin/ops/runs
+     * Returns persisted scheduler runs (newest first), filterable by job and status
+     * (RUNNING, SUCCESS, FAILED, SKIPPED).
+     */
+    @GetMapping("/runs")
+    public ResponseEntity<Map<String, Object>> listRuns(
+            @RequestParam(required = false) String jobId,
+            @RequestParam(required = false) String status,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        Page<SchedulerRegistry.RunView> runs = registry.searchRuns(jobId, status, page, size);
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("runs", runs.getContent());
+        response.put("page", runs.getNumber());
+        response.put("size", runs.getSize());
+        response.put("totalPages", runs.getTotalPages());
+        response.put("totalElements", runs.getTotalElements());
+        response.put("timestamp", Instant.now().toString());
+        return ResponseEntity.ok(response);
     }
 
     // ── Sync ───────────────────────────────────────────────────────────────────

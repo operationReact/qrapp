@@ -2,6 +2,9 @@ package com.broandbro.qrapp.analytics.scheduler;
 
 import com.broandbro.qrapp.analytics.config.AnalyticsCacheConfig;
 import com.broandbro.qrapp.analytics.repository.CouponAnalyticsRepository;
+import com.broandbro.qrapp.ops.SchedulerJobIds;
+import com.broandbro.qrapp.ops.SchedulerRunRecorder;
+import com.broandbro.qrapp.time.BusinessTime;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.CacheManager;
@@ -9,7 +12,6 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
-import java.util.Objects;
 
 /**
  * Materialises daily coupon performance snapshots.
@@ -24,18 +26,22 @@ public class CouponAnalyticsScheduler {
 
     private final CouponAnalyticsRepository couponAnalyticsRepo;
     private final CacheManager analyticsCacheManager;
+    private final SchedulerRunRecorder runRecorder;
 
     // ── Scheduled job ──────────────────────────────────────────────────────────
 
     /**
-     * Runs daily at 00:15 (configurable via {@code analytics.cron.coupon-analytics}).
+     * Previous-day snapshot. Not scheduled: the cron annotation is disabled, so this runs only when
+     * triggered manually from the Scheduler Runs page.
      */
     /*@Scheduled(cron = "${analytics.cron.coupon-analytics:0 15 0 * * *}",
                zone = "Asia/Kolkata")*/
     public void computeYesterdaySnapshot() {
-        LocalDate yesterday = LocalDate.now().minusDays(1);
-        log.info("[CouponAnalyticsScheduler] Starting snapshot for {}", yesterday);
-        executeUpsert(yesterday);
+        runRecorder.runScheduled(SchedulerJobIds.COUPON_ANALYTICS, () -> {
+            LocalDate yesterday = BusinessTime.today().minusDays(1);
+            log.info("[CouponAnalyticsScheduler] Starting snapshot for {}", yesterday);
+            executeUpsert(yesterday);
+        });
     }
 
     /**
@@ -44,9 +50,11 @@ public class CouponAnalyticsScheduler {
     @Scheduled(cron = "${analytics.cron.coupon-analytics-intraday:0 0 */6 * * *}",
                zone = "Asia/Kolkata")
     public void computeTodayPartialSnapshot() {
-        LocalDate today = LocalDate.now();
-        log.info("[CouponAnalyticsScheduler] Intraday refresh for {}", today);
-        executeUpsert(today);
+        runRecorder.runScheduled(SchedulerJobIds.COUPON_ANALYTICS_INTRADAY, () -> {
+            LocalDate today = BusinessTime.today();
+            log.info("[CouponAnalyticsScheduler] Intraday refresh for {}", today);
+            executeUpsert(today);
+        });
     }
 
     // ── Public API ─────────────────────────────────────────────────────────────
@@ -58,8 +66,9 @@ public class CouponAnalyticsScheduler {
             evictCouponCaches();
             long elapsed = System.currentTimeMillis() - start;
             log.info("[CouponAnalyticsScheduler] Snapshot complete for {} in {}ms", targetDate, elapsed);
-        } catch (Exception ex) {
+        } catch (RuntimeException ex) {
             log.error("[CouponAnalyticsScheduler] Failed for {}: {}", targetDate, ex.getMessage(), ex);
+            throw ex;
         }
     }
 
@@ -89,8 +98,13 @@ public class CouponAnalyticsScheduler {
     }
 
     private void evict(String cacheName) {
-        Objects.requireNonNull(analyticsCacheManager.getCache(cacheName)).clear();
-        log.debug("[CouponAnalyticsScheduler] Evicted cache '{}'", cacheName);
+        var cache = analyticsCacheManager.getCache(cacheName);
+        if (cache != null) {
+            cache.clear();
+            log.debug("[CouponAnalyticsScheduler] Evicted cache '{}'", cacheName);
+        } else {
+            log.debug("[CouponAnalyticsScheduler] Cache '{}' not found, skipping eviction", cacheName);
+        }
     }
 }
 

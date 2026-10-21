@@ -3,6 +3,8 @@ package com.broandbro.qrapp.service;
 import com.broandbro.qrapp.entity.Order;
 import com.broandbro.qrapp.entity.OrderRefund;
 import com.broandbro.qrapp.enums.PaymentMethod;
+import com.broandbro.qrapp.ops.SchedulerJobControl;
+import com.broandbro.qrapp.ops.SchedulerRunRecorder;
 import com.broandbro.qrapp.repository.OrderRefundRepository;
 import com.broandbro.qrapp.repository.OrderRepository;
 import com.broandbro.qrapp.repository.UserRepository;
@@ -49,7 +51,8 @@ class RefundServiceTest {
         razorpayService = mock(RazorpayService.class);
         eventPublisher = mock(ApplicationEventPublisher.class);
         service = new RefundService(refundRepo, orderRepo, mock(UserRepository.class), razorpayService,
-                mock(WalletService.class), eventPublisher, mock(PlatformTransactionManager.class));
+                mock(WalletService.class), eventPublisher, mock(PlatformTransactionManager.class),
+                mock(SchedulerRunRecorder.class), mock(SchedulerJobControl.class));
 
         order = new Order();
         order.setId(10L);
@@ -137,11 +140,50 @@ class RefundServiceTest {
         service.applyProviderRefundEvent(
                 new RefundService.ProviderRefundUpdate("refund.processed", "rfnd_7", KEY, "pay_1", 15000L));
 
-        assertEquals(OrderRefund.STATUS_SUCCEEDED, refund.getStatus());
+        assertEquals(OrderRefund.STATUS_PROCESSED_BY_GATEWAY, refund.getStatus());
         assertNotNull(refund.getCompletedAt());
         assertEquals("REFUNDED", order.getRefundStatus());
         assertEquals("rfnd_7", order.getRefundReference());
     }
+
+    @Test
+    void processedWebhookWithArnConfirmsBankCredit() {
+        refund.setStatus(OrderRefund.STATUS_PROCESSING);
+        when(refundRepo.findByIdempotencyKey(KEY)).thenReturn(Optional.of(refund));
+
+        service.applyProviderRefundEvent(new RefundService.ProviderRefundUpdate(
+                "refund.processed", "rfnd_7", KEY, "pay_1", 15000L, "normal", "normal", "ARN123"));
+
+        assertEquals(OrderRefund.STATUS_SUCCEEDED, refund.getStatus());
+        assertEquals("ARN123", refund.getAcquirerArn());
+        assertEquals("normal", refund.getSpeedProcessed());
+    }
+
+    @Test
+    void arnArrivingLaterPromotesProcessedByGatewayToSucceeded() {
+        refund.setStatus(OrderRefund.STATUS_PROCESSED_BY_GATEWAY);
+        refund.setProviderRefundId("rfnd_7");
+        when(refundRepo.findByIdempotencyKey(KEY)).thenReturn(Optional.of(refund));
+
+        service.applyProviderRefundEvent(new RefundService.ProviderRefundUpdate(
+                "refund.speed_changed", "rfnd_7", KEY, "pay_1", 15000L, "normal", "normal", "ARN456"));
+
+        assertEquals(OrderRefund.STATUS_SUCCEEDED, refund.getStatus());
+        assertEquals("ARN456", refund.getAcquirerArn());
+    }
+
+    @Test
+    void speedChangedWithoutArnKeepsStatus() {
+        refund.setStatus(OrderRefund.STATUS_PROCESSING);
+        when(refundRepo.findByIdempotencyKey(KEY)).thenReturn(Optional.of(refund));
+
+        service.applyProviderRefundEvent(new RefundService.ProviderRefundUpdate(
+                "refund.speed_changed", null, KEY, "pay_1", 15000L, "optimum", null, null));
+
+        assertEquals(OrderRefund.STATUS_PROCESSING, refund.getStatus());
+        assertEquals("optimum", refund.getSpeedRequested());
+    }
+
 
     @Test
     void ambiguousProviderOutcomeLeavesRefundProcessingUnderLease() {
@@ -197,9 +239,9 @@ class RefundServiceTest {
                 new RefundService.ProviderRefundUpdate("refund.processed", "rfnd_7", KEY, "pay_1", 15000L));
 
         assertTrue(applied);
-        assertEquals(OrderRefund.STATUS_SUCCEEDED, refund.getStatus());
-        assertEquals("rfnd_7", refund.getProviderRefundId());
+        assertEquals(OrderRefund.STATUS_PROCESSED_BY_GATEWAY, refund.getStatus());
         assertNotNull(refund.getCompletedAt());
+        assertEquals("rfnd_7", refund.getProviderRefundId());
         assertEquals("REFUNDED", order.getRefundStatus());
         assertEquals("REFUNDED", order.getPaymentStatus());
     }
@@ -252,7 +294,7 @@ class RefundServiceTest {
 
         assertTrue(service.applyProviderRefundEvent(
                 new RefundService.ProviderRefundUpdate("refund.processed", "rfnd_7", null, "pay_1", 15000L)));
-        assertEquals(OrderRefund.STATUS_SUCCEEDED, refund.getStatus());
+        assertEquals(OrderRefund.STATUS_PROCESSED_BY_GATEWAY, refund.getStatus());
     }
 
     @Test

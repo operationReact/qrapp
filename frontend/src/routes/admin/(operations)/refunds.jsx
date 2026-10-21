@@ -634,6 +634,7 @@ const REFUND_EVENT_STATUS = {
   PENDING: { title: "Refund initiated", tone: "" },
   PROCESSING: { title: "Refund sent for processing", tone: "" },
   PROVIDER_ACCEPTED: { title: "Accepted by Razorpay, awaiting bank credit", tone: "" },
+  PROCESSED_BY_GATEWAY: { title: "Processed by Razorpay", tone: "" },
   SUCCEEDED: { title: "Credited to customer", tone: "" },
   FAILED: { title: "Refund failed", tone: "rf-timeline-card--alert" },
   MANUAL_REQUIRED: { title: "Refund needs manual action", tone: "rf-timeline-card--alert" },
@@ -653,20 +654,27 @@ function buildTimeline(order) {
   (order.refunds || []).forEach((refund) => {
     const meta = REFUND_EVENT_STATUS[refund.status] || { title: formatEnum(refund.status), tone: "" };
     const amount = refund.amount != null ? formatMoney(refund.amount) : null;
-    const via = PAYMENT_LABELS[refund.method] || formatEnum(refund.method);
+    const via = refund.paymentVpa || PAYMENT_LABELS[refund.method] || formatEnum(refund.method);
+    const speed = refund.speedRequested ? `${formatEnum(refund.speedRequested)} speed` : null;
     events.push({
       key: `refund-${refund.id}-requested`,
       title: "Refund initiated",
       at: refund.requestedAt,
-      detail: [amount, via && `via ${via}`, refund.attempts > 1 ? `attempt ${refund.attempts}` : null].filter(Boolean).join(" · ") || null,
+      detail: [amount, via && `via ${via}`, speed, refund.attempts > 1 ? `attempt ${refund.attempts}` : null].filter(Boolean).join(" · ") || null,
       tone: "",
     });
     if (refund.status !== "PENDING" && refund.updatedAt) {
+      const detail = refund.failureReason
+        || (refund.status === "PROCESSED_BY_GATEWAY" ? "Bank credit pending, usually 5–7 business days" : null)
+        || (refund.acquirerArn ? `ARN ${refund.acquirerArn}` : null)
+        || refund.providerRefundId
+        || null;
+      const settledAt = refund.completedAt && (refund.status === "SUCCEEDED" || refund.status === "PROCESSED_BY_GATEWAY");
       events.push({
         key: `refund-${refund.id}-${refund.status}`,
         title: meta.title,
-        at: refund.status === "SUCCEEDED" && refund.completedAt ? refund.completedAt : refund.updatedAt,
-        detail: refund.failureReason || refund.providerRefundId || null,
+        at: settledAt ? refund.completedAt : refund.updatedAt,
+        detail,
         tone: meta.tone,
       });
     }

@@ -451,10 +451,10 @@ public class OrderService {
                 : menuRepository.findAllById(menuIds).stream()
                 .collect(Collectors.toMap(MenuItem::getId, item -> item));
 
-        Map<Long, OrderRefund> latestRefundByOrderId = orderIds.isEmpty()
+        Map<Long, List<OrderRefund>> refundsByOrderId = orderIds.isEmpty()
                 ? Map.of()
                 : orderRefundRepository.findAllByOrderIdInOrderByIdDesc(orderIds).stream()
-                .collect(Collectors.toMap(OrderRefund::getOrderId, r -> r, (first, ignored) -> first));
+                .collect(Collectors.groupingBy(OrderRefund::getOrderId));
 
         List<UserOrderSummaryResponse> response = new ArrayList<>();
         for (Order order : orders) {
@@ -473,8 +473,10 @@ public class OrderService {
             summary.setRefundStatus(order.getRefundStatus());
             summary.setRefundAmount(order.getRefundAmount());
             summary.setRefundReference(order.getRefundReference());
-            OrderRefund latestRefund = latestRefundByOrderId.get(order.getId());
-            if (latestRefund != null) {
+            List<OrderRefund> orderRefunds = refundsByOrderId.getOrDefault(order.getId(), List.of());
+            summary.setRefunds(orderRefunds.stream().map(OrderService::toRefundAttempt).toList());
+            if (!orderRefunds.isEmpty()) {
+                OrderRefund latestRefund = orderRefunds.get(0);
                 summary.setRefundRequestedAt(latestRefund.getCreatedAt());
                 summary.setRefundCompletedAt(latestRefund.getCompletedAt());
             }
@@ -985,6 +987,15 @@ public class OrderService {
         attempt.setAmount(refund.getAmount());
         attempt.setProviderRefundId(refund.getProviderRefundId());
         attempt.setFailureReason(refund.getFailureReason());
+        attempt.setSpeedRequested(refund.getSpeedRequested());
+        attempt.setSpeedProcessed(refund.getSpeedProcessed());
+        attempt.setAcquirerArn(refund.getAcquirerArn());
+        attempt.setPaymentId(refund.getPaymentId());
+        attempt.setPaymentMethod(refund.getPaymentMethod());
+        attempt.setPaymentVpa(refund.getPaymentVpa());
+        attempt.setPaymentBank(refund.getPaymentBank());
+        attempt.setPaymentCardLast4(refund.getPaymentCardLast4());
+        attempt.setPaymentAmount(refund.getPaymentAmount());
         attempt.setAttempts(refund.getAttempts());
         attempt.setRequestedAt(refund.getCreatedAt());
         attempt.setUpdatedAt(refund.getUpdatedAt());

@@ -4,6 +4,9 @@ import com.broandbro.qrapp.recommendation.entity.AutoSuggestion;
 import com.broandbro.qrapp.recommendation.enums.SuggestionStatus;
 import com.broandbro.qrapp.recommendation.repository.AutoSuggestionRepository;
 import com.broandbro.qrapp.recommendation.repository.CoOccurrenceStatRepository;
+import com.broandbro.qrapp.ops.SchedulerJobIds;
+import com.broandbro.qrapp.ops.SchedulerRunRecorder;
+import com.broandbro.qrapp.time.BusinessTime;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -36,6 +39,7 @@ public class CoOccurrenceScheduler {
 
     private final CoOccurrenceStatRepository coOccRepo;
     private final AutoSuggestionRepository autoSuggRepo;
+    private final SchedulerRunRecorder runRecorder;
 
     @PersistenceContext
     private EntityManager em;
@@ -51,19 +55,17 @@ public class CoOccurrenceScheduler {
                zone  = "Asia/Kolkata")
     @Transactional
     public void runNightly() {
-        log.info("[CoOccurrenceScheduler] Starting nightly co-occurrence computation");
-        try {
+        runRecorder.runScheduled(SchedulerJobIds.CO_OCCURRENCE, () -> {
+            log.info("[CoOccurrenceScheduler] Starting nightly co-occurrence computation");
             run();
-        } catch (Exception ex) {
-            log.error("[CoOccurrenceScheduler] Failed: {}", ex.getMessage(), ex);
-        }
+        });
     }
 
     // ── Core logic (also callable manually) ──────────────────────────────────
 
     @Transactional
     public void run() {
-        LocalDate since = LocalDate.now().minusDays(LOOKBACK_DAYS);
+        LocalDate since = BusinessTime.today().minusDays(LOOKBACK_DAYS);
         long startMs = System.currentTimeMillis();
 
         // Step 1: Fetch all order-item pairs within the lookback window via native SQL.
@@ -107,6 +109,16 @@ public class CoOccurrenceScheduler {
             itemOrderCounts.put(toLong(row[0]), toInt(row[1]));
         }
 
+        // Population size for lift: distinct orders in the lookback window (all locations).
+        long totalOrders = toLong(em.createNativeQuery("""
+                SELECT COUNT(DISTINCT oi.order_id)
+                FROM   order_item oi
+                JOIN   orders o ON o.id = oi.order_id
+                WHERE  o.created_at >= :since
+                """)
+                .setParameter("since", java.sql.Date.valueOf(since))
+                .getSingleResult());
+
         int upserted = 0, suggested = 0;
 
         // Step 3: Upsert co-occurrence stats and seed auto-suggestions
@@ -126,8 +138,7 @@ public class CoOccurrenceScheduler {
 
             // Lift = P(A∩B) / (P(A) * P(B))  — approximate using order counts
             BigDecimal lift = BigDecimal.ZERO;
-            if (aCount > 0 && bCount > 0) {
-                int totalOrders = itemOrderCounts.values().stream().mapToInt(i -> i).max().orElse(1);
+            if (aCount > 0 && bCount > 0 && totalOrders > 0) {
                 BigDecimal pAB = BigDecimal.valueOf(coCount).divide(BigDecimal.valueOf(totalOrders), 6, RoundingMode.HALF_UP);
                 BigDecimal pA  = BigDecimal.valueOf(aCount) .divide(BigDecimal.valueOf(totalOrders), 6, RoundingMode.HALF_UP);
                 BigDecimal pB  = BigDecimal.valueOf(bCount) .divide(BigDecimal.valueOf(totalOrders), 6, RoundingMode.HALF_UP);

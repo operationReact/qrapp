@@ -2,6 +2,8 @@ package com.broandbro.qrapp.analytics.scheduler;
 
 import com.broandbro.qrapp.analytics.config.AnalyticsCacheConfig;
 import com.broandbro.qrapp.analytics.repository.DailySalesAnalyticsRepository;
+import com.broandbro.qrapp.ops.SchedulerJobIds;
+import com.broandbro.qrapp.ops.SchedulerRunRecorder;
 import com.broandbro.qrapp.time.BusinessTime;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -26,12 +28,15 @@ public class DailySalesAggregationScheduler {
 
     private final DailySalesAnalyticsRepository dailySalesRepo;
     private final CacheManager analyticsCacheManager;
+    private final SchedulerRunRecorder runRecorder;
 
     public DailySalesAggregationScheduler(
             DailySalesAnalyticsRepository dailySalesRepo,
-            @Qualifier("analyticsCacheManager") CacheManager analyticsCacheManager) {
+            @Qualifier("analyticsCacheManager") CacheManager analyticsCacheManager,
+            SchedulerRunRecorder runRecorder) {
         this.dailySalesRepo = dailySalesRepo;
         this.analyticsCacheManager = analyticsCacheManager;
+        this.runRecorder = runRecorder;
     }
 
     // ── Scheduled job ──────────────────────────────────────────────────────────
@@ -40,12 +45,14 @@ public class DailySalesAggregationScheduler {
      * Runs every day at 00:05 (configurable via {@code analytics.cron.daily-sales}).
      * Aggregates the previous full day's orders.
      */
-    @Scheduled(cron = "${analytics.cron.daily-sales:0 * * * * *}",
+    @Scheduled(cron = "${analytics.cron.daily-sales:0 5 0 * * *}",
                zone = "Asia/Kolkata")
     public void computeYesterdaySnapshot() {
-        LocalDate yesterday = BusinessTime.today().minusDays(1);
-        log.info("[DailySalesScheduler] Starting daily snapshot for {}", yesterday);
-        executeUpsert(yesterday);
+        runRecorder.runScheduled(SchedulerJobIds.DAILY_SALES, () -> {
+            LocalDate yesterday = BusinessTime.today().minusDays(1);
+            log.info("[DailySalesScheduler] Starting daily snapshot for {}", yesterday);
+            executeUpsert(yesterday);
+        });
     }
 
     /**
@@ -55,9 +62,11 @@ public class DailySalesAggregationScheduler {
     @Scheduled(cron = "${analytics.cron.daily-sales-intraday:0 0 12 * * *}",
                zone = "Asia/Kolkata")
     public void computeTodayPartialSnapshot() {
-        LocalDate today = BusinessTime.today();
-        log.info("[DailySalesScheduler] Refreshing intraday snapshot for {}", today);
-        executeUpsert(today);
+        runRecorder.runScheduled(SchedulerJobIds.DAILY_SALES_INTRADAY, () -> {
+            LocalDate today = BusinessTime.today();
+            log.info("[DailySalesScheduler] Refreshing intraday snapshot for {}", today);
+            executeUpsert(today);
+        });
     }
 
     // ── Public API for manual / backfill triggers ──────────────────────────────
@@ -73,10 +82,10 @@ public class DailySalesAggregationScheduler {
             evictDailyCaches();
             long elapsed = System.currentTimeMillis() - start;
             log.info("[DailySalesScheduler] Snapshot complete for {} in {}ms", targetDate, elapsed);
-        } catch (Exception ex) {
+        } catch (RuntimeException ex) {
             log.error("[DailySalesScheduler] Failed to compute snapshot for {}: {}",
                     targetDate, ex.getMessage(), ex);
-            // Do not rethrow — scheduler failures must not crash the scheduler thread
+            throw ex;
         }
     }
 

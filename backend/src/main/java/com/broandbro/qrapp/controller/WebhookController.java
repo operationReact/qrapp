@@ -105,7 +105,18 @@ public class WebhookController {
         String refundKey = textAt(root, "payload", "refund", "entity", "notes", "refund_key");
         JsonNode amount = root.at("/payload/refund/entity/amount");
         Long amountPaise = amount.isIntegralNumber() ? amount.asLong() : null;
-        return new RefundService.ProviderRefundUpdate(event, providerRefundId, refundKey, paymentId, amountPaise);
+        String speedRequested = textAt(root, "payload", "refund", "entity", "speed_requested");
+        String speedProcessed = textAt(root, "payload", "refund", "entity", "speed_processed");
+        String arn = textAt(root, "payload", "refund", "entity", "acquirer_data", "arn");
+        String paymentMethod = textAt(root, "payload", "payment", "entity", "method");
+        String paymentVpa = textAt(root, "payload", "payment", "entity", "vpa");
+        String paymentBank = textAt(root, "payload", "payment", "entity", "bank");
+        String paymentCardLast4 = textAt(root, "payload", "payment", "entity", "card", "last4");
+        JsonNode paymentAmount = root.at("/payload/payment/entity/amount");
+        Long paymentAmountPaise = paymentAmount.isIntegralNumber() ? paymentAmount.asLong() : null;
+        return new RefundService.ProviderRefundUpdate(event, providerRefundId, refundKey, paymentId, amountPaise,
+                speedRequested, speedProcessed, arn, paymentMethod, paymentVpa, paymentBank, paymentCardLast4,
+                paymentAmountPaise);
     }
 
     private String extractOrderId(String event, JsonNode root) {
