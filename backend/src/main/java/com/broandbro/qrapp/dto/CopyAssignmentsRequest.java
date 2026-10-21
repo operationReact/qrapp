@@ -1,4 +1,4 @@
-﻿package com.broandbro.qrapp.dto;
+package com.broandbro.qrapp.dto;
 
 import jakarta.validation.constraints.NotNull;
 import java.util.List;

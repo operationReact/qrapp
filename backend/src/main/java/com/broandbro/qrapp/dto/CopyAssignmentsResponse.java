@@ -1,4 +1,4 @@
-﻿package com.broandbro.qrapp.dto;
+package com.broandbro.qrapp.dto;
 
 /**
  * @param copied            products newly added to the target location
