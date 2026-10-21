@@ -630,6 +630,52 @@ const DETAIL_TABS = [
   { value: "items", label: "Items" },
 ];
 
+const REFUND_EVENT_STATUS = {
+  PENDING: { title: "Refund initiated", tone: "" },
+  PROCESSING: { title: "Refund sent for processing", tone: "" },
+  PROVIDER_ACCEPTED: { title: "Accepted by Razorpay, awaiting bank credit", tone: "" },
+  SUCCEEDED: { title: "Credited to customer", tone: "" },
+  FAILED: { title: "Refund failed", tone: "rf-timeline-card--alert" },
+  MANUAL_REQUIRED: { title: "Refund needs manual action", tone: "rf-timeline-card--alert" },
+};
+
+function buildTimeline(order) {
+  const events = [];
+  (order.history || []).forEach((entry, index) => {
+    events.push({
+      key: `history-${entry.changedAt}-${index}`,
+      title: formatEnum(entry.newStatus || entry.actionType) || "Update",
+      at: entry.changedAt,
+      detail: entry.reason || entry.note || (entry.changedBy ? formatActor(entry.changedBy) : null),
+      tone: "",
+    });
+  });
+  (order.refunds || []).forEach((refund) => {
+    const meta = REFUND_EVENT_STATUS[refund.status] || { title: formatEnum(refund.status), tone: "" };
+    const amount = refund.amount != null ? formatMoney(refund.amount) : null;
+    const via = PAYMENT_LABELS[refund.method] || formatEnum(refund.method);
+    events.push({
+      key: `refund-${refund.id}-requested`,
+      title: "Refund initiated",
+      at: refund.requestedAt,
+      detail: [amount, via && `via ${via}`, refund.attempts > 1 ? `attempt ${refund.attempts}` : null].filter(Boolean).join(" · ") || null,
+      tone: "",
+    });
+    if (refund.status !== "PENDING" && refund.updatedAt) {
+      events.push({
+        key: `refund-${refund.id}-${refund.status}`,
+        title: meta.title,
+        at: refund.status === "SUCCEEDED" && refund.completedAt ? refund.completedAt : refund.updatedAt,
+        detail: refund.failureReason || refund.providerRefundId || null,
+        tone: meta.tone,
+      });
+    }
+  });
+  return events
+    .filter((event) => event.at)
+    .sort((a, b) => new Date(b.at) - new Date(a.at));
+}
+
 function OrderDetailPanel({ order, loading, isOpen, tab, onTab, onClose, reference, onReferenceChange, onProcess, submitting, onRetry, retrying }) {
   if (!order) {
     return (
@@ -640,7 +686,7 @@ function OrderDetailPanel({ order, loading, isOpen, tab, onTab, onClose, referen
   }
 
   const needsAction = order.refundStatus === "MANUAL_REQUIRED";
-  const history = order.history || [];
+  const timeline = buildTimeline(order);
   const items = order.items || [];
 
   return (
@@ -689,21 +735,19 @@ function OrderDetailPanel({ order, loading, isOpen, tab, onTab, onClose, referen
         )}
 
         {tab === "timeline" && (
-          history.length === 0 ? (
+          timeline.length === 0 ? (
             <p className="rf-note">No status history recorded.</p>
           ) : (
             <ol className="rf-timeline">
-              {history.map((entry, index) => (
-                <li key={`${entry.changedAt}-${index}`} className="rf-timeline-item">
+              {timeline.map((event, index) => (
+                <li key={`${event.key}-${index}`} className="rf-timeline-item">
                   <span className="rf-timeline-dot" aria-hidden="true" />
-                  <div className="rf-timeline-card">
+                  <div className={cn("rf-timeline-card", event.tone)}>
                     <div className="rf-timeline-top">
-                      <strong>{formatEnum(entry.newStatus || entry.actionType) || "Update"}</strong>
-                      <span className="rf-timeline-time">{formatDate(entry.changedAt)}</span>
+                      <strong>{event.title}</strong>
+                      <span className="rf-timeline-time">{formatDate(event.at)}</span>
                     </div>
-                    {(entry.reason || entry.note || entry.changedBy) && (
-                      <span className="rf-cell-sub">{entry.reason || entry.note || formatActor(entry.changedBy)}</span>
-                    )}
+                    {event.detail && <span className="rf-cell-sub">{event.detail}</span>}
                   </div>
                 </li>
               ))}

@@ -59,6 +59,8 @@ public class AdminOrderResponse {
     private List<OrderStatus> availableTransitions = new ArrayList<>();
     private List<ItemSummary> items = new ArrayList<>();
     private List<HistoryEntry> history = new ArrayList<>();
+    /** Every refund attempt for the order, newest first. */
+    private List<RefundAttemptResponse> refunds = new ArrayList<>();
 
     @Data
     public static class ItemSummary {

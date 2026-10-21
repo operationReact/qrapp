@@ -30,7 +30,7 @@ function AdminLayoutContent() {
   useEffect(() => { setOpenMobile(false); }, [pathname, setOpenMobile]);
   const isDashboard = pathname === "/admin" || pathname === "/admin/";
   const isControlCenterHome = pathname === "/admin/control-center" || pathname === "/admin/control-center/";
-  const isMrpProduct = pathname.startsWith("/admin/mrp-product");
+  const isMrpProduct = pathname.startsWith("/admin/mrp-product") || pathname.startsWith("/admin/global-products");
   const isKitchenQueue = pathname.startsWith("/admin/kitchen-queue");
   const isFoodCourt = pathname.startsWith("/admin/food-court");
   const hideGenericHeader = isDashboard || isControlCenterHome || isMrpProduct;

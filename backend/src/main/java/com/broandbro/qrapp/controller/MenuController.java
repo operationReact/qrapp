@@ -747,7 +747,7 @@ public class MenuController {
             .locationId(item.getLocation() != null ? item.getLocation().getId() : null)
             .price(price == null ? null : taxCalculationService
                     .calculateInclusive(price, item.getTaxProfile()).totalAmount())
-            .mrp(catalogProduct == null ? item.getMrp() : catalogProduct.getMrp())
+            .mrp(item.getMrp())
             .imageUrl(catalogProduct == null ? item.getImageUrl() : catalogProduct.getImageUrl())
             .isVeg(item.getIsVeg())
             .recommended(item.isRecommended())

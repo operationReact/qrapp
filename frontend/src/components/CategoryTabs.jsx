@@ -1,6 +1,7 @@
 import PropTypes from "prop-types";
 import { useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { buttonVariants } from "./ui/button";
 import { cn } from "@/lib/utils";
 import {
@@ -141,8 +142,9 @@ export default function CategoryTabs({ categories, active }) {
     const resolved = resolveCategoryIcon(category);
     const isPhoto = resolved.isPhoto;
     return (
-      <a
-        href={`/#${encodeURIComponent(catName)}`}
+      <Link
+        to="/"
+        hash={encodeURIComponent(catName)}
         tabIndex={isCopy ? -1 : undefined}
         key={category.id || catName}
         className={buttonVariants({
@@ -165,7 +167,7 @@ export default function CategoryTabs({ categories, active }) {
         <span className="h-7 max-w-[72px] overflow-hidden text-center text-[12px] leading-[14px] whitespace-normal md:max-w-[80px] lg:max-w-[90px] md:text-[12px] [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">
           {catName}
         </span>
-      </a>
+      </Link>
     );
   };
 

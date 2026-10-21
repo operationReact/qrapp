@@ -2,8 +2,6 @@ package com.broandbro.qrapp.dto;
 
 import com.broandbro.qrapp.entity.Product;
 
-import java.math.BigDecimal;
-
 /**
  * A catalogue product that shares a name with a product being created. Used to
  * offer assigning the existing product, and its image, instead of a duplicate.
@@ -14,8 +12,6 @@ public record ProductSimilarResponse(
         String brand,
         String sku,
         String variantIdentity,
-        String categoryName,
-        BigDecimal mrp,
         String imageUrl,
         boolean shareableImage,
         boolean assignedToLocation) {
@@ -27,8 +23,6 @@ public record ProductSimilarResponse(
                 product.getBrand(),
                 product.getSku(),
                 product.getVariantIdentity(),
-                product.getCategoryName(),
-                product.getMrp(),
                 product.getImageUrl(),
                 product.getImageAsset() != null,
                 assignedToLocation);

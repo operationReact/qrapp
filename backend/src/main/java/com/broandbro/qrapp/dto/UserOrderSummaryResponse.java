@@ -25,6 +25,10 @@ public class UserOrderSummaryResponse {
     private String refundStatus;
     private BigDecimal refundAmount;
     private String refundReference;
+    /** When the latest refund was initiated; null if no refund was ever created. */
+    private LocalDateTime refundRequestedAt;
+    /** When the latest refund was confirmed as credited; null until it succeeds. */
+    private LocalDateTime refundCompletedAt;
     private LocalDateTime cancelledAt;
     private String cancelReason;
     private String paymentMethod;

@@ -126,15 +126,13 @@ public class CategoryService {
         String oldName = category.getName();
         category.setName(name);
         Category saved = categoryRepository.save(category);
-        // Products store their category by name; keep this location's products aligned so the next catalog sync
+        // Products store their category per location; keep this location's assignments aligned so the next catalog sync
         // doesn't recreate the old category. Menu projections reference the Category row and update automatically.
         locationProductRepository.findByLocationIdOrderByProductNameAsc(locationId).stream()
-                .map(LocationProduct::getProduct)
-                .filter(product -> oldName.equals(product.getCategoryName()))
-                .distinct()
-                .forEach(product -> {
-                    product.setCategoryName(name);
-                    productRepository.save(product);
+                .filter(assignment -> oldName.equals(assignment.getCategoryName()))
+                .forEach(assignment -> {
+                    assignment.setCategoryName(name);
+                    locationProductRepository.save(assignment);
                 });
         return saved;
     }
@@ -147,9 +145,7 @@ public class CategoryService {
                 .filter(existing -> MRP_PRODUCT_CATEGORY.equals(existing.getCategoryType()))
                 .orElseThrow(() -> new RuntimeException("Category not found: " + id));
         long productCount = locationProductRepository.findByLocationIdOrderByProductNameAsc(locationId).stream()
-                .map(LocationProduct::getProduct)
-                .filter(product -> category.getName().equalsIgnoreCase(product.getCategoryName()))
-                .distinct()
+                .filter(assignment -> category.getName().equalsIgnoreCase(assignment.getCategoryName()))
                 .count();
         if (productCount > 0) {
             throw new IllegalArgumentException("\"" + category.getName() + "\" still has " + productCount

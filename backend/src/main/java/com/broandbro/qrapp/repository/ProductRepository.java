@@ -16,8 +16,6 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 
     Page<Product> findAllByOrderByNameAscIdAsc(Pageable pageable);
 
-    List<Product> findTop10ByNameIgnoreCaseOrderByIdAsc(String name);
-
     Page<Product> findByActiveOrderByNameAscIdAsc(Boolean active, Pageable pageable);
 
     @Query("""

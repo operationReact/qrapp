@@ -30,17 +30,8 @@ public class Product {
     @Column(length = 120)
     private String brand;
 
-    @Column(name = "category_name", length = 80)
-    private String categoryName;
-
     @Column(columnDefinition = "TEXT")
     private String description;
-
-    @Column(nullable = false, precision = 19, scale = 2)
-    private BigDecimal mrp;
-
-    @Column(name = "cost_price", nullable = false, precision = 19, scale = 2)
-    private BigDecimal costPrice = BigDecimal.ZERO;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "tax_profile_id")

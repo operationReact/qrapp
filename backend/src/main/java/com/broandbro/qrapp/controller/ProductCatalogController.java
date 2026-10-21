@@ -178,6 +178,14 @@ public class ProductCatalogController {
         return catalogService.reuseImage(productId, locationId, sourceProductId, authentication);
     }
 
+    @GetMapping("/admin/global-products")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN', 'SUPERUSER', 'MANAGER')")
+    public Page<ProductSimilarResponse> globalProducts(@RequestParam Long locationId,
+                                                       @RequestParam(required = false) String search,
+                                                       Pageable pageable, Authentication authentication) {
+        return catalogService.globalCatalogue(locationId, search, pageable, authentication);
+    }
+
     @GetMapping("/admin/products/similar")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN', 'SUPERUSER', 'MANAGER')")
     public List<ProductSimilarResponse> similar(@RequestParam Long locationId, @RequestParam String name,

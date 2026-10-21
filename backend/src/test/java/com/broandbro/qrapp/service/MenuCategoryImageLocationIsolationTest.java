@@ -125,14 +125,13 @@ class MenuCategoryImageLocationIsolationTest {
         catalogProduct.setId(900L);
         catalogProduct.setName("Catalog Soap");
         catalogProduct.setDescription("Authoritative description");
-        catalogProduct.setMrp(new BigDecimal("50"));
         catalogProduct.setImageUrl("/catalog/soap.png");
 
         MenuItem projection = menuItem(20L, pragati);
         projection.setProductType(ProductType.RETAIL_PRODUCT);
         projection.setCatalogProduct(catalogProduct);
         projection.setName("Stale projection name");
-        projection.setMrp(new BigDecimal("99"));
+        projection.setMrp(new BigDecimal("50"));
         projection.setImageUrl("/legacy/stale.png");
         when(menus.findVisibleByLocationAndProductType(eq(pragati.getId()), eq(ProductType.RETAIL_PRODUCT), any()))
                 .thenReturn(List.of(projection));

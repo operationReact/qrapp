@@ -222,6 +222,11 @@ function ProductCatalogPage() {
   const assignSimilar = useMutation({
     mutationFn: (productId) => assignCatalogProduct(productId, {
       locationId: Number(effectiveLocationId),
+      mrp: Number(form.mrp),
+      costPrice: Number(form.costPrice || 0),
+      categoryName: form.categoryName?.trim() || null,
+      visible: true,
+      available: true,
       lowStockThreshold: Number(form.lowStockThreshold || 5),
       initialStock: 0,
     }),
@@ -691,7 +696,7 @@ function ProductCatalogPage() {
                             ) : item.assignedToLocation ? (
                               <span className="shrink-0 rounded-full bg-[#eef8f0] px-2.5 py-1 text-[11px] font-semibold text-[#1f7a3d]">Already here</span>
                             ) : (
-                              <button type="button" disabled={assignSimilar.isPending} onClick={() => assignSimilar.mutate(item.productId)} className="mrp-btn-brand h-9 shrink-0 rounded-lg px-3 text-xs font-bold">Add to this location</button>
+                              <button type="button" disabled={assignSimilar.isPending || !form.mrp} onClick={() => assignSimilar.mutate(item.productId)} className="mrp-btn-brand h-9 shrink-0 rounded-lg px-3 text-xs font-bold">Add to this location</button>
                             )}
                           </li>
                         );

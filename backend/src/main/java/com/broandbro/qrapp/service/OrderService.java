@@ -7,6 +7,7 @@ import com.broandbro.qrapp.dto.AdminOrderUpdateRequest;
 import com.broandbro.qrapp.dto.AdminPreOrderDashboardResponse;
 import com.broandbro.qrapp.dto.CreateOrderRequest;
 import com.broandbro.qrapp.dto.CreatePreOrderRequest;
+import com.broandbro.qrapp.dto.RefundAttemptResponse;
 import com.broandbro.qrapp.dto.UserOrderSummaryResponse;
 import com.broandbro.qrapp.entity.Location;
 import com.broandbro.qrapp.entity.MenuItem;
@@ -450,6 +451,11 @@ public class OrderService {
                 : menuRepository.findAllById(menuIds).stream()
                 .collect(Collectors.toMap(MenuItem::getId, item -> item));
 
+        Map<Long, OrderRefund> latestRefundByOrderId = orderIds.isEmpty()
+                ? Map.of()
+                : orderRefundRepository.findAllByOrderIdInOrderByIdDesc(orderIds).stream()
+                .collect(Collectors.toMap(OrderRefund::getOrderId, r -> r, (first, ignored) -> first));
+
         List<UserOrderSummaryResponse> response = new ArrayList<>();
         for (Order order : orders) {
             UserOrderSummaryResponse summary = new UserOrderSummaryResponse();
@@ -467,6 +473,11 @@ public class OrderService {
             summary.setRefundStatus(order.getRefundStatus());
             summary.setRefundAmount(order.getRefundAmount());
             summary.setRefundReference(order.getRefundReference());
+            OrderRefund latestRefund = latestRefundByOrderId.get(order.getId());
+            if (latestRefund != null) {
+                summary.setRefundRequestedAt(latestRefund.getCreatedAt());
+                summary.setRefundCompletedAt(latestRefund.getCompletedAt());
+            }
             summary.setCancelledAt(order.getCancelledAt());
             summary.setCancelReason(order.getCancelReason());
             summary.setPaymentMethod(order.getPaymentMethod() != null ? order.getPaymentMethod().name() : null);
@@ -947,22 +958,38 @@ public class OrderService {
                         .collect(Collectors.toMap(User::getId, u -> u));
 
         // Newest refund first, so the first row per order is its latest attempt.
-        Map<Long, OrderRefund> latestRefundByOrderId = orderIds.isEmpty()
+        Map<Long, List<OrderRefund>> refundsByOrderId = orderIds.isEmpty()
                 ? Map.of()
                 : orderRefundRepository.findAllByOrderIdInOrderByIdDesc(orderIds).stream()
-                .collect(Collectors.toMap(OrderRefund::getOrderId, r -> r, (first, ignored) -> first));
+                .collect(Collectors.groupingBy(OrderRefund::getOrderId));
 
         LocalDateTime now = BusinessTime.now();
         List<AdminOrderResponse> responses = new ArrayList<>();
         for (Order order : orders) {
             AdminOrderResponse response = toAdminOrderResponse(order, itemsByOrderId.getOrDefault(order.getId(), List.of()), menuById, historyByOrderId.getOrDefault(order.getId(), List.of()), now, userById);
-            OrderRefund latestRefund = latestRefundByOrderId.get(order.getId());
-            if (latestRefund != null && REFUND_PROBLEM_STATUSES.contains(latestRefund.getStatus())) {
-                response.setRefundFailureReason(latestRefund.getFailureReason());
+            List<OrderRefund> refunds = refundsByOrderId.getOrDefault(order.getId(), List.of());
+            response.setRefunds(refunds.stream().map(OrderService::toRefundAttempt).toList());
+            if (!refunds.isEmpty() && REFUND_PROBLEM_STATUSES.contains(refunds.get(0).getStatus())) {
+                response.setRefundFailureReason(refunds.get(0).getFailureReason());
             }
             responses.add(response);
         }
         return responses;
+    }
+
+    private static RefundAttemptResponse toRefundAttempt(OrderRefund refund) {
+        RefundAttemptResponse attempt = new RefundAttemptResponse();
+        attempt.setId(refund.getId());
+        attempt.setMethod(refund.getMethod());
+        attempt.setStatus(refund.getStatus());
+        attempt.setAmount(refund.getAmount());
+        attempt.setProviderRefundId(refund.getProviderRefundId());
+        attempt.setFailureReason(refund.getFailureReason());
+        attempt.setAttempts(refund.getAttempts());
+        attempt.setRequestedAt(refund.getCreatedAt());
+        attempt.setUpdatedAt(refund.getUpdatedAt());
+        attempt.setCompletedAt(refund.getCompletedAt());
+        return attempt;
     }
 
     private AdminOrderResponse toAdminOrderResponse(Order order,

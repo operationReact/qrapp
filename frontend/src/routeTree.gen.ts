@@ -95,6 +95,7 @@ import { Route as AdminmenuMrpProductRouteImport } from './routes/admin/(menu)/m
 import { Route as AdminmenuMenuRouteImport } from './routes/admin/(menu)/menu'
 import { Route as AdminmenuMealRolesRouteImport } from './routes/admin/(menu)/meal-roles'
 import { Route as AdminmenuManageMenuRouteImport } from './routes/admin/(menu)/manage-menu'
+import { Route as AdminmenuGlobalProductsRouteImport } from './routes/admin/(menu)/global-products'
 import { Route as AdminmenuClassificationRouteImport } from './routes/admin/(menu)/classification'
 import { Route as AdmingrowthUpsellRulesRouteImport } from './routes/admin/(growth)/upsell-rules'
 import { Route as AdmingrowthRecommendationsRouteImport } from './routes/admin/(growth)/recommendations'
@@ -558,6 +559,11 @@ const AdminmenuManageMenuRoute = AdminmenuManageMenuRouteImport.update({
   path: '/manage-menu',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminmenuGlobalProductsRoute = AdminmenuGlobalProductsRouteImport.update({
+  id: '/(menu)/global-products',
+  path: '/global-products',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminmenuClassificationRoute = AdminmenuClassificationRouteImport.update({
   id: '/(menu)/classification',
   path: '/classification',
@@ -708,6 +714,7 @@ export interface FileRoutesByFullPath {
   '/admin/recommendations': typeof AdmingrowthRecommendationsRoute
   '/admin/upsell-rules': typeof AdmingrowthUpsellRulesRoute
   '/admin/classification': typeof AdminmenuClassificationRoute
+  '/admin/global-products': typeof AdminmenuGlobalProductsRoute
   '/admin/manage-menu': typeof AdminmenuManageMenuRoute
   '/admin/meal-roles': typeof AdminmenuMealRolesRoute
   '/admin/menu': typeof AdminmenuMenuRoute
@@ -809,6 +816,7 @@ export interface FileRoutesByTo {
   '/admin/recommendations': typeof AdmingrowthRecommendationsRoute
   '/admin/upsell-rules': typeof AdmingrowthUpsellRulesRoute
   '/admin/classification': typeof AdminmenuClassificationRoute
+  '/admin/global-products': typeof AdminmenuGlobalProductsRoute
   '/admin/manage-menu': typeof AdminmenuManageMenuRoute
   '/admin/meal-roles': typeof AdminmenuMealRolesRoute
   '/admin/menu': typeof AdminmenuMenuRoute
@@ -914,6 +922,7 @@ export interface FileRoutesById {
   '/admin/(growth)/recommendations': typeof AdmingrowthRecommendationsRoute
   '/admin/(growth)/upsell-rules': typeof AdmingrowthUpsellRulesRoute
   '/admin/(menu)/classification': typeof AdminmenuClassificationRoute
+  '/admin/(menu)/global-products': typeof AdminmenuGlobalProductsRoute
   '/admin/(menu)/manage-menu': typeof AdminmenuManageMenuRoute
   '/admin/(menu)/meal-roles': typeof AdminmenuMealRolesRoute
   '/admin/(menu)/menu': typeof AdminmenuMenuRoute
@@ -1020,6 +1029,7 @@ export interface FileRouteTypes {
     | '/admin/recommendations'
     | '/admin/upsell-rules'
     | '/admin/classification'
+    | '/admin/global-products'
     | '/admin/manage-menu'
     | '/admin/meal-roles'
     | '/admin/menu'
@@ -1121,6 +1131,7 @@ export interface FileRouteTypes {
     | '/admin/recommendations'
     | '/admin/upsell-rules'
     | '/admin/classification'
+    | '/admin/global-products'
     | '/admin/manage-menu'
     | '/admin/meal-roles'
     | '/admin/menu'
@@ -1225,6 +1236,7 @@ export interface FileRouteTypes {
     | '/admin/(growth)/recommendations'
     | '/admin/(growth)/upsell-rules'
     | '/admin/(menu)/classification'
+    | '/admin/(menu)/global-products'
     | '/admin/(menu)/manage-menu'
     | '/admin/(menu)/meal-roles'
     | '/admin/(menu)/menu'
@@ -1908,6 +1920,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminmenuManageMenuRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/(menu)/global-products': {
+      id: '/admin/(menu)/global-products'
+      path: '/global-products'
+      fullPath: '/admin/global-products'
+      preLoaderRoute: typeof AdminmenuGlobalProductsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/(menu)/classification': {
       id: '/admin/(menu)/classification'
       path: '/classification'
@@ -2039,6 +2058,7 @@ interface AdminRouteChildren {
   AdmingrowthRecommendationsRoute: typeof AdmingrowthRecommendationsRoute
   AdmingrowthUpsellRulesRoute: typeof AdmingrowthUpsellRulesRoute
   AdminmenuClassificationRoute: typeof AdminmenuClassificationRoute
+  AdminmenuGlobalProductsRoute: typeof AdminmenuGlobalProductsRoute
   AdminmenuManageMenuRoute: typeof AdminmenuManageMenuRoute
   AdminmenuMealRolesRoute: typeof AdminmenuMealRolesRoute
   AdminmenuMenuRoute: typeof AdminmenuMenuRoute
@@ -2094,6 +2114,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdmingrowthRecommendationsRoute: AdmingrowthRecommendationsRoute,
   AdmingrowthUpsellRulesRoute: AdmingrowthUpsellRulesRoute,
   AdminmenuClassificationRoute: AdminmenuClassificationRoute,
+  AdminmenuGlobalProductsRoute: AdminmenuGlobalProductsRoute,
   AdminmenuManageMenuRoute: AdminmenuManageMenuRoute,
   AdminmenuMealRolesRoute: AdminmenuMealRolesRoute,
   AdminmenuMenuRoute: AdminmenuMenuRoute,

@@ -337,6 +337,14 @@ function RefundTracker({ order }) {
   const cancelledLabel = cancelledAt
     ? `${formatOrderDate(cancelledAt)}, ${formatOrderTime(cancelledAt)}`
     : null;
+  const requestedAt = order.refundRequestedAt;
+  const requestedLabel = requestedAt
+    ? `${formatOrderDate(requestedAt)}, ${formatOrderTime(requestedAt)}`
+    : null;
+  const completedAt = order.refundCompletedAt;
+  const completedLabel = completedAt
+    ? `${formatOrderDate(completedAt)}, ${formatOrderTime(completedAt)}`
+    : null;
 
   if (status === "NOT_REQUIRED") {
     return (
@@ -370,14 +378,14 @@ function RefundTracker({ order }) {
     {
       key: "requested",
       label: "Refund requested",
-      detail: `₹${refundAmount}`,
+      detail: [`₹${refundAmount}`, requested ? requestedLabel : null].filter(Boolean).join(" · "),
       state: requested ? "done" : "pending",
     },
     {
       key: "completed",
       label: bankRefund ? "Credited to your account" : "Refund completed",
       detail: completed
-        ? null
+        ? completedLabel
         : bankRefund
           ? "Up to 7 working days after it is sent"
           : status === "MANUAL_REQUIRED"
