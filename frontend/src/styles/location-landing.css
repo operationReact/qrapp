@@ -1010,6 +1010,7 @@
   justify-content: center;
   gap: 8px;
   flex-shrink: 0;
+  white-space: nowrap;
   height: 40px;
   padding: 0 16px;
   border: 0;

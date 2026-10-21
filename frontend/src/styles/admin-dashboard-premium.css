@@ -1,0 +1,211 @@
+/* Admin dashboard: premium KPI, live operations and attention panels. */
+
+.adp-kpi {
+  position: relative;
+  overflow: hidden;
+  padding: 16px;
+  border: 1px solid #f0e4dc;
+  border-radius: 20px;
+  background: linear-gradient(160deg, #fffaf7 0%, #ffffff 58%);
+  box-shadow: 0 14px 34px -22px rgb(48 32 28 / 35%);
+}
+
+.adp-kpi-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.adp-kpi-eyebrow {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: #d92d45;
+}
+
+.adp-kpi-sub {
+  margin-top: 2px;
+  font-size: 12px;
+  color: #80645b;
+}
+
+.adp-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+@media (min-width: 1024px) {
+  .adp-kpi-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+.adp-kpi-card {
+  display: flex;
+  min-width: 0;
+  min-height: 112px;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px;
+  border: 1px solid #efe6df;
+  border-radius: 16px;
+  background: #ffffff;
+  transition: transform .2s ease, box-shadow .2s ease;
+}
+
+.adp-kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px -18px rgb(48 32 28 / 40%);
+}
+
+.adp-kpi-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: #80645b;
+}
+
+.adp-kpi-value {
+  font-size: clamp(22px, 2.4vw, 28px);
+  font-weight: 800;
+  letter-spacing: -.03em;
+  line-height: 1.1;
+  color: #30201c;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.adp-kpi-value--muted {
+  font-size: 14px;
+  font-weight: 600;
+  color: #8a8580;
+}
+
+.adp-kpi-note {
+  margin-top: auto;
+  font-size: 11px;
+  color: #8a8580;
+}
+
+.adp-icon-chip {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  place-items: center;
+  border-radius: 12px;
+}
+
+.adp-kpi-card--hero {
+  border-color: transparent;
+  background: linear-gradient(135deg, #d92d45 0%, #ef233c 55%, #ff6b4a 100%);
+  box-shadow: 0 18px 30px -18px rgb(217 45 69 / 70%);
+}
+
+.adp-kpi-card--hero .adp-kpi-label,
+.adp-kpi-card--hero .adp-kpi-note {
+  color: rgb(255 255 255 / 85%);
+}
+
+.adp-kpi-card--hero .adp-kpi-value {
+  color: #ffffff;
+}
+
+.adp-kpi-card--hero .adp-icon-chip {
+  background: rgb(255 255 255 / 20%);
+}
+
+.adp-kpi-card--hero .adp-icon-chip svg {
+  color: #ffffff !important;
+}
+
+.adp-kpi-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 10px 12px;
+  border: 1px solid #fecaca;
+  border-radius: 12px;
+  background: #fef2f2;
+  font-size: 12px;
+  color: #dc2626;
+}
+
+.adp-stat-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  padding: 16px 16px 4px;
+}
+
+.adp-stat {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 12px 4px;
+  border: 1px solid #efe6df;
+  border-radius: 16px;
+  background: #ffffff;
+  text-align: center;
+  transition: transform .2s ease, box-shadow .2s ease;
+}
+
+.adp-stat:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px -16px rgb(48 32 28 / 40%);
+}
+
+.adp-stat-value {
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1;
+  color: #30201c;
+  font-variant-numeric: tabular-nums;
+}
+
+.adp-stat-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #80645b;
+}
+
+.adp-alert {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid;
+  border-radius: 16px;
+  transition: transform .2s ease, filter .2s ease;
+}
+
+.adp-alert:hover {
+  transform: translateY(-1px);
+  filter: brightness(.98);
+}
+
+.adp-alert--red {
+  border-color: #fecaca;
+  background: linear-gradient(120deg, #fff1f2, #fff7f7);
+  color: #b91c1c;
+}
+
+.adp-alert--amber {
+  border-color: #fde68a;
+  background: linear-gradient(120deg, #fffbeb, #fff8e6);
+  color: #b45309;
+}
+
+.adp-alert-action {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 800;
+}

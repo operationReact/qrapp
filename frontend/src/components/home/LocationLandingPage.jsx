@@ -541,7 +541,7 @@ function LocationCard({ location, distanceKm, onSelect }) {
         </div>
         <div className="loc-card-foot">
           <span className="loc-cta" aria-hidden="true">
-            View menu
+            View menu &amp; order now
             <ArrowRight size={18} aria-hidden="true" />
           </span>
         </div>

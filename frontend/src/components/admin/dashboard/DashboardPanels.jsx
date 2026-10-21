@@ -57,6 +57,7 @@ export function KpiStrip({ summary, comparison, periodLabel = "Today", loading, 
   const cards = [
     {
       label: "Revenue",
+      hero: true,
       value: current.totalRevenue == null && hasCompletedOrders ? "Not available" : formatCurrency(current.totalRevenue ?? 0),
       trend: trend(current.totalRevenue, previous.totalRevenue),
       icon: Wallet,
@@ -92,20 +93,20 @@ export function KpiStrip({ summary, comparison, periodLabel = "Today", loading, 
   const displayCards = error ? cards.map((card) => ({ ...card, value: "—", trend: null })) : cards;
 
   return (
-    <section className="rounded-[16px] border border-[#E8E2DD] bg-white p-3.5 shadow-none sm:p-4">
-      <div className="mb-3 flex items-center justify-between gap-3">
+    <section className="adp-kpi">
+      <div className="adp-kpi-head">
         <div>
-          <p className="text-[10px] font-bold uppercase leading-[14px] tracking-[0.08em] text-[#817A75]">{periodLabel}</p>
-          <p className="mt-0.5 text-[11px] text-[#8A8580]">Current business performance</p>
+          <p className="adp-kpi-eyebrow">{periodLabel}</p>
+          <p className="adp-kpi-sub">Current business performance</p>
         </div>
         <TrendingUp className="size-4 text-[#8A8580]" strokeWidth={1.9} aria-hidden="true" />
       </div>
-      <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
+      <div className="adp-kpi-grid">
       {displayCards.map((card) => (
       <KpiCard key={card.label} card={card} loading={loading} />
       ))}
       </div>
-      {error && <div className="flex items-center justify-between gap-3 rounded-xl border border-[#FECACA] bg-[#FEF2F2] px-3 py-2 text-[11px] text-[#DC2626]">
+      {error && <div className="adp-kpi-error">
         <span>Unable to load performance metrics.</span>
         {onRetry && <button type="button" onClick={onRetry} className="font-semibold underline underline-offset-2">Retry</button>}
       </div>}
@@ -116,24 +117,21 @@ export function KpiStrip({ summary, comparison, periodLabel = "Today", loading, 
 function KpiCard({ card, loading }) {
   const Icon = card.icon;
   return (
-    <div className={cn(
-      "min-w-0 rounded-[14px] border border-[#E8E2DD] bg-white p-2.5",
-      "min-h-[88px]",
-    )}>
+    <div className={cn("adp-kpi-card", card.hero && "adp-kpi-card--hero")}>
       <div className="flex items-center justify-between gap-2">
-        <p className="min-w-0 text-[10px] font-bold uppercase leading-[13px] tracking-[0.07em] text-[#817A75]">{card.label}</p>
-        {Icon && <span className={cn("grid size-8 shrink-0 place-items-center rounded-[10px]", card.iconBg)}>
+        <p className="adp-kpi-label">{card.label}</p>
+        {Icon && <span className={cn("adp-icon-chip", card.iconBg)}>
           <Icon className={cn("size-[17px]", card.iconColor)} strokeWidth={2} aria-hidden="true" />
         </span>}
       </div>
-      {loading ? <Skeleton className="mt-2 h-6 w-16" /> : (
+      {loading ? <Skeleton className="h-6 w-16" /> : (
         <p className={cn(
-          "mt-1 break-words text-[20px] font-extrabold leading-6 tracking-tight tabular-nums",
+          "adp-kpi-value",
           card.valueColor,
-          card.value === "Not available" && "text-[13px] text-[#8A8580]",
+          card.value === "Not available" && "adp-kpi-value--muted",
         )}>{card.value ?? "—"}</p>
       )}
-      {card.note ? <p className="mt-0.5 whitespace-nowrap text-[10px] leading-[14px] text-[#8A8580]">{card.note}</p> : card.trend != null ? <Trend value={card.trend} /> : null}
+      {card.note ? <p className="adp-kpi-note">{card.note}</p> : card.trend != null ? <Trend value={card.trend} /> : null}
     </div>
   );
 }
@@ -209,14 +207,14 @@ export function LiveOperations({ dashboard, loading, error, onRetry }) {
     <Panel className="lg:col-span-4 rounded-[16px] border-[#E8E2DD] shadow-none">
       <PanelHeader action="Kitchen queue" to="/admin/kitchen-queue">Live operations</PanelHeader>
       {loading ? <LoadingRows count={3} /> : error ? <ErrorState message="Unable to load live operations." onRetry={onRetry} /> : <>
-      <div className="[scrollbar-width:none] flex gap-2 overflow-x-auto px-4 pt-4 sm:px-5 lg:grid lg:grid-cols-4 lg:overflow-visible">
+      <div className="adp-stat-row">
         {counts.map(([label, value, Icon, classes]) => (
-          <Link key={label} to="/admin/kitchen-queue" className="flex h-[78px] min-w-[82px] shrink-0 flex-col items-center justify-center rounded-xl border border-[#E8E2DD] bg-white p-2 text-center transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF2438]/30">
+          <Link key={label} to="/admin/kitchen-queue" className="adp-stat focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF2438]/30">
             <span className={cn("mb-0.5 grid size-8 place-items-center rounded-[10px]", classes)}>
               {createElement(Icon, { className: "size-[17px]", strokeWidth: 2, "aria-hidden": true })}
             </span>
-            <p className="text-lg font-bold leading-5 tabular-nums">{formatNumber(value)}</p>
-            <p className="whitespace-nowrap text-[10px] font-semibold leading-3">{label}</p>
+            <p className="adp-stat-value">{formatNumber(value)}</p>
+            <p className="adp-stat-label">{label}</p>
           </Link>
         ))}
       </div>
@@ -383,8 +381,8 @@ export function NeedsAttention({ dashboard, inventoryQuery, liveLoading }) {
   ].filter(Boolean);
   if (alerts.length === 0) return null;
   const tones = {
-    red: "border-red-100 bg-red-50/60 text-red-700",
-    amber: "border-amber-100 bg-amber-50/60 text-amber-700",
+    red: "adp-alert--red",
+    amber: "adp-alert--amber",
     neutral: "border-zinc-200 bg-zinc-50 text-zinc-700",
   };
   return (
@@ -395,13 +393,13 @@ export function NeedsAttention({ dashboard, inventoryQuery, liveLoading }) {
       ) : (
         <div className="space-y-2 px-4 py-4 sm:px-5">
           {alerts.map(({ tone, icon: Icon, title, detail, to, action }) => (
-            <Link key={title} to={to} className={cn("flex items-center gap-3 rounded-xl border px-3 py-3 transition-colors hover:brightness-[.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30", tones[tone])}>
+            <Link key={title} to={to} className={cn("adp-alert focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30", tones[tone])}>
               {createElement(Icon, { size: 17, className: "shrink-0", "aria-hidden": true })}
               <span className="min-w-0 flex-1">
                 <span className="block text-xs font-bold">{title}</span>
                 <span className="mt-0.5 block truncate text-[11px] opacity-75">{detail}</span>
               </span>
-              <span className="shrink-0 text-[11px] font-bold">{action} <span aria-hidden="true">→</span></span>
+              <span className="adp-alert-action">{action} <span aria-hidden="true">→</span></span>
             </Link>
           ))}
         </div>
