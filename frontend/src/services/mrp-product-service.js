@@ -54,9 +54,17 @@ export const getSimilarCatalogProducts = (locationId, name) =>
     params: { locationId, name },
   }).then((response) => response.data);
 
-export const getGlobalCatalogProducts = (locationId, { search = "", page = 0, size = 24 } = {}) =>
+export const getGlobalCatalogProducts = (locationId, { search, brand, veg, hasImage, inLocation, sort, sourceLocationId, page = 0, size = 24 } = {}) =>
   apiClient.get("/api/mrp-product/admin/global-products", {
-    params: { locationId, search, page, size },
+    params: { locationId, search, brand, veg, hasImage, inLocation, sort, sourceLocationId, page, size },
+  }).then((response) => response.data);
+
+export const copyCatalogAssignments = (payload) =>
+  apiClient.post("/api/mrp-product/admin/copy-assignments", payload).then((response) => response.data);
+
+export const getGlobalCatalogBrands = (locationId) =>
+  apiClient.get("/api/mrp-product/admin/global-products/brands", {
+    params: { locationId },
   }).then((response) => response.data);
 
 export const reuseCatalogProductImage = (id, locationId, sourceProductId) =>
