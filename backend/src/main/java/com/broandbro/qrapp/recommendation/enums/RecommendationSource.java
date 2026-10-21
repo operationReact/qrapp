@@ -6,8 +6,7 @@ package com.broandbro.qrapp.recommendation.enums;
 public enum RecommendationSource {
     MANUAL,        // L1 – admin curated
     AUTO,          // L2 – accepted co-occurrence
-    UPSELL,        // L4 – upsell rule triggered
-    CATEGORY,      // L5 – category pairing fallback
+    UPSELL,        // L4 – recommendation rule triggered (category/cart value/discount)
     BEST_SELLER    // L6 – top sellers fallback
 }
 

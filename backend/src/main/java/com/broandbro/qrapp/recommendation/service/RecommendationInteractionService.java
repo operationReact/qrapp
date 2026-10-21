@@ -3,7 +3,9 @@ package com.broandbro.qrapp.recommendation.service;
 import com.broandbro.qrapp.entity.MenuItem;
 import com.broandbro.qrapp.recommendation.dto.RecommendationAnalyticsDtos.*;
 import com.broandbro.qrapp.recommendation.entity.RecommendationInteraction;
+import com.broandbro.qrapp.recommendation.entity.RecommendationRule;
 import com.broandbro.qrapp.recommendation.enums.InteractionType;
+import com.broandbro.qrapp.recommendation.repository.RecommendationRuleRepository;
 import com.broandbro.qrapp.recommendation.repository.RecommendationInteractionRepository;
 import com.broandbro.qrapp.recommendation.repository.RecommendationInteractionRepository.PairingStatProjection;
 import com.broandbro.qrapp.repository.MenuRepository;
@@ -49,6 +51,7 @@ public class RecommendationInteractionService {
     private static final int        TOP_LIST_LIMIT  = 10;
 
     private final RecommendationInteractionRepository interactionRepo;
+    private final RecommendationRuleRepository        ruleRepo;
     private final MenuRepository                      menuRepo;
 
     // ── Event Tracking ────────────────────────────────────────────────────────
@@ -87,6 +90,7 @@ public class RecommendationInteractionService {
                 .sessionId(req.getSessionId())
                 .resolvedBy(req.getResolvedBy())
                 .pairingRole(req.getPairingRole())
+                .ruleId(resolveRuleId(req.getRuleId(), locationId))
                 .build();
 
         RecommendationInteraction saved = interactionRepo.save(interaction);
@@ -98,6 +102,27 @@ public class RecommendationInteractionService {
                 .interactionId(saved.getId())
                 .message("Interaction recorded")
                 .build();
+    }
+
+    // ── Per-Rule Analytics ────────────────────────────────────────────────────
+
+    /**
+     * Views and acceptances per cart rule for a restaurant, used on the rules admin page.
+     */
+    @Transactional(readOnly = true)
+    public List<RuleStat> getRuleStats(Long restaurantId) {
+        return interactionRepo.findRuleStats(restaurantId).stream()
+                .map(p -> {
+                    long views       = nvl(p.getViews());
+                    long acceptances = nvl(p.getAcceptances());
+                    return RuleStat.builder()
+                            .ruleId(p.getRuleId())
+                            .views(views)
+                            .acceptances(acceptances)
+                            .acceptanceRate(rate(acceptances, views))
+                            .build();
+                })
+                .toList();
     }
 
     // ── Analytics Dashboard ───────────────────────────────────────────────────
@@ -204,6 +229,18 @@ public class RecommendationInteractionService {
         return BigDecimal.valueOf(numerator)
                 .multiply(BD_100)
                 .divide(BigDecimal.valueOf(denominator), 2, RoundingMode.HALF_UP);
+    }
+
+    /**
+     * Keeps a rule attribution only when the rule belongs to the same location.
+     * An unknown or foreign rule id is dropped, so tracking never fails the customer flow.
+     */
+    private Long resolveRuleId(Long ruleId, Long locationId) {
+        if (ruleId == null) return null;
+        return ruleRepo.findById(ruleId)
+                .filter(r -> r.getLocation() != null && locationId.equals(r.getLocation().getId()))
+                .map(RecommendationRule::getId)
+                .orElse(null);
     }
 
     private static long nvl(Long value) {

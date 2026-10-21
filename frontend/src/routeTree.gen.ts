@@ -98,11 +98,10 @@ import { Route as AdminmenuMealRolesRouteImport } from './routes/admin/(menu)/me
 import { Route as AdminmenuManageMenuRouteImport } from './routes/admin/(menu)/manage-menu'
 import { Route as AdminmenuGlobalProductsRouteImport } from './routes/admin/(menu)/global-products'
 import { Route as AdminmenuClassificationRouteImport } from './routes/admin/(menu)/classification'
-import { Route as AdmingrowthUpsellRulesRouteImport } from './routes/admin/(growth)/upsell-rules'
 import { Route as AdmingrowthRecommendationsRouteImport } from './routes/admin/(growth)/recommendations'
 import { Route as AdmingrowthItemRecommendationsRouteImport } from './routes/admin/(growth)/item-recommendations'
 import { Route as AdmingrowthComboOpportunitiesRouteImport } from './routes/admin/(growth)/combo-opportunities'
-import { Route as AdmingrowthCategoryPairingsRouteImport } from './routes/admin/(growth)/category-pairings'
+import { Route as AdmingrowthCartRulesRouteImport } from './routes/admin/(growth)/cart-rules'
 import { Route as AdmingrowthAutoSuggestionsRouteImport } from './routes/admin/(growth)/auto-suggestions'
 import { Route as AdminfoodcourtFoodCourtRouteImport } from './routes/admin/(foodcourt)/food-court'
 import { Route as AdmincouponsCouponsRouteImport } from './routes/admin/(coupons)/coupons'
@@ -575,11 +574,6 @@ const AdminmenuClassificationRoute = AdminmenuClassificationRouteImport.update({
   path: '/classification',
   getParentRoute: () => AdminRoute,
 } as any)
-const AdmingrowthUpsellRulesRoute = AdmingrowthUpsellRulesRouteImport.update({
-  id: '/(growth)/upsell-rules',
-  path: '/upsell-rules',
-  getParentRoute: () => AdminRoute,
-} as any)
 const AdmingrowthRecommendationsRoute =
   AdmingrowthRecommendationsRouteImport.update({
     id: '/(growth)/recommendations',
@@ -598,12 +592,11 @@ const AdmingrowthComboOpportunitiesRoute =
     path: '/combo-opportunities',
     getParentRoute: () => AdminRoute,
   } as any)
-const AdmingrowthCategoryPairingsRoute =
-  AdmingrowthCategoryPairingsRouteImport.update({
-    id: '/(growth)/category-pairings',
-    path: '/category-pairings',
-    getParentRoute: () => AdminRoute,
-  } as any)
+const AdmingrowthCartRulesRoute = AdmingrowthCartRulesRouteImport.update({
+  id: '/(growth)/cart-rules',
+  path: '/cart-rules',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdmingrowthAutoSuggestionsRoute =
   AdmingrowthAutoSuggestionsRouteImport.update({
     id: '/(growth)/auto-suggestions',
@@ -715,11 +708,10 @@ export interface FileRoutesByFullPath {
   '/admin/coupons': typeof AdmincouponsCouponsRoute
   '/admin/food-court': typeof AdminfoodcourtFoodCourtRoute
   '/admin/auto-suggestions': typeof AdmingrowthAutoSuggestionsRoute
-  '/admin/category-pairings': typeof AdmingrowthCategoryPairingsRoute
+  '/admin/cart-rules': typeof AdmingrowthCartRulesRoute
   '/admin/combo-opportunities': typeof AdmingrowthComboOpportunitiesRoute
   '/admin/item-recommendations': typeof AdmingrowthItemRecommendationsRoute
   '/admin/recommendations': typeof AdmingrowthRecommendationsRoute
-  '/admin/upsell-rules': typeof AdmingrowthUpsellRulesRoute
   '/admin/classification': typeof AdminmenuClassificationRoute
   '/admin/global-products': typeof AdminmenuGlobalProductsRoute
   '/admin/manage-menu': typeof AdminmenuManageMenuRoute
@@ -818,11 +810,10 @@ export interface FileRoutesByTo {
   '/admin/coupons': typeof AdmincouponsCouponsRoute
   '/admin/food-court': typeof AdminfoodcourtFoodCourtRoute
   '/admin/auto-suggestions': typeof AdmingrowthAutoSuggestionsRoute
-  '/admin/category-pairings': typeof AdmingrowthCategoryPairingsRoute
+  '/admin/cart-rules': typeof AdmingrowthCartRulesRoute
   '/admin/combo-opportunities': typeof AdmingrowthComboOpportunitiesRoute
   '/admin/item-recommendations': typeof AdmingrowthItemRecommendationsRoute
   '/admin/recommendations': typeof AdmingrowthRecommendationsRoute
-  '/admin/upsell-rules': typeof AdmingrowthUpsellRulesRoute
   '/admin/classification': typeof AdminmenuClassificationRoute
   '/admin/global-products': typeof AdminmenuGlobalProductsRoute
   '/admin/manage-menu': typeof AdminmenuManageMenuRoute
@@ -925,11 +916,10 @@ export interface FileRoutesById {
   '/admin/(coupons)/coupons': typeof AdmincouponsCouponsRoute
   '/admin/(foodcourt)/food-court': typeof AdminfoodcourtFoodCourtRoute
   '/admin/(growth)/auto-suggestions': typeof AdmingrowthAutoSuggestionsRoute
-  '/admin/(growth)/category-pairings': typeof AdmingrowthCategoryPairingsRoute
+  '/admin/(growth)/cart-rules': typeof AdmingrowthCartRulesRoute
   '/admin/(growth)/combo-opportunities': typeof AdmingrowthComboOpportunitiesRoute
   '/admin/(growth)/item-recommendations': typeof AdmingrowthItemRecommendationsRoute
   '/admin/(growth)/recommendations': typeof AdmingrowthRecommendationsRoute
-  '/admin/(growth)/upsell-rules': typeof AdmingrowthUpsellRulesRoute
   '/admin/(menu)/classification': typeof AdminmenuClassificationRoute
   '/admin/(menu)/global-products': typeof AdminmenuGlobalProductsRoute
   '/admin/(menu)/manage-menu': typeof AdminmenuManageMenuRoute
@@ -1033,11 +1023,10 @@ export interface FileRouteTypes {
     | '/admin/coupons'
     | '/admin/food-court'
     | '/admin/auto-suggestions'
-    | '/admin/category-pairings'
+    | '/admin/cart-rules'
     | '/admin/combo-opportunities'
     | '/admin/item-recommendations'
     | '/admin/recommendations'
-    | '/admin/upsell-rules'
     | '/admin/classification'
     | '/admin/global-products'
     | '/admin/manage-menu'
@@ -1136,11 +1125,10 @@ export interface FileRouteTypes {
     | '/admin/coupons'
     | '/admin/food-court'
     | '/admin/auto-suggestions'
-    | '/admin/category-pairings'
+    | '/admin/cart-rules'
     | '/admin/combo-opportunities'
     | '/admin/item-recommendations'
     | '/admin/recommendations'
-    | '/admin/upsell-rules'
     | '/admin/classification'
     | '/admin/global-products'
     | '/admin/manage-menu'
@@ -1242,11 +1230,10 @@ export interface FileRouteTypes {
     | '/admin/(coupons)/coupons'
     | '/admin/(foodcourt)/food-court'
     | '/admin/(growth)/auto-suggestions'
-    | '/admin/(growth)/category-pairings'
+    | '/admin/(growth)/cart-rules'
     | '/admin/(growth)/combo-opportunities'
     | '/admin/(growth)/item-recommendations'
     | '/admin/(growth)/recommendations'
-    | '/admin/(growth)/upsell-rules'
     | '/admin/(menu)/classification'
     | '/admin/(menu)/global-products'
     | '/admin/(menu)/manage-menu'
@@ -1953,13 +1940,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminmenuClassificationRouteImport
       parentRoute: typeof AdminRoute
     }
-    '/admin/(growth)/upsell-rules': {
-      id: '/admin/(growth)/upsell-rules'
-      path: '/upsell-rules'
-      fullPath: '/admin/upsell-rules'
-      preLoaderRoute: typeof AdmingrowthUpsellRulesRouteImport
-      parentRoute: typeof AdminRoute
-    }
     '/admin/(growth)/recommendations': {
       id: '/admin/(growth)/recommendations'
       path: '/recommendations'
@@ -1981,11 +1961,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdmingrowthComboOpportunitiesRouteImport
       parentRoute: typeof AdminRoute
     }
-    '/admin/(growth)/category-pairings': {
-      id: '/admin/(growth)/category-pairings'
-      path: '/category-pairings'
-      fullPath: '/admin/category-pairings'
-      preLoaderRoute: typeof AdmingrowthCategoryPairingsRouteImport
+    '/admin/(growth)/cart-rules': {
+      id: '/admin/(growth)/cart-rules'
+      path: '/cart-rules'
+      fullPath: '/admin/cart-rules'
+      preLoaderRoute: typeof AdmingrowthCartRulesRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/(growth)/auto-suggestions': {
@@ -2072,11 +2052,10 @@ interface AdminRouteChildren {
   AdmincouponsCouponsRoute: typeof AdmincouponsCouponsRoute
   AdminfoodcourtFoodCourtRoute: typeof AdminfoodcourtFoodCourtRoute
   AdmingrowthAutoSuggestionsRoute: typeof AdmingrowthAutoSuggestionsRoute
-  AdmingrowthCategoryPairingsRoute: typeof AdmingrowthCategoryPairingsRoute
+  AdmingrowthCartRulesRoute: typeof AdmingrowthCartRulesRoute
   AdmingrowthComboOpportunitiesRoute: typeof AdmingrowthComboOpportunitiesRoute
   AdmingrowthItemRecommendationsRoute: typeof AdmingrowthItemRecommendationsRoute
   AdmingrowthRecommendationsRoute: typeof AdmingrowthRecommendationsRoute
-  AdmingrowthUpsellRulesRoute: typeof AdmingrowthUpsellRulesRoute
   AdminmenuClassificationRoute: typeof AdminmenuClassificationRoute
   AdminmenuGlobalProductsRoute: typeof AdminmenuGlobalProductsRoute
   AdminmenuManageMenuRoute: typeof AdminmenuManageMenuRoute
@@ -2129,11 +2108,10 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdmincouponsCouponsRoute: AdmincouponsCouponsRoute,
   AdminfoodcourtFoodCourtRoute: AdminfoodcourtFoodCourtRoute,
   AdmingrowthAutoSuggestionsRoute: AdmingrowthAutoSuggestionsRoute,
-  AdmingrowthCategoryPairingsRoute: AdmingrowthCategoryPairingsRoute,
+  AdmingrowthCartRulesRoute: AdmingrowthCartRulesRoute,
   AdmingrowthComboOpportunitiesRoute: AdmingrowthComboOpportunitiesRoute,
   AdmingrowthItemRecommendationsRoute: AdmingrowthItemRecommendationsRoute,
   AdmingrowthRecommendationsRoute: AdmingrowthRecommendationsRoute,
-  AdmingrowthUpsellRulesRoute: AdmingrowthUpsellRulesRoute,
   AdminmenuClassificationRoute: AdminmenuClassificationRoute,
   AdminmenuGlobalProductsRoute: AdminmenuGlobalProductsRoute,
   AdminmenuManageMenuRoute: AdminmenuManageMenuRoute,

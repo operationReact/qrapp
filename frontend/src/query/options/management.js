@@ -20,7 +20,10 @@ export const adminLocationsPageOptions = (params) => ({
   queryFn: async () => (await apiClient.get("/api/admin/locations", { params })).data,
 });
 export const adminCustomerCompaniesOptions = (params) => list("/api/admin/customer-companies", "customer-companies", params);
-export const adminVendorsOptions = () => list("/api/v1/vendors", "vendors");
+export const adminVendorsOptions = (locationId) => ({
+  ...list("/api/v1/vendors", "vendors", { locationId }),
+  enabled: Boolean(locationId),
+});
 export const adminPartnersOptions = () => list("/api/v1/partners", "partners");
 export const locationCustomerCompaniesOptions = (locationId, enabled = true) => ({
   queryKey: ["admin", "locations", locationId, "customer-companies"],

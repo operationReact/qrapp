@@ -74,9 +74,23 @@ public class RecommendationAnalyticsDtos {
          * Pass this from {@code MealItemView.role} on the frontend.
          */
         private String pairingRole;
+
+        /** The cart rule that produced the suggestion. Null for non-rule sources. */
+        private Long ruleId;
     }
 
     // ── Analytics Response DTOs ───────────────────────────────────────────────
+
+    /** Acceptance stats for one cart rule, shown on the rules admin page. */
+    @Data
+    @Builder
+    public static class RuleStat {
+        private Long ruleId;
+        private long views;
+        private long acceptances;
+        /** Acceptances / views × 100, or null when the rule has no views yet. */
+        private BigDecimal acceptanceRate;
+    }
 
     /**
      * Per-pairing analytics aggregated from {@code rec_interaction}.

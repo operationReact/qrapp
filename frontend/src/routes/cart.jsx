@@ -85,7 +85,6 @@ export const Route = createFileRoute("/cart")({
 function CartPage() {
   const {
     cart,
-    removeItem,
     addItem,
     decreaseItem,
     closeDrawer,
@@ -417,6 +416,7 @@ function CartPage() {
     const items = cart.map((i) => ({
       itemId: i.id,
       quantity: i.quantity,
+      optionIds: (i.addonOptions ?? []).map((o) => o.id),
     }));
 
     setSubmitting(true);
@@ -588,9 +588,7 @@ function CartPage() {
               <section className="space-y-0 rounded-xl bg-card border border-border shadow-xs py-2 px-4">
                 {cart.map((item) => (
                   <CartItem
-                    key={item.id}
-                    item={item}
-                    removeItem={removeItem}
+                    key={item.lineKey ?? item.id}
                     addItem={addItem}
                     decreaseItem={decreaseItem}
                   />

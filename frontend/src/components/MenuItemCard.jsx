@@ -12,6 +12,7 @@ import { cn, formatCurrency } from "@/lib/utils";
 import QuantitySelector from "./QuantitySelector";
 import CustomerPreOrderDialog from "./CustomerPreOrderDialog";
 import ProductDetailDialog from "./ProductDetailDialog";
+import { useAddonItemIds } from "@/hooks/useItemAddons";
 
 const PRE_ORDER_ONLY_TAG = "PreOrderOnly";
 
@@ -32,8 +33,11 @@ export default function MenuItemCard({
 
   const preOrderOnly = isPreOrderOnly(item);
 
-  const existing = cart.find((i) => i.id === item.id);
-  const qty = existing ? existing.quantity : 0;
+  const qty = cart
+    .filter((i) => String(i.id) === String(item.id))
+    .reduce((sum, i) => sum + i.quantity, 0);
+  const { data: addonItemIds } = useAddonItemIds();
+  const hasAddons = addonItemIds?.includes(Number(item.id)) ?? false;
 
   const availableRaw = item.available;
   const isAvailable =
@@ -206,7 +210,7 @@ export default function MenuItemCard({
             ) : (
               <QuantitySelector
                 qty={qty}
-                onAdd={() => addItem(item)}
+                onAdd={() => (hasAddons ? setDetailOpen(true) : addItem(item))}
                 onRemove={() => decreaseItem(item)}
                 compact={compact}
                 className={compact ? "w-full" : undefined}

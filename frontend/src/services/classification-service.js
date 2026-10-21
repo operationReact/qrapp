@@ -39,3 +39,26 @@ export const fetchItemClassification = (itemId, locationId) =>
  */
 export const updateItemClassification = (itemId, data, locationId) =>
   apiClient.patch(`/classification/items/${itemId}`, data, { params: { locationId } }).then((r) => r.data);
+
+/**
+ * Batch-read classification for many items in one call.
+ * @param {number[]} itemIds
+ * @returns {Object<string, { comboRole, mealTypes, cuisineTypes }>} keyed by item id
+ */
+export const fetchItemClassificationBatch = (itemIds, locationId) =>
+  apiClient
+    .get("/classification/items", { params: { ids: itemIds.join(","), locationId } })
+    .then((r) => r.data);
+
+/**
+ * Add classification values to many items; existing values are kept.
+ * @param {{ itemIds: number[], comboRoleId?: number, mealTypeIds?: number[], cuisineTypeIds?: number[] }} data
+ */
+export const bulkAddClassification = (data, locationId) =>
+  apiClient.post("/classification/items/bulk", data, { params: { locationId } }).then((r) => r.data);
+
+/**
+ * Setup completeness for a location: missing fields, roles with no items, broken rules.
+ */
+export const fetchSetupHealth = (locationId) =>
+  apiClient.get("/classification/health", { params: { locationId } }).then((r) => r.data);

@@ -9,6 +9,7 @@ import com.broandbro.qrapp.entity.MenuItemSellingPriceHistory;
 import com.broandbro.qrapp.recommendation.dto.RecommendationDtos.*;
 import com.broandbro.qrapp.recommendation.entity.*;
 import com.broandbro.qrapp.recommendation.enums.RecommendationSource;
+import com.broandbro.qrapp.recommendation.enums.TriggerType;
 import com.broandbro.qrapp.recommendation.repository.*;
 import com.broandbro.qrapp.repository.MenuItemSellingPriceHistoryRepository;
 import com.broandbro.qrapp.repository.MenuRepository;
@@ -29,11 +30,10 @@ import java.util.stream.Collectors;
  *
  * <pre>
  * Priority (affinity) tiers — preserved unchanged:
- *   L1 MANUAL       affinity = 1000
+ *   L1 MANUAL       affinity = 1000   (admin rule, ITEM_IN_CART)
  *   L2 AUTO         affinity = 800
- *   L3 UPSELL       affinity = 600
- *   L4 CATEGORY     affinity = 400
- *   L5 BEST_SELLER  affinity = 200
+ *   L3 UPSELL       affinity = 600    (admin rule, CATEGORY_IN_CART / CART_VALUE_EXCEEDS)
+ *   L4 BEST_SELLER  affinity = 200
  *
  * Classification scoring layer (added on top of affinity):
  *   Meal Type boost    +20 per shared meal type  (cap +40)
@@ -53,10 +53,8 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class RecommendationEngineService {
 
-    private final ItemRecommendationRepository      manualRecRepo;
+    private final RecommendationRuleService         ruleSvc;
     private final AutoSuggestionRepository          autoSuggRepo;
-    private final UpsellRuleRepository              upsellRuleRepo;
-    private final CategoryPairingRuleRepository     catPairingRepo;
     private final MenuItemAnalyticsRepository       analyticsRepo;
     private final MenuRepository                    menuRepo;
     private final MenuItemSellingPriceHistoryRepository priceRepo;
@@ -71,7 +69,6 @@ public class RecommendationEngineService {
     private static final int TIER_MANUAL        = 1000;
     private static final int TIER_AUTO          = 800;
     private static final int TIER_UPSELL        = 600;
-    private static final int TIER_CATEGORY      = 400;
     private static final int TIER_BEST_SELLER   = 200;
 
     // Classification deltas
@@ -102,24 +99,24 @@ public class RecommendationEngineService {
         LinkedHashMap<Long, ScoredCandidate> pool = new LinkedHashMap<>();
         String resolvedBy = "NONE";
 
-        // ── P1: Manual item→item mappings ─────────────────────────────────────
-        // IMPORTANT: admin-curated mappings are not inherently location-scoped,
-        // so a target item belonging to a DIFFERENT location must never be
-        // suggested — doing so would let the frontend add a cross-location
-        // item into the customer's active cart.
-        if (!cartItemIds.isEmpty()) {
-            for (ItemRecommendation r : manualRecRepo.findBySourceItemIds(cartItemIds)) {
-                MenuItem target = r.getTargetItem();
-                Long tid = target.getId();
-                if (!cartItemSet.contains(tid) && !pool.containsKey(tid)
-                        && belongsToLocation(target, resolvedLocationId)) {
-                    pool.put(tid, new ScoredCandidate(
-                            buildSuggestion(target, RecommendationSource.MANUAL, null, null),
-                            TIER_MANUAL));
-                    if (pool.size() >= poolSize) break;
-                }
+        // ── P1: Admin cart rules (item-in-cart, category-in-cart, cart-value) ──
+        // Rules are location-scoped by construction, so no cross-location item can be suggested.
+        if (resolvedLocationId != null) {
+            for (RecommendationRuleService.RuleMatch m
+                    : ruleSvc.match(resolvedLocationId, cartItemIds, cartCatIds, cartTotal)) {
+                if (pool.size() >= poolSize) break;
+                MenuItem target = m.target();
+                RecommendationRule rule = m.rule();
+                if (pool.containsKey(target.getId())) continue;
+                boolean itemRule = rule.getTriggerType() == TriggerType.ITEM_IN_CART;
+                RecommendationSuggestion suggestion = buildSuggestion(target,
+                        itemRule ? RecommendationSource.MANUAL : RecommendationSource.UPSELL,
+                        rule.getRewardValue(), rule.getRewardType().name());
+                suggestion.setRuleId(rule.getId());
+                pool.put(target.getId(), new ScoredCandidate(suggestion,
+                        itemRule ? TIER_MANUAL : TIER_UPSELL));
             }
-            if (!pool.isEmpty()) resolvedBy = "MANUAL";
+            if (!pool.isEmpty()) resolvedBy = "RULE";
         }
 
         // ── P2: Accepted co-occurrence auto suggestions ───────────────────────
@@ -136,46 +133,6 @@ public class RecommendationEngineService {
                 }
             }
             if (resolvedBy.equals("NONE") && !pool.isEmpty()) resolvedBy = "AUTO";
-        }
-
-        // ── P3: Upsell rule targets ───────────────────────────────────────────
-        if (pool.size() < poolSize) {
-            List<Long> safeItemIds = cartItemIds.isEmpty() ? List.of(-1L) : cartItemIds;
-            List<Long> safeCatIds  = cartCatIds.isEmpty()  ? List.of(-1L) : cartCatIds;
-            outer:
-            for (UpsellRule rule : upsellRuleRepo.findMatchingRules(safeItemIds, safeCatIds, cartTotal)) {
-                for (UpsellRuleTarget t : rule.getTargets()) {
-                    MenuItem target = t.getItem();
-                    Long tid = target.getId();
-                    if (!cartItemSet.contains(tid) && !pool.containsKey(tid)
-                            && belongsToLocation(target, resolvedLocationId)) {
-                        pool.put(tid, new ScoredCandidate(
-                                buildSuggestion(target, RecommendationSource.UPSELL,
-                                        rule.getRewardValue(), rule.getRewardType().name()),
-                                TIER_UPSELL));
-                        if (pool.size() >= poolSize) break outer;
-                    }
-                }
-            }
-            if (resolvedBy.equals("NONE") && !pool.isEmpty()) resolvedBy = "UPSELL";
-        }
-
-        // ── P4: Category pairing fallback ─────────────────────────────────────
-        if (pool.size() < poolSize && !cartCatIds.isEmpty()) {
-            for (CategoryPairingRule p : catPairingRepo.findByCategoryIds(cartCatIds)) {
-                Long targetCatId = p.getTargetCategory().getId();
-                if (resolvedLocationId == null) continue;
-                for (MenuItem item : menuRepo.findByFilters(resolvedLocationId, null, targetCatId, null, PageRequest.of(0, poolSize))) {
-                    if (!cartItemSet.contains(item.getId()) && !pool.containsKey(item.getId())) {
-                        pool.put(item.getId(), new ScoredCandidate(
-                                buildSuggestion(item, RecommendationSource.CATEGORY, null, null),
-                                TIER_CATEGORY));
-                        if (pool.size() >= poolSize) break;
-                    }
-                }
-                if (pool.size() >= poolSize) break;
-            }
-            if (resolvedBy.equals("NONE") && !pool.isEmpty()) resolvedBy = "CATEGORY";
         }
 
         // ── P5: Best sellers ─────────────────────────────────────────────────

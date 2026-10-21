@@ -15,9 +15,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -285,6 +288,36 @@ public class ClassificationService {
                 itemId, req.getComboRoleId(), req.getMealTypeIds(), req.getCuisineTypeIds());
 
         return getItemClassification(itemId, locationId);
+    }
+
+    /**
+     * Adds classification values to many items at once without removing what they already have.
+     * Meal and cuisine types are unioned; the combo role is only set where the item has none.
+     */
+    @Transactional
+    public int bulkAddClassification(Long locationId, BulkAddClassificationRequest req) {
+        if (req.getItemIds() == null || req.getItemIds().isEmpty()) return 0;
+
+        for (Long itemId : req.getItemIds()) {
+            ItemClassificationResponse current = getItemClassification(itemId, locationId);
+
+            UpdateItemClassificationRequest merged = new UpdateItemClassificationRequest();
+            merged.setComboRoleId(current.getComboRole() != null
+                    ? current.getComboRole().getId()
+                    : req.getComboRoleId());
+            merged.setMealTypeIds(union(current.getMealTypes(), MealTypeView::getId, req.getMealTypeIds()));
+            merged.setCuisineTypeIds(union(current.getCuisineTypes(), CuisineTypeView::getId, req.getCuisineTypeIds()));
+
+            updateItemClassification(itemId, locationId, merged);
+        }
+        return req.getItemIds().size();
+    }
+
+    private static <T> List<Long> union(List<T> existing, Function<T, Long> idOf, List<Long> added) {
+        Set<Long> ids = new LinkedHashSet<>();
+        if (existing != null) existing.forEach(e -> ids.add(idOf.apply(e)));
+        if (added != null) ids.addAll(added);
+        return new ArrayList<>(ids);
     }
 
     // ─────────────────────────────────────────────────────────────────────────

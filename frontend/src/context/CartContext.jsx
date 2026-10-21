@@ -79,6 +79,19 @@ function itemBelongsToLocation(item, locationId) {
   return String(item.locationId) === String(locationId);
 }
 
+// A cart line is the menu item plus its chosen add-ons, so the same item with
+// different options becomes separate lines. Lines saved before add-ons existed
+// have no lineKey and fall back to the plain item id, which is the same key an
+// item with no add-ons gets.
+function buildLineKey(item) {
+  const optionIds = (item.addonOptions ?? []).map((o) => Number(o.id)).sort((a, b) => a - b);
+  return optionIds.length ? `${item.id}|${optionIds.join(",")}` : String(item.id);
+}
+
+function lineKeyOf(line) {
+  return line.lineKey ?? String(line.id);
+}
+
 export function CartProvider({ children }) {
   const { activeLocationId } = useLocation();
 
@@ -211,14 +224,15 @@ export function CartProvider({ children }) {
       return { ok: false, reason: "LOCATION_MISMATCH" };
     }
 
+    const key = buildLineKey(item);
     setCart(prevCart => {
-      const existing = prevCart.find(i => i.id === item.id);
+      const existing = prevCart.find(i => lineKeyOf(i) === key);
       if (existing) {
         return prevCart.map(i =>
-          i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i
+          lineKeyOf(i) === key ? { ...i, quantity: i.quantity + 1 } : i
         );
       }
-      return [...prevCart, { ...item, quantity: 1 }];
+      return [...prevCart, { ...item, lineKey: key, quantity: 1 }];
     });
 
     // trigger badge pulse
@@ -235,11 +249,12 @@ export function CartProvider({ children }) {
     const merge = (current) => {
       const next = [...current];
       for (const item of items) {
-        const index = next.findIndex((i) => String(i.id) === String(item.id));
+        const key = buildLineKey(item);
+        const index = next.findIndex((i) => lineKeyOf(i) === key);
         if (index >= 0) {
           next[index] = { ...next[index], quantity: next[index].quantity + item.quantity };
         } else {
-          next.push({ ...item, locationId: targetLocationId });
+          next.push({ ...item, lineKey: key, locationId: targetLocationId });
         }
       }
       return next;
@@ -254,21 +269,31 @@ export function CartProvider({ children }) {
     writeLS(key, merge(readLS(key, [])));
   };
 
+  // Accepts a cart line (matched by its lineKey) or a bare menu item. A bare item
+  // with no lineKey decrements the most recently added line for that item id.
   const decreaseItem = (item) => {
     setCart(prevCart => {
-      const existing = prevCart.find(i => i.id === item.id);
-      if (!existing) return prevCart;
-      if (existing.quantity === 1) {
-        return prevCart.filter(i => i.id !== item.id);
+      let index = -1;
+      if (item.lineKey != null) {
+        index = prevCart.findIndex(i => lineKeyOf(i) === item.lineKey);
+      } else {
+        for (let n = prevCart.length - 1; n >= 0; n--) {
+          if (String(prevCart[n].id) === String(item.id)) { index = n; break; }
+        }
       }
-      return prevCart.map(i =>
-        i.id === item.id ? { ...i, quantity: i.quantity - 1 } : i
+      if (index < 0) return prevCart;
+      if (prevCart[index].quantity === 1) {
+        return prevCart.filter((_, n) => n !== index);
+      }
+      return prevCart.map((line, n) =>
+        n === index ? { ...line, quantity: line.quantity - 1 } : line
       );
     });
   };
 
+  // `id` is a lineKey (or a plain menu item id, which is the lineKey for items without add-ons).
   const removeItem = (id) => {
-    setCart(prevCart => prevCart.filter(i => i.id !== id));
+    setCart(prevCart => prevCart.filter(i => lineKeyOf(i) !== String(id)));
   };
 
   const clearCart = () => {

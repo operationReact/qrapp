@@ -75,8 +75,8 @@ public class MealRecommendationDtos {
         /**
          * How the companions were resolved:
          * <ul>
-         *   <li>{@code PAIRING}        – all from admin-curated ItemPairings</li>
-         *   <li>{@code PARTIAL}        – mix of ItemPairings + RecommendationEngine</li>
+         *   <li>{@code PAIRING}        – all from admin-curated meal rules</li>
+         *   <li>{@code PARTIAL}        – mix of meal rules + RecommendationEngine</li>
          *   <li>{@code RECOMMENDATION} – all from classification-aware RecommendationEngine</li>
          * </ul>
          */

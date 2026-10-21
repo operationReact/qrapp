@@ -76,6 +76,11 @@ export default function CartItem({ item, removeItem, addItem, decreaseItem }) {
       {/* item details */}
       <div className="min-w-0 w-full">
         <div className="truncate text-sm font-semibold leading-tight">{item.name}</div>
+        {item.addonOptions?.length > 0 && (
+          <div className="truncate text-xs text-muted-foreground">
+            {item.addonOptions.map((o) => o.name).join(", ")}
+          </div>
+        )}
 
         {/* Social proof badge */}
         {badge && (
@@ -93,7 +98,7 @@ export default function CartItem({ item, removeItem, addItem, decreaseItem }) {
           {formatCurrency(item.price)}
         </div>
         <button
-          onClick={() => removeItem(item.id)}
+          onClick={() => removeItem(item.lineKey ?? item.id)}
           className="text-xs rounded font-medium text-primary transition-transform duration-150 active:scale-95 mt-0.5"
         >
           Remove

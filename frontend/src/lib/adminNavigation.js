@@ -1,6 +1,6 @@
 import {
   BowlFoodIcon, CalendarCheckIcon, ChartBarIcon, ChartLineUpIcon, CubeIcon,
-  ForkKnifeIcon, ImageIcon, KeyIcon, LightningIcon, ListPlusIcon, MagicWandIcon,
+  ForkKnifeIcon, ImageIcon, LightningIcon, ListPlusIcon, MagicWandIcon,
   QueueIcon, ShieldCheckIcon, SlidersIcon, SparkleIcon, TerminalWindowIcon,
   TicketIcon, TrophyIcon, UsersThreeIcon, UserCircleIcon, ShoppingCartSimpleIcon,
   StorefrontIcon,
@@ -45,10 +45,9 @@ export const ADMIN_NAVIGATION = [
     { to: "/admin/food-court", label: "Food Court", icon: BuildingOfficeIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN] },
   ] },
   { section: "Growth Tools", items: [
-    { to: "/admin/item-recommendations", label: "Item Pairings", icon: ListPlusIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN] },
+    { to: "/admin/item-recommendations", label: "Add-on Options", icon: ListPlusIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN] },
     { to: "/admin/auto-suggestions", label: "Auto Suggestions", icon: MagicWandIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN] },
-    { to: "/admin/upsell-rules", label: "Upsell Rules", icon: LightningIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN] },
-    { to: "/admin/category-pairings", label: "Category Pairings", icon: KeyIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN] },
+    { to: "/admin/cart-rules", label: "Cart Rules", icon: LightningIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN] },
   ] },
   { section: "Analytics", items: [
     { to: "/admin/analytics", label: "Overview", icon: ChartLineUpIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN] },

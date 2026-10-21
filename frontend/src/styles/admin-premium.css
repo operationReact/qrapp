@@ -11,8 +11,6 @@
 }
 
 .admin-sidebar-shell {
-  --sidebar-width: 17.25rem;
-  --sidebar-width-icon: 4.25rem;
   color: var(--bb-admin-ink);
   background: linear-gradient(180deg, #fffefa 0%, #fff 48%, #fcfaf7 100%) !important;
   border-right: 1px solid rgba(224, 213, 201, .72) !important;

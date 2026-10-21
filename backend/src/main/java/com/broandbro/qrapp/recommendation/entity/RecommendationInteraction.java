@@ -117,4 +117,8 @@ public class RecommendationInteraction {
      */
     @Column(name = "pairing_role", length = 20)
     private String pairingRole;
+
+    /** The cart rule that produced this suggestion, or null for non-rule sources. */
+    @Column(name = "rule_id")
+    private Long ruleId;
 }

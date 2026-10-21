@@ -1,7 +1,9 @@
 package com.broandbro.qrapp.recommendation.entity;
 
 import com.broandbro.qrapp.entity.Category;
+import com.broandbro.qrapp.entity.Location;
 import com.broandbro.qrapp.entity.MenuItem;
+import com.broandbro.qrapp.recommendation.enums.PairingRole;
 import com.broandbro.qrapp.recommendation.enums.TriggerType;
 import com.broandbro.qrapp.recommendation.enums.UpsellRewardType;
 import jakarta.persistence.*;
@@ -11,27 +13,23 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
- * L4 – Upsell rule: when a trigger condition is met, offer target items.
- *
- * <p>Trigger examples:
- * <ul>
- *   <li>ITEM_IN_CART       → trigger_item_id set</li>
- *   <li>CATEGORY_IN_CART   → trigger_cat_id set</li>
- *   <li>CART_VALUE_EXCEEDS → min_cart_value set</li>
- * </ul>
+ * Cart recommendation rule: when the trigger matches the cart, suggest {@link #targetItem}.
+ * Maps to the {@code recommendation_rule} table created by V162.
  */
 @Entity
-@Table(name = "rec_upsell_rule")
+@Table(name = "recommendation_rule")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
-public class UpsellRule {
+public class RecommendationRule {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "location_id", nullable = false)
+    private Location location;
 
     @Column(name = "name", nullable = false, length = 150)
     private String name;
@@ -45,11 +43,24 @@ public class UpsellRule {
     private MenuItem triggerItem;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "trigger_cat_id")
+    @JoinColumn(name = "trigger_category_id")
     private Category triggerCategory;
 
     @Column(name = "min_cart_value", precision = 10, scale = 2)
     private BigDecimal minCartValue;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "target_item_id")
+    private MenuItem targetItem;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "target_category_id")
+    private Category targetCategory;
+
+    /** Set when this rule is a Complete Your Meal companion for {@link #triggerItem}. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "meal_role", length = 20)
+    private PairingRole mealRole;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "reward_type", nullable = false, length = 30)
@@ -60,13 +71,13 @@ public class UpsellRule {
     @Builder.Default
     private BigDecimal rewardValue = BigDecimal.ZERO;
 
+    @Column(name = "priority", nullable = false)
+    @Builder.Default
+    private Integer priority = 0;
+
     @Column(name = "is_active", nullable = false)
     @Builder.Default
     private Boolean isActive = true;
-
-    @Column(name = "display_order", nullable = false)
-    @Builder.Default
-    private Integer displayOrder = 0;
 
     @Column(name = "created_by", length = 100)
     private String createdBy;
@@ -81,9 +92,4 @@ public class UpsellRule {
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
-
-    @OneToMany(mappedBy = "rule", cascade = CascadeType.ALL, orphanRemoval = true)
-    @Builder.Default
-    private List<UpsellRuleTarget> targets = new ArrayList<>();
 }
-

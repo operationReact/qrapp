@@ -3,7 +3,7 @@ package com.broandbro.qrapp.recommendation.enums;
 /**
  * The role the TARGET item plays when paired with a source item.
  *
- * <p>Used by {@code ItemPairing} to classify what role a paired item serves:
+ * <p>Used by {@code RecommendationRule.mealRole} to classify what role a companion item serves:
  * <ul>
  *   <li>{@link #DRINK}   – a beverage companion (Coke, Lassi, Tea)</li>
  *   <li>{@link #SIDE}    – a complementary side dish (Raita, Chutney, Salad)</li>

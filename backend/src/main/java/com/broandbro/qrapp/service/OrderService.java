@@ -59,6 +59,9 @@ import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import com.broandbro.qrapp.addon.entity.OrderItemAddon;
+import com.broandbro.qrapp.addon.repository.OrderItemAddonRepository;
+import com.broandbro.qrapp.addon.service.AddonService;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.EnumSet;
@@ -101,6 +104,8 @@ public class OrderService {
     private final InvoiceService invoiceService;
     private final TaxCalculationService taxCalculationService;
     private final RefundService refundService;
+    private final AddonService addonService;
+    private final OrderItemAddonRepository orderItemAddonRepository;
     @Autowired
     private InventoryService inventoryService;
 
@@ -166,6 +171,7 @@ public class OrderService {
         // ── Step 1a: pre-compute all item snapshots BEFORE any DB save ──────────
         // Build (item, snapshot) pairs so we can sum up totals first
         List<Object[]> itemSnaps = new java.util.ArrayList<>(); // [CreateOrderRequest.Item, OrderItemSnapshot]
+        List<AddonService.AddonSelection> addonSelections = new ArrayList<>(); // aligned with itemSnaps
         java.math.BigDecimal subtotal = java.math.BigDecimal.ZERO;
 
         for (CreateOrderRequest.Item i : req.getItems()) {
@@ -191,8 +197,11 @@ public class OrderService {
                 order.setLocation(menuItem.getLocation());
             }
             Long vendorId = menuItem.getVendor() != null ? menuItem.getVendor().getId() : null;
-            PricingService.OrderItemSnapshot snap = pricingService.createSnapshot(i.getItemId(), vendorId, i.getQuantity());
+            AddonService.AddonSelection addons = resolveAddons(menuItem, i);
+            PricingService.OrderItemSnapshot snap = pricingService.createSnapshot(
+                    i.getItemId(), vendorId, i.getQuantity(), addons.unitDelta());
             itemSnaps.add(new Object[]{i, snap});
+            addonSelections.add(addons);
             subtotal = subtotal.add(snap.lineTotal());
         }
 
@@ -339,7 +348,8 @@ public class OrderService {
         }
 
         // ── Step 4: persist order items ──────────────────────────────────────────
-        for (Object[] pair : itemSnaps) {
+        for (int index = 0; index < itemSnaps.size(); index++) {
+            Object[] pair = itemSnaps.get(index);
             CreateOrderRequest.Item i   = (CreateOrderRequest.Item) pair[0];
             PricingService.OrderItemSnapshot snap = (PricingService.OrderItemSnapshot) pair[1];
             TaxCalculationService.TaxCalculationResult adjustedTax =
@@ -354,7 +364,8 @@ public class OrderService {
             oi.setLineTotal(adjustedTax.totalAmount());
             applyTaxSnapshot(oi, snap, adjustedTax,
                     snap.lineTotal().subtract(adjustedTax.taxableAmount()));
-            orderItemRepo.save(oi);
+            OrderItem savedItem = orderItemRepo.save(oi);
+            persistAddonSnapshots(savedItem.getId(), addonSelections.get(index));
             MenuItem orderedItem = menuRepository.findById(i.getItemId()).orElseThrow();
             if (orderedItem.getProductType() == ProductType.RETAIL_PRODUCT) {
                 inventoryService.deductInventory(i.getItemId(), (long) i.getQuantity(),
@@ -364,6 +375,30 @@ public class OrderService {
         invoiceService.createIfAbsent(order);
 
         return new CreateOrderResult(order, awardedCoupons);
+    }
+
+    private AddonService.AddonSelection resolveAddons(MenuItem menuItem, CreateOrderRequest.Item i) {
+        Long locationId = menuItem.getLocation() != null ? menuItem.getLocation().getId() : null;
+        if (locationId == null) {
+            if (i.getOptionIds() != null && !i.getOptionIds().isEmpty()) {
+                throw new IllegalArgumentException("Add-ons are not available for item " + menuItem.getId());
+            }
+            return AddonService.AddonSelection.NONE;
+        }
+        return addonService.resolveSelection(locationId, menuItem.getId(), i.getOptionIds());
+    }
+
+    private void persistAddonSnapshots(Long orderItemId, AddonService.AddonSelection selection) {
+        if (selection.options().isEmpty()) return;
+        orderItemAddonRepository.saveAll(selection.options().stream()
+                .map(s -> OrderItemAddon.builder()
+                        .orderItemId(orderItemId)
+                        .optionId(s.optionId())
+                        .groupName(s.groupName())
+                        .optionName(s.optionName())
+                        .priceDelta(s.priceDelta())
+                        .build())
+                .toList());
     }
 
     private void applyTaxSnapshot(OrderItem item, PricingService.OrderItemSnapshot snapshot,
