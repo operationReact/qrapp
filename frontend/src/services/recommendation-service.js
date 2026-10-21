@@ -41,41 +41,13 @@ export const getMealRecommendation = (payload) =>
     .then((r) => (r.status === 204 ? null : r.data))
     .catch(() => null);
 
-// ── Admin: Meal Roles ──────────────────────────────────────────────────────────
-
-/** All active combo roles (Main, Side, Drink, Dessert, Addon) for the dropdown. */
-export const fetchMealRoles = () =>
-  apiClient.get("/api/admin/meal-roles/roles").then((r) => r.data);
-
-/** Every menu item with its currently assigned meal role (or null). */
-export const fetchItemsWithMealRoles = () =>
-  apiClient.get("/api/admin/meal-roles/items").then((r) => r.data);
-
-/** Assign (or replace) the role for an item. */
-export const assignMealRole = (itemId, roleId) =>
-  apiClient.put(`/api/admin/meal-roles/items/${itemId}/role/${roleId}`).then((r) => r.data);
-
-/** Remove the role assignment from an item. */
-export const clearMealRole = (itemId) =>
-  apiClient.delete(`/api/admin/meal-roles/items/${itemId}/role`).then((r) => r.data);
-
-export const fetchAllRecommendations = (locationId) =>
-  apiClient.get("/api/admin/growth/recommendations", { params: { locationId } }).then((r) => r.data);
-
-export const fetchRecommendationsForItem = (itemId, locationId) =>
-  apiClient.get(`/api/admin/growth/recommendations/source/${itemId}`, { params: { locationId } }).then((r) => r.data);
-
-export const addRecommendation = (data, locationId = getActiveLocationId()) =>
-  apiClient.post("/api/admin/growth/recommendations", data, { params: { locationId } }).then((r) => r.data);
-
-export const updateRecommendationOrder = (id, displayOrder, locationId = getActiveLocationId()) =>
-  apiClient.patch(`/api/admin/growth/recommendations/${id}/order`, { displayOrder }, { params: { locationId } }).then((r) => r.data);
-
-export const toggleRecommendation = (id, locationId = getActiveLocationId()) =>
-  apiClient.patch(`/api/admin/growth/recommendations/${id}/toggle`, null, { params: { locationId } }).then((r) => r.data);
-
-export const deleteRecommendation = (id, locationId = getActiveLocationId()) =>
-  apiClient.delete(`/api/admin/growth/recommendations/${id}`, { params: { locationId } }).then((r) => r.data);
+/**
+ * Records a VIEWED or ACCEPTED event for a cart suggestion. Fire-and-forget:
+ * callers should not await it or block the ordering flow on failure.
+ * @param {{ restaurantId: number, sourceItemId: number, recommendedItemId: number, ruleId: number, interactionType: "VIEWED"|"ACCEPTED" }} payload
+ */
+export const trackRecommendationInteraction = (payload) =>
+  apiClient.post("/api/recommendations/interactions", payload).then((r) => r.data);
 
 // ── Admin: L2 Auto Suggestions ────────────────────────────────────────────────
 
@@ -97,55 +69,23 @@ export const bulkReviewSuggestions = (ids, action, locationId = getActiveLocatio
 export const triggerCoOccurrenceScheduler = () =>
   apiClient.post("/api/admin/growth/suggestions/run-scheduler").then((r) => r.data);
 
-// ── Admin: L4 Upsell Rules ────────────────────────────────────────────────────
+// ── Admin: Cart Recommendation Rules ─────────────────────────────────────────
 
-export const fetchAllUpsellRules = (locationId) =>
-  apiClient.get("/api/admin/growth/upsell-rules", { params: { locationId } }).then((r) => r.data);
+export const fetchRecommendationRules = (locationId) =>
+  apiClient.get("/api/admin/recommendation-rules", { params: { locationId } }).then((r) => r.data);
 
-export const createUpsellRule = (data, locationId = getActiveLocationId()) =>
-  apiClient.post("/api/admin/growth/upsell-rules", data, { params: { locationId } }).then((r) => r.data);
+export const createRecommendationRule = (data, locationId = getActiveLocationId()) =>
+  apiClient.post("/api/admin/recommendation-rules", data, { params: { locationId } }).then((r) => r.data);
 
-export const updateUpsellRule = (id, data, locationId = getActiveLocationId()) =>
-  apiClient.put(`/api/admin/growth/upsell-rules/${id}`, data, { params: { locationId } }).then((r) => r.data);
+export const updateRecommendationRule = (id, data, locationId = getActiveLocationId()) =>
+  apiClient.put(`/api/admin/recommendation-rules/${id}`, data, { params: { locationId } }).then((r) => r.data);
 
-export const toggleUpsellRule = (id, locationId = getActiveLocationId()) =>
-  apiClient.patch(`/api/admin/growth/upsell-rules/${id}/toggle`, null, { params: { locationId } }).then((r) => r.data);
+export const toggleRecommendationRule = (id, locationId = getActiveLocationId()) =>
+  apiClient.patch(`/api/admin/recommendation-rules/${id}/toggle`, null, { params: { locationId } }).then((r) => r.data);
 
-export const deleteUpsellRule = (id, locationId = getActiveLocationId()) =>
-  apiClient.delete(`/api/admin/growth/upsell-rules/${id}`, { params: { locationId } }).then((r) => r.data);
+export const deleteRecommendationRule = (id, locationId = getActiveLocationId()) =>
+  apiClient.delete(`/api/admin/recommendation-rules/${id}`, { params: { locationId } }).then((r) => r.data);
 
-// ── Admin: L5 Category Pairings ───────────────────────────────────────────────
+export const fetchRuleStats = (locationId) =>
+  apiClient.get("/api/admin/recommendation-rules/stats", { params: { locationId } }).then((r) => r.data);
 
-export const fetchAllCategoryPairings = (locationId) =>
-  apiClient.get("/api/admin/growth/category-pairings", { params: { locationId } }).then((r) => r.data);
-
-export const createCategoryPairing = (data, locationId = getActiveLocationId()) =>
-  apiClient.post("/api/admin/growth/category-pairings", data, { params: { locationId } }).then((r) => r.data);
-
-export const toggleCategoryPairing = (id, locationId = getActiveLocationId()) =>
-  apiClient.patch(`/api/admin/growth/category-pairings/${id}/toggle`, null, { params: { locationId } }).then((r) => r.data);
-
-export const deleteCategoryPairing = (id, locationId = getActiveLocationId()) =>
-  apiClient.delete(`/api/admin/growth/category-pairings/${id}`, { params: { locationId } }).then((r) => r.data);
-
-// ── Admin: Item Pairings ──────────────────────────────────────────────────────
-
-/** All pairings (active + inactive) for a source item, sorted by priority DESC. */
-export const fetchItemPairingsList = (itemId, locationId) =>
-  apiClient.get(`/api/admin/growth/item-pairings/${itemId}/list`, { params: { locationId } }).then((r) => r.data);
-
-/** Active pairings grouped by role: { drinks, sides, desserts, addons }. */
-export const fetchItemPairingsGrouped = (itemId, locationId) =>
-  apiClient.get(`/api/admin/growth/item-pairings/${itemId}`, { params: { locationId } }).then((r) => r.data);
-
-/** Create a new pairing: { sourceItemId, targetItemId, pairingRole, priority }. */
-export const addItemPairing = (data, locationId = getActiveLocationId()) =>
-  apiClient.post("/api/admin/growth/item-pairings", data, { params: { locationId } }).then((r) => r.data);
-
-/** Hard-delete a pairing by ID. */
-export const removeItemPairing = (id, locationId = getActiveLocationId()) =>
-  apiClient.delete(`/api/admin/growth/item-pairings/${id}`, { params: { locationId } }).then((r) => r.data);
-
-/** Update the sort priority of a pairing. Higher = shown first. */
-export const updatePairingPriority = (id, priority, locationId = getActiveLocationId()) =>
-  apiClient.patch(`/api/admin/growth/item-pairings/${id}/priority`, { priority }, { params: { locationId } }).then((r) => r.data);

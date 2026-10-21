@@ -2,10 +2,11 @@ package com.broandbro.qrapp.recommendation.service;
 
 import com.broandbro.qrapp.recommendation.dto.RecommendationDtos.*;
 import com.broandbro.qrapp.recommendation.entity.AutoSuggestion;
-import com.broandbro.qrapp.recommendation.entity.ItemRecommendation;
+import com.broandbro.qrapp.recommendation.entity.RecommendationRule;
 import com.broandbro.qrapp.recommendation.enums.SuggestionStatus;
+import com.broandbro.qrapp.recommendation.enums.TriggerType;
 import com.broandbro.qrapp.recommendation.repository.AutoSuggestionRepository;
-import com.broandbro.qrapp.recommendation.repository.ItemRecommendationRepository;
+import com.broandbro.qrapp.recommendation.repository.RecommendationRuleRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -16,7 +17,7 @@ import java.util.List;
 
 /**
  * L2 – Service for admin review of auto-generated co-occurrence suggestions.
- * When accepted, the suggestion is also promoted to a manual L1 recommendation.
+ * When accepted, the suggestion becomes an ITEM_IN_CART recommendation rule.
  */
 @Slf4j
 @Service
@@ -24,7 +25,7 @@ import java.util.List;
 public class AutoSuggestionService {
 
     private final AutoSuggestionRepository suggRepo;
-    private final ItemRecommendationRepository recRepo;
+    private final RecommendationRuleRepository ruleRepo;
 
     // ── Query ─────────────────────────────────────────────────────────────────
 
@@ -131,14 +132,19 @@ public class AutoSuggestionService {
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private void promoteToManual(AutoSuggestion s, String actor) {
-        // Avoid duplicating existing manual recommendations
-        if (recRepo.findBySourceItemIdAndTargetItemId(s.getItemA().getId(), s.getItemB().getId()).isPresent()) {
+        Long sourceId = s.getItemA().getId();
+        Long targetId = s.getItemB().getId();
+        if (ruleRepo.existsByTriggerItemIdAndTargetItemId(sourceId, targetId)) {
             return;
         }
-        recRepo.save(ItemRecommendation.builder()
-                .sourceItem(s.getItemA())
+        String name = "Auto: " + s.getItemA().getName() + " -> " + s.getItemB().getName();
+        ruleRepo.save(RecommendationRule.builder()
+                .location(s.getItemA().getLocation())
+                .name(name.length() > 150 ? name.substring(0, 150) : name)
+                .triggerType(TriggerType.ITEM_IN_CART)
+                .triggerItem(s.getItemA())
                 .targetItem(s.getItemB())
-                .displayOrder(0)
+                .priority(0)
                 .isActive(true)
                 .createdBy(actor)
                 .updatedBy(actor)

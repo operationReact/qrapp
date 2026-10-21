@@ -1,12 +1,11 @@
 package com.broandbro.qrapp.recommendation.service;
 
+import com.broandbro.qrapp.recommendation.entity.RecommendationRule;
+import com.broandbro.qrapp.recommendation.enums.PairingRole;
 import com.broandbro.qrapp.bundle.repository.ItemComboRoleRepository;
 import com.broandbro.qrapp.entity.MenuItem;
 import com.broandbro.qrapp.recommendation.dto.MealRecommendationDtos.*;
 import com.broandbro.qrapp.recommendation.dto.RecommendationDtos.*;
-import com.broandbro.qrapp.recommendation.entity.ItemPairing;
-import com.broandbro.qrapp.recommendation.enums.PairingRole;
-import com.broandbro.qrapp.recommendation.repository.ItemPairingRepository;
 import com.broandbro.qrapp.repository.MenuRepository;
 import com.broandbro.qrapp.service.PricingService;
 import lombok.RequiredArgsConstructor;
@@ -27,10 +26,10 @@ import java.util.stream.Stream;
  * using a two-tier strategy:
  *
  * <pre>
- * Tier 1 — Admin-curated ItemPairings (explicit, highest precision)
- *   ├─ Load all active pairings for the primary item, sorted by priority DESC.
+ * Tier 1 — Admin-curated meal rules (explicit, highest precision)
+ *   ├─ Load all active meal rules (meal_role set) for the primary item, sorted by priority DESC.
  *   ├─ Pick the top DRINK, SIDE, DESSERT (first-match per role).
- *   └─ Any role not covered by pairings falls through to Tier 2.
+ *   └─ Any role not covered by rules falls through to Tier 2.
  *
  * Tier 2 — Classification-aware RecommendationEngine (intelligent fallback)
  *   ├─ Calls RecommendationEngineService (already scores by MealType + CuisineType).
@@ -40,8 +39,8 @@ import java.util.stream.Stream;
  *
  * <p>Response source field:
  * <ul>
- *   <li>{@code PAIRING}        – all companions from ItemPairings</li>
- *   <li>{@code PARTIAL}        – mix of ItemPairings + RecommendationEngine</li>
+ *   <li>{@code PAIRING}        – all companions from meal rules</li>
+ *   <li>{@code PARTIAL}        – mix of meal rules + RecommendationEngine</li>
  *   <li>{@code RECOMMENDATION} – all companions from RecommendationEngine</li>
  * </ul>
  *
@@ -57,7 +56,7 @@ import java.util.stream.Stream;
 @Transactional(readOnly = true)
 public class CompleteYourMealService {
 
-    private final ItemPairingRepository       pairingRepo;
+    private final RecommendationRuleService    ruleSvc;
     private final RecommendationEngineService  engine;
     private final ItemComboRoleRepository     itemComboRoleRepo;
     private final MenuRepository              menuRepo;
@@ -99,27 +98,21 @@ public class CompleteYourMealService {
         log.debug("[CompleteYourMeal] primaryItem={} ('{}') cart={} total={}",
                 primary.getId(), primary.getName(), cartIds, cartTotal);
 
-        // ── Tier 1: ItemPairings ──────────────────────────────────────────────
-        // findActiveBySourceItemId already sorts by priority DESC — first per role = top
-        List<ItemPairing> pairings = pairingRepo.findActiveBySourceItemId(primary.getId());
+        // ── Tier 1: meal rules (admin-curated companions per role) ─────────────
+        List<RecommendationRule> mealRules = ruleSvc.mealCompanions(primary.getLocation().getId(), primary.getId());
 
-        Map<PairingRole, ItemPairing> topByRole = new EnumMap<>(PairingRole.class);
-        for (ItemPairing p : pairings) {
-            if (!primary.getLocation().getId().equals(
-                    p.getTargetItem().getLocation().getId())) {
-                continue;
-            }
-            Long targetId = p.getTargetItem().getId();
-            if (!excludeIds.contains(targetId)) {
-                // putIfAbsent → keeps the highest-priority entry (list is already DESC)
-                topByRole.putIfAbsent(p.getPairingRole(), p);
+        Map<PairingRole, RecommendationRule> topByRole = new EnumMap<>(PairingRole.class);
+        for (RecommendationRule r : mealRules) {
+            if (!excludeIds.contains(r.getTargetItem().getId())) {
+                // putIfAbsent → keeps the highest-priority rule (list is already DESC)
+                topByRole.putIfAbsent(r.getMealRole(), r);
             }
         }
 
-        // Convert top pairings to MealItemView slots
-        MealItemView drink   = resolveFromPairing(topByRole, PairingRole.DRINK);
-        MealItemView side    = resolveFromPairing(topByRole, PairingRole.SIDE);
-        MealItemView dessert = resolveFromPairing(topByRole, PairingRole.DESSERT);
+        // Convert top rules to MealItemView slots
+        MealItemView drink   = resolveFromRule(topByRole, PairingRole.DRINK);
+        MealItemView side    = resolveFromRule(topByRole, PairingRole.SIDE);
+        MealItemView dessert = resolveFromRule(topByRole, PairingRole.DESSERT);
 
         boolean anyFromPairings = (drink != null || side != null || dessert != null);
 
@@ -176,7 +169,7 @@ public class CompleteYourMealService {
         }
 
         // ── Determine source ──────────────────────────────────────────────────
-        // "all from pairings" = both DRINK and SIDE were resolved from ItemPairings
+        // "all from pairings" = both DRINK and SIDE were resolved from meal rules
         boolean allFromPairings = topByRole.containsKey(PairingRole.DRINK) && drink != null
                                && topByRole.containsKey(PairingRole.SIDE)  && side  != null;
 
@@ -231,13 +224,13 @@ public class CompleteYourMealService {
     // ── Private helpers ────────────────────────────────────────────────────────
 
     /**
-     * Converts the top ItemPairing for a given role into a {@link MealItemView},
+     * Converts the top meal rule for a given role into a {@link MealItemView},
      * enriched with the current live selling price.
      */
-    private MealItemView resolveFromPairing(Map<PairingRole, ItemPairing> topByRole, PairingRole role) {
-        ItemPairing p = topByRole.get(role);
-        if (p == null) return null;
-        MenuItem target = p.getTargetItem();
+    private MealItemView resolveFromRule(Map<PairingRole, RecommendationRule> topByRole, PairingRole role) {
+        RecommendationRule r = topByRole.get(role);
+        if (r == null) return null;
+        MenuItem target = r.getTargetItem();
         BigDecimal price = pricingService.getCurrentSellingPrice(target.getId());
         return MealItemView.builder()
                 .itemId(target.getId())

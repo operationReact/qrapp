@@ -44,5 +44,8 @@ public class CreateOrderRequest {
 
         @Min(1)
         private int quantity = 1;
+
+        /** Chosen add-on option ids (per unit). Validated and priced server-side. */
+        private List<Long> optionIds = new java.util.ArrayList<>();
     }
 }

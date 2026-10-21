@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import PairingsSection from "@/components/admin/PairingsSection";
+import AddonGroupsSection from "@/components/admin/AddonGroupsSection";
 import { fetchItemClassification } from "@/services/classification-service";
 import { useLocation as useActiveLocation } from "@/context/LocationContext";
 import { Input } from "@/components/ui/input";
@@ -106,8 +106,8 @@ function ItemPairingsPage() {
 
   // Full menu list
   const { data: items = [], isLoading } = useQuery({
-    queryKey: ["menu", "admin-item-recs", JSON.parse(localStorage.getItem("active-location") || "null")?.id],
-    queryFn: () => apiClient.get("/menu", { params: { locationId: JSON.parse(localStorage.getItem("active-location") || "null")?.id } }).then((r) => r.data),
+    queryKey: ["menu", "admin-item-recs", activeLocationId],
+    queryFn: () => apiClient.get("/menu", { params: { locationId: activeLocationId } }).then((r) => r.data),
     staleTime: 1000 * 60 * 2,
   });
 
@@ -146,7 +146,7 @@ function ItemPairingsPage() {
           Item Pairings
         </h1>
         <p className="mt-1.5 text-sm text-muted-foreground max-w-xl leading-relaxed">
-          Curate Drinks, Sides, Desserts, and Addons for each item. When a customer adds an item to their cart these pairings appear as &ldquo;Goes Well With&rdquo; suggestions.
+          Set up add-on options for each item. Customers see these when they choose the item. Cart suggestions are managed under Cart Rules.
         </p>
       </div>
 
@@ -157,9 +157,6 @@ function ItemPairingsPage() {
         </div>
         <div className="inline-flex items-center gap-1.5 border rounded-full px-3 py-1 font-normal bg-zinc-50 text-zinc-500 border-zinc-200">
           Organised by type: Drink · Side · Dessert · Addon
-        </div>
-        <div className="inline-flex items-center gap-1.5 border rounded-full px-3 py-1 font-normal bg-zinc-50 text-zinc-500 border-zinc-200">
-          Drag cards to reorder within each type
         </div>
       </div>
 
@@ -252,9 +249,8 @@ function ItemPairingsPage() {
               <div className="px-5 pt-4 pb-0 space-y-2.5">
                 {/* How it works hint */}
                 <div className="rounded-lg bg-orange-50 border border-orange-100 px-3 py-2.5 text-[11px] text-orange-700 leading-relaxed">
-                  <strong>How this works:</strong> When a customer adds{" "}
-                  <span className="font-semibold">{selectedItem.name}</span> to their cart,
-                  the pairings below appear as "Goes Well With" suggestions, grouped by type.
+                  <strong>How this works:</strong> The add-on options below appear when a customer
+                  chooses <span className="font-semibold">{selectedItem.name}</span>.
                 </div>
 
                 {/* Meal context chips */}
@@ -307,10 +303,10 @@ function ItemPairingsPage() {
                 )}
               </div>
 
-              {/* Pairings section */}
+              {/* Add-ons section */}
               <div className="px-5 py-5 flex-1">
-                <PairingsSection
-                  key={selectedItem.id}
+                <AddonGroupsSection
+                  key={`addons-${selectedItem.id}`}
                   itemId={selectedItem.id}
                 />
               </div>

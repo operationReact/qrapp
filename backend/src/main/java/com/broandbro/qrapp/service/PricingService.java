@@ -167,19 +167,29 @@ public class PricingService {
      * @return a snapshot record (not persisted – caller persists via OrderItem entity)
      */
     public OrderItemSnapshot createSnapshot(Long menuItemId, Long vendorId, int quantity) {
+        return createSnapshot(menuItemId, vendorId, quantity, BigDecimal.ZERO);
+    }
+
+    /**
+     * Same as {@link #createSnapshot(Long, Long, int)} but charges {@code addonUnitDelta} on top of
+     * each unit (chosen add-ons). Profit is still based on the base selling price.
+     */
+    public OrderItemSnapshot createSnapshot(Long menuItemId, Long vendorId, int quantity,
+                                            BigDecimal addonUnitDelta) {
         MenuItem menuItem = menuRepository.findById(menuItemId)
                 .orElseThrow(() -> new IllegalArgumentException("MenuItem not found: " + menuItemId));
-        BigDecimal sellingPrice = getCurrentSellingPrice(menuItemId);
+        BigDecimal basePrice = getCurrentSellingPrice(menuItemId);
         BigDecimal costPrice    = vendorId != null
                 ? getCurrentVendorCost(vendorId, menuItemId).orElse(menuItem.getPurchaseCost())
                 : menuItem.getPurchaseCost();
-        BigDecimal profit    = (costPrice != null) ? sellingPrice.subtract(costPrice) : null;
-        BigDecimal lineTotal = sellingPrice.multiply(BigDecimal.valueOf(quantity));
+        BigDecimal profit    = (costPrice != null) ? basePrice.subtract(costPrice) : null;
+        BigDecimal unitPrice = basePrice.add(addonUnitDelta);
+        BigDecimal lineTotal = unitPrice.multiply(BigDecimal.valueOf(quantity));
         TaxProfile taxProfile = effectiveTaxProfile(menuItem);
         TaxCalculationService.TaxCalculationResult tax = taxCalculationService.calculateInclusive(
                 lineTotal, taxProfile);
         return new OrderItemSnapshot(
-                sellingPrice, costPrice, profit, lineTotal, tax,
+                unitPrice, costPrice, profit, lineTotal, tax,
                 taxProfile != null ? taxProfile.getId() : null,
                 menuItem.getHsnSac() != null
                         ? menuItem.getHsnSac()

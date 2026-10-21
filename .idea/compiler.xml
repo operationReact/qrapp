@@ -22,4 +22,7 @@
       <module name="qrapp.backend.test" options="-parameters" />
     </option>
   </component>
+  <component name="TypeScriptCompiler">
+    <option name="memoryLimit" value="4096" />
+  </component>
 </project>

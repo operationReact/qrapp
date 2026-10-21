@@ -37,9 +37,13 @@ import { useSidebar } from "@/components/ui/sidebar";
 import { ALL_LOCATIONS } from "@/lib/allLocations";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-function NavItem({ to, label, icon, pathname, alertCount, onNavigate }) {
+function getActiveNavPath(pathname, navPaths) {
+  const matches = navPaths.filter((to) => pathname === to || (to !== "/admin" && pathname.startsWith(to)));
+  return matches.sort((a, b) => b.length - a.length)[0];
+}
+
+function NavItem({ to, label, icon, active, alertCount, onNavigate }) {
   const Icon = icon;
-  const active = pathname === to || (to !== "/admin" && pathname.startsWith(to));
   return (
       <SidebarMenuItem>
         <SidebarMenuButton
@@ -68,7 +72,8 @@ function NavItem({ to, label, icon, pathname, alertCount, onNavigate }) {
   );
 }
 
-function MobileLocationSelector() {
+export function AdminLocationSelector({ variant = "card" }) {
+  const flat = variant === "flat";
   const {
     activeLocation,
     availableLocations,
@@ -107,25 +112,27 @@ function MobileLocationSelector() {
       <div ref={popoverRef} className="relative min-w-0 w-full">
         <button
             type="button"
-            className="flex min-h-11 w-full min-w-0 items-center gap-2.5 rounded-xl border px-3 py-1.5 text-left text-[#211b18] transition-all hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ffd98a]/70"
-            style={{ background: "linear-gradient(180deg, #fffdf9 0%, #fff3e3 100%)", borderColor: "rgba(255,217,138,0.9)", boxShadow: "0 6px 16px rgba(60,0,0,0.25), inset 0 1px 0 #ffffff" }}
+            className={flat
+                ? "flex h-10 w-full min-w-0 items-center gap-2 rounded-lg border border-stone-200 bg-white px-3 text-left text-stone-900 shadow-sm transition-colors hover:bg-stone-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-300"
+                : "flex min-h-11 w-full min-w-0 items-center gap-2.5 rounded-xl border px-3 py-1.5 text-left text-[#211b18] transition-all hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ffd98a]/70"}
+            style={flat ? undefined : { background: "linear-gradient(180deg, #fffdf9 0%, #fff3e3 100%)", borderColor: "rgba(255,217,138,0.9)", boxShadow: "0 6px 16px rgba(60,0,0,0.25), inset 0 1px 0 #ffffff" }}
             onClick={() => setOpen((current) => !current)}
             aria-label={`Select location, currently ${locationName}`}
             aria-expanded={open}
         >
-        <span className="grid size-8 shrink-0 place-items-center rounded-lg" style={{ background: "linear-gradient(135deg, #fff0ef, #ffe0dc)", color: "#e51b23" }}>
+        {!flat && <span className="grid size-8 shrink-0 place-items-center rounded-lg" style={{ background: "linear-gradient(135deg, #fff0ef, #ffe0dc)", color: "#e51b23" }}>
           {isAllLocations ? <Globe2 className="size-4" aria-hidden="true" /> : <MapPin className="size-4" aria-hidden="true" />}
-        </span>
+        </span>}
           <span className="min-w-0 flex-1">
-            <span className="block text-[10px] font-bold uppercase tracking-[0.08em] text-[#b88746]">Location</span>
-            <span className="block truncate text-sm font-semibold tracking-[-0.01em]" style={{ color: "#211b18" }}>{locationName}</span>
+            <span className={cn("block text-[10px] font-bold uppercase tracking-[0.08em]", flat ? "text-stone-500" : "text-[#b88746]")}>Location</span>
+            <span className={cn("block truncate text-sm font-semibold tracking-[-0.01em]", flat && "text-stone-900")} style={flat ? undefined : { color: "#211b18" }}>{locationName}</span>
           </span>
-          <span className={cn("grid size-6 shrink-0 place-items-center rounded-full transition-transform", open && "rotate-180")} style={{ background: "#fff0ef" }}>
-            <ChevronDown className="size-3.5" style={{ color: "#e51b23" }} aria-hidden="true" />
+          <span className={cn("grid size-6 shrink-0 place-items-center rounded-full transition-transform", open && "rotate-180", flat && "text-stone-500")} style={flat ? undefined : { background: "#fff0ef" }}>
+            <ChevronDown className="size-3.5" style={flat ? undefined : { color: "#e51b23" }} aria-hidden="true" />
           </span>
         </button>
         {open && (
-            <div className="absolute inset-x-0 top-[calc(100%+8px)] z-30 overflow-hidden rounded-2xl p-1.5" style={{ background: "#fffdf9", border: "1px solid #ecd9bf", boxShadow: "0 18px 45px rgba(60,0,0,0.30)" }}>
+            <div className="absolute inset-x-0 top-[calc(100%+8px)] z-30 overflow-hidden rounded-2xl p-1.5" style={flat ? { background: "#fff", border: "1px solid #e7e5e4", boxShadow: "0 12px 30px rgba(28,25,23,0.12)" } : { background: "#fffdf9", border: "1px solid #ecd9bf", boxShadow: "0 18px 45px rgba(60,0,0,0.30)" }}>
               <button
                   type="button"
                   className="flex min-h-11 w-full items-center gap-2 rounded-xl px-2.5 text-left text-sm"
@@ -222,8 +229,10 @@ export function AdminSidebar() {
               <X className="size-[18px]" aria-hidden="true" />
             </button>
             </div>
-            {showLocationSelector && <MobileLocationSelector />}
+            {showLocationSelector && <AdminLocationSelector />}
           </div>
+
+          {/* Desktop location control lives in the top bar of the admin layout (routes/admin.jsx). */}
 
           {/* Desktop collapse/expand control. Mobile uses the close button above. */}
           <div className="hidden justify-end px-1 pb-1 md:flex">
@@ -263,9 +272,10 @@ export function AdminSidebar() {
             {renderedNavigation.map(({ section, items }) => {
               const visibleItems = items.filter((item) => hasRole(user, item.roles, activeLocationId));
               if (!visibleItems.length) return null;
+              const activeNavPath = getActiveNavPath(pathname, renderedNavigation.flatMap((group) => group.items.map((item) => item.to)));
               return <SidebarGroup key={section} className="border-b border-[#e7ded2]/40 p-0 pt-3.5 pb-0 first:pt-0 last:border-0">
                 <SidebarGroupLabel className="mb-1.5 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em] text-[#756e66]">{section === "Menu" ? "Menu Management" : section === "Offers" ? "Marketing" : section === "Analytics" ? "Reports" : section}{section === "Operations" && alertCount > 0 && <span className="ml-auto rounded-full bg-[#e51b23] px-1.5 text-[10px] leading-5 text-white">{alertCount > 9 ? "9+" : alertCount}</span>}</SidebarGroupLabel>
-                <SidebarMenu className="gap-0.5">{visibleItems.map(({ to, label, icon }) => <NavItem key={to} to={to} label={label} icon={icon || TerminalWindowIcon} alertCount={alertCount} onNavigate={closeMobile} pathname={pathname === "/admin" && to === "/admin" ? "/admin" : pathname} />)}</SidebarMenu>
+                <SidebarMenu className="gap-0.5">{visibleItems.map(({ to, label, icon }) => <NavItem key={to} to={to} label={label} icon={icon || TerminalWindowIcon} active={to === activeNavPath} alertCount={alertCount} onNavigate={closeMobile} />)}</SidebarMenu>
               </SidebarGroup>;
             })}
           </SidebarContent>

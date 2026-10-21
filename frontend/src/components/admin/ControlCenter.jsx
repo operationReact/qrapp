@@ -208,13 +208,13 @@ function ManagementCard({ to, title, count, description, theme }) {
 }
 
 export function ControlCenterOverview() {
+  const { activeLocation } = useActiveLocation();
   const { data: users = [], error: usersError } = useQuery(adminUsersOptions());
   const { data: locations = [], error: locationsError } = useQuery(adminLocationsOptions());
   const { data: companies = [], error: companiesError } = useQuery(adminCustomerCompaniesOptions());
-  const { data: vendors = [], error: vendorsError } = useQuery(adminVendorsOptions());
+  const { data: vendors = [], error: vendorsError } = useQuery(adminVendorsOptions(activeLocation?.id));
   const { data: partyOrders = [], error: partyOrdersError } = useQuery(partyOrdersOptions);
   const { data: hallData, error: hallError } = useQuery(adminHallOfHappinessOptions({ page: 0, size: 100 }));
-  const { activeLocation } = useActiveLocation();
   const { data: paymentConfig, error: paymentError } = useQuery(
     paymentConfigOptions(activeLocation?.id ?? null),
   );

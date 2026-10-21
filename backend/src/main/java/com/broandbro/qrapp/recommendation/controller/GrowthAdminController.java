@@ -11,7 +11,6 @@ import com.broandbro.qrapp.service.LocationAccessService;
 import com.broandbro.qrapp.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -23,33 +22,12 @@ import java.util.Map;
 /**
  * Admin Growth Tools API — requires ROLE_ADMIN.
  *
- * L1 Manual Recommendations:
- *   GET    /api/admin/growth/recommendations             – all pairs
- *   GET    /api/admin/growth/recommendations/{itemId}    – pairs for source item
- *   POST   /api/admin/growth/recommendations             – add pair
- *   PATCH  /api/admin/growth/recommendations/{id}/order  – update display order
- *   PATCH  /api/admin/growth/recommendations/{id}/toggle – toggle active
- *   DELETE /api/admin/growth/recommendations/{id}        – remove pair
- *
  * L2 Auto Suggestions:
  *   GET    /api/admin/growth/suggestions                 – all suggestions
  *   GET    /api/admin/growth/suggestions/pending         – pending only
  *   POST   /api/admin/growth/suggestions/{id}/review     – accept/reject single
  *   POST   /api/admin/growth/suggestions/bulk-review     – bulk accept/reject
  *   POST   /api/admin/growth/suggestions/run-scheduler   – trigger manual run
- *
- * L4 Upsell Rules:
- *   GET    /api/admin/growth/upsell-rules                – all rules
- *   POST   /api/admin/growth/upsell-rules                – create
- *   PUT    /api/admin/growth/upsell-rules/{id}           – update
- *   PATCH  /api/admin/growth/upsell-rules/{id}/toggle    – toggle active
- *   DELETE /api/admin/growth/upsell-rules/{id}           – delete
- *
- * L5 Category Pairings:
- *   GET    /api/admin/growth/category-pairings           – all pairings
- *   POST   /api/admin/growth/category-pairings           – create
- *   PATCH  /api/admin/growth/category-pairings/{id}/toggle – toggle
- *   DELETE /api/admin/growth/category-pairings/{id}      – delete
  */
 @Slf4j
 @RestController
@@ -58,84 +36,13 @@ import java.util.Map;
 @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN', 'SUPER_USER')")
 public class GrowthAdminController {
 
-    private final ManualRecommendationService manualSvc;
     private final AutoSuggestionService autoSvc;
-    private final UpsellRuleService upsellSvc;
-    private final CategoryPairingService catPairingSvc;
     private final CoOccurrenceScheduler scheduler;
     private final RecommendationInteractionService interactionService;
     private final ComboOpportunityService comboOpportunitySvc;
     private final LocationRepository locationRepository;
     private final LocationAccessService locationAccessService;
     private final UserService userService;
-
-    // ── L1: Manual Recommendations ───────────────────────────────────────────
-
-    @GetMapping("/recommendations")
-    public ResponseEntity<List<ItemRecommendationResponse>> getAllRecommendations(
-            @RequestParam Long locationId, Authentication auth) {
-        requireLocation(locationId, auth);
-        return ResponseEntity.ok(manualSvc.getAll(locationId));
-    }
-
-    @GetMapping("/recommendations/source/{itemId}")
-    public ResponseEntity<List<ItemRecommendationResponse>> getForSource(
-            @PathVariable Long itemId, @RequestParam Long locationId, Authentication auth) {
-        requireLocation(locationId, auth);
-        return ResponseEntity.ok(manualSvc.getForSource(itemId, locationId));
-    }
-
-    @PostMapping("/recommendations")
-    public ResponseEntity<?> addRecommendation(
-            @RequestBody AddItemRecommendationRequest req, @RequestParam Long locationId,
-            Authentication auth) {
-        try {
-            requireLocation(locationId, auth);
-            ItemRecommendationResponse resp = manualSvc.add(req, actor(auth), locationId);
-            return ResponseEntity.status(HttpStatus.CREATED).body(resp);
-        } catch (IllegalArgumentException | IllegalStateException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
-    }
-
-    @PatchMapping("/recommendations/{id}/order")
-    public ResponseEntity<?> updateOrder(
-            @PathVariable Long id,
-            @RequestBody Map<String, Integer> body,
-            @RequestParam Long locationId, Authentication auth) {
-        try {
-            requireLocation(locationId, auth);
-            return ResponseEntity.ok(manualSvc.updateOrder(
-                    id, body.get("displayOrder"), actor(auth), locationId));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.notFound().build();
-        }
-    }
-
-    @PatchMapping("/recommendations/{id}/toggle")
-    public ResponseEntity<?> toggleRecommendation(@PathVariable Long id,
-                                                   @RequestParam Long locationId,
-                                                   Authentication auth) {
-        try {
-            requireLocation(locationId, auth);
-            return ResponseEntity.ok(manualSvc.toggle(id, actor(auth), locationId));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.notFound().build();
-        }
-    }
-
-    @DeleteMapping("/recommendations/{id}")
-    public ResponseEntity<Void> deleteRecommendation(@PathVariable Long id,
-                                                     @RequestParam Long locationId,
-                                                     Authentication auth) {
-        try {
-            requireLocation(locationId, auth);
-            manualSvc.delete(id, locationId);
-            return ResponseEntity.noContent().build();
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.notFound().build();
-        }
-    }
 
     // ── L2: Auto Suggestions ─────────────────────────────────────────────────
 
@@ -192,108 +99,6 @@ public class GrowthAdminController {
             return ResponseEntity.internalServerError()
                     .body(Map.of("error", "Scheduler failed: " + e.getMessage()));
         }
-    }
-
-    // ── L4: Upsell Rules ─────────────────────────────────────────────────────
-
-    @GetMapping("/upsell-rules")
-    public ResponseEntity<List<UpsellRuleResponse>> getAllUpsellRules(
-            @RequestParam Long locationId, Authentication auth) {
-        requireLocation(locationId, auth);
-        return ResponseEntity.ok(upsellSvc.getAllIncludingInactive(locationId));
-    }
-
-    @PostMapping("/upsell-rules")
-    public ResponseEntity<?> createUpsellRule(
-            @RequestBody UpsellRuleRequest req, @RequestParam Long locationId,
-            Authentication auth) {
-        try {
-            requireLocation(locationId, auth);
-            return ResponseEntity.status(HttpStatus.CREATED)
-                    .body(upsellSvc.create(req, actor(auth), locationId));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
-    }
-
-    @PutMapping("/upsell-rules/{id}")
-    public ResponseEntity<?> updateUpsellRule(
-            @PathVariable Long id,
-            @RequestBody UpsellRuleRequest req,
-            @RequestParam Long locationId, Authentication auth) {
-        try {
-            requireLocation(locationId, auth);
-            return ResponseEntity.ok(upsellSvc.update(id, req, actor(auth), locationId));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
-    }
-
-    @PatchMapping("/upsell-rules/{id}/toggle")
-    public ResponseEntity<?> toggleUpsellRule(@PathVariable Long id,
-                                              @RequestParam Long locationId,
-                                              Authentication auth) {
-        try {
-            requireLocation(locationId, auth);
-            return ResponseEntity.ok(upsellSvc.toggle(id, actor(auth), locationId));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.notFound().build();
-        }
-    }
-
-    @DeleteMapping("/upsell-rules/{id}")
-    public ResponseEntity<Void> deleteUpsellRule(@PathVariable Long id,
-                                                 @RequestParam Long locationId,
-                                                 Authentication auth) {
-        try {
-            requireLocation(locationId, auth);
-            upsellSvc.delete(id, locationId);
-            return ResponseEntity.noContent().build();
-        } catch (Exception e) {
-            return ResponseEntity.notFound().build();
-        }
-    }
-
-    // ── L5: Category Pairings ────────────────────────────────────────────────
-
-    @GetMapping("/category-pairings")
-    public ResponseEntity<List<CategoryPairingResponse>> getAllPairings(
-            @RequestParam Long locationId, Authentication auth) {
-        requireLocation(locationId, auth);
-        return ResponseEntity.ok(catPairingSvc.getAll(locationId));
-    }
-
-    @PostMapping("/category-pairings")
-    public ResponseEntity<?> createPairing(
-            @RequestBody CategoryPairingRequest req, @RequestParam Long locationId,
-            Authentication auth) {
-        try {
-            requireLocation(locationId, auth);
-            return ResponseEntity.status(HttpStatus.CREATED)
-                    .body(catPairingSvc.create(req, actor(auth), locationId));
-        } catch (IllegalArgumentException | IllegalStateException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
-    }
-
-    @PatchMapping("/category-pairings/{id}/toggle")
-    public ResponseEntity<?> togglePairing(@PathVariable Long id,
-                                           @RequestParam Long locationId, Authentication auth) {
-        try {
-            requireLocation(locationId, auth);
-            return ResponseEntity.ok(catPairingSvc.toggle(id, locationId));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.notFound().build();
-        }
-    }
-
-    @DeleteMapping("/category-pairings/{id}")
-    public ResponseEntity<Void> deletePairing(@PathVariable Long id,
-                                              @RequestParam Long locationId,
-                                              Authentication auth) {
-        requireLocation(locationId, auth);
-        catPairingSvc.delete(id, locationId);
-        return ResponseEntity.noContent().build();
     }
 
     // ── L6: Recommendation Analytics ─────────────────────────────────────────

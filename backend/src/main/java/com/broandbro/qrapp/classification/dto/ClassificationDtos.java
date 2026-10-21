@@ -97,6 +97,20 @@ public class ClassificationDtos {
         private List<Long> cuisineTypeIds;
     }
 
+    /**
+     * Payload for POST /classification/items/bulk.
+     *
+     * <p>Values are added to every listed item; existing values are kept.
+     * {@code comboRoleId} is only applied to items that have no combo role yet.
+     */
+    @Data @NoArgsConstructor @AllArgsConstructor
+    public static class BulkAddClassificationRequest {
+        private List<Long> itemIds;
+        private Long comboRoleId;
+        private List<Long> mealTypeIds;
+        private List<Long> cuisineTypeIds;
+    }
+
     // ── Catalogue response wrapper ─────────────────────────────────────────────
 
     /** All three classification catalogues in one call — used to seed admin UI dropdowns. */
@@ -105,6 +119,33 @@ public class ClassificationDtos {
         private List<ComboRoleView>    comboRoles;
         private List<MealTypeView>     mealTypes;
         private List<CuisineTypeView>  cuisineTypes;
+    }
+
+    // ── Setup health ───────────────────────────────────────────────────────────
+
+    @Data @Builder @NoArgsConstructor @AllArgsConstructor
+    public static class NamedRef {
+        private Long   id;
+        private String name;
+    }
+
+    @Data @Builder @NoArgsConstructor @AllArgsConstructor
+    public static class RuleIssue {
+        private Long   ruleId;
+        private String ruleName;
+        private String problem;
+    }
+
+    /** Per-location setup status: what is missing and what would silently break recommendations. */
+    @Data @Builder @NoArgsConstructor @AllArgsConstructor
+    public static class SetupHealthResponse {
+        private int             totalItems;
+        private int             completeItems;
+        private List<NamedRef>  missingRole;
+        private List<NamedRef>  missingMealTime;
+        private List<NamedRef>  missingCuisine;
+        private List<NamedRef>  rolesWithoutItems;
+        private List<RuleIssue> brokenRules;
     }
 }
 

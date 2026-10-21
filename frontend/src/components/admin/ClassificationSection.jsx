@@ -7,7 +7,6 @@ import {
   fetchItemClassification,
   updateItemClassification,
 } from "@/services/classification-service";
-import PairingsSection from "@/components/admin/PairingsSection";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
@@ -178,7 +177,7 @@ function classReducer(state, action) {
   }
 }
 
-export default function ClassificationSection({ itemId, onChange, showPairings = true }) {
+export default function ClassificationSection({ itemId, onChange }) {
   const { activeLocationId } = useActiveLocation();
   const { data: catalogue, isLoading: catalogueLoading } = useQuery({
     queryKey: ["classification-catalogue"],
@@ -336,15 +335,11 @@ export default function ClassificationSection({ itemId, onChange, showPairings =
         </Button>
       )}
       </div>
-
-      {/* ── Dimension 4: Recommended Pairings ── */}
-      {showPairings && <PairingsSection itemId={itemId} />}
     </div>
   );
 }
 
 ClassificationSection.propTypes = {
-  itemId:       PropTypes.number.isRequired,
-  onChange:     PropTypes.func,
-  showPairings: PropTypes.bool,
+  itemId:   PropTypes.number.isRequired,
+  onChange: PropTypes.func,
 };

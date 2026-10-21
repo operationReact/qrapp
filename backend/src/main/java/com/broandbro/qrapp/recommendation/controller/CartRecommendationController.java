@@ -65,7 +65,7 @@ public class CartRecommendationController {
      *
      * <p>Resolution strategy:
      * <ol>
-     *   <li>Tier 1 – Admin-curated ItemPairings (explicit, priority-sorted).</li>
+     *   <li>Tier 1 – Admin-curated meal rules (explicit, priority-sorted).</li>
      *   <li>Tier 2 – Classification-aware RecommendationEngine (MealType + CuisineType scoring).</li>
      * </ol>
      *

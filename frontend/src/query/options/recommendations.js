@@ -1,19 +1,11 @@
 import { queryOptions } from "@tanstack/react-query";
 import {
-  fetchAllRecommendations,
   fetchAllSuggestions,
   fetchPendingSuggestions,
   fetchPendingCount,
-  fetchAllUpsellRules,
-  fetchAllCategoryPairings,
+  fetchRecommendationRules,
+  fetchRuleStats,
 } from "@/services/recommendation-service";
-
-export const recommendationsOptions = (locationId) => queryOptions({
-  queryKey: ["growth", "recommendations", locationId],
-  queryFn: () => fetchAllRecommendations(locationId),
-  enabled: !!locationId,
-  staleTime: 1000 * 60 * 2,
-});
 
 export const autoSuggestionsOptions = (locationId) => queryOptions({
   queryKey: ["growth", "suggestions", locationId],
@@ -36,16 +28,16 @@ export const pendingCountOptions = (locationId) => queryOptions({
   staleTime: 1000 * 60,
 });
 
-export const upsellRulesOptions = (locationId) => queryOptions({
-  queryKey: ["growth", "upsell-rules", locationId],
-  queryFn: () => fetchAllUpsellRules(locationId),
+export const recommendationRulesOptions = (locationId) => queryOptions({
+  queryKey: ["growth", "recommendation-rules", locationId],
+  queryFn: () => fetchRecommendationRules(locationId),
   enabled: !!locationId,
   staleTime: 1000 * 60 * 2,
 });
 
-export const categoryPairingsOptions = (locationId) => queryOptions({
-  queryKey: ["growth", "category-pairings", locationId],
-  queryFn: () => fetchAllCategoryPairings(locationId),
+export const ruleStatsOptions = (locationId) => queryOptions({
+  queryKey: ["growth", "recommendation-rule-stats", locationId],
+  queryFn: () => fetchRuleStats(locationId),
   enabled: !!locationId,
-  staleTime: 1000 * 60 * 2,
+  staleTime: 1000 * 60,
 });

@@ -14,11 +14,11 @@ import {
 import { useIsMobile } from "@/hooks/use-mobile";
 import { X } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { Empty, EmptyDescription, EmptyHeader } from "./ui/empty";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { getCartRecommendations, getRecommendedBundle, getMealRecommendation } from "@/services/recommendation-service";
+import { getCartRecommendations, getRecommendedBundle, getMealRecommendation, trackRecommendationInteraction } from "@/services/recommendation-service";
 import { PlusCircleIcon, PlusIcon, PlusMinusIcon, SparkleIcon } from "@phosphor-icons/react";
 import ComboProgressBanner from "@/components/ComboProgressBanner";
 import { useByocDiscount } from "@/hooks/useByocDiscount";
@@ -29,6 +29,18 @@ import { ShoppingBagIcon } from "@phosphor-icons/react";
 import { Badge } from "./ui/badge";
 import { formatCurrency } from "@/lib/utils";
 
+
+// Analytics only: rule-driven suggestions carry a ruleId; others are not tracked.
+function trackSuggestion(restaurantId, sourceItemId, suggestion, interactionType) {
+  if (!suggestion.ruleId || !sourceItemId || !restaurantId) return;
+  trackRecommendationInteraction({
+    restaurantId,
+    sourceItemId,
+    recommendedItemId: suggestion.itemId,
+    ruleId: suggestion.ruleId,
+    interactionType,
+  }).catch(() => {});
+}
 
 // ── Smart upsell: ONE section, session-gated to prevent infinite loops ────────
 function SmartUpsellSection({ cart, addItem, decreaseItem, isOpen }) {
@@ -85,7 +97,19 @@ function SmartUpsellSection({ cart, addItem, decreaseItem, isOpen }) {
     staleTime: 1000 * 60 * 2,
     placeholderData: keepPreviousData,
   });
-  const suggestions = recsData?.suggestions ?? [];
+  const suggestions = useMemo(() => recsData?.suggestions ?? [], [recsData]);
+
+  const trackedViews = useRef(new Set());
+  const showingGeneralList = isOpen && !upsellDone && !hasMeal && !hasBundle && suggestions.length > 0;
+  useEffect(() => {
+    if (!showingGeneralList || cart.length === 0) return;
+    suggestions.forEach((s) => {
+      const key = `${s.ruleId}:${s.itemId}:${cart[0].id}`;
+      if (!s.ruleId || trackedViews.current.has(key)) return;
+      trackedViews.current.add(key);
+      trackSuggestion(activeLocationId, cart[0].id, s, "VIEWED");
+    });
+  }, [showingGeneralList, suggestions, cart, activeLocationId]);
 
   // Gate: hide entirely once the user has accepted one recommendation
   if (upsellDone) return null;
@@ -254,7 +278,10 @@ function SmartUpsellSection({ cart, addItem, decreaseItem, isOpen }) {
                   <Button
                   size="sm"
                   variant="branded-secondary"
-                  onClick={() => addItem({ id: s.itemId, name: s.itemName, imageUrl: s.imageUrl, price: s.price, locationId: activeLocationId })}
+                  onClick={() => {
+                    trackSuggestion(activeLocationId, cart[0]?.id, s, "ACCEPTED");
+                    addItem({ id: s.itemId, name: s.itemName, imageUrl: s.imageUrl, price: s.price, locationId: activeLocationId });
+                  }}
                   className=""
                   aria-label={`Add ${s.itemName}`}
                 >
@@ -306,8 +333,7 @@ function CartContent({ onClose, isOpen }) {
           {cart.map((item) => (
             <CartItem
               item={item}
-              key={item.id}
-              addItem={addItem}
+              key={item.lineKey ?? item.id}
               decreaseItem={decreaseItem}
               removeItem={removeItem}
             />

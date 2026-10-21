@@ -98,7 +98,27 @@ public interface RecommendationInteractionRepository extends JpaRepository<Recom
     @Query("SELECT COUNT(ri) FROM RecommendationInteraction ri WHERE ri.restaurantId = :restaurantId AND ri.interactionType = 'REJECTED'")
     long countTotalRejections(@Param("restaurantId") Long restaurantId);
 
+    /**
+     * Per-rule view and acceptance counts for a restaurant. Interactions without a rule are excluded.
+     */
+    @Query("""
+           SELECT ri.ruleId AS ruleId,
+                  SUM(CASE WHEN ri.interactionType = 'VIEWED'   THEN 1 ELSE 0 END) AS views,
+                  SUM(CASE WHEN ri.interactionType = 'ACCEPTED' THEN 1 ELSE 0 END) AS acceptances
+           FROM   RecommendationInteraction ri
+           WHERE  ri.restaurantId = :restaurantId
+             AND  ri.ruleId IS NOT NULL
+           GROUP BY ri.ruleId
+           """)
+    List<RuleStatProjection> findRuleStats(@Param("restaurantId") Long restaurantId);
+
     // ── Projection ────────────────────────────────────────────────────────────
+
+    interface RuleStatProjection {
+        Long getRuleId();
+        Long getViews();
+        Long getAcceptances();
+    }
 
     /**
      * Lightweight read-only projection for per-pairing aggregate data.
