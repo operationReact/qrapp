@@ -19,7 +19,7 @@ public interface LocationProductRepository extends JpaRepository<LocationProduct
                 coalesce(sum(case when i.id is not null and i.availableQuantity > 0
                     and i.availableQuantity <= i.lowStockThreshold then 1 else 0 end), 0),
                 coalesce(sum(case when i.id is not null and i.availableQuantity = 0 then 1 else 0 end), 0)
-                , avg(case when p.mrp > 0 then (p.mrp - p.costPrice) * 100.0 / p.mrp else null end)
+                , avg(case when lp.mrp > 0 then (lp.mrp - lp.costPrice) * 100.0 / lp.mrp else null end)
             )
             from LocationProduct lp
             join lp.product p
@@ -38,13 +38,13 @@ public interface LocationProductRepository extends JpaRepository<LocationProduct
                    or lower(coalesce(p.brand, '')) like lower(concat('%', :search, '%'))
                    or lower(coalesce(p.variantIdentity, '')) like lower(concat('%', :search, '%')))
               and (:active is null or p.active = :active)
-              and (:category = '' or lower(coalesce(p.categoryName, '')) = lower(:category))
+              and (:category = '' or lower(coalesce(lp.categoryName, '')) = lower(:category))
               and (:stockStatus = 'all'
                    or (:stockStatus = 'in' and i.id is not null and i.availableQuantity > i.lowStockThreshold)
                    or (:stockStatus = 'low' and i.id is not null and i.availableQuantity > 0 and i.availableQuantity <= i.lowStockThreshold)
                    or (:stockStatus = 'out' and i.id is not null and i.availableQuantity = 0))
             order by
-              case when :sortBy = 'mrp' then p.mrp end asc,
+              case when :sortBy = 'mrp' then lp.mrp end asc,
               case when :sortBy = 'updated' then p.updatedAt end desc,
               case when :sortBy = 'stock' then coalesce(i.availableQuantity, 0) end asc,
               p.name asc

@@ -144,7 +144,7 @@ public class ProductCatalogService {
         LocationProduct assignment = new LocationProduct();
         assignment.setProduct(product);
         assignment.setLocation(activeLocation(request.getLocationId()));
-        assignment.setSellingPrice(product.getMrp());
+        applyLocationPricing(assignment, request.getMrp(), request.getCostPrice(), request.getCategoryName());
         assignment.setVisible(!Boolean.FALSE.equals(request.getVisible()));
         assignment.setAvailable(!Boolean.FALSE.equals(request.getAvailable()));
         assignment = locationProductRepository.save(assignment);
@@ -163,7 +163,7 @@ public class ProductCatalogService {
         apply(product, request, variant);
         product = productRepository.save(product);
         LocationProduct assignment = assignment(productId, request.getLocationId());
-        assignment.setSellingPrice(product.getMrp());
+        applyLocationPricing(assignment, request.getMrp(), request.getCostPrice(), request.getCategoryName());
         assignment.setVisible(!Boolean.FALSE.equals(request.getVisible()));
         assignment.setAvailable(!Boolean.FALSE.equals(request.getAvailable()));
         ProductInventory inventory = inventoryRepository.findByLocationProductId(assignment.getId())
@@ -230,7 +230,7 @@ public class ProductCatalogService {
         LocationProduct assignment = new LocationProduct();
         assignment.setProduct(product);
         assignment.setLocation(activeLocation(request.getLocationId()));
-        assignment.setSellingPrice(product.getMrp());
+        applyLocationPricing(assignment, request.getMrp(), request.getCostPrice(), request.getCategoryName());
         assignment.setVisible(Boolean.TRUE.equals(request.getVisible()));
         assignment.setAvailable(Boolean.TRUE.equals(request.getAvailable()));
         assignment = locationProductRepository.save(assignment);
@@ -261,7 +261,7 @@ public class ProductCatalogService {
         User actor = actor(authentication);
         requireLocation(actor, locationId);
         LocationProduct assignment = assignment(productId, locationId);
-        assignment.setSellingPrice(assignment.getProduct().getMrp());
+        applyLocationPricing(assignment, request.getMrp(), request.getCostPrice(), request.getCategoryName());
         assignment.setVisible(!Boolean.FALSE.equals(request.getVisible()));
         assignment.setAvailable(!Boolean.FALSE.equals(request.getAvailable()));
         ProductInventory inventory = inventoryRepository.findByLocationProductId(assignment.getId())
@@ -292,20 +292,124 @@ public class ProductCatalogService {
     }
 
     /**
-     * Lists products with the same name so an admin can assign an existing product
-     * (and its shared image) to this location instead of creating a duplicate.
+     * Finds catalogue products similar to the name being typed so an admin can reuse an existing
+     * product (and its shared image) at this location instead of creating a duplicate. Matching is
+     * order-independent and typo tolerant: every typed word must match a word of the product's
+     * name, brand, SKU or variant, either exactly, as a prefix, or within a small edit distance.
      */
     @Transactional(readOnly = true)
     public List<ProductSimilarResponse> similarProducts(Long locationId, String name, Authentication authentication) {
         User actor = actor(authentication);
         requireLocation(actor, locationId);
-        String normalized = name == null ? "" : name.trim();
-        if (normalized.length() < 2) return List.of();
-        return productRepository.findTop10ByNameIgnoreCaseOrderByIdAsc(normalized).stream()
-                .map(product -> ProductSimilarResponse.of(product,
-                        locationProductRepository.findByProductIdOrderByLocationNameAsc(product.getId()).stream()
+        List<String> tokens = searchTokens(name);
+        if (tokens.isEmpty() || String.join("", tokens).length() < 2) return List.of();
+        return productRepository.findAll().stream()
+                .map(product -> new ScoredProduct(product, matchScore(product, tokens)))
+                .filter(scored -> scored.score() > 0)
+                .sorted(java.util.Comparator.comparingInt(ScoredProduct::score).reversed()
+                        .thenComparing(scored -> scored.product().getName(), String.CASE_INSENSITIVE_ORDER)
+                        .thenComparing(scored -> scored.product().getId()))
+                .limit(10)
+                .map(scored -> ProductSimilarResponse.of(scored.product(),
+                        locationProductRepository.findByProductIdOrderByLocationNameAsc(scored.product().getId()).stream()
                                 .anyMatch(assignment -> locationId.equals(assignment.getLocation().getId()))))
                 .toList();
+    }
+
+    /**
+     * Browses the global product catalogue for reuse at {@code locationId}. Only product identity and image are
+     * returned; other locations' MRP, cost and category are never exposed to this location's admins.
+     */
+    @Transactional(readOnly = true)
+    public org.springframework.data.domain.Page<ProductSimilarResponse> globalCatalogue(Long locationId, String search,
+                                                                                       Pageable pageable,
+                                                                                       Authentication authentication) {
+        User actor = actor(authentication);
+        requireLocation(actor, locationId);
+        List<String> tokens = searchTokens(search);
+        java.util.Set<Long> assignedProductIds = locationProductRepository.findByLocationIdOrderByProductNameAsc(locationId)
+                .stream().map(assignment -> assignment.getProduct().getId()).collect(java.util.stream.Collectors.toSet());
+        List<ScoredProduct> matches = productRepository.findAll().stream()
+                .filter(product -> Boolean.TRUE.equals(product.getActive()))
+                .map(product -> new ScoredProduct(product, tokens.isEmpty() ? 1 : matchScore(product, tokens)))
+                .filter(scored -> scored.score() > 0)
+                .sorted(java.util.Comparator.comparingInt(ScoredProduct::score).reversed()
+                        .thenComparing(scored -> scored.product().getName(), String.CASE_INSENSITIVE_ORDER))
+                .toList();
+        int start = (int) Math.min(pageable.getOffset(), matches.size());
+        int end = (int) Math.min((long) start + pageable.getPageSize(), matches.size());
+        List<ProductSimilarResponse> content = matches.subList(start, end).stream()
+                .map(scored -> ProductSimilarResponse.of(scored.product(),
+                        assignedProductIds.contains(scored.product().getId())))
+                .toList();
+        return new org.springframework.data.domain.PageImpl<>(content, pageable, matches.size());
+    }
+
+    private record ScoredProduct(Product product, int score) {}
+
+    private static final java.util.regex.Pattern SEARCH_WORD_SPLIT = java.util.regex.Pattern.compile("[^\\p{L}\\p{N}]+");
+
+    private List<String> searchTokens(String text) {
+        if (text == null) return List.of();
+        return SEARCH_WORD_SPLIT.splitAsStream(text.toLowerCase(Locale.ROOT))
+                .filter(token -> !token.isBlank())
+                .distinct()
+                .toList();
+    }
+
+    /** Returns 0 when any typed word fails to match; otherwise a score that favours closer matches. */
+    private int matchScore(Product product, List<String> tokens) {
+        List<String> words = searchTokens(String.join(" ",
+                java.util.Objects.toString(product.getName(), ""),
+                java.util.Objects.toString(product.getBrand(), ""),
+                java.util.Objects.toString(product.getSku(), ""),
+                java.util.Objects.toString(product.getVariantIdentity(), "")));
+        int total = 0;
+        for (String token : tokens) {
+            int score = tokenScore(token, words);
+            if (score == 0) return 0;
+            total += score;
+        }
+        return total;
+    }
+
+    private int tokenScore(String token, List<String> words) {
+        int best = 0;
+        for (String word : words) {
+            int score;
+            if (word.equals(token)) {
+                score = 3;
+            } else if (word.startsWith(token)) {
+                score = 2;
+            } else if (token.length() >= 3 && word.contains(token)) {
+                score = 1;
+            } else if (token.length() >= 4) {
+                String prefix = word.length() > token.length() ? word.substring(0, token.length()) : word;
+                int allowed = token.length() >= 7 ? 2 : 1;
+                score = Math.min(editDistance(token, word), editDistance(token, prefix)) <= allowed ? 1 : 0;
+            } else {
+                score = 0;
+            }
+            best = Math.max(best, score);
+        }
+        return best;
+    }
+
+    private static int editDistance(String a, String b) {
+        int[] previous = new int[b.length() + 1];
+        int[] current = new int[b.length() + 1];
+        for (int j = 0; j <= b.length(); j++) previous[j] = j;
+        for (int i = 1; i <= a.length(); i++) {
+            current[0] = i;
+            for (int j = 1; j <= b.length(); j++) {
+                int cost = a.charAt(i - 1) == b.charAt(j - 1) ? 0 : 1;
+                current[j] = Math.min(Math.min(current[j - 1] + 1, previous[j] + 1), previous[j - 1] + cost);
+            }
+            int[] swap = previous;
+            previous = current;
+            current = swap;
+        }
+        return previous[b.length()];
     }
 
     /**
@@ -509,10 +613,7 @@ public class ProductCatalogService {
         product.setVariantIdentity(variant);
         product.setName(request.getName().trim());
         product.setBrand(normalizeOptional(request.getBrand()));
-        product.setCategoryName(normalizeOptional(request.getCategoryName()));
         product.setDescription(request.getDescription());
-        product.setMrp(request.getMrp());
-        product.setCostPrice(request.getCostPrice());
         product.setHsnSac(request.getHsnSac());
         product.setIsVeg(request.getIsVeg() == null ? Boolean.TRUE : request.getIsVeg());
         product.setImageUrl(request.getImageUrl());
@@ -526,10 +627,7 @@ public class ProductCatalogService {
         product.setVariantIdentity(variant);
         product.setName(request.getName().trim());
         product.setBrand(normalizeOptional(request.getBrand()));
-        product.setCategoryName(normalizeOptional(request.getCategoryName()));
         product.setDescription(request.getDescription());
-        product.setMrp(request.getMrp());
-        product.setCostPrice(request.getCostPrice());
         product.setHsnSac(request.getHsnSac());
         product.setIsVeg(request.getIsVeg() == null ? Boolean.TRUE : request.getIsVeg());
         if (request.getImageUrl() != null && !request.getImageUrl().equals(product.getImageUrl())) {
@@ -543,6 +641,15 @@ public class ProductCatalogService {
         product.setTaxProfile(request.getTaxProfileId() == null ? null :
                 taxProfileRepository.findById(request.getTaxProfileId())
                         .orElseThrow(() -> new IllegalArgumentException("Tax profile not found")));
+    }
+
+    /** MRP, cost and category are owned by each location, so reused products can be priced per store. */
+    private void applyLocationPricing(LocationProduct assignment, BigDecimal mrp, BigDecimal costPrice, String categoryName) {
+        if (mrp == null || mrp.signum() < 0) throw new IllegalArgumentException("MRP must be zero or more");
+        assignment.setMrp(mrp);
+        assignment.setCostPrice(costPrice == null ? BigDecimal.ZERO : costPrice);
+        assignment.setCategoryName(normalizeOptional(categoryName));
+        assignment.setSellingPrice(mrp);
     }
 
     private void createInventory(LocationProduct assignment, Long stock, Long threshold, Long changedBy) {
@@ -571,15 +678,15 @@ public class ProductCatalogService {
         Product product = assignment.getProduct();
         ProductInventory inventory = inventoryRepository.findByLocationProductId(assignment.getId()).orElse(null);
         TaxCalculationService.TaxCalculationResult tax = taxCalculationService.calculateInclusive(
-                product.getMrp(), product.getTaxProfile());
+                assignment.getMrp(), product.getTaxProfile());
         return ProductResponse.builder()
                 .id(product.getId()).locationProductId(assignment.getId())
                 .locationId(assignment.getLocation().getId())
                 .variantIdentity(product.getVariantIdentity()).name(product.getName())
-                .brand(product.getBrand()).categoryName(product.getCategoryName())
-                .description(product.getDescription()).mrp(product.getMrp()).costPrice(product.getCostPrice())
-                .profitMarginPercent(profitMarginPercent(product.getMrp(), product.getCostPrice()))
-                .sellingPrice(product.getMrp())
+                .brand(product.getBrand()).categoryName(assignment.getCategoryName())
+                .description(product.getDescription()).mrp(assignment.getMrp()).costPrice(assignment.getCostPrice())
+                .profitMarginPercent(profitMarginPercent(assignment.getMrp(), assignment.getCostPrice()))
+                .sellingPrice(assignment.getMrp())
                 .taxableAmount(tax.taxableAmount()).totalTax(tax.totalTax()).totalAmount(tax.totalAmount())
                 .taxProfileId(product.getTaxProfile() == null ? null : product.getTaxProfile().getId())
                 .hsnSac(product.getHsnSac()).imageUrl(product.getImageUrl()).active(product.getActive())
@@ -591,7 +698,7 @@ public class ProductCatalogService {
                 .lowStockThreshold(inventory == null ? null : inventory.getLowStockThreshold())
                 .assignments(List.of(ProductAssignmentResponse.builder()
                         .locationProductId(assignment.getId()).locationId(assignment.getLocation().getId())
-                        .locationName(assignment.getLocation().getName()).sellingPrice(assignment.getProduct().getMrp())
+                        .locationName(assignment.getLocation().getName()).sellingPrice(assignment.getMrp())
                         .visible(assignment.getVisible()).available(assignment.getAvailable())
                         .availableQuantity(inventory == null ? null : inventory.getAvailableQuantity())
                         .lowStockThreshold(inventory == null ? null : inventory.getLowStockThreshold()).build()))
@@ -606,16 +713,14 @@ public class ProductCatalogService {
                     ProductInventory inventory = inventoryRepository.findByLocationProductId(assignment.getId()).orElse(null);
                     return ProductAssignmentResponse.builder()
                             .locationProductId(assignment.getId()).locationId(assignment.getLocation().getId())
-                            .locationName(assignment.getLocation().getName()).sellingPrice(assignment.getProduct().getMrp())
+                            .locationName(assignment.getLocation().getName()).sellingPrice(assignment.getMrp())
                             .visible(assignment.getVisible()).available(assignment.getAvailable())
                             .availableQuantity(inventory == null ? null : inventory.getAvailableQuantity())
                             .lowStockThreshold(inventory == null ? null : inventory.getLowStockThreshold()).build();
                 }).toList();
         return ProductResponse.builder().id(product.getId())
                 .variantIdentity(product.getVariantIdentity()).name(product.getName()).brand(product.getBrand())
-                .categoryName(product.getCategoryName())
-                .description(product.getDescription()).mrp(product.getMrp()).costPrice(product.getCostPrice())
-                .profitMarginPercent(profitMarginPercent(product.getMrp(), product.getCostPrice()))
+                .description(product.getDescription())
                 .taxProfileId(product.getTaxProfile() == null ? null : product.getTaxProfile().getId())
                 .hsnSac(product.getHsnSac()).imageUrl(product.getImageUrl()).active(product.getActive())
                 .imageKey(product.getImageKey())
@@ -646,14 +751,14 @@ public class ProductCatalogService {
         projection.setProductType(com.broandbro.qrapp.enums.ProductType.RETAIL_PRODUCT);
         projection.setName(assignment.getProduct().getName());
         projection.setDescription(assignment.getProduct().getDescription());
-        if (categoryRepository != null && assignment.getProduct().getCategoryName() != null) {
+        if (categoryRepository != null && assignment.getCategoryName() != null) {
             Category category = categoryRepository.findByLocationIdAndNameAndCategoryTypeAndIsDeletedFalse(
-                            assignment.getLocation().getId(), assignment.getProduct().getCategoryName(),
+                            assignment.getLocation().getId(), assignment.getCategoryName(),
                             CategoryService.MRP_PRODUCT_CATEGORY)
                     .orElseGet(() -> {
                         Category created = new Category();
                         created.setLocation(assignment.getLocation());
-                        created.setName(assignment.getProduct().getCategoryName());
+                        created.setName(assignment.getCategoryName());
                         created.setCategoryType(CategoryService.MRP_PRODUCT_CATEGORY);
                         created.setDisplayOrder(0);
                         created.setIsDeleted(false);
@@ -663,9 +768,9 @@ public class ProductCatalogService {
         } else {
             projection.setCategory(null);
         }
-        projection.setMrp(assignment.getProduct().getMrp());
-        projection.setPurchaseCost(assignment.getProduct().getCostPrice());
-        projection.setEstimatedCost(assignment.getProduct().getCostPrice());
+        projection.setMrp(assignment.getMrp());
+        projection.setPurchaseCost(assignment.getCostPrice());
+        projection.setEstimatedCost(assignment.getCostPrice());
         projection.setImageUrl(assignment.getProduct().getImageUrl());
         // sku_code is a legacy globally-unique key. Include the location for
         // new projections; preserve a backfilled legacy SKU on existing rows.
@@ -682,13 +787,13 @@ public class ProductCatalogService {
         projection.setIsVeg(assignment.getProduct().getIsVeg());
         menuRepository.save(projection);
         if (pricingService != null && sellingPriceHistoryRepository != null
-                && assignment.getProduct().getMrp() != null
-                && assignment.getProduct().getMrp().signum() > 0
+                && assignment.getMrp() != null
+                && assignment.getMrp().signum() > 0
                 && sellingPriceHistoryRepository.findCurrentActive(projection.getId())
-                .map(history -> history.getSellingPrice().compareTo(assignment.getProduct().getMrp()) != 0)
+                .map(history -> history.getSellingPrice().compareTo(assignment.getMrp()) != 0)
                 .orElse(true)) {
             pricingService.setSellingPrice(new PriceSetRequest(
-                    projection.getId(), assignment.getProduct().getMrp(), null, "Catalog MRP"));
+                    projection.getId(), assignment.getMrp(), null, "Catalog MRP"));
         }
         syncLegacyInventory(assignment, projection);
     }

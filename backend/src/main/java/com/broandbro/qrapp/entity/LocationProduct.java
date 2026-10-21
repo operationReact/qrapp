@@ -26,6 +26,15 @@ public class LocationProduct {
     @JoinColumn(name = "location_id", nullable = false)
     private Location location;
 
+    @Column(nullable = false, precision = 19, scale = 2)
+    private BigDecimal mrp;
+
+    @Column(name = "cost_price", nullable = false, precision = 19, scale = 2)
+    private BigDecimal costPrice = BigDecimal.ZERO;
+
+    @Column(name = "category_name", length = 80)
+    private String categoryName;
+
     @Column(name = "selling_price", nullable = false, precision = 19, scale = 2)
     private BigDecimal sellingPrice;
 

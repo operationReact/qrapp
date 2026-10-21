@@ -54,6 +54,11 @@ export const getSimilarCatalogProducts = (locationId, name) =>
     params: { locationId, name },
   }).then((response) => response.data);
 
+export const getGlobalCatalogProducts = (locationId, { search = "", page = 0, size = 24 } = {}) =>
+  apiClient.get("/api/mrp-product/admin/global-products", {
+    params: { locationId, search, page, size },
+  }).then((response) => response.data);
+
 export const reuseCatalogProductImage = (id, locationId, sourceProductId) =>
   apiClient.post(`/api/mrp-product/products/${id}/image/reuse`, null, {
     params: { locationId, sourceProductId },

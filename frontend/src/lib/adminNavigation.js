@@ -20,6 +20,7 @@ export const ADMIN_NAVIGATION = [
   { section: "Menu", items: [
     { to: "/admin/menu", label: "Menu Items", icon: BowlFoodIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN, ROLE.MANAGER] },
     { to: "/admin/mrp-product", label: "MRP Product", icon: StorefrontIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN, ROLE.MANAGER] },
+    { to: "/admin/global-products", label: "Global Products", icon: StorefrontIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN, ROLE.MANAGER] },
     { to: "/admin/combos", label: "Combos", icon: CubeIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN] },
     { to: "/admin/classification", label: "Recommendation Setup", icon: ForkKnifeIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN] },
     { to: "/admin/combo-campaigns", label: "BYOC Campaigns", icon: SparkleIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN] },

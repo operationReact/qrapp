@@ -188,6 +188,7 @@
 .rf-timeline-dot { position: relative; z-index: 1; flex-shrink: 0; width: 14px; height: 14px; margin-top: 14px; border-radius: 50%; background: #fff; border: 3px solid #e11d2e; box-shadow: 0 0 0 4px #fff5f5; }
 .rf-timeline-item:first-child .rf-timeline-dot { background: #e11d2e; }
 .rf-timeline-card { flex: 1; min-width: 0; padding: 12px 14px; border: 1px solid #ebe7e1; border-radius: 14px; background: #fff; box-shadow: 0 1px 2px rgba(17, 24, 39, 0.03); }
+.rf-timeline-card--alert { border-color: #fecdd3; background: #fff7f8; }
 .rf-timeline-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
 .rf-timeline-top strong { font-size: 14px; color: #111827; }
 .rf-timeline-time { color: #9ca3af; font-size: 12px; white-space: nowrap; font-variant-numeric: tabular-nums; }

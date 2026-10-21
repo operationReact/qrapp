@@ -1,0 +1,103 @@
+/* Global product catalogue: browse products from every location and add them to the current one. */
+.gp-page {
+  --gp-ink: #211b1b;
+  --gp-muted: #766d6a;
+  --gp-line: #ece5e2;
+  --gp-red: #e72d45;
+  --gp-red-dark: #c91f37;
+  --gp-shadow: 0 2px 4px rgb(45 25 25 / 3%), 0 12px 30px rgb(45 25 25 / 4%);
+  min-height: 100vh;
+  background: #faf7f5;
+  color: var(--gp-ink);
+  padding: 20px 16px 48px;
+}
+.gp-inner { width: 100%; max-width: 1400px; margin-inline: auto; }
+.gp-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
+.gp-title { font-size: clamp(22px, 2.4vw, 30px); font-weight: 800; letter-spacing: -.04em; }
+.gp-sub { margin-top: 4px; font-size: 13px; color: var(--gp-muted); line-height: 1.5; }
+.gp-controls { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 18px; }
+.gp-search,
+.gp-select,
+.gp-field input {
+  min-height: 46px;
+  border: 1px solid var(--gp-line);
+  border-radius: 14px;
+  background: #fff;
+  padding: 0 14px;
+  font-size: 14px;
+  color: var(--gp-ink);
+  outline: none;
+}
+.gp-search { flex: 1 1 280px; }
+.gp-search:focus,
+.gp-field input:focus { border-color: var(--gp-red); box-shadow: 0 0 0 4px rgb(231 45 69 / 9%); }
+.gp-select { flex: 0 1 260px; }
+.gp-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+@media (min-width: 720px) { .gp-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (min-width: 1100px) { .gp-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; } }
+.gp-card {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--gp-line);
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: var(--gp-shadow);
+}
+.gp-img {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1 / 1;
+  background: #f6f2ef;
+}
+.gp-img img { width: 100%; height: 100%; object-fit: cover; }
+.gp-noimg { font-size: 12px; color: var(--gp-muted); }
+.gp-body { display: flex; flex: 1; flex-direction: column; gap: 4px; padding: 12px 14px 14px; }
+.gp-name { font-size: 15px; font-weight: 700; line-height: 1.3; letter-spacing: -.02em; }
+.gp-meta { font-size: 12px; color: var(--gp-muted); line-height: 1.4; }
+.gp-foot { margin-top: auto; padding-top: 10px; }
+.gp-add {
+  width: 100%;
+  min-height: 40px;
+  border-radius: 12px;
+  background: var(--gp-red);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+}
+.gp-add:hover { background: var(--gp-red-dark); }
+.gp-add:disabled { opacity: .5; cursor: not-allowed; }
+.gp-in {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0 12px;
+  border-radius: 12px;
+  background: #ecfdf3;
+  color: #137a3e;
+  font-size: 13px;
+  font-weight: 700;
+}
+.gp-pager { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 20px; font-size: 13px; color: var(--gp-muted); }
+.gp-pager button {
+  min-height: 40px;
+  padding: 0 16px;
+  border: 1px solid var(--gp-line);
+  border-radius: 12px;
+  background: #fff;
+  font-weight: 700;
+  color: var(--gp-ink);
+}
+.gp-pager button:disabled { opacity: .4; cursor: not-allowed; }
+.gp-empty { padding: 48px 16px; text-align: center; color: var(--gp-muted); font-size: 14px; }
+.gp-form { display: grid; gap: 12px; }
+.gp-form-row { display: grid; gap: 12px; grid-template-columns: 1fr 1fr; }
+.gp-field { display: grid; gap: 6px; font-size: 12px; font-weight: 700; color: #514d48; }
+.gp-field input { width: 100%; }
+.gp-hint { font-size: 12px; color: var(--gp-muted); line-height: 1.5; }
+.gp-context { margin-bottom: 14px; font-size: 13px; color: var(--gp-muted); }
+.gp-context strong { color: #1f1d1b; font-weight: 700; }
+.gp-icon-btn { display: inline-flex; align-items: center; justify-content: center; width: 38px; height: 38px; border: 1px solid #e5e1dc; border-radius: 10px; background: #fff; color: #514d48; cursor: pointer; }
+.gp-select-full { width: 100%; }
+.gp-ghost { height: 40px; padding: 0 16px; border: 1px solid #e5e1dc; border-radius: 10px; background: #fff; font-size: 13px; font-weight: 700; color: #514d48; cursor: pointer; }
+.gp-submit { height: 40px; padding: 0 18px; }

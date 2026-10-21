@@ -113,8 +113,6 @@ class ProductCatalogServiceTest {
         product.setId(3L);
         product.setName("Soap");
         product.setActive(true);
-        product.setMrp(new BigDecimal("40"));
-        product.setCostPrice(new BigDecimal("20"));
 
         LocationProduct assignment = new LocationProduct();
         assignment.setId(44L);
@@ -147,7 +145,7 @@ class ProductCatalogServiceTest {
 
         service.update(3L, request, authentication);
 
-        assertEquals("Beverages", product.getCategoryName());
+        assertEquals("Beverages", assignment.getCategoryName());
         assertEquals(10L, inventory.getAvailableQuantity());
         assertEquals(3L, inventory.getLowStockThreshold());
         ArgumentCaptor<ProductInventoryMovement> movementCaptor =
@@ -224,8 +222,6 @@ class ProductCatalogServiceTest {
         product.setId(3L);
         product.setName("Soap");
         product.setActive(true);
-        product.setMrp(new BigDecimal("40"));
-        product.setCostPrice(new BigDecimal("20"));
         product.setImageAsset(asset);
         product.setImageUrl(asset.getImageUrl());
         product.setImageKey(asset.getImageKey());
@@ -274,8 +270,8 @@ class ProductCatalogServiceTest {
         product.setId(productId);
         product.setName("Soap");
         product.setActive(true);
-        product.setMrp(new BigDecimal("40"));
-        product.setCostPrice(new BigDecimal("20"));
+        product.setName("Soap");
+        product.setActive(true);
         return product;
     }
 
@@ -316,7 +312,6 @@ class ProductCatalogServiceTest {
         product.setSku("ABC");
         product.setVariantIdentity("500G");
         product.setName("Soap");
-        product.setMrp(new BigDecimal("40"));
 
         LocationProduct assignment = new LocationProduct();
         assignment.setId(44L);
@@ -338,6 +333,8 @@ class ProductCatalogServiceTest {
 
         ProductAssignmentRequest request = new ProductAssignmentRequest();
         request.setLocationId(11L);
+        request.setMrp(new BigDecimal("40"));
+        request.setCostPrice(new BigDecimal("20"));
         request.setVisible(true);
         request.setAvailable(true);
 

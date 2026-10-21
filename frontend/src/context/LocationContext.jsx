@@ -111,9 +111,10 @@ export function LocationProvider({ children }) {
   }, [activeLocationId]);
 
   useEffect(() => {
+    // Only clear the saved choice once locations have loaded; before that, baseLocation is null by necessity.
     if (baseLocation) localStorage.setItem(STORAGE_KEY, JSON.stringify(baseLocation));
-    else localStorage.removeItem(STORAGE_KEY);
-  }, [baseLocation]);
+    else if (locationQuerySuccess) localStorage.removeItem(STORAGE_KEY);
+  }, [baseLocation, locationQuerySuccess]);
 
   useEffect(() => {
     if (allLocationsSelected) return;

@@ -111,6 +111,11 @@ function MenuPage() {
 
   const { data: categoriesData } = useQuery(categoriesOptions(activeLocationId));
 
+  useEffect(() => {
+    if (!hash || loading) return;
+    document.getElementById(hash)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [hash, loading]);
+
   const categories = useMemo(() => {
     const unique = new Map();
     for (const categoryItem of categoriesData || []) {
