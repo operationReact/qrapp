@@ -13,21 +13,17 @@ import {
 import { ROLE } from "./roles";
 
 export const ADMIN_NAVIGATION = [
-  { section: "Control", items: [
+  { section: "Dashboard", icon: SlidersIcon, items: [{ to: "/admin", label: "Dashboard", icon: SlidersIcon, roles: [ROLE.SUPER_ADMIN] }] },
+  { section: "Workspace", icon: ShieldCheckIcon, items: [
     { to: "/admin/control-center", label: "Control Center", icon: ShieldCheckIcon, roles: [ROLE.SUPER_ADMIN] },
     { to: "/admin/control-center/invoice-management", label: "Invoice Management", icon: FileTextIcon, roles: [ROLE.SUPER_ADMIN] },
   ] },
-  { section: "Workspace", items: [{ to: "/admin", label: "Dashboard", roles: [ROLE.SUPER_ADMIN] }] },
-  { section: "Menu", items: [
+  { section: "Menu", icon: BowlFoodIcon, items: [
     { to: "/admin/menu", label: "Menu Items", icon: BowlFoodIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN, ROLE.MANAGER] },
     { to: "/admin/mrp-product", label: "MRP Product", icon: StorefrontIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN, ROLE.MANAGER] },
     { to: "/admin/global-products", label: "Global Products", icon: StorefrontIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN, ROLE.MANAGER] },
-    { to: "/admin/combos", label: "Combos", icon: CubeIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN] },
-    { to: "/admin/classification", label: "Recommendation Setup", icon: ForkKnifeIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN] },
-    { to: "/admin/combo-campaigns", label: "BYOC Campaigns", icon: SparkleIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN] },
-    { to: "/admin/home-content", label: "Customer Home Content", icon: ImageIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN] },
   ] },
-  { section: "Operations", items: [
+  { section: "Operations", icon: QueueIcon, items: [
     { to: "/admin/vendors", label: "Vendor Management", icon: StorefrontIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN] },
     { to: "/admin/partners", label: "Partner Management", icon: BuildingOfficeIcon, roles: [ROLE.SUPER_ADMIN] },
     { to: "/admin/manual-invoices", label: "Manual Invoices", icon: FileTextIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN] },
@@ -37,26 +33,29 @@ export const ADMIN_NAVIGATION = [
     { to: "/admin/pre-orders", label: "Pre-Orders", icon: CalendarCheckIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN] },
     { to: "/admin/refunds", label: "Refunds & Cancellations", icon: ArrowsCounterClockwiseIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN] },
   ] },
-  { section: "Offers", items: [
+  { section: "Offers", icon: TicketIcon, items: [
     { to: "/admin/promotions", label: "Promotions", icon: TicketIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN] },
     { to: "/admin/milestones", label: "Milestones", icon: TrophyIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN] },
   ] },
-  { section: "Food Court", items: [
+  { section: "Food Court", icon: BuildingOfficeIcon, items: [
     { to: "/admin/food-court", label: "Food Court", icon: BuildingOfficeIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN] },
   ] },
-  { section: "Growth Tools", items: [
+  { section: "Growth Tools", icon: LightningIcon, items: [
     { to: "/admin/item-recommendations", label: "Add-on Options", icon: ListPlusIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN] },
     { to: "/admin/auto-suggestions", label: "Auto Suggestions", icon: MagicWandIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN] },
     { to: "/admin/cart-rules", label: "Cart Rules", icon: LightningIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN] },
+    { to: "/admin/classification", label: "Recommendation Setup", icon: ForkKnifeIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN] },
+    { to: "/admin/combo-campaigns", label: "BYOC Campaigns", icon: SparkleIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN] },
+    { to: "/admin/home-content", label: "Customer Home Content", icon: ImageIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN] },
   ] },
-  { section: "Analytics", items: [
+  { section: "Analytics", icon: ChartLineUpIcon, items: [
     { to: "/admin/analytics", label: "Overview", icon: ChartLineUpIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN] },
     { to: "/admin/analytics/sales", label: "Sales", icon: ChartBarIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN] },
     { to: "/admin/analytics/orders", label: "Orders", icon: ShoppingCartSimpleIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN] },
     { to: "/admin/analytics/menu", label: "Menu", icon: ForkKnifeIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN] },
     { to: "/admin/analytics/users", label: "Users", icon: UserCircleIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN] },
   ] },
-  { section: "System", items: [
+  { section: "System", icon: SlidersIcon, items: [
     { to: "/admin/global-controls", label: "Settings", icon: SlidersIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN] },
     { to: "/admin/ops-center", label: "Operations Center", icon: TerminalWindowIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN] },
     { to: "/admin/background-tasks", label: "Background Tasks", icon: ClockCounterClockwiseIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN] },

@@ -2,10 +2,6 @@ import { queryOptions } from "@tanstack/react-query";
 import { getEffectiveLocationId } from "@/lib/activeLocationStore";
 import {
   getPublicCombos,
-  getComboAnalyticsSummary,
-  listCombos,
-  getCombo,
-  listSignatureProducts,
   listComboOpportunities,
   listMissedOpportunities,
 } from "../../services/comboService";
@@ -22,37 +18,6 @@ export const publicCombosOptions = (activeLocationId) => {
     staleTime: 1000 * 60 * 5,
   });
 };
-
-export const comboSummaryOptions = (activeLocationId) => {
-  const locationId = activeLocationId !== undefined ? activeLocationId : storedLocationId();
-  return queryOptions({
-    queryKey: ["combos", "summary", locationId ?? null],
-    queryFn: () => getComboAnalyticsSummary(locationId ?? undefined),
-    staleTime: 1000 * 60 * 2,
-  });
-};
-
-export const comboListOptions = (params = {}) =>
-  queryOptions({
-    queryKey: ["combos", "list", params],
-    queryFn: () => listCombos(params),
-    staleTime: 1000 * 60,
-  });
-
-export const comboOptions = (id) =>
-  queryOptions({
-    queryKey: ["combos", id],
-    queryFn: () => getCombo(id),
-    enabled: !!id,
-    staleTime: 1000 * 60,
-  });
-
-export const signatureProductListOptions = (params = {}) =>
-  queryOptions({
-    queryKey: ["signature-products", "list", params],
-    queryFn: () => listSignatureProducts(params),
-    staleTime: 1000 * 60 * 2,
-  });
 
 export const comboOpportunitiesOptions = (params = {}) =>
   queryOptions({

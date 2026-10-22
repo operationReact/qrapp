@@ -5,6 +5,7 @@ import {
   fetchDailySales,
   fetchDailySalesRange,
   fetchSalesSummary,
+  fetchRetailGstSummary,
   fetchWeeklySales,
   fetchMonthlySales,
   fetchHourlyOrders,
@@ -76,6 +77,15 @@ export const salesSummaryOptions = (params, activeLocationId) => {
   return queryOptions({
     queryKey: ["analytics", "sales", "summary", scoped.locationId, scoped.params],
     queryFn: () => fetchSalesSummary(scoped.params),
+    staleTime: 1000 * 60 * 2,
+  });
+};
+
+export const retailGstOptions = (params, activeLocationId) => {
+  const scoped = scopedAnalyticsParams(params, activeLocationId);
+  return queryOptions({
+    queryKey: ["analytics", "sales", "retail-gst", scoped.locationId, scoped.params],
+    queryFn: () => fetchRetailGstSummary(scoped.params),
     staleTime: 1000 * 60 * 2,
   });
 };

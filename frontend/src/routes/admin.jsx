@@ -26,16 +26,27 @@ function findNavTrail(pathname) {
   return best;
 }
 
-function SubPageHeader({ title, showBack = false }) {
+function SubPageHeader({ title, caption, showBack = false, trailing }) {
   const { toggleSidebar } = useSidebar();
   return (
-      <header className={cn("admin-workspace-header sticky top-0 z-30 flex h-14 shrink-0 items-center border-b bg-white/90 px-3 backdrop-blur-xl sm:px-5 md:h-[68px]", !title && "md:hidden")}>
-        <div className="flex w-full min-w-0 items-center gap-2.5">
+      <div className={cn("sticky top-0 z-30 shrink-0 border-b border-stone-200/70 bg-white/85 backdrop-blur-xl shadow-[0_10px_28px_-18px_rgba(70,40,15,0.35)]", !title && "md:hidden")}>
+        <header className="flex h-16 items-center gap-3 px-3.5 sm:px-5 md:h-[68px]">
           {showBack && <Button type="button" size="icon" variant="ghost" onClick={() => window.history.back()} aria-label="Go back" className="size-10 shrink-0 rounded-xl"><ArrowLeftIcon weight="bold" /></Button>}
-          <Button type="button" size="icon" variant="ghost" onClick={toggleSidebar} aria-label="Toggle navigation" className="size-10 shrink-0 rounded-xl text-stone-600 hover:bg-stone-100"><SidebarIcon size={21} /></Button>
-          {title && <h1 className="min-w-0 flex-1 truncate text-[15px] font-bold tracking-tight text-stone-900 sm:text-lg">{title}</h1>}
-        </div>
-      </header>
+          <Button type="button" size="icon" variant="outline" onClick={toggleSidebar} aria-label="Toggle navigation" className="size-10 shrink-0 rounded-xl border-stone-200 bg-white text-stone-700 shadow-sm hover:bg-orange-50 hover:text-orange-600"><SidebarIcon size={20} /></Button>
+          {title && (
+            <div className="min-w-0 flex-1">
+              {caption && (
+                <p className="flex items-center gap-1.5 truncate text-[10px] font-semibold uppercase tracking-[0.14em] text-orange-600/80 md:hidden">
+                  <span className="size-1.5 shrink-0 rounded-full bg-orange-400" aria-hidden="true" />
+                  {caption}
+                </p>
+              )}
+              <h1 className="truncate text-[17px] font-bold leading-tight tracking-tight text-stone-900 sm:text-lg">{title}</h1>
+            </div>
+          )}
+        </header>
+        {trailing && <div className="px-3.5 pb-3 md:hidden">{trailing}</div>}
+      </div>
   );
 }
 
@@ -59,7 +70,7 @@ function AdminLayoutContent() {
         <AdminSidebar />
         <SidebarInset className={cn("admin-workspace flex min-h-svh min-w-0 flex-1 flex-col overflow-x-clip bg-[#f7f5f2]")}>
           {showTopBar && (
-            <header className="max-md:hidden sticky top-0 z-30 flex h-14 shrink-0 items-center justify-between gap-6 border-b border-stone-200/80 bg-white/90 px-6 backdrop-blur-xl">
+            <header className="hidden md:flex sticky top-0 z-30 h-14 shrink-0 items-center justify-between gap-6 border-b border-stone-200/80 bg-white/90 px-6 backdrop-blur-xl">
               <nav aria-label="Breadcrumb" className="flex min-w-0 items-center gap-2 text-sm">
                 {trail && (
                   <>
@@ -74,7 +85,13 @@ function AdminLayoutContent() {
               </div>
             </header>
           )}
-          {!hideGenericHeader && <SubPageHeader title={pageTitle} />}
+          {!hideGenericHeader && (
+            <SubPageHeader
+              title={pageTitle ?? (showTopBar ? trail?.label : undefined)}
+              caption={showTopBar && trail ? (SECTION_LABELS[trail.section] ?? trail.section) : undefined}
+              trailing={showTopBar ? <AdminLocationSelector variant="flat" /> : undefined}
+            />
+          )}
         <div className="flex min-h-0 min-w-0 flex-1 flex-col"><Outlet /></div>
         </SidebarInset>
       </>

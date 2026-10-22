@@ -40,6 +40,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { PlusIcon, PencilSimpleIcon, TrashIcon, LightningIcon } from "@phosphor-icons/react";
+import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import ConfirmDialog from "@/components/ConfirmDialog";
 
 export const Route = createFileRoute("/admin/(growth)/cart-rules")({
@@ -301,8 +303,12 @@ function CartRuleFormDialog({ onOpenChange, menuItems, categories, onSubmit, sub
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button form="cart-rule-form" type="submit" disabled={submitting}>
-            {submitting ? "Saving…" : initial ? "Update Rule" : "Create Rule"}
+          <Button form="cart-rule-form" type="submit" disabled={submitting} className="gap-2">
+            {submitting ? (
+              <><Loader2 className="size-4 animate-spin" />Saving…</>
+            ) : (
+              initial ? "Update Rule" : "Create Rule"
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -452,6 +458,7 @@ function AdminCartRulesPage() {
   const createMutation = useMutation({
     mutationFn: createRecommendationRule,
     onSuccess: () => {
+      toast.success("Recommendation rule created");
       setFormOpen(false);
       refresh();
     },
@@ -460,6 +467,7 @@ function AdminCartRulesPage() {
   const updateMutation = useMutation({
     mutationFn: ({ id, data }) => updateRecommendationRule(id, data),
     onSuccess: () => {
+      toast.success("Recommendation rule saved");
       setEditing(null);
       setFormOpen(false);
       refresh();
@@ -469,14 +477,17 @@ function AdminCartRulesPage() {
   const deleteMutation = useMutation({
     mutationFn: deleteRecommendationRule,
     onSuccess: () => {
+      toast.success("Recommendation rule deleted");
       setDeleteTarget(null);
       refresh();
     },
+    onError: () => toast.error("Could not delete the rule. Please try again."),
   });
 
   const toggleMutation = useMutation({
     mutationFn: toggleRecommendationRule,
     onSuccess: refresh,
+    onError: () => toast.error("Could not update the rule. Please try again."),
   });
 
   const handleSubmit = async (data) => {
@@ -489,6 +500,7 @@ function AdminCartRulesPage() {
       }
     } catch (e) {
       console.error(e);
+      toast.error("Could not save the rule. Please try again.");
     } finally {
       setSubmitting(false);
     }

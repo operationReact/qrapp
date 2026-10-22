@@ -3,6 +3,7 @@ package com.broandbro.qrapp.analytics.service;
 import com.broandbro.qrapp.analytics.config.AnalyticsCacheConfig;
 import com.broandbro.qrapp.analytics.dto.DailySalesResponse;
 import com.broandbro.qrapp.analytics.dto.DashboardSummaryResponse;
+import com.broandbro.qrapp.analytics.dto.RetailGstSummaryResponse;
 import com.broandbro.qrapp.analytics.entity.DailySalesAnalytics;
 import com.broandbro.qrapp.analytics.projection.DailySalesSummaryProjection;
 import com.broandbro.qrapp.analytics.repository.DailySalesAnalyticsRepository;
@@ -229,6 +230,25 @@ public class SalesAnalyticsServiceImpl implements SalesAnalyticsService {
     }
 
     // ── Null-safe helpers ──────────────────────────────────────────────────────
+
+    @Override
+    public RetailGstSummaryResponse getRetailGstSummary(LocalDate from, LocalDate to, AnalyticsLocationScope scope) {
+        log.debug("[SalesService] getRetailGstSummary from={} to={} scope={}", from, to, scope);
+        if (!scope.visible()) {
+            return new RetailGstSummaryResponse(from, to, BigDecimal.ZERO, 0L,
+                    BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO);
+        }
+        var row = dailySalesRepo.aggregateRetailGst(from, to, scope.allLocations(), scope.locationIds());
+        return new RetailGstSummaryResponse(
+                from, to,
+                nullSafe(row.getMrpSales()),
+                row.getMrpUnitsSold() == null ? 0L : row.getMrpUnitsSold(),
+                nullSafe(row.getMrpGst()),
+                nullSafe(row.getTotalGst()),
+                nullSafe(row.getCgst()),
+                nullSafe(row.getSgst()),
+                nullSafe(row.getIgst()));
+    }
 
     private BigDecimal nullSafe(BigDecimal v) { return v != null ? v : BigDecimal.ZERO; }
     private long       nullSafeLong(Number v) { return v != null ? v.longValue() : 0L; }

@@ -3,6 +3,7 @@ package com.broandbro.qrapp.analytics.controller;
 import com.broandbro.qrapp.analytics.dto.ApiResponse;
 import com.broandbro.qrapp.analytics.dto.DailySalesResponse;
 import com.broandbro.qrapp.analytics.dto.DashboardSummaryResponse;
+import com.broandbro.qrapp.analytics.dto.RetailGstSummaryResponse;
 import com.broandbro.qrapp.analytics.scheduler.DailySalesAggregationScheduler;
 import com.broandbro.qrapp.analytics.service.SalesAnalyticsService;
 import com.broandbro.qrapp.analytics.support.AnalyticsLocationScope;
@@ -167,6 +168,20 @@ public class AnalyticsSalesController {
         AnalyticsLocationScope scope = scopeResolver.resolve(authentication, locationId);
         refreshTodaySnapshotIfIncluded(from, to);
         return ResponseEntity.ok(ApiResponse.ok(salesService.getDashboardSummary(from, to, scope)));
+    }
+
+    // ── GET /api/v1/analytics/sales/retail-gst ─────────────────────────────────
+
+    @GetMapping("/retail-gst")
+    @Operation(summary = "MRP (retail product) sales and GST for a date range")
+    public ResponseEntity<ApiResponse<RetailGstSummaryResponse>> getRetailGst(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @RequestParam(required = false) Long locationId,
+            Authentication authentication) {
+        validateRange(from, to);
+        AnalyticsLocationScope scope = scopeResolver.resolve(authentication, locationId);
+        return ResponseEntity.ok(ApiResponse.ok(salesService.getRetailGstSummary(from, to, scope)));
     }
 
     // ── POST /api/v1/analytics/sales/backfill ──────────────────────────────────

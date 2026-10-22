@@ -10,6 +10,9 @@ export const fetchDailySalesRange = (params) =>
 export const fetchSalesSummary = (params) =>
   apiClient.get("/api/v1/analytics/sales/summary", { params }).then((r) => r.data?.data);
 
+export const fetchRetailGstSummary = (params) =>
+  apiClient.get("/api/v1/analytics/sales/retail-gst", { params }).then((r) => r.data?.data);
+
 export const fetchWeeklySales = (params) =>
   apiClient.get("/api/v1/analytics/sales/weekly", { params }).then((r) => r.data?.data);
 
