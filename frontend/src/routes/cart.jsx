@@ -87,6 +87,7 @@ function CartPage() {
     cart,
     addItem,
     decreaseItem,
+    removeItem,
     closeDrawer,
     clearCart,
     appliedPromotion,
@@ -589,8 +590,10 @@ function CartPage() {
                 {cart.map((item) => (
                   <CartItem
                     key={item.lineKey ?? item.id}
+                    item={item}
                     addItem={addItem}
                     decreaseItem={decreaseItem}
+                    removeItem={removeItem}
                   />
                 ))}
               </section>

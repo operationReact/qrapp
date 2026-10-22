@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { walletCreateOrder, walletVerifyPayment } from "@/services/wallet-service";
 import { walletTopUpConfigOptions } from "@/query/options/wallet";
 import { cn } from "@/lib/utils";
+import CoinShower from "@/components/wallet/CoinShower";
 
 const QUICK_AMOUNTS = [100, 250, 500, 1000, 2000];
 const FALLBACK_MIN_TOP_UP_AMOUNT = 100;
@@ -53,6 +54,7 @@ export default function AddMoneyForm({ className, onSuccess, onError }) {
   const [amount, setAmount] = useState("500");
   const [error, setError] = useState(null);
   const [adding, setAdding] = useState(false);
+  const [coinBurst, setCoinBurst] = useState(null);
   const toast = useToast();
   const queryClient = useQueryClient();
   const { data: topUpConfig } = useQuery(walletTopUpConfigOptions);
@@ -116,6 +118,7 @@ export default function AddMoneyForm({ className, onSuccess, onError }) {
               razorpaySignature: paymentResponse.razorpay_signature,
             });
             await onSuccess?.();
+            setCoinBurst(Date.now());
             toast.show("Wallet credited successfully");
           } catch (verifyError) {
             console.error("wallet verify failed", verifyError);
@@ -153,8 +156,12 @@ export default function AddMoneyForm({ className, onSuccess, onError }) {
   return (
     <>
       <div
-        className={cn("rounded-lg border bg-white p-5", className)}
+        className={cn("relative overflow-hidden rounded-lg border bg-white p-5", className)}
       >
+        {coinBurst && (
+          <CoinShower key={coinBurst} onDone={() => setCoinBurst(null)} />
+        )}
+
         <div className="mb-5 flex gap-4">
           <img src="/coin-plus.svg" alt="Plus" className="size-11 shrink-0" />
           <div>
