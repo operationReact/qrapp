@@ -124,6 +124,47 @@ public interface DailySalesAnalyticsRepository extends JpaRepository<DailySalesA
             @Param("allLocations") boolean allLocations,
             @Param("locationIds") List<Long> locationIds);
 
+    /**
+     * Live MRP (RETAIL_PRODUCT) sales and GST from completed order lines.
+     * Read directly from order_item because the daily snapshot has no product-type or tax split.
+     */
+    @Query(value = """
+           WITH pragati AS (
+               SELECT id FROM locations WHERE code = 'PRAGATI_NAGAR'
+           ),
+           completed_lines AS (
+               SELECT COALESCE(o.location_id, (SELECT id FROM pragati)) AS location_id,
+                      mi.product_type                                    AS product_type,
+                      oi.quantity                                        AS quantity,
+                      COALESCE(oi.total_customer_price, oi.line_total, 0) AS sales_amount,
+                      COALESCE(oi.total_tax, 0)                          AS total_tax,
+                      COALESCE(oi.cgst_amount, 0)                        AS cgst_amount,
+                      COALESCE(oi.sgst_amount, 0)                        AS sgst_amount,
+                      COALESCE(oi.igst_amount, 0)                        AS igst_amount
+               FROM order_item oi
+               JOIN orders o     ON o.id = oi.order_id
+               JOIN menu_item mi ON mi.id = oi.item_id
+               WHERE o.status = 'COMPLETED'
+                 AND o.created_at::date BETWEEN :from AND :to
+           )
+           SELECT
+               COALESCE(SUM(sales_amount) FILTER (WHERE product_type = 'RETAIL_PRODUCT'), 0) AS mrpSales,
+               COALESCE(SUM(quantity)     FILTER (WHERE product_type = 'RETAIL_PRODUCT'), 0) AS mrpUnitsSold,
+               COALESCE(SUM(total_tax)    FILTER (WHERE product_type = 'RETAIL_PRODUCT'), 0) AS mrpGst,
+               COALESCE(SUM(total_tax), 0)                                                  AS totalGst,
+               COALESCE(SUM(cgst_amount), 0)                                                AS cgst,
+               COALESCE(SUM(sgst_amount), 0)                                                AS sgst,
+               COALESCE(SUM(igst_amount), 0)                                                AS igst
+           FROM completed_lines
+           WHERE (:allLocations = TRUE OR location_id IN (:locationIds))
+           """,
+           nativeQuery = true)
+    com.broandbro.qrapp.analytics.projection.RetailGstProjection aggregateRetailGst(
+            @Param("from") LocalDate from,
+            @Param("to") LocalDate to,
+            @Param("allLocations") boolean allLocations,
+            @Param("locationIds") List<Long> locationIds);
+
     // ── Scheduler UPSERT ──────────────────────────────────────────────────────
 
     /**

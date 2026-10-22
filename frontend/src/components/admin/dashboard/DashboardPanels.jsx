@@ -9,6 +9,7 @@ import {
   Calculator,
   Clock3,
   Flame,
+  Landmark,
   Package,
   RefreshCw,
   ShoppingBag,
@@ -44,9 +45,10 @@ const statusMeta = {
   CANCELLED: { label: "Cancelled", color: "text-[#DC2626]", bg: "bg-[#FEF2F2]", icon: TriangleAlert },
 };
 
-export function KpiStrip({ summary, comparison, periodLabel = "Today", loading, error, onRetry }) {
+export function KpiStrip({ summary, comparison, retailGst, periodLabel = "Today", loading, error, onRetry }) {
   const current = summary ?? {};
   const previous = comparison ?? {};
+  const retail = retailGst ?? {};
   const orders = current.completedOrders;
   const hasCompletedOrders = Number(orders ?? 0) > 0;
   const trend = (value, previousValue) => (
@@ -54,6 +56,7 @@ export function KpiStrip({ summary, comparison, periodLabel = "Today", loading, 
       ? ((Number(value) - Number(previousValue)) / Number(previousValue)) * 100
       : null
   );
+  const taxNote = `CGST ${formatCurrency(retail.cgst ?? 0)} · SGST ${formatCurrency(retail.sgst ?? 0)}${Number(retail.igst ?? 0) > 0 ? ` · IGST ${formatCurrency(retail.igst)}` : ""}`;
   const cards = [
     {
       label: "Revenue",
@@ -88,6 +91,29 @@ export function KpiStrip({ summary, comparison, periodLabel = "Today", loading, 
       iconColor: "text-[#16A34A]",
       iconBg: "bg-[#ECFDF3]",
       valueColor: "text-[#059669]",
+    },
+    {
+      label: "MRP sales",
+      value: formatCurrency(retail.mrpSales ?? 0),
+      note: "Retail products",
+      icon: ShoppingBag,
+      iconColor: "text-[#D97706]",
+      iconBg: "bg-[#FFF7E6]",
+    },
+    {
+      label: "MRP units",
+      value: formatNumber(retail.mrpUnitsSold ?? 0),
+      note: "Items sold",
+      iconColor: "text-[#2563EB]",
+      iconBg: "bg-[#EFF6FF]",
+    },
+    {
+      label: "Total GST",
+      value: formatCurrency(retail.totalGst ?? 0),
+      note: taxNote,
+      icon: Landmark,
+      iconColor: "text-[#16A34A]",
+      iconBg: "bg-[#ECFDF3]",
     },
   ];
   const displayCards = error ? cards.map((card) => ({ ...card, value: "—", trend: null })) : cards;

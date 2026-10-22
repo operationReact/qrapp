@@ -33,11 +33,13 @@ public class WalletService {
     private final WalletRepository walletRepository;
     private final WalletTransactionRepository txRepository;
     private final RazorpayService razorpayService;
+    private final AppSettingService appSettingService;
 
-    public WalletService(WalletRepository walletRepository, WalletTransactionRepository txRepository, RazorpayService razorpayService) {
+    public WalletService(WalletRepository walletRepository, WalletTransactionRepository txRepository, RazorpayService razorpayService, AppSettingService appSettingService) {
         this.walletRepository = walletRepository;
         this.txRepository = txRepository;
         this.razorpayService = razorpayService;
+        this.appSettingService = appSettingService;
     }
 
     public Wallet getOrCreateWallet(User user) {
@@ -83,6 +85,10 @@ public class WalletService {
     public CreateRazorpayOrderResponse createRazorpayOrder(User user, CreateRazorpayOrderRequest req) {
         User currentUser = validateCurrentUser(user);
         BigDecimal amountRupees = BigDecimal.valueOf(validateAmount(req.getAmount())).setScale(2);
+        BigDecimal minTopUp = appSettingService.getWalletMinTopUp();
+        if (amountRupees.compareTo(minTopUp) < 0) {
+            throw new IllegalArgumentException("Minimum top-up amount is ₹" + minTopUp.stripTrailingZeros().toPlainString());
+        }
         String receipt = "wallet_" + currentUser.getId();
         // Razorpay API requires paise → multiply by 100 here only
         long amountPaise = amountRupees.movePointRight(2).longValueExact();

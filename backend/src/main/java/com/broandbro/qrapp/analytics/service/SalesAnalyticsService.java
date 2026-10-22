@@ -2,6 +2,7 @@ package com.broandbro.qrapp.analytics.service;
 
 import com.broandbro.qrapp.analytics.dto.DashboardSummaryResponse;
 import com.broandbro.qrapp.analytics.dto.DailySalesResponse;
+import com.broandbro.qrapp.analytics.dto.RetailGstSummaryResponse;
 import com.broandbro.qrapp.analytics.support.AnalyticsLocationScope;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -21,6 +22,9 @@ public interface SalesAnalyticsService {
 
     /** Aggregate KPI summary for the dashboard KPI strip. */
     DashboardSummaryResponse getDashboardSummary(LocalDate from, LocalDate to, AnalyticsLocationScope scope);
+
+    /** MRP (retail product) sales and GST for the range, computed live from completed orders. */
+    RetailGstSummaryResponse getRetailGstSummary(LocalDate from, LocalDate to, AnalyticsLocationScope scope);
 
     /** Daily time-series for line charts. */
     List<DailySalesResponse> getDailySeries(LocalDate from, LocalDate to, AnalyticsLocationScope scope);

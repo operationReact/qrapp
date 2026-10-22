@@ -640,6 +640,13 @@ public class OrderService {
                         LIVE_STATUSES, ids, COD_PAYMENT_METHODS, PageRequest.of(0, safeLimit)));
     }
 
+    /** Counts orders in the given statuses that the kitchen queue would show (same rule as getLiveOrders). */
+    private long countKitchenEligible(Collection<OrderStatus> statuses, List<Long> locationIds) {
+        return locationIds == null
+                ? orderRepo.countKitchenEligibleByStatusIn(statuses, COD_PAYMENT_METHODS)
+                : orderRepo.countKitchenEligibleByStatusInAndLocationIdIn(statuses, locationIds, COD_PAYMENT_METHODS);
+    }
+
     @Transactional(readOnly = true)
     public AdminOrderDashboardResponse getAdminDashboard(int liveLimit, Optional<List<Long>> locationScope) {
         // Exclude pre-orders — they have their own dashboard
@@ -657,18 +664,10 @@ public class OrderService {
         response.setTotalOrders(ids == null
                 ? orderRepo.countByPreOrderFalse()
                 : orderRepo.countByPreOrderFalseAndLocationIdIn(ids));
-        response.setPlacedOrders(ids == null
-                ? orderRepo.countByStatusAndPreOrderFalse(OrderStatus.ORDER_PLACED)
-                : orderRepo.countByStatusAndPreOrderFalseAndLocationIdIn(OrderStatus.ORDER_PLACED, ids));
-        response.setPreparingOrders(ids == null
-                ? orderRepo.countByStatusAndPreOrderFalse(OrderStatus.PREPARING)
-                : orderRepo.countByStatusAndPreOrderFalseAndLocationIdIn(OrderStatus.PREPARING, ids));
-        response.setReadyOrders(ids == null
-                ? orderRepo.countByStatusAndPreOrderFalse(OrderStatus.READY)
-                : orderRepo.countByStatusAndPreOrderFalseAndLocationIdIn(OrderStatus.READY, ids));
-        response.setLiveOrders(ids == null
-                ? orderRepo.countByStatusInAndPreOrderFalse(LIVE_STATUSES)
-                : orderRepo.countByStatusInAndPreOrderFalseAndLocationIdIn(LIVE_STATUSES, ids));
+        response.setPlacedOrders(countKitchenEligible(List.of(OrderStatus.ORDER_PLACED), ids));
+        response.setPreparingOrders(countKitchenEligible(List.of(OrderStatus.PREPARING), ids));
+        response.setReadyOrders(countKitchenEligible(List.of(OrderStatus.READY), ids));
+        response.setLiveOrders(countKitchenEligible(LIVE_STATUSES, ids));
         response.setPaidOrders(ids == null
                 ? orderRepo.countByPaymentStatusIgnoreCaseAndPreOrderFalse("PAID")
                 : orderRepo.countByPaymentStatusIgnoreCaseAndPreOrderFalseAndLocationIdIn("PAID", ids));

@@ -5,6 +5,7 @@ import AdminHeader from "@/components/admin/AdminHeader";
 import ClassificationSection from "@/components/admin/ClassificationSection";
 import { useLocation as useActiveLocation } from "@/context/LocationContext";
 import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -32,9 +33,10 @@ import {
   CheckCircleIcon,
   XIcon,
   CaretDownIcon,
+  InfoIcon,
 } from "@phosphor-icons/react";
 import { Loader2 } from "lucide-react";
-
+import { toast } from "sonner";
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function resolveImg(url) {
@@ -76,7 +78,7 @@ function Chip({ tone, children }) {
 function ItemRow({ item, cls, ready, checked, onToggle, onOpen }) {
   const src = resolveImg(item.imageUrl);
   return (
-    <div className={cn("flex items-center gap-3 px-4 py-3 transition-colors", checked ? "bg-orange-50/60" : "hover:bg-zinc-50/70")}>
+    <div className={cn("flex items-center gap-3 px-3 sm:px-4 py-3 transition-colors", checked ? "bg-orange-50/60" : "hover:bg-zinc-50/70")}>
       <input
         type="checkbox"
         checked={checked}
@@ -85,7 +87,7 @@ function ItemRow({ item, cls, ready, checked, onToggle, onOpen }) {
         className="size-4 accent-orange-500 shrink-0 cursor-pointer"
       />
 
-      <div className="w-9 h-9 rounded-lg overflow-hidden bg-zinc-100 shrink-0">
+      <div className="w-10 h-10 sm:w-9 sm:h-9 rounded-xl sm:rounded-lg overflow-hidden bg-zinc-100 shrink-0">
         {src ? (
           <img src={src} alt={item.name} className="w-full h-full object-cover" />
         ) : (
@@ -100,6 +102,19 @@ function ItemRow({ item, cls, ready, checked, onToggle, onOpen }) {
           {getCategoryName(item) !== "Uncategorised" ? ` · ${getCategoryName(item)}` : ""}
           {item.available === false ? " · Unavailable" : ""}
         </p>
+        {ready && (
+          <p className={cn("md:hidden mt-0.5 flex items-center gap-1 text-[11px] truncate", isSetUp(cls) ? "text-zinc-500" : "text-amber-600 font-medium")}>
+            {isSetUp(cls) ? (
+              <span className="truncate">
+                {[cls?.comboRole?.name, ...(cls?.mealTypes ?? []).map((m) => m.name), ...(cls?.cuisineTypes ?? []).map((c) => c.name)]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </span>
+            ) : (
+              <><WarningCircleIcon className="size-3 shrink-0" weight="fill" />Not set up yet</>
+            )}
+          </p>
+        )}
       </button>
 
       <div className="hidden md:flex flex-wrap justify-end gap-1 max-w-[50%]">
@@ -117,10 +132,11 @@ function ItemRow({ item, cls, ready, checked, onToggle, onOpen }) {
       <button
         type="button"
         onClick={() => onOpen(item)}
-        className="inline-flex items-center gap-1 text-xs font-medium text-orange-500 hover:text-orange-600 shrink-0 transition-colors"
+        aria-label={`Edit ${item.name}`}
+        className="inline-flex size-9 sm:size-auto items-center justify-center sm:justify-start gap-1 rounded-full sm:rounded-none text-xs font-medium text-orange-500 hover:text-orange-600 hover:bg-orange-50 sm:hover:bg-transparent shrink-0 transition-colors"
       >
-        Edit
-        <ArrowRightIcon className="size-3" weight="bold" />
+        <span className="hidden sm:inline">Edit</span>
+        <ArrowRightIcon className="size-3.5 sm:size-3" weight="bold" />
       </button>
     </div>
   );
@@ -129,7 +145,7 @@ function ItemRow({ item, cls, ready, checked, onToggle, onOpen }) {
 // ── Bulk action panel ─────────────────────────────────────────────────────────
 
 // Opens a small panel of options. The user ticks options, then applies them to all selected items.
-function BulkPanel({ label, hint, options, single = false, count, disabled, onApply }) {
+function BulkPanel({ label, shortLabel, hint, options, single = false, count, disabled, onApply }) {
   const [open, setOpen] = useState(false);
   const [picked, setPicked] = useState([]);
 
@@ -152,8 +168,9 @@ function BulkPanel({ label, hint, options, single = false, count, disabled, onAp
   return (
     <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
-        <Button variant="outline" size="sm" disabled={disabled}>
-          {label}
+        <Button variant="outline" size="sm" disabled={disabled} className="min-w-0 shrink px-2.5 sm:px-3 whitespace-nowrap">
+          <span className="sm:hidden">{shortLabel ?? label}</span>
+          <span className="hidden sm:inline">{label}</span>
           <CaretDownIcon className="size-3.5 text-zinc-400" />
         </Button>
       </PopoverTrigger>
@@ -210,17 +227,19 @@ function IssueButton({ label, count, active, onClick }) {
       onClick={onClick}
       disabled={ok}
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors",
+          "flex flex-col items-start gap-0.5 rounded-xl border px-3 py-2.5 text-left text-xs font-medium transition-colors sm:flex-row sm:items-center sm:gap-1.5 sm:rounded-lg sm:px-3 sm:py-1.5",
         ok && "border-emerald-200 bg-emerald-50 text-emerald-700 cursor-default",
         !ok && active && "border-orange-400 bg-orange-50 text-orange-700",
         !ok && !active && "border-zinc-200 bg-white text-zinc-700 hover:border-orange-300",
       )}
     >
-      {ok
-        ? <CheckCircleIcon className="size-3.5" weight="fill" />
-        : <WarningCircleIcon className="size-3.5 text-amber-500" weight="fill" />}
-      {label}
-      <span className="font-semibold">{ok ? "All set" : count}</span>
+        <span className="flex items-center gap-1.5">
+          {ok
+            ? <CheckCircleIcon className="size-3.5" weight="fill" />
+            : <WarningCircleIcon className="size-3.5 text-amber-500" weight="fill" />}
+          {label}
+        </span>
+        <span className={cn("font-semibold", ok ? "text-xs" : "text-lg sm:text-xs")}>{ok ? "All set" : count}</span>
     </button>
   );
 }
@@ -234,17 +253,17 @@ function SetupHealthPanel({ health, activeIssue, onPick }) {
   ];
 
   return (
-    <div className="rounded-xl border border-zinc-200 bg-white p-4 space-y-3 shadow-sm">
-      <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
-        <div className="min-w-[200px]">
+    <div className="rounded-2xl border border-zinc-200 bg-white p-4 space-y-4 shadow-sm">
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-6 sm:gap-y-3">
+        <div className="min-w-0 sm:min-w-[200px]">
           <p className="text-sm font-semibold text-zinc-900">
             {health.completeItems} of {health.totalItems} items fully set up
           </p>
-          <div className="mt-1.5 h-1.5 w-full rounded-full bg-zinc-100 overflow-hidden">
-            <div className="h-full bg-orange-500 transition-all" style={{ width: `${pct}%` }} />
+          <div className="mt-2 h-2 w-full rounded-full bg-zinc-100 overflow-hidden">
+            <div className="h-full rounded-full bg-gradient-to-r from-orange-400 to-orange-500 transition-all" style={{ width: `${pct}%` }} />
           </div>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap">
           {issues.map(({ key, label, list }) => (
             <IssueButton
               key={key}
@@ -289,6 +308,173 @@ function SetupHealthPanel({ health, activeIssue, onPick }) {
   );
 }
 
+// ── How it works ──────────────────────────────────────────────────────────────
+
+const GUIDE_IDEA =
+  "Think of it as a shop assistant at the counter. When a customer adds an item, the assistant offers the right extras. You control it from three admin screens.";
+
+const ADMIN_STEPS = [
+  {
+    title: "Tag every item",
+    where: "Recommendation Setup",
+    text: "Give each item a Role (Main, Drink, Dessert, Addon), a Meal time (Breakfast, Lunch, Dinner, Evening, Anytime) and a Cuisine. Tap Edit on one item, or tick several and set them in the bulk bar.",
+    example: "Biryani = Main · Lunch · North Indian",
+  },
+  {
+    title: "Write cart rules",
+    where: "Cart Rules",
+    text: "Set “when a customer adds X, suggest Y”. Three types: Item in cart, Category in cart, and Cart value over an amount. Use Preview before saving.",
+    example: "Biryani in cart → suggest Raita",
+  },
+  {
+    title: "Set add-ons per product",
+    where: "Add-on Options",
+    text: "Choose the extras that belong to one specific product. Check the screen for its full options.",
+    example: "Pizza → extra cheese, stuffed crust",
+  },
+];
+
+const CUSTOMER_FLOW = [
+  "Customer adds Biryani to the cart at 1:15 PM.",
+  "Your cart rules are checked first (highest priority).",
+  "Then items that customers often buy with Biryani.",
+  "Then best sellers from the last 30 days, to fill any gaps.",
+  "Suggestions are re-ordered by fit: lunch items move up, evening-only items move down.",
+  "The top suggestions appear with prices, ready to add.",
+];
+
+const GUIDE_EXAMPLE = {
+  goal: "When someone orders Biryani at lunch, suggest Raita and Lassi.",
+  steps: [
+    "Tag Biryani (Main · Lunch · North Indian), Raita (Addon · Lunch · North Indian) and Lassi (Drink · Lunch · North Indian).",
+    "Add two cart rules: Biryani → Raita, and Biryani → Lassi.",
+    "Use Preview to confirm both appear.",
+    "The next customer who adds Biryani sees Raita and Lassi first.",
+  ],
+};
+
+const GUIDE_CHECKLIST = [
+  "Every item has Role, Meal time and Cuisine",
+  "No amber warning for roles you want suggested",
+  "Rules written for key items (Biryani, Pizza, Burger)",
+  "Preview checked before saving",
+];
+
+const GUIDE_GOOD_TO_KNOW = [
+  "Suggestions only come from the same branch as the cart.",
+  "The amber warning lists roles with no items. Those roles never get suggestions.",
+  "Items with no tags still appear, but fit ranking cannot be applied to them.",
+  "If the setup lookup fails, customers still get suggestions in the default order.",
+];
+
+function GuideHeading({ children }) {
+  return (
+    <h3 className="mb-2.5 text-[11px] font-bold uppercase tracking-wider text-orange-600">{children}</h3>
+  );
+}
+
+function HowItWorksDialog({ open, onOpenChange }) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="flex max-h-[90vh] max-w-lg flex-col gap-0 overflow-hidden p-0 sm:max-w-2xl">
+        <div className="bg-gradient-to-br from-orange-50 via-white to-amber-50/60 px-5 pt-5 pb-4 border-b border-orange-100">
+          <DialogHeader className="text-left">
+            <div className="flex items-center gap-2.5">
+              <span className="grid size-9 place-items-center rounded-xl bg-orange-500 text-white shadow-sm">
+                <ForkKnifeIcon className="size-4" weight="duotone" />
+              </span>
+              <DialogTitle className="text-base font-bold text-zinc-900">How it works</DialogTitle>
+            </div>
+            <DialogDescription className="mt-2 text-xs leading-relaxed text-zinc-500">
+              Four steps so every customer sees the right suggestions at checkout.
+            </DialogDescription>
+          </DialogHeader>
+        </div>
+
+        <div className="min-h-0 flex-1 space-y-6 overflow-y-auto overscroll-contain p-5">
+          <p className="text-xs leading-relaxed text-zinc-600">{GUIDE_IDEA}</p>
+
+          <section>
+            <GuideHeading>For admins · 3 setup steps</GuideHeading>
+            <ol className="grid gap-3">
+              {ADMIN_STEPS.map((step, i) => (
+                <li key={step.title} className="rounded-xl border border-zinc-100 bg-white p-3.5 shadow-sm">
+                  <div className="flex items-start gap-3">
+                    <span className="grid size-7 shrink-0 place-items-center rounded-full bg-orange-500 text-xs font-bold text-white shadow-sm">
+                      {i + 1}
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-zinc-900">{step.title}</p>
+                      <p className="mt-0.5 text-[11px] font-medium text-orange-600">Screen: {step.where}</p>
+                    </div>
+                  </div>
+                  <p className="mt-2.5 text-xs leading-relaxed text-zinc-500">{step.text}</p>
+                  <p className="mt-2 rounded-lg bg-orange-50 px-2.5 py-1.5 text-[11px] text-zinc-700">
+                    <span className="font-semibold">Example:</span> {step.example}
+                  </p>
+                </li>
+              ))}
+            </ol>
+          </section>
+
+          <section>
+            <GuideHeading>For customers · what happens</GuideHeading>
+            <ol className="grid gap-2">
+              {CUSTOMER_FLOW.map((line, i) => (
+                <li key={line} className="flex items-start gap-2.5 text-xs leading-relaxed text-zinc-600">
+                  <span className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full bg-zinc-900 text-[10px] font-bold text-white">
+                    {i + 1}
+                  </span>
+                  {line}
+                </li>
+              ))}
+            </ol>
+          </section>
+
+          <section className="rounded-xl border border-amber-100 bg-orange-50/70 p-4">
+            <GuideHeading>Full example</GuideHeading>
+            <p className="text-sm font-semibold text-zinc-900">Goal: {GUIDE_EXAMPLE.goal}</p>
+            <ol className="mt-2.5 grid gap-2">
+              {GUIDE_EXAMPLE.steps.map((line, i) => (
+                <li key={line} className="flex items-start gap-2.5 text-xs leading-relaxed text-zinc-700">
+                  <ArrowRightIcon className="mt-0.5 size-3.5 shrink-0 text-orange-500" weight="bold" />
+                  <span>
+                    <span className="font-semibold">Step {i + 1}:</span> {line}
+                  </span>
+                </li>
+              ))}
+            </ol>
+          </section>
+
+          <section>
+            <GuideHeading>Before you go live</GuideHeading>
+            <ul className="grid gap-2">
+              {GUIDE_CHECKLIST.map((line) => (
+                <li key={line} className="flex items-center gap-2 text-xs text-zinc-700">
+                  <CheckCircleIcon className="size-4 shrink-0 text-emerald-500" weight="fill" />
+                  {line}
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          <section>
+            <GuideHeading>Good to know</GuideHeading>
+            <ul className="grid gap-2">
+              {GUIDE_GOOD_TO_KNOW.map((line) => (
+                <li key={line} className="flex items-start gap-2 text-xs leading-relaxed text-zinc-500">
+                  <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-zinc-400" />
+                  {line}
+                </li>
+              ))}
+            </ul>
+          </section>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 function ClassificationManagementPage() {
@@ -296,6 +482,7 @@ function ClassificationManagementPage() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [needsOnly, setNeedsOnly] = useState(false);
+  const [howOpen, setHowOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState(() => new Set());
   const [selectedItem, setSelectedItem] = useState(null);
   const [issueFilter, setIssueFilter] = useState(null);
@@ -332,10 +519,12 @@ function ClassificationManagementPage() {
     mutationFn: (payload) =>
       bulkAddClassification({ itemIds: [...selectedIds], ...payload }, activeLocationId),
     onSuccess: () => {
+      toast.success("Recommendation settings saved");
       queryClient.invalidateQueries({ queryKey: ["item-classification-batch"] });
       queryClient.invalidateQueries({ queryKey: ["item-classification"] });
       queryClient.invalidateQueries({ queryKey: ["setup-health"] });
     },
+    onError: () => toast.error("Could not save. Please try again."),
   });
 
   const needsCount = useMemo(
@@ -391,44 +580,59 @@ function ClassificationManagementPage() {
         title="Recommendation Setup"
         description="Tell the app what each item is, so it can suggest the right drink, side or dessert with every order. Tick several items to set them all at once."
         icon={<ForkKnifeIcon weight="duotone" className="size-5 text-orange-500" />}
+        actions={
+          <button
+            type="button"
+            onClick={() => setHowOpen(true)}
+            className="inline-flex items-center gap-1.5 rounded-full border border-orange-200 bg-white px-3 py-1.5 text-xs font-semibold text-orange-600 shadow-sm transition-colors hover:bg-orange-50"
+          >
+            <InfoIcon className="size-3.5" weight="fill" />
+            How it works?
+          </button>
+        }
       />
+
+      <HowItWorksDialog open={howOpen} onOpenChange={setHowOpen} />
 
       <div className="grid gap-2 sm:grid-cols-3 text-xs">
         {[
-          { label: "Role", question: "What is it in the meal?", examples: "Main, Drink, Dessert, Addon", color: "border-orange-200 bg-orange-50/60 text-orange-700" },
-          { label: "Meal time", question: "When do people order it?", examples: "Breakfast, Lunch, Dinner, Snack", color: "border-amber-200 bg-amber-50/60 text-amber-700" },
-          { label: "Cuisine", question: "What style of food is it?", examples: "South Indian, North Indian, Chinese", color: "border-blue-200 bg-blue-50/60 text-blue-700" },
-        ].map(({ label, question, examples, color }) => (
-          <div key={label} className={cn("rounded-lg border px-3 py-2", color)}>
-            <p className="font-semibold">{label}: <span className="font-normal text-zinc-700">{question}</span></p>
-            <p className="text-zinc-500 mt-0.5">e.g. {examples}</p>
+          { label: "Role", question: "What is it in the meal?", examples: "Main, Drink, Dessert, Addon", color: "border-orange-200 bg-orange-50/60 text-orange-700", dot: "bg-orange-400" },
+          { label: "Meal time", question: "When do people order it?", examples: "Breakfast, Lunch, Dinner, Snack", color: "border-amber-200 bg-amber-50/60 text-amber-700", dot: "bg-amber-400" },
+          { label: "Cuisine", question: "What style of food is it?", examples: "South Indian, North Indian, Chinese", color: "border-blue-200 bg-blue-50/60 text-blue-700", dot: "bg-blue-400" },
+        ].map(({ label, question, examples, color, dot }) => (
+          <div key={label} className={cn("flex items-start gap-2.5 rounded-xl border px-3 py-2.5", color)}>
+            <span className={cn("mt-1 size-2 shrink-0 rounded-full", dot)} />
+            <div className="min-w-0">
+              <p className="font-semibold">{label}: <span className="font-normal text-zinc-700">{question}</span></p>
+              <p className="text-zinc-500 mt-0.5">e.g. {examples}</p>
+            </div>
           </div>
         ))}
       </div>
 
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="relative w-full max-w-xs">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+        <div className="relative w-full sm:max-w-xs">
           <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-zinc-400 pointer-events-none" />
           <Input
             type="search"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search items…"
-            className="pl-9"
+            className="pl-9 h-10 sm:h-9"
           />
         </div>
-        <div className="inline-flex rounded-lg border border-zinc-200 bg-white p-0.5 text-xs font-medium">
+        <div className="grid grid-cols-2 sm:inline-flex rounded-xl sm:rounded-lg border border-zinc-200 bg-white p-1 sm:p-0.5 text-xs font-medium">
           <button
             type="button"
             onClick={() => setNeedsOnly(false)}
-            className={cn("px-3 py-1.5 rounded-md transition-colors", !needsOnly ? "bg-zinc-900 text-white" : "text-zinc-500 hover:text-zinc-800")}
+            className={cn("px-3 py-2 sm:py-1.5 rounded-lg sm:rounded-md transition-colors", !needsOnly ? "bg-zinc-900 text-white" : "text-zinc-500 hover:text-zinc-800")}
           >
             All items · {items.length}
           </button>
           <button
             type="button"
             onClick={() => setNeedsOnly(true)}
-            className={cn("px-3 py-1.5 rounded-md transition-colors", needsOnly ? "bg-zinc-900 text-white" : "text-zinc-500 hover:text-zinc-800")}
+            className={cn("px-3 py-2 sm:py-1.5 rounded-lg sm:rounded-md transition-colors", needsOnly ? "bg-zinc-900 text-white" : "text-zinc-500 hover:text-zinc-800")}
           >
             Not set up yet · {classReady ? needsCount : "…"}
           </button>
@@ -446,11 +650,14 @@ function ClassificationManagementPage() {
       )}
 
       {selectedIds.size > 0 && activeLocationId && (
-        <div className="sticky top-2 z-10 flex flex-wrap items-center gap-2 rounded-xl border border-orange-200 bg-white/95 backdrop-blur px-4 py-2.5 shadow-md">
-          <span className="text-sm font-semibold text-zinc-900">{selectedIds.size} item{selectedIds.size === 1 ? "" : "s"} selected</span>
-          <div className="h-5 w-px bg-zinc-200 mx-1" />
+        <div className="sticky top-2 z-10 flex flex-nowrap items-center gap-1.5 sm:gap-2 rounded-xl border border-orange-200 bg-white/95 backdrop-blur px-3 sm:px-4 py-2.5 shadow-md">
+          <span className="shrink-0 whitespace-nowrap text-sm font-semibold text-zinc-900">
+            {selectedIds.size}<span className="hidden sm:inline"> item{selectedIds.size === 1 ? "" : "s"}</span> selected
+          </span>
+          <div className="h-5 w-px shrink-0 bg-zinc-200 mx-0.5 sm:mx-1" />
           <BulkPanel
             label="Set role"
+            shortLabel="Role"
             hint="Each item has one role. Items that already have a role keep it."
             options={catalogue?.comboRoles ?? []}
             single
@@ -460,6 +667,7 @@ function ClassificationManagementPage() {
           />
           <BulkPanel
             label="Add meal times"
+            shortLabel="Meal"
             hint="Adds these to the items. Existing meal times are kept."
             options={catalogue?.mealTypes ?? []}
             count={selectedIds.size}
@@ -468,6 +676,7 @@ function ClassificationManagementPage() {
           />
           <BulkPanel
             label="Add cuisines"
+            shortLabel="Cuisine"
             hint="Adds these to the items. Existing cuisines are kept."
             options={catalogue?.cuisineTypes ?? []}
             count={selectedIds.size}
@@ -475,16 +684,25 @@ function ClassificationManagementPage() {
             onApply={(ids) => bulkMutation.mutate({ cuisineTypeIds: ids })}
           />
           <div className="flex-1" />
-          {bulkMutation.isPending && <Loader2 className="size-4 animate-spin text-orange-500" />}
           {bulkMutation.isError && <span className="text-xs text-red-600">Save failed. Try again.</span>}
           <button
             type="button"
             onClick={() => setSelectedIds(new Set())}
-            className="inline-flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-800"
+            aria-label="Clear selection"
+            className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap text-xs text-zinc-500 hover:text-zinc-800"
           >
             <XIcon className="size-3.5" />
-            Clear selection
+            <span className="hidden sm:inline">Clear selection</span>
           </button>
+        </div>
+      )}
+
+      {bulkMutation.isPending && (
+        <div role="status" aria-live="polite" className="fixed inset-0 z-[60] flex items-center justify-center bg-stone-900/20 backdrop-blur-[2px]">
+          <div className="flex flex-col items-center gap-3 rounded-2xl border border-orange-100 bg-white px-8 py-6 shadow-xl">
+            <Loader2 className="size-8 animate-spin text-orange-500" />
+            <p className="text-sm font-semibold text-zinc-900">Saving…</p>
+          </div>
         </div>
       )}
 

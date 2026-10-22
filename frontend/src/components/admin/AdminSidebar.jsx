@@ -35,7 +35,7 @@ import { ADMIN_NAVIGATION } from "@/lib/adminNavigation";
 import { GeneratedAvatar } from "@/components/ui/generated-avatar";
 import { useSidebar } from "@/components/ui/sidebar";
 import { ALL_LOCATIONS } from "@/lib/allLocations";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 function getActiveNavPath(pathname, navPaths) {
   const matches = navPaths.filter((to) => pathname === to || (to !== "/admin" && pathname.startsWith(to)));
@@ -50,7 +50,7 @@ function NavItem({ to, label, icon, active, alertCount, onNavigate }) {
             className={cn(
                 "h-11! rounded-xl! px-3! text-[15px]! font-medium! transition-all md:h-10! md:text-sm!",
                 active
-                    ? "bg-[#fff0f0]! text-[#e51b23]! shadow-[inset_3px_0_0_#e51b23]"
+                    ? "bg-[#f6efe6]! text-[#29231e]! shadow-[inset_3px_0_0_#29231e]"
                     : "text-[#29231e]! hover:bg-white/80! hover:text-zinc-950!",
             )}
             isActive={active}
@@ -60,7 +60,7 @@ function NavItem({ to, label, icon, active, alertCount, onNavigate }) {
                 {/* "bold" weight (vs. the library's thin "regular" default) gives the
                 icons stronger visual presence to match the mockup; "fill" on the
                 active item reinforces where the user is. */}
-                <Icon weight={active ? "fill" : "bold"} className={cn("size-[22px] shrink-0 md:size-[20px]", active ? "text-[#e51b23]" : "text-[#4a4038]")} />
+                <Icon weight={active ? "fill" : "bold"} className={cn("size-[22px] shrink-0 md:size-[20px]", active ? "text-[#29231e]" : "text-[#4a4038]")} />
                 <span>{label}</span>
                 {label === "Kitchen Queue" && alertCount > 0 && <span className="ml-auto inline-flex min-w-5 items-center justify-center rounded-full bg-[#e51b23] px-1.5 text-[10px] font-bold leading-5 text-white">{alertCount > 9 ? "9+" : alertCount}</span>}
                 {label !== "Dashboard" && label !== "Kitchen Queue" && <span className="ml-auto text-[#756e66]">›</span>}
@@ -190,21 +190,8 @@ export function AdminSidebar() {
   // warm-toned "bust" illustration, rather than a random or initials circle.
   const avatarSeed = user?.info?.id ?? user?.id ?? user?.info?.email ?? user?.email ?? userName;
   const closeMobile = () => setOpenMobile(false);
-
-  // The "Control Center" nav item is SUPER_ADMIN-only and previously rendered
-  // as its own emphasized "CONTROL" section above Workspace, which made it
-  // dominate the sidebar. Fold it into Workspace so it reads as a normal
-  // navigation item rather than a standalone hero section — no navigation
-  // config duplication, just a render-time merge of the existing groups.
-  const renderedNavigation = useMemo(() => {
-    const controlGroup = ADMIN_NAVIGATION.find((group) => group.section === "Control");
-    if (!controlGroup) return ADMIN_NAVIGATION;
-    return ADMIN_NAVIGATION.filter((group) => group.section !== "Control").map((group) =>
-        group.section === "Workspace"
-            ? { ...group, items: [...group.items, ...controlGroup.items] }
-            : group,
-    );
-  }, []);
+  const [openSections, setOpenSections] = useState({});
+  const activeNavPath = getActiveNavPath(pathname, ADMIN_NAVIGATION.flatMap((group) => group.items.map((item) => item.to)));
 
   return (
       <>
@@ -269,13 +256,36 @@ export function AdminSidebar() {
 
         <nav aria-label="Admin navigation" className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
           <SidebarContent className="min-w-0 gap-0 overflow-y-auto overscroll-contain px-3 py-2 md:py-4">
-            {renderedNavigation.map(({ section, items }) => {
+            {ADMIN_NAVIGATION.map(({ section, items, icon }) => {
               const visibleItems = items.filter((item) => hasRole(user, item.roles, activeLocationId));
               if (!visibleItems.length) return null;
-              const activeNavPath = getActiveNavPath(pathname, renderedNavigation.flatMap((group) => group.items.map((item) => item.to)));
-              return <SidebarGroup key={section} className="border-b border-[#e7ded2]/40 p-0 pt-3.5 pb-0 first:pt-0 last:border-0">
-                <SidebarGroupLabel className="mb-1.5 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em] text-[#756e66]">{section === "Menu" ? "Menu Management" : section === "Offers" ? "Marketing" : section === "Analytics" ? "Reports" : section}{section === "Operations" && alertCount > 0 && <span className="ml-auto rounded-full bg-[#e51b23] px-1.5 text-[10px] leading-5 text-white">{alertCount > 9 ? "9+" : alertCount}</span>}</SidebarGroupLabel>
-                <SidebarMenu className="gap-0.5">{visibleItems.map(({ to, label, icon }) => <NavItem key={to} to={to} label={label} icon={icon || TerminalWindowIcon} active={to === activeNavPath} alertCount={alertCount} onNavigate={closeMobile} />)}</SidebarMenu>
+              const containsActive = visibleItems.some((item) => item.to === activeNavPath);
+              const isOpen = openSections[section] ?? containsActive;
+              const sectionLabel = section === "Menu" ? "Menu Management" : section === "Offers" ? "Marketing" : section === "Analytics" ? "Reports" : section;
+              const SectionIcon = icon;
+              return <SidebarGroup key={section} className="p-0 pt-1.5 pb-0 first:pt-0">
+                <SidebarGroupLabel className="mb-0 p-0">
+                  <button
+                      type="button"
+                      onClick={() => setOpenSections((current) => ({ ...current, [section]: !isOpen }))}
+                      aria-expanded={isOpen}
+                      className={cn(
+                          "group flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ffd98a]/70",
+                          isOpen ? "bg-[#fbf5ec]" : "hover:bg-[#fbf5ec]/70",
+                      )}
+                  >
+                    <span className="grid size-7 shrink-0 place-items-center rounded-lg bg-[#f6efe6] text-[#29231e]">
+                      {SectionIcon && <SectionIcon weight="duotone" className="size-4" aria-hidden="true" />}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-[14px] font-semibold tracking-[-0.01em] text-[#29231e]">{sectionLabel}</span>
+                      <span className="block text-[11px] font-medium text-[#8a7f73]">{visibleItems.length} {visibleItems.length === 1 ? "page" : "pages"}</span>
+                    </span>
+                    {section === "Operations" && alertCount > 0 && <span className="rounded-full bg-[#e51b23] px-2 py-0.5 text-[11px] font-bold leading-none text-white">{alertCount > 9 ? "9+" : alertCount}</span>}
+                    <ChevronDown className={cn("size-4 shrink-0 text-[#8a7f73] transition-transform duration-200", isOpen && "rotate-180 text-[#29231e]")} aria-hidden="true" />
+                  </button>
+                </SidebarGroupLabel>
+                {isOpen && <SidebarMenu className="ml-[21px] mt-0.5 gap-0.5 border-l border-[#eadfd0] pb-1 pl-2">{visibleItems.map(({ to, label, icon }) => <NavItem key={to} to={to} label={label} icon={icon || TerminalWindowIcon} active={to === activeNavPath} alertCount={alertCount} onNavigate={closeMobile} />)}</SidebarMenu>}
               </SidebarGroup>;
             })}
           </SidebarContent>

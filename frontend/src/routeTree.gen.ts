@@ -66,6 +66,7 @@ import { Route as AdminAnalyticsIndexRouteImport } from './routes/admin/analytic
 import { Route as PartnerOrdersOrderIdRouteImport } from './routes/partner/orders/$orderId'
 import { Route as PartnerLocationsLocationIdRouteImport } from './routes/partner/locations/$locationId'
 import { Route as PartnerFinanceAgreementsRouteImport } from './routes/partner/finance/agreements'
+import { Route as AdminControlCenterWalletRouteImport } from './routes/admin/control-center/wallet'
 import { Route as AdminControlCenterUsersRouteImport } from './routes/admin/control-center/users'
 import { Route as AdminControlCenterPaymentsRouteImport } from './routes/admin/control-center/payments'
 import { Route as AdminControlCenterLocationsRouteImport } from './routes/admin/control-center/locations'
@@ -107,11 +108,8 @@ import { Route as AdminfoodcourtFoodCourtRouteImport } from './routes/admin/(foo
 import { Route as AdmincouponsCouponsRouteImport } from './routes/admin/(coupons)/coupons'
 import { Route as PartnerFinanceSettlementsIndexRouteImport } from './routes/partner/finance/settlements/index'
 import { Route as AdminmenuHomeContentIndexRouteImport } from './routes/admin/(menu)/home-content/index'
-import { Route as AdminmenuCombosIndexRouteImport } from './routes/admin/(menu)/combos/index'
 import { Route as AdminmenuComboCampaignsIndexRouteImport } from './routes/admin/(menu)/combo-campaigns/index'
 import { Route as PartnerFinanceSettlementsSettlementIdRouteImport } from './routes/partner/finance/settlements/$settlementId'
-import { Route as AdminmenuCombosEditRouteImport } from './routes/admin/(menu)/combos/edit'
-import { Route as AdminmenuCombosCreateRouteImport } from './routes/admin/(menu)/combos/create'
 
 const WalletRoute = WalletRouteImport.update({
   id: '/wallet',
@@ -401,6 +399,12 @@ const PartnerFinanceAgreementsRoute =
     path: '/finance/agreements',
     getParentRoute: () => PartnerRoute,
   } as any)
+const AdminControlCenterWalletRoute =
+  AdminControlCenterWalletRouteImport.update({
+    id: '/control-center/wallet',
+    path: '/control-center/wallet',
+    getParentRoute: () => AdminRoute,
+  } as any)
 const AdminControlCenterUsersRoute = AdminControlCenterUsersRouteImport.update({
   id: '/control-center/users',
   path: '/control-center/users',
@@ -625,11 +629,6 @@ const AdminmenuHomeContentIndexRoute =
     path: '/home-content/',
     getParentRoute: () => AdminRoute,
   } as any)
-const AdminmenuCombosIndexRoute = AdminmenuCombosIndexRouteImport.update({
-  id: '/(menu)/combos/',
-  path: '/combos/',
-  getParentRoute: () => AdminRoute,
-} as any)
 const AdminmenuComboCampaignsIndexRoute =
   AdminmenuComboCampaignsIndexRouteImport.update({
     id: '/(menu)/combo-campaigns/',
@@ -642,16 +641,6 @@ const PartnerFinanceSettlementsSettlementIdRoute =
     path: '/finance/settlements/$settlementId',
     getParentRoute: () => PartnerRoute,
   } as any)
-const AdminmenuCombosEditRoute = AdminmenuCombosEditRouteImport.update({
-  id: '/(menu)/combos/edit',
-  path: '/combos/edit',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminmenuCombosCreateRoute = AdminmenuCombosCreateRouteImport.update({
-  id: '/(menu)/combos/create',
-  path: '/combos/create',
-  getParentRoute: () => AdminRoute,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -744,17 +733,15 @@ export interface FileRoutesByFullPath {
   '/admin/control-center/locations': typeof AdminControlCenterLocationsRoute
   '/admin/control-center/payments': typeof AdminControlCenterPaymentsRoute
   '/admin/control-center/users': typeof AdminControlCenterUsersRoute
+  '/admin/control-center/wallet': typeof AdminControlCenterWalletRoute
   '/partner/finance/agreements': typeof PartnerFinanceAgreementsRoute
   '/partner/locations/$locationId': typeof PartnerLocationsLocationIdRoute
   '/partner/orders/$orderId': typeof PartnerOrdersOrderIdRoute
   '/admin/analytics/': typeof AdminAnalyticsIndexRoute
   '/admin/control-center/': typeof AdminControlCenterIndexRoute
   '/partner/finance/': typeof PartnerFinanceIndexRoute
-  '/admin/combos/create': typeof AdminmenuCombosCreateRoute
-  '/admin/combos/edit': typeof AdminmenuCombosEditRoute
   '/partner/finance/settlements/$settlementId': typeof PartnerFinanceSettlementsSettlementIdRoute
   '/admin/combo-campaigns/': typeof AdminmenuComboCampaignsIndexRoute
-  '/admin/combos/': typeof AdminmenuCombosIndexRoute
   '/admin/home-content/': typeof AdminmenuHomeContentIndexRoute
   '/partner/finance/settlements/': typeof PartnerFinanceSettlementsIndexRoute
 }
@@ -846,17 +833,15 @@ export interface FileRoutesByTo {
   '/admin/control-center/locations': typeof AdminControlCenterLocationsRoute
   '/admin/control-center/payments': typeof AdminControlCenterPaymentsRoute
   '/admin/control-center/users': typeof AdminControlCenterUsersRoute
+  '/admin/control-center/wallet': typeof AdminControlCenterWalletRoute
   '/partner/finance/agreements': typeof PartnerFinanceAgreementsRoute
   '/partner/locations/$locationId': typeof PartnerLocationsLocationIdRoute
   '/partner/orders/$orderId': typeof PartnerOrdersOrderIdRoute
   '/admin/analytics': typeof AdminAnalyticsIndexRoute
   '/admin/control-center': typeof AdminControlCenterIndexRoute
   '/partner/finance': typeof PartnerFinanceIndexRoute
-  '/admin/combos/create': typeof AdminmenuCombosCreateRoute
-  '/admin/combos/edit': typeof AdminmenuCombosEditRoute
   '/partner/finance/settlements/$settlementId': typeof PartnerFinanceSettlementsSettlementIdRoute
   '/admin/combo-campaigns': typeof AdminmenuComboCampaignsIndexRoute
-  '/admin/combos': typeof AdminmenuCombosIndexRoute
   '/admin/home-content': typeof AdminmenuHomeContentIndexRoute
   '/partner/finance/settlements': typeof PartnerFinanceSettlementsIndexRoute
 }
@@ -952,17 +937,15 @@ export interface FileRoutesById {
   '/admin/control-center/locations': typeof AdminControlCenterLocationsRoute
   '/admin/control-center/payments': typeof AdminControlCenterPaymentsRoute
   '/admin/control-center/users': typeof AdminControlCenterUsersRoute
+  '/admin/control-center/wallet': typeof AdminControlCenterWalletRoute
   '/partner/finance/agreements': typeof PartnerFinanceAgreementsRoute
   '/partner/locations/$locationId': typeof PartnerLocationsLocationIdRoute
   '/partner/orders/$orderId': typeof PartnerOrdersOrderIdRoute
   '/admin/analytics/': typeof AdminAnalyticsIndexRoute
   '/admin/control-center/': typeof AdminControlCenterIndexRoute
   '/partner/finance/': typeof PartnerFinanceIndexRoute
-  '/admin/(menu)/combos/create': typeof AdminmenuCombosCreateRoute
-  '/admin/(menu)/combos/edit': typeof AdminmenuCombosEditRoute
   '/partner/finance/settlements/$settlementId': typeof PartnerFinanceSettlementsSettlementIdRoute
   '/admin/(menu)/combo-campaigns/': typeof AdminmenuComboCampaignsIndexRoute
-  '/admin/(menu)/combos/': typeof AdminmenuCombosIndexRoute
   '/admin/(menu)/home-content/': typeof AdminmenuHomeContentIndexRoute
   '/partner/finance/settlements/': typeof PartnerFinanceSettlementsIndexRoute
 }
@@ -1059,17 +1042,15 @@ export interface FileRouteTypes {
     | '/admin/control-center/locations'
     | '/admin/control-center/payments'
     | '/admin/control-center/users'
+    | '/admin/control-center/wallet'
     | '/partner/finance/agreements'
     | '/partner/locations/$locationId'
     | '/partner/orders/$orderId'
     | '/admin/analytics/'
     | '/admin/control-center/'
     | '/partner/finance/'
-    | '/admin/combos/create'
-    | '/admin/combos/edit'
     | '/partner/finance/settlements/$settlementId'
     | '/admin/combo-campaigns/'
-    | '/admin/combos/'
     | '/admin/home-content/'
     | '/partner/finance/settlements/'
   fileRoutesByTo: FileRoutesByTo
@@ -1161,17 +1142,15 @@ export interface FileRouteTypes {
     | '/admin/control-center/locations'
     | '/admin/control-center/payments'
     | '/admin/control-center/users'
+    | '/admin/control-center/wallet'
     | '/partner/finance/agreements'
     | '/partner/locations/$locationId'
     | '/partner/orders/$orderId'
     | '/admin/analytics'
     | '/admin/control-center'
     | '/partner/finance'
-    | '/admin/combos/create'
-    | '/admin/combos/edit'
     | '/partner/finance/settlements/$settlementId'
     | '/admin/combo-campaigns'
-    | '/admin/combos'
     | '/admin/home-content'
     | '/partner/finance/settlements'
   id:
@@ -1266,17 +1245,15 @@ export interface FileRouteTypes {
     | '/admin/control-center/locations'
     | '/admin/control-center/payments'
     | '/admin/control-center/users'
+    | '/admin/control-center/wallet'
     | '/partner/finance/agreements'
     | '/partner/locations/$locationId'
     | '/partner/orders/$orderId'
     | '/admin/analytics/'
     | '/admin/control-center/'
     | '/partner/finance/'
-    | '/admin/(menu)/combos/create'
-    | '/admin/(menu)/combos/edit'
     | '/partner/finance/settlements/$settlementId'
     | '/admin/(menu)/combo-campaigns/'
-    | '/admin/(menu)/combos/'
     | '/admin/(menu)/home-content/'
     | '/partner/finance/settlements/'
   fileRoutesById: FileRoutesById
@@ -1716,6 +1693,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PartnerFinanceAgreementsRouteImport
       parentRoute: typeof PartnerRoute
     }
+    '/admin/control-center/wallet': {
+      id: '/admin/control-center/wallet'
+      path: '/control-center/wallet'
+      fullPath: '/admin/control-center/wallet'
+      preLoaderRoute: typeof AdminControlCenterWalletRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/control-center/users': {
       id: '/admin/control-center/users'
       path: '/control-center/users'
@@ -2003,13 +1987,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminmenuHomeContentIndexRouteImport
       parentRoute: typeof AdminRoute
     }
-    '/admin/(menu)/combos/': {
-      id: '/admin/(menu)/combos/'
-      path: '/combos'
-      fullPath: '/admin/combos/'
-      preLoaderRoute: typeof AdminmenuCombosIndexRouteImport
-      parentRoute: typeof AdminRoute
-    }
     '/admin/(menu)/combo-campaigns/': {
       id: '/admin/(menu)/combo-campaigns/'
       path: '/combo-campaigns'
@@ -2023,20 +2000,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/partner/finance/settlements/$settlementId'
       preLoaderRoute: typeof PartnerFinanceSettlementsSettlementIdRouteImport
       parentRoute: typeof PartnerRoute
-    }
-    '/admin/(menu)/combos/edit': {
-      id: '/admin/(menu)/combos/edit'
-      path: '/combos/edit'
-      fullPath: '/admin/combos/edit'
-      preLoaderRoute: typeof AdminmenuCombosEditRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/(menu)/combos/create': {
-      id: '/admin/(menu)/combos/create'
-      path: '/combos/create'
-      fullPath: '/admin/combos/create'
-      preLoaderRoute: typeof AdminmenuCombosCreateRouteImport
-      parentRoute: typeof AdminRoute
     }
   }
 }
@@ -2088,12 +2051,10 @@ interface AdminRouteChildren {
   AdminControlCenterLocationsRoute: typeof AdminControlCenterLocationsRoute
   AdminControlCenterPaymentsRoute: typeof AdminControlCenterPaymentsRoute
   AdminControlCenterUsersRoute: typeof AdminControlCenterUsersRoute
+  AdminControlCenterWalletRoute: typeof AdminControlCenterWalletRoute
   AdminAnalyticsIndexRoute: typeof AdminAnalyticsIndexRoute
   AdminControlCenterIndexRoute: typeof AdminControlCenterIndexRoute
-  AdminmenuCombosCreateRoute: typeof AdminmenuCombosCreateRoute
-  AdminmenuCombosEditRoute: typeof AdminmenuCombosEditRoute
   AdminmenuComboCampaignsIndexRoute: typeof AdminmenuComboCampaignsIndexRoute
-  AdminmenuCombosIndexRoute: typeof AdminmenuCombosIndexRoute
   AdminmenuHomeContentIndexRoute: typeof AdminmenuHomeContentIndexRoute
 }
 
@@ -2146,12 +2107,10 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminControlCenterLocationsRoute: AdminControlCenterLocationsRoute,
   AdminControlCenterPaymentsRoute: AdminControlCenterPaymentsRoute,
   AdminControlCenterUsersRoute: AdminControlCenterUsersRoute,
+  AdminControlCenterWalletRoute: AdminControlCenterWalletRoute,
   AdminAnalyticsIndexRoute: AdminAnalyticsIndexRoute,
   AdminControlCenterIndexRoute: AdminControlCenterIndexRoute,
-  AdminmenuCombosCreateRoute: AdminmenuCombosCreateRoute,
-  AdminmenuCombosEditRoute: AdminmenuCombosEditRoute,
   AdminmenuComboCampaignsIndexRoute: AdminmenuComboCampaignsIndexRoute,
-  AdminmenuCombosIndexRoute: AdminmenuCombosIndexRoute,
   AdminmenuHomeContentIndexRoute: AdminmenuHomeContentIndexRoute,
 }
 

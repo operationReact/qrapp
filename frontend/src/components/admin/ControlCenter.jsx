@@ -17,7 +17,9 @@ import { hasRole, ROLE } from "@/lib/roles";
 import { useAuth } from "@/context/AuthContext";
 import { INDIA_STATES_AND_UTS, isLocationCodeFormat, locationCodePreview } from "@/lib/indiaStates";
 import { paymentConfigOptions } from "@/query/options/orders";
+import { adminWalletMinTopUpOptions } from "@/query/options/wallet";
 import { adminSetPaymentMethod, getAdminSettings } from "@/services/order-service";
+import { adminSetWalletMinTopUp } from "@/services/wallet-service";
 import { partyOrdersOptions } from "@/query/options/party-orders";
 import { adminHallOfHappinessOptions } from "@/query/options/admin-hall-of-happiness";
 import { adminCreateUserOptions, adminCustomerCompaniesOptions, adminLocationsOptions, adminLocationsPageOptions, adminPartnersOptions, adminUsersOptions, adminVendorsOptions, assignCustomerCompany, createAdminLocation, createAdminUser, createManagementResource, deleteAdminLocation, grantUserLocation, resetAdminUserPassword, revokeUserLocation, setAdminLocationActive, updateAdminLocation, updateCustomerCompany, userLocationsOptions } from "@/query/options/management";
@@ -36,6 +38,7 @@ const moreNavigation = [
   { to: "/admin/vendors", label: "Vendors", roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN, ROLE.MANAGER] },
   { to: "/admin/control-center/access", label: "Access Management", roles: [ROLE.SUPER_ADMIN] },
   { to: "/admin/control-center/payments", label: "Payment Management", roles: [ROLE.SUPER_ADMIN] },
+  { to: "/admin/control-center/wallet", label: "Wallet Management", roles: [ROLE.SUPER_ADMIN] },
   { to: "/admin/control-center/invoice-management", label: "Invoice Management", roles: [ROLE.SUPER_ADMIN] },
   { to: "/admin/hall-of-happiness", label: "Hall of Happiness", roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN, ROLE.MANAGER] },
   { to: "/admin/party-orders", label: "Party Orders", roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN, ROLE.MANAGER] },
@@ -1288,6 +1291,64 @@ export function ControlCenterAccess() {
 
 // A single reusable row for one payment method's status/control — mirrors the
 // existing ToggleRow pattern used on /admin/global-controls (Settings).
+export function ControlCenterWallet() {
+  const queryClient = useQueryClient();
+  const { data, isLoading, error } = useQuery(adminWalletMinTopUpOptions);
+  const [draft, setDraft] = useState(null);
+  const currentMin = data?.minAmount != null ? String(data.minAmount) : "";
+  const shownValue = draft ?? currentMin;
+  const parsed = Number(shownValue);
+  const valid = shownValue !== "" && Number.isFinite(parsed) && parsed > 0;
+
+  const saveMutation = useMutation({
+    mutationFn: () => adminSetWalletMinTopUp(parsed),
+    onSuccess: () => {
+      toast.success("Minimum top-up updated");
+      setDraft(null);
+      queryClient.invalidateQueries({ queryKey: adminWalletMinTopUpOptions.queryKey });
+      queryClient.invalidateQueries({ queryKey: ["wallet", "top-up-config"] });
+    },
+    onError: (err) => {
+      const body = err?.response?.data;
+      toast.error(typeof body === "string" ? body : body?.message || "Unable to save minimum top-up");
+    },
+  });
+
+  return <Shell title="Wallet Management" description="Rules for customer wallet top-ups. Applies to all locations." showLocationContext={false}>
+    <Card className="rounded-[16px] border-[var(--cc-border)] bg-white shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
+      <CardHeader className="border-b border-[var(--cc-divider)] py-4"><CardTitle className="text-[15px] font-semibold text-[var(--cc-text)]">Top-up rules</CardTitle></CardHeader>
+      <CardContent className="flex flex-col gap-4 p-4">
+        <div className="flex flex-col gap-2">
+          <label htmlFor="wallet-min-top-up" className="text-sm font-semibold text-[var(--cc-text)]">Minimum top-up amount (₹)</label>
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <Input
+              id="wallet-min-top-up"
+              type="number"
+              min="1"
+              step="1"
+              inputMode="numeric"
+              disabled={isLoading}
+              value={shownValue}
+              onChange={(event) => setDraft(event.target.value)}
+              className="h-11 rounded-[10px] bg-white sm:max-w-[220px]"
+            />
+            <Button
+              type="button"
+              disabled={!valid || saveMutation.isPending || isLoading || shownValue === currentMin}
+              onClick={() => saveMutation.mutate()}
+              className="h-11 rounded-[10px] bg-[var(--cc-primary)] text-white hover:bg-[var(--cc-primary-dark)]"
+            >
+              {saveMutation.isPending ? "Saving…" : "Save"}
+            </Button>
+          </div>
+          <p className="text-xs text-[var(--cc-text-secondary)]">Customers cannot add less than this amount in one wallet top-up. Currently ₹{currentMin || "—"}.</p>
+        </div>
+      </CardContent>
+    </Card>
+    <ErrorState error={error} />
+  </Shell>;
+}
+
 function PaymentMethodRow({ icon, title, description, enabled, onToggle, readOnly, loading }) {
   const Icon = icon;
   return (

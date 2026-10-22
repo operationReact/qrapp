@@ -14,6 +14,7 @@ import { useAdminDashboard } from "@/context/AdminDashboardContext";
 import { useLocation as useActiveLocation } from "@/context/LocationContext";
 import {
   dailySalesRangeOptions,
+  retailGstOptions,
   salesSummaryOptions,
 } from "@/query/options/analytics";
 import { inventoryAlertsOptions } from "@/query/options/inventory";
@@ -356,14 +357,17 @@ function AdminDashboardPage() {
   const dashboardQueriesEnabled = canViewAdmin && !locationLoading;
   const summaryQuery = useQuery({ ...salesSummaryOptions(params, activeLocationId), enabled: dashboardQueriesEnabled });
   const comparisonQuery = useQuery({ ...salesSummaryOptions(previousParams, activeLocationId), enabled: dashboardQueriesEnabled });
+  const retailGstQuery = useQuery({ ...retailGstOptions(params, activeLocationId), enabled: dashboardQueriesEnabled });
   const dailyQuery = useQuery({ ...dailySalesRangeOptions(params, activeLocationId), enabled: dashboardQueriesEnabled });
   const inventoryQuery = useQuery({ ...inventoryAlertsOptions(6, activeLocationId), enabled: dashboardQueriesEnabled });
   const { data: summaryData, isLoading: summaryLoading, error: summaryError, refetch: refetchSummary } = summaryQuery;
   const { data: dailyData, refetch: refetchDaily } = dailyQuery;
+  const refetchRetailGst = retailGstQuery.refetch;
   const refreshAnalytics = useCallback(async () => {
     await refetchSummary();
     await refetchDaily();
-  }, [refetchSummary, refetchDaily]);
+    await refetchRetailGst();
+  }, [refetchSummary, refetchDaily, refetchRetailGst]);
 
   const lastDashboardUpdateRef = useRef(0);
   useEffect(() => {
@@ -457,7 +461,7 @@ function AdminDashboardPage() {
     <div className="min-h-screen bg-[#F8F6F3]">
       <DashboardHeader key={activeLocationId ?? "all"} rangeKey={rangeKey} onRangeChange={setRangeKey} ownerName={ownerName} notifications={notifications} />
       <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-4 px-4 py-4 sm:px-6 lg:gap-5 lg:px-8 lg:py-5">
-        <div className="order-1"><KpiStrip summary={summaryWithLive} comparison={comparisonQuery.data} periodLabel={selectedLabel} loading={summaryLoading || dashboardLoading} error={summaryError && !summaryData ? summaryError : null} onRetry={refetchSummary} /></div>
+        <div className="order-1"><KpiStrip summary={summaryWithLive} comparison={comparisonQuery.data} retailGst={retailGstQuery.data} periodLabel={selectedLabel} loading={summaryLoading || dashboardLoading || retailGstQuery.isLoading} error={summaryError && !summaryData ? summaryError : null} onRetry={refetchSummary} /></div>
 
         <div className="order-2">
           <LiveOperations dashboard={live} loading={dashboardLoading} error={dashboardError} onRetry={refetchDashboard} />

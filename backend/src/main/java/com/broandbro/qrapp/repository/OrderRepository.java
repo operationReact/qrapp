@@ -77,6 +77,18 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
     long countByStatusAndPreOrderFalseAndLocationIdIn(OrderStatus status, Collection<Long> locationIds);
     long countByStatusInAndPreOrderFalseAndLocationIdIn(Collection<OrderStatus> statuses, Collection<Long> locationIds);
     long countByPaymentStatusIgnoreCaseAndPreOrderFalseAndLocationIdIn(String paymentStatus, Collection<Long> locationIds);
+
+    // Live counters use the same kitchen-eligibility rule as findKitchenEligibleOrders*, so counts match the queue.
+    @Query("SELECT COUNT(o) FROM Order o WHERE o.preOrder = false AND o.status IN :statuses AND (o.paymentStatus = 'PAID' OR (o.paymentStatus IS NOT NULL AND UPPER(o.paymentStatus) = 'PENDING' AND o.paymentMethod IN :codPaymentMethods))")
+    long countKitchenEligibleByStatusIn(
+            @Param("statuses") Collection<OrderStatus> statuses,
+            @Param("codPaymentMethods") Collection<PaymentMethod> codPaymentMethods);
+
+    @Query("SELECT COUNT(o) FROM Order o WHERE o.preOrder = false AND o.status IN :statuses AND o.location.id IN :locationIds AND (o.paymentStatus = 'PAID' OR (o.paymentStatus IS NOT NULL AND UPPER(o.paymentStatus) = 'PENDING' AND o.paymentMethod IN :codPaymentMethods))")
+    long countKitchenEligibleByStatusInAndLocationIdIn(
+            @Param("statuses") Collection<OrderStatus> statuses,
+            @Param("locationIds") Collection<Long> locationIds,
+            @Param("codPaymentMethods") Collection<PaymentMethod> codPaymentMethods);
     long countByCompletedAtGreaterThanEqualAndCompletedAtLessThanAndPreOrderFalseAndLocationIdIn(
             LocalDateTime from,
             LocalDateTime to,
