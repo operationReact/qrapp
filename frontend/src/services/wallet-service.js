@@ -24,3 +24,12 @@ export const walletVerifyPayment = (data) =>
 
 export const walletPay = (data) =>
   apiClient.post("/api/wallet/pay", data).then((r) => r.data);
+
+export const walletGetTopUpConfig = () =>
+  apiClient.get("/api/wallet/top-up-config").then((r) => r.data);
+
+export const adminGetWalletMinTopUp = () =>
+  apiClient.get("/admin/wallet/min-top-up").then((r) => r.data);
+
+export const adminSetWalletMinTopUp = (amount) =>
+  apiClient.put("/admin/wallet/min-top-up", { amount }).then((r) => r.data);

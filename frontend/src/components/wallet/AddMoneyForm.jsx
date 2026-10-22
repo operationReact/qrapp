@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { walletCreateOrder, walletVerifyPayment } from "@/services/wallet-service";
+import { walletTopUpConfigOptions } from "@/query/options/wallet";
 import { cn } from "@/lib/utils";
 
 const QUICK_AMOUNTS = [100, 250, 500, 1000, 2000];
-const MIN_TOP_UP_AMOUNT = 100;
+const FALLBACK_MIN_TOP_UP_AMOUNT = 100;
 
 function getApiErrorMessage(error, fallback) {
   const responseData = error?.response?.data;
@@ -54,6 +55,8 @@ export default function AddMoneyForm({ className, onSuccess, onError }) {
   const [adding, setAdding] = useState(false);
   const toast = useToast();
   const queryClient = useQueryClient();
+  const { data: topUpConfig } = useQuery(walletTopUpConfigOptions);
+  const minTopUpAmount = Number(topUpConfig?.minAmount ?? FALLBACK_MIN_TOP_UP_AMOUNT);
 
   const createOrder = useMutation({
     mutationFn: walletCreateOrder,
@@ -74,9 +77,9 @@ export default function AddMoneyForm({ className, onSuccess, onError }) {
     if (
       !Number.isFinite(amountRupees) ||
       !Number.isInteger(amountRupees) ||
-      amountRupees < MIN_TOP_UP_AMOUNT
+      amountRupees < minTopUpAmount
     ) {
-      const message = `Enter a whole amount of at least ₹${MIN_TOP_UP_AMOUNT}`;
+      const message = `Enter a whole amount of at least ₹${minTopUpAmount}`;
       setError(message);
       toast.show(message);
       return;
@@ -167,7 +170,7 @@ export default function AddMoneyForm({ className, onSuccess, onError }) {
         <div className="mt-2 flex flex-col gap-3">
           <input
             type="number"
-            min={MIN_TOP_UP_AMOUNT}
+            min={minTopUpAmount}
             step="1"
             inputMode="numeric"
             value={amount}

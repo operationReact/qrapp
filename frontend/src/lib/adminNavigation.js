@@ -5,6 +5,7 @@ import {
   TicketIcon, TrophyIcon, UsersThreeIcon, UserCircleIcon, ShoppingCartSimpleIcon,
   StorefrontIcon,
   ConfettiIcon,
+  WalletIcon,
   BuildingOfficeIcon,
   FileTextIcon,
   ArrowsCounterClockwiseIcon,
@@ -17,6 +18,7 @@ export const ADMIN_NAVIGATION = [
   { section: "Workspace", icon: ShieldCheckIcon, items: [
     { to: "/admin/control-center", label: "Control Center", icon: ShieldCheckIcon, roles: [ROLE.SUPER_ADMIN] },
     { to: "/admin/control-center/invoice-management", label: "Invoice Management", icon: FileTextIcon, roles: [ROLE.SUPER_ADMIN] },
+    { to: "/admin/control-center/wallet", label: "Wallet Management", icon: WalletIcon, roles: [ROLE.SUPER_ADMIN] },
   ] },
   { section: "Menu", icon: BowlFoodIcon, items: [
     { to: "/admin/menu", label: "Menu Items", icon: BowlFoodIcon, roles: [ROLE.SUPER_ADMIN, ROLE.ADMIN, ROLE.MANAGER] },

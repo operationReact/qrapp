@@ -1,7 +1,9 @@
 import { queryOptions } from "@tanstack/react-query";
 import {
+  adminGetWalletMinTopUp,
   walletGetBalance,
   walletGetOverview,
+  walletGetTopUpConfig,
   walletGetTransactions,
 } from "../../services/wallet-service";
 
@@ -23,3 +25,14 @@ export const walletTransactionsOptions = ({ page = 0, size = 20 } = {}) =>
     queryFn: () => walletGetTransactions({ page, size }),
     staleTime: 1000 * 30,
   });
+
+export const walletTopUpConfigOptions = queryOptions({
+  queryKey: ["wallet", "top-up-config"],
+  queryFn: walletGetTopUpConfig,
+  staleTime: 1000 * 60 * 5,
+});
+
+export const adminWalletMinTopUpOptions = queryOptions({
+  queryKey: ["admin", "wallet", "min-top-up"],
+  queryFn: adminGetWalletMinTopUp,
+});

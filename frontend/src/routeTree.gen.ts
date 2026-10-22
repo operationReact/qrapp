@@ -66,6 +66,7 @@ import { Route as AdminAnalyticsIndexRouteImport } from './routes/admin/analytic
 import { Route as PartnerOrdersOrderIdRouteImport } from './routes/partner/orders/$orderId'
 import { Route as PartnerLocationsLocationIdRouteImport } from './routes/partner/locations/$locationId'
 import { Route as PartnerFinanceAgreementsRouteImport } from './routes/partner/finance/agreements'
+import { Route as AdminControlCenterWalletRouteImport } from './routes/admin/control-center/wallet'
 import { Route as AdminControlCenterUsersRouteImport } from './routes/admin/control-center/users'
 import { Route as AdminControlCenterPaymentsRouteImport } from './routes/admin/control-center/payments'
 import { Route as AdminControlCenterLocationsRouteImport } from './routes/admin/control-center/locations'
@@ -398,6 +399,12 @@ const PartnerFinanceAgreementsRoute =
     path: '/finance/agreements',
     getParentRoute: () => PartnerRoute,
   } as any)
+const AdminControlCenterWalletRoute =
+  AdminControlCenterWalletRouteImport.update({
+    id: '/control-center/wallet',
+    path: '/control-center/wallet',
+    getParentRoute: () => AdminRoute,
+  } as any)
 const AdminControlCenterUsersRoute = AdminControlCenterUsersRouteImport.update({
   id: '/control-center/users',
   path: '/control-center/users',
@@ -726,6 +733,7 @@ export interface FileRoutesByFullPath {
   '/admin/control-center/locations': typeof AdminControlCenterLocationsRoute
   '/admin/control-center/payments': typeof AdminControlCenterPaymentsRoute
   '/admin/control-center/users': typeof AdminControlCenterUsersRoute
+  '/admin/control-center/wallet': typeof AdminControlCenterWalletRoute
   '/partner/finance/agreements': typeof PartnerFinanceAgreementsRoute
   '/partner/locations/$locationId': typeof PartnerLocationsLocationIdRoute
   '/partner/orders/$orderId': typeof PartnerOrdersOrderIdRoute
@@ -825,6 +833,7 @@ export interface FileRoutesByTo {
   '/admin/control-center/locations': typeof AdminControlCenterLocationsRoute
   '/admin/control-center/payments': typeof AdminControlCenterPaymentsRoute
   '/admin/control-center/users': typeof AdminControlCenterUsersRoute
+  '/admin/control-center/wallet': typeof AdminControlCenterWalletRoute
   '/partner/finance/agreements': typeof PartnerFinanceAgreementsRoute
   '/partner/locations/$locationId': typeof PartnerLocationsLocationIdRoute
   '/partner/orders/$orderId': typeof PartnerOrdersOrderIdRoute
@@ -928,6 +937,7 @@ export interface FileRoutesById {
   '/admin/control-center/locations': typeof AdminControlCenterLocationsRoute
   '/admin/control-center/payments': typeof AdminControlCenterPaymentsRoute
   '/admin/control-center/users': typeof AdminControlCenterUsersRoute
+  '/admin/control-center/wallet': typeof AdminControlCenterWalletRoute
   '/partner/finance/agreements': typeof PartnerFinanceAgreementsRoute
   '/partner/locations/$locationId': typeof PartnerLocationsLocationIdRoute
   '/partner/orders/$orderId': typeof PartnerOrdersOrderIdRoute
@@ -1032,6 +1042,7 @@ export interface FileRouteTypes {
     | '/admin/control-center/locations'
     | '/admin/control-center/payments'
     | '/admin/control-center/users'
+    | '/admin/control-center/wallet'
     | '/partner/finance/agreements'
     | '/partner/locations/$locationId'
     | '/partner/orders/$orderId'
@@ -1131,6 +1142,7 @@ export interface FileRouteTypes {
     | '/admin/control-center/locations'
     | '/admin/control-center/payments'
     | '/admin/control-center/users'
+    | '/admin/control-center/wallet'
     | '/partner/finance/agreements'
     | '/partner/locations/$locationId'
     | '/partner/orders/$orderId'
@@ -1233,6 +1245,7 @@ export interface FileRouteTypes {
     | '/admin/control-center/locations'
     | '/admin/control-center/payments'
     | '/admin/control-center/users'
+    | '/admin/control-center/wallet'
     | '/partner/finance/agreements'
     | '/partner/locations/$locationId'
     | '/partner/orders/$orderId'
@@ -1680,6 +1693,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PartnerFinanceAgreementsRouteImport
       parentRoute: typeof PartnerRoute
     }
+    '/admin/control-center/wallet': {
+      id: '/admin/control-center/wallet'
+      path: '/control-center/wallet'
+      fullPath: '/admin/control-center/wallet'
+      preLoaderRoute: typeof AdminControlCenterWalletRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/control-center/users': {
       id: '/admin/control-center/users'
       path: '/control-center/users'
@@ -2031,6 +2051,7 @@ interface AdminRouteChildren {
   AdminControlCenterLocationsRoute: typeof AdminControlCenterLocationsRoute
   AdminControlCenterPaymentsRoute: typeof AdminControlCenterPaymentsRoute
   AdminControlCenterUsersRoute: typeof AdminControlCenterUsersRoute
+  AdminControlCenterWalletRoute: typeof AdminControlCenterWalletRoute
   AdminAnalyticsIndexRoute: typeof AdminAnalyticsIndexRoute
   AdminControlCenterIndexRoute: typeof AdminControlCenterIndexRoute
   AdminmenuComboCampaignsIndexRoute: typeof AdminmenuComboCampaignsIndexRoute
@@ -2086,6 +2107,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminControlCenterLocationsRoute: AdminControlCenterLocationsRoute,
   AdminControlCenterPaymentsRoute: AdminControlCenterPaymentsRoute,
   AdminControlCenterUsersRoute: AdminControlCenterUsersRoute,
+  AdminControlCenterWalletRoute: AdminControlCenterWalletRoute,
   AdminAnalyticsIndexRoute: AdminAnalyticsIndexRoute,
   AdminControlCenterIndexRoute: AdminControlCenterIndexRoute,
   AdminmenuComboCampaignsIndexRoute: AdminmenuComboCampaignsIndexRoute,

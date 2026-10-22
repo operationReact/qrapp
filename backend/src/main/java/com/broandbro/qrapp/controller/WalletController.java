@@ -2,6 +2,7 @@ package com.broandbro.qrapp.controller;
 
 import com.broandbro.qrapp.dto.*;
 import com.broandbro.qrapp.entity.User;
+import com.broandbro.qrapp.service.AppSettingService;
 import com.broandbro.qrapp.service.UserService;
 import com.broandbro.qrapp.service.WalletService;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +25,7 @@ import jakarta.validation.Valid;
 public class WalletController {
     private final WalletService walletService;
     private final UserService userService;
+    private final AppSettingService appSettingService;
 
     @GetMapping("/balance")
     public ResponseEntity<WalletBalanceResponse> balance(Authentication authentication) {
@@ -34,6 +36,11 @@ public class WalletController {
         }
         WalletBalanceResponse res = walletService.getBalance(u);
         return ResponseEntity.ok(res);
+    }
+
+    @GetMapping("/top-up-config")
+    public ResponseEntity<java.util.Map<String, Object>> topUpConfig() {
+        return ResponseEntity.ok(java.util.Map.of("minAmount", appSettingService.getWalletMinTopUp()));
     }
 
     @GetMapping("/overview")

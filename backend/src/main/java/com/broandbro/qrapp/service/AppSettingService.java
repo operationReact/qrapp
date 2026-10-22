@@ -7,14 +7,51 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class AppSettingService {
 
     private static final String KEY_PAY_AT_STALL = "pay_at_stall_enabled";
+    private static final String KEY_WALLET_MIN_TOP_UP = "wallet_min_top_up_amount";
+    public static final BigDecimal DEFAULT_WALLET_MIN_TOP_UP = new BigDecimal("100.00");
 
     private final AppSettingRepository repo;
+
+    @Transactional(readOnly = true)
+    public BigDecimal getWalletMinTopUp() {
+        try {
+            return repo.findById(KEY_WALLET_MIN_TOP_UP)
+                    .map(AppSetting::getValue)
+                    .filter(value -> value != null && !value.isBlank())
+                    .map(value -> new BigDecimal(value.trim()))
+                    .orElse(DEFAULT_WALLET_MIN_TOP_UP);
+        } catch (Exception e) {
+            log.warn("[AppSetting] Could not read '{}', using default: {}", KEY_WALLET_MIN_TOP_UP, e.getMessage());
+            return DEFAULT_WALLET_MIN_TOP_UP;
+        }
+    }
+
+    @Transactional
+    public BigDecimal setWalletMinTopUp(BigDecimal amount) {
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Minimum top-up must be greater than zero");
+        }
+        BigDecimal normalized = amount.setScale(2, RoundingMode.HALF_UP);
+        AppSetting setting = repo.findById(KEY_WALLET_MIN_TOP_UP).orElseGet(() -> {
+            AppSetting s = new AppSetting();
+            s.setKey(KEY_WALLET_MIN_TOP_UP);
+            s.setDescription("Minimum amount (INR) a customer can add to their wallet in one top-up.");
+            return s;
+        });
+        setting.setValue(normalized.toPlainString());
+        repo.save(setting);
+        log.info("[AppSetting] '{}' set to {}", KEY_WALLET_MIN_TOP_UP, normalized);
+        return normalized;
+    }
 
     @Transactional(readOnly = true)
     public boolean isPayAtStallEnabled() {
