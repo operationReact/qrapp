@@ -64,7 +64,7 @@ public class RecommendationAnalyticsDtos {
         /**
          * [FUTURE: Recommendation Scoring]
          * Which engine resolved this recommendation: PAIRING | RECOMMENDATION | ENGINE.
-         * Pass this value from the {@code CompleteYourMealResponse.source} field.
+         * Pass this value from the {@code MealRecommendationResponse} or cart suggestion {@code resolvedBy}.
          */
         private String resolvedBy;
 

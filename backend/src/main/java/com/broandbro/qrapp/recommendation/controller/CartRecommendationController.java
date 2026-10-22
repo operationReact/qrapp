@@ -3,7 +3,6 @@ package com.broandbro.qrapp.recommendation.controller;
 import com.broandbro.qrapp.recommendation.dto.MealRecommendationDtos.*;
 import com.broandbro.qrapp.recommendation.dto.RecommendationAnalyticsDtos.*;
 import com.broandbro.qrapp.recommendation.dto.RecommendationDtos.*;
-import com.broandbro.qrapp.recommendation.service.CompleteYourMealService;
 import com.broandbro.qrapp.recommendation.service.RecommendationEngineService;
 import com.broandbro.qrapp.recommendation.service.RecommendationInteractionService;
 import lombok.RequiredArgsConstructor;
@@ -24,12 +23,6 @@ import java.util.Map;
  *   Body: { itemIds, categoryIds, cartTotal, maxResults }
  *   Returns: { suggestions[], resolvedBy }
  *
- * GET  /api/recommendations/complete-meal
- *   Params: primaryItemId (required), cartItemIds (optional, repeatable),
- *           cartTotal (optional)
- *   200: CompleteYourMealResponse
- *   204: no meal recommendation available
- *
  * POST /api/recommendations/interactions
  *   Body: { restaurantId, customerId, sourceItemId, recommendedItemId, interactionType,
  *           sessionId?, resolvedBy?, pairingRole? }
@@ -47,7 +40,6 @@ import java.util.Map;
 public class CartRecommendationController {
 
     private final RecommendationEngineService        engine;
-    private final CompleteYourMealService            completeMealService;
     private final RecommendationInteractionService   interactionService;
 
     // ── Cart suggestions ──────────────────────────────────────────────────────
@@ -56,37 +48,6 @@ public class CartRecommendationController {
     public ResponseEntity<CartRecommendationResponse> getCartRecommendations(
             @RequestBody CartRecommendationRequest req) {
         return ResponseEntity.ok(engine.getCartSuggestions(req));
-    }
-
-    // ── Complete Your Meal ────────────────────────────────────────────────────
-
-    /**
-     * Returns the best Drink, Side, and Dessert to complete the customer's meal.
-     *
-     * <p>Resolution strategy:
-     * <ol>
-     *   <li>Tier 1 – Admin-curated meal rules (explicit, priority-sorted).</li>
-     *   <li>Tier 2 – Classification-aware RecommendationEngine (MealType + CuisineType scoring).</li>
-     * </ol>
-     *
-     * @param primaryItemId  the primary item whose companions are being fetched (required)
-     * @param cartItemIds    all items currently in the cart — used to exclude already-carted items
-     * @param cartTotal      current cart total — used for classification-aware engine scoring
-     */
-    @GetMapping("/complete-meal")
-    public ResponseEntity<CompleteYourMealResponse> getCompleteMeal(
-            @RequestParam Long primaryItemId,
-            @RequestParam(required = false) List<Long> cartItemIds,
-            @RequestParam(required = false, defaultValue = "0") BigDecimal cartTotal) {
-
-        CompleteYourMealRequest req = new CompleteYourMealRequest();
-        req.setPrimaryItemId(primaryItemId);
-        req.setCartItemIds(cartItemIds);
-        req.setCartTotal(cartTotal);
-
-        return completeMealService.getCompleteMeal(req)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.noContent().build());
     }
 
     // ── Interaction Tracking ──────────────────────────────────────────────────

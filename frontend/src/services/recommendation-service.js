@@ -13,33 +13,21 @@ const getActiveLocationId = () =>
 export const getCartRecommendations = (payload) =>
   apiClient.post("/api/recommendations/cart", payload).then((r) => r.data);
 
-/**
- * V1 Recommended Bundle — builds a simple "Frequently Bought Together" bundle
- * from the recommendation engine and returns pre-calculated pricing.
- *
- * Returns null (HTTP 204) when no bundle is available for the current cart.
- *
- * @param {{ cartItemIds: number[], cartTotal?: number }} payload
- * @returns {Promise<{bundleItems,originalPrice,savings,finalPrice}|null>}
- */
-export const getRecommendedBundle = (payload) =>
-  apiClient
-    .post("/api/cart/recommended-bundle", payload)
-    .then((r) => (r.status === 204 ? null : r.data))
-    .catch(() => null); // treat any error as "no bundle available"
+const EMPTY_CART_SUGGESTIONS = { meal: null, bundle: null, suggestions: [] };
 
 /**
- * "Complete Your Meal" — Side + Drink + optional Dessert recommendation
- * with pre-calculated 10% pricing applied server-side.
+ * Single cart upsell query. The server applies the priority:
+ * meal ("Complete Your Meal") → bundle ("Frequently Bought Together") → suggestions.
+ * Only one slot is populated. Errors resolve to an empty result so the cart still works.
  *
- * Returns null when no meal is available (HTTP 204 or network error).
- * @param {{ cartItemIds: number[], cartTotal?: number }} payload
+ * @param {{ cartItemIds: number[], categoryIds?: number[], cartTotal?: number, maxResults?: number, locationId?: number }} payload
+ * @returns {Promise<{meal, bundle, suggestions: Array}>}
  */
-export const getMealRecommendation = (payload) =>
+export const getCartSuggestions = (payload) =>
   apiClient
-    .post("/api/cart/meal-recommendation", payload)
-    .then((r) => (r.status === 204 ? null : r.data))
-    .catch(() => null);
+    .post("/api/cart/suggestions", payload)
+    .then((r) => r.data ?? EMPTY_CART_SUGGESTIONS)
+    .catch(() => EMPTY_CART_SUGGESTIONS);
 
 /**
  * Records a VIEWED or ACCEPTED event for a cart suggestion. Fire-and-forget:

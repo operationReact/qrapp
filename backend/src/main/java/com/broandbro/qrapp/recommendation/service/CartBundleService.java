@@ -81,7 +81,11 @@ public class CartBundleService {
         engineReq.setMaxResults(maxItems);
 
         CartRecommendationResponse engineResp = engine.getCartSuggestions(engineReq);
-        List<RecommendationSuggestion> suggestions = engineResp.getSuggestions();
+        // Only real pairings (admin rules / learned co-occurrence) belong in "Frequently
+        // Bought Together". Best-seller fallbacks are not related to the cart, so drop them.
+        List<RecommendationSuggestion> suggestions = engineResp.getSuggestions().stream()
+                .filter(s -> !"BEST_SELLER".equals(s.getSource()))
+                .toList();
 
         if (suggestions.isEmpty()) {
             log.debug("[CartBundle] No suggestions returned for cart={}", cartItemIds);

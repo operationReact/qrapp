@@ -32,8 +32,7 @@ import { getCurrentUser } from "@/services/auth-service";
 import { walletGetBalance } from "@/services/wallet-service";
 import { getRecommendedMenu } from "@/services/menu-service";
 import {
-  getRecommendedBundle,
-  getMealRecommendation,
+  getCartSuggestions,
 } from "@/services/recommendation-service";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
@@ -194,33 +193,22 @@ function CartPage() {
     .sort()
     .join(",");
   const cartItemIds = cart.map((i) => i.id);
+  const categoryIds = [
+    ...new Set(cart.filter((i) => i.category?.id).map((i) => i.category.id)),
+  ];
 
-  const {
-    data: meal,
-    isLoading: mealLoading,
-    isError: mealError,
-  } = useQuery({
-    queryKey: ["complete-meal", activeLocationId, cartItemsKey],
-    queryFn: () => getMealRecommendation({ cartItemIds, cartTotal: total, locationId: activeLocationId }),
+  // One request; the server returns the meal, else the bundle, else suggestions.
+  const { data: upsell, isLoading: upsellLoading } = useQuery({
+    queryKey: ["cart-suggestions", activeLocationId, cartItemsKey],
+    queryFn: () =>
+      getCartSuggestions({ cartItemIds, categoryIds, cartTotal: total, maxResults: 5, locationId: activeLocationId }),
     enabled: cart.length > 0,
-    staleTime: 1000 * 60 * 3,
-    retry: false,
+    staleTime: 1000 * 60 * 2,
   });
-  const hasMeal = !mealLoading && !mealError && !!meal?.mealItems?.length;
-
-  const {
-    data: bundle,
-    isLoading: bundleLoading,
-    isError: bundleError,
-  } = useQuery({
-    queryKey: ["v1-recommended-bundle", activeLocationId, cartItemsKey],
-    queryFn: () => getRecommendedBundle({ cartItemIds, cartTotal: total, locationId: activeLocationId }),
-    enabled: cart.length > 0 && !mealLoading && !hasMeal,
-    staleTime: 1000 * 60 * 3,
-    retry: false,
-  });
-  const hasBundle =
-    !bundleLoading && !bundleError && !!bundle?.bundleItems?.length;
+  const meal = upsell?.meal ?? null;
+  const bundle = upsell?.bundle ?? null;
+  const hasMeal = !!meal?.mealItems?.length;
+  const hasBundle = !!bundle?.bundleItems?.length;
 
   // Reset upsell session when cart is cleared
   useEffect(() => {
@@ -603,9 +591,9 @@ function CartPage() {
           {/* ── Smart Upsell (priority: meal > bundle, session-gated) ── */}
           {cart.length > 0 &&
             !upsellSessionDone &&
-            (mealLoading || hasMeal || bundleLoading || hasBundle) && (
+                        (upsellLoading || hasMeal || hasBundle) && (
               <section className="rounded-xl bg-card border border-border shadow-xs p-3">
-                {mealLoading || (!hasMeal && bundleLoading) ? (
+                {upsellLoading ? (
                   <div className="h-36 rounded-2xl bg-zinc-100/70 animate-pulse" />
                 ) : hasMeal ? (
                   <CompleteMealCard

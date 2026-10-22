@@ -18,7 +18,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { Empty, EmptyDescription, EmptyHeader } from "./ui/empty";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { getCartRecommendations, getRecommendedBundle, getMealRecommendation, trackRecommendationInteraction } from "@/services/recommendation-service";
+import { getCartSuggestions, trackRecommendationInteraction } from "@/services/recommendation-service";
 import { PlusCircleIcon, PlusIcon, PlusMinusIcon, SparkleIcon } from "@phosphor-icons/react";
 import ComboProgressBanner from "@/components/ComboProgressBanner";
 import { useByocDiscount } from "@/hooks/useByocDiscount";
@@ -64,40 +64,20 @@ function SmartUpsellSection({ cart, addItem, decreaseItem, isOpen }) {
     return () => window.clearTimeout(timer);
   }, [cart.length]);
 
-  // ── Priority 1: Complete Your Meal ────────────────────────────────────────
-  const { data: meal, isLoading: mealLoading, isError: mealError } = useQuery({
-    queryKey: ["complete-meal", activeLocationId, cartItemsKey],
-    queryFn:  () => getMealRecommendation({ cartItemIds: itemIds, cartTotal, locationId: activeLocationId }),
-    enabled:  isOpen && cart.length > 0 && !upsellDone,
-    staleTime: 1000 * 60 * 3,
-    retry:    false,
-    placeholderData: keepPreviousData,
-  });
-  const hasMeal = !mealLoading && !mealError && !!(meal?.mealItems?.length);
-
-  // ── Priority 2: Frequently Bought Together ────────────────────────────────
-  const { data: bundle, isLoading: bundleLoading, isError: bundleError } = useQuery({
-    queryKey: ["v1-recommended-bundle", activeLocationId, cartItemsKey],
-    queryFn:  () => getRecommendedBundle({ cartItemIds: itemIds, cartTotal, locationId: activeLocationId }),
-    enabled:  isOpen && cart.length > 0 && !upsellDone && !mealLoading && !hasMeal,
-    staleTime: 1000 * 60 * 3,
-    retry:    false,
-    placeholderData: keepPreviousData,
-  });
-  const hasBundle = !bundleLoading && !bundleError && !!(bundle?.bundleItems?.length);
-
-  // ── Priority 3: General recommendations ──────────────────────────────────
-  const { data: recsData, isLoading: recsLoading } = useQuery({
-    queryKey: ["cart-recommendations", activeLocationId, itemIds.slice().sort().join(",")],
+  // One request; the server returns the meal, else the bundle, else suggestions.
+  const { data: upsell, isLoading: upsellLoading } = useQuery({
+    queryKey: ["cart-suggestions", activeLocationId, cartItemsKey],
     queryFn:  () =>
-      getCartRecommendations({ itemIds, categoryIds, cartTotal, maxResults: 5, locationId: activeLocationId }),
-    enabled:
-      isOpen && cart.length > 0 && !upsellDone &&
-      !mealLoading && !hasMeal && !bundleLoading && !hasBundle,
+      getCartSuggestions({ cartItemIds: itemIds, categoryIds, cartTotal, maxResults: 5, locationId: activeLocationId }),
+    enabled:  isOpen && cart.length > 0 && !upsellDone,
     staleTime: 1000 * 60 * 2,
     placeholderData: keepPreviousData,
   });
-  const suggestions = useMemo(() => recsData?.suggestions ?? [], [recsData]);
+  const meal = upsell?.meal ?? null;
+  const bundle = upsell?.bundle ?? null;
+  const hasMeal = !!meal?.mealItems?.length;
+  const hasBundle = !!bundle?.bundleItems?.length;
+  const suggestions = useMemo(() => upsell?.suggestions ?? [], [upsell]);
 
   const trackedViews = useRef(new Set());
   const showingGeneralList = isOpen && !upsellDone && !hasMeal && !hasBundle && suggestions.length > 0;
@@ -160,10 +140,7 @@ function SmartUpsellSection({ cart, addItem, decreaseItem, isOpen }) {
     }
   };
 
-  const showSkeleton =
-    mealLoading ||
-    (!hasMeal && bundleLoading) ||
-    (!hasMeal && !hasBundle && recsLoading);
+  const showSkeleton = upsellLoading;
 
   if (showSkeleton) return null;
 
