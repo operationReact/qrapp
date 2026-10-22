@@ -163,13 +163,13 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/menu/items/*/addons").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/menu/items/with-addons").permitAll()
 
-                        // Recommendation: cart suggestions, complete-meal, and interaction tracking
-                        // are all public (no customer login required). The analytics endpoint is
-                        // protected at the controller level via @PreAuthorize.
+                        // Recommendation: cart suggestions and interaction tracking are public
+                        // (no customer login required). The analytics endpoint is protected at
+                        // the controller level via @PreAuthorize.
                         .requestMatchers(HttpMethod.GET,  "/api/recommendations/cart").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/recommendations/cart").permitAll()
-                        .requestMatchers(HttpMethod.GET,  "/api/recommendations/complete-meal").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/recommendations/interactions").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/cart/suggestions").permitAll()
 
                         .requestMatchers(
                                 HttpMethod.POST,
