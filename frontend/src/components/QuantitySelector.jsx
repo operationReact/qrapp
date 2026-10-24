@@ -45,9 +45,10 @@ export default function QuantitySelector({
 
           // elevation — soft shadow lifts it off the card
           "shadow-xs",
-          // interaction
+          // interaction — entry animation eases the Add pill into the stepper
           "transition-all duration-150 ease-out",
-          "hover:sm hover:brightness-110",
+          "qty-selector qty-selector-enter",
+          "hover:brightness-110",
           className,
         )}
       >
@@ -71,6 +72,7 @@ export default function QuantitySelector({
         // soft elevated background
         "bg-background",
         "shadow-xs",
+        "qty-selector qty-selector-enter",
         // hairline border using primary tint
         "ring-1 ring-primary/20",
         className,

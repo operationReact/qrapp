@@ -133,7 +133,8 @@ public class AdminController {
         locationAccessService.requireNonKitchenAdmin(user, locationId);
         Optional<List<Long>> scope = locationAccessService.resolveDashboardLocationScope(user, locationId);
         orderService.assertOrderWithinScope(id, scope);
-        refundService.completeManualRefund(id, request.reference(), authentication.getName());
+        refundService.completeManualRefund(id, request.reference(), authentication.getName(),
+                request.acknowledgeDashboardRefund());
         return ResponseEntity.ok(orderService.getAdminOrder(id));
     }
 

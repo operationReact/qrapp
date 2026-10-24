@@ -39,7 +39,7 @@ class WebhookControllerTest {
     void setUp() {
         RazorpayProperties properties = new RazorpayProperties();
         properties.setWebhookSecret(SECRET);
-        lenient().when(webhookService.process(any(), any(), any(), any()))
+        lenient().when(webhookService.process(any(), any(), any(), any(), any()))
                 .thenReturn(RazorpayWebhookService.ProcessingResult.IGNORED);
         mockMvc = MockMvcBuilders.standaloneSetup(
                 new WebhookController(properties, webhookService, new ObjectMapper())
@@ -54,7 +54,7 @@ class WebhookControllerTest {
 
         postSigned(body).andExpect(status().isOk());
 
-        verify(webhookService).process("evt_captured", "payment.captured", "pay_123", "order_123");
+        verify(webhookService).process(eq("evt_captured"), eq("payment.captured"), eq("pay_123"), eq("order_123"), any());
     }
 
     @Test
@@ -63,7 +63,7 @@ class WebhookControllerTest {
                 {"id":"evt_authorized","event":"payment.authorized","payload":{"payment":{"entity":{"id":"pay_124","order_id":"order_124"}}}}
                 """).andExpect(status().isOk());
 
-        verify(webhookService).process("evt_authorized", "payment.authorized", "pay_124", "order_124");
+        verify(webhookService).process(eq("evt_authorized"), eq("payment.authorized"), eq("pay_124"), eq("order_124"), any());
     }
 
     @Test
@@ -72,7 +72,7 @@ class WebhookControllerTest {
                 {"id":"evt_failed","event":"payment.failed","payload":{"payment":{"entity":{"id":"pay_125","order_id":"order_125"}}}}
                 """).andExpect(status().isOk());
 
-        verify(webhookService).process("evt_failed", "payment.failed", "pay_125", "order_125");
+        verify(webhookService).process(eq("evt_failed"), eq("payment.failed"), eq("pay_125"), eq("order_125"), any());
     }
 
     @Test
@@ -81,7 +81,7 @@ class WebhookControllerTest {
                 {"id":"evt_paid","event":"order.paid","payload":{"order":{"entity":{"id":"order_primary"}},"payment":{"entity":{"id":"pay_126","order_id":"order_fallback"}}}}
                 """).andExpect(status().isOk());
 
-        verify(webhookService).process("evt_paid", "order.paid", "pay_126", "order_primary");
+        verify(webhookService).process(eq("evt_paid"), eq("order.paid"), eq("pay_126"), eq("order_primary"), any());
     }
 
     @Test
@@ -90,7 +90,7 @@ class WebhookControllerTest {
                 {"id":"evt_paid_fallback","event":"order.paid","payload":{"order":{"entity":{}},"payment":{"entity":{"id":"pay_127","order_id":"order_fallback"}}}}
                 """).andExpect(status().isOk());
 
-        verify(webhookService).process("evt_paid_fallback", "order.paid", "pay_127", "order_fallback");
+        verify(webhookService).process(eq("evt_paid_fallback"), eq("order.paid"), eq("pay_127"), eq("order_fallback"), any());
     }
 
     @Test
@@ -131,7 +131,7 @@ class WebhookControllerTest {
 
     @Test
     void duplicateEventIsAcknowledged() throws Exception {
-        when(webhookService.process(eq("evt_duplicate"), eq("payment.captured"), eq("pay_128"), eq("order_128")))
+        when(webhookService.process(eq("evt_duplicate"), eq("payment.captured"), eq("pay_128"), eq("order_128"), any()))
                 .thenReturn(RazorpayWebhookService.ProcessingResult.DUPLICATE);
 
         postSigned("""
@@ -153,7 +153,7 @@ class WebhookControllerTest {
         postSigned(body).andExpect(status().isOk());
 
         ArgumentCaptor<String> orderId = ArgumentCaptor.forClass(String.class);
-        verify(webhookService).process(eq("evt_optional"), eq("payment.captured"), eq("pay_129"), orderId.capture());
+        verify(webhookService).process(eq("evt_optional"), eq("payment.captured"), eq("pay_129"), orderId.capture(), any());
         assertThat(orderId.getValue()).isEqualTo("order_129");
     }
 

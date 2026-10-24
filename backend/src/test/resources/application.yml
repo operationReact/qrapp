@@ -19,6 +19,9 @@ spring:
   task:
     scheduling:
       enabled: false
+whatsapp:
+  webhook:
+    processor-interval-ms: 3600000
 razorpay:
   key: test-key
   secret: test-secret

@@ -764,6 +764,21 @@ public class OrderService {
         String previousPaymentStatus = order.getPaymentStatus();
         String nextPaymentStatus = previousPaymentStatus;
 
+        // Applied before the status change so a same-request cancellation sees the payment state it must refund.
+        if (hasPaymentStatusChange) {
+            String normalized = request.getPaymentStatus().trim().toUpperCase();
+            if (!normalized.equals("PAID") && !normalized.equals("PENDING") && !normalized.equals("FAILED")) {
+                throw new IllegalArgumentException("Invalid paymentStatus: " + request.getPaymentStatus());
+            }
+            // A cancellation that already ran has no refund for a payment recorded now; the capture needs review instead.
+            if (normalized.equals("PAID") && previousStatus == OrderStatus.CANCELLED) {
+                throw new IllegalArgumentException("Cannot mark a cancelled order as PAID; the payment must be reviewed for refund.");
+            }
+
+            nextPaymentStatus = normalized;
+            order.setPaymentStatus(normalized);
+        }
+
         if (hasStatusChange) {
             nextStatus = parseStatus(request.getStatus());
             if (!previousStatus.equals(nextStatus)) {
@@ -789,16 +804,6 @@ public class OrderService {
                 }
             }
 
-        }
-
-        if (hasPaymentStatusChange) {
-            String normalized = request.getPaymentStatus().trim().toUpperCase();
-            if (!normalized.equals("PAID") && !normalized.equals("PENDING") && !normalized.equals("FAILED")) {
-                throw new IllegalArgumentException("Invalid paymentStatus: " + request.getPaymentStatus());
-            }
-
-            nextPaymentStatus = normalized;
-            order.setPaymentStatus(normalized);
         }
 
         if (hasNoteChange) {
@@ -881,22 +886,39 @@ public class OrderService {
                 }));
     }
 
+    /**
+     * Records a provider payment confirmation under the order row lock.
+     * @param capturedAmountPaise amount reported by the provider (paise); stored for manual review only
+     * @return {@code true} when this call moved the order to PAID; {@code false} when it was already PAID
+     *         or was not eligible (cancelled, or not a Razorpay order) and no payment state was changed.
+     */
     @Transactional
-    public void markOrderPaidByRazorpayOrderId(String razorpayOrderId, String razorpayPaymentId) {
-        Order order = orderRepo.findByRazorpayOrderId(razorpayOrderId)
+    public boolean markOrderPaidByRazorpayOrderId(String razorpayOrderId, String razorpayPaymentId, Long capturedAmountPaise) {
+        Order order = orderRepo.findByRazorpayOrderIdForUpdate(razorpayOrderId)
                .orElseThrow(() -> new IllegalArgumentException("Order not found for razorpayOrderId: " + razorpayOrderId));
 
        log.info("[PaymentGateway] Marking order PAID via Razorpay | orderId={} orderNumber={} razorpayOrderId={}",
                order.getId(), order.getOrderNumber(), razorpayOrderId);
 
+       if (order.getPaymentMethod() != PaymentMethod.RAZORPAY) {
+           log.error("[PaymentGateway] Razorpay capture ignored; order is not a Razorpay order | orderId={} method={}",
+                   order.getId(), order.getPaymentMethod());
+           return false;
+       }
+
+       // Checked before the PAID early return so an additional capture on an order that was paid and then cancelled is still reviewed.
+       if (order.getStatus() == OrderStatus.CANCELLED) {
+           recordCapturedAfterCancellation(order, razorpayPaymentId, capturedAmountPaise);
+           return false;
+       }
+
        if ("PAID".equalsIgnoreCase(order.getPaymentStatus())) {
            log.info("[PaymentGateway] Order already PAID; duplicate Razorpay success event is idempotent | orderId={}",
                    order.getId());
-           return;
+           return false;
        }
 
        order.setPaymentStatus("PAID");
-       order.setPaymentMethod(PaymentMethod.RAZORPAY);
         if (razorpayPaymentId != null && !razorpayPaymentId.isBlank()) {
             order.setRazorpayPaymentId(razorpayPaymentId.trim());
         }
@@ -906,6 +928,43 @@ public class OrderService {
                order.getId(), order.getOrderNumber());
 
        // whatsappService.sendOrderPlaced(order.getPhone(), order.getId());
+       return true;
+    }
+
+    /** Marker written to payment_events when a provider capture lands on a cancelled order. */
+    static final String PAYMENT_REVIEW_REQUIRED = "PAYMENT_REVIEW_REQUIRED";
+
+    /**
+     * Captured-after-cancel payments are not auto-refunded. The capture is recorded once per provider
+     * payment in payment_events (order-keyed, FK to orders) for operator review. Runs under the order lock,
+     * so concurrent webhook deliveries observe the existing row.
+     */
+    private void recordCapturedAfterCancellation(Order order, String razorpayPaymentId, Long capturedAmountPaise) {
+        String paymentRef = razorpayPaymentId != null && !razorpayPaymentId.isBlank() ? razorpayPaymentId.trim() : "unknown";
+        if (paymentRef.equals(order.getRazorpayPaymentId())) {
+            // The order's own payment: its cancellation refund is handled by the refund flow, not by review.
+            log.info("[PaymentGateway] Capture is the order's own payment; no review record | orderId={} razorpayPaymentId={}",
+                    order.getId(), paymentRef);
+            return;
+        }
+        String reason = "Captured Razorpay payment " + paymentRef + " after cancellation; review required";
+        if (paymentEventRepository.existsByOrderIdAndNewStatusAndReason(order.getId(), PAYMENT_REVIEW_REQUIRED, reason)) {
+            log.info("[PaymentGateway] Captured-after-cancel review already recorded | orderId={} razorpayPaymentId={}",
+                    order.getId(), paymentRef);
+            return;
+        }
+        PaymentEvent event = new PaymentEvent();
+        event.setOrderId(order.getId());
+        event.setPreviousStatus(order.getPaymentStatus());
+        event.setNewStatus(PAYMENT_REVIEW_REQUIRED);
+        event.setAmount(capturedAmountPaise == null ? null : BigDecimal.valueOf(capturedAmountPaise, 2));
+        event.setPaymentMethod(PaymentMethod.RAZORPAY);
+        event.setPerformedBy("WEBHOOK:razorpay");
+        event.setReason(reason);
+        event.setCreatedAt(BusinessTime.now());
+        paymentEventRepository.save(event);
+        log.error("[PaymentGateway] Razorpay capture on CANCELLED order recorded for manual review; not marked PAID | orderId={} orderNumber={} razorpayPaymentId={} amountPaise={}",
+                order.getId(), order.getOrderNumber(), paymentRef, capturedAmountPaise);
     }
 
     @Transactional

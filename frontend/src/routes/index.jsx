@@ -196,15 +196,11 @@ function MenuPage() {
         onVegFilterChange={handleSegmentedFilterChange}
       />
       <MobileMenu />
-      {/* Backend offline banner (non-technical user friendly) */}
+      {/* Customer-facing offline notice; no developer or infrastructure details */}
       {offline && (
         <div className="container-premium py-3">
-          <div className="rounded-2xl border border-yellow-200 bg-yellow-50 p-3 text-sm text-yellow-800">
-            Backend unreachable — frontend is using cached data. Start the
-            backend to use live data.
-            <div className="mt-2 overflow-x-auto rounded-xl bg-white p-2 font-mono text-xs">
-              cd backend; ./gradlew bootRun (or gradle bootRun)
-            </div>
+          <div role="status" className="rounded-2xl border border-yellow-200 bg-yellow-50 p-3 text-sm text-yellow-800">
+            We can&apos;t refresh the menu right now. Please check your connection and try again.
             <div className="mt-3 flex flex-col gap-2 sm:flex-row">
               <button
                 onClick={() => fetchMenu()}

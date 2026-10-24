@@ -7,6 +7,7 @@ import {
   ProhibitIcon,
   ClockIcon,
   CalendarCheckIcon,
+  BowlFoodIcon,
 } from "@phosphor-icons/react";
 import { cn, formatCurrency } from "@/lib/utils";
 import QuantitySelector from "./QuantitySelector";
@@ -78,7 +79,7 @@ export default function MenuItemCard({
     <>
       <article
         className={cn(
-          "group h-full overflow-hidden rounded-xl border border-border bg-card transition-opacity md:rounded-2xl",
+          "menu-item-card group h-full overflow-hidden rounded-xl border border-border bg-card md:rounded-2xl",
           isUnavailable && "opacity-70",
           // Pre-order items: entire card is the tap target
           preOrderOnly &&
@@ -99,7 +100,7 @@ export default function MenuItemCard({
           }}
           aria-label={preOrderOnly ? undefined : `View ${item.name} details`}
           className={cn(
-            "relative block aspect-[1.45] w-full text-left md:aspect-[4/3]",
+            "relative block aspect-[1.45] w-full overflow-hidden text-left md:aspect-[4/3]",
             !preOrderOnly && "cursor-pointer",
           )}
         >
@@ -109,19 +110,18 @@ export default function MenuItemCard({
               alt={item.name}
               onError={() => setImgError(true)}
               className={cn(
-                "w-full h-full object-cover transition-all duration-300",
+                "menu-item-card__image w-full h-full object-cover transition-all duration-300",
                 isUnavailable && "grayscale",
               )}
               loading="lazy"
               decoding="async"
             />
           ) : (
-            <div className="w-full overflow-hidden h-full flex items-center justify-center bg-zinc-100">
-              <img
-                src="/brand/white.png"
-                alt="Bro Logo"
-                className="opacity-20 size-1/2 object-contain animate-pulse"
-              />
+            <div
+              aria-hidden="true"
+              className="w-full overflow-hidden h-full flex items-center justify-center bg-muted text-muted-foreground"
+            >
+              <BowlFoodIcon size={40} weight="duotone" />
             </div>
           )}
 

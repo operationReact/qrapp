@@ -38,7 +38,7 @@ public class OrderController {
     private final OrderService service;
     private final PaymentService paymentService;
     private final UserService userService;
-    private final WalletService walletService;
+    private final WalletOrderPaymentService walletOrderPaymentService;
     private final AppSettingService appSettingService;
     private final OrderSupportService orderSupportService;
 
@@ -86,9 +86,7 @@ public class OrderController {
         }
 
         if (paymentMethod == PaymentMethod.WALLET) {
-            walletService.ensureSufficientBalance(currentUser, payableAmount);
-            walletService.payForOrder(currentUser, order.getId(), payableAmount);
-            service.markOrderPaidByWallet(order.getId());
+            walletOrderPaymentService.payOrderFromWallet(currentUser, order.getId(), payableAmount);
             body.put("paymentStatus", "PAID");
             body.put("amount", payableAmount);
             if (!awardedCoupons.isEmpty()) body.put("awardedCoupons", awardedCoupons);
@@ -199,9 +197,7 @@ public class OrderController {
         body.put("paymentMethod", paymentMethod);
 
         if (paymentMethod == PaymentMethod.WALLET) {
-            walletService.ensureSufficientBalance(currentUser, payableAmount);
-            walletService.payForOrder(currentUser, order.getId(), payableAmount);
-            service.markOrderPaidByWallet(order.getId());
+            walletOrderPaymentService.payOrderFromWallet(currentUser, order.getId(), payableAmount);
             body.put("paymentStatus", "PAID");
             body.put("amount", payableAmount);
             log.info("[PRE-ORDER] Wallet payment complete — orderId={} amount={}", order.getId(), payableAmount);

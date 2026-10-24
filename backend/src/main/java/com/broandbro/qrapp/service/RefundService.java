@@ -56,11 +56,6 @@ public class RefundService {
             List.of(OrderRefund.STATUS_PENDING, OrderRefund.STATUS_FAILED, OrderRefund.STATUS_PROCESSING,
                     OrderRefund.STATUS_PROVIDER_ACCEPTED);
 
-    /** Statuses a webhook can still match, including PROCESSED_BY_GATEWAY, which awaits an ARN. */
-    private static final List<String> MATCHABLE_STATUSES =
-            List.of(OrderRefund.STATUS_PENDING, OrderRefund.STATUS_FAILED, OrderRefund.STATUS_PROCESSING,
-                    OrderRefund.STATUS_PROVIDER_ACCEPTED, OrderRefund.STATUS_PROCESSED_BY_GATEWAY);
-
     private final OrderRefundRepository refundRepo;
     private final OrderRepository orderRepo;
     private final UserRepository userRepository;
@@ -177,7 +172,7 @@ public class RefundService {
 
     /** Attempts a refund once. Never throws; every outcome is recorded on the refund row. */
     public void processRefund(Long refundId) {
-        OrderRefund claimed;
+        Claim claimed;
         try {
             claimed = requiresNewTx.execute(status -> claim(refundId));
         } catch (RuntimeException e) {
@@ -185,15 +180,19 @@ public class RefundService {
             return;
         }
         if (claimed != null) {
-            attempt(claimed);
+            attempt(claimed.refund(), claimed.previousStatus());
         }
     }
 
-    private OrderRefund claim(Long refundId) {
+    /** A claimed refund and the status it had before the claim, which says whether an earlier request may have reached Razorpay. */
+    private record Claim(OrderRefund refund, String previousStatus) {}
+
+    private Claim claim(Long refundId) {
         LocalDateTime now = BusinessTime.now();
+        String previousStatus = refundRepo.findByIdForUpdate(refundId).map(OrderRefund::getStatus).orElse(null);
         int claimedRows = refundRepo.claimForAttempt(refundId, now, now.plus(PROCESSING_LEASE), MAX_ATTEMPTS);
         if (claimedRows == 1) {
-            return refundRepo.findById(refundId).orElse(null);
+            return refundRepo.findById(refundId).map(refund -> new Claim(refund, previousStatus)).orElse(null);
         }
         if (refundRepo.escalateIfExhausted(refundId, now, MAX_ATTEMPTS) == 1) {
             OrderRefund escalated = refundRepo.findById(refundId).orElseThrow();
@@ -205,10 +204,23 @@ public class RefundService {
         return null;
     }
 
-    private void attempt(OrderRefund refund) {
+    private void attempt(OrderRefund refund, String previousStatus) {
         Long id = refund.getId();
         try {
-            markProviderAccepted(id, obtainProviderRefundId(refund));
+            Optional<RazorpayService.ProviderRefund> prior = reconcile(refund, previousStatus);
+            if (prior.isPresent()) {
+                RazorpayService.ProviderRefund existing = prior.get();
+                log.info("[Refund] Reconciled existing provider refund | refundId={} providerRefundId={} providerStatus={}",
+                        id, existing.id(), existing.status());
+                if ("failed".equals(existing.status())) {
+                    markVerifiedFailure(id, existing.id());
+                } else {
+                    markProviderAccepted(id, existing.id());
+                }
+                return;
+            }
+            long amountPaise = refund.getAmount().movePointRight(2).longValueExact();
+            markProviderAccepted(id, razorpayService.refundPayment(refund.getPaymentId(), amountPaise, refund.getIdempotencyKey()));
         } catch (RazorpayService.RefundException e) {
             if (e.isDefinite()) {
                 markFailed(id, e.getMessage());
@@ -223,17 +235,23 @@ public class RefundService {
         }
     }
 
-    private String obtainProviderRefundId(OrderRefund refund) {
-        if (refund.getAttempts() > 1) {
-            Optional<String> prior = razorpayService.findRefundIdByKey(refund.getPaymentId(), refund.getIdempotencyKey());
-            if (prior.isPresent()) {
-                log.info("[Refund] Reconciled existing provider refund | refundId={} providerRefundId={}",
-                        refund.getId(), prior.get());
-                return prior.get();
-            }
+    /**
+     * Returns the provider refund already created for this key, if any. An empty result means a new request is
+     * safe: no earlier request exists, or the earlier request was definitively rejected by Razorpay.
+     * An ambiguous earlier request whose refund cannot be found is never resent; it stays under lease for another lookup.
+     */
+    private Optional<RazorpayService.ProviderRefund> reconcile(OrderRefund refund, String previousStatus) {
+        if (OrderRefund.STATUS_PENDING.equals(previousStatus)) {
+            return Optional.empty();
         }
-        long amountPaise = refund.getAmount().movePointRight(2).longValueExact();
-        return razorpayService.refundPayment(refund.getPaymentId(), amountPaise, refund.getIdempotencyKey());
+        Optional<RazorpayService.ProviderRefund> prior =
+                razorpayService.findRefundByKey(refund.getPaymentId(), refund.getIdempotencyKey());
+        if (prior.isEmpty() && !OrderRefund.STATUS_FAILED.equals(previousStatus)) {
+            throw new RazorpayService.RefundException(
+                    "Earlier refund request outcome is unknown and no matching provider refund was found; not resending",
+                    false, null);
+        }
+        return prior;
     }
 
     /**
@@ -242,11 +260,17 @@ public class RefundService {
      */
     private void markProviderAccepted(Long refundId, String providerRefundId) {
         tx.executeWithoutResult(status -> {
-            OrderRefund refund = refundRepo.findById(refundId).orElseThrow();
+            OrderRefund refund = refundRepo.findByIdForUpdate(refundId).orElseThrow();
             if (OrderRefund.STATUS_SUCCEEDED.equals(refund.getStatus())
-                    || OrderRefund.STATUS_PROCESSED_BY_GATEWAY.equals(refund.getStatus())
-                    || OrderRefund.STATUS_MANUAL_REQUIRED.equals(refund.getStatus())) {
-                // A webhook or admin already settled this row before our write landed; never downgrade it.
+                    || OrderRefund.STATUS_PROCESSED_BY_GATEWAY.equals(refund.getStatus())) {
+                return;
+            }
+            if (OrderRefund.STATUS_MANUAL_REQUIRED.equals(refund.getStatus())) {
+                // Escalated while this request was in flight. Keep the status for staff but record the provider id.
+                refund.setProviderRefundId(providerRefundId);
+                refund.setUpdatedAt(BusinessTime.now());
+                log.warn("[Refund] Accepted by Razorpay after escalation; staff must reconcile | refundId={} providerRefundId={}",
+                        refundId, providerRefundId);
                 return;
             }
             LocalDateTime now = BusinessTime.now();
@@ -272,7 +296,7 @@ public class RefundService {
 
     private void markFailed(Long refundId, String reason) {
         tx.executeWithoutResult(status -> {
-            OrderRefund refund = refundRepo.findById(refundId).orElseThrow();
+            OrderRefund refund = refundRepo.findByIdForUpdate(refundId).orElseThrow();
             if (OrderRefund.STATUS_SUCCEEDED.equals(refund.getStatus())
                     || OrderRefund.STATUS_PROCESSED_BY_GATEWAY.equals(refund.getStatus())) {
                 return;
@@ -287,9 +311,35 @@ public class RefundService {
         });
     }
 
+    /**
+     * Razorpay reports the refund for this key as failed, so no money moved. The documented contract does not
+     * define a same-key replay after failure, and a new key would be a new operation, so the row goes to staff
+     * instead of cycling through backoff. The failed id is kept in the reason only, so a replacement refund
+     * created on the dashboard can still be recorded against this row.
+     */
+    private void markVerifiedFailure(Long refundId, String failedProviderRefundId) {
+        tx.executeWithoutResult(status -> {
+            OrderRefund refund = refundRepo.findByIdForUpdate(refundId).orElseThrow();
+            if (OrderRefund.STATUS_SUCCEEDED.equals(refund.getStatus())
+                    || OrderRefund.STATUS_PROCESSED_BY_GATEWAY.equals(refund.getStatus())) {
+                return;
+            }
+            LocalDateTime now = BusinessTime.now();
+            refund.setStatus(OrderRefund.STATUS_MANUAL_REQUIRED);
+            refund.setFailureReason(truncate("Razorpay reports refund " + failedProviderRefundId
+                    + " as failed; verify on the Razorpay dashboard before recovering"));
+            refund.setNextAttemptAt(null);
+            refund.setUpdatedAt(now);
+            orderRepo.findByIdForUpdate(refund.getOrderId())
+                    .ifPresent(order -> applyOrderRefundStatus(order, refund));
+            log.warn("[Refund] Verified failed by Razorpay; escalated to manual review | refundId={} failedProviderRefundId={}",
+                    refundId, failedProviderRefundId);
+        });
+    }
+
     private void markAmbiguous(Long refundId, String reason) {
         tx.executeWithoutResult(status -> {
-            OrderRefund refund = refundRepo.findById(refundId).orElseThrow();
+            OrderRefund refund = refundRepo.findByIdForUpdate(refundId).orElseThrow();
             if (OrderRefund.STATUS_SUCCEEDED.equals(refund.getStatus())
                     || OrderRefund.STATUS_PROCESSED_BY_GATEWAY.equals(refund.getStatus())) {
                 return;
@@ -329,13 +379,15 @@ public class RefundService {
      */
     @Transactional
     public boolean applyProviderRefundEvent(ProviderRefundUpdate update) {
-        Optional<OrderRefund> match = findRefundForEvent(update);
+        Optional<Long> match = findRefundIdForEvent(update);
         if (match.isEmpty()) {
             log.info("[Refund] Webhook refund not linked to an order | event={} providerRefundId={} paymentId={}",
                     update.event(), update.providerRefundId(), update.paymentId());
             return false;
         }
-        OrderRefund refund = match.get();
+        // Lock order: refund row, then order row. Every refund writer uses this order.
+        // The row is first loaded by its locking query here; an entity loaded unlocked earlier in this transaction would keep stale fields.
+        OrderRefund refund = refundRepo.findByIdForUpdate(match.get()).orElseThrow();
         Order order = orderRepo.findByIdForUpdate(refund.getOrderId())
                 .orElseThrow(() -> new IllegalStateException("Order not found for refund " + refund.getId()));
         LocalDateTime now = BusinessTime.now();
@@ -413,6 +465,18 @@ public class RefundService {
             }
             return;
         }
+        if (refund.getProviderRefundId() != null && providerRefundId != null
+                && !refund.getProviderRefundId().equals(providerRefundId)) {
+            // A second provider refund for one BroBro key: keep the recorded id and never let the event overwrite it.
+            refund.setStatus(OrderRefund.STATUS_MANUAL_REQUIRED);
+            refund.setFailureReason(truncate("Razorpay reported refund " + providerRefundId
+                    + " but this refund recorded " + refund.getProviderRefundId() + "; verify on the Razorpay dashboard"));
+            refund.setNextAttemptAt(null);
+            applyOrderRefundStatus(order, refund);
+            log.error("[Refund] Processed event names a different provider refund; escalated | refundId={} recorded={} reported={}",
+                    refund.getId(), refund.getProviderRefundId(), providerRefundId);
+            return;
+        }
         boolean credited = refund.getAcquirerArn() != null;
         refund.setStatus(credited ? OrderRefund.STATUS_SUCCEEDED : OrderRefund.STATUS_PROCESSED_BY_GATEWAY);
         refund.setProviderRefundId(providerRefundId != null ? providerRefundId : refund.getProviderRefundId());
@@ -449,35 +513,59 @@ public class RefundService {
                 refund.getId(), refund.getAttempts());
     }
 
-    private Optional<OrderRefund> findRefundForEvent(ProviderRefundUpdate update) {
+    private Optional<Long> findRefundIdForEvent(ProviderRefundUpdate update) {
         if (update.refundKey() != null && !update.refundKey().isBlank()) {
-            return refundRepo.findByIdempotencyKey(update.refundKey());
+            return refundRepo.findIdsByIdempotencyKey(update.refundKey()).stream().findFirst();
         }
+        // Dashboard-created refunds carry no BroBro key and are never linked by amount: only the provider
+        // refund id we recorded ties an event to a row.
         if (update.providerRefundId() != null) {
-            Optional<OrderRefund> byProviderId = refundRepo.findFirstByProviderRefundId(update.providerRefundId());
-            if (byProviderId.isPresent()) {
-                return byProviderId;
-            }
+            return refundRepo.findIdsByProviderRefundId(update.providerRefundId()).stream().findFirst();
         }
-        // Last resort for refunds without our notes: match only an open refund of the same payment and amount.
-        if (update.paymentId() == null || update.amountPaise() == null) {
-            return Optional.empty();
-        }
-        return refundRepo.findByPaymentIdAndStatusIn(update.paymentId(), MATCHABLE_STATUSES).stream()
-                .filter(r -> r.getAmount().movePointRight(2).longValue() == update.amountPaise())
-                .findFirst();
+        return Optional.empty();
     }
 
-    /** Admin confirms a refund was completed outside the automated path (e.g., via the Razorpay dashboard or bank transfer). */
+    /**
+     * Admin confirms a refund was completed outside the automated path. Razorpay refunds must be verified against
+     * Razorpay before the row is marked SUCCEEDED: the reference must be the refund id, Razorpay must report it as
+     * processed, and it must match this refund's payment, amount and refund key. Other methods (wallet, manual) keep
+     * the reference as an audit note. A reference already linked to another refund row is always rejected.
+     */
     @Transactional
     public OrderRefund completeManualRefund(Long orderId, String reference, String actor) {
-        OrderRefund refund = refundRepo.findFirstByOrderIdAndStatusOrderByIdDesc(orderId, OrderRefund.STATUS_MANUAL_REQUIRED)
-                .orElseThrow(() -> new IllegalArgumentException("No refund is awaiting manual completion for this order."));
+        return completeManualRefund(orderId, reference, actor, false);
+    }
+
+    /**
+     * Completes an escalated refund after verifying the Razorpay refund id. A refund with no BroBro key was created on
+     * the Razorpay dashboard; it is accepted only when the operator acknowledges that explicitly and Razorpay shows no
+     * live refund under this row's key. A failed provider refund under the key does not block recovery.
+     */
+    @Transactional
+    public OrderRefund completeManualRefund(Long orderId, String reference, String actor, boolean acknowledgeDashboardRefund) {
+        if (reference == null || reference.isBlank()) {
+            throw new IllegalArgumentException("A reference is required to complete a refund manually.");
+        }
+        String trimmedReference = reference.trim();
+        OrderRefund refund = lockManualRefund(orderId, "No refund is awaiting manual completion for this order.");
         Order order = orderRepo.findByIdForUpdate(orderId)
                 .orElseThrow(() -> new IllegalArgumentException("Order not found: " + orderId));
+        boolean dashboardRefund = false;
+        if (OrderRefund.METHOD_RAZORPAY.equals(refund.getMethod())) {
+            dashboardRefund = verifyRazorpayRefund(refund, trimmedReference, acknowledgeDashboardRefund);
+        }
+        refundRepo.findFirstByProviderRefundId(trimmedReference)
+                .filter(other -> !other.getId().equals(refund.getId()))
+                .ifPresent(other -> {
+                    throw new IllegalArgumentException("This reference is already linked to another refund.");
+                });
+        if (dashboardRefund) {
+            log.warn("[Refund] Completed with a dashboard-created Razorpay refund (no BroBro key) | refundId={} providerRefundId={} actor={}",
+                    refund.getId(), trimmedReference, actor);
+        }
         LocalDateTime now = BusinessTime.now();
         refund.setStatus(OrderRefund.STATUS_SUCCEEDED);
-        refund.setProviderRefundId(reference.trim());
+        refund.setProviderRefundId(trimmedReference);
         refund.setCompletedAt(now);
         refund.setResolvedBy(actor);
         refund.setNextAttemptAt(null);
@@ -487,20 +575,88 @@ public class RefundService {
     }
 
     /**
-     * Gives an escalated Razorpay refund one more automatic attempt. The attempt count is set just below the limit
-     * (not reset), so the next claim still runs the refund-key reconciliation before any resend.
+     * Confirms with Razorpay that the refund id belongs to this refund. A fetch failure throws, so the transaction
+     * rolls back and the row stays MANUAL_REQUIRED for another attempt. Returns true when the refund has no BroBro key.
+     */
+    private boolean verifyRazorpayRefund(OrderRefund refund, String refundId, boolean acknowledgeDashboardRefund) {
+        if (refund.getPaymentId() == null || refund.getIdempotencyKey() == null) {
+            throw new IllegalArgumentException("This refund lacks the provider identifiers needed for verification.");
+        }
+        if (refund.getProviderRefundId() != null && !refund.getProviderRefundId().equals(refundId)) {
+            throw new IllegalArgumentException("The reference does not match the Razorpay refund already recorded for this order.");
+        }
+        if (!refundId.startsWith("rfnd_")) {
+            throw new IllegalArgumentException("Enter the Razorpay refund id (rfnd_...) from the dashboard.");
+        }
+        RazorpayService.RefundDetail detail;
+        try {
+            detail = razorpayService.fetchRefund(refund.getPaymentId(), refundId);
+        } catch (RazorpayService.RefundException e) {
+            throw new IllegalStateException("Could not verify the refund with Razorpay; nothing was changed. Try again later.", e);
+        }
+        if (!"processed".equals(detail.status())) {
+            throw new IllegalArgumentException("Razorpay reports this refund as " + detail.status()
+                    + "; only processed refunds can be completed.");
+        }
+        if (!refund.getPaymentId().equals(detail.paymentId())
+                || detail.amountPaise() != refund.getAmount().movePointRight(2).longValueExact()) {
+            throw new IllegalArgumentException("The Razorpay refund does not match this order's payment and amount.");
+        }
+        if (detail.refundKey() == null) {
+            if (!acknowledgeDashboardRefund) {
+                throw new IllegalArgumentException("This Razorpay refund has no BroBro refund key, so it was created on the "
+                        + "dashboard. Confirm it explicitly to complete the refund manually.");
+            }
+            ensureNoLiveProviderRefund(refund);
+            return true;
+        }
+        if (!refund.getIdempotencyKey().equals(detail.refundKey())) {
+            throw new IllegalArgumentException("The Razorpay refund is not linked to this order's refund key.");
+        }
+        return false;
+    }
+
+    /**
+     * Confirms BroBro's own request for this row did not create a live refund at Razorpay. A failed one moved no money.
+     * A lookup error throws, so nothing is recorded when the answer is unknown.
+     */
+    private void ensureNoLiveProviderRefund(OrderRefund refund) {
+        Optional<RazorpayService.ProviderRefund> ours;
+        try {
+            ours = razorpayService.findRefundByKey(refund.getPaymentId(), refund.getIdempotencyKey());
+        } catch (RuntimeException e) {
+            throw new IllegalStateException("Could not confirm that BroBro's refund request did not reach Razorpay; nothing was changed. Try again later.", e);
+        }
+        if (ours.filter(p -> !"failed".equals(p.status())).isPresent()) {
+            throw new IllegalArgumentException("Razorpay has a live refund (" + ours.get().id()
+                    + ") under this order's refund key; reconcile it instead of completing a dashboard refund.");
+        }
+    }
+
+    /** Locks the escalated refund row first (the same order as the webhook and attempt paths) and re-checks its status. */
+    private OrderRefund lockManualRefund(Long orderId, String notFoundMessage) {
+        OrderRefund candidate = refundRepo.findFirstByOrderIdAndStatusOrderByIdDesc(orderId, OrderRefund.STATUS_MANUAL_REQUIRED)
+                .orElseThrow(() -> new IllegalArgumentException(notFoundMessage));
+        return refundRepo.findByIdForUpdate(candidate.getId())
+                .filter(r -> OrderRefund.STATUS_MANUAL_REQUIRED.equals(r.getStatus()))
+                .orElseThrow(() -> new IllegalArgumentException(notFoundMessage));
+    }
+
+    /**
+     * Re-runs refund-key reconciliation for an escalated Razorpay refund. The row returns to PROCESSING rather than
+     * PENDING, so the next claim looks up the earlier request before any send. A refund that Razorpay does not report
+     * is never resent here; staff resolve it with completeManualRefund after checking the Razorpay dashboard.
      */
     @Transactional
     public OrderRefund retryEscalatedRefund(Long orderId, String actor) {
-        OrderRefund refund = refundRepo.findFirstByOrderIdAndStatusOrderByIdDesc(orderId, OrderRefund.STATUS_MANUAL_REQUIRED)
-                .orElseThrow(() -> new IllegalArgumentException("No refund is awaiting manual action for this order."));
+        OrderRefund refund = lockManualRefund(orderId, "No refund is awaiting manual action for this order.");
         if (!OrderRefund.METHOD_RAZORPAY.equals(refund.getMethod()) || refund.getPaymentId() == null) {
             throw new IllegalArgumentException("Only Razorpay refunds can be retried. Complete this refund manually instead.");
         }
         Order order = orderRepo.findByIdForUpdate(orderId)
                 .orElseThrow(() -> new IllegalArgumentException("Order not found: " + orderId));
         LocalDateTime now = BusinessTime.now();
-        refund.setStatus(OrderRefund.STATUS_PENDING);
+        refund.setStatus(OrderRefund.STATUS_PROCESSING);
         refund.setAttempts(MAX_ATTEMPTS - 1);
         refund.setNextAttemptAt(now);
         refund.setFailureReason(null);

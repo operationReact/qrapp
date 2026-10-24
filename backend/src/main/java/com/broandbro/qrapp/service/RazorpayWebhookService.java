@@ -32,7 +32,7 @@ public class RazorpayWebhookService {
     }
 
     @Transactional
-    public ProcessingResult process(String eventId, String event, String paymentId, String orderId) {
+    public ProcessingResult process(String eventId, String event, String paymentId, String orderId, Long capturedAmountPaise) {
         if (StringUtils.hasText(eventId)) {
             int claimed = eventRepository.claimEvent(eventId, event, orderId, paymentId);
             if (claimed == 0) {
@@ -44,8 +44,9 @@ public class RazorpayWebhookService {
         return switch (event) {
             case "payment.authorized", "payment.captured", "order.paid" -> {
                 if (StringUtils.hasText(orderId)) {
-                    orderService.markOrderPaidByRazorpayOrderId(orderId, paymentId);
-                    yield ProcessingResult.PAID;
+                    yield orderService.markOrderPaidByRazorpayOrderId(orderId, paymentId, capturedAmountPaise)
+                            ? ProcessingResult.PAID
+                            : ProcessingResult.IGNORED;
                 }
                 log.info("[Webhook] event={} has no order ID; acknowledged without business update", event);
                 yield ProcessingResult.IGNORED;

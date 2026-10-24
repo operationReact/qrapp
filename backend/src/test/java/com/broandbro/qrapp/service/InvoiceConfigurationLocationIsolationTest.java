@@ -10,9 +10,9 @@ import com.broandbro.qrapp.repository.InvoiceRepository;
 import com.broandbro.qrapp.repository.MenuRepository;
 import com.broandbro.qrapp.repository.OrderItemRepository;
 import com.broandbro.qrapp.storage.ImageStorageService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.apache.pdfbox.pdmodel.PDDocument;
@@ -36,11 +36,21 @@ class InvoiceConfigurationGlobalTest {
     @Mock
     private MenuRepository menuRepository;
     @Mock
+    private TaxCalculationService taxCalculationService;
+    @Mock
     private InvoiceConfigurationService configurationService;
     @Mock
     private ImageStorageService imageStorage;
-    @InjectMocks
+
+    private InvoicePdfRenderer pdfRenderer;
     private InvoiceService invoiceService;
+
+    @BeforeEach
+    void setUp() {
+        pdfRenderer = new InvoicePdfRenderer(imageStorage);
+        invoiceService = new InvoiceService(invoiceRepository, orderItemRepository, menuRepository,
+                taxCalculationService, configurationService, imageStorage, pdfRenderer);
+    }
 
     @Test
     void invoiceUsesTheSharedConfigurationForAnyOrderLocation() {
@@ -65,12 +75,14 @@ class InvoiceConfigurationGlobalTest {
 
     @Test
     void pdfContainsConfiguredBusinessFields() throws Exception {
-        InvoiceConfiguration globalConfig = InvoiceConfiguration.builder()
+        String text = renderConfiguredPdfText(InvoiceConfiguration.builder()
                 .businessName("Configured Bro Foods")
                 .tradeName("Configured Kitchen")
                 .gstin("36CONFIGURED1234")
                 .fssaiLicense("FSSAI-123")
+                .showFssai(true)
                 .pan("CONFIGPAN1")
+                .showPan(true)
                 .state("Telangana")
                 .stateCode("36")
                 .pincode("500090")
@@ -78,7 +90,53 @@ class InvoiceConfigurationGlobalTest {
                 .email("invoice@example.com")
                 .website("www.example.com")
                 .footerText("Configured footer")
-                .build();
+                .build());
+
+        org.junit.jupiter.api.Assertions.assertTrue(text.contains("Configured Bro Foods"));
+        org.junit.jupiter.api.Assertions.assertTrue(text.contains("36CONFIGURED1234"));
+        org.junit.jupiter.api.Assertions.assertTrue(text.contains("FSSAI: FSSAI-123"));
+        org.junit.jupiter.api.Assertions.assertTrue(text.contains("PAN: CONFIGPAN1"));
+        org.junit.jupiter.api.Assertions.assertTrue(text.contains("Configured footer"));
+        org.junit.jupiter.api.Assertions.assertTrue(text.contains("Configured Biryani"));
+    }
+
+    @Test
+    void pdfOmitsFssaiAndPanWhenDisabled() throws Exception {
+        String text = renderConfiguredPdfText(InvoiceConfiguration.builder()
+                .businessName("Configured Bro Foods")
+                .gstin("36CONFIGURED1234")
+                .fssaiLicense("FSSAI-123")
+                .showFssai(false)
+                .pan("CONFIGPAN1")
+                .showPan(false)
+                .footerText("Configured footer")
+                .build());
+
+        org.junit.jupiter.api.Assertions.assertTrue(text.contains("36CONFIGURED1234"));
+        org.junit.jupiter.api.Assertions.assertFalse(text.contains("FSSAI"));
+        org.junit.jupiter.api.Assertions.assertFalse(text.contains("FSSAI-123"));
+        org.junit.jupiter.api.Assertions.assertFalse(text.contains("PAN:"));
+        org.junit.jupiter.api.Assertions.assertFalse(text.contains("CONFIGPAN1"));
+    }
+
+    @Test
+    void pdfOmitsFssaiAndPanLabelsWhenEnabledButValueMissing() throws Exception {
+        String text = renderConfiguredPdfText(InvoiceConfiguration.builder()
+                .businessName("Configured Bro Foods")
+                .gstin("36CONFIGURED1234")
+                .fssaiLicense("  ")
+                .showFssai(true)
+                .pan(null)
+                .showPan(true)
+                .footerText("Configured footer")
+                .build());
+
+        org.junit.jupiter.api.Assertions.assertTrue(text.contains("36CONFIGURED1234"));
+        org.junit.jupiter.api.Assertions.assertFalse(text.contains("FSSAI"));
+        org.junit.jupiter.api.Assertions.assertFalse(text.contains("PAN:"));
+    }
+
+    private String renderConfiguredPdfText(InvoiceConfiguration globalConfig) throws Exception {
         when(configurationService.findGlobal()).thenReturn(globalConfig);
 
         Invoice invoice = Invoice.builder()
@@ -107,16 +165,9 @@ class InvoiceConfigurationGlobalTest {
         when(menuRepository.findAllById(List.of(9L))).thenReturn(List.of(menuItem));
 
         byte[] pdf = invoiceService.renderPdf(invoice, new Order(), List.of(item));
-        String text;
         try (PDDocument document = Loader.loadPDF(pdf)) {
-            text = new PDFTextStripper().getText(document);
+            return new PDFTextStripper().getText(document);
         }
-
-        org.junit.jupiter.api.Assertions.assertTrue(text.contains("Configured Bro Foods"));
-        org.junit.jupiter.api.Assertions.assertTrue(text.contains("36CONFIGURED1234"));
-        org.junit.jupiter.api.Assertions.assertTrue(text.contains("FSSAI-123"));
-        org.junit.jupiter.api.Assertions.assertTrue(text.contains("Configured footer"));
-        org.junit.jupiter.api.Assertions.assertTrue(text.contains("Configured Biryani"));
     }
 
     private static Order order(Long orderId, Long locationId) {

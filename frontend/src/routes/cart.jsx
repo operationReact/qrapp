@@ -53,7 +53,13 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty";
-import { ShoppingCartIcon, SparkleIcon } from "@phosphor-icons/react";
+import { ShoppingCartIcon, SparkleIcon, WarningCircleIcon } from "@phosphor-icons/react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import {
+  CHECKOUT_ERRORS,
+  getCheckoutApiError,
+  getPreOrderOnlyError,
+} from "@/lib/checkoutErrors";
 import { PromotionDrawer } from "@/components/PromotionDrawer";
 import { useCheckoutPromotions } from "@/hooks/useCheckoutPromotions";
 import { useByocDiscount } from "@/hooks/useByocDiscount";
@@ -359,14 +365,27 @@ function CartPage() {
     };
   }, [totalAfterDiscount, user?.token]);
 
+  const [checkoutErrorState, setCheckoutErrorState] = useState(null);
+  const setCheckoutError = (error) =>
+    setCheckoutErrorState({ error, cart, activeLocationId, selectedPaymentMethod });
+  const checkoutError =
+    checkoutErrorState &&
+    checkoutErrorState.cart === cart &&
+    checkoutErrorState.activeLocationId === activeLocationId &&
+    checkoutErrorState.selectedPaymentMethod === selectedPaymentMethod
+      ? checkoutErrorState.error
+      : null;
+
   const handleCheckout = async () => {
+    setCheckoutErrorState(null);
+
     if (!user || !user.token) {
       navigate({ to: "/login", state: { from: "/cart" } });
       return;
     }
 
     if (cart.length === 0) {
-      alert("Your cart is empty.");
+      setCheckoutError(CHECKOUT_ERRORS.CART_EMPTY);
       return;
     }
 
@@ -375,7 +394,7 @@ function CartPage() {
     // items scoped to a different location, block checkout rather than
     // submit a cross-location order.
     if (!activeLocationId) {
-      alert("Please select a location before checkout.");
+      setCheckoutError(CHECKOUT_ERRORS.LOCATION_NOT_SELECTED);
       return;
     }
     const mismatchedItems = cart.filter(
@@ -386,18 +405,15 @@ function CartPage() {
         activeLocationId,
         mismatchedItemIds: mismatchedItems.map((i) => i.id),
       });
-      alert(
-        "Your cart belongs to a different location. Please switch to the correct location.",
-      );
+      setCheckoutError(CHECKOUT_ERRORS.LOCATION_MISMATCH);
       return;
     }
 
     // Guard: PreOrderOnly items cannot go through regular checkout
     const preOrderItems = cart.filter((i) => i?.tag?.name === "PreOrderOnly");
     if (preOrderItems.length > 0) {
-      const names = preOrderItems.map((i) => i.name).join(", ");
-      alert(
-        `"${names}" can only be placed as a pre-order.\n\nPlease remove it from the cart and use the "Pre-Order" button on the item card to schedule it.`,
+      setCheckoutError(
+        getPreOrderOnlyError(preOrderItems.map((i) => i.name)),
       );
       return;
     }
@@ -423,7 +439,7 @@ function CartPage() {
           "Please enter your phone number to proceed with payment",
         );
         if (!phone) {
-          alert("Phone is required to place an order");
+          setCheckoutError(CHECKOUT_ERRORS.PHONE_REQUIRED);
           return;
         }
       }
@@ -477,7 +493,7 @@ function CartPage() {
 
       if (!orderIdForRzp) {
         console.error("No Razorpay order id returned from backend", payment);
-        alert("Payment preparation failed: missing order id from server");
+        setCheckoutError(CHECKOUT_ERRORS.PAYMENT_START_FAILED);
         return;
       }
 
@@ -485,9 +501,7 @@ function CartPage() {
         typeof orderIdForRzp === "string" &&
         orderIdForRzp.startsWith("mock_rzp_")
       ) {
-        alert(
-          "Payments are not configured on the server yet. Please use wallet payment or configure Razorpay keys.",
-        );
+        setCheckoutError(CHECKOUT_ERRORS.PAYMENT_UNAVAILABLE);
         return;
       }
 
@@ -510,24 +524,14 @@ function CartPage() {
         },
       });
 
-      rzp.on("payment.failed", function (response) {
-        console.error("Razorpay payment failed", response);
-        alert(
-          "Payment Failed: " +
-            (response.error && response.error.description
-              ? response.error.description
-              : JSON.stringify(response)),
-        );
+      rzp.on("payment.failed", function () {
+        setCheckoutError(CHECKOUT_ERRORS.PAYMENT_FAILED);
       });
 
       rzp.open();
     } catch (err) {
       console.error("Checkout failed", err);
-      const message =
-        typeof err?.response?.data === "string"
-          ? err.response.data
-          : err?.response?.data?.message || err?.message || "Payment Failed";
-      alert("Oops! Something went wrong.\n" + message);
+      setCheckoutError(getCheckoutApiError(err));
     } finally {
       setSubmitting(false);
     }
@@ -723,6 +727,13 @@ function CartPage() {
                   </div>
                 </div>
 
+                {checkoutError && (
+                  <Alert variant="destructive" className="mt-3">
+                    <WarningCircleIcon weight="fill" />
+                    <AlertTitle>{checkoutError.title}</AlertTitle>
+                    <AlertDescription>{checkoutError.message}</AlertDescription>
+                  </Alert>
+                )}
                 <div className="flex gap-4 box-content h-[72px]! justify-between items-center py-2">
                   <Drawer>
                     <DrawerTrigger

@@ -103,6 +103,8 @@ tasks.withType(JavaCompile) {
 
 tasks.named('test') {
     useJUnitPlatform()
+    // Many cached Spring contexts (each with Hikari pools and schedulers) exhaust the default heap.
+    maxHeapSize = '2g'
 }
 
 // Keep the jar produced by bootJar as the runnable artifact

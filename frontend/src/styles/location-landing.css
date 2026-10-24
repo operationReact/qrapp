@@ -726,6 +726,10 @@
     font-size: clamp(3.5rem, 5vw, 4.75rem);
   }
 
+  .loc-title-accent {
+    white-space: normal;
+  }
+
   .loc-lede {
     max-width: 28rem;
     font-size: 17px;

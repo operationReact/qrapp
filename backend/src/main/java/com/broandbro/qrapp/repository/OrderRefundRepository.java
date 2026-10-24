@@ -1,7 +1,9 @@
 package com.broandbro.qrapp.repository;
 
 import com.broandbro.qrapp.entity.OrderRefund;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -19,12 +21,22 @@ public interface OrderRefundRepository extends JpaRepository<OrderRefund, Long> 
 
     Optional<OrderRefund> findFirstByProviderRefundId(String providerRefundId);
 
-    List<OrderRefund> findAllByOrderIdInOrderByIdDesc(Collection<Long> orderIds);
+    /** Ids only: a webhook resolves the row here, then locks it, so no unlocked entity is loaded before the lock. */
+    @Query("SELECT r.id FROM OrderRefund r WHERE r.idempotencyKey = :key")
+    List<Long> findIdsByIdempotencyKey(@Param("key") String key);
 
-    List<OrderRefund> findByPaymentIdAndStatusIn(String paymentId, Collection<String> statuses);
+    @Query("SELECT r.id FROM OrderRefund r WHERE r.providerRefundId = :providerRefundId ORDER BY r.id")
+    List<Long> findIdsByProviderRefundId(@Param("providerRefundId") String providerRefundId);
+
+    List<OrderRefund> findAllByOrderIdInOrderByIdDesc(Collection<Long> orderIds);
 
     List<OrderRefund> findTop50ByStatusInAndNextAttemptAtLessThanEqualOrderByNextAttemptAtAsc(
             Collection<String> statuses, LocalDateTime now);
+
+    /** Locks the refund row so the status read before a claim is the status the claim replaces. */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT r FROM OrderRefund r WHERE r.id = :id")
+    Optional<OrderRefund> findByIdForUpdate(@Param("id") Long id);
 
     /**
      * Atomically moves a due refund to PROCESSING and takes a lease (stored in nextAttemptAt).

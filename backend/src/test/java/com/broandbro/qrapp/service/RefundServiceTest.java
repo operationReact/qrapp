@@ -29,6 +29,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -76,6 +77,7 @@ class RefundServiceTest {
 
         when(refundRepo.claimForAttempt(eq(5L), any(), any(), eq(RefundService.MAX_ATTEMPTS))).thenReturn(1);
         when(refundRepo.findById(5L)).thenReturn(Optional.of(refund));
+        when(refundRepo.findByIdForUpdate(5L)).thenReturn(Optional.of(refund));
         when(orderRepo.findByIdForUpdate(10L)).thenReturn(Optional.of(order));
     }
 
@@ -121,7 +123,7 @@ class RefundServiceTest {
     void failedWebhookAfterAcceptanceRequiresManualReviewInsteadOfResend() {
         refund.setStatus(OrderRefund.STATUS_PROVIDER_ACCEPTED);
         refund.setProviderRefundId("rfnd_1");
-        when(refundRepo.findByIdempotencyKey(KEY)).thenReturn(Optional.of(refund));
+        when(refundRepo.findIdsByIdempotencyKey(KEY)).thenReturn(List.of(5L));
 
         service.applyProviderRefundEvent(
                 new RefundService.ProviderRefundUpdate("refund.failed", "rfnd_1", KEY, "pay_1", 15000L));
@@ -135,7 +137,7 @@ class RefundServiceTest {
     void processedWebhookAfterAcceptanceCompletesRefund() {
         refund.setStatus(OrderRefund.STATUS_PROVIDER_ACCEPTED);
         refund.setProviderRefundId("rfnd_7");
-        when(refundRepo.findByIdempotencyKey(KEY)).thenReturn(Optional.of(refund));
+        when(refundRepo.findIdsByIdempotencyKey(KEY)).thenReturn(List.of(5L));
 
         service.applyProviderRefundEvent(
                 new RefundService.ProviderRefundUpdate("refund.processed", "rfnd_7", KEY, "pay_1", 15000L));
@@ -149,7 +151,7 @@ class RefundServiceTest {
     @Test
     void processedWebhookWithArnConfirmsBankCredit() {
         refund.setStatus(OrderRefund.STATUS_PROCESSING);
-        when(refundRepo.findByIdempotencyKey(KEY)).thenReturn(Optional.of(refund));
+        when(refundRepo.findIdsByIdempotencyKey(KEY)).thenReturn(List.of(5L));
 
         service.applyProviderRefundEvent(new RefundService.ProviderRefundUpdate(
                 "refund.processed", "rfnd_7", KEY, "pay_1", 15000L, "normal", "normal", "ARN123"));
@@ -163,7 +165,7 @@ class RefundServiceTest {
     void arnArrivingLaterPromotesProcessedByGatewayToSucceeded() {
         refund.setStatus(OrderRefund.STATUS_PROCESSED_BY_GATEWAY);
         refund.setProviderRefundId("rfnd_7");
-        when(refundRepo.findByIdempotencyKey(KEY)).thenReturn(Optional.of(refund));
+        when(refundRepo.findIdsByIdempotencyKey(KEY)).thenReturn(List.of(5L));
 
         service.applyProviderRefundEvent(new RefundService.ProviderRefundUpdate(
                 "refund.speed_changed", "rfnd_7", KEY, "pay_1", 15000L, "normal", "normal", "ARN456"));
@@ -175,7 +177,7 @@ class RefundServiceTest {
     @Test
     void speedChangedWithoutArnKeepsStatus() {
         refund.setStatus(OrderRefund.STATUS_PROCESSING);
-        when(refundRepo.findByIdempotencyKey(KEY)).thenReturn(Optional.of(refund));
+        when(refundRepo.findIdsByIdempotencyKey(KEY)).thenReturn(List.of(5L));
 
         service.applyProviderRefundEvent(new RefundService.ProviderRefundUpdate(
                 "refund.speed_changed", null, KEY, "pay_1", 15000L, "optimum", null, null));
@@ -200,7 +202,9 @@ class RefundServiceTest {
     @Test
     void reconcilesExistingProviderRefundInsteadOfRefundingAgain() {
         refund.setAttempts(2);
-        when(razorpayService.findRefundIdByKey("pay_1", KEY)).thenReturn(Optional.of("rfnd_9"));
+        refund.setStatus(OrderRefund.STATUS_PROCESSING);
+        when(razorpayService.findRefundByKey("pay_1", KEY))
+                .thenReturn(Optional.of(new RazorpayService.ProviderRefund("rfnd_9", "pending")));
 
         service.processRefund(5L);
 
@@ -210,12 +214,121 @@ class RefundServiceTest {
     }
 
     @Test
+    void unresolvedReconciliationNeverResendsRefund() {
+        refund.setAttempts(2);
+        refund.setStatus(OrderRefund.STATUS_PROCESSING);
+        when(razorpayService.findRefundByKey("pay_1", KEY))
+                .thenThrow(new IllegalStateException("Razorpay refund lookup failed: status=500"));
+
+        service.processRefund(5L);
+
+        verify(razorpayService, never()).refundPayment(any(), anyLong(), any());
+        assertEquals(OrderRefund.STATUS_PROCESSING, refund.getStatus());
+        assertEquals("PENDING", order.getRefundStatus());
+        assertEquals("PAID", order.getPaymentStatus());
+    }
+
+    @Test
+    void ambiguousPriorAttemptWithAbsentRefundNeverResends() {
+        refund.setAttempts(2);
+        refund.setStatus(OrderRefund.STATUS_PROCESSING);
+        when(razorpayService.findRefundByKey("pay_1", KEY)).thenReturn(Optional.empty());
+
+        service.processRefund(5L);
+
+        verify(razorpayService, never()).refundPayment(any(), anyLong(), any());
+        assertEquals(OrderRefund.STATUS_PROCESSING, refund.getStatus());
+        assertEquals("PAID", order.getPaymentStatus());
+    }
+
+    @Test
+    void timeoutThenRetryUsesOneProviderRequestWhileRefundIsAbsent() {
+        when(razorpayService.refundPayment(eq("pay_1"), eq(15000L), eq(KEY)))
+                .thenThrow(new RazorpayService.RefundException("timeout", false, null));
+        service.processRefund(5L);
+        assertEquals(OrderRefund.STATUS_PROCESSING, refund.getStatus());
+
+        refund.setAttempts(2);
+        when(razorpayService.findRefundByKey("pay_1", KEY)).thenReturn(Optional.empty());
+        service.processRefund(5L);
+
+        verify(razorpayService, times(1)).refundPayment(any(), anyLong(), any());
+        assertEquals(OrderRefund.STATUS_PROCESSING, refund.getStatus());
+    }
+
+    @Test
+    void ambiguousPriorAttemptFoundAsFailedEscalatesWithoutResend() {
+        refund.setAttempts(2);
+        refund.setStatus(OrderRefund.STATUS_PROCESSING);
+        when(razorpayService.findRefundByKey("pay_1", KEY))
+                .thenReturn(Optional.of(new RazorpayService.ProviderRefund("rfnd_9", "failed")));
+
+        service.processRefund(5L);
+
+        verify(razorpayService, never()).refundPayment(any(), anyLong(), any());
+        assertEquals(OrderRefund.STATUS_MANUAL_REQUIRED, refund.getStatus());
+        assertNull(refund.getNextAttemptAt());
+        assertNull(refund.getProviderRefundId());
+        assertTrue(refund.getFailureReason().contains("rfnd_9"));
+        assertEquals(RefundService.ORDER_REFUND_MANUAL_REQUIRED, order.getRefundStatus());
+    }
+
+    @Test
+    void definitelyFailedPriorAttemptResendsWithSameKey() {
+        refund.setAttempts(2);
+        refund.setStatus(OrderRefund.STATUS_FAILED);
+        when(refundRepo.claimForAttempt(eq(5L), any(), any(), eq(RefundService.MAX_ATTEMPTS))).thenAnswer(inv -> {
+            refund.setStatus(OrderRefund.STATUS_PROCESSING);
+            return 1;
+        });
+        when(razorpayService.findRefundByKey("pay_1", KEY)).thenReturn(Optional.empty());
+        when(razorpayService.refundPayment(eq("pay_1"), eq(15000L), eq(KEY))).thenReturn("rfnd_new");
+
+        service.processRefund(5L);
+
+        verify(razorpayService, times(1)).refundPayment(eq("pay_1"), eq(15000L), eq(KEY));
+        assertEquals(OrderRefund.STATUS_PROVIDER_ACCEPTED, refund.getStatus());
+        assertEquals("rfnd_new", refund.getProviderRefundId());
+    }
+
+    @Test
     void lostClaimSendsNothingToProvider() {
         when(refundRepo.claimForAttempt(eq(5L), any(), any(), eq(RefundService.MAX_ATTEMPTS))).thenReturn(0);
 
         service.processRefund(5L);
 
         verify(razorpayService, never()).refundPayment(any(), anyLong(), any());
+    }
+
+    @Test
+    void adminRetryOfEscalatedRefundReconcilesWithoutResend() {
+        refund.setAttempts(RefundService.MAX_ATTEMPTS);
+        refund.setStatus(OrderRefund.STATUS_MANUAL_REQUIRED);
+        when(refundRepo.findFirstByOrderIdAndStatusOrderByIdDesc(10L, OrderRefund.STATUS_MANUAL_REQUIRED))
+                .thenReturn(Optional.of(refund));
+        when(razorpayService.findRefundByKey("pay_1", KEY)).thenReturn(Optional.empty());
+
+        service.retryEscalatedRefund(10L, "admin");
+        assertEquals(OrderRefund.STATUS_PROCESSING, refund.getStatus());
+
+        service.processRefund(5L);
+
+        verify(razorpayService).findRefundByKey("pay_1", KEY);
+        verify(razorpayService, never()).refundPayment(any(), anyLong(), any());
+        assertEquals(OrderRefund.STATUS_PROCESSING, refund.getStatus());
+    }
+
+    @Test
+    void acceptanceAfterEscalationRecordsProviderIdWithoutChangingStatus() {
+        when(razorpayService.refundPayment(eq("pay_1"), eq(15000L), eq(KEY))).thenAnswer(inv -> {
+            refund.setStatus(OrderRefund.STATUS_MANUAL_REQUIRED);
+            return "rfnd_late";
+        });
+
+        service.processRefund(5L);
+
+        assertEquals(OrderRefund.STATUS_MANUAL_REQUIRED, refund.getStatus());
+        assertEquals("rfnd_late", refund.getProviderRefundId());
     }
 
     @Test
@@ -233,7 +346,7 @@ class RefundServiceTest {
     @Test
     void processedWebhookCompletesRefundFoundByKey() {
         refund.setStatus(OrderRefund.STATUS_PROCESSING);
-        when(refundRepo.findByIdempotencyKey(KEY)).thenReturn(Optional.of(refund));
+        when(refundRepo.findIdsByIdempotencyKey(KEY)).thenReturn(List.of(5L));
 
         boolean applied = service.applyProviderRefundEvent(
                 new RefundService.ProviderRefundUpdate("refund.processed", "rfnd_7", KEY, "pay_1", 15000L));
@@ -250,7 +363,7 @@ class RefundServiceTest {
     void failedWebhookSchedulesRetryWithoutRecordingFailedRefundId() {
         refund.setStatus(OrderRefund.STATUS_PROCESSING);
         refund.setAttempts(1);
-        when(refundRepo.findByIdempotencyKey(KEY)).thenReturn(Optional.of(refund));
+        when(refundRepo.findIdsByIdempotencyKey(KEY)).thenReturn(List.of(5L));
 
         service.applyProviderRefundEvent(
                 new RefundService.ProviderRefundUpdate("refund.failed", "rfnd_bad", KEY, "pay_1", 15000L));
@@ -266,7 +379,7 @@ class RefundServiceTest {
     void failedWebhookDoesNotOverrideSucceededOrManualRefund() {
         refund.setStatus(OrderRefund.STATUS_SUCCEEDED);
         refund.setProviderRefundId("manual_ref");
-        when(refundRepo.findByIdempotencyKey(KEY)).thenReturn(Optional.of(refund));
+        when(refundRepo.findIdsByIdempotencyKey(KEY)).thenReturn(List.of(5L));
 
         service.applyProviderRefundEvent(
                 new RefundService.ProviderRefundUpdate("refund.failed", "rfnd_bad", KEY, "pay_1", 15000L));
@@ -279,7 +392,7 @@ class RefundServiceTest {
     void processedWebhookKeepsEarlierManualReference() {
         refund.setStatus(OrderRefund.STATUS_SUCCEEDED);
         refund.setProviderRefundId("manual_ref");
-        when(refundRepo.findByIdempotencyKey(KEY)).thenReturn(Optional.of(refund));
+        when(refundRepo.findIdsByIdempotencyKey(KEY)).thenReturn(List.of(5L));
 
         service.applyProviderRefundEvent(
                 new RefundService.ProviderRefundUpdate("refund.processed", "rfnd_7", KEY, "pay_1", 15000L));
@@ -288,9 +401,21 @@ class RefundServiceTest {
     }
 
     @Test
-    void webhookWithoutKeyMatchesOpenRefundByPaymentAndAmount() {
+    void webhookWithoutKeyNeverLinksByPaymentAndAmount() {
         refund.setStatus(OrderRefund.STATUS_PENDING);
-        when(refundRepo.findByPaymentIdAndStatusIn(eq("pay_1"), any())).thenReturn(List.of(refund));
+        when(refundRepo.findIdsByProviderRefundId("rfnd_dashboard")).thenReturn(List.of());
+
+        assertFalse(service.applyProviderRefundEvent(
+                new RefundService.ProviderRefundUpdate("refund.processed", "rfnd_dashboard", null, "pay_1", 15000L)));
+        assertEquals(OrderRefund.STATUS_PENDING, refund.getStatus());
+        verify(orderRepo, never()).findByIdForUpdate(any());
+    }
+
+    @Test
+    void webhookWithoutKeyLinksByRecordedProviderId() {
+        refund.setStatus(OrderRefund.STATUS_PROVIDER_ACCEPTED);
+        refund.setProviderRefundId("rfnd_7");
+        when(refundRepo.findIdsByProviderRefundId("rfnd_7")).thenReturn(List.of(5L));
 
         assertTrue(service.applyProviderRefundEvent(
                 new RefundService.ProviderRefundUpdate("refund.processed", "rfnd_7", null, "pay_1", 15000L)));
@@ -298,8 +423,22 @@ class RefundServiceTest {
     }
 
     @Test
+    void processedWebhookNamingDifferentProviderRefundEscalatesWithoutOverwrite() {
+        refund.setStatus(OrderRefund.STATUS_PROVIDER_ACCEPTED);
+        refund.setProviderRefundId("rfnd_1");
+        when(refundRepo.findIdsByIdempotencyKey(KEY)).thenReturn(List.of(5L));
+
+        service.applyProviderRefundEvent(
+                new RefundService.ProviderRefundUpdate("refund.processed", "rfnd_2", KEY, "pay_1", 15000L));
+
+        assertEquals(OrderRefund.STATUS_MANUAL_REQUIRED, refund.getStatus());
+        assertEquals("rfnd_1", refund.getProviderRefundId());
+        assertNull(refund.getNextAttemptAt());
+    }
+
+    @Test
     void webhookForUnknownRefundIsIgnored() {
-        when(refundRepo.findByIdempotencyKey("other-key")).thenReturn(Optional.empty());
+        when(refundRepo.findIdsByIdempotencyKey("other-key")).thenReturn(List.of());
 
         assertFalse(service.applyProviderRefundEvent(
                 new RefundService.ProviderRefundUpdate("refund.processed", "rfnd_x", "other-key", "pay_1", 100L)));

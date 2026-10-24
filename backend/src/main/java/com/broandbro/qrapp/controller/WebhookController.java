@@ -74,6 +74,7 @@ public class WebhookController {
         String razorpayEventId = textAt(root, "id");
         String razorpayPaymentId = textAt(root, "payload", "payment", "entity", "id");
         String razorpayOrderId = extractOrderId(event, root);
+        Long razorpayAmountPaise = longAt(root, "payload", "payment", "entity", "amount");
         log.info("[Webhook] event={} razorpayPaymentId={} razorpayOrderId={}",
                 event, valueOrNone(razorpayPaymentId), valueOrNone(razorpayOrderId));
 
@@ -89,7 +90,7 @@ public class WebhookController {
                 return ResponseEntity.ok().build();
             }
             RazorpayWebhookService.ProcessingResult result =
-                    webhookService.process(razorpayEventId, event, razorpayPaymentId, razorpayOrderId);
+                    webhookService.process(razorpayEventId, event, razorpayPaymentId, razorpayOrderId, razorpayAmountPaise);
             log.info("[Webhook] processing={} response=200", result);
             return ResponseEntity.ok().build();
         } catch (Exception e) {
@@ -130,6 +131,14 @@ public class WebhookController {
             return textAt(root, "payload", "payment", "entity", "order_id");
         }
         return null;
+    }
+
+    private Long longAt(JsonNode node, String... path) {
+        JsonNode current = node;
+        for (String segment : path) {
+            current = current == null ? null : current.get(segment);
+        }
+        return current != null && current.isIntegralNumber() && current.canConvertToLong() ? current.asLong() : null;
     }
 
     private String textAt(JsonNode node, String... path) {

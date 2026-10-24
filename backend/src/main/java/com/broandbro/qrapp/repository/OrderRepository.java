@@ -30,6 +30,11 @@ public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecific
     Page<Order> findByLocationId(Long locationId, Pageable pageable);
 
     Optional<Order> findByRazorpayOrderId(String razorpayOrderId);
+
+    /** Row lock for provider payment confirmation; shares the order lock used by cancel and wallet pay. */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT o FROM Order o WHERE o.razorpayOrderId = :razorpayOrderId")
+    Optional<Order> findByRazorpayOrderIdForUpdate(@Param("razorpayOrderId") String razorpayOrderId);
     Page<Order> findAllByStatus(OrderStatus status, Pageable pageable);
     List<Order> findAllByUserIdOrderByCreatedAtDescIdDesc(Long userId);
     List<Order> findAllByPhoneOrderByCreatedAtDescIdDesc(String phone);

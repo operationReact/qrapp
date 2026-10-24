@@ -9,4 +9,6 @@ import java.util.List;
 @Repository
 public interface PaymentEventRepository extends JpaRepository<PaymentEvent, Long> {
     List<PaymentEvent> findByOrderIdOrderByCreatedAtAsc(Long orderId);
+
+    boolean existsByOrderIdAndNewStatusAndReason(Long orderId, String newStatus, String reason);
 }

@@ -4,9 +4,12 @@ import com.broandbro.qrapp.dto.*;
 import com.broandbro.qrapp.entity.User;
 import com.broandbro.qrapp.service.AppSettingService;
 import com.broandbro.qrapp.service.UserService;
+import com.broandbro.qrapp.service.WalletOrderPaymentService;
 import com.broandbro.qrapp.service.WalletService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataAccessException;
+import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
@@ -24,6 +27,7 @@ import jakarta.validation.Valid;
 @Validated
 public class WalletController {
     private final WalletService walletService;
+    private final WalletOrderPaymentService walletOrderPaymentService;
     private final UserService userService;
     private final AppSettingService appSettingService;
 
@@ -100,8 +104,21 @@ public class WalletController {
             log.warn("Wallet pay request without valid authentication");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
-        walletService.payFromWallet(u, req);
+        walletOrderPaymentService.payOrderFromWallet(u, req.getOrderId(), req.getAmount());
         return ResponseEntity.ok().build();
+    }
+
+    @ExceptionHandler(PessimisticLockingFailureException.class)
+    public ResponseEntity<String> handleWalletLockConflict(PessimisticLockingFailureException ex) {
+        log.warn("Wallet payment lock conflict: {}", ex.getClass().getSimpleName());
+        return ResponseEntity.status(HttpStatus.CONFLICT).body("Wallet is busy. Please try again.");
+    }
+
+    @ExceptionHandler(DataAccessException.class)
+    public ResponseEntity<String> handleWalletDataAccess(DataAccessException ex) {
+        log.error("Wallet data access failure", ex);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("Wallet payment could not be completed. Please try again.");
     }
 
     private User resolveCurrentUser(Authentication authentication) {

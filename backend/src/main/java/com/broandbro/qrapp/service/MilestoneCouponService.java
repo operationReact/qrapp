@@ -39,7 +39,8 @@ public class MilestoneCouponService {
 
     // ── Default seed data (used only if table is empty) ─────────────────────
 
-    private static final List<MilestoneConfig> DEFAULTS = List.of(
+    // Fresh instances per call: a shared static list would carry ids/versions across Spring contexts in one JVM.
+    private static List<MilestoneConfig> defaultConfigs() { return List.of(
         MilestoneConfig.builder().thresholdAmount(new BigDecimal("500"))
             .discountPct(new BigDecimal("5")).maxCap(new BigDecimal("50")).validityDays(30).isActive(true).build(),
         MilestoneConfig.builder().thresholdAmount(new BigDecimal("1000"))
@@ -50,14 +51,15 @@ public class MilestoneCouponService {
             .discountPct(new BigDecimal("12")).maxCap(new BigDecimal("200")).validityDays(45).isActive(true).build(),
         MilestoneConfig.builder().thresholdAmount(new BigDecimal("10000"))
             .discountPct(new BigDecimal("15")).maxCap(new BigDecimal("300")).validityDays(60).isActive(true).build()
-    );
+    ); }
 
     @PostConstruct
     @Transactional
     public void seedDefaults() {
         if (milestoneConfigRepository.count() == 0) {
-            milestoneConfigRepository.saveAll(DEFAULTS);
-            log.info("Seeded {} default milestone configs", DEFAULTS.size());
+            List<MilestoneConfig> defaults = defaultConfigs();
+            milestoneConfigRepository.saveAll(defaults);
+            log.info("Seeded {} default milestone configs", defaults.size());
         }
     }
 

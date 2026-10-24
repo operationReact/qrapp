@@ -27,12 +27,25 @@ class RazorpayWebhookServiceTest {
     void successfulPaymentEventMarksOrderPaid() {
         when(eventRepository.claimEvent("evt_1", "payment.captured", "order_1", "pay_1"))
                 .thenReturn(1);
+        when(orderService.markOrderPaidByRazorpayOrderId("order_1", "pay_1", 15000L)).thenReturn(true);
 
         RazorpayWebhookService service = new RazorpayWebhookService(eventRepository, orderService, refundService);
 
-        assertThat(service.process("evt_1", "payment.captured", "pay_1", "order_1"))
+        assertThat(service.process("evt_1", "payment.captured", "pay_1", "order_1", 15000L))
                 .isEqualTo(RazorpayWebhookService.ProcessingResult.PAID);
-        verify(orderService).markOrderPaidByRazorpayOrderId("order_1", "pay_1");
+        verify(orderService).markOrderPaidByRazorpayOrderId("order_1", "pay_1", 15000L);
+    }
+
+    @Test
+    void capturedPaymentThatCannotBeAppliedIsNotReportedAsPaid() {
+        when(eventRepository.claimEvent("evt_5", "payment.captured", "order_1", "pay_1"))
+                .thenReturn(1);
+        when(orderService.markOrderPaidByRazorpayOrderId("order_1", "pay_1", 15000L)).thenReturn(false);
+
+        RazorpayWebhookService service = new RazorpayWebhookService(eventRepository, orderService, refundService);
+
+        assertThat(service.process("evt_5", "payment.captured", "pay_1", "order_1", 15000L))
+                .isEqualTo(RazorpayWebhookService.ProcessingResult.IGNORED);
     }
 
     @Test
@@ -42,9 +55,9 @@ class RazorpayWebhookServiceTest {
 
         RazorpayWebhookService service = new RazorpayWebhookService(eventRepository, orderService, refundService);
 
-        assertThat(service.process("evt_1", "payment.captured", "pay_1", "order_1"))
+        assertThat(service.process("evt_1", "payment.captured", "pay_1", "order_1", 15000L))
                 .isEqualTo(RazorpayWebhookService.ProcessingResult.DUPLICATE);
-        verify(orderService, never()).markOrderPaidByRazorpayOrderId("order_1", "pay_1");
+        verify(orderService, never()).markOrderPaidByRazorpayOrderId("order_1", "pay_1", 15000L);
     }
 
     @Test
@@ -54,9 +67,9 @@ class RazorpayWebhookServiceTest {
 
         RazorpayWebhookService service = new RazorpayWebhookService(eventRepository, orderService, refundService);
 
-        assertThat(service.process("evt_2", "refund.created", null, null))
+        assertThat(service.process("evt_2", "refund.created", null, null, null))
                 .isEqualTo(RazorpayWebhookService.ProcessingResult.IGNORED);
-        verify(orderService, never()).markOrderPaidByRazorpayOrderId("order_1", "pay_1");
+        verify(orderService, never()).markOrderPaidByRazorpayOrderId("order_1", "pay_1", 15000L);
     }
 
     @Test

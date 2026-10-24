@@ -5,6 +5,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -22,6 +23,7 @@ import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -30,23 +32,33 @@ import java.util.Optional;
 public class RazorpayService {
     private static final Logger log = LoggerFactory.getLogger(RazorpayService.class);
     private static final String RAZORPAY_API_BASE = "https://api.razorpay.com/v1";
+    /** Razorpay's normal-refund idempotency header; the key is persisted per refund row. */
+    static final String REFUND_IDEMPOTENCY_HEADER = "X-Refund-Idempotency";
+    static final int REFUND_LOOKUP_PAGE_SIZE = 100;
+    /** Upper bound on refund-list pages scanned during reconciliation (2,000 refunds per payment). */
+    static final int REFUND_LOOKUP_MAX_PAGES = 20;
 
     private final String keyId;
     private final String keySecret;
     private final RestTemplate restTemplate;
+    private final String apiBase;
     private final ObjectMapper objectMapper;
     private final boolean enabled;
 
+    @Autowired
     public RazorpayService(RazorpayProperties razorpayProperties, Environment environment) {
+        this(razorpayProperties, environment, defaultRestTemplate(), RAZORPAY_API_BASE);
+    }
+
+    RazorpayService(RazorpayProperties razorpayProperties, Environment environment,
+                    RestTemplate restTemplate, String apiBase) {
         String configuredKey = razorpayProperties.getKey();
         String configuredSecret = razorpayProperties.getSecret();
         this.keyId = configuredKey == null ? "" : configuredKey.trim();
         this.keySecret = configuredSecret == null ? "" : configuredSecret.trim();
         this.enabled = isUsableCredential(this.keyId) && isUsableCredential(this.keySecret);
-        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
-        requestFactory.setConnectTimeout(Duration.ofSeconds(5));
-        requestFactory.setReadTimeout(Duration.ofSeconds(20));
-        this.restTemplate = new RestTemplate(requestFactory);
+        this.restTemplate = restTemplate;
+        this.apiBase = apiBase;
         this.objectMapper = new ObjectMapper();
 
         String[] activeProfiles = environment.getActiveProfiles();
@@ -56,6 +68,13 @@ public class RazorpayService {
                 maskKey(this.keyId),
                 StringUtils.hasText(this.keySecret),
                 this.enabled);
+    }
+
+    private static RestTemplate defaultRestTemplate() {
+        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+        requestFactory.setConnectTimeout(Duration.ofSeconds(5));
+        requestFactory.setReadTimeout(Duration.ofSeconds(20));
+        return new RestTemplate(requestFactory);
     }
 
     /**
@@ -118,16 +137,19 @@ public class RazorpayService {
         if (!enabled) {
             throw new RefundException("Razorpay is not configured; cannot refund payment " + paymentId, true, null);
         }
-        Map<String, Object> body = new HashMap<>();
+        // Razorpay requires the retried body to match the original, so the body is built deterministically.
+        Map<String, Object> body = new LinkedHashMap<>();
         body.put("amount", amountPaise);
         body.put("speed", "normal");
         body.put("notes", Map.of("refund_key", refundKey));
 
-        String url = RAZORPAY_API_BASE + "/payments/" + paymentId + "/refund";
+        String url = apiBase + "/payments/" + paymentId + "/refund";
         log.info("[Razorpay] Refunding payment — paymentId={} amountPaise={} refundKey={}", paymentId, amountPaise, refundKey);
         try {
             String payload = objectMapper.writeValueAsString(body);
-            ResponseEntity<String> resp = restTemplate.postForEntity(url, new HttpEntity<>(payload, jsonAuthHeaders()), String.class);
+            HttpHeaders headers = jsonAuthHeaders();
+            headers.set(REFUND_IDEMPOTENCY_HEADER, refundKey);
+            ResponseEntity<String> resp = restTemplate.postForEntity(url, new HttpEntity<>(payload, headers), String.class);
             if (!resp.getStatusCode().is2xxSuccessful() || resp.getBody() == null) {
                 throw new RefundException("Razorpay refund failed: status=" + resp.getStatusCode().value(), false, null);
             }
@@ -143,8 +165,12 @@ public class RazorpayService {
         } catch (RestClientResponseException ex) {
             int status = ex.getStatusCode().value();
             log.error("[Razorpay] Refund API error — httpStatus={} body={}", status, ex.getResponseBodyAsString());
-            // 4xx (except 408/429) means Razorpay rejected the request; nothing was refunded.
-            boolean definite = status >= 400 && status < 500 && status != 408 && status != 429;
+            // 4xx (except 408/409/429) means Razorpay rejected the request; nothing was refunded.
+            // 409 means the same idempotency key is still in progress or was already used, so the outcome is not known.
+            // The docs also show "already processed" for a reused key as a 400, so idempotency errors stay ambiguous.
+            boolean definite = status >= 400 && status < 500
+                    && status != 408 && status != 409 && status != 429
+                    && !isIdempotencyError(ex.getResponseBodyAsString());
             throw new RefundException("Razorpay refund failed: status=" + status, definite, ex);
         } catch (Exception e) {
             // Timeouts, connection resets and unparsable responses: the refund may or may not have been created.
@@ -154,13 +180,82 @@ public class RazorpayService {
 
     /**
      * Looks up a previously created refund by the refund_key stored in its notes.
-     * Used to reconcile refunds whose response was lost. Empty when no matching refund exists.
+     * Used to reconcile refunds whose response was lost. Empty only when every page was read and none matched.
+     * Pages are read until an empty page, because a short page could be a server-side cap. Any page failure,
+     * a malformed response, or exceeding the page cap throws, so the caller treats the outcome as unresolved.
      */
-    public Optional<String> findRefundIdByKey(String paymentId, String refundKey) {
+    public Optional<ProviderRefund> findRefundByKey(String paymentId, String refundKey) {
         if (!enabled) {
             throw new IllegalStateException("Razorpay is not configured; cannot look up refunds for " + paymentId);
         }
-        String url = RAZORPAY_API_BASE + "/payments/" + paymentId + "/refunds?count=100";
+        long skip = 0;
+        for (int page = 0; page < REFUND_LOOKUP_MAX_PAGES; page++) {
+            List<?> items = fetchRefundPage(paymentId, skip);
+            if (items.isEmpty()) {
+                return Optional.empty();
+            }
+            Optional<ProviderRefund> match = matchRefundInPage(items, refundKey);
+            if (match.isPresent()) {
+                return match;
+            }
+            skip += items.size();
+        }
+        throw new IllegalStateException("Razorpay refund lookup incomplete for payment " + paymentId
+                + ": more than " + (REFUND_LOOKUP_MAX_PAGES * REFUND_LOOKUP_PAGE_SIZE) + " refunds");
+    }
+
+    /** A refund found on Razorpay by its refund_key. {@code status} is Razorpay's value: pending, processed or failed. */
+    public record ProviderRefund(String id, String status) {}
+
+    /** Returns the refund id unless Razorpay reports it as failed. */
+    public Optional<String> findRefundIdByKey(String paymentId, String refundKey) {
+        return findRefundByKey(paymentId, refundKey)
+                .filter(refund -> !"failed".equals(refund.status()))
+                .map(ProviderRefund::id);
+    }
+
+    /** A single refund as Razorpay reports it. {@code refundKey} is the notes.refund_key stored at creation, if any. */
+    public record RefundDetail(String id, String paymentId, long amountPaise, String status, String refundKey) {}
+
+    /**
+     * Fetches one refund by id ({@code GET /payments/{payment_id}/refunds/{refund_id}}).
+     * Any failure throws a non-definite {@link RefundException}: a fetch error never proves a refund was rejected.
+     */
+    public RefundDetail fetchRefund(String paymentId, String refundId) {
+        if (!enabled) {
+            throw new RefundException("Razorpay is not configured; cannot fetch refund " + refundId, false, null);
+        }
+        String url = apiBase + "/payments/" + paymentId + "/refunds/" + refundId;
+        try {
+            ResponseEntity<String> resp = restTemplate.exchange(url, HttpMethod.GET,
+                    new HttpEntity<>(jsonAuthHeaders()), String.class);
+            if (!resp.getStatusCode().is2xxSuccessful() || resp.getBody() == null) {
+                throw new RefundException("Razorpay refund fetch failed: status=" + resp.getStatusCode().value(), false, null);
+            }
+            Map<String, Object> map = objectMapper.readValue(resp.getBody(), new TypeReference<>() {});
+            if (map.get("id") == null || map.get("payment_id") == null
+                    || !(map.get("amount") instanceof Number amount) || map.get("status") == null) {
+                throw new RefundException("Razorpay refund response is missing required fields", false, null);
+            }
+            String refundKey = map.get("notes") instanceof Map<?, ?> notes && notes.get("refund_key") != null
+                    ? notes.get("refund_key").toString() : null;
+            return new RefundDetail(map.get("id").toString(), map.get("payment_id").toString(),
+                    amount.longValue(), map.get("status").toString(), refundKey);
+        } catch (RefundException e) {
+            throw e;
+        } catch (RestClientResponseException ex) {
+            throw new RefundException("Razorpay refund fetch failed: status=" + ex.getStatusCode().value(), false, ex);
+        } catch (Exception e) {
+            throw new RefundException("Razorpay refund fetch failed: " + e.getMessage(), false, e);
+        }
+    }
+
+    private static boolean isIdempotencyError(String responseBody) {
+        return responseBody != null && responseBody.toLowerCase(java.util.Locale.ROOT).contains("idempotency");
+    }
+
+    private List<?> fetchRefundPage(String paymentId, long skip) {
+        String url = apiBase + "/payments/" + paymentId + "/refunds?count=" + REFUND_LOOKUP_PAGE_SIZE + "&skip=" + skip;
         try {
             ResponseEntity<String> resp = restTemplate.exchange(url, HttpMethod.GET,
                     new HttpEntity<>(jsonAuthHeaders()), String.class);
@@ -168,17 +263,10 @@ public class RazorpayService {
                 throw new IllegalStateException("Razorpay refund lookup failed: status=" + resp.getStatusCode().value());
             }
             Map<String, Object> map = objectMapper.readValue(resp.getBody(), new TypeReference<>() {});
-            Object items = map.get("items");
-            if (items instanceof List<?> list) {
-                for (Object item : list) {
-                    if (item instanceof Map<?, ?> refund && refund.get("notes") instanceof Map<?, ?> notes
-                            && refundKey.equals(notes.get("refund_key")) && refund.get("id") != null
-                            && !"failed".equals(refund.get("status"))) {
-                        return Optional.of(refund.get("id").toString());
-                    }
-                }
+            if (!(map.get("items") instanceof List<?> items)) {
+                throw new IllegalStateException("Razorpay refund lookup returned no items list");
             }
-            return Optional.empty();
+            return items;
         } catch (RestClientResponseException ex) {
             throw new IllegalStateException("Razorpay refund lookup failed: status=" + ex.getStatusCode().value(), ex);
         } catch (IllegalStateException e) {
@@ -186,6 +274,16 @@ public class RazorpayService {
         } catch (Exception e) {
             throw new IllegalStateException("Razorpay refund lookup failed: " + e.getMessage(), e);
         }
+    }
+
+    private static Optional<ProviderRefund> matchRefundInPage(List<?> items, String refundKey) {
+        for (Object item : items) {
+            if (item instanceof Map<?, ?> refund && refund.get("notes") instanceof Map<?, ?> notes
+                    && refundKey.equals(notes.get("refund_key")) && refund.get("id") != null) {
+                return Optional.of(new ProviderRefund(refund.get("id").toString(), String.valueOf(refund.get("status"))));
+            }
+        }
+        return Optional.empty();
     }
 
     private HttpHeaders jsonAuthHeaders() {
