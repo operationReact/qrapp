@@ -424,7 +424,7 @@ export const companyInfoPages = {
       {
         title: "Information collected",
         bullets: [
-          "Account information such as name and phone number.",
+          "Account information such as name, phone number, date of birth and any special dates you choose to add.",
           "Order details entered during checkout.",
           "Payment-related information handled through the existing payment flow.",
           "Device and browser information used by the application and its services.",
@@ -443,6 +443,60 @@ export const companyInfoPages = {
         bullets: [
           "Information may be shared with service providers only as needed to run the website and process orders.",
           "We keep data only as long as needed for the operational and legal purposes of the business.",
+        ],
+      },
+      {
+        title: "Deleting your account",
+        bullets: [
+          "You can permanently delete your account from the Profile page while signed in. You will be asked to confirm your password.",
+          "Deletion removes your name, phone-number sign-in, password, date of birth and special dates, and your sign-in tokens. Your phone number is also removed from your past order records.",
+          "Accounts with an order still in progress or a remaining wallet balance cannot be deleted until these are settled. Staff accounts must be handled by support.",
+          "Order, payment, wallet and tax (invoice) records are kept for the period required by law and are not erased on deletion. Invoices already issued keep the customer name and phone number printed on them for tax compliance.",
+        ],
+      },
+      {
+        title: "Contact",
+        details: [
+          { label: "Email", value: companyProfile.email, href: `mailto:${companyProfile.email}` },
+          { label: "Phone", value: companyProfile.phone, href: `tel:+91${companyProfile.phone}` },
+        ],
+      },
+    ],
+  },
+  accountDeletion: {
+    badge: "Legal",
+    title: "Delete Your Account",
+    description:
+      "How to permanently delete your BRO & BRO account and what happens to your data.",
+    sections: [
+      {
+        title: "How to delete your account",
+        bullets: [
+          "Open the BroBro Food Delivery app or the website and sign in.",
+          "Go to Profile, then choose Delete account.",
+          "Enter your password to confirm. Deletion is permanent and cannot be undone.",
+          "If you cannot sign in, contact us using the details below and we will help you.",
+        ],
+      },
+      {
+        title: "What is deleted",
+        bullets: [
+          "Your name, phone-number sign-in, password, date of birth and special dates, and your sign-in tokens.",
+          "Your phone number is removed from your past order records.",
+        ],
+      },
+      {
+        title: "What is kept",
+        bullets: [
+          "Order, payment, wallet and tax (invoice) records are kept for the period required by law and are not erased on deletion.",
+          "Invoices already issued keep the customer name and phone number printed on them for tax compliance.",
+        ],
+      },
+      {
+        title: "Accounts that cannot be deleted yet",
+        bullets: [
+          "Accounts with an order still in progress or a remaining wallet balance cannot be deleted until these are settled.",
+          "Staff accounts must be handled by support.",
         ],
       },
       {

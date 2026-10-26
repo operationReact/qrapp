@@ -34,6 +34,7 @@ import { Route as ChangePasswordRouteImport } from './routes/change-password'
 import { Route as CartRouteImport } from './routes/cart'
 import { Route as BusinessInformationRouteImport } from './routes/business-information'
 import { Route as AdminRouteImport } from './routes/admin'
+import { Route as AccountDeletionRouteImport } from './routes/account-deletion'
 import { Route as AboutUsRouteImport } from './routes/about-us'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as VendorIndexRouteImport } from './routes/vendor/index'
@@ -235,6 +236,11 @@ const BusinessInformationRoute = BusinessInformationRouteImport.update({
 const AdminRoute = AdminRouteImport.update({
   id: '/admin',
   path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AccountDeletionRoute = AccountDeletionRouteImport.update({
+  id: '/account-deletion',
+  path: '/account-deletion',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AboutUsRoute = AboutUsRouteImport.update({
@@ -645,6 +651,7 @@ const PartnerFinanceSettlementsSettlementIdRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about-us': typeof AboutUsRoute
+  '/account-deletion': typeof AccountDeletionRoute
   '/admin': typeof AdminRouteWithChildren
   '/business-information': typeof BusinessInformationRoute
   '/cart': typeof CartRoute
@@ -748,6 +755,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about-us': typeof AboutUsRoute
+  '/account-deletion': typeof AccountDeletionRoute
   '/business-information': typeof BusinessInformationRoute
   '/cart': typeof CartRoute
   '/change-password': typeof ChangePasswordRoute
@@ -849,6 +857,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/about-us': typeof AboutUsRoute
+  '/account-deletion': typeof AccountDeletionRoute
   '/admin': typeof AdminRouteWithChildren
   '/business-information': typeof BusinessInformationRoute
   '/cart': typeof CartRoute
@@ -954,6 +963,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/about-us'
+    | '/account-deletion'
     | '/admin'
     | '/business-information'
     | '/cart'
@@ -1057,6 +1067,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/about-us'
+    | '/account-deletion'
     | '/business-information'
     | '/cart'
     | '/change-password'
@@ -1157,6 +1168,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/about-us'
+    | '/account-deletion'
     | '/admin'
     | '/business-information'
     | '/cart'
@@ -1261,6 +1273,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutUsRoute: typeof AboutUsRoute
+  AccountDeletionRoute: typeof AccountDeletionRoute
   AdminRoute: typeof AdminRouteWithChildren
   BusinessInformationRoute: typeof BusinessInformationRoute
   CartRoute: typeof CartRoute
@@ -1467,6 +1480,13 @@ declare module '@tanstack/react-router' {
       path: '/admin'
       fullPath: '/admin'
       preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/account-deletion': {
+      id: '/account-deletion'
+      path: '/account-deletion'
+      fullPath: '/account-deletion'
+      preLoaderRoute: typeof AccountDeletionRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/about-us': {
@@ -2195,6 +2215,7 @@ const VendorRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutUsRoute: AboutUsRoute,
+  AccountDeletionRoute: AccountDeletionRoute,
   AdminRoute: AdminRouteWithChildren,
   BusinessInformationRoute: BusinessInformationRoute,
   CartRoute: CartRoute,

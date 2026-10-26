@@ -88,6 +88,11 @@ public class InvoicePdfRenderer {
             leftY = wrapped(content, "GSTIN: " + firstNonBlank(model.supplierGstin(), config.getGstin()),
                     42, leftY, 238, 8, false, Color.DARK_GRAY);
         }
+        if (Boolean.TRUE.equals(config.getShowFssai()) && config.getFssaiLicense() != null
+                && !config.getFssaiLicense().isBlank()) {
+            leftY = wrapped(content, "FSSAI: " + config.getFssaiLicense().trim(),
+                    42, leftY, 238, 8, false, Color.DARK_GRAY);
+        }
         rightY = wrapped(content, firstNonBlank(model.customerName(), "Customer"), 310, rightY, 243, 9, true, Color.BLACK);
         rightY = wrapped(content, "Mobile: " + firstNonBlank(model.customerPhone(), "-"), 310, rightY, 243, 8, false, Color.DARK_GRAY);
         rightY = wrapped(content, "Email: " + firstNonBlank(model.customerEmail(), "-"), 310, rightY, 243, 8, false, Color.DARK_GRAY);

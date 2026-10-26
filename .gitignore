@@ -28,3 +28,19 @@ hs_err_pid*
 replay_pid*
 local.properties
 android/local.properties
+
+# Android release signing and build outputs
+android/keystore.properties
+*.jks
+*.keystore
+android/app/build/
+android/build/
+android/.gradle/
+dist/android/
+!android/gradle/wrapper/gradle-wrapper.jar
+
+# Generated build output at repo root and release binaries
+/build/
+/dist/
+*.apk
+*.aab
