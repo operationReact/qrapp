@@ -106,6 +106,8 @@ class InvoiceConfigurationGlobalTest {
         menuItem.setName("Configured Biryani");
         when(menuRepository.findAllById(List.of(9L))).thenReturn(List.of(menuItem));
 
+        invoiceService = new InvoiceService(invoiceRepository, orderItemRepository, menuRepository, null,
+                configurationService, imageStorage, new InvoicePdfRenderer(imageStorage));
         byte[] pdf = invoiceService.renderPdf(invoice, new Order(), List.of(item));
         String text;
         try (PDDocument document = Loader.loadPDF(pdf)) {
@@ -117,6 +119,63 @@ class InvoiceConfigurationGlobalTest {
         org.junit.jupiter.api.Assertions.assertTrue(text.contains("FSSAI-123"));
         org.junit.jupiter.api.Assertions.assertTrue(text.contains("Configured footer"));
         org.junit.jupiter.api.Assertions.assertTrue(text.contains("Configured Biryani"));
+    }
+
+    @Test
+    void fssaiLicenseIsOmittedWhenDisabled() throws Exception {
+        String text = renderPartyText(InvoiceConfiguration.builder()
+                .businessName("Configured Bro Foods")
+                .fssaiLicense("FSSAI-123")
+                .showFssai(false)
+                .build());
+
+        org.junit.jupiter.api.Assertions.assertTrue(text.contains("Configured Bro Foods"));
+        org.junit.jupiter.api.Assertions.assertFalse(text.contains("FSSAI"));
+    }
+
+    @Test
+    void blankFssaiLicenseIsOmittedWithoutPlaceholder() throws Exception {
+        String text = renderPartyText(InvoiceConfiguration.builder()
+                .businessName("Configured Bro Foods")
+                .fssaiLicense("   ")
+                .showFssai(true)
+                .build());
+
+        org.junit.jupiter.api.Assertions.assertTrue(text.contains("Configured Bro Foods"));
+        org.junit.jupiter.api.Assertions.assertFalse(text.contains("FSSAI"));
+    }
+
+    private String renderPartyText(InvoiceConfiguration config) throws Exception {
+        when(configurationService.findGlobal()).thenReturn(config);
+        invoiceService = new InvoiceService(invoiceRepository, orderItemRepository, menuRepository, null,
+                configurationService, imageStorage, new InvoicePdfRenderer(imageStorage));
+        Invoice invoice = Invoice.builder()
+                .invoiceNumber("BB/26-27/000002")
+                .invoiceDate(java.time.LocalDate.of(2026, 10, 4))
+                .customerName("Customer")
+                .taxableAmount(new BigDecimal("100.00"))
+                .cgstAmount(new BigDecimal("2.50"))
+                .sgstAmount(new BigDecimal("2.50"))
+                .igstAmount(BigDecimal.ZERO)
+                .totalTax(new BigDecimal("5.00"))
+                .grandTotal(new BigDecimal("105.00"))
+                .paymentMethod("UPI")
+                .build();
+        OrderItem item = new OrderItem();
+        item.setItemId(9L);
+        item.setQuantity(1);
+        item.setGstRate(new BigDecimal("5.00"));
+        item.setTaxableAmount(new BigDecimal("100.00"));
+        item.setTotalCustomerPrice(new BigDecimal("105.00"));
+        MenuItem menuItem = new MenuItem();
+        menuItem.setId(9L);
+        menuItem.setName("Configured Biryani");
+        when(menuRepository.findAllById(List.of(9L))).thenReturn(List.of(menuItem));
+
+        byte[] pdf = invoiceService.renderPdf(invoice, new Order(), List.of(item));
+        try (PDDocument document = Loader.loadPDF(pdf)) {
+            return new PDFTextStripper().getText(document);
+        }
     }
 
     private static Order order(Long orderId, Long locationId) {

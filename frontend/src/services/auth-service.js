@@ -12,6 +12,9 @@ export const getMilestoneCoupons = () =>
 export const updateCurrentUser = (data) =>
   apiClient.put("/auth/me", data).then((r) => r.data);
 
+export const deleteCurrentUser = (password) =>
+  apiClient.delete("/auth/me", { data: { password } }).then((r) => r.data);
+
 export const registerUser = (data) =>
   apiClient.post("/auth/register", data).then((r) => r.data);
 

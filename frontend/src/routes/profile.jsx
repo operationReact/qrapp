@@ -3,7 +3,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Navbar from "@/components/shared/Navbar";
-import { updateCurrentUser } from "@/services/auth-service";
+import { updateCurrentUser, deleteCurrentUser } from "@/services/auth-service";
+import { getAccountDeletionErrorMessage } from "@/lib/accountDeletion";
 import { currentUserOptions } from "@/query/options/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -58,6 +59,27 @@ function ProfilePage() {
   });
 
   const [showPassword, setShowPassword] = useState(false);
+
+  const [showDeleteAccount, setShowDeleteAccount] = useState(false);
+  const [deletePassword, setDeletePassword] = useState("");
+  const [deleteConfirmed, setDeleteConfirmed] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
+
+  const deleteAccountMutation = useMutation({
+    mutationFn: () => deleteCurrentUser(deletePassword),
+    onSuccess: () => {
+      setUser(null);
+      queryClient.clear();
+      navigate({ to: "/" });
+    },
+    onError: (err) => setDeleteError(getAccountDeletionErrorMessage(err)),
+  });
+
+  const handleDeleteAccount = (event) => {
+    event.preventDefault();
+    setDeleteError("");
+    deleteAccountMutation.mutate();
+  };
   const [error, setError]     = useState("");
   const [success, setSuccess] = useState("");
   const locationComboboxAnchor = useComboboxAnchor();
@@ -477,6 +499,67 @@ function ProfilePage() {
           </section>
 
           {/* ── Quick links ── */}
+          <section className="rounded-xl bg-white border border-red-100 p-4 shadow-sm">
+            <h2 className="text-sm font-semibold text-red-700">Delete account</h2>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Permanently delete your account and personal details. Order, payment and tax records are kept as required by law.
+            </p>
+            {!showDeleteAccount ? (
+              <Button
+                type="button"
+                variant="outline"
+                className="mt-3 border-red-200 text-red-700 hover:bg-red-50"
+                onClick={() => setShowDeleteAccount(true)}
+              >
+                Delete my account
+              </Button>
+            ) : (
+              <form onSubmit={handleDeleteAccount} className="mt-3 space-y-3">
+                <div className="space-y-1.5">
+                  <label htmlFor="delete-account-password" className="text-sm font-medium">Confirm your password</label>
+                  <PasswordInput
+                    id="delete-account-password"
+                    value={deletePassword}
+                    onChange={(e) => setDeletePassword(e.target.value)}
+                    placeholder="Password"
+                    autoComplete="current-password"
+                  />
+                </div>
+                <label className="flex items-start gap-2 text-xs text-muted-foreground">
+                  <input
+                    type="checkbox"
+                    className="mt-0.5"
+                    checked={deleteConfirmed}
+                    onChange={(e) => setDeleteConfirmed(e.target.checked)}
+                  />
+                  I understand this cannot be undone and I will be signed out.
+                </label>
+                {deleteError && <p className="text-sm text-red-600">{deleteError}</p>}
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="submit"
+                    disabled={!deleteConfirmed || !deletePassword || deleteAccountMutation.isPending}
+                    className="bg-red-600 hover:bg-red-700 text-white"
+                  >
+                    {deleteAccountMutation.isPending ? "Deleting…" : "Permanently delete account"}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => {
+                      setShowDeleteAccount(false);
+                      setDeletePassword("");
+                      setDeleteConfirmed(false);
+                      setDeleteError("");
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </form>
+            )}
+          </section>
+
           <section className="rounded-xl bg-white border border-gray-100 shadow-sm overflow-hidden divide-y divide-gray-100">
             {quickLinks.map((quickLink) => {
               const QuickIcon = quickLink.icon;

@@ -146,6 +146,7 @@ public class UserService {
         }
         if (o.isEmpty()) return null;
         User u = o.get();
+        if (Boolean.FALSE.equals(u.getActive())) return null;
         if (!passwordEncoder.matches(password, u.getPassword())) return null;
         // generate simple token
         byte[] b = new byte[24];

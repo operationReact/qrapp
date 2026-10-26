@@ -27,6 +27,11 @@ public interface WhatsAppOtpRepository extends JpaRepository<WhatsAppOtp, Long> 
                          @Param("active") OtpStatus active, @Param("status") OtpStatus status,
                          @Param("now") Instant now);
 
+    @Modifying
+    @Transactional
+    @Query("DELETE FROM WhatsAppOtp o WHERE o.phoneNumber = :phone")
+    int deleteByPhoneNumber(@Param("phone") String phoneNumber);
+
     /** Clear registration default location for OTP records. */
     @Modifying
     @Query("UPDATE WhatsAppOtp o SET o.registrationDefaultLocationId = null WHERE o.registrationDefaultLocationId = :locationId")

@@ -1,6 +1,8 @@
 package com.broandbro.qrapp.controller;
 
+import com.broandbro.qrapp.dto.DeleteAccountRequest;
 import com.broandbro.qrapp.dto.RegisterRequest;
+import com.broandbro.qrapp.exception.AccountDeletionException;
 import com.broandbro.qrapp.dto.UpdateProfileRequest;
 import com.broandbro.qrapp.dto.UserResponse;
 import com.broandbro.qrapp.dto.UserLocationAccessResponse;
@@ -14,6 +16,7 @@ import com.broandbro.qrapp.dto.WhatsAppOtpVerifyRequest;
 import com.broandbro.qrapp.entity.User;
 import com.broandbro.qrapp.exception.OtpException;
 import com.broandbro.qrapp.exception.WhatsAppDeliveryException;
+import com.broandbro.qrapp.service.AccountDeletionService;
 import com.broandbro.qrapp.service.MilestoneCouponService;
 import com.broandbro.qrapp.service.UserService;
 import com.broandbro.qrapp.service.WhatsAppOtpService;
@@ -27,6 +30,7 @@ import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/auth")
@@ -38,6 +42,7 @@ public class UserAuthController {
     private final WhatsAppOtpService whatsAppOtpService;
     private final com.broandbro.qrapp.service.LocationAccessService locationAccessService;
     private final UserLocationAccessRepository userLocationAccessRepository;
+    private final AccountDeletionService accountDeletionService;
 
     private static final String GENERIC_RESET_MESSAGE =
             "If the account is eligible, a verification code has been sent to your WhatsApp.";
@@ -167,6 +172,20 @@ public class UserAuthController {
             return ResponseEntity.ok(userService.updateProfile(currentUser.getPhone(), req));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.badRequest().body(ex.getMessage());
+        }
+    }
+
+    @DeleteMapping("/me")
+    public ResponseEntity<?> deleteAccount(@Valid @RequestBody DeleteAccountRequest req, Authentication authentication) {
+        User currentUser = resolveCurrentUser(authentication);
+        if (currentUser == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        try {
+            accountDeletionService.deleteAccount(currentUser.getId(), req.getPassword());
+            return ResponseEntity.noContent().build();
+        } catch (AccountDeletionException ex) {
+            return ResponseEntity.status(ex.getStatus()).body(Map.of("error", ex.getCode()));
         }
     }
 

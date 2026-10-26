@@ -2,6 +2,22 @@ plugins {
     id "com.android.application"
 }
 
+def keystoreProperties = new Properties()
+def keystorePropertiesFile = rootProject.file("keystore.properties")
+if (keystorePropertiesFile.exists()) {
+    keystorePropertiesFile.withInputStream { keystoreProperties.load(it) }
+}
+
+def releaseSigningValue = { String key, String envKey ->
+    System.getenv(envKey) ?: keystoreProperties.getProperty(key)
+}
+def releaseStoreFile = releaseSigningValue("storeFile", "BROBRO_UPLOAD_STORE_FILE")
+def releaseSigningReady = releaseStoreFile != null &&
+        rootProject.file(releaseStoreFile).exists() &&
+        releaseSigningValue("storePassword", "BROBRO_UPLOAD_STORE_PASSWORD") != null &&
+        releaseSigningValue("keyAlias", "BROBRO_UPLOAD_KEY_ALIAS") != null &&
+        releaseSigningValue("keyPassword", "BROBRO_UPLOAD_KEY_PASSWORD") != null
+
 android {
     namespace "in.broandbro.app"
     compileSdk 36
@@ -10,8 +26,19 @@ android {
         applicationId "in.broandbro.app"
         minSdk 23
         targetSdk 36
-        versionCode 1
-        versionName "1.0.0"
+        versionCode Integer.parseInt(System.getenv("BROBRO_VERSION_CODE") ?: "1")
+        versionName System.getenv("BROBRO_VERSION_NAME") ?: "1.0.0"
+    }
+
+    signingConfigs {
+        release {
+            if (releaseSigningReady) {
+                storeFile rootProject.file(releaseStoreFile)
+                storePassword releaseSigningValue("storePassword", "BROBRO_UPLOAD_STORE_PASSWORD")
+                keyAlias releaseSigningValue("keyAlias", "BROBRO_UPLOAD_KEY_ALIAS")
+                keyPassword releaseSigningValue("keyPassword", "BROBRO_UPLOAD_KEY_PASSWORD")
+            }
+        }
     }
 
     buildTypes {
@@ -22,6 +49,9 @@ android {
             minifyEnabled false
             shrinkResources false
             proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
+            if (releaseSigningReady) {
+                signingConfig signingConfigs.release
+            }
         }
     }
 
@@ -38,6 +68,16 @@ android {
         resources {
             excludes += ["/META-INF/{AL2.0,LGPL2.1}"]
         }
+    }
+}
+
+gradle.taskGraph.whenReady { graph ->
+    def releaseArtifactTasks = graph.allTasks.findAll { it.name ==~ /(assemble|bundle|package)Release/ }
+    if (!releaseArtifactTasks.isEmpty() && !releaseSigningReady) {
+        throw new GradleException(
+            "Release signing is not configured. Create android/keystore.properties (see android/keystore.properties.example) " +
+            "or set BROBRO_UPLOAD_STORE_FILE, BROBRO_UPLOAD_STORE_PASSWORD, BROBRO_UPLOAD_KEY_ALIAS and BROBRO_UPLOAD_KEY_PASSWORD. " +
+            "Refusing to build an unsigned or debug-signed release artifact.")
     }
 }
 
