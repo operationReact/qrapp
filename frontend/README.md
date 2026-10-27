@@ -180,6 +180,8 @@ References: [Capacitor iOS](https://capacitorjs.com/docs/ios),
 - `npm audit`: **23 advisories (5 moderate, 16 high, 2 critical)**, identical to
   the unmodified lockfile baseline; no new advisory package was introduced.
   Existing dependency remediation remains separate release work.
+- Secret scan: passed. CodeQL JavaScript: no alerts. Swift CodeQL could not create
+  a database on this runner; native analysis is not claimed to have passed.
 - **Not run:** Xcode/SPM resolution, simulator/device build, signed archive,
   Organizer validation, native payment/upload/keyboard/offline end-to-end tests,
   TestFlight upload or App Store submission. These remain release gates.
