@@ -1,5 +1,7 @@
 .gradle
 .gitignore
+!/frontend/ios/.gitignore
+!/frontend/ios/App/CapApp-SPM/.gitignore
 
 # Compiled class file
 *.class

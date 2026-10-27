@@ -17,6 +17,7 @@ import {
   X,
 } from "lucide-react";
 import { baseURL } from "@/services";
+import { getNearbyPosition } from "@/lib/nearbyPosition";
 import { useAuth } from "@/context/AuthContext";
 import { publicLocationSearchOptions } from "@/context/LocationContext";
 import {
@@ -160,22 +161,22 @@ export default function LocationLandingPage({ locations = [], onSelect }) {
     if (next === "nearby") requestNearby();
   }
 
-  function requestNearby() {
+  async function requestNearby() {
     if (geo.status === "granted" || geo.status === "requesting"
       || geo.status === "denied" || geo.status === "unavailable") return;
-    if (typeof navigator === "undefined" || !navigator.geolocation) {
-      setGeo({ status: "unavailable", origin: null });
-      return;
-    }
     setGeo({ status: "requesting", origin: null });
-    navigator.geolocation.getCurrentPosition(
-      (position) => setGeo({
+    try {
+      const position = await getNearbyPosition({
+        enableHighAccuracy: false, timeout: 10000, maximumAge: 300000,
+      });
+      setGeo({
         status: "granted",
         origin: { lat: position.coords.latitude, lng: position.coords.longitude },
-      }),
-      (error) => setGeo({ status: error?.code === 1 ? "denied" : "unavailable", origin: null }),
-      { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 },
-    );
+      });
+    } catch (error) {
+      const denied = error?.code === 1 || error?.code === "OS-PLUG-GLOC-0003";
+      setGeo({ status: denied ? "denied" : "unavailable", origin: null });
+    }
   }
 
   function handleSelect(location) {
