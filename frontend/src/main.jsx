@@ -9,6 +9,8 @@ import "./styles/auth-login.css";
 import "./styles/partner-header-branding.css";
 import "./styles/partner-dashboard.css";
 import ErrorBoundary from './components/ErrorBoundary';
+import { Capacitor } from "@capacitor/core";
+import { keepNativeInternalLinkInApp } from "./lib/iosReadiness";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -23,8 +25,14 @@ const queryClient = new QueryClient({
 
 const rootEl = document.getElementById("root");
 
+if (Capacitor.isNativePlatform()) {
+  document.addEventListener("click", (event) => {
+    keepNativeInternalLinkInApp(event, window.location.href);
+  }, true);
+}
+
 function registerServiceWorker() {
-  if (!import.meta.env.PROD || !("serviceWorker" in navigator)) {
+  if (Capacitor.isNativePlatform() || !import.meta.env.PROD || !("serviceWorker" in navigator)) {
     return;
   }
 
