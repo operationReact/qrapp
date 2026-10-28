@@ -1,226 +1,187 @@
-# Bro & Bro Flutter Mobile Migration Plan
+# Bro & Bro Cross-Platform Flutter Migration Plan
 
 ## Baseline
 
 - Source branch: `main`
 - Feature branch: `feature/flutter-mobile-migration`
 - Baseline commit: `198ee6f9a729daf24e0b707a9fdc2ea6b4dbd8aa`
-- Existing customer web app: React 19 + Vite + TanStack Router/Query
-- Existing Android packaging: Trusted Web Activity (TWA) using `com.google.androidbrowserhelper.trusted.LauncherActivity`
+- Existing web/customer app: React 19 + Vite + TanStack Router/Query
+- Existing Android packaging: Trusted Web Activity (TWA)
 - Existing Android application ID / namespace: `in.broandbro.app`
-- Backend: Spring Boot 3.4.4, Java 17, Gradle, PostgreSQL/Flyway, Spring Security, JPA, existing backend tests
+- Backend: Spring Boot 3.4.4, Java 17, Gradle, PostgreSQL/Flyway, Spring Security, JPA
 
-## Objective
+## Product expectation
 
-Build a real Flutter customer application for Android and iOS while preserving the existing Spring Boot backend, business rules, web/admin/partner applications, and production behavior. The Flutter mobile app must not be a browser/TWA shell and therefore must not show the `broandbro.in` browser/domain bar.
+The migration is not Android-only. Bro & Bro must remain a complete cross-platform product with three supported client surfaces:
 
-## Non-goals
+1. Web: preserve the existing React website and improve its customer UI/UX without breaking admin/partner or existing web functionality.
+2. Android: replace the browser/TWA customer shell with a real Flutter Android application and preserve the existing Play Store identity where signing compatibility permits.
+3. iOS: ship the same Flutter customer experience as a native iOS application, using the same backend and business rules.
 
-- Do not rewrite the Spring Boot backend unless a mobile-specific API gap is proven.
-- Do not replace the existing React web/admin/partner portals.
-- Do not change production infrastructure during the migration.
-- Do not publish to Play Store/App Store until regression, device, security, and release gates pass.
+The Android and iOS customer apps should share one Flutter codebase. The React web application remains supported rather than being removed. The Spring Boot backend remains the source of truth for authentication, catalog, availability, pricing, orders, payments and business rules.
 
-## Migration strategy
+## UI/UX target
 
-Use an incremental strangler-style migration. The current app remains the behavior reference while Flutter is built alongside it. Reuse the same backend contracts and preserve the Android package/application identity where release/signing constraints allow.
+Enhance the customer experience rather than mechanically copying the current web UI. Preserve Bro & Bro branding while improving:
 
-## Phase 0 — Baseline and safety gates
+- mobile-first hierarchy and navigation;
+- polished home/category/menu/item cards;
+- consistent typography, spacing, iconography and imagery;
+- loading skeletons and meaningful empty/error/offline states;
+- cart and checkout clarity;
+- responsive web behavior;
+- Android/iOS safe areas, keyboard behavior and native navigation conventions;
+- accessibility, touch targets and contrast;
+- perceived performance through image caching, pagination/lazy loading and controlled animations.
 
-1. Record baseline branch/commit and existing release configuration.
-2. Inventory customer-facing routes, API calls, auth/session behavior, location handling, cart/order/payment flows, account deletion, deep links, PWA/TWA behavior, notifications, and analytics.
-3. Run all existing backend and frontend tests before Flutter implementation.
-4. Capture API contracts used by the customer web app.
-5. Define staging/test data and payment test-mode requirements.
-6. Add CI gates so Flutter changes cannot silently break backend/frontend builds.
+Functional parity takes priority over visual redesign: no feature may silently disappear during UI enhancement.
 
-Exit criteria:
-- Existing backend tests green.
-- Existing frontend lint/build/tests green.
-- No production deployment triggered by this branch.
-- Customer-critical flow inventory completed.
+## Architecture
+
+`backend/` remains the shared Spring Boot API/business layer.
+
+`frontend/` remains the React/Vite web application and must continue to build, test and deploy independently.
+
+`mobile/` will contain the Flutter application shared by Android and iOS.
+
+The existing root `android/` TWA project remains available as the release reference until the Flutter Android upgrade/signing path is verified. Do not delete it early.
+
+## Phase 0 — Baseline, inventory and regression safety
+
+- Inventory all customer-facing routes, API calls and user journeys in the React web app.
+- Inventory auth/session, location, catalog, search, item/addon, cart, pricing, coupon/referral, checkout, payment, order, invoice, profile, account-deletion, deep-link and notification behavior.
+- Run backend Gradle tests.
+- Run every existing frontend test, lint and production build.
+- Record current Android package/signing/TWA configuration.
+- Establish controlled dev/staging API and payment test-mode requirements.
+- Add CI gates that exercise backend, web and Flutter independently.
+
+Exit gate: existing web/backend baseline must be green before a migrated flow is considered complete.
 
 ## Phase 1 — Flutter foundation
 
-Create a new `mobile/` Flutter application with:
+Create `mobile/` with Android and iOS targets, environment configuration, routing, API client, typed models, secure session storage, state management, design tokens, reusable UI components and standard loading/error/offline/retry states.
 
-- Android + iOS targets.
-- Package/bundle identity aligned to `in.broandbro.app` after signing/release compatibility validation.
-- Environment configuration for dev/staging/prod API URLs.
-- Routing/navigation.
-- API client with timeouts, error mapping, auth interceptors, idempotency support where required, and structured logging without secrets.
-- Secure token/session storage.
-- Design tokens/theme mapped from the existing Bro & Bro experience.
-- Reusable loading, empty, error, offline, retry, and confirmation states.
-- Crash/error reporting abstraction.
+Use `in.broandbro.app` as the intended Android identity, subject to release-signing verification. Use the corresponding iOS bundle-ID strategy.
 
-Testing:
-- Dart unit tests for configuration and API/error handling.
-- Widget tests for app shell/navigation/common states.
-- Static analysis and formatting gates.
+Tests: format, static analysis, Dart unit tests, widget tests, navigation tests, Android compile and iOS simulator compile.
 
-## Phase 2 — Authentication, profile, and location
+## Phase 2 — Shared design system and web UI enhancement
 
-Migrate:
+Define reusable Bro & Bro design tokens for color, typography, radius, spacing, elevation, icon sizing and interaction states. Apply the same product language to Flutter and incrementally improve the React customer website without forcing identical platform layouts.
 
-- Login/authentication/session restore/logout.
-- User/profile flows.
-- Location discovery/selection and current location handling.
-- Permission denial and retry behavior.
-- Account deletion entry/flow.
-- Deep-link routing required by customer flows.
+Web-specific regression gates remain mandatory: existing routes, admin/partner access, responsive layouts and deployment behavior must not regress.
 
-Testing:
-- Unit tests for auth/session/location state.
-- Widget tests for success/error/expired-session/permission states.
-- Integration tests against staging API.
-- Android and iOS permission/device checks.
+## Phase 3 — Authentication, profile and location
 
-## Phase 3 — Discovery, home, menu, search, item details
+Implement Flutter login/session restore/logout, profile, account deletion, location discovery/selection, geolocation permission handling and required deep links. Preserve existing backend contracts wherever possible.
 
-Migrate:
+## Phase 4 — Home, discovery and menu
 
-- Customer home experience.
-- Location-aware content.
-- Categories/stalls/menu browsing.
-- Search/filtering.
-- Item details, availability, veg/non-veg display, addons/options, campaigns/combo presentation where exposed to customers.
-- Images and loading/caching behavior.
+Implement enhanced home, categories/stalls, search/filtering, menu browsing, item details, availability, veg/non-veg presentation, addons/options, campaigns/combos and image caching/loading.
 
-Testing:
-- Contract tests for menu/catalog responses.
-- Widget/golden tests for major customer screens.
-- Integration tests for location switching and availability changes.
+Add widget/golden tests and API-contract tests. Compare migrated behavior against the existing web reference.
 
-## Phase 4 — Cart and pricing correctness
+## Phase 5 — Cart and pricing
 
-Migrate:
+Implement cart persistence, quantity/addon changes, minimum-order rules, coupons/referrals/discounts, backend-authoritative taxes/fees/delivery totals, and stale-price/out-of-stock reconciliation.
 
-- Cart state and persistence.
-- Quantity/addon changes.
-- Minimum-order/rule validation.
-- Discounts/referrals/coupons where currently supported.
-- Taxes/fees/delivery calculations exactly as returned/validated by backend.
-- Out-of-stock/price-change reconciliation before checkout.
+Pricing correctness is a release blocker.
 
-Testing:
-- High-coverage unit tests for client-side cart state.
-- Backend remains source of truth for pricing/order validation.
-- Integration scenarios for stale price, unavailable item, invalid coupon, minimum-order failure, and cart recovery.
+## Phase 6 — Checkout, payments and orders
 
-## Phase 5 — Checkout, payments, orders
+Implement address/contact checkout, COD and supported online payment flows. Online payments remain in test mode until release approval. Handle payment success/failure/cancel/retry, idempotent order creation, network interruption, order history/details/status and invoice access.
 
-Migrate:
+Backend webhook/payment regression tests must remain green.
 
-- Address/contact/checkout flow.
-- COD and supported online payment methods.
-- Razorpay/payment-provider mobile integration only in test mode until release approval.
-- Payment success/failure/cancel/retry.
-- Idempotent order creation/reconciliation.
-- Order confirmation/history/detail/status.
-- Invoice access where available.
+## Phase 7 — Native capabilities
 
-Testing:
-- Mocked unit/widget payment tests.
-- Staging integration tests using payment test credentials only.
-- Duplicate callback/idempotency cases.
-- Network-loss during payment/order creation.
-- Backend webhook/regression suite must remain green.
+Implement and verify push notifications where required, Android app links, iOS universal links, geolocation, share/call/maps intents where applicable, app lifecycle/session restoration, offline/degraded-network handling, Android back behavior, iOS safe areas and keyboard/navigation conventions.
 
-## Phase 6 — Native mobile capabilities
+## Phase 8 — End-to-end regression
 
-Implement and validate:
+Automate the critical journeys against controlled staging/test data:
 
-- Push notifications if currently required.
-- App links/universal links.
-- Native share/call/maps intents where applicable.
-- Geolocation and permissions.
-- App lifecycle/session restoration.
-- Offline/degraded-network handling.
-- Android back navigation.
-- iOS safe areas/keyboard/navigation conventions.
+1. Fresh install/launch -> authentication/session creation.
+2. Location selection -> home -> category/menu -> item.
+3. Configurable item/addons -> cart -> totals.
+4. COD checkout -> exactly one order -> order detail/history.
+5. Online payment test-mode success -> exactly one order.
+6. Payment cancel/failure/network loss -> safe recovery and no duplicate order.
+7. Session expiry -> reauthentication and state recovery.
+8. Location switch -> correct catalog/cart behavior.
+9. Price/availability change during checkout -> backend validation displayed correctly.
+10. Invalid coupon/minimum-order failure -> correct UX.
+11. Offline/retry behavior on critical screens.
+12. Account deletion/privacy flow.
+13. Deep/app/universal link routing.
+14. Android upgrade from the currently published identity.
+15. iOS/TestFlight smoke journey.
+16. Responsive web smoke journey covering the equivalent browse/cart/checkout/order flows.
+17. Admin and partner web smoke checks to ensure customer UI work did not break those modules.
 
-## Phase 7 — End-to-end regression suite
+Run mobile E2E on representative Android/iOS profiles and at least one physical device per platform before production release.
 
-Automate critical customer journeys on staging/test data:
+## Phase 9 — CI/CD quality gates
 
-1. Fresh install -> launch -> login/session creation.
-2. Select location -> browse menu -> open item.
-3. Add configurable item -> cart -> validate totals.
-4. Checkout with COD -> order created -> order details/history.
-5. Checkout with online payment test mode -> success -> single order.
-6. Payment cancel/failure -> safe recovery without duplicate order.
-7. Logout -> login -> session restoration.
-8. Location switch -> catalog/cart behavior remains correct.
-9. Out-of-stock/price-change during checkout -> backend validation surfaced correctly.
-10. Invalid/expired auth -> reauthentication without corrupting state.
-11. Network interruption and retry on key screens.
-12. Account deletion/customer privacy flow.
-13. Deep link/app link routing.
-14. Android upgrade from existing Play Store identity once migration path is proven.
-15. iOS install/TestFlight smoke flow.
+Every migration PR should run, as applicable:
 
-Run E2E on representative Android and iOS device profiles and at least one physical device per platform before release.
+- backend Gradle tests;
+- existing frontend tests;
+- frontend lint;
+- frontend production build;
+- Flutter formatting;
+- Flutter static analysis;
+- Flutter unit/widget tests;
+- Android compilation;
+- iOS simulator compilation on macOS;
+- E2E/integration tests against controlled staging when available;
+- secret/dependency/security checks.
 
-## Phase 8 — CI/CD and quality gates
+Store-release workflows remain separate, manual/environment-protected and must never be triggered merely by feature-branch work.
 
-PR CI should include, as applicable:
+## Phase 10 — Release
 
-- Backend Gradle tests.
-- Frontend existing tests/lint/build.
-- Flutter `dart format --set-exit-if-changed`.
-- Flutter static analysis.
-- Flutter unit/widget tests.
-- Flutter Android debug/release-compilation gate without exposing signing secrets.
-- Flutter iOS simulator build on macOS CI.
-- E2E/integration suite against controlled staging when credentials/services are available.
-- Secret scanning and dependency/security checks.
+### Web
 
-Store-release workflows must be separate/manual and environment-protected.
+Deploy enhanced React customer UI only after web regression/E2E gates pass. Preserve admin/partner functionality and rollback capability.
 
-## Phase 9 — Release migration
+### Android
 
-Android:
+Verify the Flutter build can update the existing Play Store application using the same application ID/signing lineage. Test upgrade from the currently published TWA version before staged rollout. The final Flutter app must launch natively and must not expose the `broandbro.in` browser bar.
 
-- Validate whether the existing Play Store application can be upgraded using the same application ID and signing lineage.
-- Preserve `in.broandbro.app` if compatible.
-- Test upgrade from the currently published TWA version to Flutter, including local/session-state expectations.
-- Roll out through internal/closed testing before production staged rollout.
+### iOS
 
-Important: replacing TWA with Flutter removes the browser-hosted TWA architecture. The current Android manifest explicitly launches `com.google.androidbrowserhelper.trusted.LauncherActivity`; Flutter will instead launch a native Flutter activity.
-
-iOS:
-
-- Use the matching bundle identifier strategy.
-- Complete Apple Developer membership, App Store Connect app record, certificates/profiles/API-key setup.
-- Build/archive on macOS.
-- Upload to TestFlight and complete internal testing before App Store submission.
+Complete Apple Developer/App Store Connect/signing setup, archive on macOS, upload to TestFlight, execute internal testing, then prepare App Store submission.
 
 ## Regression policy
 
-No phase is considered complete merely because the Flutter screen renders. For each migrated flow:
+A phase is not complete because a screen renders. For every migrated or redesigned flow:
 
-- Compare behavior against the existing production/reference web flow.
-- Verify backend requests/responses and failure handling.
-- Add automated tests before marking the flow complete.
-- Keep existing backend/frontend regression tests green.
-- Do not change API contracts casually; prefer backward-compatible additions.
+- compare behavior with the existing working flow;
+- verify backend request/response and failure handling;
+- add automated tests;
+- keep backend and React web regression gates green;
+- maintain backward-compatible API contracts unless an explicit API change is justified;
+- validate Android and iOS behavior independently where platform behavior differs.
 
 ## Definition of done
 
-The Flutter migration is ready for production only when:
+The migration is production-ready only when:
 
-- Critical customer journeys pass E2E on Android and iOS.
-- Existing backend test suite passes.
-- Existing frontend regression suite/lint/build passes.
-- Flutter unit/widget/integration tests pass.
-- Android upgrade path/signing/package identity verified.
-- iOS signing/TestFlight verified.
-- Payment test-mode validation passes with no duplicate-order behavior.
-- Deep links, permissions, network recovery, session restoration, and account deletion are validated.
-- No high/critical security findings remain.
-- Production rollout has an explicit rollback/staged-release plan.
+- web, Android and iOS supported flows meet agreed functional parity;
+- enhanced UI passes responsive/accessibility/platform checks;
+- backend tests pass;
+- React tests/lint/build pass;
+- Flutter format/analyze/unit/widget/integration tests pass;
+- critical E2E journeys pass;
+- Android package/signing upgrade path is verified;
+- iOS signing/TestFlight is verified;
+- payment tests show no duplicate-order behavior;
+- deep links, permissions, session restoration, network recovery and account deletion are validated;
+- no high/critical security findings remain;
+- each production surface has a staged rollout/rollback strategy.
 
-## First implementation slice
+## Implementation order
 
-After the baseline regression run, implement only the Flutter foundation and authentication/location shell first. Do not start checkout/payment implementation until navigation, environment configuration, API/auth/session handling, and CI tests are stable.
+Start with Phase 0 and Phase 1. Build the Flutter foundation alongside the existing web app; do not replace or delete the current web/TWA implementation during early development. Once foundation and CI are stable, implement auth/location and then migrate customer journeys incrementally, adding tests with every slice.
