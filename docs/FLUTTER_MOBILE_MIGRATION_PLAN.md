@@ -5,183 +5,123 @@
 - Source branch: `main`
 - Feature branch: `feature/flutter-mobile-migration`
 - Baseline commit: `198ee6f9a729daf24e0b707a9fdc2ea6b4dbd8aa`
-- Existing web/customer app: React 19 + Vite + TanStack Router/Query
-- Existing Android packaging: Trusted Web Activity (TWA)
+- Existing customer reference: React/Vite web + Android TWA
 - Existing Android application ID / namespace: `in.broandbro.app`
 - Backend: Spring Boot 3.4.4, Java 17, Gradle, PostgreSQL/Flyway, Spring Security, JPA
+- Dual-design specification: PR #234 / `docs/design-system/dual-design-system-requirements.md`
 
-## Product expectation
+## Target product architecture
 
-The migration is not Android-only. Bro & Bro must remain a complete cross-platform product with three supported client surfaces:
+Bro & Bro customer experience is a production-grade Flutter product across Web + Android + iOS, backed by the existing Spring Boot APIs. The existing React/TWA implementation remains a functional and brand reference during migration; it is not the target customer architecture. Admin/partner behavior must remain supported and must not be casually rewritten outside agreed scope.
 
-1. Web: preserve the existing React website and improve its customer UI/UX without breaking admin/partner or existing web functionality.
-2. Android: replace the browser/TWA customer shell with a real Flutter Android application and preserve the existing Play Store identity where signing compatibility permits.
-3. iOS: ship the same Flutter customer experience as a native iOS application, using the same backend and business rules.
+Flutter must use responsive/adaptive composition rather than stretching a phone UI onto desktop. Platform-specific integrations are permitted where required while domain/business behavior remains shared.
 
-The Android and iOS customer apps should share one Flutter codebase. The React web application remains supported rather than being removed. The Spring Boot backend remains the source of truth for authentication, catalog, availability, pricing, orders, payments and business rules.
+## Mandatory dual-design architecture
 
-## UI/UX target
+Every customer-facing feature must support two first-class selectable experiences:
 
-Enhance the customer experience rather than mechanically copying the current web UI. Preserve Bro & Bro branding while improving:
+1. **Food Pop** — expressive, promotional, energetic composition and strong food-led calls to action.
+2. **Food Flow** — premium, clean commerce composition, compact discovery and low-friction ordering.
 
-- mobile-first hierarchy and navigation;
-- polished home/category/menu/item cards;
-- consistent typography, spacing, iconography and imagery;
-- loading skeletons and meaningful empty/error/offline states;
-- cart and checkout clarity;
-- responsive web behavior;
-- Android/iOS safe areas, keyboard behavior and native navigation conventions;
-- accessibility, touch targets and contrast;
-- perceived performance through image caching, pagination/lazy loading and controlled animations.
+These are not color themes. Both experiences share authentication, location, repositories, API clients, models, cart, checkout, payments, orders and all other domain/application state. Business logic must never be duplicated by design variant.
 
-Functional parity takes priority over visual redesign: no feature may silently disappear during UI enhancement.
+Implement a typed design variant, persisted preference repository, design controller/provider, adaptive shell, semantic component contracts and variant-specific renderers/compositions where needed. Switching variants must preserve URL/deep link, navigation stack, forms, authentication, selected location, cart/order/checkout state, permissions and ongoing actions.
 
-## Architecture
+## Mandatory brand-DNA contract
 
-`backend/` remains the shared Spring Boot API/business layer.
+Dual design does not authorize rebranding. Brand identity is immutable unless explicitly approved by the product owner.
 
-`frontend/` remains the React/Vite web application and must continue to build, test and deploy independently.
+Before visual implementation, audit production branding and approved assets: logo, wordmark, brand colors, typography, icon/illustration language, naming, tone and recognizable motifs. Approved assets are source of truth; never guess missing hex values or invent replacement branding.
 
-`mobile/` will contain the Flutter application shared by Android and iOS.
+Centralize **shared brand tokens separately from experience-specific semantic tokens**. Food Pop and Food Flow must retain the approved Bro & Bro logo/wordmark, palette, naming and signature brand cues. Distinguish variants through layout, hierarchy, spacing, component composition, density, elevation and motion rather than replacing the brand palette. Primary CTAs, active navigation, highlights and appropriate accents must remain recognizably brand-led with accessible contrast.
 
-The existing root `android/` TWA project remains available as the release reference until the Flutter Android upgrade/signing path is verified. Do not delete it early.
+Neumorphism is explicitly excluded.
 
-## Phase 0 — Baseline, inventory and regression safety
+Every implementation PR affecting UI must demonstrate brand-DNA compliance. Maintain a brand-consistency matrix for Food Pop and Food Flow across supported Web/desktop, Android and iOS, covering logo placement, palette, typography, iconography and accessibility. Conflicting or missing brand specifications must be flagged rather than guessed.
 
-- Inventory all customer-facing routes, API calls and user journeys in the React web app.
-- Inventory auth/session, location, catalog, search, item/addon, cart, pricing, coupon/referral, checkout, payment, order, invoice, profile, account-deletion, deep-link and notification behavior.
-- Run backend Gradle tests.
-- Run every existing frontend test, lint and production build.
-- Record current Android package/signing/TWA configuration.
-- Establish controlled dev/staging API and payment test-mode requirements.
-- Add CI gates that exercise backend, web and Flutter independently.
+## Feature coverage
 
-Exit gate: existing web/backend baseline must be green before a migrated flow is considered complete.
+Both variants must ultimately cover location selection, authentication/profile, food categories, stalls, discovery/search, menu, item customization/addons, cart, offers/coupons/referrals, checkout, payment, order tracking/history, invoices, Hall of Happiness, account deletion/privacy, deep links, notifications and relevant admin/partner experiences.
 
-## Phase 1 — Flutter foundation
+## Phase 0 — Audit and implementation inventory
 
-Create `mobile/` with Android and iOS targets, environment configuration, routing, API client, typed models, secure session storage, state management, design tokens, reusable UI components and standard loading/error/offline/retry states.
+- Audit actual repository architecture, customer routes/screens, APIs, auth/session, location, catalog, cart, checkout, payment, orders, invoices, profile, Hall of Happiness, admin/partner boundaries, deep links and notifications.
+- Audit existing production branding and approved assets before creating new UI tokens.
+- Audit React/Vite, Android TWA, draft iOS/Capacitor work, CI and tests. Do not assume a platform implementation exists without repository evidence.
+- Create `docs/design-system/implementation-inventory.md` with screen/role/platform matrix, current implementation, migration gaps and precise implementation order.
+- Establish current backend/frontend test/lint/build baseline and controlled dev/staging/payment-test requirements.
 
-Use `in.broandbro.app` as the intended Android identity, subject to release-signing verification. Use the corresponding iOS bundle-ID strategy.
+Exit gate: architecture, feature inventory and brand source-of-truth are documented sufficiently to implement without inventing product behavior or branding.
 
-Tests: format, static analysis, Dart unit tests, widget tests, navigation tests, Android compile and iOS simulator compile.
+## Phase 1 — Cross-platform and dual-design foundation
 
-## Phase 2 — Shared design system and web UI enhancement
+Create the Flutter customer foundation with Web + Android + iOS targets. Add environment configuration, routing, typed models, API/repository layer, session abstraction, state management and common loading/error/offline/retry behavior.
 
-Define reusable Bro & Bro design tokens for color, typography, radius, spacing, elevation, icon sizing and interaction states. Apply the same product language to Flutter and incrementally improve the React customer website without forcing identical platform layouts.
+Implement:
+- typed `DesignVariant` (`foodPop`, `foodFlow`) or equivalent;
+- persisted anonymous design preference and authenticated-preference reconciliation when backend support is available;
+- design controller independent of business/domain state;
+- shared immutable brand-token layer;
+- Food Pop and Food Flow semantic token/theme layers;
+- responsive breakpoints/layout primitives;
+- adaptive navigation/application shell;
+- accessible Appearance -> Experience selector with previews;
+- shared semantic component contracts with variant renderers where composition differs;
+- safe existing-user default without surprise automatic switching.
 
-Web-specific regression gates remain mandatory: existing routes, admin/partner access, responsive layouts and deployment behavior must not regress.
+Use `in.broandbro.app` as intended Android identity subject to signing verification, with corresponding iOS bundle-ID strategy.
 
-## Phase 3 — Authentication, profile and location
+Tests must cover preference persistence, startup restoration, switching without state loss, both variants, responsive web widths, navigation and foundational accessibility behavior. CI gates: format, static analysis, Dart unit/widget tests, Flutter web build, Android compile and iOS simulator compile on macOS.
 
-Implement Flutter login/session restore/logout, profile, account deletion, location discovery/selection, geolocation permission handling and required deep links. Preserve existing backend contracts wherever possible.
+## Phase 2 — Dual-design vertical slice
 
-## Phase 4 — Home, discovery and menu
+Build Food Pop and Food Flow for the primary home/discovery/navigation experience plus one complete ordering vertical slice. Both must be recognizably Bro & Bro while genuinely distinct in composition.
 
-Implement enhanced home, categories/stalls, search/filtering, menu browsing, item details, availability, veg/non-veg presentation, addons/options, campaigns/combos and image caching/loading.
+Validate mobile and desktop responsive behavior, keyboard/pointer/focus on web, Android/iOS safe areas, touch targets, reduced motion and screen-reader semantics. Add golden/visual regression coverage where practical and brand-consistency evidence for both variants.
 
-Add widget/golden tests and API-contract tests. Compare migrated behavior against the existing web reference.
+## Phase 3 — Full customer coverage
 
-## Phase 5 — Cart and pricing
+Extend both variants to all remaining customer flows and states, including loading, empty, error, offline and retry experiences. Preserve one shared domain/application layer. No feature is complete in only one design.
 
-Implement cart persistence, quantity/addon changes, minimum-order rules, coupons/referrals/discounts, backend-authoritative taxes/fees/delivery totals, and stale-price/out-of-stock reconciliation.
+Admin/partner coverage must follow the approved scope while preserving existing behavior and access controls.
 
-Pricing correctness is a release blocker.
+## Phase 4 — Quality gates and E2E
 
-## Phase 6 — Checkout, payments and orders
+Run unit, widget, integration, E2E, visual/golden and accessibility tests for both Food Pop and Food Flow. Include design switching mid-flow and verify no loss of auth/location/cart/checkout/order state.
 
-Implement address/contact checkout, COD and supported online payment flows. Online payments remain in test mode until release approval. Handle payment success/failure/cancel/retry, idempotent order creation, network interruption, order history/details/status and invoice access.
+Critical journeys include launch/auth/location -> discovery/menu -> customization -> cart -> checkout -> COD/online-payment test mode -> confirmation/history, plus payment failure/cancel/network loss, session expiry, location switching, stale price/availability, invalid coupon/minimum order, offline/retry, account deletion/privacy and deep/app/universal links.
 
-Backend webhook/payment regression tests must remain green.
+Capture representative visual evidence at 320/375/411/768/1024/1440px where applicable and maintain the brand-consistency matrix.
 
-## Phase 7 — Native capabilities
+## Phase 5 — Controlled rollout
 
-Implement and verify push notifications where required, Android app links, iOS universal links, geolocation, share/call/maps intents where applicable, app lifecycle/session restoration, offline/degraded-network handling, Android back behavior, iOS safe areas and keyboard/navigation conventions.
+Introduce controlled rollout/feature-flag strategy, explicit preview/selection behavior, metrics for design choice and regression monitoring, plus fallback/rollback. No production deployment, store publishing or paid resource provisioning without explicit approval.
 
-## Phase 8 — End-to-end regression
+## Regression and implementation policy
 
-Automate the critical journeys against controlled staging/test data:
-
-1. Fresh install/launch -> authentication/session creation.
-2. Location selection -> home -> category/menu -> item.
-3. Configurable item/addons -> cart -> totals.
-4. COD checkout -> exactly one order -> order detail/history.
-5. Online payment test-mode success -> exactly one order.
-6. Payment cancel/failure/network loss -> safe recovery and no duplicate order.
-7. Session expiry -> reauthentication and state recovery.
-8. Location switch -> correct catalog/cart behavior.
-9. Price/availability change during checkout -> backend validation displayed correctly.
-10. Invalid coupon/minimum-order failure -> correct UX.
-11. Offline/retry behavior on critical screens.
-12. Account deletion/privacy flow.
-13. Deep/app/universal link routing.
-14. Android upgrade from the currently published identity.
-15. iOS/TestFlight smoke journey.
-16. Responsive web smoke journey covering the equivalent browse/cart/checkout/order flows.
-17. Admin and partner web smoke checks to ensure customer UI work did not break those modules.
-
-Run mobile E2E on representative Android/iOS profiles and at least one physical device per platform before production release.
-
-## Phase 9 — CI/CD quality gates
-
-Every migration PR should run, as applicable:
-
-- backend Gradle tests;
-- existing frontend tests;
-- frontend lint;
-- frontend production build;
-- Flutter formatting;
-- Flutter static analysis;
-- Flutter unit/widget tests;
-- Android compilation;
-- iOS simulator compilation on macOS;
-- E2E/integration tests against controlled staging when available;
-- secret/dependency/security checks.
-
-Store-release workflows remain separate, manual/environment-protected and must never be triggered merely by feature-branch work.
-
-## Phase 10 — Release
-
-### Web
-
-Deploy enhanced React customer UI only after web regression/E2E gates pass. Preserve admin/partner functionality and rollback capability.
-
-### Android
-
-Verify the Flutter build can update the existing Play Store application using the same application ID/signing lineage. Test upgrade from the currently published TWA version before staged rollout. The final Flutter app must launch natively and must not expose the `broandbro.in` browser bar.
-
-### iOS
-
-Complete Apple Developer/App Store Connect/signing setup, archive on macOS, upload to TestFlight, execute internal testing, then prepare App Store submission.
-
-## Regression policy
-
-A phase is not complete because a screen renders. For every migrated or redesigned flow:
-
-- compare behavior with the existing working flow;
-- verify backend request/response and failure handling;
-- add automated tests;
-- keep backend and React web regression gates green;
-- maintain backward-compatible API contracts unless an explicit API change is justified;
-- validate Android and iOS behavior independently where platform behavior differs.
+- Existing backend remains authoritative for business rules and authorization.
+- API changes must be backward-compatible unless explicitly justified.
+- Preserve 3km delivery behavior, pricing/GST/invoices, location scoping, inventory and payment/order correctness.
+- Do not duplicate business logic by platform or design.
+- Do not hardcode arbitrary replacement palettes or unapproved brand assets.
+- Implement in small reviewable branches/PRs; resolve ordinary CI/merge conflicts independently.
+- Never conceal failing tests or assert implementation completion based on documentation alone.
+- Production/store release workflows remain separate and protected.
 
 ## Definition of done
 
-The migration is production-ready only when:
+A customer feature is complete only when:
+- it works in Food Pop and Food Flow on applicable Web, Android and iOS targets;
+- both designs preserve Bro & Bro brand DNA;
+- switching designs preserves shared application state and ongoing transactions;
+- responsive/adaptive, accessibility and platform behavior are validated;
+- automated tests for both designs pass;
+- backend/API behavior remains correct;
+- visual/brand evidence is available for important screens;
+- no high/critical security issues remain.
 
-- web, Android and iOS supported flows meet agreed functional parity;
-- enhanced UI passes responsive/accessibility/platform checks;
-- backend tests pass;
-- React tests/lint/build pass;
-- Flutter format/analyze/unit/widget/integration tests pass;
-- critical E2E journeys pass;
-- Android package/signing upgrade path is verified;
-- iOS signing/TestFlight is verified;
-- payment tests show no duplicate-order behavior;
-- deep links, permissions, session restoration, network recovery and account deletion are validated;
-- no high/critical security findings remain;
-- each production surface has a staged rollout/rollback strategy.
+The overall migration is production-ready only after Android signing/upgrade lineage, iOS signing/TestFlight, Flutter web deployment behavior, critical E2E, payments/no-duplicate-order behavior, deep links, permissions, session restoration, network recovery and rollout/rollback strategy are verified.
 
-## Implementation order
+## Immediate implementation order
 
-Start with Phase 0 and Phase 1. Build the Flutter foundation alongside the existing web app; do not replace or delete the current web/TWA implementation during early development. Once foundation and CI are stable, implement auth/location and then migrate customer journeys incrementally, adding tests with every slice.
+Proceed with **Phase 0 audit/inventory and Phase 1 foundation**. Brand-DNA discovery and shared brand-token extraction happen before visual token invention. Establish Food Pop/Food Flow as architectural primitives from the first Flutter screen; do not retrofit dual design later.
