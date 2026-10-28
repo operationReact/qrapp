@@ -83,25 +83,316 @@ No page may be marked complete only because the happy-path screen renders.
 
 ### Phase 0 — Full frontend inventory and dependency map
 
-Goal: establish the complete UI surface before broad implementation.
+Goal: establish the complete UI surface and dependency graph before broad implementation. Phase 0 changes documentation only. It must not alter runtime frontend behavior and must never touch backend code.
 
-Tasks:
-- enumerate all routes/pages from `frontend/src/routes`
-- enumerate reusable components from `frontend/src/components`
-- enumerate feature modules from `frontend/src/features`
-- map contexts, hooks, queries and services used by each visible surface
-- classify each file as presentation, shared UI, frontend behavior/state, service/integration, or infrastructure
-- identify customer/admin/partner/operational ownership
-- identify modal/drawer/sheet/dialog dependencies
-- identify global CSS and current brand tokens/assets
-- establish responsive baseline and existing test coverage
+#### Phase 0 low-level execution design
 
-Output:
-- route/page matrix
-- shared component matrix
-- dependency matrix
-- design coverage matrix
-- implementation order by dependency, not arbitrary file order
+##### 0.1 Route inventory — `frontend/src/routes`
+
+For every route file and nested route directory:
+- record exact repository path
+- derive actual URL/path from TanStack routing rather than guessing from filename
+- classify surface owner: public, authentication, customer, admin, partner, food-court/operations, or utility
+- record parent layout/shell and route guards
+- record direct component imports
+- record contexts/hooks/query/service dependencies
+- record redirects and navigation entry/exit points
+- record route params/search params used by presentation
+- record visible actions and existing interaction states
+- record responsive assumptions/classes present in the route
+- record whether the route is a wrapper/delegator or owns substantial UI
+- record existing tests that exercise the route or its behavior
+
+Known route families already requiring explicit enumeration include:
+- `(auth)` including login, register and forget-password
+- public/utility routes including root, about-us and account-deletion
+- `admin` and every nested admin route group
+- menu/catalog routes
+- growth/recommendation routes
+- operations/order routes
+- promotion/configuration routes
+- food-court route entry points
+- every additional route returned by the complete route-tree audit
+
+Deliverable: `Route Coverage Matrix` with one row per route file. No route may remain represented only by a high-level category.
+
+##### 0.2 Shared component inventory — `frontend/src/components`
+
+For every component file and nested component directory:
+- record exact path and exported component(s)
+- classify as primitive, composite, modal/dialog, drawer/sheet, card/list item, navigation, form/control, feedback/state, customer-specific, admin-specific, partner-specific, or shared
+- identify every known consumer before redesigning a shared component
+- record props that affect visual states
+- record callbacks/events whose semantics must remain untouched
+- record contexts/hooks/services read directly by the component
+- record conditional rendering branches
+- record loading/empty/error/disabled/selected/expanded states where present
+- record responsive behavior and fixed dimensions
+- record accessibility semantics already present or missing
+- record whether Food Pop/Food Flow can share structure or require separate composition wrappers
+
+Explicit customer/shared components already identified and requiring individual rows include:
+- `BuildYourOwnComboDrawer.jsx`
+- `CategoryDishCard.jsx`
+- `CategoryTabs.jsx`
+- `ComboProgressBanner.jsx`
+- `CombosDrawer.jsx`
+- `CompleteMealCard.jsx`
+- `ConfirmDialog.jsx`
+- `CountdownTimer.jsx`
+- `CustomerHallPhotoUpload.jsx`
+- `CustomerPreOrderDialog.jsx`
+- `ErrorBoundary.jsx`
+- `HallOfHappinessSection.jsx`
+- `LocationSelector.jsx`
+- `MenuItemActionButton.jsx`
+- `MenuItemCard.jsx`
+- `MenuItemEditModal.jsx`
+- `MenuItemTagInput.jsx`
+- `ModeSwitcher.jsx`
+- `OTPVerifyDialog.jsx`
+- `OffCanvasCart.jsx`
+- `OrderCard.jsx`
+- `OrderList.jsx`
+- `PartnerRouteGuard.jsx`
+- `PartyOrderBanner.jsx`
+- `PasswordResetForm.jsx`
+- `ProductDetailDialog.jsx`
+- `ProductModal.jsx`
+- `PromotionCard.jsx`
+- `PromotionDrawer.jsx`
+- `QuantitySelector.jsx`
+- `RecommendedBundleCard.jsx`
+- `RetailProductCard.jsx`
+- `RoleGuard.jsx`
+- `SectionLocationSelector.jsx`
+- `SegmentedFilter.jsx`
+- `StickyCartBar.jsx`
+- `Toast.jsx`
+- `UserPartyOrderCard.jsx`
+
+The nested `components/admin` tree must be recursively enumerated with the same detail; examples already observed include `AddonGroupsSection`, `AdminHeader`, `AdminMenuFilters`, `AdminMenuItem`, `AdminSidebar` and all additional files returned by the recursive tree.
+
+Deliverable: `Component Coverage Matrix` with one row per visual component file plus consumer/dependency mapping.
+
+##### 0.3 Feature-module inventory — `frontend/src/features`
+
+Each feature directory must be treated as a mini dependency graph, not a single page.
+
+For `features/food-court`, individually audit:
+- `FoodCourtDashboard.jsx`
+- `components/CoreSheets.jsx`
+- `components/FinanceScreens.jsx`
+- `components/FinanceSheets.jsx`
+- `components/ManageScreens.jsx`
+- `components/OpsScreens.jsx`
+- `components/OpsSheets.jsx`
+- `components/OverviewScreen.jsx`
+- `components/SheetHost.jsx`
+- `components/kit.jsx`
+- `components/shared.jsx`
+- `context.jsx`
+- `hooks.js`
+- `api.js`
+- `format.js`
+- `keys.js`
+
+Classification rule:
+- screen/sheet/kit/shared visual files: redesign candidates
+- context/hooks/api/keys/format behavior: dependency-only unless a presentation-safe import adaptation is unavoidable
+- never alter service/API semantics as part of the redesign
+
+Repeat the same recursive audit for any additional feature modules found in the repository.
+
+Deliverable: `Feature Dependency Matrix` linking feature screens to feature UI kit, state, hooks and API dependencies.
+
+##### 0.4 State/context protection map — `frontend/src/context`
+
+The following existing contexts must be explicitly mapped before any consuming UI is redesigned:
+- `AdminDashboardContext.jsx`
+- `AuthContext.jsx`
+- `CartContext.jsx`
+- `LocationContext.jsx`
+- `PartnerContext.jsx`
+- `PreferencesContext.jsx`
+
+For each context:
+- list provider location
+- list state exposed to UI
+- list mutations/actions exposed to UI
+- list persistence/storage behavior
+- list route/component consumers
+- mark semantics as PROTECTED
+- document which visual states depend on it
+
+Hard rule: redesign work must not duplicate, replace, reset or reinterpret these state contracts merely to support Food Pop/Food Flow.
+
+Deliverable: `Protected Frontend State Map`.
+
+##### 0.5 Hooks/query/services dependency map
+
+Recursively audit `frontend/src/hooks`, `frontend/src/query` and `frontend/src/services`.
+
+For every file:
+- classify as behavior/state/data/service/integration vs presentation helper
+- identify route/component consumers
+- record query keys/cache assumptions where relevant
+- record loading/error data exposed to UI
+- record mutations/actions triggered by UI
+- mark API/service contracts as PROTECTED
+- identify any visual helper that can safely move into the design system without changing behavior
+
+Hard rule: no API endpoint, payload, response mapping, payment/service behavior, query semantics or mutation semantics may be changed for the redesign.
+
+Deliverable: `UI-to-Behavior Dependency Matrix`.
+
+##### 0.6 Global style and brand audit
+
+Audit:
+- `frontend/src/index.css`
+- `frontend/src/styles/**`
+- `frontend/src/assets/**`
+- `frontend/src/content/**`
+- UI-relevant files under `frontend/src/lib/**`
+- root/app shell styling and any Tailwind/configured utility usage relevant to presentation
+
+Extract only repository-backed values for:
+- logo/wordmark assets
+- brand colors
+- typography/font families/weights
+- spacing patterns
+- radius patterns
+- shadows/elevation
+- icon treatment
+- imagery/illustration treatment
+- breakpoints/media queries
+- animation/motion conventions
+- z-index/overlay conventions
+- safe-area/mobile viewport handling
+
+Do not invent missing brand values. Missing or conflicting values become explicit audit findings.
+
+Deliverable: `Brand & Existing Style Baseline` and candidate mapping to shared brand tokens vs Food Pop/Food Flow semantic tokens.
+
+##### 0.7 Application bootstrap and shell audit
+
+Audit `main.jsx`, `router.jsx`, `__root.jsx`, route providers and global error handling.
+
+Document:
+- provider nesting/order
+- router creation and route-tree integration
+- global error boundary/handler behavior
+- global toast/overlay hosts
+- shell/header/footer/navigation ownership
+- authentication/location/preferences initialization dependencies
+- any PWA/TWA/browser-specific presentation behavior that affects UI
+
+Hard rule: experience switching must not reorder or recreate protected providers in a way that resets application state.
+
+Deliverable: `Application Shell Dependency Diagram`.
+
+##### 0.8 Interaction-overlay inventory
+
+Create an explicit list of every user-visible overlay independent of route coverage:
+- modal
+- dialog
+- drawer
+- off-canvas panel
+- bottom sheet/sheet
+- toast
+- confirmation prompt
+- OTP flow
+- edit modal
+- product detail
+- cart
+- promotion
+- combo builder
+- preorder
+- Hall of Happiness upload
+- admin edit/configuration overlays
+- food-court sheets
+
+For each overlay record:
+- opener(s)
+- close/dismiss behavior
+- focus/keyboard behavior
+- state owner
+- destructive/confirm actions
+- mobile vs desktop presentation
+- stacking/z-index dependencies
+
+Deliverable: `Overlay & Interaction Matrix`.
+
+##### 0.9 Responsive baseline inventory
+
+For every major route family and shared composite component, capture current behavior at:
+- 320px
+- 375px
+- 411px
+- 768px
+- 1024px
+- 1440px
+
+Record:
+- navigation form
+- columns/grid/list density
+- sticky/fixed elements
+- overflow behavior
+- modal/drawer behavior
+- image sizing/aspect ratios
+- touch target concerns
+- desktop-specific composition
+- mobile-specific composition
+- any existing breakpoints that must be preserved or intentionally redesigned
+
+Deliverable: `Responsive Baseline Matrix`.
+
+##### 0.10 Existing frontend test/build coverage map
+
+Audit `frontend/package.json`, frontend test files and CI workflows relevant to frontend.
+
+For each test/check:
+- record command
+- record surfaces/behavior protected
+- identify whether it is unit, integration, presentation, accessibility, build, lint or regression coverage
+- map it to affected routes/components
+- identify critical UI flows with no current automated protection
+
+No test may be weakened/deleted merely because a redesign makes it inconvenient. Behavior tests are non-regression gates.
+
+Deliverable: `Frontend Regression Gate Matrix`.
+
+##### 0.11 Dependency-based implementation ordering
+
+After 0.1–0.10, calculate implementation order using these rules:
+1. shared brand/design primitives before consumers
+2. shell/navigation before route compositions that depend on them
+3. high-fan-out shared components before duplicate page-level styling
+4. protected state/service dependencies are never redesigned
+5. overlays are redesigned alongside the first primary flow that exercises them, then regression-tested across other consumers
+6. admin shared primitives before admin route families
+7. feature-local kits before feature-local screens
+8. low-fan-out orphan/special-case surfaces after their shared dependencies
+9. gap-closure phase must compare against the inventory, not memory
+
+Deliverable: final dependency-aware work breakdown used to refine Phases 1–12.
+
+##### 0.12 Phase 0 completion gate
+
+Phase 0 reaches VERIFIED only when:
+- every route file has a coverage row
+- every visual component file has a coverage row
+- every feature screen/sheet has a coverage row
+- every context/hook/query/service dependency used by visible UI is mapped
+- every overlay is mapped
+- brand/style baseline is documented from repository evidence
+- responsive baseline is captured for all major surface families
+- frontend regression gates are mapped
+- each surface is assigned to exactly one primary implementation phase
+- cross-phase shared dependencies are explicitly listed
+- zero backend files changed
+
+Phase 0 implementation status at this refinement step: `IN_PROGRESS`.
 
 ### Phase 1 — Design foundation and shared primitives
 
@@ -122,6 +413,8 @@ Rules:
 - no service/API changes
 - no backend changes
 
+Low-level design: TO BE REFINED AFTER PHASE 0 INVENTORY EVIDENCE IS COMPLETE.
+
 ### Phase 2 — Global shell, authentication and public utility pages
 
 Scope determined by repository inventory, including existing surfaces such as:
@@ -138,6 +431,8 @@ Acceptance:
 - both visual experiences
 - mobile/tablet/desktop responsiveness
 - same existing behavior and validation
+
+Low-level design: TO BE REFINED FROM PHASE 0 ROUTE/COMPONENT DEPENDENCY MAP.
 
 ### Phase 3 — Customer discovery and menu experience
 
@@ -156,6 +451,8 @@ Scope based strictly on existing repository functionality:
 
 Representative existing shared components include `CategoryTabs`, `MenuItemCard`, `RetailProductCard`, `ProductDetailDialog`, `PromotionCard`, `PromotionDrawer`, `QuantitySelector`, `RecommendedBundleCard`, `CompleteMealCard`, `CombosDrawer`, `BuildYourOwnComboDrawer`, and `StickyCartBar`.
 
+Low-level design: TO BE REFINED FROM PHASE 0 CUSTOMER SURFACE MATRIX.
+
 ### Phase 4 — Cart and customer transaction presentation
 
 Scope:
@@ -168,6 +465,8 @@ Scope:
 
 Hard rule:
 - calculations, business rules and service interactions remain unchanged.
+
+Low-level design: TO BE REFINED FROM PHASE 0 TRANSACTION DEPENDENCY MAP.
 
 ### Phase 5 — Orders and customer secondary flows
 
@@ -182,6 +481,8 @@ Scope from current repository, including where present:
 
 Representative shared components already identified include `OrderCard`, `OrderList`, `CustomerPreOrderDialog`, `PartyOrderBanner`, `UserPartyOrderCard`, `HallOfHappinessSection`, `CustomerHallPhotoUpload`, and `CountdownTimer`.
 
+Low-level design: TO BE REFINED FROM PHASE 0 SECONDARY-FLOW MATRIX.
+
 ### Phase 6 — Admin shell and shared admin design system
 
 Goal: redesign admin presentation consistently without changing admin behavior.
@@ -194,6 +495,8 @@ Scope:
 - location/section selectors
 - role-sensitive visual states
 - shared admin primitives first, before individual admin pages
+
+Low-level design: TO BE REFINED AFTER RECURSIVE `components/admin` AND ADMIN ROUTE AUDIT.
 
 ### Phase 7 — Admin menu, catalog and growth surfaces
 
@@ -213,6 +516,8 @@ Repository-backed scope includes existing routes such as:
 - cart rules
 - coupons and related promotion/configuration surfaces discovered in inventory
 
+Low-level design: TO BE REFINED FROM PHASE 0 ADMIN MENU/GROWTH DEPENDENCY MAP.
+
 ### Phase 8 — Admin order and operations surfaces
 
 Repository-backed scope includes existing routes such as:
@@ -226,6 +531,8 @@ Repository-backed scope includes existing routes such as:
 - refunds
 - milestones
 - other operations/order routes found in the complete route inventory
+
+Low-level design: TO BE REFINED FROM PHASE 0 ADMIN OPERATIONS DEPENDENCY MAP.
 
 ### Phase 9 — Food-court feature module
 
@@ -246,6 +553,8 @@ Scope:
 Rule:
 - API/hooks/context behavior remains untouched unless a presentation-only import adaptation is required.
 
+Low-level design: TO BE REFINED FROM PHASE 0 FEATURE DEPENDENCY MATRIX.
+
 ### Phase 10 — Remaining route/component coverage
 
 Goal: close every inventory gap not covered by Phases 2–9.
@@ -255,6 +564,8 @@ Tasks:
 - compare component matrix against completed implementation
 - address orphan pages, dialogs, modals, sheets, special states and role-specific surfaces
 - verify no existing visible route or reusable UI component is unintentionally left on an incompatible legacy design
+
+Low-level design: GENERATED FROM THE PHASE 0 GAP REGISTER AND UPDATED THROUGHOUT IMPLEMENTATION.
 
 ### Phase 11 — Responsive, accessibility and visual-regression hardening
 
@@ -279,6 +590,8 @@ Verify:
 - modal/drawer/sheet behavior
 - desktop composition vs mobile composition
 
+Low-level design: TO BE REFINED USING PHASE 0 RESPONSIVE BASELINE + PER-PHASE FINDINGS.
+
 ### Phase 12 — Final non-regression and completion audit
 
 Before declaring UI migration complete:
@@ -292,6 +605,8 @@ Before declaring UI migration complete:
 - no dead navigation/actions introduced
 - no unsupported functionality invented
 - documentation and screenshots/evidence updated
+
+Low-level design: TO BE REFINED AS A FINAL CHECKLIST FROM ALL VERIFIED COVERAGE MATRICES.
 
 ## 7. Coverage tracking matrix
 
