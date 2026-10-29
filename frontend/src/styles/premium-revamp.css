@@ -1,0 +1,197 @@
+/* Bro & Bro premium customer experience foundation.
+ * Presentation only: no route, state, service, payload, or business-logic changes.
+ */
+
+:root {
+  --bro-ink: #211916;
+  --bro-ink-soft: #746863;
+  --bro-canvas: #fffaf6;
+  --bro-canvas-deep: #f7eee8;
+  --bro-card: rgba(255, 255, 255, 0.94);
+  --bro-red: #ef3827;
+  --bro-red-deep: #961c12;
+  --bro-oxblood: #3a0c08;
+  --bro-amber: #ffb45b;
+  --bro-green: #198754;
+  --bro-border: rgba(75, 45, 35, 0.10);
+  --bro-shadow-sm: 0 10px 30px rgba(63, 31, 21, 0.08);
+  --bro-shadow-md: 0 20px 55px rgba(63, 31, 21, 0.12);
+  --bro-shadow-lg: 0 28px 80px rgba(40, 12, 8, 0.18);
+  --bro-radius-card: 24px;
+  --bro-radius-control: 18px;
+}
+
+.page-shell:has(.home-controls) {
+  min-height: 100dvh;
+  color: var(--bro-ink);
+  background:
+    radial-gradient(circle at 10% -10%, rgba(239, 56, 39, 0.08), transparent 26rem),
+    radial-gradient(circle at 90% 8%, rgba(255, 180, 91, 0.10), transparent 28rem),
+    linear-gradient(180deg, #fffaf7 0%, #fffdfb 42%, #f8f0ea 100%);
+}
+
+.page-shell:has(.home-controls) .container-premium {
+  position: relative;
+}
+
+.page-shell:has(.home-controls) .home-controls {
+  margin-top: -4px;
+}
+
+.page-shell:has(.home-controls) main.container-premium > .page-stack {
+  gap: 18px !important;
+}
+
+.page-shell:has(.home-controls) main section {
+  position: relative;
+}
+
+.page-shell:has(.home-controls) main section > div:first-child h2 {
+  color: var(--bro-ink);
+  letter-spacing: -0.025em;
+}
+
+.page-shell:has(.home-controls) main section > div:first-child > div > span {
+  color: var(--bro-ink-soft);
+}
+
+.page-shell:has(.home-controls) main section a[href^="/categories/"] {
+  border-radius: 999px;
+  padding: 7px 10px;
+  transition: background-color 160ms ease, transform 160ms ease;
+}
+
+.page-shell:has(.home-controls) main section a[href^="/categories/"]:active {
+  transform: scale(0.97);
+}
+
+.page-shell:has(.home-controls) .embla__slide > * {
+  transition: transform 180ms ease, filter 180ms ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .page-shell:has(.home-controls) .embla__slide > *:hover {
+    transform: translateY(-3px);
+    filter: saturate(1.03);
+  }
+}
+
+.page-shell:has(.home-controls) [data-slot="empty"],
+.page-shell:has(.home-controls) .rounded-2xl.bg-white {
+  border: 1px solid var(--bro-border);
+  box-shadow: var(--bro-shadow-sm);
+}
+
+/* Location entry — keep existing discovery behavior and give the surface a
+   richer premium treatment without changing the component contract. */
+.loc-landing {
+  color: var(--bro-ink);
+  background:
+    radial-gradient(circle at 18% 4%, rgba(255, 181, 91, 0.12), transparent 30rem),
+    radial-gradient(circle at 88% 0%, rgba(239, 56, 39, 0.10), transparent 28rem),
+    var(--bro-canvas);
+}
+
+.loc-landing .loc-header {
+  background: rgba(255, 250, 246, 0.82);
+  border-bottom-color: rgba(78, 43, 31, 0.08);
+  backdrop-filter: blur(18px) saturate(1.2);
+  -webkit-backdrop-filter: blur(18px) saturate(1.2);
+}
+
+.loc-landing .loc-brand img {
+  filter: drop-shadow(0 6px 18px rgba(77, 24, 14, 0.16));
+}
+
+.loc-landing .loc-hero {
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 78% 28%, rgba(255, 110, 68, 0.42), transparent 25rem),
+    radial-gradient(circle at 18% 15%, rgba(255, 189, 89, 0.18), transparent 23rem),
+    linear-gradient(135deg, #2a0907 0%, #74150e 44%, #e63422 100%);
+}
+
+.loc-landing .loc-hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(115deg, rgba(255, 255, 255, 0.09), transparent 24%, transparent 70%, rgba(255, 201, 150, 0.12));
+  mix-blend-mode: screen;
+}
+
+.loc-landing .loc-eyebrow,
+.loc-landing .loc-title,
+.loc-landing .loc-lede {
+  text-shadow: 0 12px 35px rgba(36, 6, 3, 0.26);
+}
+
+.loc-landing .loc-art-frame {
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  box-shadow: 0 35px 90px rgba(24, 4, 2, 0.34);
+}
+
+.loc-landing .loc-search {
+  border: 1px solid rgba(82, 43, 30, 0.10);
+  background: rgba(255, 255, 255, 0.90);
+  box-shadow: var(--bro-shadow-md);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.loc-landing .loc-search:focus-within {
+  border-color: rgba(239, 56, 39, 0.42);
+  box-shadow: 0 0 0 4px rgba(239, 56, 39, 0.08), var(--bro-shadow-md);
+}
+
+.loc-landing .loc-filter {
+  border-color: rgba(82, 43, 30, 0.10);
+  background: rgba(255, 255, 255, 0.72);
+  transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease;
+}
+
+.loc-landing .loc-filter.is-active {
+  color: white;
+  border-color: transparent;
+  background: linear-gradient(135deg, var(--bro-red-deep), var(--bro-red));
+  box-shadow: 0 10px 25px rgba(190, 37, 24, 0.22);
+}
+
+.loc-landing .loc-filter:active {
+  transform: scale(0.97);
+}
+
+.loc-landing .loc-card,
+.loc-landing .loc-location-card {
+  border-color: var(--bro-border);
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: var(--bro-shadow-sm);
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .loc-landing .loc-card:hover,
+  .loc-landing .loc-location-card:hover {
+    transform: translateY(-4px);
+    border-color: rgba(239, 56, 39, 0.20);
+    box-shadow: var(--bro-shadow-md);
+  }
+}
+
+/* Motion contract: quick, premium, purposeful. */
+.page-shell:has(.home-controls) button,
+.page-shell:has(.home-controls) a,
+.loc-landing button,
+.loc-landing a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-shell:has(.home-controls) *,
+  .loc-landing * {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
