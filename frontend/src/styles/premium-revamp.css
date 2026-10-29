@@ -21,7 +21,7 @@
   --bro-radius-control: 18px;
 }
 
-.premium-home-v3 {
+.page-shell:has(.home-controls) {
   min-height: 100dvh;
   color: var(--bro-ink);
   background:
@@ -30,54 +30,54 @@
     linear-gradient(180deg, #fffaf7 0%, #fffdfb 42%, #f8f0ea 100%);
 }
 
-.premium-home-v3 .container-premium {
+.page-shell:has(.home-controls) .container-premium {
   position: relative;
 }
 
-.premium-home-v3 .home-controls {
+.page-shell:has(.home-controls) .home-controls {
   margin-top: -4px;
 }
 
-.premium-home-v3 main.container-premium > .page-stack {
+.page-shell:has(.home-controls) main.container-premium > .page-stack {
   gap: 18px !important;
 }
 
-.premium-home-v3 main section {
+.page-shell:has(.home-controls) main section {
   position: relative;
 }
 
-.premium-home-v3 main section > div:first-child h2 {
+.page-shell:has(.home-controls) main section > div:first-child h2 {
   color: var(--bro-ink);
   letter-spacing: -0.025em;
 }
 
-.premium-home-v3 main section > div:first-child > div > span {
+.page-shell:has(.home-controls) main section > div:first-child > div > span {
   color: var(--bro-ink-soft);
 }
 
-.premium-home-v3 main section a[href^="/categories/"] {
+.page-shell:has(.home-controls) main section a[href^="/categories/"] {
   border-radius: 999px;
   padding: 7px 10px;
   transition: background-color 160ms ease, transform 160ms ease;
 }
 
-.premium-home-v3 main section a[href^="/categories/"]:active {
+.page-shell:has(.home-controls) main section a[href^="/categories/"]:active {
   transform: scale(0.97);
 }
 
-.premium-home-v3 .embla__slide > * {
+.page-shell:has(.home-controls) .embla__slide > * {
   transition: transform 180ms ease, filter 180ms ease;
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .premium-home-v3 .embla__slide > *:hover {
+  .page-shell:has(.home-controls) .embla__slide > *:hover {
     transform: translateY(-3px);
     filter: saturate(1.03);
   }
 }
 
-.premium-home-v3 [data-slot="empty"],
-.premium-home-v3 .rounded-2xl.bg-white {
+.page-shell:has(.home-controls) [data-slot="empty"],
+.page-shell:has(.home-controls) .rounded-2xl.bg-white {
   border: 1px solid var(--bro-border);
   box-shadow: var(--bro-shadow-sm);
 }
@@ -179,15 +179,15 @@
 }
 
 /* Motion contract: quick, premium, purposeful. */
-.premium-home-v3 button,
-.premium-home-v3 a,
+.page-shell:has(.home-controls) button,
+.page-shell:has(.home-controls) a,
 .loc-landing button,
 .loc-landing a {
   -webkit-tap-highlight-color: transparent;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .premium-home-v3 *,
+  .page-shell:has(.home-controls) *,
   .loc-landing * {
     scroll-behavior: auto !important;
     animation-duration: 0.01ms !important;
