@@ -1,0 +1,68 @@
+/* iOS App Store compliance hardening.
+ * This layer changes presentation/hit areas only; it does not alter business logic.
+ */
+
+html.capacitor-ios {
+  -webkit-text-size-adjust: 100%;
+  overscroll-behavior-y: none;
+}
+
+html.capacitor-ios body {
+  min-height: 100dvh;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+}
+
+/* Apple recommends comfortable 44pt touch targets. Preserve compact visuals,
+ * but make the interactive region large enough on touch/iOS surfaces.
+ */
+@media (pointer: coarse) {
+  html.capacitor-ios :where(
+    button,
+    [role="button"],
+    a[data-slot="button"],
+    [data-slot="button"],
+    input[type="button"],
+    input[type="submit"],
+    input[type="reset"]
+  ) {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  html.capacitor-ios :where(
+    input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+    select,
+    textarea
+  ) {
+    min-height: 44px;
+    font-size: max(16px, 1em);
+  }
+}
+
+/* Prevent fixed bottom navigation/actions from colliding with the home indicator. */
+html.capacitor-ios .ios-safe-bottom {
+  padding-bottom: max(12px, env(safe-area-inset-bottom, 0px));
+}
+
+html.capacitor-ios .ios-safe-top {
+  padding-top: max(8px, env(safe-area-inset-top, 0px));
+}
+
+/* Keep focus visible for keyboard/switch-control users. */
+html.capacitor-ios :focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.capacitor-ios *,
+  html.capacitor-ios *::before,
+  html.capacitor-ios *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
