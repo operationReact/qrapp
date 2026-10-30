@@ -9,15 +9,13 @@ The React/Vite frontend is packaged for iOS with Capacitor. The Android TWA rema
 - Web build directory: `frontend/dist`
 - Capacitor iOS runtime: `@capacitor/core`, `@capacitor/ios`, and `@capacitor/cli` 8.6.0
 - iOS simulator build validation in GitHub Actions
-- Existing web UI uses `viewport-fit=cover` and safe-area insets in the primary mobile shells
-- Native-iOS presentation class (`capacitor-ios`) for targeted App Store UI hardening
-- 44pt minimum interactive hit areas on iOS touch surfaces without changing business behavior
-- 44pt minimum form controls on iOS, with 16px minimum editable text to avoid accidental Safari/WKWebView zoom
-- reduced-motion support for iOS accessibility settings
-- service-worker registration disabled inside the Capacitor native shell
-- same-origin `_blank` legal/help links stay inside the app shell instead of opening a second web surface
-- generated iOS `Info.plist` receives location and photo-library purpose strings during setup/CI
-- Hall of Happiness customer memories expose a visible `Report content` route to support/contact
+- Existing web UI already uses `viewport-fit=cover` and safe-area insets in the primary mobile shells
+- 44pt minimum iOS touch targets for native-shell controls
+- shared Android/iOS keyboard viewport handling using `visualViewport`
+- focused form controls are kept visible above the software keyboard
+- bottom navigation and sticky cart UI move out of the way while typing
+- mobile inputs use 16px-or-larger text to avoid iOS focus zoom
+- phone and OTP inputs request the appropriate native keyboards and autofill hints
 
 ## First-time local setup on macOS
 
@@ -35,16 +33,12 @@ npm run ios:add
 npm run ios:open
 ```
 
-`ios:add` now generates the Capacitor project and applies the required privacy-purpose strings automatically.
-
 After the iOS project has been created once, use:
 
 ```bash
 npm run ios:sync
 npm run ios:open
 ```
-
-`ios:sync` rebuilds the production web bundle, syncs Capacitor, and reapplies the iOS privacy configuration.
 
 ## Signing boundary
 
@@ -69,75 +63,39 @@ Universal Links require the Apple Team ID. Once the Team ID is known:
 
 Do not publish a placeholder Team ID.
 
-## App Review account
-
-Before submission, create and keep a stable reviewer account that does not expire during review.
-
-In App Store Connect review notes provide:
-
-- reviewer username/phone and password
-- the customer company/location the account belongs to
-- any OTP bypass or pre-verified setup needed for the reviewer account
-- exact steps to reach cart, checkout, orders, wallet, profile/account deletion, party orders, and Hall of Happiness
-- a note that food orders are physical goods/services and are paid using Razorpay, wallet, or Pay at Stall where enabled
-- any test card/payment instructions required by the production review environment
-
-Do not require the reviewer to contact an employee to complete first login.
-
-## Privacy / App Privacy checklist
-
-Before submission, confirm App Store Connect disclosures match the production app and backend exactly, including any of the following that are actually collected:
-
-- account identifiers and phone number
-- name / profile information
-- date of birth or special dates if provided
-- approximate/precise location when the user invokes nearby-location discovery
-- purchase/order history
-- payment-related metadata (do not claim card numbers are collected if Razorpay handles them directly)
-- user-uploaded Hall of Happiness photos/captions
-- diagnostics/analytics, if enabled in production
-
-The in-app Privacy Policy and App Store Connect privacy URL must point to the current production policy.
-
-## User-generated content safeguards
-
-Hall of Happiness is curated: customer uploads are reviewed before publication and are not automatically public. Published customer memories now include a `Report content` path to Bro & Bro support.
-
-Before App Store submission verify operationally that:
-
-- submitted content can be rejected/removed by moderators
-- reported content is reviewed promptly
-- support/contact information is current
-- abusive or unlawful content can be removed from publication
-
-If the product later introduces direct user-to-user interaction, comments, messaging, or public profiles, add user blocking and stronger in-app reporting before shipping that feature.
-
 ## App Store readiness checks
 
-Before uploading an archive to App Store Connect, verify on a real iPhone:
+Before uploading an archive to App Store Connect, verify on a real iPhone and a representative Android device:
 
-- app launches with no browser/address bar
 - sign in / sign out
-- reviewer/demo account works without staff intervention
-- location selection works with permission allowed, denied, and manual-selection fallback
-- cart, checkout, Razorpay handoff and return flow
-- wallet payment and Pay at Stall where enabled
+- registration and OTP autofill
+- phone, numeric, password, and text keyboard layouts
+- focused fields remain visible when the keyboard opens
+- keyboard dismissal restores bottom navigation and sticky cart actions
+- long forms and dialogs remain scrollable with the keyboard open
+- orientation changes while editing a field
+- location selection and permission behavior
+- cart, checkout, payment handoff and return flow
 - orders and order tracking
-- profile and in-app account deletion
-- Terms, Privacy, support, maps and other links open intentionally
-- Hall of Happiness upload, consent, moderation and report-content path
-- photo-library permission copy is shown only when needed
+- profile and account deletion
+- external links and downloads
+- Hall of Happiness upload/report flow
+- camera/photo access if later enabled
+- push notifications if later enabled
 - Dynamic Island/notch and home-indicator safe areas
-- 44pt interaction targets on bottom navigation, dialogs and forms
-- VoiceOver labels/focus order for core ordering flows
-- Dynamic Type / text scaling does not hide critical controls
-- Reduce Motion setting does not break navigation or ordering
 - dark/light system settings where applicable
 - offline/error states
-- app recovery after backgrounding and returning from payment/permission flows
 
-## Submission boundary
+## App Review preparation
 
-The GitHub `iOS Readiness` workflow performs an unsigned iOS Simulator build and verifies required privacy-purpose strings. It intentionally does not perform App Store signing because signing requires Apple Developer credentials and provisioning.
+Before submission:
 
-A successful simulator CI build is necessary but not sufficient for App Store submission. The final signed Release archive must still be tested on at least one real iPhone before uploading to App Store Connect.
+- provide a stable App Review test account and any instructions needed to reach ordering, wallet, checkout, order history, and customer-memory features
+- make sure App Store Connect privacy disclosures match the data actually collected by the app and backend
+- provide a public privacy-policy URL
+- verify in-app account deletion end to end
+- verify the Report Content path for customer Hall of Happiness memories reaches support/moderation
+- explain in Review Notes that Razorpay/wallet/Pay at Stall are used only for physical food/services, not digital content
+- complete real-device accessibility, keyboard, safe-area, and external-navigation QA
+
+The GitHub `iOS Readiness` workflow performs an unsigned iOS Simulator build and validates the generated privacy-purpose keys. It intentionally does not perform App Store signing because signing requires Apple Developer credentials and provisioning.
