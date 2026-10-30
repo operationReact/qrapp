@@ -11,6 +11,7 @@ import "./styles/partner-header-branding.css";
 import "./styles/partner-dashboard.css";
 import "./styles/ios-hardening.css";
 import ErrorBoundary from './components/ErrorBoundary';
+import { installMobileKeyboardHandling } from './lib/mobileKeyboard';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -53,6 +54,7 @@ function keepSameOriginLinksInNativeShell() {
 
 markNativePlatform();
 keepSameOriginLinksInNativeShell();
+installMobileKeyboardHandling();
 
 function registerServiceWorker() {
   // Capacitor packages the web assets locally. A service worker is unnecessary in
