@@ -3,7 +3,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { menuOptions, categoriesOptions } from "@/query/options/menu";
 import Navbar from "../components/shared/Navbar";
-import SearchBar from "../components/shared/SearchBar";
 import CategoryTabs from "../components/CategoryTabs";
 import MenuItemCard from "../components/MenuItemCard";
 import {
@@ -32,7 +31,6 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty";
 import { buildPageHead, buildWebSiteSchema } from "@/content/companyInfo";
-
 
 export const Route = createFileRoute("/")({
   head: () =>
@@ -148,9 +146,7 @@ function MenuPage() {
   const getCategoryName = (item) => item.category?.name || "";
   const getTagName = (item) => item.tag?.name || "";
 
-
   const filtered = menuItems.filter((item) => {
-    // Normalize possible server representations for boolean-ish isVeg
     const isVeg =
       item.isVeg === true ||
       item.isVeg === "true" ||
@@ -182,7 +178,6 @@ function MenuPage() {
     } else {
       acc[categoryName] = [item];
     }
-
     return acc;
   }, {});
 
@@ -196,30 +191,26 @@ function MenuPage() {
         onVegFilterChange={handleSegmentedFilterChange}
       />
       <MobileMenu />
-      {/* Backend offline banner (non-technical user friendly) */}
       {offline && (
         <div className="container-premium py-3">
-          <div className="rounded-2xl border border-yellow-200 bg-yellow-50 p-3 text-sm text-yellow-800">
-            Backend unreachable — frontend is using cached data. Start the
-            backend to use live data.
-            <div className="mt-2 overflow-x-auto rounded-xl bg-white p-2 font-mono text-xs">
-              cd backend; ./gradlew bootRun (or gradle bootRun)
-            </div>
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900" role="status">
+            <p className="font-medium">We’re having trouble loading the latest menu.</p>
+            <p className="mt-1 text-xs text-amber-800">
+              Check your connection and try again. Previously loaded items may still be available.
+            </p>
             <div className="mt-3 flex flex-col gap-2 sm:flex-row">
               <button
+                type="button"
                 onClick={() => fetchMenu()}
                 className="touch-button rounded-xl bg-foreground px-3 py-2 text-sm font-medium text-background"
               >
-                Retry
+                Try again
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Immersive hero — one continuous visual canvas (mobile-first). Location,
-          logo, search and veg/non-veg controls are layered on top of the hero
-          image/carousel itself, not stacked in separate white cards. */}
       <div className="lg:hidden">
         <ImmersiveHomeHero
           locationId={activeLocationId}
@@ -247,7 +238,6 @@ function MenuPage() {
         />
       )}
       <div className="container-premium home-controls flex flex-col gap-2 py-1.5 md:gap-2 md:py-2 lg:gap-3 lg:py-1">
-        {/* Desktop search/filter is now inside the hero overlay; show categories only below hero */}
         <div className="w-full px-0">
           <CategoryTabs categories={categoriesWithItems} active={category} />
         </div>
@@ -258,7 +248,6 @@ function MenuPage() {
 
       <main className="container-premium py-2 md:py-4 lg:py-5">
         <div className="page-stack gap-2!">
-          {/* HEADER */}
           <div className="space-y-2 sr-only">
             <h1 className="text-2xl font-bold sm:text-3xl">Menu</h1>
             <p className="text-gray-500 text-sm">
@@ -269,14 +258,12 @@ function MenuPage() {
             </div>
           </div>
 
-          {/* LOADING */}
           {loading && (
             <p className="rounded-2xl bg-white px-4 py-5 text-sm text-gray-500 shadow-sm">
               Loading menu...
             </p>
           )}
 
-          {/* EMPTY */}
           {!loading && filtered.length === 0 && (
             <Empty>
               <EmptyHeader>
@@ -291,14 +278,12 @@ function MenuPage() {
             </Empty>
           )}
 
-          {/* CATEGORY ROWS — compact header + carousel */}
           {Object.entries(groups).map(([catName, items]) => (
             <section
               key={catName}
               id={encodeURIComponent(catName)}
               className="flex flex-col gap-1 scroll-mt-4 rounded-lg py-1 md:gap-2 md:py-2"
             >
-              {/* Compact single-line category header */}
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-baseline gap-2 min-w-0">
                   <h2 className="truncate text-lg font-bold leading-snug md:text-md">
@@ -319,7 +304,6 @@ function MenuPage() {
                 )}
               </div>
 
-              {/* Products */}
               <Carousel
                 opts={{ dragFree: true, align: "start" }}
                 className="w-full md:hidden"
