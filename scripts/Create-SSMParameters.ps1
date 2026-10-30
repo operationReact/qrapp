@@ -1,6 +1,8 @@
 # AWS SSM Parameter Store - Create All Application Parameters (PowerShell)
-# This script creates all required parameters for the broandbro application
-# Run on Windows with AWS CLI and proper IAM credentials
+# This script creates required parameters for the broandbro application.
+# IMPORTANT: Never hardcode credentials or API secrets in this file.
+# Supply secrets through environment variables or, preferably for AWS access on EC2,
+# use an IAM role / instance profile instead of long-lived access keys.
 
 param(
     [string]$Environment = "dev",
@@ -9,13 +11,15 @@ param(
 
 $PREFIX = "/broandbro/backend/$Environment"
 
-Write-Host "════════════════════════════════════════════════════════════════" -ForegroundColor Cyan
-Write-Host "🔄 Creating AWS SSM Parameters for broandbro Backend" -ForegroundColor Cyan
-Write-Host "Environment: $Environment" -ForegroundColor Yellow
-Write-Host "Region: $Region" -ForegroundColor Yellow
-Write-Host "════════════════════════════════════════════════════════════════" -ForegroundColor Cyan
+function Require-Env {
+    param([string]$Name)
+    $value = [Environment]::GetEnvironmentVariable($Name)
+    if ([string]::IsNullOrWhiteSpace($value)) {
+        throw "Required environment variable '$Name' is not set."
+    }
+    return $value
+}
 
-# Function to create parameter
 function Create-Param {
     param(
         [string]$Name,
@@ -23,94 +27,59 @@ function Create-Param {
         [string]$Type = "String"
     )
 
-    Write-Host "📝 Creating: $Name" -ForegroundColor Green
-
-    # Remove parameter if it exists
-    aws ssm delete-parameter --name $Name --region $Region 2>$null
-
-    # Create new parameter
-    $escapedValue = $Value -replace '"', '\"'
+    Write-Host "Creating: $Name" -ForegroundColor Green
     aws ssm put-parameter `
         --name $Name `
-        --value $escapedValue `
+        --value $Value `
         --type $Type `
         --overwrite `
-        --region $Region `
-        2>$null
-
-    Write-Host "   ✅ Created" -ForegroundColor Green
+        --region $Region | Out-Null
 }
 
-# ═══════════════════════════════════════════════════════════════════════════
-# DATABASE CONFIGURATION
-# ═══════════════════════════════════════════════════════════════════════════
-Write-Host ""
-Write-Host "📦 Database Configuration" -ForegroundColor Yellow
-Create-Param "$PREFIX/database/url" `
-    "jdbc:postgresql://broandbro-dev.csjkasgs2ig6.us-east-1.rds.amazonaws.com:5432/broandbro_dev?sslmode=require"
+Write-Host "Creating AWS SSM parameters for broandbro Backend" -ForegroundColor Cyan
+Write-Host "Environment: $Environment" -ForegroundColor Yellow
+Write-Host "Region: $Region" -ForegroundColor Yellow
+
+# Database
+Create-Param "$PREFIX/database/url" "jdbc:postgresql://broandbro-dev.csjkasgs2ig6.us-east-1.rds.amazonaws.com:5432/broandbro_dev?sslmode=require"
 Create-Param "$PREFIX/database/username" "broandbro"
-if ([string]::IsNullOrWhiteSpace($env:DB_PASSWORD)) { throw "Set DB_PASSWORD to the current RDS password" }
-Create-Param "$PREFIX/database/password" $env:DB_PASSWORD "SecureString"
+Create-Param "$PREFIX/database/password" (Require-Env "DB_PASSWORD") "SecureString"
 
-# ═══════════════════════════════════════════════════════════════════════════
-# RAZORPAY CONFIGURATION (Payment Gateway)
-# ═══════════════════════════════════════════════════════════════════════════
-Write-Host ""
-Write-Host "💳 Razorpay Configuration" -ForegroundColor Yellow
-Create-Param "$PREFIX/razorpay/key" "rzp_test_SXoONgvkn7mSte"
-Create-Param "$PREFIX/razorpay/secret" "rzp_test_SXoONgvkn7mSte" "SecureString"
-Create-Param "$PREFIX/razorpay/webhookSecret" "" "SecureString"
+# Razorpay
+Create-Param "$PREFIX/razorpay/key" (Require-Env "RAZORPAY_KEY_ID") "SecureString"
+Create-Param "$PREFIX/razorpay/secret" (Require-Env "RAZORPAY_KEY_SECRET") "SecureString"
+$razorpayWebhookSecret = [Environment]::GetEnvironmentVariable("RAZORPAY_WEBHOOK_SECRET")
+if (-not [string]::IsNullOrWhiteSpace($razorpayWebhookSecret)) {
+    Create-Param "$PREFIX/razorpay/webhookSecret" $razorpayWebhookSecret "SecureString"
+}
 
-# ═══════════════════════════════════════════════════════════════════════════
-# AWS S3 CONFIGURATION (File Storage)
-# ═══════════════════════════════════════════════════════════════════════════
-Write-Host ""
-Write-Host "📦 AWS S3 Configuration" -ForegroundColor Yellow
+# S3 configuration
 Create-Param "$PREFIX/aws/s3/enabled" "true"
 Create-Param "$PREFIX/aws/s3/bucketName" "broandbro-menu-images-dev"
 Create-Param "$PREFIX/aws/s3/region" "us-east-1"
-Create-Param "$PREFIX/aws/s3/accessKey" "AKIA34EPRSL6ICFWRYHI" "SecureString"
-Create-Param "$PREFIX/aws/s3/secretKey" "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" "SecureString"
 
-# ═══════════════════════════════════════════════════════════════════════════
-# OPENAI CONFIGURATION (Image Generation)
-# ═══════════════════════════════════════════════════════════════════════════
-Write-Host ""
-Write-Host "🤖 OpenAI Configuration" -ForegroundColor Yellow
-Create-Param "$PREFIX/openai/apiKey" `
-    "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" `
-    "SecureString"
+# Do not store AWS access keys unless there is a documented legacy requirement.
+# EC2 should use its IAM role / instance profile. If the application still needs
+# explicit credentials temporarily, provide NON-ROOT credentials through env vars.
+$awsAccessKeyId = [Environment]::GetEnvironmentVariable("APP_AWS_ACCESS_KEY_ID")
+$awsSecretAccessKey = [Environment]::GetEnvironmentVariable("APP_AWS_SECRET_ACCESS_KEY")
+if (-not [string]::IsNullOrWhiteSpace($awsAccessKeyId) -and -not [string]::IsNullOrWhiteSpace($awsSecretAccessKey)) {
+    Create-Param "$PREFIX/aws/s3/accessKey" $awsAccessKeyId "SecureString"
+    Create-Param "$PREFIX/aws/s3/secretKey" $awsSecretAccessKey "SecureString"
+} else {
+    Write-Host "AWS access keys not supplied; expecting workload IAM role credentials." -ForegroundColor Yellow
+}
 
-# ═══════════════════════════════════════════════════════════════════════════
-# APPLICATION CONFIGURATION
-# ═══════════════════════════════════════════════════════════════════════════
-Write-Host ""
-Write-Host "⚙️  Application Configuration" -ForegroundColor Yellow
-Create-Param "$PREFIX/app/corsAllowedOrigins" `
-    "https://develop.broandbro.in,http://localhost:5173"
+# OpenAI
+Create-Param "$PREFIX/openai/apiKey" (Require-Env "OPENAI_API_KEY") "SecureString"
 
-# ═══════════════════════════════════════════════════════════════════════════
-# VERIFICATION
-# ═══════════════════════════════════════════════════════════════════════════
-Write-Host ""
-Write-Host "════════════════════════════════════════════════════════════════" -ForegroundColor Cyan
-Write-Host "✅ All parameters created!" -ForegroundColor Green
-Write-Host "════════════════════════════════════════════════════════════════" -ForegroundColor Cyan
+# Application configuration
+Create-Param "$PREFIX/app/corsAllowedOrigins" "https://develop.broandbro.in,http://localhost:5173"
 
-Write-Host ""
-Write-Host "🔍 Verifying parameters..." -ForegroundColor Cyan
+Write-Host "SSM Parameter Store setup complete." -ForegroundColor Green
+Write-Host "Verifying parameter names (values are not printed)..." -ForegroundColor Cyan
 aws ssm describe-parameters `
     --parameter-filters "Key=Name,Option=BeginsWith,Values=$PREFIX" `
     --region $Region `
     --query 'Parameters[*].[Name,Type,LastModifiedDate]' `
     --output table
-
-Write-Host ""
-Write-Host "════════════════════════════════════════════════════════════════" -ForegroundColor Cyan
-Write-Host "✅ SSM Parameter Store Setup Complete!" -ForegroundColor Green
-Write-Host "════════════════════════════════════════════════════════════════" -ForegroundColor Cyan
-Write-Host ""
-Write-Host "Next steps:" -ForegroundColor Yellow
-Write-Host "1. On EC2: sudo systemctl restart broandbro" -ForegroundColor Gray
-Write-Host "2. On EC2: sudo journalctl -u broandbro -n 200" -ForegroundColor Gray
-Write-Host "3. Verify: Check that application connects to correct database" -ForegroundColor Gray
