@@ -132,6 +132,9 @@ export default function OTPVerifyDialog({
                 value={otp}
                 onChange={handleOtpChange}
                 maxLength={OTP_LENGTH}
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                enterKeyHint="done"
                 aria-invalid={!!displayError}
               >
                 <InputOTPGroup
