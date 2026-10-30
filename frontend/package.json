@@ -10,6 +10,7 @@
     "build:prod": "vite build --mode production",
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
+    "ios:preflight": "node scripts/ios-release-preflight.mjs",
     "ios:configure": "node scripts/configure-ios.mjs",
     "ios:sync": "npm run build:prod && cap sync ios && npm run ios:configure",
     "ios:add": "npm run build:prod && cap add ios && npm run ios:configure",
