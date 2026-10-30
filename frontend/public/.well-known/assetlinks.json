@@ -5,7 +5,8 @@
       "namespace": "android_app",
       "package_name": "in.broandbro.app",
       "sha256_cert_fingerprints": [
-        "A3:CE:CC:9D:89:98:66:4D:E7:F9:9F:26:7C:74:CB:59:DF:CF:EB:2A:03:C1:B0:05:BC:B8:8B:83:C8:F3:75:D7"
+        "A3:CE:CC:9D:89:98:66:4D:E7:F9:9F:26:7C:74:CB:59:DF:CF:EB:2A:03:C1:B0:05:BC:B8:8B:83:C8:F3:75:D7",
+        "BB:87:8E:9E:8A:55:84:5D:21:52:DD:80:4B:92:40:AD:AB:C5:35:C8:17:50:74:E9:62:EB:E7:3A:F2:8C:71:DE"
       ]
     }
   }
