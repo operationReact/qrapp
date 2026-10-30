@@ -2,7 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Autoplay from "embla-carousel-autoplay";
-import { ArrowRightIcon, CameraIcon, ConfettiIcon, HeartIcon, SparkleIcon, WarningCircleIcon } from "@phosphor-icons/react";
+import { ArrowRightIcon, CameraIcon, ConfettiIcon, FlagIcon, HeartIcon, SparkleIcon, WarningCircleIcon } from "@phosphor-icons/react";
 import { hallOfHappinessConfigOptions, hallOfHappinessOptions } from "@/query/options/hall-of-happiness";
 import { useLocation as useActiveLocation } from "@/context/LocationContext";
 import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
@@ -75,6 +75,16 @@ function HappinessCard({ photo, dominant }) {
                 {context && eventDate && <span>·</span>}
                 {eventDate && <span>{eventDate}</span>}
               </div>
+              {photo.sourceType === "CUSTOMER" && (
+                <Link
+                  to="/contact-us"
+                  className="mt-2 inline-flex min-h-11 items-center gap-1.5 rounded-lg px-1 text-xs font-medium text-white/85 underline underline-offset-2 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white sm:min-h-0"
+                  aria-label={`Report Hall of Happiness content: ${title}`}
+                >
+                  <FlagIcon size={13} weight="bold" aria-hidden="true" />
+                  Report content
+                </Link>
+              )}
             </div>
           </>
         )}

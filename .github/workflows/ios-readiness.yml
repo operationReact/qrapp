@@ -42,12 +42,23 @@ jobs:
           NODE_ENV: "production"
         run: npm run build:prod
 
-      - name: Generate iOS project
+      - name: Generate and harden iOS project
         working-directory: frontend
         run: |
           rm -rf ios
           npx cap add ios
           npx cap sync ios
+          npm run ios:configure
+
+      - name: Verify privacy purpose strings
+        working-directory: frontend
+        run: |
+          set -euo pipefail
+          PLIST="ios/App/App/Info.plist"
+          test -f "$PLIST"
+          grep -q "NSLocationWhenInUseUsageDescription" "$PLIST"
+          grep -q "NSPhotoLibraryUsageDescription" "$PLIST"
+          echo "iOS privacy purpose strings verified"
 
       - name: Show Xcode version
         run: xcodebuild -version

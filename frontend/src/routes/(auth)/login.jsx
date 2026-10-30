@@ -147,6 +147,10 @@ export const Route = createFileRoute("/(auth)/login")({
                   <InputGroup className="h-[52px] rounded-[14px] border-[#E6E0DB] bg-[#FFFCF9] shadow-none transition-[border-color,box-shadow] focus-within:!border-[#FF2438] focus-within:!ring-2 focus-within:!ring-[#FF2438]/20">
                     <InputGroupInput
                       ref={firstFormField}
+                      type="tel"
+                      inputMode="tel"
+                      autoComplete="tel"
+                      enterKeyHint="next"
                       value={identifier}
                       onChange={(e) => setIdentifier(e.target.value)}
                       required
@@ -190,6 +194,7 @@ export const Route = createFileRoute("/(auth)/login")({
                       name="password"
                       id="password"
                       autoComplete="current-password"
+                      enterKeyHint="go"
                     />
                   </RegistrationPurposeControl>
                 </FieldContent>

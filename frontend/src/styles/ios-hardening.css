@@ -1,0 +1,117 @@
+/* iOS App Store compliance hardening plus shared mobile keyboard behavior.
+ * This layer changes presentation/hit areas only; it does not alter business logic.
+ */
+
+:root {
+  --app-keyboard-inset: 0px;
+  --app-visible-viewport-height: 100dvh;
+}
+
+html.capacitor-ios {
+  -webkit-text-size-adjust: 100%;
+  overscroll-behavior-y: none;
+}
+
+html.capacitor-ios body {
+  min-height: 100dvh;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+}
+
+/* Apple recommends comfortable 44pt touch targets. Preserve compact visuals,
+ * but make the interactive region large enough on touch/iOS surfaces.
+ */
+@media (pointer: coarse) {
+  html.capacitor-ios :where(
+    button,
+    [role="button"],
+    a[data-slot="button"],
+    [data-slot="button"],
+    input[type="button"],
+    input[type="submit"],
+    input[type="reset"]
+  ) {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  html.capacitor-ios :where(
+    input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+    select,
+    textarea
+  ) {
+    min-height: 44px;
+    font-size: max(16px, 1em);
+  }
+}
+
+/* Prevent fixed bottom navigation/actions from colliding with the home indicator. */
+html.capacitor-ios .ios-safe-bottom {
+  padding-bottom: max(12px, env(safe-area-inset-bottom, 0px));
+}
+
+html.capacitor-ios .ios-safe-top {
+  padding-top: max(8px, env(safe-area-inset-top, 0px));
+}
+
+/* Keep focus visible for keyboard/switch-control users. */
+html.capacitor-ios :focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+/* Shared Android + iOS soft-keyboard hardening. visualViewport updates the
+ * variables from mobileKeyboard.js while a text control is focused.
+ */
+html.mobile-keyboard-open {
+  scroll-padding-top: max(16px, env(safe-area-inset-top, 0px));
+  scroll-padding-bottom: calc(var(--app-keyboard-inset) + 24px);
+}
+
+html.mobile-keyboard-open body {
+  min-height: var(--app-visible-viewport-height);
+}
+
+/* Bottom navigation/cart actions are redundant while typing and are a common
+ * source of keyboard overlap. They return immediately when the keyboard closes.
+ * Data attributes are preferred; class fallbacks cover the existing shared bars.
+ */
+html.mobile-keyboard-open [data-mobile-navigation],
+html.mobile-keyboard-open [data-sticky-cart-bar],
+html.mobile-keyboard-open nav.fixed.inset-x-0.bottom-0.z-40,
+html.mobile-keyboard-open div.fixed.inset-x-0.z-\[45\] {
+  transform: translateY(160%) !important;
+  pointer-events: none !important;
+}
+
+/* Keep modal forms usable in the visible area above the software keyboard. */
+html.mobile-keyboard-open [role="dialog"] {
+  max-height: calc(var(--app-visible-viewport-height) - 20px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* Prevent iOS from zooming the page when a form control receives focus and
+ * keep Android/iOS typing controls comfortably readable.
+ */
+@media (pointer: coarse) {
+  :where(
+    input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+    textarea,
+    select
+  ) {
+    font-size: max(16px, 1em);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.capacitor-ios *,
+  html.capacitor-ios *::before,
+  html.capacitor-ios *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

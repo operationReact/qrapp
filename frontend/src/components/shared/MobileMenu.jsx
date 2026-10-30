@@ -16,7 +16,6 @@ import { Separator } from "../ui/separator";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useScrollVisibility } from "@/hooks/useScrollVisibility";
 import {
-  BowlFoodIcon,
   CompassIcon,
   ConfettiIcon,
   CubeIcon,
@@ -25,7 +24,6 @@ import {
   SignOutIcon,
   UserCircleIcon,
   UserGearIcon,
-  WalletIcon,
 } from "@phosphor-icons/react";
 import { Avatar, AvatarFallback } from "../ui/avatar";
 import { useCart } from "@/context/CartContext";
@@ -70,7 +68,6 @@ const items = [
     path: "/profile",
   },
 ];
-
 
 function UserAccountDrawerContent() {
   const { user, setUser } = useAuth();
@@ -169,7 +166,7 @@ function UserUnauthorizedDrawerContent() {
           className={buttonVariants({
             variant: "outline",
             size: "lg",
-            class: "border-border!",
+            className: "border-border!",
           })}
         >
           Close
@@ -190,6 +187,9 @@ export default function MobileMenu() {
 
   if (!isMobile) return null;
 
+  const navItemClass =
+    "touch-manipulation relative grid min-h-11 min-w-11 flex-1 place-items-center transition-transform focus-visible:rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary after:absolute after:top-0 after:h-0.5 after:w-12 after:scale-y-0 after:rounded-b-xl after:bg-primary";
+
   return (
     <nav
       className={cn(
@@ -203,15 +203,13 @@ export default function MobileMenu() {
           <Link
             key={item.key}
             to={item.path}
-            className={cn(
-              `touch-manipulation grid place-items-center transition-transform flex-1 focus:outline-none after:absolute after:scale-y-0 after:top-0 after:w-12 after:h-0.5 after:rounded-b-xl after:bg-primary`,
-              isActive && "after:scale-y-100",
-            )}
+            className={cn(navItemClass, isActive && "after:scale-y-100")}
             aria-label={item.label}
+            aria-current={isActive ? "page" : undefined}
           >
             <item.icon
               weight={isActive ? "fill" : undefined}
-              className={`size-[18px] mb-0.5 transition-all md:size-6 ${isActive ? "text-primary scale-105 md:scale-110" : "text-zinc-400"}`}
+              className={`size-5 mb-0.5 transition-all md:size-6 ${isActive ? "text-primary scale-105 md:scale-110" : "text-zinc-400"}`}
             />
             <span
               className={`h-full overflow-y-clip text-[10px] font-medium ${isActive ? "text-primary" : "text-zinc-400"}`}
@@ -223,6 +221,7 @@ export default function MobileMenu() {
       })}
 
       <button
+        type="button"
         onClick={() => {
           if (shouldOpenCartDrawer) {
             openDrawer();
@@ -230,16 +229,14 @@ export default function MobileMenu() {
             closeDrawer();
           }
         }}
-        className={cn(
-          `touch-manipulation grid place-items-center transition-transform flex-1 focus:outline-none after:absolute after:scale-y-0 after:top-0 after:w-12 after:h-0.5 after:rounded-b-xl after:bg-primary`,
-          location.pathname === "/cart" && "after:scale-y-100",
-        )}
-        aria-label={"Cart"}
+        className={cn(navItemClass, location.pathname === "/cart" && "after:scale-y-100")}
+        aria-label="Cart"
+        aria-current={location.pathname === "/cart" ? "page" : undefined}
       >
         <span className="relative">
           <ShoppingCartSimpleIcon
             weight={location.pathname === "/cart" ? "fill" : undefined}
-            className={`size-[18px] mb-0.5 transition-all md:size-6 ${location.pathname === "/cart" ? "text-primary scale-105 md:scale-110" : "text-zinc-400"}`}
+            className={`size-5 mb-0.5 transition-all md:size-6 ${location.pathname === "/cart" ? "text-primary scale-105 md:scale-110" : "text-zinc-400"}`}
           />
           {cart.length > 0 && (
             <span className="absolute will-change-transform origin-center -right-1 -top-1 align-middle h-4 min-w-[1rem] animate-in-scaled rounded-full grid place-items-center text-center text-[11px] font-semibold bg-primary text-secondary">
@@ -257,16 +254,14 @@ export default function MobileMenu() {
       <Drawer>
         <DrawerTrigger asChild>
           <button
-            className={cn(
-              `touch-manipulation grid place-items-center transition-transform flex-1 focus:outline-none after:absolute after:scale-y-0 after:top-0 after:w-12 after:h-0.5 after:rounded-b-xl after:bg-primary`,
-              location.pathname === "/profile" && "after:scale-y-100",
-            )}
+            type="button"
+            className={cn(navItemClass, location.pathname === "/profile" && "after:scale-y-100")}
             aria-label="Account"
-            tabIndex={0}
+            aria-current={location.pathname === "/profile" ? "page" : undefined}
           >
             <UserCircleIcon
               weight="fill"
-              className={`size-[18px] mb-0.5 transition-all md:size-6 ${location.pathname === "/profile" ? "text-primary scale-105 md:scale-110" : "text-zinc-400"}`}
+              className={`size-5 mb-0.5 transition-all md:size-6 ${location.pathname === "/profile" ? "text-primary scale-105 md:scale-110" : "text-zinc-400"}`}
             />
             <span
               className={`text-[10px] font-medium ${location.pathname === "/profile" ? "text-primary" : "text-zinc-400"}`}

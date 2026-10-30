@@ -32,6 +32,7 @@ export default function PasswordResetForm({
               required
               placeholder="9999999999"
               className="h-10"
+              enterKeyHint={resetting ? "next" : "go"}
             />
           </FieldContent>
         </Field>
@@ -46,6 +47,8 @@ export default function PasswordResetForm({
                   value={newPassword}
                   onChange={(e) => onNewPasswordChange(e.target.value)}
                   required
+                  autoComplete="new-password"
+                  enterKeyHint="next"
                 />
               </FieldContent>
             </Field>
@@ -58,6 +61,8 @@ export default function PasswordResetForm({
                   value={confirmPassword}
                   onChange={(e) => onConfirmPasswordChange(e.target.value)}
                   required
+                  autoComplete="new-password"
+                  enterKeyHint="done"
                 />
               </FieldContent>
             </Field>
