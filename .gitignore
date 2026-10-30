@@ -39,6 +39,15 @@ android/.gradle/
 dist/android/
 !android/gradle/wrapper/gradle-wrapper.jar
 
+# iOS local build/dependency outputs
+frontend/ios/App/Pods/
+frontend/ios/App/DerivedData/
+frontend/ios/DerivedData/
+frontend/ios/App/build/
+frontend/ios/App/xcuserdata/
+frontend/ios/App/App.xcworkspace/xcuserdata/
+*.xcuserstate
+
 # Generated build output at repo root and release binaries
 /build/
 /dist/

@@ -10,6 +10,10 @@
     "build:prod": "vite build --mode production",
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
+    "ios:sync": "npm run build:prod && cap sync ios",
+    "ios:add": "npm run build:prod && cap add ios",
+    "ios:open": "cap open ios",
+    "ios:run": "npm run build:prod && cap sync ios && cap run ios",
     "test:category-icons":  "node --test src/lib/categoryIconResolver.test.js",
     "test:roles":  "node --test src/lib/roles.test.js",
     "test:all-locations":  "node --test src/lib/allLocations.test.js",
@@ -26,6 +30,8 @@
   "dependencies": {
     "@base-ui/react": "^1.4.1",
     "@boxicons/react": "^1.0.3",
+    "@capacitor/core": "8.6.0",
+    "@capacitor/ios": "8.6.0",
     "@heroicons/react": "^2.2.0",
     "@phosphor-icons/react": "^2.1.10",
     "@tailwindcss/vite": "^4.2.2",
@@ -58,6 +64,7 @@
   },
   "devDependencies": {
     "@babel/core": "^7.29.0",
+    "@capacitor/cli": "8.6.0",
     "@eslint/js": "^9.39.4",
     "@rolldown/plugin-babel": "^0.2.3",
     "@tanstack/react-query-devtools": "^5.100.14",
