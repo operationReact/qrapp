@@ -7,6 +7,7 @@ import {
   ProhibitIcon,
   ClockIcon,
   CalendarCheckIcon,
+  BowlFoodIcon,
 } from "@phosphor-icons/react";
 import { cn, formatCurrency } from "@/lib/utils";
 import QuantitySelector from "./QuantitySelector";
@@ -48,14 +49,9 @@ export default function MenuItemCard({
     availableRaw === 1 ||
     availableRaw === "1";
 
-  // overrideUnavailable lets callers (e.g. time-gated segments) disable
-  // ordering without touching the item data itself.
   const isUnavailable =
     overrideUnavailable || !isAvailable || item.stockStatus === "OUT_OF_STOCK";
 
-  // Decide what the overlay badge and bottom action label should say.
-  // Time-window callers supply unavailableLabel ("Opens 8 AM").
-  // Stock callers fall back to the standard "Out of Stock" / "Unavailable".
   const isTimegated = overrideUnavailable && !!unavailableLabel;
   const overlayText = isTimegated ? unavailableLabel : "Out of Stock";
   const bottomLabel = isTimegated ? unavailableLabel : "Unavailable";
@@ -80,7 +76,6 @@ export default function MenuItemCard({
         className={cn(
           "group h-full overflow-hidden rounded-xl border border-border bg-card transition-opacity md:rounded-2xl",
           isUnavailable && "opacity-70",
-          // Pre-order items: entire card is the tap target
           preOrderOnly &&
             !isUnavailable &&
             "cursor-pointer ring-0 border-primary/20 hover:border-primary/30 transition-all",
@@ -91,7 +86,6 @@ export default function MenuItemCard({
             : undefined
         }
       >
-        {/* Image */}
         <button
           type="button"
           onClick={() => {
@@ -116,16 +110,17 @@ export default function MenuItemCard({
               decoding="async"
             />
           ) : (
-            <div className="w-full overflow-hidden h-full flex items-center justify-center bg-zinc-100">
-              <img
-                src="/brand/white.png"
-                alt="Bro Logo"
-                className="opacity-20 size-1/2 object-contain animate-pulse"
-              />
+            <div
+              className="flex h-full w-full flex-col items-center justify-center gap-1.5 overflow-hidden bg-muted text-muted-foreground"
+              aria-hidden="true"
+            >
+              <BowlFoodIcon weight="duotone" className="size-8 opacity-70 md:size-10" />
+              <span className="text-[10px] font-semibold uppercase tracking-[0.14em] opacity-60">
+                Bro &amp; Bro
+              </span>
             </div>
           )}
 
-          {/* Unavailable overlay badge — stock or time-gated */}
           {isUnavailable && (
             <div className="absolute inset-x-0 bottom-1 flex items-center justify-start pl-1">
               <span className="flex items-center gap-1 rounded-full bg-black/70 px-2.5 py-1 text-[11px] font-semibold text-white backdrop-blur-sm">
@@ -139,7 +134,6 @@ export default function MenuItemCard({
             </div>
           )}
 
-          {/* Pre-Order Only badge — top right, passive label only */}
           {preOrderOnly && !isUnavailable && (
             <div className="absolute top-2 right-1">
               <span className="flex items-center gap-1 rounded-full bg-indigo-950/75 backdrop-blur-sm px-2.5 py-1 text-[11px] font-semibold text-indigo-100">
@@ -149,7 +143,6 @@ export default function MenuItemCard({
             </div>
           )}
 
-          {/* veg/non-veg indicator */}
           <div
             title={veg ? "Veg" : "Non Veg"}
             className={cn(
@@ -166,7 +159,6 @@ export default function MenuItemCard({
           </div>
         </button>
 
-        {/* Details */}
         <div className="space-y-1 p-2 md:space-y-2 md:p-3">
           <h3
             className={cn(
@@ -203,7 +195,6 @@ export default function MenuItemCard({
                 {bottomLabel}
               </span>
             ) : preOrderOnly ? (
-              /* No per-card button — the whole card is tappable */
               <span className="text-[11px] font-medium text-primary select-none">
                 Tap to pre-order
               </span>
