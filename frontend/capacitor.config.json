@@ -1,0 +1,9 @@
+{
+  "appId": "in.broandbro.app",
+  "appName": "BroBro Food Delivery",
+  "webDir": "dist",
+  "ios": {
+    "contentInset": "automatic",
+    "backgroundColor": "#fffaf0"
+  }
+}
