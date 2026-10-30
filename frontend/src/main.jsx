@@ -32,7 +32,27 @@ function markNativePlatform() {
   document.documentElement.dataset.nativePlatform = platform;
 }
 
+function keepSameOriginLinksInNativeShell() {
+  if (!Capacitor.isNativePlatform()) return;
+
+  document.addEventListener("click", (event) => {
+    if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+      return;
+    }
+
+    const anchor = event.target instanceof Element ? event.target.closest("a[href]") : null;
+    if (!anchor || anchor.target !== "_blank") return;
+
+    const url = new URL(anchor.href, window.location.href);
+    if (url.origin !== window.location.origin) return;
+
+    event.preventDefault();
+    window.location.assign(`${url.pathname}${url.search}${url.hash}`);
+  });
+}
+
 markNativePlatform();
+keepSameOriginLinksInNativeShell();
 
 function registerServiceWorker() {
   // Capacitor packages the web assets locally. A service worker is unnecessary in
