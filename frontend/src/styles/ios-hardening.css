@@ -1,6 +1,11 @@
-/* iOS App Store compliance hardening.
+/* iOS App Store compliance hardening plus shared mobile keyboard behavior.
  * This layer changes presentation/hit areas only; it does not alter business logic.
  */
+
+:root {
+  --app-keyboard-inset: 0px;
+  --app-visible-viewport-height: 100dvh;
+}
 
 html.capacitor-ios {
   -webkit-text-size-adjust: 100%;
@@ -54,6 +59,47 @@ html.capacitor-ios .ios-safe-top {
 html.capacitor-ios :focus-visible {
   outline: 2px solid currentColor;
   outline-offset: 2px;
+}
+
+/* Shared Android + iOS soft-keyboard hardening. visualViewport updates the
+ * variables from mobileKeyboard.js while a text control is focused.
+ */
+html.mobile-keyboard-open {
+  scroll-padding-top: max(16px, env(safe-area-inset-top, 0px));
+  scroll-padding-bottom: calc(var(--app-keyboard-inset) + 24px);
+}
+
+html.mobile-keyboard-open body {
+  min-height: var(--app-visible-viewport-height);
+}
+
+/* Bottom navigation/cart actions are redundant while typing and are a common
+ * source of keyboard overlap. They return immediately when the keyboard closes.
+ */
+html.mobile-keyboard-open [data-mobile-navigation],
+html.mobile-keyboard-open [data-sticky-cart-bar] {
+  transform: translateY(160%) !important;
+  pointer-events: none !important;
+}
+
+/* Keep modal forms usable in the visible area above the software keyboard. */
+html.mobile-keyboard-open [role="dialog"] {
+  max-height: calc(var(--app-visible-viewport-height) - 20px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* Prevent iOS from zooming the page when a form control receives focus and
+ * keep Android/iOS typing controls comfortably readable.
+ */
+@media (pointer: coarse) {
+  :where(
+    input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+    textarea,
+    select
+  ) {
+    font-size: max(16px, 1em);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
