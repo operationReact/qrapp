@@ -7,11 +7,21 @@ export function PhoneInput({
   className,
   icon: Icon = PhoneIcon,
   iconClassName = "text-emerald-500",
+  type = "tel",
+  inputMode = "tel",
+  autoComplete = "tel",
+  enterKeyHint = "next",
   ...props
 }) {
   return (
     <InputGroup className={className}>
-      <InputGroupInput {...props} />
+      <InputGroupInput
+        type={type}
+        inputMode={inputMode}
+        autoComplete={autoComplete}
+        enterKeyHint={enterKeyHint}
+        {...props}
+      />
       <InputGroupAddon align="inline-start">
         {createElement(Icon, {
           size: 18,
