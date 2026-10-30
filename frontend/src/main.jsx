@@ -1,6 +1,7 @@
 // import './setupErrorHandler';
 import React from "react";
 import ReactDOM from "react-dom/client";
+import { Capacitor } from "@capacitor/core";
 import { RouterProvider } from '@tanstack/react-router'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { router } from './router'
@@ -8,6 +9,7 @@ import "./index.css";
 import "./styles/auth-login.css";
 import "./styles/partner-header-branding.css";
 import "./styles/partner-dashboard.css";
+import "./styles/ios-hardening.css";
 import ErrorBoundary from './components/ErrorBoundary';
 
 const queryClient = new QueryClient({
@@ -23,8 +25,19 @@ const queryClient = new QueryClient({
 
 const rootEl = document.getElementById("root");
 
+function markNativePlatform() {
+  if (!Capacitor.isNativePlatform()) return;
+  const platform = Capacitor.getPlatform();
+  document.documentElement.classList.add("capacitor-native", `capacitor-${platform}`);
+  document.documentElement.dataset.nativePlatform = platform;
+}
+
+markNativePlatform();
+
 function registerServiceWorker() {
-  if (!import.meta.env.PROD || !("serviceWorker" in navigator)) {
+  // Capacitor packages the web assets locally. A service worker is unnecessary in
+  // the native shell and can make review/testing behavior harder to reason about.
+  if (Capacitor.isNativePlatform() || !import.meta.env.PROD || !("serviceWorker" in navigator)) {
     return;
   }
 
