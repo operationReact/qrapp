@@ -75,9 +75,12 @@ html.mobile-keyboard-open body {
 
 /* Bottom navigation/cart actions are redundant while typing and are a common
  * source of keyboard overlap. They return immediately when the keyboard closes.
+ * Data attributes are preferred; class fallbacks cover the existing shared bars.
  */
 html.mobile-keyboard-open [data-mobile-navigation],
-html.mobile-keyboard-open [data-sticky-cart-bar] {
+html.mobile-keyboard-open [data-sticky-cart-bar],
+html.mobile-keyboard-open nav.fixed.inset-x-0.bottom-0.z-40,
+html.mobile-keyboard-open div.fixed.inset-x-0.z-\[45\] {
   transform: translateY(160%) !important;
   pointer-events: none !important;
 }
