@@ -1,6 +1,6 @@
 {
   "appId": "in.broandbro.app",
-  "appName": "BroBro Food Delivery",
+  "appName": "Bro and Bro",
   "webDir": "dist",
   "ios": {
     "contentInset": "automatic",
