@@ -199,6 +199,20 @@ module "rds" {
   multi_az              = false # set true (~$26/mo) when uptime is critical
 }
 
+# EC2 reads ONLY the RDS-managed master secret of its own environment.
+resource "aws_iam_role_policy" "db_secret_reader" {
+  name = "broandbro-prod-db-secret-reader"
+  role = module.ec2.role_name
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect = "Allow"
+      Action = ["secretsmanager:GetSecretValue"]
+      Resource = module.rds.db_secret_arn
+    }]
+  })
+}
+
 # ── CloudWatch Monitoring ─────────────────────────────────────────────────────
 module "cloudwatch" {
   source = "../../modules/cloudwatch"

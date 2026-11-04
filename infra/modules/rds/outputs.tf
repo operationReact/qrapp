@@ -23,3 +23,8 @@ output "ssm_db_secret_arn_path" {
   value       = aws_ssm_parameter.db_secret_arn.name
   description = "SSM path storing the automatically generated RDS master secret ARN"
 }
+
+output "db_secret_arn" {
+  description = "RDS-managed secret ARN (not the credential value)"
+  value       = aws_db_instance.this.master_user_secret[0].secret_arn
+}

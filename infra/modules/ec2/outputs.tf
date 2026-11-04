@@ -18,3 +18,8 @@ output "ssm_ec2_ip_path" {
   description = "SSM path where the EC2 Elastic IP is stored – used by deploy workflows"
 }
 
+
+output "role_name" {
+  description = "EC2 IAM role name, used to grant RDS secret read access"
+  value       = aws_iam_role.ec2.name
+}
