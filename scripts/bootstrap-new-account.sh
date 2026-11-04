@@ -23,8 +23,8 @@ echo "Keep bootstrap terraform.tfstate safe: it uses local state and must NOT be
 
 if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
   echo "Configuring GitHub environments, variables and OIDC role ARNs"
+  "$ROOT/scripts/configure-github-environments.sh" "$REPO"
   for ENV in dev prod; do
-    gh api "repos/$REPO/environments/$ENV" >/dev/null 2>&1 || gh api -X PUT "repos/$REPO/environments/$ENV" >/dev/null
     gh variable set AWS_NEW_ACCOUNT_ID --env "$ENV" --repo "$REPO" --body "$TARGET_ACCOUNT"
     gh variable set TF_STATE_BUCKET --env "$ENV" --repo "$REPO" --body "$BUCKET"
     gh variable set API_DOMAIN --env "$ENV" --repo "$REPO" --body "migrate-$ENV-api.broandbro.in"
@@ -35,7 +35,7 @@ if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
       gh secret set "AWS_${UPPER}_ROLE_ARN" --env "$ENV" --repo "$REPO" --body "$ROLE"
     done
   done
-  echo "GitHub migration environments configured. Protect prod with required reviewers."
+  echo "GitHub migration environments configured with enforced branch restrictions."
 else
   echo "GitHub CLI not authenticated. Configure AWS_NEW_ACCOUNT_ID, TF_STATE_BUCKET,"
   echo "and AWS_TERRAFORM_ROLE_ARN/AWS_FRONTEND_ROLE_ARN/AWS_BACKEND_ROLE_ARN"

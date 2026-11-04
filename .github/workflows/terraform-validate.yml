@@ -64,6 +64,7 @@ jobs:
       - name: Check Bash script syntax
         run: |
           for script in scripts/bootstrap-new-account.sh \
+                        scripts/configure-github-environments.sh \
                         scripts/set-external-ssm-parameter.sh \
                         scripts/migrate-external-ssm.sh \
                         scripts/mirror-route53-records.sh; do
