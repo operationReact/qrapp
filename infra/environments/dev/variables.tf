@@ -97,8 +97,14 @@ variable "schedule_rds_start_cron" {
   type    = string
   default = "cron(0 9 ? * MON-FRI *)"
 }
-variable "schedule_ec2_start_cron" { type = string, default = "cron(30 9 ? * MON-FRI *)" }
-variable "schedule_ec2_stop_cron" { type = string, default = "cron(0 20 ? * MON-FRI *)" }
+variable "schedule_ec2_start_cron" {
+  type    = string
+  default = "cron(30 9 ? * MON-FRI *)"
+}
+variable "schedule_ec2_stop_cron" {
+  type    = string
+  default = "cron(0 20 ? * MON-FRI *)"
+}
 variable "schedule_rds_stop_cron" {
   type    = string
   default = "cron(15 20 ? * MON-FRI *)"
