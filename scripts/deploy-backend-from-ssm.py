@@ -89,12 +89,18 @@ def main():
     config = app / "config/application.env"
     temporary = app / "config/application.env.new"
     new_jar = app / "app.jar.new"
+    os.umask(0o077)
     subprocess.run(["aws", "s3", "cp", jar_uri, str(new_jar),
                     "--region", "us-east-1", "--only-show-errors"], check=True)
     shutil.chown(new_jar, user="broandbro", group="broandbro")
     new_jar.chmod(0o640)
 
-    with temporary.open("w", encoding="utf-8") as stream:
+    # Create credential-bearing file with 0600 permissions at OPEN time.
+    # O_EXCL also refuses symlink/stale-file overwrites.
+    if temporary.exists():
+        temporary.unlink()
+    fd = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    with os.fdopen(fd, "w", encoding="utf-8") as stream:
         for key, value in values.items():
             if "\n" in value or "\r" in value:
                 raise RuntimeError("Newline forbidden in systemd environment value: " + key)

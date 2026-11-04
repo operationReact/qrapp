@@ -43,17 +43,21 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
-      - name: Install dependencies
-        working-directory: frontend
+      - name: Validate new-account preview API URL before building
+        env:
+          API_URL: ${{ vars.API_URL }}
+          ACCOUNT_ID: ${{ vars.AWS_NEW_ACCOUNT_ID }}
         run: |
-          # Try the strict, reproducible install first. If the lockfile is out of sync
-          # `npm ci` will fail; fall back to `npm install` as a temporary CI workaround.
-          if npm ci; then
-            echo "npm ci succeeded"
-          else
-            echo "npm ci failed — falling back to npm install"
-            npm install --no-audit --no-fund
+          set -euo pipefail
+          [[ "$ACCOUNT_ID" =~ ^[0-9]{12}$ ]] || { echo "::error::New AWS account is not configured"; exit 1; }
+          if [[ "$API_URL" != "https://migrate-prod-api.broandbro.in" ]]; then
+            echo "::error::Expected the new-account prod preview API URL; refusing build"
+            exit 1
           fi
+
+      - name: Install locked dependencies (reproducible)
+        working-directory: frontend
+        run: npm ci --no-audit --no-fund
 
       - name: Build Vite app
         working-directory: frontend
@@ -63,12 +67,16 @@ jobs:
           VITE_ENV: "prod"
           NODE_ENV: "production"
 
-      - name: Verify API URL was baked in
+      - name: Verify built bundle API target (fail closed)
         working-directory: frontend
+        env:
+          API_URL: ${{ vars.API_URL }}
         run: |
-          echo "Checking that VITE_API_URL was baked into the bundle..."
-          grep -r "\"https://migrate-prod-api.broandbro.in\"" dist/ --include="*.js" -l && echo "✅ migrate-prod-api.broandbro.in found in bundle" || echo "❌ WARNING: migrate-prod-api.broandbro.in NOT found in bundle!"
-          grep -r "dev-migrate-prod-api.broandbro.in" dist/ --include="*.js" -l && echo "❌ WARNING: dev URL present in prod bundle!" || echo "✅ Dev URL not in prod bundle"
+          set -euo pipefail
+          if ! grep -FRq -- "$API_URL" dist/assets; then
+            echo "::error::Expected API_URL missing from frontend bundle; aborting deployment"
+            exit 1
+          fi
 
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
@@ -159,7 +167,7 @@ jobs:
         run: |
           echo "## ✅ Frontend Deployed to Production" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- **URL:** https://broandbro.in" >> $GITHUB_STEP_SUMMARY
+          echo "- **URL:** https://migrate-prod.broandbro.in" >> "$GITHUB_STEP_SUMMARY"
           echo "- **Bucket:** ${{ env.S3_BUCKET }}" >> $GITHUB_STEP_SUMMARY
           echo "- **CloudFront:** $CF_DIST_ID" >> $GITHUB_STEP_SUMMARY
           echo "- **Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
