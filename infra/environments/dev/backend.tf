@@ -1,14 +1,5 @@
-# =============================================================================
-# DEV environment – Terraform backend config
-# State stored at: env/dev/terraform.tfstate
-# =============================================================================
+# Backend bucket is chosen during terraform init, from the new account bootstrap.
+# No hardcoded old-account bucket names or deprecated DynamoDB locking.
 terraform {
-  backend "s3" {
-    bucket         = "broandbro-tfstate-us-east-1"
-    key            = "env/dev/terraform.tfstate"
-    region         = "us-east-1"
-    encrypt        = true
-    dynamodb_table = "broandbro-tf-lock"
-  }
+  backend "s3" {}
 }
-
