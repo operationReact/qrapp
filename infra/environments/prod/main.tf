@@ -215,6 +215,10 @@ module "cost_schedule" {
   environment      = "prod"
   aws_region       = var.aws_region
   timezone         = var.schedule_timezone
+  rds_start_cron   = var.schedule_rds_start_cron
+  ec2_start_cron   = var.schedule_ec2_start_cron
+  ec2_stop_cron    = var.schedule_ec2_stop_cron
+  rds_stop_cron    = var.schedule_rds_stop_cron
   ec2_instance_id  = module.ec2.instance_id
   rds_instance_id  = module.rds.db_instance_id
 }

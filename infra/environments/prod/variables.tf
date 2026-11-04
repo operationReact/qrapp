@@ -97,3 +97,15 @@ variable "expected_account_id" {
     error_message = "Set expected_account_id to the target 12-digit AWS account ID."
   }
 }
+
+# All schedule expressions use schedule_timezone, default Asia/Kolkata.
+variable "schedule_rds_start_cron" {
+  type    = string
+  default = "cron(0 9 ? * MON-FRI *)"
+}
+variable "schedule_ec2_start_cron" { type = string, default = "cron(30 9 ? * MON-FRI *)" }
+variable "schedule_ec2_stop_cron" { type = string, default = "cron(0 20 ? * MON-FRI *)" }
+variable "schedule_rds_stop_cron" {
+  type    = string
+  default = "cron(15 20 ? * MON-FRI *)"
+}
