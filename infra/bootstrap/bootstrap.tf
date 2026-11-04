@@ -216,16 +216,13 @@ resource "aws_iam_role_policy" "backend" {
     Version = "2012-10-17"
     Statement = [
       {
-        Sid = "ReadAppConfig", Effect = "Allow"
-        Action = ["ssm:GetParameter", "ssm:GetParameters", "ssm:GetParametersByPath"]
-        Resource = [
-          "arn:aws:ssm:${var.aws_region}:${local.account_id}:parameter/broandbro/backend/${each.key}/*",
-          "arn:aws:ssm:${var.aws_region}:${local.account_id}:parameter/broandbro/${each.key}/*"
-        ]
+        Sid = "ReadArtifactBucketNameOnly", Effect = "Allow"
+        Action = ["ssm:GetParameter"]
+        Resource = "arn:aws:ssm:${var.aws_region}:${local.account_id}:parameter/broandbro/backend/${each.key}/aws/s3/artifactBucketName"
       },
       {
         Sid = "WriteArtifact", Effect = "Allow"
-        Action = ["s3:PutObject", "s3:GetObject", "s3:DeleteObject"]
+        Action = ["s3:PutObject"]
         Resource = "arn:aws:s3:::broandbro-${each.key}-artifacts-${local.account_id}/deploy/${each.key}/*"
       },
       {
@@ -244,13 +241,8 @@ resource "aws_iam_role_policy" "backend" {
         Resource = "arn:aws:ssm:${var.aws_region}::document/AWS-RunShellScript"
       },
       {
-        Sid = "RDSManagedMasterSecret", Effect = "Allow"
-        Action = ["secretsmanager:GetSecretValue"]
-        Resource = "arn:aws:secretsmanager:${var.aws_region}:${local.account_id}:secret:rds!*"
-      },
-      {
         Sid = "InspectCommands", Effect = "Allow"
-        Action = ["ssm:GetCommandInvocation", "ssm:ListCommandInvocations", "ssm:DescribeInstanceInformation", "ec2:DescribeInstances", "ec2:RebootInstances"]
+        Action = ["ssm:GetCommandInvocation", "ec2:DescribeInstances"]
         Resource = "*"
       }
     ]

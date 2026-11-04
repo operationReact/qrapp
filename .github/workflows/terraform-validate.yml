@@ -79,6 +79,17 @@ jobs:
               exit 1
             fi
           done
+      - name: Ensure CI backend role cannot read application secrets
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          text = Path("infra/bootstrap/bootstrap.tf").read_text()
+          role = text.split('resource "aws_iam_role_policy" "backend" {', 1)[1].split('output "account_id"', 1)[0]
+          assert "ReadArtifactBucketNameOnly" in role
+          assert "secretsmanager:GetSecretValue" not in role
+          assert "ssm:GetParametersByPath" not in role
+          assert "ec2:RebootInstances" not in role
+          PY
       - name: Enforce environment-isolated Systems Manager deployments
         run: |
           grep -Fq 'RunCommandsOnlyOnOwnEnvironment' infra/bootstrap/bootstrap.tf
