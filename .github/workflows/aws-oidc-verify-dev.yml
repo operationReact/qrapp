@@ -1,0 +1,44 @@
+name: Verify New AWS Account OIDC (No CloudShell)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  verify:
+    if: github.ref == 'refs/heads/dev'
+    runs-on: ubuntu-latest
+    environment: dev
+    steps:
+      - name: Validate expected target
+        env:
+          EXPECTED_ACCOUNT: ${{ vars.AWS_NEW_ACCOUNT_ID }}
+          EXPECTED_REGION: ${{ vars.AWS_REGION }}
+          STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
+        run: |
+          set -euo pipefail
+          [[ "$EXPECTED_ACCOUNT" == "098859530205" ]] || { echo "::error::Unexpected account"; exit 1; }
+          [[ "$EXPECTED_REGION" == "ap-south-1" ]] || { echo "::error::Unexpected region"; exit 1; }
+          [[ "$STATE_BUCKET" == "broandbro-tfstate-$EXPECTED_ACCOUNT-$EXPECTED_REGION" ]] || { echo "::error::Unexpected state bucket"; exit 1; }
+      - name: Authenticate using OIDC (no AWS key)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_TERRAFORM_ROLE_ARN }}
+          aws-region: ap-south-1
+      - name: Read-only verification
+        env:
+          ACCOUNT: ${{ vars.AWS_NEW_ACCOUNT_ID }}
+          STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
+        run: |
+          set -euo pipefail
+          ACTUAL="$(aws sts get-caller-identity --query Account --output text)"
+          [[ "$ACTUAL" == "$ACCOUNT" ]] || { echo "::error::Wrong AWS account"; exit 1; }
+          aws s3api head-bucket --bucket "$STATE_BUCKET" --region ap-south-1
+          [[ "$(aws s3api get-bucket-versioning --bucket "$STATE_BUCKET" --query Status --output text)" == Enabled ]] || exit 1
+          echo "### GitHub OIDC authenticated to new AWS account" >> "$GITHUB_STEP_SUMMARY"
+          echo "Account: $ACCOUNT" >> "$GITHUB_STEP_SUMMARY"
+          echo "Region: ap-south-1" >> "$GITHUB_STEP_SUMMARY"
+          echo "Private Terraform state bucket verified; no infrastructure deployed." >> "$GITHUB_STEP_SUMMARY"
