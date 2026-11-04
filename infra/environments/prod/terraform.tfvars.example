@@ -32,3 +32,5 @@ alarm_email = "your-email@example.com"
 # Production media bucket for AI-generated menu images
 media_bucket_name = "broandbro-prod-root-bucket"
 
+
+# REQUIRED: supply via TF_VAR_expected_account_id (never use the old AWS account)

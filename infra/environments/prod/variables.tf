@@ -88,3 +88,12 @@ variable "api_hostname" {
   type    = string
   default = "migrate-prod-api.broandbro.in"
 }
+
+variable "expected_account_id" {
+  type        = string
+  description = "12-digit target AWS account ID. Terraform refuses an unmatched caller."
+  validation {
+    condition     = can(regex("^[0-9]{12}$", var.expected_account_id))
+    error_message = "Set expected_account_id to the target 12-digit AWS account ID."
+  }
+}

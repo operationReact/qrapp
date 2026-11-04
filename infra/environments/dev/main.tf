@@ -53,6 +53,17 @@ provider "aws" {
 # ── Account-specific globally unique S3 names ───────────────────────────
 data "aws_caller_identity" "current" {}
 
+# Guard even direct Terraform CLI applies (not just GitHub workflow runs).
+resource "terraform_data" "account_guard" {
+  input = data.aws_caller_identity.current.account_id
+  lifecycle {
+    precondition {
+      condition     = data.aws_caller_identity.current.account_id == var.expected_account_id
+      error_message = "Unsafe AWS account: caller identity does not match expected_account_id."
+    }
+  }
+}
+
 locals {
   frontend_bucket = var.frontend_bucket_name != "" ? var.frontend_bucket_name : "broandbro-dev-ui-${data.aws_caller_identity.current.account_id}"
   media_bucket    = var.media_bucket_name != "" ? var.media_bucket_name : "broandbro-dev-media-${data.aws_caller_identity.current.account_id}"

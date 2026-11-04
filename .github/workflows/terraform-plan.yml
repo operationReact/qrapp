@@ -53,6 +53,8 @@ jobs:
             -backend-config="encrypt=true" \
             -backend-config="use_lockfile=true"
       - name: Validate and plan with state locking
+        env:
+          TF_VAR_expected_account_id: ${{ vars.AWS_NEW_ACCOUNT_ID }}
         run: |
           terraform validate
           terraform plan -input=false -no-color
