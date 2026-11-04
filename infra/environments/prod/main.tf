@@ -114,6 +114,16 @@ module "acm" {
   existing_certificate_arn    = var.existing_certificate_arn
 }
 
+# ── Production WAF managed in this AWS account ───────────────────────────────
+module "waf" {
+  count       = var.enable_waf ? 1 : 0
+  source      = "../../modules/waf"
+  environment = "prod"
+  providers = {
+    aws.us_east_1 = aws.us_east_1
+  }
+}
+
 # ── CloudFront distribution ───────────────────────────────────────────────────
 module "cloudfront" {
   source = "../../modules/cloudfront"
@@ -125,7 +135,7 @@ module "cloudfront" {
   acm_certificate_arn            = module.acm.certificate_arn
   domain_aliases                 = var.frontend_hostname == var.domain_name ? [var.domain_name, "www.${var.domain_name}"] : [var.frontend_hostname]
   price_class                    = "PriceClass_200"
-  web_acl_id                     = var.cloudfront_web_acl_id
+  web_acl_id                     = var.enable_waf ? module.waf[0].web_acl_arn : ""
 }
 
 # ── S3 frontend bucket ────────────────────────────────────────────────────────

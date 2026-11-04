@@ -59,10 +59,10 @@ variable "existing_certificate_arn" {
   default     = ""
 }
 
-variable "cloudfront_web_acl_id" {
-  description = "Existing WAF web ACL ARN attached to the production CloudFront distribution"
-  type        = string
-  default     = "arn:aws:wafv2:us-east-1:816344830716:global/webacl/CreatedByCloudFront-86c2086a/ee229c0f-bb44-401b-a40a-7ce132c5a96b"
+variable "enable_waf" {
+  type        = bool
+  description = "Enable account-owned CloudFront WAF (additional monthly AWS WAF charges)."
+  default     = true
 }
 
 # EC2 and RDS are the only scheduled services. S3, CloudFront, EBS and EIPs
