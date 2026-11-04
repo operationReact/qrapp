@@ -24,8 +24,10 @@ def parameter(name, required=False):
         if required:
             raise RuntimeError("Required configuration parameter absent: " + name)
         return ""
-    if required and value in ("", "None", "MISSING_EXTERNAL_CREDENTIAL"):
-        raise RuntimeError("Required configuration parameter unset: " + name)
+    if value in ("", "None", "MISSING_EXTERNAL_CREDENTIAL"):
+        if required:
+            raise RuntimeError("Required configuration parameter unset: " + name)
+        return ""
     return value
 
 def main():
