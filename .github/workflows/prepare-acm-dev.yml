@@ -105,7 +105,8 @@ jobs:
               if not value.endswith(".acm-validations.aws."):
                   raise SystemExit("Unexpected DNS validation destination")
               names.add(name)
-              summary.append(f"| {row[\x27DomainName\x27]} | {rtype} | \`{name}\` | \`{value}\` |")
+              domain = row.get("DomainName", "")
+              summary.append(f"| {domain} | {rtype} | {name} | {value} |")
           if not names: raise SystemExit("ACM has not returned DNS validation records")
           summary+=["", "Copy these CNAME records into the existing authoritative DNS zone, then wait for ACM issuance.",
                     "All application resources will remain in Mumbai; CloudFront ACM is in us-east-1."]
