@@ -176,9 +176,9 @@ resource "aws_instance" "this" {
   associate_public_ip_address = true
   iam_instance_profile   = aws_iam_instance_profile.ec2.name
 
-  user_data = base64encode(templatefile("${path.module}/userdata.sh", {
+  user_data = templatefile("${path.module}/userdata.sh", {
     environment = var.environment
-  }))
+  })
 
   root_block_device {
     volume_type           = "gp3"
