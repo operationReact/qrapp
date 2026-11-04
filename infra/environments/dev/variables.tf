@@ -71,3 +71,14 @@ variable "schedule_timezone" {
   type    = string
   default = "Asia/Kolkata"
 }
+
+# Migration preview hostnames avoid conflicting with the old CloudFront aliases.
+# Switch these to final names only during the controlled production cutover.
+variable "frontend_hostname" {
+  type    = string
+  default = "migrate-dev.broandbro.in"
+}
+variable "api_hostname" {
+  type    = string
+  default = "migrate-dev-api.broandbro.in"
+}

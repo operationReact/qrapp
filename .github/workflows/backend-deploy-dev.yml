@@ -141,8 +141,11 @@ jobs:
           OPENAI_API_KEY=$(get_optional_parameter "/broandbro/backend/dev/openai/apiKey")
 
           S3_BUCKET=$(get_optional_parameter "/broandbro/backend/dev/aws/s3/bucketName")
-          S3_BUCKET=${S3_BUCKET:-broandbro-dev-root-bucket}
-          S3_LOCATION_BUCKET=broandbro-location-images-dev
+          test -n "$S3_BUCKET" || { echo "Missing S3 media parameter"; exit 1; }
+          S3_LOCATION_BUCKET=$(get_optional_parameter "/broandbro/backend/dev/aws/s3/locationBucketName")
+          test -n "$S3_LOCATION_BUCKET" || { echo "Missing location bucket parameter"; exit 1; }
+          ARTIFACT_BUCKET=$(get_optional_parameter "/broandbro/backend/dev/aws/s3/artifactBucketName")
+          test -n "$ARTIFACT_BUCKET" || { echo "Missing private deploy bucket parameter"; exit 1; }
           S3_REGION=us-east-1
           S3_ENABLED=$(get_optional_parameter "/broandbro/backend/dev/aws/s3/enabled")
           S3_ENABLED=${S3_ENABLED:-true}
@@ -183,6 +186,7 @@ jobs:
           echo "DB_PASSWORD=$DB_PASSWORD" >> $GITHUB_ENV
           echo "OPENAI_API_KEY=$OPENAI_API_KEY" >> $GITHUB_ENV
           echo "S3_BUCKET=$S3_BUCKET" >> $GITHUB_ENV
+          echo "ARTIFACT_BUCKET=$ARTIFACT_BUCKET" >> $GITHUB_ENV
           echo "S3_LOCATION_BUCKET=$S3_LOCATION_BUCKET" >> $GITHUB_ENV
           echo "S3_REGION=$S3_REGION" >> $GITHUB_ENV
           echo "S3_ENABLED=$S3_ENABLED" >> $GITHUB_ENV
@@ -198,7 +202,7 @@ jobs:
       - name: Validate WhatsApp webhook configuration
         run: |
           for REQUIRED in WHATSAPP_WEBHOOK_VERIFY_TOKEN WHATSAPP_APP_SECRET WHATSAPP_PHONE_NUMBER_ID WHATSAPP_ACCESS_TOKEN; do
-            if [ -z "${!REQUIRED}" ]; then
+            if [ -z "${!REQUIRED}" ] || [ "${!REQUIRED}" = "MISSING_EXTERNAL_CREDENTIAL" ]; then
               echo "❌ $REQUIRED not found in SSM for dev. Aborting deploy." >&2
               exit 1
             fi
@@ -213,7 +217,7 @@ jobs:
         env:
           RUN_ID: ${{ github.run_id }}
         run: |
-          S3_PREFIX="s3://broandbro-dev-root-bucket/deploy/dev/${RUN_ID}"
+          S3_PREFIX="s3://${ARTIFACT_BUCKET}/deploy/dev/${RUN_ID}"
 
           # a) JAR
           echo "📦 Uploading JAR..."
@@ -226,7 +230,7 @@ jobs:
           cat > /tmp/application.env << EOF
           SPRING_PROFILES_ACTIVE=dev
           SERVER_PORT=8080
-          APP_CORS_ALLOWED_ORIGINS=https://develop.broandbro.in,http://localhost:5173
+          APP_CORS_ALLOWED_ORIGINS=https://migrate-dev.broandbro.in,http://localhost:5173
 
           SPRING_DATASOURCE_URL=${DB_URL}
           SPRING_DATASOURCE_USERNAME=${DB_USERNAME}
@@ -263,7 +267,7 @@ jobs:
           #!/bin/bash
           set -euo pipefail
           RID="${RUN_ID}"
-          S3="s3://broandbro-dev-root-bucket/deploy/dev/\${RID}"
+          S3="s3://${ARTIFACT_BUCKET}/deploy/dev/\${RID}"
 
           echo "⬇️  Downloading JAR..."
           aws s3 cp "\${S3}/app.jar" /tmp/app-new.jar --region us-east-1
@@ -284,9 +288,9 @@ jobs:
           systemctl restart broandbro
 
           echo "🔒  Ensuring HTTPS is configured..."
-          if [ ! -d /etc/letsencrypt/live/dev-api.broandbro.in ]; then
+          if [ ! -d /etc/letsencrypt/live/migrate-dev-api.broandbro.in ]; then
             timeout 5m certbot --nginx \
-              -d dev-api.broandbro.in \
+              -d migrate-dev-api.broandbro.in \
               --email admin@broandbro.in \
               --agree-tos \
               --no-eff-email \
@@ -418,7 +422,7 @@ jobs:
           INSTANCE_ID: ${{ steps.ec2.outputs.id }}
           RUN_ID:      ${{ github.run_id }}
         run: |
-          S3_SCRIPT="s3://broandbro-dev-root-bucket/deploy/dev/${RUN_ID}/deploy.sh"
+          S3_SCRIPT="s3://${ARTIFACT_BUCKET}/deploy/dev/${RUN_ID}/deploy.sh"
           CMD="aws s3 cp ${S3_SCRIPT} /tmp/deploy_${RUN_ID}.sh --region us-east-1 \
             && bash /tmp/deploy_${RUN_ID}.sh \
             ; rm -f /tmp/deploy_${RUN_ID}.sh"
@@ -496,5 +500,5 @@ jobs:
         if: always()
         run: |
           aws s3 rm \
-            s3://broandbro-dev-root-bucket/deploy/dev/${{ github.run_id }}/ \
+            s3://${ARTIFACT_BUCKET}/deploy/dev/${{ github.run_id }}/ \
             --recursive || true

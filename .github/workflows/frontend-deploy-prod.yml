@@ -7,11 +7,6 @@
 name: Frontend Deploy-Prod
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - "frontend/**"
-      - ".github/workflows/frontend-deploy-prod.yml"
   workflow_dispatch:
     inputs:
       reason:
@@ -26,7 +21,7 @@ permissions:
 env:
   NODE_VERSION: "22"
   AWS_REGION: "us-east-1"
-  S3_BUCKET: "broandbro-prod-ui"
+  S3_BUCKET: "broandbro-prod-ui-${{ vars.AWS_NEW_ACCOUNT_ID }}"
   # NOTE: CloudFront distribution ID is read from SSM during deploy steps.
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
@@ -63,7 +58,7 @@ jobs:
         working-directory: frontend
         run: npm run build
         env:
-          VITE_API_URL: "https://api.broandbro.in"
+          VITE_API_URL: ${{ vars.API_URL }}
           VITE_ENV: "prod"
           NODE_ENV: "production"
 
@@ -71,14 +66,22 @@ jobs:
         working-directory: frontend
         run: |
           echo "Checking that VITE_API_URL was baked into the bundle..."
-          grep -r "\"https://api.broandbro.in\"" dist/ --include="*.js" -l && echo "✅ api.broandbro.in found in bundle" || echo "❌ WARNING: api.broandbro.in NOT found in bundle!"
-          grep -r "dev-api.broandbro.in" dist/ --include="*.js" -l && echo "❌ WARNING: dev URL present in prod bundle!" || echo "✅ Dev URL not in prod bundle"
+          grep -r "\"https://migrate-prod-api.broandbro.in\"" dist/ --include="*.js" -l && echo "✅ migrate-prod-api.broandbro.in found in bundle" || echo "❌ WARNING: migrate-prod-api.broandbro.in NOT found in bundle!"
+          grep -r "dev-migrate-prod-api.broandbro.in" dist/ --include="*.js" -l && echo "❌ WARNING: dev URL present in prod bundle!" || echo "✅ Dev URL not in prod bundle"
 
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          role-to-assume: ${{ secrets.AWS_FRONTEND_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
+
+      - name: Require new account
+        env:
+          EXPECTED_ACCOUNT: ${{ vars.AWS_NEW_ACCOUNT_ID }}
+        run: |
+          test -n "$EXPECTED_ACCOUNT" || { echo "::error::AWS_NEW_ACCOUNT_ID not configured"; exit 1; }
+          ACTUAL=$(aws sts get-caller-identity --query Account --output text)
+          test "$ACTUAL" = "$EXPECTED_ACCOUNT" || { echo "::error::Wrong AWS account"; exit 1; }
 
       - name: Resolve CloudFront distribution ID
         run: |

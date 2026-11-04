@@ -4,7 +4,7 @@ output "cloudfront_distribution_id" {
 }
 
 output "cloudfront_url" {
-  value       = "https://dev.broandbro.in"
+  value       = "https://${var.frontend_hostname}"
   description = "Dev frontend URL"
 }
 

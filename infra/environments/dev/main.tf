@@ -105,10 +105,7 @@ module "acm" {
   }
 
   domain_name = var.domain_name
-  subject_alternative_names = [
-    "develop.${var.domain_name}",
-    "dev-api.${var.domain_name}",
-  ]
+
   hosted_zone_name            = var.domain_name
   environment                 = "dev"
   existing_certificate_arn    = var.existing_certificate_arn
@@ -123,7 +120,7 @@ module "cloudfront" {
   s3_bucket_regional_domain_name = module.s3.bucket_regional_domain_name
   s3_oac_id                      = module.s3.oac_id
   acm_certificate_arn            = module.acm.certificate_arn
-  domain_aliases                 = ["develop.${var.domain_name}"]
+  domain_aliases                 = [var.frontend_hostname]
   price_class                    = "PriceClass_100" # cheapest – fine for dev
 }
 
@@ -191,10 +188,10 @@ module "route53" {
   source = "../../modules/route53"
 
   hosted_zone_name          = var.domain_name
-  apex_domain               = "develop.${var.domain_name}"
-  api_subdomain             = "dev-api.${var.domain_name}"
+  apex_domain               = var.frontend_hostname
+  api_subdomain             = var.api_hostname
   cloudfront_domain_name    = module.cloudfront.domain_name
   cloudfront_hosted_zone_id = module.cloudfront.hosted_zone_id
   ec2_elastic_ip            = module.ec2.elastic_ip
-  create_www_record         = false # dev doesn't need www
+  create_www_record         = false
 }

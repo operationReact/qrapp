@@ -106,7 +106,8 @@ module "acm" {
   domain_name = var.domain_name
   subject_alternative_names = [
     "www.${var.domain_name}",
-    "api.${var.domain_name}",
+    var.frontend_hostname,
+    var.api_hostname,
   ]
   hosted_zone_name            = var.domain_name
   environment                 = "prod"
@@ -122,7 +123,7 @@ module "cloudfront" {
   s3_bucket_regional_domain_name = module.s3.bucket_regional_domain_name
   s3_oac_id                      = module.s3.oac_id
   acm_certificate_arn            = module.acm.certificate_arn
-  domain_aliases                 = [var.domain_name, "www.${var.domain_name}"]
+  domain_aliases                 = var.frontend_hostname == var.domain_name ? [var.domain_name, "www.${var.domain_name}"] : [var.frontend_hostname]
   price_class                    = "PriceClass_200"
   web_acl_id                     = var.cloudfront_web_acl_id
 }
@@ -192,11 +193,11 @@ module "route53" {
   source = "../../modules/route53"
 
   hosted_zone_name          = var.domain_name
-  apex_domain               = var.domain_name
-  api_subdomain             = "api.${var.domain_name}"
+  apex_domain               = var.frontend_hostname
+  api_subdomain             = var.api_hostname
   cloudfront_domain_name    = module.cloudfront.domain_name
   cloudfront_hosted_zone_id = module.cloudfront.hosted_zone_id
   ec2_elastic_ip            = module.ec2.elastic_ip
-  create_www_record         = true
+  create_www_record         = var.frontend_hostname == var.domain_name
 
 }

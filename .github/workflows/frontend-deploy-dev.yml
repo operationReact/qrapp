@@ -20,7 +20,7 @@ permissions:
 env:
   NODE_VERSION: "22"
   AWS_REGION: "us-east-1"
-  S3_BUCKET: "broandbro-develop-ui"
+  S3_BUCKET: "broandbro-dev-ui-${{ vars.AWS_NEW_ACCOUNT_ID }}"
   # NOTE: CF_DISTRIBUTION_ID cannot be set here from secrets – referenced directly in the step below
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
@@ -59,7 +59,7 @@ jobs:
         env:
           # Vite bakes VITE_* env vars into the bundle at build time.
           # This is the single source of truth for the API URL in the dev deployment.
-          VITE_API_URL: "https://dev-api.broandbro.in"
+          VITE_API_URL: ${{ vars.API_URL }}
           VITE_ENV: "dev"
           NODE_ENV: "production"
 
@@ -67,13 +67,13 @@ jobs:
         working-directory: frontend
         run: |
           echo "Checking that VITE_API_URL was baked into the bundle..."
-          grep -r "dev-api.broandbro.in" dist/ --include="*.js" -l && echo "✅ dev-api.broandbro.in found in bundle" || echo "❌ WARNING: dev-api.broandbro.in NOT found in bundle!"
+          grep -r "migrate-dev-api.broandbro.in" dist/ --include="*.js" -l && echo "✅ migrate-dev-api.broandbro.in found in bundle" || echo "❌ WARNING: migrate-dev-api.broandbro.in NOT found in bundle!"
           grep -r "\"https://api.broandbro.in\"" dist/ --include="*.js" -l && echo "❌ WARNING: prod URL still present in bundle" || echo "✅ Prod URL not hardcoded in bundle"
 
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          role-to-assume: ${{ secrets.AWS_FRONTEND_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Guard new AWS account for migration
