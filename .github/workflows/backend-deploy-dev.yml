@@ -1,15 +1,6 @@
 name: Backend Deploy-Dev
 
 on:
-  push:
-    branches: [dev]
-    paths:
-      - "backend/**"
-      - "build.gradle"
-      - "settings.gradle"
-      - "gradle/**"
-      - ".github/workflows/backend-deploy-dev.yml"
-      - "infra/modules/ec2/userdata.sh"
   workflow_dispatch:
     inputs:
       reason:
@@ -83,6 +74,14 @@ jobs:
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: us-east-1
+
+      - name: Guard new AWS account for migration
+        env:
+          EXPECTED_ACCOUNT: ${{ vars.AWS_NEW_ACCOUNT_ID }}
+        run: |
+          test -n "$EXPECTED_ACCOUNT" || { echo "::error::New-account ID missing"; exit 1; }
+          ACTUAL=$(aws sts get-caller-identity --query Account --output text)
+          test "$ACTUAL" = "$EXPECTED_ACCOUNT" || { echo "::error::Refusing old AWS account"; exit 1; }
 
       # Step 6: Resolve EC2 instance ID
       # SSM Run Command needs the instance ID, not the IP address.

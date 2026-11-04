@@ -1,186 +1,74 @@
-# =============================================================================
-# Workflow: terraform-apply-prod.yml
-# Triggered by push to `main` branch when infra/** changes.
-# Applies Terraform to the PROD environment.
-# Requires manual approval via the "prod" GitHub Environment.
-# =============================================================================
-name: Terraform Apply-Prod
+name: Terraform Apply - New Account PROD
 
+# NEVER auto-apply infrastructure on merge to main during account migration.
 on:
-  push:
-    branches: [main]
-    paths:
-      - "infra/**"
-      - ".github/workflows/terraform-apply-prod.yml"
   workflow_dispatch:
     inputs:
-      force_apply:
-        description: "Force apply even without infra changes"
-        required: false
-        default: "false"
+      confirm:
+        description: "Type APPLY_NEW_PROD to provision the NEW AWS account"
+        required: true
+        type: string
 
 permissions:
   id-token: write
   contents: read
 
-env:
-  TF_VERSION: "1.9.5"
-  AWS_REGION: "us-east-1"
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+concurrency:
+  group: terraform-new-account-prod
+  cancel-in-progress: false
 
 jobs:
   apply-prod:
-    name: Terraform Apply - Prod
+    if: inputs.confirm == 'APPLY_NEW_PROD' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment: prod
-
     defaults:
       run:
         working-directory: infra/environments/prod
-
+    env:
+      AWS_REGION: us-east-1
+      TF_IN_AUTOMATION: "true"
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4.2.2
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: ${{ env.TF_VERSION }}
-
-      - name: Configure AWS credentials (OIDC)
-        uses: aws-actions/configure-aws-credentials@v4
+          terraform_version: "1.12.2"
+      - name: Require new-account configuration
+        env:
+          EXPECTED_ACCOUNT: ${{ vars.AWS_NEW_ACCOUNT_ID }}
+          STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
+          DEPLOY_ROLE: ${{ secrets.AWS_TERRAFORM_ROLE_ARN }}
+        run: |
+          test -n "$EXPECTED_ACCOUNT" || { echo "::error::AWS_NEW_ACCOUNT_ID missing"; exit 1; }
+          test -n "$STATE_BUCKET" || { echo "::error::TF_STATE_BUCKET missing"; exit 1; }
+          test -n "$DEPLOY_ROLE" || { echo "::error::AWS_TERRAFORM_ROLE_ARN missing"; exit 1; }
+          case "$EXPECTED_ACCOUNT" in *[!0-9]*|"") exit 1 ;; esac
+          test "${#EXPECTED_ACCOUNT}" -eq 12
+      - uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          role-to-assume: ${{ secrets.AWS_TERRAFORM_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
-
-      - name: Terraform Init
+      - name: Assert account identity
+        env:
+          EXPECTED_ACCOUNT: ${{ vars.AWS_NEW_ACCOUNT_ID }}
         run: |
-          terraform init \
-            -backend-config="bucket=broandbro-tfstate-us-east-1" \
+          ACTUAL=$(aws sts get-caller-identity --query Account --output text)
+          test "$ACTUAL" = "$EXPECTED_ACCOUNT" || { echo "::error::Refusing AWS account $ACTUAL"; exit 1; }
+      - name: Init isolated NEW account state
+        env:
+          TF_STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
+        run: |
+          terraform init -input=false -reconfigure \
+            -backend-config="bucket=$TF_STATE_BUCKET" \
             -backend-config="key=env/prod/terraform.tfstate" \
-            -backend-config="region=us-east-1" \
-            -backend-config="dynamodb_table=broandbro-tf-lock"
-
-      - name: Terraform Validate
-        run: terraform validate
-
-      - name: Two-phase apply for ACM certificate
+            -backend-config="region=$AWS_REGION" \
+            -backend-config="encrypt=true" \
+            -backend-config="use_lockfile=true"
+      - name: Format and validate
         run: |
-          echo "=== Phase 1: Create ACM certificate to get validation options ==="
-          if ! terraform state show module.acm.aws_acm_certificate.this 2>/dev/null; then
-            terraform apply -target=module.acm.aws_acm_certificate.this -auto-approve
-          else
-            echo "Certificate already exists in state"
-          fi
-
-          echo "=== Phase 2: Create validation records now that cert exists ==="
-          if terraform state show module.acm.aws_acm_certificate.this 2>/dev/null; then
-            terraform apply -target=module.acm.aws_route53_record.validation -target=module.acm.aws_acm_certificate_validation.this -auto-approve || echo "Validation resources will be handled in main apply"
-          fi
-
-      - name: Import existing S3 bucket (if orphaned)
-        run: |
-          if aws s3api head-bucket --bucket broandbro-prod-ui 2>/dev/null; then
-            if ! terraform state show module.s3.aws_s3_bucket.this 2>/dev/null; then
-              terraform import module.s3.aws_s3_bucket.this broandbro-prod-ui
-            fi
-          fi
-
-      - name: Import existing EC2 Key Pair (if orphaned)
-        run: |
-          if aws ec2 describe-key-pairs --key-names broandbro-prod-key --region us-east-1 2>/dev/null; then
-            if ! terraform state show module.ec2.aws_key_pair.this 2>/dev/null; then
-              terraform import module.ec2.aws_key_pair.this broandbro-prod-key
-            fi
-          fi
-
-      - name: Check prod media bucket
-        run: |
-          BUCKET="${{ vars.MEDIA_BUCKET_NAME || 'broandbro-prod-root-bucket' }}"
-          if aws s3api head-bucket --bucket "$BUCKET" 2>/dev/null; then
-            echo "Media bucket $BUCKET exists - checking state..."
-            if ! terraform state show data.aws_s3_bucket.media 2>/dev/null; then
-              echo "Media bucket exists and is referenced via data source - no import needed."
-            fi
-          fi
-
-      - name: Import existing CloudFront distribution (if orphaned)
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          echo "=== Checking for existing CloudFront distribution with broandbro.in or www.broandbro.in ==="
-
-          # First check if already in Terraform state
-          if terraform state show module.cloudfront.aws_cloudfront_distribution.this 2>/dev/null; then
-            echo "✓ CloudFront already in Terraform state - skipping import"
-            exit 0
-          fi
-
-          echo "  CloudFront NOT in state. Querying AWS for distributions with prod aliases..."
-
-          # Query ALL CloudFront distributions and search ALL aliases for any of our target aliases
-          # This uses jq to iterate through every alias of every distribution
-          # The jq filter finds distributions with ANY of our target aliases
-          DIST_ID=$(aws cloudfront list-distributions --output json 2>/dev/null | \
-            jq -r '.DistributionList.Items[] |
-                    select((.Aliases.Items[]? == "broandbro.in") or
-                           (.Aliases.Items[]? == "www.broandbro.in")) |
-                    .Id' | \
-            head -1)
-
-          if [ -z "$DIST_ID" ]; then
-            echo "✓ No existing CloudFront with prod aliases found - will create new"
-            exit 0
-          fi
-
-          echo "  Found existing distribution: $DIST_ID"
-
-          # Check if distribution is tainted in state (shouldn't be, but handle it)
-          STATE_OUTPUT=$(terraform state show module.cloudfront.aws_cloudfront_distribution.this 2>/dev/null || true)
-          if echo "$STATE_OUTPUT" | grep -q "(tainted)" 2>/dev/null; then
-            echo "  Distribution is tainted in state - removing before re-import"
-            terraform state rm module.cloudfront.aws_cloudfront_distribution.this || true
-          fi
-
-          # Import the distribution into Terraform state
-          echo "  Importing distribution $DIST_ID into Terraform state..."
-          if terraform import module.cloudfront.aws_cloudfront_distribution.this "$DIST_ID"; then
-            echo "✓ Successfully imported CloudFront distribution"
-          else
-            echo "✗ ERROR: Failed to import CloudFront distribution $DIST_ID"
-            exit 1
-          fi
-
-      - name: Import existing RDS instance (if orphaned)
-        run: |
-          if aws rds describe-db-instances --db-instance-identifier broandbro-prod --region us-east-1 2>/dev/null; then
-            echo "RDS instance broandbro-prod exists - checking state..."
-            if ! terraform state show module.rds.aws_db_instance.this 2>/dev/null; then
-              echo "Importing orphaned RDS instance into state..."
-              terraform import module.rds.aws_db_instance.this broandbro-prod
-            else
-              echo "RDS instance already in state - skipping."
-            fi
-          else
-            echo "RDS instance not found - will be created by apply."
-          fi
-
-      - name: Terraform Plan
-        run: terraform plan -out=tfplan
-
-      - name: Terraform Apply
-        run: terraform apply -auto-approve tfplan
-
-      - name: Export outputs to GitHub summary
-        run: |
-          echo "## ✅ Prod Infrastructure Deployed" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Output | Value |" >> $GITHUB_STEP_SUMMARY
-          echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Frontend URL | https://broandbro.in |" >> $GITHUB_STEP_SUMMARY
-          echo "| API URL | https://api.broandbro.in |" >> $GITHUB_STEP_SUMMARY
-          CF_ID=$(terraform output -raw cloudfront_distribution_id 2>/dev/null || echo "N/A")
-          EC2_IP=$(terraform output -raw ec2_elastic_ip 2>/dev/null || echo "N/A")
-          echo "| CloudFront ID | $CF_ID |" >> $GITHUB_STEP_SUMMARY
-          echo "| EC2 IP | $EC2_IP |" >> $GITHUB_STEP_SUMMARY
+          terraform fmt -check -recursive ../../
+          terraform validate
+      - name: Plan
+        run: terraform plan -input=false -out=tfplan
+      - name: Apply reviewed plan
+        run: terraform apply -input=false tfplan

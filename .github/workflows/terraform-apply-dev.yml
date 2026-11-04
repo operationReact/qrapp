@@ -1,251 +1,74 @@
-# =============================================================================
-# Workflow: terraform-apply-dev.yml
-# Triggered by push to `dev` branch when infra/** changes.
-# Applies Terraform to the DEV environment.
-# =============================================================================
-name: Terraform Apply-Dev
+name: Terraform Apply - New Account DEV
 
+# Migration deployments must never be triggered by a push.
 on:
-  push:
-    branches: [dev]
-    paths:
-      - "infra/**"
-      - ".github/workflows/terraform-apply-dev.yml"
   workflow_dispatch:
     inputs:
-      force_apply:
-        description: "Force apply even without infra changes"
-        required: false
-        default: "false"
+      confirm:
+        description: "Type APPLY_NEW_DEV to provision the NEW AWS account only"
+        required: true
+        type: string
 
 permissions:
   id-token: write
   contents: read
 
-env:
-  TF_VERSION: "1.9.5"
-  AWS_REGION: "us-east-1"
-  TF_ENV: dev
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+concurrency:
+  group: terraform-new-account-dev
+  cancel-in-progress: false
 
 jobs:
   apply-dev:
-    name: Terraform Apply - Dev
+    if: inputs.confirm == 'APPLY_NEW_DEV'
     runs-on: ubuntu-latest
     environment: dev
-
     defaults:
       run:
         working-directory: infra/environments/dev
-
+    env:
+      AWS_REGION: us-east-1
+      TF_IN_AUTOMATION: "true"
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4.2.2
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: ${{ env.TF_VERSION }}
-
-      - name: Configure AWS credentials (OIDC)
-        uses: aws-actions/configure-aws-credentials@v4
+          terraform_version: "1.12.2"
+      - name: Require new-account configuration
+        env:
+          EXPECTED_ACCOUNT: ${{ vars.AWS_NEW_ACCOUNT_ID }}
+          STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
+          DEPLOY_ROLE: ${{ secrets.AWS_TERRAFORM_ROLE_ARN }}
+        run: |
+          test -n "$EXPECTED_ACCOUNT" || { echo "::error::AWS_NEW_ACCOUNT_ID not configured"; exit 1; }
+          test -n "$STATE_BUCKET" || { echo "::error::TF_STATE_BUCKET not configured"; exit 1; }
+          test -n "$DEPLOY_ROLE" || { echo "::error::AWS_TERRAFORM_ROLE_ARN not configured"; exit 1; }
+          case "$EXPECTED_ACCOUNT" in *[!0-9]*|"") exit 1 ;; esac
+          test "${#EXPECTED_ACCOUNT}" -eq 12
+      - uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          role-to-assume: ${{ secrets.AWS_TERRAFORM_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
-
-      - name: Terraform Init
+      - name: Assert AWS account before touching Terraform backend
+        env:
+          EXPECTED_ACCOUNT: ${{ vars.AWS_NEW_ACCOUNT_ID }}
         run: |
-          terraform init \
-            -backend-config="bucket=broandbro-tfstate-us-east-1" \
+          ACTUAL=$(aws sts get-caller-identity --query Account --output text)
+          test "$ACTUAL" = "$EXPECTED_ACCOUNT" || { echo "::error::Refusing to access AWS account $ACTUAL"; exit 1; }
+      - name: Init isolated NEW account state
+        env:
+          TF_STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
+        run: |
+          terraform init -input=false -reconfigure \
+            -backend-config="bucket=$TF_STATE_BUCKET" \
             -backend-config="key=env/dev/terraform.tfstate" \
-            -backend-config="region=us-east-1" \
-            -backend-config="dynamodb_table=broandbro-tf-lock"
-
-      - name: Terraform Validate
-        run: terraform validate
-
-      - name: Validate required secrets
+            -backend-config="region=$AWS_REGION" \
+            -backend-config="encrypt=true" \
+            -backend-config="use_lockfile=true"
+      - name: Format and validate
         run: |
-          echo "No manual secrets required - DB password and SSH key are auto-generated."
-
-      - name: Two-phase apply for ACM certificate
-        shell: bash -e -o pipefail {0}
-        run: |
-          set +e
-          
-          echo "=== Phase 1: Create ACM certificate ==="
-          if ! terraform state show module.acm.aws_acm_certificate.this 2>/dev/null; then
-            terraform apply -target=module.acm.aws_acm_certificate.this -auto-approve
-            TF_EXIT=$?
-            if [ $TF_EXIT -ne 0 ] && [ $TF_EXIT -ne 1 ]; then exit $TF_EXIT; fi
-          else
-            echo "Certificate already in state"
-          fi
-          
-          echo "=== Phase 2: Create validation records ==="
-          if terraform state show module.acm.aws_acm_certificate.this 2>/dev/null; then
-            terraform apply -target=module.acm.aws_route53_record.validation -target=module.acm.aws_acm_certificate_validation.this -auto-approve
-            TF_EXIT=$?
-            if [ $TF_EXIT -ne 0 ] && [ $TF_EXIT -ne 1 ]; then exit $TF_EXIT; fi
-          fi
-          exit 0
-
-      - name: Import existing S3 bucket (if orphaned)
-        run: |
-          if aws s3api head-bucket --bucket broandbro-develop-ui 2>/dev/null; then
-            echo "Bucket exists - checking state..."
-            if ! terraform state show module.s3.aws_s3_bucket.this 2>/dev/null; then
-              echo "Importing S3 bucket into state..."
-              terraform import module.s3.aws_s3_bucket.this broandbro-develop-ui
-            else
-              echo "Bucket already in state"
-            fi
-          fi
-
-      - name: Import existing EC2 Key Pair (if orphaned)
-        run: |
-          if aws ec2 describe-key-pairs --key-names broandbro-dev-key --region us-east-1 2>/dev/null; then
-            echo "Key pair exists - checking state..."
-            if ! terraform state show module.ec2.aws_key_pair.this 2>/dev/null; then
-              echo "Importing key pair into state..."
-              terraform import module.ec2.aws_key_pair.this broandbro-dev-key
-            else
-              echo "Key pair already in state"
-            fi
-          fi
-
-      - name: Import dev media bucket (if exists)
-        run: |
-          BUCKET="${{ vars.MEDIA_BUCKET_NAME || 'broandbro-dev-root-bucket' }}"
-          if aws s3api head-bucket --bucket "$BUCKET" 2>/dev/null; then
-            echo "Media bucket $BUCKET exists - checking state..."
-            STATE_OUTPUT=$(terraform state show aws_s3_bucket.media 2>/dev/null || true)
-            STATE_BUCKET=$(printf '%s\n' "$STATE_OUTPUT" | sed -n 's/^[[:space:]]*bucket[[:space:]]*=[[:space:]]*"\(.*\)"$/\1/p' | head -n1)
-            STATE_ID=$(printf '%s\n' "$STATE_OUTPUT" | sed -n 's/^[[:space:]]*id[[:space:]]*=[[:space:]]*"\(.*\)"$/\1/p' | head -n1)
-            if [ -z "$STATE_OUTPUT" ]; then
-              echo "Importing media bucket..."
-              terraform import aws_s3_bucket.media "$BUCKET"
-            elif echo "$STATE_OUTPUT" | grep -q "(tainted)" \
-              || [ "$STATE_BUCKET" != "$BUCKET" ] \
-              || [ "$STATE_ID" != "$BUCKET" ]; then
-              echo "State does not match $BUCKET - resetting media bucket resources..."
-              terraform state list 2>/dev/null \
-                | grep -F 'aws_s3_bucket' \
-                | grep -F '.media' \
-                | sort -r \
-                | while read -r resource; do
-                    terraform state rm "$resource" 2>/dev/null || true
-                  done
-              terraform import aws_s3_bucket.media "$BUCKET"
-            else
-              echo "Media bucket already in state"
-            fi
-          else
-            echo "Media bucket will be created by apply"
-          fi
-
-      - name: Import existing CloudFront distribution (if orphaned)
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          echo "=== Checking for existing CloudFront distribution with dev.broandbro.in ==="
-
-          # First check if already in Terraform state
-          if terraform state show module.cloudfront.aws_cloudfront_distribution.this 2>/dev/null; then
-            echo "✓ CloudFront already in Terraform state - skipping import"
-            exit 0
-          fi
-
-          echo "  CloudFront NOT in state. Querying AWS..."
-
-          # Query ALL CloudFront distributions and search ALL aliases (not just first)
-          # This uses jq to properly iterate through every alias of every distribution
-          DIST_ID=$(aws cloudfront list-distributions --output json 2>/dev/null | \
-            jq -r '.DistributionList.Items[] |
-                    select(.Aliases.Items[]? == "dev.broandbro.in") |
-                    .Id' | \
-            head -1)
-
-          if [ -z "$DIST_ID" ]; then
-            echo "✓ No existing CloudFront with dev.broandbro.in found - will create new"
-            exit 0
-          fi
-
-          echo "  Found existing distribution: $DIST_ID"
-
-          # Check if distribution is tainted in state (shouldn't be, but handle it)
-          STATE_OUTPUT=$(terraform state show module.cloudfront.aws_cloudfront_distribution.this 2>/dev/null || true)
-          if echo "$STATE_OUTPUT" | grep -q "(tainted)" 2>/dev/null; then
-            echo "  Distribution is tainted in state - removing before re-import"
-            terraform state rm module.cloudfront.aws_cloudfront_distribution.this || true
-          fi
-
-          # Import the distribution into Terraform state
-          echo "  Importing distribution $DIST_ID into Terraform state..."
-          if terraform import module.cloudfront.aws_cloudfront_distribution.this "$DIST_ID"; then
-            echo "✓ Successfully imported CloudFront distribution"
-          else
-            echo "✗ ERROR: Failed to import CloudFront distribution $DIST_ID"
-            exit 1
-          fi
-
-      - name: Import existing RDS instance
-        run: |
-          if aws rds describe-db-instances --db-instance-identifier broandbro-dev --region us-east-1 2>/dev/null; then
-            echo "RDS exists - checking state..."
-            if ! terraform state show module.rds.aws_db_instance.this 2>/dev/null; then
-              echo "Importing RDS..."
-              terraform import module.rds.aws_db_instance.this broandbro-dev
-            else
-              echo "RDS already in state"
-            fi
-          else
-            echo "RDS will be created"
-          fi
-
-      - name: Import existing DB SSM parameters (if orphaned)
-        run: |
-          for suffix in url username password; do
-            case "$suffix" in
-              url)
-                parameter_name="/broandbro/backend/dev/database/url"
-                terraform_address="module.rds.aws_ssm_parameter.db_url"
-                ;;
-              username)
-                parameter_name="/broandbro/backend/dev/database/username"
-                terraform_address="module.rds.aws_ssm_parameter.db_username"
-                ;;
-              password)
-                parameter_name="/broandbro/backend/dev/database/password"
-                terraform_address="module.rds.aws_ssm_parameter.db_password"
-                ;;
-            esac
-
-            if aws ssm get-parameter --name "$parameter_name" --region "$AWS_REGION" >/dev/null 2>&1; then
-              echo "SSM parameter $parameter_name exists - checking state..."
-              if ! terraform state show "$terraform_address" >/dev/null 2>&1; then
-                echo "Importing $parameter_name into $terraform_address..."
-                terraform import "$terraform_address" "$parameter_name"
-              else
-                echo "Parameter already in state"
-              fi
-            else
-              echo "Parameter $parameter_name not found - will be created by apply"
-            fi
-          done
-
-      - name: Terraform Plan
-        run: terraform plan -out=tfplan
-
-      - name: Terraform Apply
-        run: terraform apply -auto-approve tfplan
-
-      - name: Export outputs
-        run: |
-          echo "## Infrastructure Deployed" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Output | Value |" >> $GITHUB_STEP_SUMMARY
-          echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Frontend | https://dev.broandbro.in |" >> $GITHUB_STEP_SUMMARY
-          echo "| API | https://dev-api.broandbro.in |" >> $GITHUB_STEP_SUMMARY
+          terraform fmt -check -recursive ../../
+          terraform validate
+      - name: Plan
+        run: terraform plan -input=false -out=tfplan
+      - name: Apply reviewed plan
+        run: terraform apply -input=false tfplan

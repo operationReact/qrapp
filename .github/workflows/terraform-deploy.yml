@@ -1,48 +1,19 @@
-name: Terraform staged deploy
+name: Legacy Terraform deployment (disabled)
 
+# Disabled during AWS account migration. Use the account-guarded Terraform
+# Apply - New Account DEV/PROD workflows instead.
 on:
   workflow_dispatch:
-    inputs:
-      environment:
-        description: 'Environment to deploy (dev or prod)'
-        required: true
-        default: 'dev'
-        type: choice
-        options:
-          - dev
-          - prod
-      auto_approve:
-        description: 'Auto approve terraform applies (true/false)'
-        required: false
-        default: 'true'
+
+permissions:
+  contents: read
 
 jobs:
-  deploy:
+  disabled:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2
-        with:
-          terraform_version: '1.9.0'
-
-      - name: Run staged Terraform deploy script
-        shell: bash
+      - name: Refuse legacy static-key deployment
         run: |
-          AUTO=""
-          if [ "${{ inputs.auto_approve }}" = "true" ]; then AUTO="-AutoApprove"; fi
-          pwsh ./scripts/terraform-deploy.ps1 -Environment "${{ inputs.environment }}" $AUTO
-
-
+          echo "::error::This legacy deployment used static credentials and is disabled."
+          echo "Use the account-guarded Terraform Apply workflow after the new-account bootstrap."
+          exit 1

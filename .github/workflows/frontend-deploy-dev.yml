@@ -6,11 +6,6 @@
 name: Frontend Deploy-Dev
 
 on:
-  push:
-    branches: [dev]
-    paths:
-      - "frontend/**"
-      - ".github/workflows/frontend-deploy-dev.yml"
   workflow_dispatch:
     inputs:
       reason:
@@ -80,6 +75,14 @@ jobs:
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
+
+      - name: Guard new AWS account for migration
+        env:
+          EXPECTED_ACCOUNT: ${{ vars.AWS_NEW_ACCOUNT_ID }}
+        run: |
+          test -n "$EXPECTED_ACCOUNT" || { echo "::error::New-account ID missing"; exit 1; }
+          ACTUAL=$(aws sts get-caller-identity --query Account --output text)
+          test "$ACTUAL" = "$EXPECTED_ACCOUNT" || { echo "::error::Refusing old AWS account"; exit 1; }
 
       # ── Upload to S3 ──────────────────────────────────────────────────────
       # Strategy:
