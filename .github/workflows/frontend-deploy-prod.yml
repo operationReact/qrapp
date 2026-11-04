@@ -20,7 +20,7 @@ permissions:
 
 env:
   NODE_VERSION: "22"
-  AWS_REGION: "us-east-1"
+  AWS_REGION: "ap-south-1"
   S3_BUCKET: "broandbro-prod-ui-${{ vars.AWS_NEW_ACCOUNT_ID }}"
   # NOTE: CloudFront distribution ID is read from SSM during deploy steps.
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"

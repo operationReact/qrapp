@@ -26,7 +26,7 @@ jobs:
       run:
         working-directory: infra/environments/prod
     env:
-      AWS_REGION: us-east-1
+      AWS_REGION: ap-south-1
       TF_IN_AUTOMATION: "true"
     steps:
       - uses: actions/checkout@v4

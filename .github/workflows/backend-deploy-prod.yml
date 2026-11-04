@@ -30,7 +30,7 @@ jobs:
       - uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_BACKEND_ROLE_ARN }}
-          aws-region: us-east-1
+          aws-region: ap-south-1
       - name: Verify account and resolve deployment resources
         id: target
         env:
