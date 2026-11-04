@@ -39,6 +39,40 @@ def require(condition, message):
         raise CheckFailure(message)
 
 
+def is_public(permission):
+    """Whether a security-group rule has unrestricted IPv4 or IPv6 CIDR sources."""
+    return (
+        any(x.get("CidrIp") == "0.0.0.0/0" for x in permission.get("IpRanges", []))
+        or any(x.get("CidrIpv6") == "::/0" for x in permission.get("Ipv6Ranges", []))
+    )
+
+
+def exposes_public_ssh(permission):
+    """TCP/22 (or all protocols) from the public internet is forbidden."""
+    if not is_public(permission):
+        return False
+    if permission.get("IpProtocol") == "-1":
+        return True
+    if permission.get("IpProtocol") not in ("tcp", "6"):
+        return False
+    return permission.get("FromPort", -1) <= 22 <= permission.get("ToPort", 65535)
+
+
+def approved_database_ingress(permission, backend_sg_ids):
+    """RDS allows PostgreSQL only from an EC2 backend SG, never any other source."""
+    return (
+        permission.get("IpProtocol") in ("tcp", "6")
+        and permission.get("FromPort") == 5432
+        and permission.get("ToPort") == 5432
+        and not permission.get("IpRanges")
+        and not permission.get("Ipv6Ranges")
+        and not permission.get("PrefixListIds")
+        and bool(permission.get("UserIdGroupPairs"))
+        and all(group.get("GroupId") in backend_sg_ids
+                for group in permission["UserIdGroupPairs"])
+    )
+
+
 def get_ssm_parameter(name):
     result = aws("ssm", "get-parameter", "--name", name)
     return result["Parameter"]["Value"]
@@ -127,6 +161,26 @@ def main():
         accepted = ("available", "stopped") if opts.allow_stopped else ("available",)
         require(status in accepted, f"Unexpected database state: {status}")
 
+        # A database marked non-public can still be reachable from unintended
+        # networks (e.g. peering or a public subnet). Verify the attached rules.
+        backend_groups = aws(
+            "ec2", "describe-security-groups", "--filters",
+            f"Name=group-name,Values=broandbro-{env}-ec2-sg"
+        )["SecurityGroups"]
+        require(len(backend_groups) == 1, "Backend security group missing or ambiguous")
+        permitted_ids = {backend_groups[0]["GroupId"]}
+        db_group_ids = [g["VpcSecurityGroupId"]
+                        for g in db.get("VpcSecurityGroups", [])]
+        require(bool(db_group_ids), "RDS has no security group")
+        db_groups = aws("ec2", "describe-security-groups",
+                        "--group-ids", *db_group_ids)["SecurityGroups"]
+        require(len(db_groups) == len(db_group_ids), "Could not inspect all RDS groups")
+        inbound = [p for group in db_groups for p in group.get("IpPermissions", [])]
+        require(bool(inbound), "RDS has no approved PostgreSQL ingress")
+        for rule in inbound:
+            require(approved_database_ingress(rule, permitted_ids),
+                    "RDS inbound security-group rule is broader than PostgreSQL from backend EC2")
+
     def check_ec2():
         data = aws("ec2", "describe-instances",
                    "--filters", f"Name=tag:Name,Values=broandbro-{env}-backend",
@@ -142,12 +196,8 @@ def main():
         security = aws("ec2", "describe-security-groups", "--group-ids", *groups)
         for sg in security["SecurityGroups"]:
             for permission in sg.get("IpPermissions", []):
-                from_port = permission.get("FromPort", -1)
-                to_port = permission.get("ToPort", 65535)
-                public = any(ip.get("CidrIp") == "0.0.0.0/0"
-                             for ip in permission.get("IpRanges", []))
-                require(not (public and from_port <= 22 <= to_port),
-                        "Public SSH or all-port ingress detected")
+                require(not exposes_public_ssh(permission),
+                        "Public SSH or all-port ingress detected (IPv4/IPv6)")
         if status == "running":
             managed = aws("ssm", "describe-instance-information",
                           "--filters", f"Key=InstanceIds,Values={instance['InstanceId']}")
