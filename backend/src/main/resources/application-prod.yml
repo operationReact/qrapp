@@ -16,7 +16,7 @@ spring:
   cloud:
     aws:
       region:
-        static: ${AWS_REGION:us-east-1}
+        static: ${AWS_REGION:ap-south-1}
 
   datasource:
     url: ${app.parameter-store.database.url}
@@ -63,7 +63,7 @@ aws:
     enabled: ${app.parameter-store.aws.s3.enabled:true}
     bucket-name: ${app.parameter-store.aws.s3.bucketName:broandbro-prod-root-bucket}
     location-bucket-name: ${app.parameter-store.aws.s3.locationBucketName:broandbro-location-images-prod}
-    region: ${AWS_S3_REGION:us-east-1}
+    region: ${AWS_S3_REGION:ap-south-1}
     access-key: ${app.parameter-store.aws.s3.accessKey:}
     secret-key: ${app.parameter-store.aws.s3.secretKey:}
 

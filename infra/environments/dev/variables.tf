@@ -63,8 +63,8 @@ variable "existing_certificate_arn" {
 # remain allocated/billable when instances are stopped.
 variable "enable_cost_schedule" {
   type        = bool
-  description = "Schedule weekday EC2/RDS starts/stops; FALSE by default in production."
-  default     = true
+  description = "Opt-in weekday EC2/RDS shutdown only for disposable development; always-on by default."
+  default     = false
 }
 
 variable "schedule_timezone" {

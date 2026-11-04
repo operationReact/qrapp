@@ -14,7 +14,7 @@ import time
 import urllib.request
 
 def aws(*args):
-    result = subprocess.run(["aws", *args, "--region", "us-east-1", "--output", "json"],
+    result = subprocess.run(["aws", *args, "--region", "ap-south-1", "--output", "json"],
                             check=True, capture_output=True, text=True)
     return json.loads(result.stdout)
 
@@ -65,6 +65,8 @@ def main():
         "SPRING_DATASOURCE_PASSWORD": password,
         "AWS_S3_BUCKET_NAME": get("aws/s3/bucketName", True),
         "AWS_S3_LOCATION_BUCKET_NAME": get("aws/s3/locationBucketName", True),
+        "AWS_REGION": "ap-south-1",
+        "AWS_DEFAULT_REGION": "ap-south-1",
         "AWS_S3_REGION": get("aws/s3/region", True),
         "AWS_S3_ENABLED": get("aws/s3/enabled", True),
         "APP_CORS_ALLOWED_ORIGINS": get("app/cors/allowedOrigins", True),
@@ -91,7 +93,7 @@ def main():
     new_jar = app / "app.jar.new"
     os.umask(0o077)
     subprocess.run(["aws", "s3", "cp", jar_uri, str(new_jar),
-                    "--region", "us-east-1", "--only-show-errors"], check=True)
+                    "--region", "ap-south-1", "--only-show-errors"], check=True)
     shutil.chown(new_jar, user="broandbro", group="broandbro")
     new_jar.chmod(0o640)
 

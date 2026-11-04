@@ -25,3 +25,6 @@ alarm_email = ""
 # ── Media bucket ──────────────────────────────────────────────────────────────
 # Development media bucket for AI-generated menu images
 media_bucket_name = "" # Generated per AWS account
+
+# Customer-facing deployment: keep EC2 and RDS running 24/7.
+enable_cost_schedule = false

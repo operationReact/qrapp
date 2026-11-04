@@ -48,7 +48,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--target-profile", required=True)
     p.add_argument("--environment", choices=("dev", "prod"), required=True)
     p.add_argument("--target-account-id", required=True)
-    p.add_argument("--region", default="us-east-1")
+    p.add_argument("--region", default="us-east-1") # Legacy source; cross-region copies require separate sessions
     p.add_argument("--execute", action="store_true",
                    help="Perform writes; otherwise list counts and mappings only")
     p.add_argument("--overwrite", action="store_true",
