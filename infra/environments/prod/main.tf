@@ -87,11 +87,19 @@ module "ssm_config" {
   app_cors_allowed_origins = "https://${var.frontend_hostname}"
 }
 
+# ── Terraform-created VPC and subnets (no default VPC reliance) ─────────────
+module "network" {
+  source      = "../../modules/network"
+  environment = "prod"
+  vpc_cidr    = "10.30.0.0/16"
+}
+
 # ── Security Groups ───────────────────────────────────────────────────────────
 module "security_group" {
   source = "../../modules/security-group"
 
   environment       = "prod"
+  vpc_id            = module.network.vpc_id
   ssh_allowed_cidrs = var.ssh_allowed_cidrs
 }
 
@@ -154,6 +162,8 @@ module "ec2" {
   environment            = "prod"
   instance_type          = var.ec2_instance_type
   security_group_id      = module.security_group.ec2_sg_id
+  subnet_id              = module.network.public_subnet_id
+  depends_on             = [module.network]
   media_bucket_arn       = module.media.bucket_arn
   location_bucket_arn    = module.location_images.bucket_arn
   create_media_s3_policy = true
@@ -166,7 +176,7 @@ module "rds" {
   source = "../../modules/rds"
 
   environment           = "prod"
-  vpc_id                = module.security_group.vpc_id
+  subnet_ids            = module.network.private_subnet_ids
   security_group_id     = module.security_group.rds_sg_id
   instance_class        = var.rds_instance_class # db.t4g.small
   allocated_storage     = 20

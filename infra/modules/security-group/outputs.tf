@@ -9,6 +9,6 @@ output "rds_sg_id" {
 }
 
 output "vpc_id" {
-  value       = data.aws_vpc.default.id
+  value       = var.vpc_id
   description = "VPC ID used"
 }

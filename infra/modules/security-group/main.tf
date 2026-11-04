@@ -5,15 +5,11 @@
 #   rds_sg  – port 5432 only from ec2_sg (no internet access)
 # ============================================================
 
-data "aws_vpc" "default" {
-  default = true
-}
-
 # ── EC2 Security Group ────────────────────────────────────────────────────────
 resource "aws_security_group" "ec2" {
   name        = "broandbro-${var.environment}-ec2-sg"
   description = "Backend EC2: HTTP, HTTPS, SSH"
-  vpc_id      = data.aws_vpc.default.id
+  vpc_id      = var.vpc_id
 
   # No public SSH ingress: deployments and maintenance use Systems Manager.
 
@@ -52,7 +48,7 @@ resource "aws_security_group" "ec2" {
 resource "aws_security_group" "rds" {
   name        = "broandbro-${var.environment}-rds-sg"
   description = "RDS PostgreSQL: only EC2 sg may connect"
-  vpc_id      = data.aws_vpc.default.id
+  vpc_id      = var.vpc_id
 
   ingress {
     description     = "PostgreSQL from EC2"

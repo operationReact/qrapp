@@ -58,18 +58,10 @@ resource "aws_ssm_parameter" "db_secret_arn" {
   }
 }
 
-# Fetch default VPC subnets for RDS subnet group
-data "aws_subnets" "default" {
-  filter {
-    name   = "vpc-id"
-    values = [var.vpc_id]
-  }
-}
-
 # RDS subnet group – required even when using the default VPC
 resource "aws_db_subnet_group" "this" {
   name       = "broandbro-${var.environment}-subnet-group"
-  subnet_ids = data.aws_subnets.default.ids
+  subnet_ids = var.subnet_ids
 
   tags = {
     Name        = "broandbro-${var.environment}-subnet-group"
