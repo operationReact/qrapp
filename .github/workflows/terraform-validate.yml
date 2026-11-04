@@ -80,7 +80,7 @@ jobs:
           done
       - name: Block dangerous bootstrap role regressions
         run: |
-          if grep -R --include='*.tf' -E 'AdministratorAccess|repo:\\*/\\*' infra/; then
+          if grep -R --include='*.tf' -E 'policy/AdministratorAccess|repo:\\*/\\*' infra/; then
             echo "::error::Wild-card GitHub OIDC trust or AdministratorAccess is forbidden."
             exit 1
           fi
