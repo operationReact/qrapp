@@ -10,7 +10,7 @@
 - All apply/deploy actions are manual dispatch and verify the NEW account ID.
 - Never reuse old-account Terraform state, IAM ARN, WAF ARN, or S3 bucket names.
 - No Terraform code change should deploy into the old account.
-- RDS master password is generated and managed by RDS Secrets Manager.
+- RDS master password is generated and managed by RDS Secrets Manager.\n- Temporary rotation safety: default weekly master-secret rotation is DISABLED\n  because the current application uses startup-injected credentials. Implement\n  tested runtime secret refresh/dedicated DB application user before re-enabling.
 - Terraform creates *all* SSM parameter names and generated values.
 - Only vendor API tokens are operator-supplied; they use SecureString write-only
   placeholders to avoid storing plaintext in Terraform state.

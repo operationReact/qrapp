@@ -129,6 +129,17 @@ resource "aws_db_instance" "this" {
   }
 }
 
+# The current Spring Boot deployment injects the credential at process startup.
+# Uncoordinated RDS' default 7-day rotation would break Hikari's new connections.
+# Until runtime credential refresh (or a dedicated app DB user) is implemented,
+# explicitly disable automatic rotation. Re-enable only with a tested refresh path.
+resource "aws_secretsmanager_secret_rotation" "rds_master" {
+  secret_id        = aws_db_instance.this.master_user_secret[0].secret_arn
+  rotation_enabled = false
+
+  depends_on = [aws_db_instance.this]
+}
+
 # ── RDS-specific CloudWatch alarms and SNS topic ─────────────────────────────
 # Create a dedicated SNS topic for RDS alarms so alarms can be created
 # inside this module (avoids cross-module plan-time unknowns).
