@@ -58,7 +58,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Parse Python migration tools and EC2 deployment agent
-        run: python3 -m py_compile scripts/migrate-s3-media.py scripts/deploy-backend-from-ssm.py
+        run: python3 -m py_compile scripts/migrate-s3-media.py scripts/deploy-backend-from-ssm.py scripts/preflight-new-account.py
       - name: Validate GitHub Actions YAML semantics
         run: go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.10 -shellcheck=
       - name: Check Bash script syntax

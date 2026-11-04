@@ -172,6 +172,25 @@ Important: values in the old SSM Parameter Store may be encrypted with
 different KMS keys; the source profile must be authorized to decrypt them.
 The target account re-encrypts them.
 
+## 5a. Verify provisioned AWS resources (read-only)
+
+After the dev Terraform apply and before application deployment, execute:
+
+```bash
+AWS_PROFILE=broandbro-new python3 scripts/preflight-new-account.py \
+  --environment dev --account NEW_ACCOUNT_ID
+```
+
+For a scheduled-off development environment only, append `--allow-stopped`.
+The preflight checks the authenticated account, RDS private/encrypted state,
+EC2 security group and Systems Manager agent, S3 privacy, generated SSM
+values and the preview CloudFront distribution. It does NOT read any external
+API secret values, alter resources, or migrate customer data.
+
+A failed preflight blocks further deployment until the underlying AWS issue is
+corrected. Run it again after changes. For production use `--environment prod`
+without `--allow-stopped`.
+
 ## 6. Deploy/test applications in DEV
 
 Manually dispatch dev frontend and backend workflows. The UI uses the preview
