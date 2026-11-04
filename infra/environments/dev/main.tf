@@ -98,6 +98,7 @@ module "ssm_config" {
   media_bucket_name        = local.media_bucket
   location_bucket_name     = local.location_bucket
   artifact_bucket_name     = local.artifact_bucket
+  api_hostname             = var.api_hostname
   app_cors_allowed_origins = "https://${var.frontend_hostname},http://localhost:5173"
 }
 

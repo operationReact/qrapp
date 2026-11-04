@@ -6,6 +6,7 @@ variable "aws_region" { type = string }
 variable "media_bucket_name" { type = string }
 variable "location_bucket_name" { type = string }
 variable "artifact_bucket_name" { type = string }
+variable "api_hostname" { type = string }
 variable "app_cors_allowed_origins" { type = string }
 
 locals {
@@ -27,6 +28,7 @@ locals {
     "aws/s3/region"             = var.aws_region
     "aws/s3/enabled"            = "true"
     "app/cors/allowedOrigins"   = var.app_cors_allowed_origins
+    "app/api/domain"             = var.api_hostname
   }
 }
 

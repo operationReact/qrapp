@@ -7,6 +7,7 @@ import os
 import pathlib
 import re
 import shutil
+import socket
 import subprocess
 import sys
 import time
@@ -50,6 +51,9 @@ def main():
     secret_arn = get("database/secretArn", True)
     secret = json.loads(aws("secretsmanager", "get-secret-value",
                             "--secret-id", secret_arn)["SecretString"])
+    api_hostname = get("app/api/domain", True)
+    if not re.fullmatch(r"[a-zA-Z0-9.-]+", api_hostname):
+        raise RuntimeError("Unexpected API hostname")
     password = secret["password"]
     if not password:
         raise RuntimeError("RDS managed credential is empty")
@@ -120,7 +124,24 @@ def main():
                     "http://127.0.0.1:8080/api/payment/config", timeout=4
                 ) as response:
                     if response.status == 200:
-                        print("Backend deployment healthy; public DNS/TLS cutover is separate")
+                        print("Backend HTTP health check passed")
+                        # Provision HTTPS only once the public A record points here.
+                        # This avoids ACME failures while the old DNS account is authoritative.
+                        endpoint = parameter(f"/broandbro/{env}/ec2-public-ip", True)
+                        try:
+                            resolved = {row[4][0] for row in socket.getaddrinfo(api_hostname, 443, type=socket.SOCK_STREAM)}
+                        except OSError:
+                            resolved = set()
+                        cert_path = pathlib.Path("/etc/letsencrypt/live") / api_hostname / "fullchain.pem"
+                        if not cert_path.is_file() and endpoint in resolved:
+                            subprocess.run([
+                                "certbot", "--nginx", "-d", api_hostname,
+                                "--email", "admin@broandbro.in", "--agree-tos",
+                                "--no-eff-email", "--non-interactive", "--redirect"
+                            ], check=True)
+                            print("HTTPS certificate provisioned for " + api_hostname)
+                        elif not cert_path.is_file():
+                            print("HTTPS deferred until preview API DNS points to this EC2 IP")
                         return
             except Exception:
                 pass
