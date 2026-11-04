@@ -5,7 +5,8 @@ on:
     branches: [dev, main]
     paths:
       - "infra/**"
-      - ".github/workflows/terraform-validate.yml"
+      - "scripts/**"
+      - ".github/workflows/**"
   pull_request:
     branches: [dev, main]
     paths:
@@ -56,8 +57,10 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v4
-      - name: Parse Python migration tools
-        run: python3 -m py_compile scripts/migrate-s3-media.py
+      - name: Parse Python migration tools and EC2 deployment agent
+        run: python3 -m py_compile scripts/migrate-s3-media.py scripts/deploy-backend-from-ssm.py
+      - name: Validate GitHub Actions YAML semantics
+        run: go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.10
       - name: Check Bash script syntax
         run: |
           for script in scripts/bootstrap-new-account.sh \
@@ -68,7 +71,7 @@ jobs:
           done
       - name: Block legacy AWS static-key workflows
         run: |
-          if grep -R --exclude='terraform-validate.yml' --include='*.yml' --include='*.yaml' -E 'aws-access-key-id:|aws-secret-access-key:' .github/workflows; then
+          if find .github/workflows -maxdepth 1 -type f \\( -name '*.yml' -o -name '*.yaml' \\) ! -name 'terraform-validate.yml' -print0 | xargs -0 -r grep -E 'aws-access-key-id:|aws-secret-access-key:'; then
             echo "::error::Long-lived AWS credentials are forbidden in GitHub workflows."
             exit 1
           fi
