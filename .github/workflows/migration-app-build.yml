@@ -1,0 +1,65 @@
+name: Migration App Build (No AWS Credentials)
+
+on:
+  push:
+    branches: [dev]
+    paths:
+      - "backend/**"
+      - "frontend/**"
+      - ".github/workflows/migration-app-build.yml"
+  pull_request:
+    branches: [dev, main]
+    paths:
+      - "backend/**"
+      - "frontend/**"
+      - ".github/workflows/migration-app-build.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Compile Spring Boot backend
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: "21"
+          distribution: corretto
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.7"
+      - name: Build deployable backend artifact
+        run: gradle :backend:bootJar --no-daemon
+
+  frontend:
+    name: Build Vite web frontend
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install from lockfile
+        working-directory: frontend
+        run: npm ci --no-audit --no-fund
+      - name: Build preview frontend
+        working-directory: frontend
+        env:
+          VITE_API_URL: https://migrate-dev-api.broandbro.in
+          VITE_ENV: dev
+          NODE_ENV: production
+        run: npm run build
+      - name: Verify preview API URL is included in assets
+        run: |
+          set -euo pipefail
+          grep -FRq 'https://migrate-dev-api.broandbro.in' frontend/dist/assets || {
+            echo "::error::Preview API URL not present in built frontend assets"
+            exit 1
+          }
