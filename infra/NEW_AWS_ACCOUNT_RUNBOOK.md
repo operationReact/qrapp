@@ -10,7 +10,8 @@
 - All apply/deploy actions are manual dispatch and verify the NEW account ID.
 - Never reuse old-account Terraform state, IAM ARN, WAF ARN, or S3 bucket names.
 - No Terraform code change should deploy into the old account.
-- RDS master password is generated and managed by RDS Secrets Manager.\n- Temporary rotation safety: default weekly master-secret rotation is DISABLED\n  because the current application uses startup-injected credentials. Implement\n  tested runtime secret refresh/dedicated DB application user before re-enabling.
+- RDS master password is generated and managed by RDS Secrets Manager.
+- Temporary rotation safety: default weekly master-secret rotation is DISABLED\n  because the current application uses startup-injected credentials. Implement\n  tested runtime secret refresh/dedicated DB application user before re-enabling.
 - Terraform creates *all* SSM parameter names and generated values.
 - Only vendor API tokens are operator-supplied; they use SecureString write-only
   placeholders to avoid storing plaintext in Terraform state.
@@ -190,6 +191,50 @@ audit and migrate references transactionally after taking a tested backup.
 
 Retain application signing and webhook consistency; run live payment and wallet
 reconciliation before cutover.
+
+## 7a. Automatic cross-account S3 media transfer (dev first)
+
+Terraform first creates unique media and location buckets in the target account.
+Use two separately authenticated **AWS SSO** profiles (old: read, new:
+write). The migration tool streams each object through a local temporary file,
+preserves content type, cache headers, custom metadata and tags, and verifies
+destination size plus SHA-256 migration metadata.
+
+```bash
+python3 -m pip install boto3
+
+# Read-only preview (default):
+python3 scripts/migrate-s3-media.py \\
+  --source-profile broandbro-old \\
+  --target-profile broandbro-new \\
+  --environment dev --target-account-id NEW_ACCOUNT_ID \\
+  --manifest /tmp/broandbro-dev-s3-migration.json
+
+# Only after verifying destination buckets and backup:
+python3 scripts/migrate-s3-media.py \\
+  --source-profile broandbro-old \\
+  --target-profile broandbro-new \\
+  --environment dev --target-account-id NEW_ACCOUNT_ID --execute
+```
+
+Objects already present in the destination are **not overwritten** by default:
+rerun with `--overwrite` only after explicit comparison/approval. This is
+intentionally not part of normal Terraform apply, and it NEVER deletes old
+objects. Its local temporary disk must hold at least the largest individual
+object; the two profiles need read/tag permissions and write/tag permissions
+respectively. Do not use this script for frontend build artifacts or database
+backups.
+
+Production needs a final sync during a write freeze and a separate audit of
+image URLs embedded in PostgreSQL. This script does NOT rewrite database rows.
+CloudFront alias and DNS cutover still require careful coordination.
+
+## 7b. Release automation safety
+
+All workflows are manual-dispatch only for new-account deployments. The
+Terraform provider also enforces `allowed_account_ids`, not just a shell
+precheck. Offline CI separately validates bootstrap/dev/prod and parses
+migration scripts without touching AWS. Never disable those checks.
 
 ## 8. Production deployment + cutover
 

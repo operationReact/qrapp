@@ -48,3 +48,33 @@ jobs:
       - name: Validate account bootstrap
         working-directory: infra/bootstrap
         run: terraform validate -no-color
+
+  migration-scripts:
+    name: Migration scripts / security regression checks
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Parse Python migration tools
+        run: python3 -m py_compile scripts/migrate-s3-media.py
+      - name: Check Bash script syntax
+        run: |
+          for script in scripts/bootstrap-new-account.sh \
+                        scripts/set-external-ssm-parameter.sh \
+                        scripts/migrate-external-ssm.sh \
+                        scripts/mirror-route53-records.sh; do
+            bash -n "$script"
+          done
+      - name: Block legacy AWS static-key workflows
+        run: |
+          if grep -R --include='*.yml' --include='*.yaml' -E 'aws-access-key-id:|aws-secret-access-key:' .github/workflows; then
+            echo "::error::Long-lived AWS credentials are forbidden in GitHub workflows."
+            exit 1
+          fi
+      - name: Block dangerous bootstrap role regressions
+        run: |
+          if grep -R --include='*.tf' -E 'AdministratorAccess|repo:\\*/\\*' infra/; then
+            echo "::error::Wild-card GitHub OIDC trust or AdministratorAccess is forbidden."
+            exit 1
+          fi
