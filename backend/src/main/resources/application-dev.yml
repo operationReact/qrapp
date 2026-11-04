@@ -20,13 +20,16 @@ spring:
   config:
     import:
       - "optional:aws-parameterstore:/broandbro/backend/dev?prefix=app.parameter-store."
+      - "optional:aws-parameterstore:/broandbro/backend/dev/database?prefix=app.parameter-store.database."
+      - "optional:aws-parameterstore:/broandbro/backend/dev/razorpay?prefix=app.parameter-store.razorpay."
+      - "optional:aws-parameterstore:/broandbro/backend/dev/aws/s3?prefix=app.parameter-store.aws.s3."
       - "optional:aws-parameterstore:/broandbro/backend/dev/whatsapp?prefix=app.parameter-store.whatsapp."
       - "optional:aws-parameterstore:/broandbro/backend/dev/openai?prefix=app.parameter-store.openai."
 
   datasource:
     url: ${SPRING_DATASOURCE_URL:${app.parameter-store.database.url}}
     username: ${SPRING_DATASOURCE_USERNAME:${app.parameter-store.database.username}}
-    password: ${SPRING_DATASOURCE_PASSWORD:${app.parameter-store.database.password}}
+    password: ${SPRING_DATASOURCE_PASSWORD:${app.parameter-store.database.password:}}
 
 # ── AWS Parameter Store Configuration ────────────────────────────────────────
 # SSM values are managed manually in AWS Parameter Store under

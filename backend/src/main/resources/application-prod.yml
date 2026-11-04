@@ -2,6 +2,9 @@ spring:
   config:
     import:
       - "optional:aws-parameterstore:/broandbro/backend/prod?prefix=app.parameter-store."
+      - "optional:aws-parameterstore:/broandbro/backend/prod/database?prefix=app.parameter-store.database."
+      - "optional:aws-parameterstore:/broandbro/backend/prod/razorpay?prefix=app.parameter-store.razorpay."
+      - "optional:aws-parameterstore:/broandbro/backend/prod/aws/s3?prefix=app.parameter-store.aws.s3."
       - "optional:aws-parameterstore:/broandbro/backend/prod/whatsapp?prefix=app.parameter-store.whatsapp."
       - "optional:aws-parameterstore:/broandbro/backend/prod/openai?prefix=app.parameter-store.openai."
   cache:
@@ -18,7 +21,7 @@ spring:
   datasource:
     url: ${app.parameter-store.database.url}
     username: ${app.parameter-store.database.username}
-    password: ${app.parameter-store.database.password}
+    password: ${SPRING_DATASOURCE_PASSWORD:${app.parameter-store.database.password:}}
     driver-class-name: org.postgresql.Driver
     hikari:
       pool-name: ${SPRING_DATASOURCE_HIKARI_POOL_NAME:QrAppHikariPool}

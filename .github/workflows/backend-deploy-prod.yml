@@ -73,8 +73,16 @@ jobs:
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          role-to-assume: ${{ secrets.AWS_BACKEND_ROLE_ARN }}
           aws-region: us-east-1
+
+      - name: Require new account (prevent old production deployment)
+        env:
+          EXPECTED_ACCOUNT: ${{ vars.AWS_NEW_ACCOUNT_ID }}
+        run: |
+          test -n "$EXPECTED_ACCOUNT" || { echo "::error::AWS_NEW_ACCOUNT_ID not configured"; exit 1; }
+          ACTUAL=$(aws sts get-caller-identity --query Account --output text)
+          test "$ACTUAL" = "$EXPECTED_ACCOUNT" || { echo "::error::Wrong account"; exit 1; }
 
       # Step 5: Fetch configuration from AWS Parameter Store
       - name: Fetch configuration from AWS Parameter Store
@@ -100,10 +108,13 @@ jobs:
           DB_USERNAME=$(aws ssm get-parameter \
             --name "/broandbro/backend/prod/database/username" \
             --query "Parameter.Value" --output text --region us-east-1)
-          DB_PASSWORD=$(aws ssm get-parameter \
-            --name "/broandbro/backend/prod/database/password" \
-            --with-decryption \
+          DB_SECRET_ARN=$(aws ssm get-parameter \
+            --name "/broandbro/backend/prod/database/secretArn" \
             --query "Parameter.Value" --output text --region us-east-1)
+          DB_PASSWORD=$(aws secretsmanager get-secret-value \
+            --secret-id "$DB_SECRET_ARN" --region us-east-1 \
+            --query SecretString --output text | \
+            python3 -c 'import json,sys; print(json.load(sys.stdin)["password"])')
 
           # Fetch service credentials
           OPENAI_API_KEY=$(get_optional_parameter "/broandbro/backend/prod/openai/apiKey")
@@ -153,14 +164,14 @@ jobs:
       - name: Validate WhatsApp webhook configuration
         run: |
           for REQUIRED in WHATSAPP_WEBHOOK_VERIFY_TOKEN WHATSAPP_APP_SECRET WHATSAPP_PHONE_NUMBER_ID WHATSAPP_ACCESS_TOKEN; do
-            if [ -z "${!REQUIRED}" ]; then
+            if [ -z "${!REQUIRED}" ] || [ "${!REQUIRED}" = "MISSING_EXTERNAL_CREDENTIAL" ]; then
               echo "❌ $REQUIRED not found in SSM for prod. Aborting deploy." >&2
               exit 1
             fi
           done
           echo "✅ WhatsApp configuration present"
 
-          if [ -z "$RAZORPAY_WEBHOOK_SECRET" ]; then
+          if [ -z "$RAZORPAY_WEBHOOK_SECRET" ] || [ "$RAZORPAY_WEBHOOK_SECRET" = "MISSING_EXTERNAL_CREDENTIAL" ]; then
             echo "❌ RAZORPAY_WEBHOOK_SECRET not found in SSM for prod. Aborting deploy." >&2
             exit 1
           fi

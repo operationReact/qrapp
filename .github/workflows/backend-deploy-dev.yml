@@ -44,13 +44,13 @@ jobs:
       # Step 3: Validate AWS credentials (no app secrets needed - from SSM)
       - name: Validate AWS role ARN is set
         env:
-          AWS_ROLE_ARN: ${{ secrets.AWS_ROLE_ARN }}
+          AWS_BACKEND_ROLE_ARN: ${{ secrets.AWS_BACKEND_ROLE_ARN }}
         run: |
-          if [ -z "$AWS_ROLE_ARN" ]; then
-            echo "❌ Missing required GitHub Secret: AWS_ROLE_ARN"
+          if [ -z "$AWS_BACKEND_ROLE_ARN" ]; then
+            echo "❌ Missing required GitHub Secret: AWS_BACKEND_ROLE_ARN"
             exit 1
           fi
-          echo "✅ AWS_ROLE_ARN is configured"
+          echo "✅ AWS_BACKEND_ROLE_ARN is configured"
 
       # Step 4: Build JAR
       - name: Install Gradle 8.7
@@ -72,7 +72,7 @@ jobs:
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          role-to-assume: ${{ secrets.AWS_BACKEND_ROLE_ARN }}
           aws-region: us-east-1
 
       - name: Guard new AWS account for migration
@@ -129,10 +129,13 @@ jobs:
           DB_USERNAME=$(aws ssm get-parameter \
             --name "/broandbro/backend/dev/database/username" \
             --query "Parameter.Value" --output text --region us-east-1)
-          DB_PASSWORD=$(aws ssm get-parameter \
-            --name "/broandbro/backend/dev/database/password" \
-            --with-decryption \
+          DB_SECRET_ARN=$(aws ssm get-parameter \
+            --name "/broandbro/backend/dev/database/secretArn" \
             --query "Parameter.Value" --output text --region us-east-1)
+          DB_PASSWORD=$(aws secretsmanager get-secret-value \
+            --secret-id "$DB_SECRET_ARN" --region us-east-1 \
+            --query SecretString --output text | \
+            python3 -c 'import json,sys; print(json.load(sys.stdin)["password"])')
 
           # Fetch service credentials
           OPENAI_API_KEY=$(get_optional_parameter "/broandbro/backend/dev/openai/apiKey")

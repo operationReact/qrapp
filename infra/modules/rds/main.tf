@@ -15,22 +15,8 @@ terraform {
   }
 }
 
-# ── Auto-generate a safe DB password ─────────────────────────────────────────
-# Excludes '/', '@', '"', ' ' which RDS rejects as invalid.
-resource "random_password" "db" {
-  length           = 32
-  special          = true
-  override_special = "!#$%^&*()-_=+[]{}|;:,.<>?"
-  # Explicitly exclude the four characters RDS forbids
-  # (random_password excludes '/' and '@' when override_special is set
-  #  and they are not in the allowed set above)
-
-  lifecycle {
-    # `result` is provider-computed and cannot be listed in ignore_changes.
-    # The password is stable because random_password only regenerates when its
-    # *input* arguments (length, special, override_special) change.
-  }
-}
+# The database generates its own master secret in AWS Secrets Manager.
+# Terraform state stores the ARN, NEVER the database password.
 
 # ── Store the complete database connection in the application namespace ───────
 # Both environments intentionally use the same path shape:
@@ -59,19 +45,16 @@ resource "aws_ssm_parameter" "db_username" {
   }
 }
 
-resource "aws_ssm_parameter" "db_password" {
-  name        = "/broandbro/backend/${var.environment}/database/password"
-  description = "RDS master password for broandbro ${var.environment}"
-  type        = "SecureString"
-  value       = random_password.db.result
-
+# The secret ARN is an automatically populated SSM reference, not the password.
+# Deployment reads the generated password using Secrets Manager IAM permissions.
+resource "aws_ssm_parameter" "db_secret_arn" {
+  name        = "/broandbro/backend/${var.environment}/database/secretArn"
+  description = "ARN of RDS-managed Secrets Manager master password"
+  type        = "String"
+  value       = aws_db_instance.this.master_user_secret[0].secret_arn
   tags = {
-    Name        = "broandbro-${var.environment}-db-password"
+    Name        = "broandbro-${var.environment}-db-secret-arn"
     Environment = var.environment
-  }
-
-  lifecycle {
-    ignore_changes = [value]
   }
 }
 
@@ -117,7 +100,7 @@ resource "aws_db_instance" "this" {
 
   db_name  = var.db_name
   username = var.db_username
-  password = random_password.db.result # auto-generated above
+  manage_master_user_password = true # RDS stores/generated password in Secrets Manager
 
   db_subnet_group_name   = aws_db_subnet_group.this.name
   vpc_security_group_ids = [var.security_group_id]
@@ -150,7 +133,7 @@ resource "aws_db_instance" "this" {
   }
 
   lifecycle {
-    ignore_changes = [final_snapshot_identifier, password]
+    ignore_changes = [final_snapshot_identifier]
   }
 }
 
