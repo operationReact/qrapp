@@ -5,11 +5,11 @@
 # =============================================================================
 
 terraform {
-  required_version = ">= 1.9.0"
+  required_version = ">= 1.11.0"
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = "~> 5.50"
+      version = "~> 6.8"
     }
     tls = {
       source  = "hashicorp/tls"
@@ -112,6 +112,16 @@ resource "aws_s3_bucket_cors_configuration" "media" {
   }
 
   depends_on = [aws_s3_bucket_public_access_block.media]
+}
+
+# ── Automatic SSM application configuration ─────────────────────────────
+module "ssm_config" {
+  source                   = "../../modules/ssm-config"
+  environment              = "prod"
+  aws_region               = var.aws_region
+  media_bucket_name        = var.media_bucket_name
+  location_bucket_name     = "broandbro-location-images-prod"
+  app_cors_allowed_origins = "https://broandbro.in,https://www.broandbro.in"
 }
 
 # ── Security Groups ───────────────────────────────────────────────────────────

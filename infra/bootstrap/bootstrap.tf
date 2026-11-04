@@ -1,11 +1,11 @@
 # New-account bootstrap. Run with short-lived AWS SSO credentials in the TARGET account.
 # This stack deliberately keeps local state: protect its terraform.tfstate and back it up securely.
 terraform {
-  required_version = ">= 1.10.0"
+  required_version = ">= 1.11.0"
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = "~> 5.50"
+      version = "~> 6.8"
     }
   }
 }
@@ -149,7 +149,7 @@ resource "aws_iam_role_policy" "terraform" {
         Sid = "TerraformApplicationServices", Effect = "Allow"
         Action = [
           "acm:*", "cloudfront:*", "cloudwatch:*", "ec2:*", "logs:*",
-          "rds:*", "route53:*", "s3:*", "sns:*", "ssm:*",
+          "rds:*", "route53:*", "s3:*", "sns:*", "ssm:*", "secretsmanager:DescribeSecret",
           "scheduler:*", "wafv2:*", "kms:DescribeKey", "kms:ListAliases",
           "sts:GetCallerIdentity"
         ]
@@ -233,6 +233,11 @@ resource "aws_iam_role_policy" "backend" {
           "arn:aws:ec2:${var.aws_region}:${local.account_id}:instance/*",
           "arn:aws:ssm:${var.aws_region}::document/AWS-RunShellScript"
         ]
+      },
+      {
+        Sid = "RDSManagedMasterSecret", Effect = "Allow"
+        Action = ["secretsmanager:GetSecretValue"]
+        Resource = "arn:aws:secretsmanager:${var.aws_region}:${local.account_id}:secret:rds!*"
       },
       {
         Sid = "InspectCommands", Effect = "Allow"
