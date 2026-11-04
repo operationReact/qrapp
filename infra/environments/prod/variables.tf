@@ -22,7 +22,7 @@ variable "ec2_instance_type" {
 variable "ssh_allowed_cidrs" {
   description = "Lock this down to your office IP in prod!"
   type        = list(string)
-  default     = ["0.0.0.0/0"]
+  default     = [] # SSM only; do not expose SSH
 }
 
 variable "rds_instance_class" {

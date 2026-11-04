@@ -85,7 +85,7 @@ module "ssm_config" {
   media_bucket_name        = local.media_bucket
   location_bucket_name     = local.location_bucket
   artifact_bucket_name     = local.artifact_bucket
-  app_cors_allowed_origins = "https://develop.broandbro.in,http://localhost:5173"
+  app_cors_allowed_origins = "https://${var.frontend_hostname},http://localhost:5173"
 }
 
 # ── Security Groups ───────────────────────────────────────────────────────────
@@ -105,6 +105,7 @@ module "acm" {
   }
 
   domain_name = var.domain_name
+  subject_alternative_names = [var.frontend_hostname, var.api_hostname]
 
   hosted_zone_name            = var.domain_name
   environment                 = "dev"

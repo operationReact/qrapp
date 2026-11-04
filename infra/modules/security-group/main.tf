@@ -15,13 +15,7 @@ resource "aws_security_group" "ec2" {
   description = "Backend EC2: HTTP, HTTPS, SSH"
   vpc_id      = data.aws_vpc.default.id
 
-  ingress {
-    description = "SSH"
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = var.ssh_allowed_cidrs
-  }
+  # No public SSH ingress: deployments and maintenance use Systems Manager.
 
   ingress {
     description = "HTTP (nginx)"
@@ -68,18 +62,7 @@ resource "aws_security_group" "rds" {
     security_groups = [aws_security_group.ec2.id]
   }
 
-  # Public access for local development – DEV ONLY
-  # In prod, access is only via EC2 security group.
-  dynamic "ingress" {
-    for_each = var.environment == "dev" ? [1] : []
-    content {
-      description = "PostgreSQL public access (dev only)"
-      from_port   = 5432
-      to_port     = 5432
-      protocol    = "tcp"
-      cidr_blocks = ["0.0.0.0/0"]
-    }
-  }
+  # PostgreSQL is reachable only through the EC2 security group in every environment.
 
   egress {
     from_port   = 0

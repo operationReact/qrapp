@@ -12,7 +12,7 @@ frontend_bucket_name = "" # Generated per AWS account
 ec2_instance_type = "t4g.micro"
 
 # SSH access (dev: open for convenience, tighten in prod)
-ssh_allowed_cidrs = ["0.0.0.0/0"]
+ssh_allowed_cidrs = [] # Systems Manager only, no inbound SSH
 
 # RDS PostgreSQL
 rds_instance_class = "db.t4g.micro"

@@ -84,7 +84,7 @@ module "ssm_config" {
   media_bucket_name        = local.media_bucket
   location_bucket_name     = local.location_bucket
   artifact_bucket_name     = local.artifact_bucket
-  app_cors_allowed_origins = "https://broandbro.in,https://www.broandbro.in"
+  app_cors_allowed_origins = "https://${var.frontend_hostname}"
 }
 
 # ── Security Groups ───────────────────────────────────────────────────────────

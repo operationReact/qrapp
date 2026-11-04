@@ -107,7 +107,7 @@ resource "aws_db_instance" "this" {
 
   # Expose to internet only in dev (for local development access).
   # In prod this remains false – access is only via EC2.
-  publicly_accessible = var.environment != "prod" ? true : false
+  publicly_accessible = false
 
   # Automated backups
   backup_retention_period = var.backup_retention_days
