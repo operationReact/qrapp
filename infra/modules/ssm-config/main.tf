@@ -5,6 +5,7 @@ variable "environment" { type = string }
 variable "aws_region" { type = string }
 variable "media_bucket_name" { type = string }
 variable "location_bucket_name" { type = string }
+variable "artifact_bucket_name" { type = string }
 variable "app_cors_allowed_origins" { type = string }
 
 locals {
@@ -22,6 +23,7 @@ locals {
   generated_settings = {
     "aws/s3/bucketName"         = var.media_bucket_name
     "aws/s3/locationBucketName" = var.location_bucket_name
+    "aws/s3/artifactBucketName" = var.artifact_bucket_name
     "aws/s3/region"             = var.aws_region
     "aws/s3/enabled"            = "true"
     "app/cors/allowedOrigins"   = var.app_cors_allowed_origins

@@ -10,7 +10,7 @@ variable "domain_name" {
 
 variable "frontend_bucket_name" {
   type    = string
-  default = "broandbro-develop-ui"
+  default = ""
 }
 
 variable "ec2_instance_type" {
@@ -50,7 +50,7 @@ variable "alarm_email" {
 variable "media_bucket_name" {
   description = "Name of the development S3 bucket for AI-generated menu item images."
   type        = string
-  default     = "broandbro-dev-root-bucket"
+  default     = ""
 }
 
 variable "existing_certificate_arn" {

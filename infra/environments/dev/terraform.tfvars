@@ -6,7 +6,7 @@ aws_region  = "us-east-1"
 domain_name = "broandbro.in"
 
 # Frontend S3 bucket
-frontend_bucket_name = "broandbro-develop-ui"
+frontend_bucket_name = "" # Generated per AWS account
 
 # EC2 Backend
 ec2_instance_type = "t4g.micro"
@@ -24,4 +24,4 @@ alarm_email = ""
 
 # ── Media bucket ──────────────────────────────────────────────────────────────
 # Development media bucket for AI-generated menu images
-media_bucket_name = "broandbro-dev-root-bucket"
+media_bucket_name = "" # Generated per AWS account

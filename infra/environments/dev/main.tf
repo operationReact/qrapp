@@ -50,133 +50,41 @@ provider "aws" {
   }
 }
 
-# ── Development media bucket (AI-generated menu item images) ─────────────────
-# This bucket is managed by the dev environment and protected from destruction.
-resource "aws_s3_bucket" "media" {
-  bucket = var.media_bucket_name
-
-  lifecycle {
-    prevent_destroy = true
-    # Ignore tag drift (both resource-level tags and provider default_tags).
-    # This prevents the bucket from being replaced after a partial create
-    # (e.g. when PutBucketTagging failed on a previous apply).
-    ignore_changes = [tags, tags_all]
-  }
-
-  tags = {
-    Name      = var.media_bucket_name
-    Purpose   = "AI-generated menu item images - development"
-    ManagedBy = "Terraform"
-  }
-}
-
-resource "aws_s3_bucket_public_access_block" "media" {
-  bucket                  = aws_s3_bucket.media.id
-  block_public_acls       = true
-  ignore_public_acls      = true
-  block_public_policy     = false
-  restrict_public_buckets = false
-}
-
-resource "aws_s3_bucket_server_side_encryption_configuration" "media" {
-  bucket = aws_s3_bucket.media.id
-  rule {
-    apply_server_side_encryption_by_default {
-      sse_algorithm = "AES256"
-    }
-  }
-}
-
-resource "aws_s3_bucket_versioning" "media" {
-  bucket = aws_s3_bucket.media.id
-  versioning_configuration {
-    status = "Suspended"
-  }
-}
-
-resource "aws_s3_bucket_lifecycle_configuration" "media" {
-  bucket = aws_s3_bucket.media.id
-  rule {
-    id     = "expire-old-images"
-    status = "Enabled"
-    filter {}
-    expiration {
-      days = 365
-    }
-    abort_incomplete_multipart_upload {
-      days_after_initiation = 1
-    }
-  }
-}
-
-resource "aws_s3_bucket_cors_configuration" "media" {
-  bucket = aws_s3_bucket.media.id
-  cors_rule {
-    allowed_headers = ["*"]
-    allowed_methods = ["GET", "HEAD"]
-    allowed_origins = ["*"]
-    expose_headers  = ["ETag"]
-    max_age_seconds = 86400
-  }
-}
-
-resource "aws_s3_bucket_policy" "media" {
-  bucket     = aws_s3_bucket.media.id
-  depends_on = [aws_s3_bucket_public_access_block.media]
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Sid    = "AllowAccountUploads"
-        Effect = "Allow"
-        Principal = {
-          AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"
-        }
-        Action   = ["s3:PutObject", "s3:DeleteObject", "s3:GetObject"]
-        Resource = [
-          "${aws_s3_bucket.media.arn}/menu-items/*",
-          "${aws_s3_bucket.media.arn}/locations/menu-images/*",
-          "${aws_s3_bucket.media.arn}/products/*"
-        ]
-      },
-      {
-        Sid       = "PublicReadMenuImages"
-        Effect    = "Allow"
-        Principal = "*"
-        Action    = ["s3:GetObject"]
-        Resource = [
-          "${aws_s3_bucket.media.arn}/menu-items/*",
-          "${aws_s3_bucket.media.arn}/locations/menu-images/*",
-          "${aws_s3_bucket.media.arn}/products/*",
-          "${aws_s3_bucket.media.arn}/hall-of-happiness/*",
-          "${aws_s3_bucket.media.arn}/campaigns/*",
-          "${aws_s3_bucket.media.arn}/categories/*"
-        ]
-      },
-      {
-        Sid       = "DenyNonSSLUploads"
-        Effect    = "Deny"
-        Principal = "*"
-        Action    = "s3:PutObject"
-        Resource  = "${aws_s3_bucket.media.arn}/*"
-        Condition = {
-          Bool = { "aws:SecureTransport" = "false" }
-        }
-      }
-    ]
-  })
-}
-
+# ── Account-specific globally unique S3 names ───────────────────────────
 data "aws_caller_identity" "current" {}
+
+locals {
+  frontend_bucket = var.frontend_bucket_name != "" ? var.frontend_bucket_name : "broandbro-dev-ui-${data.aws_caller_identity.current.account_id}"
+  media_bucket    = var.media_bucket_name != "" ? var.media_bucket_name : "broandbro-dev-media-${data.aws_caller_identity.current.account_id}"
+  location_bucket = "broandbro-dev-locations-${data.aws_caller_identity.current.account_id}"
+  artifact_bucket = "broandbro-dev-artifacts-${data.aws_caller_identity.current.account_id}"
+}
+
+module "media" {
+  source      = "../../modules/media"
+  environment = "dev"
+  bucket_name = local.media_bucket
+}
+module "location_images" {
+  source          = "../../modules/media"
+  environment     = "dev"
+  bucket_name     = local.location_bucket
+  public_prefixes = ["locations"]
+}
+module "artifacts" {
+  source      = "../../modules/artifacts"
+  environment = "dev"
+  bucket_name = local.artifact_bucket
+}
 
 # ── Automatic SSM application configuration ─────────────────────────────
 module "ssm_config" {
   source                   = "../../modules/ssm-config"
   environment              = "dev"
   aws_region               = var.aws_region
-  media_bucket_name        = var.media_bucket_name
-  location_bucket_name     = "broandbro-location-images-dev"
+  media_bucket_name        = local.media_bucket
+  location_bucket_name     = local.location_bucket
+  artifact_bucket_name     = local.artifact_bucket
   app_cors_allowed_origins = "https://develop.broandbro.in,http://localhost:5173"
 }
 
@@ -223,7 +131,7 @@ module "cloudfront" {
 module "s3" {
   source = "../../modules/s3"
 
-  bucket_name                 = var.frontend_bucket_name # broandbro-develop-ui
+  bucket_name                 = local.frontend_bucket # broandbro-develop-ui
   environment                 = "dev"
   cloudfront_distribution_arn = module.cloudfront.distribution_arn
 }
@@ -235,9 +143,10 @@ module "ec2" {
   environment            = "dev"
   instance_type          = var.ec2_instance_type
   security_group_id      = module.security_group.ec2_sg_id
-  media_bucket_arn       = aws_s3_bucket.media.arn
-  location_bucket_arn    = "arn:aws:s3:::broandbro-location-images-dev"
+  media_bucket_arn       = module.media.bucket_arn
+  location_bucket_arn    = module.location_images.bucket_arn
   create_media_s3_policy = true
+  artifact_bucket_arn     = module.artifacts.bucket_arn
 }
 
 # ── RDS PostgreSQL ────────────────────────────────────────────────────────────

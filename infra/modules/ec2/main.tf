@@ -115,7 +115,7 @@ resource "aws_iam_role_policy" "ssm_read" {
     Version = "2012-10-17"
     Statement = [{
       Effect   = "Allow"
-      Action   = ["ssm:GetParameter", "ssm:GetParameters"]
+      Action   = ["ssm:GetParameter", "ssm:GetParameters", "ssm:GetParametersByPath"]
       Resource = [
         "arn:aws:ssm:*:*:parameter/broandbro/${var.environment}/*",
         "arn:aws:ssm:*:*:parameter/broandbro/backend/${var.environment}/*"
@@ -172,6 +172,21 @@ resource "aws_iam_role_policy" "media_s3" {
         }
       }
     ]
+  })
+}
+
+# Private, account-scoped JAR download permissions.
+resource "aws_iam_role_policy" "artifacts_s3" {
+  count = var.artifact_bucket_arn == "" ? 0 : 1
+  name  = "broandbro-${var.environment}-artifacts-s3"
+  role  = aws_iam_role.ec2.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Sid = "ReadOnlyThisEnvironmentArtifacts", Effect = "Allow"
+      Action   = ["s3:GetObject"]
+      Resource = "${var.artifact_bucket_arn}/deploy/${var.environment}/*"
+    }]
   })
 }
 

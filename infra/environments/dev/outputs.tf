@@ -35,16 +35,19 @@ output "alarm_sns_topic_arn" {
 }
 
 output "media_bucket_name" {
-  value       = aws_s3_bucket.media.bucket
+  value       = module.media.bucket_id
   description = "Shared S3 bucket for AI-generated menu item images (set as AWS_S3_BUCKET_NAME env var)"
 }
 
 output "media_bucket_arn" {
-  value       = aws_s3_bucket.media.arn
+  value       = module.media.bucket_arn
   description = "ARN of the shared media S3 bucket"
 }
 
 output "media_bucket_regional_domain" {
-  value       = aws_s3_bucket.media.bucket_regional_domain_name
+  value       = module.media.regional_domain_name
   description = "Regional domain – base URL for public image access"
 }
+
+output "location_bucket_name" { value = module.location_images.bucket_id }
+output "artifact_bucket_name" { value = module.artifacts.bucket_id }

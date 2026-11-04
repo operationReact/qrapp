@@ -49,69 +49,31 @@ provider "aws" {
   }
 }
 
-# ── Production media bucket (AI-generated menu item images) ──────────────────
-# Prod looks up its existing media bucket via data source so we can reference
-# its ARN without re-creating it in this stack.
-data "aws_s3_bucket" "media" {
-  bucket = var.media_bucket_name
+# ── Account-specific globally unique S3 names ───────────────────────────
+data "aws_caller_identity" "current" {}
+
+locals {
+  frontend_bucket = var.frontend_bucket_name != "" ? var.frontend_bucket_name : "broandbro-prod-ui-${data.aws_caller_identity.current.account_id}"
+  media_bucket    = var.media_bucket_name != "" ? var.media_bucket_name : "broandbro-prod-media-${data.aws_caller_identity.current.account_id}"
+  location_bucket = "broandbro-prod-locations-${data.aws_caller_identity.current.account_id}"
+  artifact_bucket = "broandbro-prod-artifacts-${data.aws_caller_identity.current.account_id}"
 }
 
-# ── Allow public read access for media bucket ──────────────────────────────────
-resource "aws_s3_bucket_public_access_block" "media" {
-  bucket = data.aws_s3_bucket.media.id
-
-  block_public_acls       = false
-  block_public_policy     = false
-  ignore_public_acls      = false
-  restrict_public_buckets = false
+module "media" {
+  source      = "../../modules/media"
+  environment = "prod"
+  bucket_name = local.media_bucket
 }
-
-# ── Bucket policy: allow public read access for images ────────────────────────
-resource "aws_s3_bucket_policy" "media" {
-  bucket = data.aws_s3_bucket.media.id
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Sid    = "AllowPublicRead"
-        Effect = "Allow"
-        Principal = "*"
-        Action   = "s3:GetObject"
-        Resource = "${data.aws_s3_bucket.media.arn}/*"
-      },
-      {
-        Sid       = "DenyNonSSL"
-        Effect    = "Deny"
-        Principal = "*"
-        Action    = "s3:*"
-        Resource = [
-          data.aws_s3_bucket.media.arn,
-          "${data.aws_s3_bucket.media.arn}/*"
-        ]
-        Condition = {
-          Bool = { "aws:SecureTransport" = "false" }
-        }
-      }
-    ]
-  })
-
-  depends_on = [aws_s3_bucket_public_access_block.media]
+module "location_images" {
+  source          = "../../modules/media"
+  environment     = "prod"
+  bucket_name     = local.location_bucket
+  public_prefixes = ["locations"]
 }
-
-# ── CORS configuration for browser access ──────────────────────────────────────
-resource "aws_s3_bucket_cors_configuration" "media" {
-  bucket = data.aws_s3_bucket.media.id
-
-  cors_rule {
-    allowed_headers = ["*"]
-    allowed_methods = ["GET", "HEAD"]
-    allowed_origins = ["*"]
-    expose_headers  = ["ETag", "x-amz-version-id"]
-    max_age_seconds = 3000
-  }
-
-  depends_on = [aws_s3_bucket_public_access_block.media]
+module "artifacts" {
+  source      = "../../modules/artifacts"
+  environment = "prod"
+  bucket_name = local.artifact_bucket
 }
 
 # ── Automatic SSM application configuration ─────────────────────────────
@@ -119,8 +81,9 @@ module "ssm_config" {
   source                   = "../../modules/ssm-config"
   environment              = "prod"
   aws_region               = var.aws_region
-  media_bucket_name        = var.media_bucket_name
-  location_bucket_name     = "broandbro-location-images-prod"
+  media_bucket_name        = local.media_bucket
+  location_bucket_name     = local.location_bucket
+  artifact_bucket_name     = local.artifact_bucket
   app_cors_allowed_origins = "https://broandbro.in,https://www.broandbro.in"
 }
 
@@ -168,7 +131,7 @@ module "cloudfront" {
 module "s3" {
   source = "../../modules/s3"
 
-  bucket_name                 = var.frontend_bucket_name # broandbro-prod-ui
+  bucket_name                 = local.frontend_bucket # broandbro-prod-ui
   environment                 = "prod"
   cloudfront_distribution_arn = module.cloudfront.distribution_arn
 }
@@ -180,9 +143,10 @@ module "ec2" {
   environment            = "prod"
   instance_type          = var.ec2_instance_type
   security_group_id      = module.security_group.ec2_sg_id
-  media_bucket_arn       = data.aws_s3_bucket.media.arn
-  location_bucket_arn    = "arn:aws:s3:::broandbro-location-images-prod"
+  media_bucket_arn       = module.media.bucket_arn
+  location_bucket_arn    = module.location_images.bucket_arn
   create_media_s3_policy = true
+  artifact_bucket_arn     = module.artifacts.bucket_arn
   root_volume_size       = 30
 }
 

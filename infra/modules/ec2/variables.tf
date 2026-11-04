@@ -36,3 +36,8 @@ variable "root_volume_size" {
   type        = number
   default     = 20
 }
+
+variable "artifact_bucket_arn" {
+  type    = string
+  default = ""
+}
