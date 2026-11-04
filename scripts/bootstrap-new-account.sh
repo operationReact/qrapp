@@ -28,6 +28,7 @@ if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
   for ENV in dev prod; do
     gh variable set AWS_NEW_ACCOUNT_ID --env "$ENV" --repo "$REPO" --body "$TARGET_ACCOUNT"
     gh variable set TF_STATE_BUCKET --env "$ENV" --repo "$REPO" --body "$BUCKET"
+    gh variable set AWS_REGION --env "$ENV" --repo "$REPO" --body "$REGION"
     gh variable set API_DOMAIN --env "$ENV" --repo "$REPO" --body "migrate-$ENV-api.broandbro.in"
     gh variable set API_URL --env "$ENV" --repo "$REPO" --body "https://migrate-$ENV-api.broandbro.in"
     for KIND in terraform frontend backend; do

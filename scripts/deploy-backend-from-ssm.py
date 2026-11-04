@@ -79,13 +79,15 @@ def main():
         "WHATSAPP_PHONE_NUMBER_ID": get("whatsapp/phoneNumberId"),
         "WHATSAPP_ACCESS_TOKEN": get("whatsapp/accessToken"),
     }
-    if env == "prod":
+    # Both dev and prod are customer-facing in the new account: refuse to
+    # launch payment/OTP paths with Terraform placeholder credentials.
+    if env in ("dev", "prod"):
         keys = ["RAZORPAY_KEY", "RAZORPAY_SECRET", "RAZORPAY_WEBHOOK_SECRET",
                 "WHATSAPP_WEBHOOK_VERIFY_TOKEN", "WHATSAPP_APP_SECRET",
                 "WHATSAPP_PHONE_NUMBER_ID", "WHATSAPP_ACCESS_TOKEN"]
         for key in keys:
             if values[key] in ("", "None", "MISSING_EXTERNAL_CREDENTIAL"):
-                raise RuntimeError("Missing mandatory production credential: " + key)
+                raise RuntimeError("Missing mandatory deployment credential: " + key)
 
     app = pathlib.Path("/opt/broandbro")
     config = app / "config/application.env"

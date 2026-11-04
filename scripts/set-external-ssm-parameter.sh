@@ -5,6 +5,14 @@ set -euo pipefail
 ENVIRONMENT="${1:?Usage: $0 dev|prod relative/parameter/path [region]}"
 RELATIVE_PATH="${2:?Usage: $0 dev|prod relative/parameter/path [region]}"
 REGION="${3:-ap-south-1}"
+EXPECTED_ACCOUNT="${EXPECTED_AWS_ACCOUNT_ID:?Set EXPECTED_AWS_ACCOUNT_ID to the new 12-digit account ID}"
+[[ "$EXPECTED_ACCOUNT" =~ ^[0-9]{12}$ ]] || { echo "Invalid new AWS account ID" >&2; exit 2; }
+[[ "$REGION" == "ap-south-1" ]] || { echo "Refusing to configure secrets outside Mumbai" >&2; exit 2; }
+ACTUAL_ACCOUNT="$(aws sts get-caller-identity --query Account --output text --region "$REGION")"
+[[ "$ACTUAL_ACCOUNT" == "$EXPECTED_ACCOUNT" ]] || {
+  echo "Refusing to modify secrets in AWS account $ACTUAL_ACCOUNT (expected $EXPECTED_ACCOUNT)" >&2
+  exit 1
+}
 [[ "$ENVIRONMENT" == "dev" || "$ENVIRONMENT" == "prod" ]] || exit 2
 case "$RELATIVE_PATH" in
   openai/apiKey|razorpay/key|razorpay/secret|razorpay/webhookSecret|whatsapp/webhookVerifyToken|whatsapp/appSecret|whatsapp/phoneNumberId|whatsapp/accessToken) ;;

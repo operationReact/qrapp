@@ -1,21 +1,28 @@
-# Bro & Bro — new AWS account migration runbook (DEV first)
+# Bro & Bro — Mumbai new-account deployment runbook (dev branch first)
 
-> Status: source refactor + offline validation only. No resources or secrets
-> have been copied, bootstrapped or deployed in the new account yet.
-> Do not merge the divergent dev branch into main until Git history,
-> data migration and production acceptance checks are resolved.
+> Status: Mumbai-targeted code prepared; offline checks do not prove a live AWS apply.
+> Target account: `098859530205`; primary region: `ap-south-1`.
+> CloudFront ACM certificates and CloudFront WAF remain in `us-east-1`.
+> `main` was merged INTO `dev`; `main` itself is unchanged.
+> Approved approach: FRESH installation in the new account, NO old customer/order/wallet/media migration.
+> Keep `www.broandbro.in` on the existing hosting account until a separate cutover approval.
 
 ## Principles
 - AWS account construction is automated; the operator authenticates, does not create resources by hand.
 - All apply/deploy actions are manual dispatch and verify the NEW account ID.
 - Never reuse old-account Terraform state, IAM ARN, WAF ARN, or S3 bucket names.
 - No Terraform code change should deploy into the old account.
-- RDS master password is generated and managed by RDS Secrets Manager.\n- Temporary rotation safety: default weekly master-secret rotation is DISABLED\n  because the current application uses startup-injected credentials. Implement\n  tested runtime secret refresh/dedicated DB application user before re-enabling.
+- RDS master password is generated and managed by RDS Secrets Manager.
+- Automatic master-secret rotation is temporarily disabled because the app consumes
+  credentials at startup. Re-enable after implementing tested runtime refresh.
 - Terraform creates *all* SSM parameter names and generated values.
 - Only vendor API tokens are operator-supplied; they use SecureString write-only
   placeholders to avoid storing plaintext in Terraform state.
 - No SSH private key or port 22 is required; backend deploys use SSM Run Command.
-- Existing customer and transaction data must be restored before production cutover.
+- Fresh install requested: do not import existing customer records, wallets or orders.
+- Flyway can create tables and also seeds DEMO rows: confirm test data is absent from
+  customer-facing UI before public launch. V167 revokes known hardcoded seeded logins;
+  the seeded superadmin requires WhatsApp password recovery to claim securely.
 
 ## 1. Obtain authenticated, short-lived credentials (operator)
 
@@ -25,7 +32,7 @@ of AWS infrastructure.
 
 ```bash
 aws sso login --profile broandbro-new
-AWS_PROFILE=broandbro-new aws sts get-caller-identity
+AWS_PROFILE=broandbro-new aws sts get-caller-identity --region ap-south-1
 ```
 
 Use the 12-digit NEW account ID from that output. Verify the old and new IDs
@@ -36,7 +43,7 @@ are different. Keep the old account running for rollback.
 On `dev`, with Terraform >= 1.12 and AWS CLI v2:
 
 ```bash
-AWS_PROFILE=broandbro-new ./scripts/bootstrap-new-account.sh NEW_ACCOUNT_ID us-east-1
+AWS_PROFILE=broandbro-new ./scripts/bootstrap-new-account.sh 098859530205 ap-south-1
 ```
 
 This provisions:
@@ -153,8 +160,8 @@ Meta WhatsApp, OpenAI, etc. They are created by Terraform as SSM SecureString
 placeholders with write-only provider support. Update using:
 
 ```bash
-AWS_PROFILE=broandbro-new ./scripts/set-external-ssm-parameter.sh dev razorpay/key
-AWS_PROFILE=broandbro-new ./scripts/set-external-ssm-parameter.sh dev whatsapp/accessToken
+AWS_PROFILE=broandbro-new EXPECTED_AWS_ACCOUNT_ID=098859530205 ./scripts/set-external-ssm-parameter.sh dev razorpay/key
+AWS_PROFILE=broandbro-new EXPECTED_AWS_ACCOUNT_ID=098859530205 ./scripts/set-external-ssm-parameter.sh dev whatsapp/accessToken
 ```
 
 Also set razorpay/secret, razorpay/webhookSecret, whatsapp/appSecret,
@@ -178,10 +185,11 @@ After the dev Terraform apply and before application deployment, execute:
 
 ```bash
 AWS_PROFILE=broandbro-new python3 scripts/preflight-new-account.py \
-  --environment dev --account NEW_ACCOUNT_ID
+  --environment dev --account 098859530205
 ```
 
-For a scheduled-off development environment only, append `--allow-stopped`.
+The customer-facing dev environment is configured to remain running around the clock.
+Do not append `--allow-stopped` for a launch preflight.
 The preflight checks the authenticated account, RDS private/encrypted state,
 EC2 security group and Systems Manager agent, S3 privacy, generated SSM
 values and the preview CloudFront distribution. It does NOT read any external
@@ -199,35 +207,37 @@ and SSM Run Command; GitHub never stores EC2 SSH private keys.
 
 Test order placement, login, payment callbacks, wallet amounts, invoices,
 image reads/writes, PWA/Android assetlinks, monitoring, DB connectivity,
-SSM IAM, emergency rollback and nightly/weekday scheduler behavior.
+SSM IAM, emergency rollback and always-on EC2/RDS availability.
 
-## 7. Migrate production state/data — BEFORE prod Terraform apply
+## 7. Fresh-install acceptance (NO legacy data transfer)
 
-A fresh Terraform RDS database is EMPTY. Do not point the production site at
-it. The existing database must be migrated with a consistent snapshot, a
-supported cross-account RDS encrypted-snapshot copy, or a logical
-PostgreSQL export/import with final write freeze.
+This migration intentionally discards the existing account's customers, wallets,
+orders and media; Terraform provisions an empty RDS instance. Spring Boot Flyway
+initializes schema AND legacy sample records (including demo menu items, wallets,
+and simulated orders) on first startup. The V167 safety migration revokes public
+demo login credentials and replaces the seeded admin's known password.
 
-Choose strategy after measuring the old database size, Postgres version,
-KMS key ownership, backup validity and acceptable downtime. Snapshot copy
-under the default AWS-managed RDS KMS key cannot be directly shared across
-accounts. Do not start an empty prod database and overwrite transaction data.
-
-Copy media and location S3 objects, preserve metadata and reconcile counts.
-Existing database rows may contain absolute S3 URLs with old bucket names;
-audit and migrate references transactionally after taking a tested backup.
-
-Retain application signing and webhook consistency; run live payment and wallet
-reconciliation before cutover.
+Before allowing customers or REAL Razorpay payments:
+- Verify Flyway migrations complete successfully with PostgreSQL in Mumbai.
+- Recover the seeded superadmin via WhatsApp OTP password reset; validate ownership.
+- Remove or quarantine demo menu items, fake paid orders and fixture wallet balances
+  in the NEW database through a reviewed, backup-protected cleanup procedure.
+- Set the actual menu, business locations, taxes, invoice settings, and payment modes.
+- Provide WhatsApp/Meta and Razorpay credentials; backend deployments refuse
+  missing credentials even when deployed from the dev branch.
+- Validate refunds, webhook signatures, end-to-end ordering, wallet correctness,
+  and account logout behavior before exposing new URLs to customers.
+- The old application continues independently; new account users must register
+  afresh. Do not redirect the old domain without explicit separate approval.
 
 ## 8. Production deployment + cutover
 
-Only after data migration, preview testing, required GitHub reviewer
-protection and an approved maintenance window:
+Only after successful fresh-install acceptance, preview testing, required
+GitHub reviewer protection and an approved maintenance window:
 
 - Run production plan/apply after dev changes are reconciled with main.
 - Deploy backend and frontend by manual dispatch from main to preview names.
-- Validate production data and all integrations without live traffic.
+- Validate a new, clean catalog and all integrations without live traffic.
 - Coordinate CloudFront alternate-domain transfer and DNS changes.
 - Run production smoke tests, audit payment/wallet records, monitor and retain
   the original infrastructure until rollback window expires.
@@ -235,14 +245,14 @@ protection and an approved maintenance window:
 
 ## Cost scheduler
 
-DEV defaults to weekday:
+Optional dev schedule (DISABLED for the 24/7 deployment):
 - RDS start 09:00 IST
 - EC2 start 09:30 IST
 - EC2 stop 20:00 IST
 - RDS stop 20:15 IST
 
-All timings are Terraform cron variables, timezone configurable. Production
-scheduling is OFF by default. Never schedule production downtime without an
+All timings are Terraform cron variables, timezone configurable. Both dev
+and prod scheduling are OFF by default for this always-on deployment. Never schedule production downtime without an
 approved service window. RDS instances can be stopped only temporarily:
 AWS restarts stopped RDS instances after a maximum of 7 days. EBS, S3, IP
 addresses, CloudFront, snapshots, and WAF can remain billable while compute is
@@ -252,10 +262,11 @@ stopped. No NAT Gateway is deployed.
 
 - No AWS account is connected in this chat: IAM authorization and live plans
   cannot be tested here.
-- No live RDS snapshot, object copy or data migration has happened.
+- No real AWS resources have been created or runtime smoke-tested through this chat.
+- No legacy data migration is planned or required; new-data initialization must be tested.
 - External credentials require your direct authenticated entry.
 - Registrar delegation and payment/webhook account updates remain external.
-- The dev branch is divergent from main; resolve/reconcile before merging.
+- The main history is already merged into dev; only dev has the unreleased new-account changes.
 - GitHub offline `terraform validate` is not proof that actual apply will
   complete; verify AWS quotas, subscription services and permissions on
   first dev apply.
