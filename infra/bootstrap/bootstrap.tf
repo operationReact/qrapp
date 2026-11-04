@@ -150,7 +150,7 @@ resource "aws_iam_role_policy" "terraform" {
         Sid = "TerraformApplicationServices", Effect = "Allow"
         Action = [
           "acm:*", "cloudfront:*", "cloudwatch:*", "ec2:*", "logs:*",
-          "rds:*", "route53:*", "s3:*", "sns:*", "ssm:*", "secretsmanager:DescribeSecret", "secretsmanager:GetSecretValue",
+          "rds:*", "route53:*", "s3:*", "sns:*", "ssm:*", "secretsmanager:DescribeSecret",
           "scheduler:*", "wafv2:*", "kms:DescribeKey", "kms:ListAliases",
           "sts:GetCallerIdentity"
         ]
@@ -167,8 +167,8 @@ resource "aws_iam_role_policy" "terraform" {
           "iam:RemoveRoleFromInstanceProfile", "iam:PassRole"
         ]
         Resource = [
-          "arn:aws:iam::${local.account_id}:role/broandbro-*",
-          "arn:aws:iam::${local.account_id}:instance-profile/broandbro-*"
+          "arn:aws:iam::${local.account_id}:role/broandbro-${each.key}-*",
+          "arn:aws:iam::${local.account_id}:instance-profile/broandbro-${each.key}-*"
         ]
       },
       {

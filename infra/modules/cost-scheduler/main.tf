@@ -88,6 +88,8 @@ locals {
 }
 
 resource "aws_scheduler_schedule" "this" {
+  # Ensure the execution role policy exists before the schedule is enabled.
+  depends_on = [aws_iam_role_policy.scheduler]
   for_each                     = local.schedules
   name                         = "broandbro-${var.environment}-${each.key}"
   schedule_expression          = each.value.expression

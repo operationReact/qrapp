@@ -1,14 +1,14 @@
 # ============================================================
 # Module: security-group
 # Creates two security groups:
-#   ec2_sg  – web traffic + SSH ingress, all egress
+#   ec2_sg  – web traffic only (administration via SSM), all egress
 #   rds_sg  – port 5432 only from ec2_sg (no internet access)
 # ============================================================
 
 # ── EC2 Security Group ────────────────────────────────────────────────────────
 resource "aws_security_group" "ec2" {
   name        = "broandbro-${var.environment}-ec2-sg"
-  description = "Backend EC2: HTTP, HTTPS, SSH"
+  description = "Backend EC2: HTTP, HTTPS; SSM administration"
   vpc_id      = var.vpc_id
 
   # No public SSH ingress: deployments and maintenance use Systems Manager.
@@ -44,7 +44,7 @@ resource "aws_security_group" "ec2" {
 }
 
 # ── RDS Security Group ────────────────────────────────────────────────────────
-# PostgreSQL accessible from EC2 and optionally from internet (dev only).
+# PostgreSQL accessible only from application EC2 security group.
 resource "aws_security_group" "rds" {
   name        = "broandbro-${var.environment}-rds-sg"
   description = "RDS PostgreSQL: only EC2 sg may connect"
