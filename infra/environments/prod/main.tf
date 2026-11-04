@@ -212,6 +212,17 @@ module "cloudwatch" {
   alarm_email        = var.alarm_email
 }
 
+# ── Optional scheduled dev cost reduction (production opt-in only) ─────────
+module "cost_schedule" {
+  count            = var.enable_cost_schedule ? 1 : 0
+  source           = "../../modules/cost-scheduler"
+  environment      = "prod"
+  aws_region       = var.aws_region
+  timezone         = var.schedule_timezone
+  ec2_instance_id  = module.ec2.instance_id
+  rds_instance_id  = module.rds.db_instance_id
+}
+
 # ── Route53 DNS ───────────────────────────────────────────────────────────────
 module "route53" {
   source = "../../modules/route53"

@@ -58,3 +58,16 @@ variable "existing_certificate_arn" {
   type        = string
   default     = ""
 }
+
+# EC2 and RDS are the only scheduled services. S3, CloudFront, EBS and EIPs
+# remain allocated/billable when instances are stopped.
+variable "enable_cost_schedule" {
+  type        = bool
+  description = "Schedule weekday EC2/RDS starts/stops; FALSE by default in production."
+  default     = true
+}
+
+variable "schedule_timezone" {
+  type    = string
+  default = "Asia/Kolkata"
+}

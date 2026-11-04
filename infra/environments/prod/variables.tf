@@ -64,3 +64,16 @@ variable "cloudfront_web_acl_id" {
   type        = string
   default     = "arn:aws:wafv2:us-east-1:816344830716:global/webacl/CreatedByCloudFront-86c2086a/ee229c0f-bb44-401b-a40a-7ce132c5a96b"
 }
+
+# EC2 and RDS are the only scheduled services. S3, CloudFront, EBS and EIPs
+# remain allocated/billable when instances are stopped.
+variable "enable_cost_schedule" {
+  type        = bool
+  description = "Schedule weekday EC2/RDS starts/stops; FALSE by default in production."
+  default     = false
+}
+
+variable "schedule_timezone" {
+  type    = string
+  default = "Asia/Kolkata"
+}
