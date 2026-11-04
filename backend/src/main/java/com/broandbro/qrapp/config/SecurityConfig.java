@@ -31,7 +31,7 @@ public class SecurityConfig {
     @Value("${app.admin.username:admin}")
     private String adminUsername;
 
-    @Value("${app.admin.password:123}")
+    @Value("${app.admin.password:}")
     private String adminPassword;
 
     @Value("${app.cors.allowed-origins:http://localhost:5173}")
@@ -44,6 +44,11 @@ public class SecurityConfig {
 
     @Bean
     public UserDetailsService users(PasswordEncoder passwordEncoder) {
+        // An empty admin password must never create a known/default account.
+        // Customer and application admins authenticate through the DB-backed flow.
+        if (adminPassword == null || adminPassword.isBlank()) {
+            return new InMemoryUserDetailsManager();
+        }
 
         var admin = User.builder()
                 .username(adminUsername)

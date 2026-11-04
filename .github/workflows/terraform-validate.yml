@@ -74,6 +74,17 @@ jobs:
                         scripts/mirror-route53-records.sh; do
             bash -n "$script"
           done
+      - name: Prevent insecure seed passwords or default admin login regressions
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          security = Path("backend/src/main/java/com/broandbro/qrapp/config/SecurityConfig.java").read_text()
+          assert 'app.admin.password:123' not in security
+          migration = Path("backend/src/main/resources/db/migration/V167__disable_insecure_seeded_logins.sql").read_text()
+          for phone in ("9000000001", "9999999999", "9888888888", "9000000099", "7093327979"):
+              assert phone in migration
+          assert "active = FALSE" in migration and "must_change_password = TRUE" in migration
+          PY
       - name: Block legacy AWS static-key workflows
         run: |
           for workflow in .github/workflows/*.yml; do
