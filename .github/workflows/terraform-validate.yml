@@ -63,6 +63,10 @@ jobs:
         run: |
           python3 -m pip install --quiet boto3
           python3 -m unittest discover -s scripts -p 'test_*.py' -v
+      - name: Validate console-only CloudFormation OIDC bootstrap
+        run: |
+          python3 -m pip install --quiet cfn-lint
+          cfn-lint infra/cloudformation/github-oidc-bootstrap-dev.yaml
       - name: Validate GitHub Actions YAML semantics
         run: go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.10 -shellcheck=
       - name: Check Bash script syntax

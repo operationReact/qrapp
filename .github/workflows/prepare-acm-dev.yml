@@ -1,0 +1,114 @@
+name: Prepare CloudFront ACM Certificate (New Account DEV)
+
+# Creates only the requested ACM certificate in us-east-1 plus validation
+# records in the NON-AUTHORITATIVE new-account Route53 zone.
+# Does not deploy EC2/RDS, change production DNS, or delegate nameservers.
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: "Type PREPARE_NEW_DEV_ACM to request a preview SSL certificate"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: terraform-new-account-dev
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    if: github.ref == 'refs/heads/dev' && inputs.confirm == 'PREPARE_NEW_DEV_ACM'
+    runs-on: ubuntu-latest
+    environment: dev
+    defaults:
+      run:
+        working-directory: infra/environments/dev
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.12.2"
+          terraform_wrapper: false
+      - name: Validate expected new account before authentication
+        env:
+          ACCOUNT_ID: ${{ vars.AWS_NEW_ACCOUNT_ID }}
+          STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
+          TARGET_REGION: ${{ vars.AWS_REGION }}
+        run: |
+          set -euo pipefail
+          [[ "$ACCOUNT_ID" == "098859530205" ]] || { echo "::error::Wrong AWS account"; exit 1; }
+          [[ "$TARGET_REGION" == "ap-south-1" ]] || { echo "::error::Wrong AWS region"; exit 1; }
+          [[ "$STATE_BUCKET" == "broandbro-tfstate-$ACCOUNT_ID-ap-south-1" ]] || exit 1
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_TERRAFORM_ROLE_ARN }}
+          aws-region: ap-south-1
+      - name: Verify AWS identity
+        run: |
+          set -euo pipefail
+          [[ "$(aws sts get-caller-identity --query Account --output text)" == "098859530205" ]] || exit 1
+      - name: Open isolated new-account Terraform state
+        env:
+          STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
+        run: |
+          terraform init -input=false -reconfigure \
+            -backend-config="bucket=$STATE_BUCKET" \
+            -backend-config="key=env/dev/terraform.tfstate" \
+            -backend-config="region=ap-south-1" \
+            -backend-config="encrypt=true" \
+            -backend-config="use_lockfile=true"
+      - name: Plan ONLY ACM request and new-zone validation records
+        env:
+          TF_VAR_expected_account_id: ${{ vars.AWS_NEW_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          terraform validate
+          terraform plan -input=false -out=acm-only.tfplan \
+            -target=module.acm.aws_acm_certificate.this \
+            -target=module.acm.aws_route53_record.validation
+      - name: Apply only scoped ACM plan
+        env:
+          TF_VAR_expected_account_id: ${{ vars.AWS_NEW_ACCOUNT_ID }}
+        run: terraform apply -input=false acm-only.tfplan
+      - name: Display ACM DNS validation CNAMEs for the DNS administrator
+        run: |
+          set -euo pipefail
+          CERT_ARN="$(terraform state pull | python3 -c '
+          import json,sys
+          state=json.load(sys.stdin)
+          arns=[i["attributes"]["arn"] for r in state.get("resources",[])
+                if r.get("module")=="module.acm" and r.get("type")=="aws_acm_certificate"
+                for i in r.get("instances",[])]
+          if len(arns)!=1: raise SystemExit("Expected exactly one ACM certificate in dev state")
+          print(arns[0])')"
+          [[ "$CERT_ARN" == arn:aws:acm:us-east-1:098859530205:certificate/* ]] || exit 1
+          aws acm describe-certificate --certificate-arn "$CERT_ARN" \
+            --region us-east-1 --query 'Certificate.DomainValidationOptions' \
+            --output json | python3 -c '
+          import json,sys,os
+          rows=json.load(sys.stdin)
+          names=set()
+          summary=["## Add these CNAME records to the CURRENT authoritative DNS zone",
+                   "Only DNS validation; do not change nameservers or existing website A/AAAA records.",
+                   "", "| Domain | Type | Record name | Value |", "|---|---|---|---|"]
+          for row in rows:
+              rr=row.get("ResourceRecord")
+              if not rr: continue
+              name=rr["Name"]; value=rr["Value"]; rtype=rr["Type"]
+              if name in names: continue
+              if rtype!="CNAME" or not name.startswith("_") or not name.endswith(".broandbro.in."):
+                  raise SystemExit("Unexpected DNS validation record: "+name)
+              if not value.endswith(".acm-validations.aws."):
+                  raise SystemExit("Unexpected DNS validation destination")
+              names.add(name)
+              summary.append(f"| {row[\x27DomainName\x27]} | {rtype} | \`{name}\` | \`{value}\` |")
+          if not names: raise SystemExit("ACM has not returned DNS validation records")
+          summary+=["", "Copy these CNAME records into the existing authoritative DNS zone, then wait for ACM issuance.",
+                    "All application resources will remain in Mumbai; CloudFront ACM is in us-east-1."]
+          with open(os.environ["GITHUB_STEP_SUMMARY"],"a") as f: f.write("\n".join(summary)+"\n")
+          print("ACM records recorded in the GitHub run summary.")
+          '
