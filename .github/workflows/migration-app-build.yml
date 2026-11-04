@@ -32,6 +32,8 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: "8.7"
+      - name: Compile backend test sources
+        run: gradle :backend:compileTestJava --no-daemon
       - name: Build deployable backend artifact
         run: gradle :backend:bootJar --no-daemon
 
@@ -49,6 +51,12 @@ jobs:
       - name: Install from lockfile
         working-directory: frontend
         run: npm ci --no-audit --no-fund
+      - name: Run frontend domain and security unit tests
+        working-directory: frontend
+        run: |
+          npm run test:roles
+          npm run test:safe-redirect
+          npm run test:location-code
       - name: Build preview frontend
         working-directory: frontend
         env:
