@@ -59,8 +59,10 @@ jobs:
       - uses: actions/checkout@v4
       - name: Parse Python migration tools and EC2 deployment agent
         run: python3 -m py_compile scripts/migrate-s3-media.py scripts/deploy-backend-from-ssm.py scripts/preflight-new-account.py
-      - name: Unit-test AWS preflight network protections (offline)
-        run: python3 -m unittest discover -s scripts -p 'test_preflight_new_account.py' -v
+      - name: Unit-test AWS migration and preflight protections (offline)
+        run: |
+          python3 -m pip install --quiet boto3
+          python3 -m unittest discover -s scripts -p 'test_*.py' -v
       - name: Validate GitHub Actions YAML semantics
         run: go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.10 -shellcheck=
       - name: Check Bash script syntax

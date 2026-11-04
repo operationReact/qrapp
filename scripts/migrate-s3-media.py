@@ -2,7 +2,7 @@
 """Cross-account S3 media migration using two independent AWS SSO profiles.
 
 DRY RUN by default. Uses local temporary files, preserving useful HTTP metadata,
-object tags, and SHA-256 proof of the content uploaded. No credentials or object
+object tags, and SHA-256 verification of destination bytes. Existing\nobjects are never silently skipped; verification downloads add read traffic. No credentials or object
 payloads are written to GitHub, Terraform state, or the log.
 
 Install: python3 -m pip install boto3
@@ -71,50 +71,96 @@ def iter_objects(client, bucket: str):
                 yield key, item["Size"]
 
 
+def sha256_file(path: str) -> str:
+    digest = hashlib.sha256()
+    with open(path, "rb") as stream:
+        for block in iter(lambda: stream.read(8 * 1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def verify_target_object(target, bucket: str, key: str, checksum: str, size: int) -> None:
+    """Verify actual destination bytes, not merely caller-written S3 metadata."""
+    response = target.get_object(Bucket=bucket, Key=key)
+    digest = hashlib.sha256()
+    count = 0
+    body = response["Body"]
+    try:
+        for block in body.iter_chunks(chunk_size=8 * 1024 * 1024):
+            if block:
+                digest.update(block)
+                count += len(block)
+    finally:
+        body.close()
+    if count != size or digest.hexdigest() != checksum:
+        raise RuntimeError("Destination object content differs from source SHA-256")
+
+
+def sorted_tags(tags):
+    return sorted((item["Key"], item["Value"]) for item in tags)
+
+
 def migrate_object(source, target, source_bucket: str, target_bucket: str,
                    key: str, size: int, *, overwrite: bool) -> str:
+    existing = None
     try:
-        target.head_object(Bucket=target_bucket, Key=key)
+        existing = target.head_object(Bucket=target_bucket, Key=key)
     except ClientError as exc:
         code = str(exc.response.get("Error", {}).get("Code", ""))
         if code not in ("404", "NoSuchKey", "NotFound"):
             raise
-    else:
-        if not overwrite:
-            return "exists"
 
     head = source.head_object(Bucket=source_bucket, Key=key)
+    if head.get("ContentLength") != size:
+        raise RuntimeError("Source object size changed during enumeration; freeze writes and retry")
     metadata = dict(head.get("Metadata") or {})
-    # Local temporary file is limited to a single object at a time.
     fd, temp_name = tempfile.mkstemp(prefix="broandbro-migrate-")
     os.close(fd)
     try:
+        # Downloads a single object at a time; local temp files are mode 0600.
         source.download_file(source_bucket, key, temp_name)
-        digest = hashlib.sha256()
-        with open(temp_name, "rb") as uploaded:
-            for block in iter(lambda: uploaded.read(8 * 1024 * 1024), b""):
-                digest.update(block)
         if os.stat(temp_name).st_size != size:
             raise RuntimeError("Source object changed while migrating; retry after writes are frozen")
+        checksum = sha256_file(temp_name)
+        latest = source.head_object(Bucket=source_bucket, Key=key)
+        if (latest.get("ETag") != head.get("ETag")
+                or latest.get("VersionId") != head.get("VersionId")
+                or latest.get("ContentLength") != head.get("ContentLength")):
+            raise RuntimeError("Source object changed during download; freeze writes and retry")
 
-        metadata[MIGRATION_HASH_KEY] = digest.hexdigest()
+        source_tags = source.get_object_tagging(
+            Bucket=source_bucket, Key=key).get("TagSet", [])
+        if existing is not None and not overwrite:
+            # Never consider a same-key target safely migrated without
+            # validating the original source checksum and the actual S3 bytes.
+            if (existing.get("ContentLength") != size
+                    or existing.get("Metadata", {}).get(MIGRATION_HASH_KEY) != checksum):
+                raise RuntimeError(
+                    "Existing target object is not proven identical; refuse to skip. "
+                    "Inspect it, then explicitly use --overwrite if safe")
+            verify_target_object(target, target_bucket, key, checksum, size)
+            target_tags = target.get_object_tagging(
+                Bucket=target_bucket, Key=key).get("TagSet", [])
+            if sorted_tags(target_tags) != sorted_tags(source_tags):
+                raise RuntimeError(
+                    "Existing object tags differ; inspect and explicitly use --overwrite")
+            return "exists"
+
+        metadata[MIGRATION_HASH_KEY] = checksum
         extra = {field: head[field] for field in PRESERVE if head.get(field) is not None}
         extra["Metadata"] = metadata
-        # Upload inherits the destination bucket's encryption and ownership.
         target.upload_file(temp_name, target_bucket, key, ExtraArgs=extra)
-        tagged = source.get_object_tagging(Bucket=source_bucket, Key=key).get("TagSet", [])
-        if tagged:
+        if source_tags:
             target.put_object_tagging(
-                Bucket=target_bucket, Key=key, Tagging={"TagSet": tagged})
+                Bucket=target_bucket, Key=key, Tagging={"TagSet": source_tags})
         verified = target.head_object(Bucket=target_bucket, Key=key)
-        if verified.get("ContentLength") != size or (
-            verified.get("Metadata", {}).get(MIGRATION_HASH_KEY) != metadata[MIGRATION_HASH_KEY]
-        ):
-            raise RuntimeError("Destination object size/hash metadata verification failed")
+        if (verified.get("ContentLength") != size
+                or verified.get("Metadata", {}).get(MIGRATION_HASH_KEY) != checksum):
+            raise RuntimeError("Destination object metadata/size verification failed")
+        verify_target_object(target, target_bucket, key, checksum, size)
         return "copied"
     finally:
         Path(temp_name).unlink(missing_ok=True)
-
 
 def main() -> None:
     args = parse_args()
