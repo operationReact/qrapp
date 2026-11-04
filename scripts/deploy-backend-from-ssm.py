@@ -98,26 +98,44 @@ def main():
     temporary.chmod(0o640)
 
     previous = app / "app.jar.previous"
-    if (app / "app.jar").is_file():
+    previous_config = app / "config/application.env.previous"
+    has_previous_jar = (app / "app.jar").is_file()
+    has_previous_config = config.is_file()
+    if has_previous_jar:
         shutil.copy2(app / "app.jar", previous)
+    if has_previous_config:
+        shutil.copy2(config, previous_config)
+        previous_config.chmod(0o640)
+
     os.replace(temporary, config)
     os.replace(new_jar, app / "app.jar")
-    subprocess.run(["systemctl", "restart", "broandbro"], check=True)
-    for _ in range(48):
-        try:
-            with urllib.request.urlopen("http://127.0.0.1:8080/api/payment/config",
-                                        timeout=4) as response:
-                if response.status == 200:
-                    print("Backend deployment healthy; public DNS/TLS cutover is separate")
-                    return
-        except Exception:
-            pass
-        time.sleep(5)
-    print("Health check failed: restoring previous JAR if available", file=sys.stderr)
-    if previous.exists():
-        shutil.copy2(previous, app / "app.jar")
-        subprocess.run(["systemctl", "restart", "broandbro"], check=False)
-    raise RuntimeError("Backend failed health check")
+
+    try:
+        subprocess.run(["systemctl", "restart", "broandbro"], check=True)
+        for _ in range(48):
+            try:
+                with urllib.request.urlopen(
+                    "http://127.0.0.1:8080/api/payment/config", timeout=4
+                ) as response:
+                    if response.status == 200:
+                        print("Backend deployment healthy; public DNS/TLS cutover is separate")
+                        return
+            except Exception:
+                pass
+            time.sleep(5)
+        raise RuntimeError("Backend failed its local HTTP health check")
+    except Exception:
+        # Application credentials are part of the release. Roll back JAR AND
+        # environment file together to avoid restarting old code with new config.
+        print("Deployment failed; restoring last-known-good JAR and configuration", file=sys.stderr)
+        if has_previous_jar and previous.exists():
+            shutil.copy2(previous, app / "app.jar")
+        if has_previous_config and previous_config.exists():
+            shutil.copy2(previous_config, config)
+            config.chmod(0o640)
+        if has_previous_jar:
+            subprocess.run(["systemctl", "restart", "broandbro"], check=False)
+        raise
 
 if __name__ == "__main__":
     try:
