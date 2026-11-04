@@ -10,6 +10,11 @@ terraform {
 }
 
 variable "environment" { type = string }
+variable "rate_limit_requests" {
+  description = "Five-minute per-IP rate limit; allow for corporate NAT sharing"
+  type        = number
+  default     = 30000
+}
 
 resource "aws_wafv2_web_acl" "this" {
   provider    = aws.us_east_1
@@ -29,7 +34,7 @@ resource "aws_wafv2_web_acl" "this" {
     }
     statement {
       rate_based_statement {
-        limit              = 2000
+        limit              = var.rate_limit_requests
         aggregate_key_type = "IP"
       }
     }
