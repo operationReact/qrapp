@@ -60,7 +60,7 @@ terraform -chdir="$STACK" apply -input=false -auto-approve \
   -target='module.acm.aws_acm_certificate.this' \
   -target='module.acm.aws_route53_record.validation'
 
-CERT_ARN="$(terraform -chdir="$STACK" output -raw acm_certificate_arn)"
+CERT_ARN="$(terraform -chdir="$STACK" output -raw acm_certificate_request_arn)"
 [[ "$CERT_ARN" == arn:aws:acm:us-east-1:${NEW_ACCOUNT}:certificate/* ]] || {
   echo "Unexpected certificate ARN in Terraform outputs" >&2; exit 1;
 }

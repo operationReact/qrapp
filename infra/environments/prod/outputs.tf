@@ -54,5 +54,9 @@ output "artifact_bucket_name" { value = module.artifacts.bucket_id }
 
 output "acm_certificate_arn" {
   value       = module.acm.certificate_arn
-  description = "Certificate ARN for cross-account authoritative DNS validation"
+  description = "ACM certificate ARN (after certificate validation)"
+}
+output "acm_certificate_request_arn" {
+  value       = module.acm.requested_certificate_arn
+  description = "ACM request ARN (before validation) for DNS migration script"
 }
