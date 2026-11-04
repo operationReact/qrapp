@@ -1,3 +1,8 @@
+> **CURRENT APPROACH:** No CloudShell or local installation. Follow
+> [CloudFormation + GitHub OIDC](AWS_GITHUB_OIDC_NO_CLOUDSHELL.md).
+> The older CloudShell steps below are an alternative only; do NOT run
+> both bootstrap methods in the same AWS account.
+
 # AWS-Console-only setup (fresh installation in Mumbai)
 
 Target: AWS account `098859530205`, app region `ap-south-1`, GitHub `dev`.

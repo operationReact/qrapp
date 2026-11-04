@@ -1,3 +1,8 @@
+> **CURRENT CONSOLE-ONLY BOOTSTRAP (preferred):**
+> [AWS Console + GitHub Actions OIDC](AWS_GITHUB_OIDC_NO_CLOUDSHELL.md).
+> The alternative CloudShell/Terraform bootstrap described below must NOT
+> run in an account already initialized with CloudFormation (duplicate resources).
+
 # Bro & Bro — Mumbai new-account deployment runbook (dev branch first)
 
 > Status: Mumbai-targeted code prepared; offline checks do not prove a live AWS apply.

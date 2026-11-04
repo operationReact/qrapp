@@ -1,3 +1,11 @@
+> **Next after OIDC verification:** Run the GitHub Action
+> **Prepare CloudFront ACM Certificate (New Account DEV)** on branch `dev`
+> with confirmation `PREPARE_NEW_DEV_ACM`. This creates only new-account ACM
+> certificate/validation records. The Action's summary lists the CNAMEs to
+> copy into the **currently authoritative** DNS provider. Never replace
+> existing A/AAAA/NS production records. Wait for ACM `ISSUED` before
+> full Terraform apply.
+
 # Bro & Bro — GitHub OIDC without CloudShell (new AWS account)
 
 **This replaces the earlier AWS CloudShell bootstrap path.** No laptop
