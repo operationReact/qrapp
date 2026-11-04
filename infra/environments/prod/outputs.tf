@@ -51,3 +51,8 @@ output "media_bucket_regional_domain" {
 
 output "location_bucket_name" { value = module.location_images.bucket_id }
 output "artifact_bucket_name" { value = module.artifacts.bucket_id }
+
+output "acm_certificate_arn" {
+  value       = module.acm.certificate_arn
+  description = "Certificate ARN for cross-account authoritative DNS validation"
+}

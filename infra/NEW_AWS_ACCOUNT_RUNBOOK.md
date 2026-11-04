@@ -84,6 +84,37 @@ until the controlled alias-migration step. New-account preview URLs use
 `migrate-dev.broandbro.in`, `migrate-dev-api.broandbro.in`, and matching
 `migrate-prod` hostnames to avoid early collision.
 
+## 3a. Mandatory ACM validation while OLD DNS remains authoritative
+
+The replacement hosted zone is not publicly authoritative until registrar
+nameserver delegation. Even if Terraform creates validation CNAMEs inside that
+new zone, ACM cannot validate them and a full infrastructure apply will hang.
+
+For Route 53-hosted old DNS, use the safe two-account preflight (default dry-run):
+
+```bash
+./scripts/prepare-acm-validation.sh OLD_PROFILE NEW_PROFILE dev OLD_ZONE_ID NEW_ACCOUNT_ID --dry-run
+./scripts/prepare-acm-validation.sh OLD_PROFILE NEW_PROFILE dev OLD_ZONE_ID NEW_ACCOUNT_ID --execute
+```
+
+The script verifies different AWS identities and the exact old hosted-zone name,
+uses a narrowly-targeted Terraform apply to create/track the certificate and
+new-zone records, and mirrors only ACM validation CNAMEs into the OLD public DNS.
+It does NOT move apex/www/API aliases or alter nameserver delegation.
+
+Wait until the ACM certificate reports `ISSUED` before a full apply. Later,
+run this workflow separately for production when production preparation begins.
+If the OLD authoritative DNS is not in Route 53, a DNS-provider-specific
+automated API integration will be required; do not move nameservers prematurely.
+
+## 3b. Preview record resolution
+
+New-account preview alias records are initially created in the replacement
+hosted zone only. They are NOT publicly resolvable before registrar delegation.
+After dev infrastructure is provisioned, mirror JUST the preview hostname
+records to the OLD authoritative zone with a scoped script or DNS-provider API.
+Never mirror apex/www or replace the existing production API until cutover.
+
 ## 4. Create DEV resources through the GitHub workflow
 
 Run `Terraform Offline Validate (No AWS Credentials)` first. Run the
