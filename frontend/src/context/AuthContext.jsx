@@ -1,6 +1,7 @@
 import { setUserAuth } from "@/services";
 import { getCurrentUser } from "@/services/auth-service";
 import { canAccessAdmin } from "@/lib/roles";
+import { shouldClearSessionAfterRestoreFailure } from "@/lib/sessionRestore";
 import PropTypes from "prop-types";
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 
@@ -81,8 +82,14 @@ export const AuthProvider = ({ children }) => {
       .catch((error) => {
         if (!active) return;
         if (readStoredUser()?.token !== storedUser.token) return;
-        console.warn("Unable to restore the authentication session", error);
-        setUserState(null);
+        // Offline, timeout, or server outage is not a logout. Keep the
+        // remembered session and let the API enforce authorization on requests.
+        // A genuine 401 is handled by the shared API interceptor, too.
+        if (shouldClearSessionAfterRestoreFailure(error)) {
+          setUserState(null);
+        } else {
+          console.warn("Could not verify saved login; keeping it for retry");
+        }
       })
       .finally(() => {
         if (active) setAuthInitialized(true);
