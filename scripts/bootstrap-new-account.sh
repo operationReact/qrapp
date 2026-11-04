@@ -4,13 +4,14 @@
 set -euo pipefail
 
 TARGET_ACCOUNT="${1:?Usage: AWS_PROFILE=new-account $0 NEW_12_DIGIT_ACCOUNT_ID [AWS_REGION]}"
-REGION="${2:-us-east-1}"
+REGION="${2:-ap-south-1}"
 REPO="operationReact/qrapp"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 [[ "$TARGET_ACCOUNT" =~ ^[0-9]{12}$ ]] || { echo "Invalid target account ID" >&2; exit 1; }
 ACTUAL="$(aws sts get-caller-identity --query Account --output text --region "$REGION")"
 [[ "$ACTUAL" == "$TARGET_ACCOUNT" ]] || { echo "Refusing AWS account $ACTUAL; expected $TARGET_ACCOUNT" >&2; exit 1; }
+[[ "$REGION" == "ap-south-1" ]] || { echo "New account bootstrap requires ap-south-1 (Mumbai)" >&2; exit 1; }
 echo "Verified NEW AWS account $ACTUAL in $REGION"
 echo "Terraform will create S3 state, Route53 zone, GitHub OIDC and scoped deploy roles."
 terraform -chdir="$ROOT/infra/bootstrap" init -input=false

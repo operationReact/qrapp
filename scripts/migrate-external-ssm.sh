@@ -9,7 +9,7 @@ OLD_PROFILE="${1:?Old AWS CLI profile required}"
 NEW_PROFILE="${2:?New AWS CLI profile required}"
 ENVIRONMENT="${3:?dev or prod required}"
 NEW_ACCOUNT="${4:?Expected NEW 12-digit AWS account ID required}"
-REGION="${5:-us-east-1}"
+REGION="${5:-ap-south-1}"
 ACTION="${6:---dry-run}"
 
 [[ "$ENVIRONMENT" == "dev" || "$ENVIRONMENT" == "prod" ]] || exit 2

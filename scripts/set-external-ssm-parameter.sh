@@ -4,7 +4,7 @@
 set -euo pipefail
 ENVIRONMENT="${1:?Usage: $0 dev|prod relative/parameter/path [region]}"
 RELATIVE_PATH="${2:?Usage: $0 dev|prod relative/parameter/path [region]}"
-REGION="${3:-us-east-1}"
+REGION="${3:-ap-south-1}"
 [[ "$ENVIRONMENT" == "dev" || "$ENVIRONMENT" == "prod" ]] || exit 2
 case "$RELATIVE_PATH" in
   openai/apiKey|razorpay/key|razorpay/secret|razorpay/webhookSecret|whatsapp/webhookVerifyToken|whatsapp/appSecret|whatsapp/phoneNumberId|whatsapp/accessToken) ;;

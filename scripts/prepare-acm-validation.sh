@@ -15,7 +15,8 @@ ENVIRONMENT="${3:?dev or prod required}"
 OLD_ZONE_ID="${4:?current authoritative hosted zone ID required}"
 EXPECTED_NEW_ACCOUNT="${5:?new 12-digit AWS account ID required}"
 MODE="${6:---dry-run}"
-REGION="us-east-1"
+REGION="ap-south-1"
+ACM_REGION="us-east-1" # CloudFront ACM certificates must be in N. Virginia
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 [[ "$ENVIRONMENT" == "dev" || "$ENVIRONMENT" == "prod" ]] || { echo "Invalid environment" >&2; exit 2; }
 [[ "$EXPECTED_NEW_ACCOUNT" =~ ^[0-9]{12}$ ]] || { echo "Invalid new-account ID" >&2; exit 2; }
@@ -66,7 +67,7 @@ CERT_ARN="$(terraform -chdir="$STACK" output -raw acm_certificate_request_arn)"
 }
 TMP="$(mktemp)"
 trap 'rm -f "$TMP"' EXIT
-aws --profile "$NEW_PROFILE" acm describe-certificate --certificate-arn "$CERT_ARN" --region "$REGION" |
+aws --profile "$NEW_PROFILE" acm describe-certificate --certificate-arn "$CERT_ARN" --region "$ACM_REGION" |
   jq -e '{
     Comment: "New-account certificate validation; do not modify production routing",
     Changes: ([.Certificate.DomainValidationOptions[] |

@@ -15,7 +15,7 @@ import re
 import subprocess
 import sys
 
-REGION = "us-east-1"
+REGION = "ap-south-1"
 
 
 class CheckFailure(Exception):

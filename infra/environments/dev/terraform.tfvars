@@ -2,7 +2,7 @@
 # broandbro DEV environment variables
 # ─────────────────────────────────────────────────────────────────────────────
 
-aws_region  = "us-east-1"
+aws_region  = "ap-south-1"
 domain_name = "broandbro.in"
 
 # Frontend S3 bucket
