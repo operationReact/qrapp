@@ -78,6 +78,11 @@ jobs:
               exit 1
             fi
           done
+      - name: Enforce environment-isolated Systems Manager deployments
+        run: |
+          grep -Fq 'RunCommandsOnlyOnOwnEnvironment' infra/bootstrap/bootstrap.tf
+          grep -Fq 'aws:ResourceTag/Environment' infra/bootstrap/bootstrap.tf
+          grep -Fq 'UseApprovedSSMDocument' infra/bootstrap/bootstrap.tf
       - name: Block dangerous bootstrap role regressions
         run: |
           if grep -R --include='*.tf' -E 'policy/AdministratorAccess|repo:\\*/\\*' infra/; then

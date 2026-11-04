@@ -229,11 +229,19 @@ resource "aws_iam_role_policy" "backend" {
         Resource = "arn:aws:s3:::broandbro-${each.key}-artifacts-${local.account_id}/deploy/${each.key}/*"
       },
       {
-        Sid = "RunCommands", Effect = "Allow", Action = ["ssm:SendCommand"]
-        Resource = [
-          "arn:aws:ec2:${var.aws_region}:${local.account_id}:instance/*",
-          "arn:aws:ssm:${var.aws_region}::document/AWS-RunShellScript"
-        ]
+        Sid = "RunCommandsOnlyOnOwnEnvironment", Effect = "Allow"
+        Action = ["ssm:SendCommand"]
+        Resource = "arn:aws:ec2:${var.aws_region}:${local.account_id}:instance/*"
+        Condition = {
+          StringEquals = {
+            "aws:ResourceTag/Environment" = each.key
+          }
+        }
+      },
+      {
+        Sid = "UseApprovedSSMDocument", Effect = "Allow"
+        Action = ["ssm:SendCommand"]
+        Resource = "arn:aws:ssm:${var.aws_region}::document/AWS-RunShellScript"
       },
       {
         Sid = "RDSManagedMasterSecret", Effect = "Allow"
