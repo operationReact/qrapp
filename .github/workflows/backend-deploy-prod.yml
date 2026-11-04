@@ -14,6 +14,7 @@ permissions:
 
 jobs:
   deploy:
+    if: github.ref == 'refs/heads/main'
     name: Build & Deploy to Prod EC2
     runs-on: ubuntu-latest
     environment: prod
@@ -397,22 +398,7 @@ jobs:
             exit 0
           fi
 
-          echo "⚠️  SSM is not fully ready (ping='$PING'). Rebooting instance for recovery..."
-          aws ec2 reboot-instances --instance-ids "$INSTANCE_ID" --region us-east-1
-          echo "   Reboot requested. Waiting 45s for shutdown..."
-          sleep 45
-
-          echo "⏳ Polling for SSM agent to come back online (up to 5 min)..."
-          for i in $(seq 1 30); do
-            sleep 10
-            PING=$(check_ping)
-            echo "  [$i/30] $PING"
-            if [ "$PING" = "Online" ] && probe_ssm; then
-              echo "✅ SSM Run Command channel is back online"
-              exit 0
-            fi
-          done
-          echo "❌ SSM Run Command did not recover after reboot"
+          echo "::error::Production SSM channel unavailable; refusing to reboot production automatically."
           exit 1
 
       # Step 10: Execute deploy via SSM Run Command (no SSH / no port 22)

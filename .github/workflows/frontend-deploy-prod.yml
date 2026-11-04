@@ -27,6 +27,7 @@ env:
 
 jobs:
   deploy-frontend-prod:
+    if: github.ref == 'refs/heads/main'
     name: Build & Deploy Frontend – Prod
     runs-on: ubuntu-latest
     environment: prod  # ← Requires manual approval

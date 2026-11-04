@@ -26,6 +26,7 @@ env:
 
 jobs:
   deploy-frontend-dev:
+    if: github.ref == 'refs/heads/dev'
     name: Build & Deploy Frontend – Dev
     runs-on: ubuntu-latest
     environment: dev

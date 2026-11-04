@@ -34,3 +34,17 @@ jobs:
       - name: Validate
         working-directory: infra/environments/${{ matrix.environment }}
         run: terraform validate -no-color
+
+  bootstrap:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.12.2"
+      - name: Init bootstrap offline
+        working-directory: infra/bootstrap
+        run: terraform init -backend=false -input=false
+      - name: Validate account bootstrap
+        working-directory: infra/bootstrap
+        run: terraform validate -no-color

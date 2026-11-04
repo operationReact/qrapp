@@ -241,7 +241,7 @@ resource "aws_iam_role_policy" "backend" {
       },
       {
         Sid = "InspectCommands", Effect = "Allow"
-        Action = ["ssm:GetCommandInvocation", "ssm:ListCommandInvocations", "ec2:DescribeInstances"]
+        Action = ["ssm:GetCommandInvocation", "ssm:ListCommandInvocations", "ssm:DescribeInstanceInformation", "ec2:DescribeInstances", "ec2:RebootInstances"]
         Resource = "*"
       }
     ]
