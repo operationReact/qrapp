@@ -1,0 +1,40 @@
+name: One-time migration frontend lockfile repair (read-only)
+
+on:
+  push:
+    branches: [dev]
+    paths:
+      - ".github/workflows/repair-lockfile.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Resolve package-lock using npm without running package scripts
+        working-directory: frontend
+        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+      - name: Verify clean install is now reproducible
+        working-directory: frontend
+        run: npm ci --no-audit --no-fund
+      - name: Build frontend against preview API
+        working-directory: frontend
+        env:
+          VITE_API_URL: https://migrate-dev-api.broandbro.in
+          VITE_ENV: dev
+        run: npm run build
+      - name: Emit base64 lockfile for authorized GitHub connector commit
+        run: |
+          echo "LOCKFILE_BASE64_BEGIN"
+          base64 -w0 frontend/package-lock.json | fold -w 500
+          echo "LOCKFILE_BASE64_END"
