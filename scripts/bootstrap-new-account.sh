@@ -24,7 +24,7 @@ echo "Keep bootstrap terraform.tfstate safe: it uses local state and must NOT be
 if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
   echo "Configuring GitHub environments, variables and OIDC role ARNs"
   for ENV in dev prod; do
-    gh api -X PUT "repos/$REPO/environments/$ENV" >/dev/null
+    gh api "repos/$REPO/environments/$ENV" >/dev/null 2>&1 || gh api -X PUT "repos/$REPO/environments/$ENV" >/dev/null
     gh variable set AWS_NEW_ACCOUNT_ID --env "$ENV" --repo "$REPO" --body "$TARGET_ACCOUNT"
     gh variable set TF_STATE_BUCKET --env "$ENV" --repo "$REPO" --body "$BUCKET"
     gh variable set API_DOMAIN --env "$ENV" --repo "$REPO" --body "migrate-$ENV-api.broandbro.in"
