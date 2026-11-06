@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { MapPinIcon, ArrowRightIcon } from "@phosphor-icons/react";
 import "../../styles/guest-order-notice.css";
 import "../../styles/home-desktop-align.css";
+import "../../styles/premium-revamp.css";
 
 export default function GuestOrderNotice({ locationId, locationName }) {
   const name = locationName || "this food court";
