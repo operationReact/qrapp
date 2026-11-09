@@ -100,10 +100,10 @@ jobs:
           {
             echo "## CloudFront preview certificate — NEW account only"
             echo
-            echo "- AWS account: `098859530205`"
-            echo "- Certificate region: `us-east-1` (required by CloudFront)"
-            echo "- Application region: `ap-south-1` (Mumbai)"
-            echo "- ARN: `$ARN`"
+            echo "- AWS account: \`098859530205\`"
+            echo "- Certificate region: \`us-east-1\` (required by CloudFront)"
+            echo "- Application region: \`ap-south-1\` (Mumbai)"
+            echo "- ARN: \`$ARN\`"
             echo "- Status: **$STATUS**"
             echo
             echo "Add only these **CNAME** validation records to the domain's **currently authoritative DNS provider**."
@@ -113,10 +113,10 @@ jobs:
             echo "|---|---|---|"
             jq -r '.Certificate.DomainValidationOptions[] | select(.ResourceRecord != null) | "| `\(.ResourceRecord.Name)` | CNAME | `\(.ResourceRecord.Value)` |"' <<<"$INFO" | sort -u
             echo
-            echo "Once the certificate is **ISSUED**, set GitHub Environment `dev` variable:"
-            echo "`DEV_ACM_CERTIFICATE_ARN=$ARN`"
+            echo "Once the certificate is **ISSUED**, set GitHub Environment \`dev\` variable:"
+            echo "\`DEV_ACM_CERTIFICATE_ARN=$ARN\`"
             echo
-            echo "Then run **Terraform Plan - New Account (Read Only)** for `dev`."
+            echo "Then run **Terraform Plan - New Account (Read Only)** for \`dev\`."
             echo "This workflow does not write DNS records or deploy infrastructure."
           } >> "$GITHUB_STEP_SUMMARY"
           echo "Certificate status: $STATUS. Check the job summary for DNS CNAMEs."
