@@ -17,6 +17,8 @@ GitHub repository **operationReact/qrapp**, branch **dev**, environment **dev**.
 ## Step 1 — One-time AWS console setup
 
 1. Sign in to AWS account 098859530205. Select **Mumbai (ap-south-1)**.
+   **Do not create this stack in us-east-1.** CloudFront's ACM certificate is
+   prepared there later, but bootstrap and application infrastructure use Mumbai.
 2. Open **CloudFormation → Stacks → Create stack → With new resources**.
 3. Choose **Upload a template file**. Download this repository file via
    GitHub's web UI first:
@@ -26,13 +28,16 @@ GitHub repository **operationReact/qrapp**, branch **dev**, environment **dev**.
 5. Wait for **CREATE_COMPLETE**; check **Outputs → ActualAWSAccount**
    is exactly **098859530205**. Copy the three role ARNs from Outputs.
 
-The template creates only the GitHub OIDC provider, 3 IAM roles, a private
+The template **reuses the account-wide GitHub Actions OIDC provider** that already
+exists in account `098859530205`, and creates 3 dedicated IAM roles, a private
 versioned Terraform state bucket, and a replacement Route 53 hosted zone.
+Do not delete or recreate the existing provider: other applications may use it.
 The new hosted zone is NOT authoritative until its nameservers are delegated.
 **Do NOT change registrar nameservers or existing production DNS records.**
 
-If OIDC provider/role/state bucket already exists, stop and report the
-CloudFormation error. Do not run the old `scripts/bootstrap-new-account.sh`
+An existing GitHub OIDC provider is expected and is **not** a conflict with this
+revised template. If a **role or Terraform state bucket** already exists, stop
+and report the CloudFormation error rather than deleting shared resources. Do not run the old `scripts/bootstrap-new-account.sh`
 or `scripts/cloudshell-bootstrap.sh` in the same account after CloudFormation
 success: they create conflicting resources.
 

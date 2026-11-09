@@ -50,12 +50,8 @@ Resources:
       HostedZoneTags:
         - {Key: Project, Value: broandbro}
         - {Key: Purpose, Value: preview-dns-zone}
-  GithubOIDCProvider:
-    Type: AWS::IAM::OIDCProvider
-    Condition: CorrectAccount
-    Properties:
-      Url: https://token.actions.githubusercontent.com
-      ClientIdList: [sts.amazonaws.com]
+  # The GitHub Actions OIDC provider already exists in this AWS account.
+  # IAM identity providers are account-wide; reuse it rather than creating a duplicate.
   DevTerraformRole:
     Type: AWS::IAM::Role
     Condition: CorrectAccount
@@ -65,7 +61,7 @@ Resources:
         Version: '2012-10-17'
         Statement:
           - Effect: Allow
-            Principal: {Federated: !Ref GithubOIDCProvider}
+            Principal: {Federated: !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:oidc-provider/token.actions.githubusercontent.com'}
             Action: sts:AssumeRoleWithWebIdentity
             Condition:
               StringEquals:
@@ -137,7 +133,7 @@ Resources:
         Version: '2012-10-17'
         Statement:
           - Effect: Allow
-            Principal: {Federated: !Ref GithubOIDCProvider}
+            Principal: {Federated: !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:oidc-provider/token.actions.githubusercontent.com'}
             Action: sts:AssumeRoleWithWebIdentity
             Condition:
               StringEquals:
@@ -176,7 +172,7 @@ Resources:
         Version: '2012-10-17'
         Statement:
           - Effect: Allow
-            Principal: {Federated: !Ref GithubOIDCProvider}
+            Principal: {Federated: !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:oidc-provider/token.actions.githubusercontent.com'}
             Action: sts:AssumeRoleWithWebIdentity
             Condition:
               StringEquals:
