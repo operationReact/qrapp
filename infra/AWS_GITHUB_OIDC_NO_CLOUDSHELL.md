@@ -56,6 +56,7 @@ Create GitHub **environment variables**:
 | `TF_STATE_BUCKET` | `broandbro-tfstate-098859530205-ap-south-1` |
 | `API_DOMAIN` | `migrate-dev-api.broandbro.in` |
 | `API_URL` | `https://migrate-dev-api.broandbro.in` |
+| `DEV_ACM_CERTIFICATE_ARN` | **Set later:** ARN printed by ACM preparation action, after certificate is `ISSUED` |
 
 Create GitHub **environment secrets** (the ARNs from Step 1):
 
@@ -73,15 +74,23 @@ Open **Actions → Verify New AWS Account OIDC (No CloudShell)**.
 Click **Run workflow**, choose **dev**, then check the result.
 
 This check verifies AWS identity and state bucket without creating
-EC2/RDS/CloudFront. Then use **Terraform Plan - New Account (Read Only)**,
-environment `dev`, to review what AWS would create.
+EC2/RDS/CloudFront. Next run **Prepare CloudFront ACM Certificate (New Account DEV)**
+with confirmation `PREPARE_NEW_DEV_ACM`. It requests a preview certificate in
+`us-east-1` and prints CNAME records in its GitHub job summary; it does NOT
+modify DNS. Add those CNAMEs to the existing authoritative DNS provider. Run
+the ACM action again to verify status becomes `ISSUED`; then add the ARN to
+GitHub `dev` environment variable `DEV_ACM_CERTIFICATE_ARN`.
+
+Only then run **Terraform Plan - New Account (Read Only)** for `dev`.
+The Terraform plan/apply workflows now fail closed until the ACM certificate
+is `ISSUED` and bound to this exact new AWS account.
 
 ## Remaining workflow
 
-1. ACM certificate for CloudFront still lives in **us-east-1**. The existing
-   domain's authoritative DNS must receive the new-account ACM validation
-   CNAMEs before full Terraform apply. Use an account-authorized GitHub Actions
-   ACM-preparation workflow when available; do not change the existing A/AAAA.
+1. CloudFront ACM certificate is managed in **us-east-1** through the
+   **Prepare CloudFront ACM Certificate (New Account DEV)** GitHub Action.
+   Copy its validation CNAMEs into the currently authoritative DNS provider,
+   verify `ISSUED`, and set `DEV_ACM_CERTIFICATE_ARN` before Terraform.
 2. Apply `dev` Terraform in Mumbai only after preview DNS validation.
 3. Put Razorpay and WhatsApp values securely into **SSM Parameter Store in
    ap-south-1** (not GitHub repository files). These values stay user-controlled.

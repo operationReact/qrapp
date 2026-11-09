@@ -1,0 +1,122 @@
+name: Prepare CloudFront ACM Certificate (New Account DEV)
+
+# Only requests/reuses a preview certificate in us-east-1.
+# Never changes DNS, existing production aliases, or Terraform state.
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: "Type PREPARE_NEW_DEV_ACM to request/inspect the preview certificate"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: broandbro-new-account-dev-acm
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    if: github.ref == 'refs/heads/dev' && inputs.confirm == 'PREPARE_NEW_DEV_ACM'
+    runs-on: ubuntu-latest
+    environment: dev
+    steps:
+      - name: Refuse unknown account or environment
+        env:
+          ACCOUNT: ${{ vars.AWS_NEW_ACCOUNT_ID }}
+          REGION: ${{ vars.AWS_REGION }}
+        run: |
+          set -euo pipefail
+          [[ "$ACCOUNT" == "098859530205" && "$REGION" == "ap-south-1" ]] || {
+            echo "::error::Expected the new Mumbai AWS account only"; exit 1;
+          }
+      - name: Authenticate via scoped GitHub OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_TERRAFORM_ROLE_ARN }}
+          aws-region: ap-south-1
+      - name: Verify actual AWS identity
+        run: |
+          set -euo pipefail
+          [[ "$(aws sts get-caller-identity --query Account --output text)" == "098859530205" ]] || {
+            echo "::error::Wrong AWS account"; exit 1;
+          }
+      - name: Find or request CloudFront preview ACM certificate
+        id: cert
+        env:
+          FRONTEND: migrate-dev.broandbro.in
+          API: migrate-dev-api.broandbro.in
+        run: |
+          set -euo pipefail
+          # Inspect existing issued/pending certificates before requesting a new one.
+          ARN=""
+          mapfile -t CANDIDATES < <(
+            aws acm list-certificates --region us-east-1 \
+              --certificate-statuses ISSUED PENDING_VALIDATION --output json |
+              jq -r --arg f "$FRONTEND" '.CertificateSummaryList[]? | select(.DomainName == $f) | .CertificateArn'
+          )
+          for candidate in "${CANDIDATES[@]}"; do
+            details="$(aws acm describe-certificate --region us-east-1 --certificate-arn "$candidate" --output json)"
+            if jq -e --arg f "$FRONTEND" --arg a "$API" \
+              '(.Certificate.SubjectAlternativeNames | index($f) != null) and (.Certificate.SubjectAlternativeNames | index($a) != null)' \
+              <<<"$details" >/dev/null; then
+              ARN="$candidate"
+              break
+            fi
+          done
+          if [[ -z "$ARN" ]]; then
+            ARN="$(aws acm request-certificate --region us-east-1 \
+              --domain-name "$FRONTEND" --subject-alternative-names "$API" \
+              --validation-method DNS \
+              --idempotency-token broandbrodevmumbai2026 \
+              --tags Key=Project,Value=broandbro Key=Environment,Value=dev \
+              --query CertificateArn --output text)"
+          fi
+          [[ "$ARN" =~ ^arn:aws:acm:us-east-1:098859530205:certificate/[0-9a-f-]+$ ]] || {
+            echo "::error::Unexpected certificate ARN"; exit 1;
+          }
+          echo "arn=$ARN" >> "$GITHUB_OUTPUT"
+      - name: Show DNS validation CNAMEs and next step
+        env:
+          ARN: ${{ steps.cert.outputs.arn }}
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 15); do
+            INFO="$(aws acm describe-certificate --region us-east-1 --certificate-arn "$ARN" --output json)"
+            COUNT="$(jq '[.Certificate.DomainValidationOptions[]? | select(.ResourceRecord != null)] | length' <<<"$INFO")"
+            if [[ "$COUNT" -ge 2 ]]; then break; fi
+            sleep 4
+          done
+          STATUS="$(jq -r '.Certificate.Status' <<<"$INFO")"
+          [[ "$STATUS" == "ISSUED" || "$STATUS" == "PENDING_VALIDATION" ]] || {
+            echo "::error::Unexpected ACM certificate status: $STATUS"; exit 1;
+          }
+          [[ "$COUNT" -ge 2 ]] || {
+            echo "::error::ACM did not return both DNS validation records; rerun this action"; exit 1;
+          }
+          {
+            echo "## CloudFront preview certificate — NEW account only"
+            echo
+            echo "- AWS account: `098859530205`"
+            echo "- Certificate region: `us-east-1` (required by CloudFront)"
+            echo "- Application region: `ap-south-1` (Mumbai)"
+            echo "- ARN: `$ARN`"
+            echo "- Status: **$STATUS**"
+            echo
+            echo "Add only these **CNAME** validation records to the domain's **currently authoritative DNS provider**."
+            echo "**Do not modify A, AAAA, NS, MX, TXT or current production aliases.**"
+            echo
+            echo "| Hostname (FQDN) | Type | Value |"
+            echo "|---|---|---|"
+            jq -r '.Certificate.DomainValidationOptions[] | select(.ResourceRecord != null) | "| `\(.ResourceRecord.Name)` | CNAME | `\(.ResourceRecord.Value)` |"' <<<"$INFO" | sort -u
+            echo
+            echo "Once the certificate is **ISSUED**, set GitHub Environment `dev` variable:"
+            echo "`DEV_ACM_CERTIFICATE_ARN=$ARN`"
+            echo
+            echo "Then run **Terraform Plan - New Account (Read Only)** for `dev`."
+            echo "This workflow does not write DNS records or deploy infrastructure."
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "Certificate status: $STATUS. Check the job summary for DNS CNAMEs."

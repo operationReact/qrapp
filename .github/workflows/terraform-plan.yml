@@ -42,6 +42,23 @@ jobs:
         run: |
           ACTUAL=$(aws sts get-caller-identity --query Account --output text)
           test "$ACTUAL" = "$EXPECTED_ACCOUNT" || { echo "::error::Old or wrong AWS account"; exit 1; }
+      - name: Require an issued CloudFront certificate before DEV planning
+        if: inputs.environment == 'dev'
+        env:
+          CERT_ARN: ${{ vars.DEV_ACM_CERTIFICATE_ARN }}
+          EXPECTED_ACCOUNT: ${{ vars.AWS_NEW_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          [[ "$CERT_ARN" =~ ^arn:aws:acm:us-east-1:[0-9]{12}:certificate/[0-9a-f-]+$ ]] || {
+            echo "::error::DEV_ACM_CERTIFICATE_ARN not configured. Run Prepare CloudFront ACM Certificate first."; exit 1;
+          }
+          [[ "$CERT_ARN" == arn:aws:acm:us-east-1:"$EXPECTED_ACCOUNT":certificate/* ]] || exit 1
+          [[ "$(aws acm describe-certificate --region us-east-1 --certificate-arn "$CERT_ARN" --query 'Certificate.Status' --output text)" == "ISSUED" ]] || {
+            echo "::error::DNS validation still pending"; exit 1;
+          }
+          aws acm describe-certificate --region us-east-1 --certificate-arn "$CERT_ARN" \
+            --query 'Certificate.SubjectAlternativeNames' --output json |
+            jq -e 'index("migrate-dev.broandbro.in") != null' >/dev/null
       - name: Init NEW account state
         env:
           TF_STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
@@ -55,6 +72,7 @@ jobs:
       - name: Validate and plan with state locking
         env:
           TF_VAR_expected_account_id: ${{ vars.AWS_NEW_ACCOUNT_ID }}
+          TF_VAR_existing_certificate_arn: ${{ inputs.environment == 'dev' && vars.DEV_ACM_CERTIFICATE_ARN || '' }}
         run: |
           terraform validate
           terraform plan -input=false -no-color
