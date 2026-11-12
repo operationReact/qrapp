@@ -1,11 +1,15 @@
 name: Terraform Apply - New Account PROD
 
-# NEVER auto-apply infrastructure on merge to main during account migration.
+# NEVER auto-apply infrastructure on merge. Two gated stages:
+#   1. plan   -> saved plan + resource summary in the job summary (read-only)
+#   2. apply  -> applies EXACTLY that saved plan, after a second prod approval
+# Configure required reviewers on GitHub environment "prod" so each stage
+# waits for the owner.
 on:
   workflow_dispatch:
     inputs:
       confirm:
-        description: "Type APPLY_NEW_PROD to provision the NEW AWS account"
+        description: "Type APPLY_NEW_PROD to provision the NEW AWS account 098859530205"
         required: true
         type: string
 
@@ -17,17 +21,19 @@ concurrency:
   group: terraform-new-account-prod
   cancel-in-progress: false
 
+env:
+  AWS_REGION: ap-south-1
+  TARGET_ACCOUNT: "098859530205"
+  TF_IN_AUTOMATION: "true"
+
 jobs:
-  apply-prod:
+  plan:
     if: inputs.confirm == 'APPLY_NEW_PROD' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment: prod
     defaults:
       run:
         working-directory: infra/environments/prod
-    env:
-      AWS_REGION: ap-south-1
-      TF_IN_AUTOMATION: "true"
     steps:
       - uses: actions/checkout@v4
       - uses: hashicorp/setup-terraform@v3
@@ -36,24 +42,32 @@ jobs:
       - name: Require new-account configuration
         env:
           EXPECTED_ACCOUNT: ${{ vars.AWS_NEW_ACCOUNT_ID }}
+          REGION: ${{ vars.AWS_REGION }}
           STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
           DEPLOY_ROLE: ${{ secrets.AWS_TERRAFORM_ROLE_ARN }}
+          ALARM_EMAIL: ${{ vars.ALARM_EMAIL }}
         run: |
-          test -n "$EXPECTED_ACCOUNT" || { echo "::error::AWS_NEW_ACCOUNT_ID missing"; exit 1; }
-          test -n "$STATE_BUCKET" || { echo "::error::TF_STATE_BUCKET missing"; exit 1; }
-          test -n "$DEPLOY_ROLE" || { echo "::error::AWS_TERRAFORM_ROLE_ARN missing"; exit 1; }
-          case "$EXPECTED_ACCOUNT" in *[!0-9]*|"") exit 1 ;; esac
-          test "${#EXPECTED_ACCOUNT}" -eq 12
+          set -euo pipefail
+          [[ "$EXPECTED_ACCOUNT" == "$TARGET_ACCOUNT" ]] || { echo "::error::prod AWS_NEW_ACCOUNT_ID must be $TARGET_ACCOUNT"; exit 1; }
+          [[ "$REGION" == "$AWS_REGION" ]] || { echo "::error::prod AWS_REGION must be $AWS_REGION"; exit 1; }
+          [[ "$STATE_BUCKET" == "broandbro-tfstate-$TARGET_ACCOUNT-$AWS_REGION" ]] || { echo "::error::Unexpected TF_STATE_BUCKET"; exit 1; }
+          [[ "$DEPLOY_ROLE" == "arn:aws:iam::$TARGET_ACCOUNT:role/broandbro-prod-terraform-github" ]] || {
+            echo "::error::AWS_TERRAFORM_ROLE_ARN must be the new-account prod Terraform role"; exit 1;
+          }
+          [[ "$ALARM_EMAIL" == *@*.* ]] || { echo "::error::Set prod variable ALARM_EMAIL for alarms and budget alerts"; exit 1; }
       - uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_TERRAFORM_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
       - name: Assert account identity
-        env:
-          EXPECTED_ACCOUNT: ${{ vars.AWS_NEW_ACCOUNT_ID }}
         run: |
           ACTUAL=$(aws sts get-caller-identity --query Account --output text)
-          test "$ACTUAL" = "$EXPECTED_ACCOUNT" || { echo "::error::Refusing AWS account $ACTUAL"; exit 1; }
+          test "$ACTUAL" = "$TARGET_ACCOUNT" || { echo "::error::Refusing AWS account $ACTUAL"; exit 1; }
+      - name: Require an issued production CloudFront certificate
+        working-directory: .
+        env:
+          CERT_ARN: ${{ vars.PROD_ACM_CERTIFICATE_ARN }}
+        run: bash scripts/require-issued-prod-acm-cert.sh "$CERT_ARN"
       - name: Init isolated NEW account state
         env:
           TF_STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
@@ -64,14 +78,67 @@ jobs:
             -backend-config="region=$AWS_REGION" \
             -backend-config="encrypt=true" \
             -backend-config="use_lockfile=true"
-      - name: Format and validate
+      - name: Validate and save plan
+        env:
+          TF_VAR_expected_account_id: ${{ env.TARGET_ACCOUNT }}
+          TF_VAR_existing_certificate_arn: ${{ vars.PROD_ACM_CERTIFICATE_ARN }}
+          TF_VAR_alarm_email: ${{ vars.ALARM_EMAIL }}
+          TF_VAR_monthly_budget_usd: ${{ vars.MONTHLY_BUDGET_USD || '100' }}
         run: |
+          set -euo pipefail
           terraform validate
-      - name: Plan
+          terraform plan -input=false -out=tfplan
+          bash ../../../scripts/summarize-terraform-plan.sh tfplan >> "$GITHUB_STEP_SUMMARY"
+      - name: Keep saved plan for the approved apply stage only
+        uses: actions/upload-artifact@v4
+        with:
+          name: prod-tfplan-${{ github.run_id }}
+          path: infra/environments/prod/tfplan
+          retention-days: 1
+          if-no-files-found: error
+
+  apply:
+    needs: plan
+    runs-on: ubuntu-latest
+    environment: prod
+    defaults:
+      run:
+        working-directory: infra/environments/prod
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.12.2"
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_TERRAFORM_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Assert account identity
+        run: |
+          ACTUAL=$(aws sts get-caller-identity --query Account --output text)
+          test "$ACTUAL" = "$TARGET_ACCOUNT" || { echo "::error::Refusing AWS account $ACTUAL"; exit 1; }
+      - uses: actions/download-artifact@v4
+        with:
+          name: prod-tfplan-${{ github.run_id }}
+          path: infra/environments/prod
+      - name: Init isolated NEW account state
         env:
-          TF_VAR_expected_account_id: ${{ vars.AWS_NEW_ACCOUNT_ID }}
-        run: terraform plan -input=false -out=tfplan
-      - name: Apply reviewed plan
-        env:
-          TF_VAR_expected_account_id: ${{ vars.AWS_NEW_ACCOUNT_ID }}
+          TF_STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
+        run: |
+          terraform init -input=false -reconfigure \
+            -backend-config="bucket=$TF_STATE_BUCKET" \
+            -backend-config="key=env/prod/terraform.tfstate" \
+            -backend-config="region=$AWS_REGION" \
+            -backend-config="encrypt=true" \
+            -backend-config="use_lockfile=true"
+      - name: Apply the reviewed saved plan
         run: terraform apply -input=false tfplan
+      - name: Record outputs (no secrets)
+        run: |
+          {
+            echo "## Applied to account $TARGET_ACCOUNT ($AWS_REGION)"
+            echo
+            echo '```'
+            terraform output -no-color
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -1,4 +1,4 @@
-name: Prepare CloudFront ACM Certificate (New Account DEV)
+name: "[DISABLED prod-only] Prepare CloudFront ACM Certificate (New Account DEV)"
 
 # Only requests/reuses a preview certificate in us-east-1.
 # Never changes DNS, existing production aliases, or Terraform state.
@@ -24,6 +24,11 @@ jobs:
     runs-on: ubuntu-latest
     environment: dev
     steps:
+      - name: Refuse - production-only AWS decision (Nov 2026)
+        run: |
+          echo "::error::There is no DEV AWS environment. The owner approved ONE deployed environment: prod (098859530205)."
+          echo "See infra/PROD_ONLY_RUNBOOK.md. This workflow is kept for reference only and must not create DEV resources."
+          exit 1
       - name: Refuse unknown account or environment
         env:
           ACCOUNT: ${{ vars.AWS_NEW_ACCOUNT_ID }}

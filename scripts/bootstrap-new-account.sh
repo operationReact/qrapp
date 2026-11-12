@@ -1,4 +1,11 @@
 #!/usr/bin/env bash
+# SUPERSEDED (Nov 2026): production-only decision. This path creates DEV roles and a
+# second OIDC provider. Use infra/cloudformation/github-oidc-bootstrap-prod.yaml instead
+# (see infra/PROD_ONLY_RUNBOOK.md). Refuse unless explicitly overridden for audit work.
+if [[ "${BROANDBRO_ALLOW_LEGACY_BOOTSTRAP:-}" != "I_UNDERSTAND_THIS_CREATES_DEV_ROLES" ]]; then
+  echo "Refusing: superseded by the prod-only CloudFormation bootstrap (infra/PROD_ONLY_RUNBOOK.md)." >&2
+  exit 1
+fi
 # One-command creation of ALL new-account bootstrap AWS resources.
 # Prerequisites: AWS SSO/short-lived admin session, Terraform >=1.10 and (optional) gh CLI.
 set -euo pipefail

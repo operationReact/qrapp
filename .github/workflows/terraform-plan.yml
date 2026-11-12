@@ -1,78 +1,74 @@
-name: Terraform Plan - New Account (Read Only)
+name: Terraform Plan - New Account PROD (Read Only)
 
+# Owner decision (Nov 2026): ONE deployed AWS environment, production only.
+# DEV planning is intentionally removed; there is no DEV AWS stack.
 on:
   workflow_dispatch:
-    inputs:
-      environment:
-        type: choice
-        required: true
-        options: [dev, prod]
 
 permissions:
   id-token: write
   contents: read
 
+concurrency:
+  group: terraform-new-account-prod
+  cancel-in-progress: false
+
 jobs:
   plan:
     runs-on: ubuntu-latest
-    environment: ${{ inputs.environment }}
+    environment: prod
     defaults:
       run:
-        working-directory: infra/environments/${{ inputs.environment }}
+        working-directory: infra/environments/prod
+    env:
+      TF_IN_AUTOMATION: "true"
     steps:
       - uses: actions/checkout@v4
       - uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: "1.12.2"
-      - name: Require target configuration
+      - name: Require new-account configuration
         env:
           EXPECTED_ACCOUNT: ${{ vars.AWS_NEW_ACCOUNT_ID }}
+          REGION: ${{ vars.AWS_REGION }}
           STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
         run: |
-          test -n "$EXPECTED_ACCOUNT" && test -n "$STATE_BUCKET" || exit 1
-          case "$EXPECTED_ACCOUNT" in *[!0-9]*|"") exit 1 ;; esac
-          test "${#EXPECTED_ACCOUNT}" -eq 12
+          set -euo pipefail
+          [[ "$EXPECTED_ACCOUNT" == "098859530205" ]] || { echo "::error::prod AWS_NEW_ACCOUNT_ID must be 098859530205"; exit 1; }
+          [[ "$REGION" == "ap-south-1" ]] || { echo "::error::prod AWS_REGION must be ap-south-1"; exit 1; }
+          [[ "$STATE_BUCKET" == "broandbro-tfstate-098859530205-ap-south-1" ]] || { echo "::error::Unexpected TF_STATE_BUCKET"; exit 1; }
       - uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_TERRAFORM_ROLE_ARN }}
           aws-region: ap-south-1
-      - name: Reject unexpected account
-        env:
-          EXPECTED_ACCOUNT: ${{ vars.AWS_NEW_ACCOUNT_ID }}
+      - name: Reject old or wrong account
         run: |
           ACTUAL=$(aws sts get-caller-identity --query Account --output text)
-          test "$ACTUAL" = "$EXPECTED_ACCOUNT" || { echo "::error::Old or wrong AWS account"; exit 1; }
-      - name: Require an issued CloudFront certificate before DEV planning
-        if: inputs.environment == 'dev'
+          test "$ACTUAL" = "098859530205" || { echo "::error::Old or wrong AWS account"; exit 1; }
+      - name: Require an issued production CloudFront certificate
+        working-directory: .
         env:
-          CERT_ARN: ${{ vars.DEV_ACM_CERTIFICATE_ARN }}
-          EXPECTED_ACCOUNT: ${{ vars.AWS_NEW_ACCOUNT_ID }}
-        run: |
-          set -euo pipefail
-          [[ "$CERT_ARN" =~ ^arn:aws:acm:us-east-1:[0-9]{12}:certificate/[0-9a-f-]+$ ]] || {
-            echo "::error::DEV_ACM_CERTIFICATE_ARN not configured. Run Prepare CloudFront ACM Certificate first."; exit 1;
-          }
-          [[ "$CERT_ARN" == arn:aws:acm:us-east-1:"$EXPECTED_ACCOUNT":certificate/* ]] || exit 1
-          [[ "$(aws acm describe-certificate --region us-east-1 --certificate-arn "$CERT_ARN" --query 'Certificate.Status' --output text)" == "ISSUED" ]] || {
-            echo "::error::DNS validation still pending"; exit 1;
-          }
-          aws acm describe-certificate --region us-east-1 --certificate-arn "$CERT_ARN" \
-            --query 'Certificate.SubjectAlternativeNames' --output json |
-            jq -e 'index("migrate-dev.broandbro.in") != null' >/dev/null
+          CERT_ARN: ${{ vars.PROD_ACM_CERTIFICATE_ARN }}
+        run: bash scripts/require-issued-prod-acm-cert.sh "$CERT_ARN"
       - name: Init NEW account state
         env:
           TF_STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
         run: |
           terraform init -input=false -reconfigure \
             -backend-config="bucket=$TF_STATE_BUCKET" \
-            -backend-config="key=env/${{ inputs.environment }}/terraform.tfstate" \
+            -backend-config="key=env/prod/terraform.tfstate" \
             -backend-config="region=ap-south-1" \
             -backend-config="encrypt=true" \
             -backend-config="use_lockfile=true"
-      - name: Validate and plan with state locking
+      - name: Validate and plan (no apply)
         env:
-          TF_VAR_expected_account_id: ${{ vars.AWS_NEW_ACCOUNT_ID }}
-          TF_VAR_existing_certificate_arn: ${{ inputs.environment == 'dev' && vars.DEV_ACM_CERTIFICATE_ARN || '' }}
+          TF_VAR_expected_account_id: "098859530205"
+          TF_VAR_existing_certificate_arn: ${{ vars.PROD_ACM_CERTIFICATE_ARN }}
+          TF_VAR_alarm_email: ${{ vars.ALARM_EMAIL }}
+          TF_VAR_monthly_budget_usd: ${{ vars.MONTHLY_BUDGET_USD || '100' }}
         run: |
+          set -euo pipefail
           terraform validate
-          terraform plan -input=false -no-color
+          terraform plan -input=false -no-color -lock=false -out=tfplan
+          terraform show -no-color tfplan > plan.txt
+          bash ../../../scripts/summarize-terraform-plan.sh tfplan >> "$GITHUB_STEP_SUMMARY"

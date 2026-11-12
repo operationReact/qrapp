@@ -1,3 +1,6 @@
+# SUPERSEDED (Nov 2026, production-only decision): do NOT apply. It creates DEV roles and a
+# duplicate GitHub OIDC provider. Use infra/cloudformation/github-oidc-bootstrap-prod.yaml.
+# Kept only for offline CI validation/history. See infra/PROD_ONLY_RUNBOOK.md.
 # New-account bootstrap. Run with short-lived AWS SSO credentials in the TARGET account.
 # This stack deliberately keeps local state: protect its terraform.tfstate and back it up securely.
 terraform {

@@ -37,7 +37,9 @@ jobs:
           ACCOUNT_ID: ${{ vars.AWS_NEW_ACCOUNT_ID }}
         run: |
           set -euo pipefail
-          [[ "$ACCOUNT_ID" =~ ^[0-9]{12}$ ]] || exit 1
+          [[ "$ACCOUNT_ID" == "098859530205" ]] || {
+            echo "::error::GitHub environment prod must target the new account 098859530205"; exit 1;
+          }
           test "$(aws sts get-caller-identity --query Account --output text)" = "$ACCOUNT_ID" || {
             echo "::error::Wrong AWS account"; exit 1;
           }

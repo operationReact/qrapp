@@ -11,7 +11,8 @@ on:
     branches: [dev, main]
     paths:
       - "infra/**"
-      - ".github/workflows/terraform-validate.yml"
+      - "scripts/**"
+      - ".github/workflows/**"
   workflow_dispatch:
 
 permissions:
@@ -66,7 +67,36 @@ jobs:
       - name: Validate console-only CloudFormation OIDC bootstrap
         run: |
           python3 -m pip install --quiet cfn-lint
-          cfn-lint infra/cloudformation/github-oidc-bootstrap-dev.yaml
+          cfn-lint infra/cloudformation/github-oidc-bootstrap-dev.yaml \
+                   infra/cloudformation/github-oidc-bootstrap-prod.yaml
+      - name: Enforce production-only bootstrap trust and account guard
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          t = Path("infra/cloudformation/github-oidc-bootstrap-prod.yaml").read_text()
+          assert t.count("repo:operationReact/qrapp:environment:prod") == 3
+          assert "environment:dev" not in t and "broandbro-dev-" not in t
+          assert "AWS::IAM::OIDCProvider" not in t, "reuse the account-wide OIDC provider"
+          assert "Rules:" in t and "098859530205" in t
+          assert "AdministratorAccess" not in t
+          assert "ec2:CreateNatGateway" in t
+          PY
+      - name: Enforce hard-coded new account in every production workflow
+        run: |
+          for wf in terraform-plan terraform-apply-prod acm-prepare-prod aws-inventory-prod \
+                    frontend-deploy-prod backend-deploy-prod; do
+            grep -Fq '098859530205' ".github/workflows/$wf.yml" || {
+              echo "::error::$wf.yml must hard-code the new account 098859530205"; exit 1; }
+          done
+          grep -Fq 'require-issued-prod-acm-cert.sh' .github/workflows/terraform-plan.yml
+          grep -Fq 'require-issued-prod-acm-cert.sh' .github/workflows/terraform-apply-prod.yml
+          ! grep -E '^\s*alarm_email\s*=' infra/environments/prod/terraform.tfvars
+      - name: Keep DEV AWS workflows non-operational (production-only decision)
+        run: |
+          for wf in terraform-apply-dev frontend-deploy-dev backend-deploy-dev acm-prepare-dev aws-oidc-verify-dev; do
+            grep -Fq 'Refuse - production-only AWS decision' ".github/workflows/$wf.yml" || {
+              echo "::error::$wf.yml must keep its prod-only refusal step"; exit 1; }
+          done
       - name: Validate GitHub Actions YAML semantics
         run: go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.10 -shellcheck=
       - name: Check Bash script syntax
@@ -76,7 +106,9 @@ jobs:
                         scripts/configure-github-environments.sh \
                         scripts/set-external-ssm-parameter.sh \
                         scripts/migrate-external-ssm.sh \
-                        scripts/mirror-route53-records.sh; do
+                        scripts/mirror-route53-records.sh \
+                        scripts/require-issued-prod-acm-cert.sh \
+                        scripts/summarize-terraform-plan.sh; do
             bash -n "$script"
           done
       - name: Prevent insecure seed passwords or default admin login regressions

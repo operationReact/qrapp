@@ -1,3 +1,6 @@
+> **SUPERSEDED (Nov 2026):** the owner approved ONE deployed AWS environment, production only.
+> Do not create DEV resources from this document. Follow [`PROD_ONLY_RUNBOOK.md`](PROD_ONLY_RUNBOOK.md).
+
 > **CURRENT APPROACH:** No CloudShell or local installation. Follow
 > [CloudFormation + GitHub OIDC](AWS_GITHUB_OIDC_NO_CLOUDSHELL.md).
 > The older CloudShell steps below are an alternative only; do NOT run

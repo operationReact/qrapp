@@ -1,4 +1,4 @@
-name: Terraform Apply - New Account DEV
+name: "[DISABLED prod-only] Terraform Apply - New Account DEV"
 
 # Migration deployments must never be triggered by a push.
 on:
@@ -29,6 +29,11 @@ jobs:
       AWS_REGION: ap-south-1
       TF_IN_AUTOMATION: "true"
     steps:
+      - name: Refuse - production-only AWS decision (Nov 2026)
+        run: |
+          echo "::error::There is no DEV AWS environment. The owner approved ONE deployed environment: prod (098859530205)."
+          echo "See infra/PROD_ONLY_RUNBOOK.md. This workflow is kept for reference only and must not create DEV resources."
+          exit 1
       - uses: actions/checkout@v4
       - uses: hashicorp/setup-terraform@v3
         with:

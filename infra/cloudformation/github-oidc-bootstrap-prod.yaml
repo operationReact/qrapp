@@ -1,0 +1,356 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >-
+  Bro and Bro PRODUCTION-ONLY one-time bootstrap for NEW AWS account 098859530205
+  (Mumbai, ap-south-1). Creates three least-privilege GitHub OIDC roles trusted
+  only by GitHub environment "prod", and optionally the Terraform state bucket and
+  a NON-delegated Route 53 zone. Does not deploy the app, change nameservers, or
+  touch any existing public DNS. Stack name: broandbro-github-oidc-prod.
+
+# ---------------------------------------------------------------------------
+# Before creating this stack, inventory the account (see infra/PROD_ONLY_RUNBOOK.md):
+#   * If broandbro-tfstate-098859530205-ap-south-1 already exists (e.g. from the
+#     earlier DEV stack or infra/bootstrap Terraform), choose StateBucketMode=existing.
+#   * If a public hosted zone "broandbro.in" already exists in THIS account, choose
+#     HostedZoneMode=existing. Route 53 allows duplicate zones with the same name,
+#     which would break Terraform's zone lookup, so never create a second one.
+#   * The account-wide OIDC provider token.actions.githubusercontent.com must
+#     already exist; it is reused, not created.
+# ---------------------------------------------------------------------------
+
+Parameters:
+  StateBucketMode:
+    Type: String
+    AllowedValues: [create, existing]
+    Description: >-
+      "create" only if bucket broandbro-tfstate-098859530205-ap-south-1 does NOT
+      exist yet. "existing" to reuse it (it is then not managed by this stack).
+  HostedZoneMode:
+    Type: String
+    AllowedValues: [create, existing]
+    Description: >-
+      "create" only if NO public hosted zone broandbro.in exists in this account.
+      "existing" to reuse it. Either way, nameservers are NOT delegated.
+
+Rules:
+  OnlyTheNewProductionAccount:
+    Assertions:
+      - Assert: !Equals [!Ref 'AWS::AccountId', '098859530205']
+        AssertDescription: Refusing to bootstrap any account other than 098859530205.
+      - Assert: !Equals [!Ref 'AWS::Region', 'ap-south-1']
+        AssertDescription: Create this stack in Mumbai (ap-south-1) only.
+
+Conditions:
+  CreateStateBucket: !Equals [!Ref StateBucketMode, create]
+  CreateHostedZone: !Equals [!Ref HostedZoneMode, create]
+
+Resources:
+  StateBucket:
+    Type: AWS::S3::Bucket
+    Condition: CreateStateBucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BucketName: broandbro-tfstate-098859530205-ap-south-1
+      VersioningConfiguration: {Status: Enabled}
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault: {SSEAlgorithm: AES256}
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerEnforced
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        IgnorePublicAcls: true
+        BlockPublicPolicy: true
+        RestrictPublicBuckets: true
+      Tags:
+        - {Key: Project, Value: broandbro}
+        - {Key: Environment, Value: prod}
+        - {Key: Purpose, Value: terraform-state}
+
+  StateBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Condition: CreateStateBucket
+    Properties:
+      Bucket: !Ref StateBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: EnforceTLS
+            Effect: Deny
+            Principal: '*'
+            Action: 's3:*'
+            Resource:
+              - !GetAtt StateBucket.Arn
+              - !Sub '${StateBucket.Arn}/*'
+            Condition: {Bool: {'aws:SecureTransport': 'false'}}
+
+  NewAccountDNSZone:
+    Type: AWS::Route53::HostedZone
+    Condition: CreateHostedZone
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      Name: broandbro.in
+      HostedZoneConfig:
+        Comment: New-account zone. NOT authoritative until a separately approved cutover.
+      HostedZoneTags:
+        - {Key: Project, Value: broandbro}
+        - {Key: Environment, Value: prod}
+        - {Key: Purpose, Value: not-yet-delegated-zone}
+
+  # ── Terraform (infrastructure) role ────────────────────────────────────────
+  ProdTerraformRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: broandbro-prod-terraform-github
+      MaxSessionDuration: 3600
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: {Federated: !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:oidc-provider/token.actions.githubusercontent.com'}
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                'token.actions.githubusercontent.com:aud': sts.amazonaws.com
+                'token.actions.githubusercontent.com:sub': 'repo:operationReact/qrapp:environment:prod'
+      Policies:
+        - PolicyName: broandbro-prod-terraform-provision
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              # Service-level breadth is required for Terraform to create/read the
+              # prod modules. The Deny statements below remove the risky parts.
+              - Sid: TerraformProjectServices
+                Effect: Allow
+                Action:
+                  - 'acm:*'
+                  - 'cloudfront:*'
+                  - 'cloudwatch:*'
+                  - 'ec2:*'
+                  - 'logs:*'
+                  - 'rds:*'
+                  - 'route53:*'
+                  - 's3:*'
+                  - 'sns:*'
+                  - 'ssm:*'
+                  - 'wafv2:*'
+                  - 'budgets:ViewBudget'
+                  - 'budgets:ModifyBudget'
+                  - 'budgets:ListTagsForResource'
+                  - 'budgets:TagResource'
+                  - 'budgets:UntagResource'
+                  - 'kms:DescribeKey'
+                  - 'kms:ListAliases'
+                  - 'sts:GetCallerIdentity'
+                  - 'cloudformation:DescribeStacks'
+                  - 'cloudformation:ListStacks'
+                  - 'iam:ListOpenIDConnectProviders'
+                  - 'iam:ListRoles'
+                Resource: '*'
+              # RDS manage_master_user_password creates an rds!... secret in Secrets Manager.
+              - Sid: RdsManagedMasterSecret
+                Effect: Allow
+                Action:
+                  - secretsmanager:CreateSecret
+                  - secretsmanager:TagResource
+                  - secretsmanager:DescribeSecret
+                  - secretsmanager:RotateSecret
+                  - secretsmanager:CancelRotateSecret
+                  - secretsmanager:DeleteSecret
+                Resource: !Sub 'arn:${AWS::Partition}:secretsmanager:ap-south-1:${AWS::AccountId}:secret:rds!*'
+              - Sid: ServiceLinkedRolesForRdsAndEc2Only
+                Effect: Allow
+                Action: iam:CreateServiceLinkedRole
+                Resource: '*'
+                Condition:
+                  StringEquals:
+                    'iam:AWSServiceName':
+                      - rds.amazonaws.com
+                      - ssm.amazonaws.com
+              - Sid: ManageOnlyProdProjectIAM
+                Effect: Allow
+                Action:
+                  - iam:CreateRole
+                  - iam:DeleteRole
+                  - iam:GetRole
+                  - iam:TagRole
+                  - iam:UntagRole
+                  - iam:PutRolePolicy
+                  - iam:GetRolePolicy
+                  - iam:DeleteRolePolicy
+                  - iam:ListRolePolicies
+                  - iam:ListAttachedRolePolicies
+                  - iam:ListInstanceProfilesForRole
+                  - iam:AttachRolePolicy
+                  - iam:DetachRolePolicy
+                  - iam:CreateInstanceProfile
+                  - iam:DeleteInstanceProfile
+                  - iam:GetInstanceProfile
+                  - iam:TagInstanceProfile
+                  - iam:AddRoleToInstanceProfile
+                  - iam:RemoveRoleFromInstanceProfile
+                Resource:
+                  - !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:role/broandbro-prod-*'
+                  - !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:instance-profile/broandbro-prod-*'
+              - Sid: PassOnlyProdEc2RoleToEc2
+                Effect: Allow
+                Action: iam:PassRole
+                Resource: !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:role/broandbro-prod-*'
+                Condition:
+                  StringEquals:
+                    'iam:PassedToService': ec2.amazonaws.com
+              - Sid: ReadAWSManagedPolicies
+                Effect: Allow
+                Action:
+                  - iam:GetPolicy
+                  - iam:GetPolicyVersion
+                Resource: '*'
+              # ── Guard rails ──
+              - Sid: NeverTouchTheGithubDeployRoles
+                Effect: Deny
+                Action: 'iam:*'
+                Resource: !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:role/broandbro-prod-*-github'
+              - Sid: ProtectTerraformState
+                Effect: Deny
+                Action:
+                  - s3:DeleteBucket
+                  - s3:DeleteBucketPolicy
+                  - s3:PutBucketPolicy
+                  - s3:PutBucketVersioning
+                  - s3:PutLifecycleConfiguration
+                  - s3:PutBucketPublicAccessBlock
+                Resource: arn:aws:s3:::broandbro-tfstate-098859530205-ap-south-1
+              - Sid: CostGuardNoNatOrReservedPurchases
+                Effect: Deny
+                Action:
+                  - ec2:CreateNatGateway
+                  - ec2:PurchaseReservedInstancesOffering
+                  - ec2:PurchaseHostReservation
+                  - rds:PurchaseReservedDBInstancesOffering
+                Resource: '*'
+              - Sid: NoNameserverOrDomainChanges
+                Effect: Deny
+                Action:
+                  - route53domains:*
+                  - route53:DeleteHostedZone
+                  - route53:CreateHostedZone
+                Resource: '*'
+      Tags:
+        - {Key: Project, Value: broandbro}
+        - {Key: Environment, Value: prod}
+
+  # ── Frontend (S3 + CloudFront invalidation) role ───────────────────────────
+  ProdFrontendRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: broandbro-prod-frontend-github
+      MaxSessionDuration: 3600
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: {Federated: !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:oidc-provider/token.actions.githubusercontent.com'}
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                'token.actions.githubusercontent.com:aud': sts.amazonaws.com
+                'token.actions.githubusercontent.com:sub': 'repo:operationReact/qrapp:environment:prod'
+      Policies:
+        - PolicyName: broandbro-prod-frontend-deploy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Sid: ListFrontendBucket
+                Effect: Allow
+                Action: [s3:ListBucket]
+                Resource: arn:aws:s3:::broandbro-prod-ui-098859530205
+              - Sid: UploadFrontendAssets
+                Effect: Allow
+                Action: [s3:PutObject, s3:GetObject, s3:DeleteObject]
+                Resource: arn:aws:s3:::broandbro-prod-ui-098859530205/*
+              - Sid: InvalidateCloudFrontInThisAccount
+                Effect: Allow
+                Action: [cloudfront:CreateInvalidation, cloudfront:GetInvalidation]
+                Resource: !Sub 'arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/*'
+              - Sid: ReadDistributionId
+                Effect: Allow
+                Action: [ssm:GetParameter]
+                Resource: arn:aws:ssm:ap-south-1:098859530205:parameter/broandbro/prod/cf-distribution-id
+      Tags:
+        - {Key: Project, Value: broandbro}
+        - {Key: Environment, Value: prod}
+
+  # ── Backend (artifact upload + SSM Run Command) role ───────────────────────
+  ProdBackendRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: broandbro-prod-backend-github
+      MaxSessionDuration: 3600
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: {Federated: !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:oidc-provider/token.actions.githubusercontent.com'}
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                'token.actions.githubusercontent.com:aud': sts.amazonaws.com
+                'token.actions.githubusercontent.com:sub': 'repo:operationReact/qrapp:environment:prod'
+      Policies:
+        - PolicyName: broandbro-prod-backend-deploy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Sid: ReadArtifactBucketNameOnly
+                Effect: Allow
+                Action: [ssm:GetParameter]
+                Resource: arn:aws:ssm:ap-south-1:098859530205:parameter/broandbro/backend/prod/aws/s3/artifactBucketName
+              - Sid: UploadArtifacts
+                Effect: Allow
+                Action: [s3:PutObject]
+                Resource: arn:aws:s3:::broandbro-prod-artifacts-098859530205/deploy/prod/*
+              - Sid: RunCommandsOnlyOnProdEC2
+                Effect: Allow
+                Action: [ssm:SendCommand]
+                Resource: arn:aws:ec2:ap-south-1:098859530205:instance/*
+                Condition:
+                  StringEquals:
+                    'aws:ResourceTag/Environment': prod
+                    'aws:ResourceTag/Project': broandbro
+              - Sid: UseApprovedSSMDocument
+                Effect: Allow
+                Action: [ssm:SendCommand]
+                Resource: arn:aws:ssm:ap-south-1::document/AWS-RunShellScript
+              - Sid: InspectBackendDeployment
+                Effect: Allow
+                Action: [ssm:GetCommandInvocation, ssm:ListCommandInvocations, ec2:DescribeInstances]
+                Resource: '*'
+      Tags:
+        - {Key: Project, Value: broandbro}
+        - {Key: Environment, Value: prod}
+
+Outputs:
+  ActualAWSAccount:
+    Description: Must equal 098859530205.
+    Value: !Ref 'AWS::AccountId'
+  TerraformStateBucket:
+    Description: GitHub prod variable TF_STATE_BUCKET.
+    Value: broandbro-tfstate-098859530205-ap-south-1
+  HostedZoneId:
+    Condition: CreateHostedZone
+    Value: !Ref NewAccountDNSZone
+  NameserversNotYetDelegated:
+    Condition: CreateHostedZone
+    Description: Do NOT copy these to the registrar until the approved cutover.
+    Value: !Join [', ', !GetAtt NewAccountDNSZone.NameServers]
+  TerraformRoleArn:
+    Description: GitHub prod secret AWS_TERRAFORM_ROLE_ARN.
+    Value: !GetAtt ProdTerraformRole.Arn
+  FrontendRoleArn:
+    Description: GitHub prod secret AWS_FRONTEND_ROLE_ARN.
+    Value: !GetAtt ProdFrontendRole.Arn
+  BackendRoleArn:
+    Description: GitHub prod secret AWS_BACKEND_ROLE_ARN.
+    Value: !GetAtt ProdBackendRole.Arn

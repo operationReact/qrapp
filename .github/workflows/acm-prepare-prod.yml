@@ -1,0 +1,126 @@
+name: Prepare CloudFront ACM Certificate (New Account PROD)
+
+# Requests (or reuses) ONE us-east-1 certificate for the single production stack
+# in the NEW account 098859530205. It covers the preview names and the final
+# names so no re-issue is needed at cutover. It NEVER writes DNS records, never
+# changes CloudFront aliases, and never touches Terraform state or the old account.
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: "Type PREPARE_NEW_PROD_ACM to request/inspect the production certificate"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: broandbro-new-account-prod-acm
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    if: github.ref == 'refs/heads/main' && inputs.confirm == 'PREPARE_NEW_PROD_ACM'
+    runs-on: ubuntu-latest
+    environment: prod
+    steps:
+      - uses: actions/checkout@v4
+      - name: Refuse unknown account or region
+        env:
+          ACCOUNT: ${{ vars.AWS_NEW_ACCOUNT_ID }}
+          REGION: ${{ vars.AWS_REGION }}
+        run: |
+          set -euo pipefail
+          [[ "$ACCOUNT" == "098859530205" && "$REGION" == "ap-south-1" ]] || {
+            echo "::error::GitHub environment prod must target the new Mumbai account 098859530205 only"; exit 1;
+          }
+      - name: Authenticate via scoped GitHub OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_TERRAFORM_ROLE_ARN }}
+          aws-region: ap-south-1
+      - name: Verify actual AWS identity
+        run: |
+          set -euo pipefail
+          [[ "$(aws sts get-caller-identity --query Account --output text)" == "098859530205" ]] || {
+            echo "::error::Wrong AWS account"; exit 1;
+          }
+      - name: Find or request the production certificate
+        id: cert
+        env:
+          PRIMARY: broandbro.in
+        run: |
+          set -euo pipefail
+          SANS=(www.broandbro.in migrate-prod.broandbro.in migrate-prod-api.broandbro.in)
+          ARN=""
+          mapfile -t CANDIDATES < <(
+            aws acm list-certificates --region us-east-1 \
+              --certificate-statuses ISSUED PENDING_VALIDATION --output json |
+              jq -r --arg p "$PRIMARY" '.CertificateSummaryList[]? | select(.DomainName == $p) | .CertificateArn'
+          )
+          for candidate in "${CANDIDATES[@]}"; do
+            details="$(aws acm describe-certificate --region us-east-1 --certificate-arn "$candidate" --output json)"
+            if jq -e --arg p "$PRIMARY" '
+                 .Certificate.SubjectAlternativeNames as $s
+                 | [$p, "www.broandbro.in", "migrate-prod.broandbro.in", "migrate-prod-api.broandbro.in"]
+                 | all(. as $n | $s | index($n) != null)' <<<"$details" >/dev/null; then
+              ARN="$candidate"
+              echo "Reusing existing certificate (no new request)."
+              break
+            fi
+          done
+          if [[ -z "$ARN" ]]; then
+            ARN="$(aws acm request-certificate --region us-east-1 \
+              --domain-name "$PRIMARY" --subject-alternative-names "${SANS[@]}" \
+              --validation-method DNS \
+              --idempotency-token broandbroprodmumbai2026 \
+              --tags Key=Project,Value=broandbro Key=Environment,Value=prod \
+              --query CertificateArn --output text)"
+          fi
+          [[ "$ARN" =~ ^arn:aws:acm:us-east-1:098859530205:certificate/[0-9a-f-]+$ ]] || {
+            echo "::error::Unexpected certificate ARN"; exit 1;
+          }
+          echo "arn=$ARN" >> "$GITHUB_OUTPUT"
+      - name: Show DNS validation CNAMEs and next step
+        env:
+          ARN: ${{ steps.cert.outputs.arn }}
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 20); do
+            INFO="$(aws acm describe-certificate --region us-east-1 --certificate-arn "$ARN" --output json)"
+            COUNT="$(jq '[.Certificate.DomainValidationOptions[]? | select(.ResourceRecord != null)] | length' <<<"$INFO")"
+            if [[ "$COUNT" -ge 4 ]]; then break; fi
+            sleep 4
+          done
+          STATUS="$(jq -r '.Certificate.Status' <<<"$INFO")"
+          [[ "$STATUS" == "ISSUED" || "$STATUS" == "PENDING_VALIDATION" ]] || {
+            echo "::error::Unexpected ACM certificate status: $STATUS"; exit 1;
+          }
+          [[ "$COUNT" -ge 4 ]] || {
+            echo "::error::ACM did not return all four DNS validation records yet; rerun this action"; exit 1;
+          }
+          {
+            echo "## Production CloudFront certificate — NEW account 098859530205"
+            echo
+            echo "- Certificate region: \`us-east-1\` (CloudFront requirement, not a second environment)"
+            echo "- ARN: \`$ARN\`"
+            echo "- Status: **$STATUS**"
+            echo
+            echo "Add only these **CNAME** validation records at the domain's **currently authoritative DNS provider**."
+            echo "They are additive \`_…\` names and do not change what serves broandbro.in today."
+            echo "**Do not modify A, AAAA, NS, MX, TXT or the existing apex/www/api records.**"
+            echo "The new account's own Route 53 zone is NOT authoritative; records there will not validate."
+            echo
+            echo "| Hostname (FQDN) | Type | Value |"
+            echo "|---|---|---|"
+            jq -r '.Certificate.DomainValidationOptions[] | select(.ResourceRecord != null) | "| `\(.ResourceRecord.Name)` | CNAME | `\(.ResourceRecord.Value)` |"' <<<"$INFO" | sort -u
+            echo
+            echo "When status is **ISSUED**, set GitHub Environment \`prod\` variable:"
+            echo "\`PROD_ACM_CERTIFICATE_ARN=$ARN\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [[ "$STATUS" == "ISSUED" ]]; then
+            bash scripts/require-issued-prod-acm-cert.sh "$ARN"
+          fi
+          echo "Certificate status: $STATUS. See the job summary for DNS CNAMEs."

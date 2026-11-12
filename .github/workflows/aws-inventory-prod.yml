@@ -1,0 +1,69 @@
+name: Verify New AWS Account PROD (OIDC + read-only inventory)
+
+# P0 evidence for the production-only migration. READ-ONLY: Describe/List/Get
+# calls only, against the NEW account 098859530205. Reports any DEV resources
+# (which the prod-only decision says must not exist) without deleting anything.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  inventory:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: prod
+    steps:
+      - name: Validate expected target
+        env:
+          EXPECTED_ACCOUNT: ${{ vars.AWS_NEW_ACCOUNT_ID }}
+          EXPECTED_REGION: ${{ vars.AWS_REGION }}
+          STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
+        run: |
+          set -euo pipefail
+          [[ "$EXPECTED_ACCOUNT" == "098859530205" ]] || { echo "::error::Unexpected account"; exit 1; }
+          [[ "$EXPECTED_REGION" == "ap-south-1" ]] || { echo "::error::Unexpected region"; exit 1; }
+          [[ "$STATE_BUCKET" == "broandbro-tfstate-098859530205-ap-south-1" ]] || { echo "::error::Unexpected state bucket"; exit 1; }
+      - name: Authenticate using OIDC (no AWS keys)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_TERRAFORM_ROLE_ARN }}
+          aws-region: ap-south-1
+      - name: Read-only inventory
+        env:
+          STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
+        run: |
+          set -uo pipefail
+          ACTUAL="$(aws sts get-caller-identity --query Account --output text)"
+          [[ "$ACTUAL" == "098859530205" ]] || { echo "::error::Wrong AWS account $ACTUAL"; exit 1; }
+          R=ap-south-1
+          row() { echo "| $1 | $2 |"; }
+          q() { "$@" 2>/dev/null || echo "(not readable)"; }
+          {
+            echo "## New account 098859530205 — read-only inventory"
+            echo
+            echo "Caller: \`$(aws sts get-caller-identity --query Arn --output text)\`"
+            echo
+            echo "| Item | Result |"
+            echo "|---|---|"
+            row "State bucket" "$(q aws s3api get-bucket-versioning --bucket "$STATE_BUCKET" --query Status --output text)"
+            row "Prod state object" "$(q aws s3api head-object --bucket "$STATE_BUCKET" --key env/prod/terraform.tfstate --query ContentLength --output text)"
+            row "Dev state object" "$(q aws s3api head-object --bucket "$STATE_BUCKET" --key env/dev/terraform.tfstate --query ContentLength --output text)"
+            row "CloudFormation stacks" "$(q aws cloudformation list-stacks --region $R --stack-status-filter CREATE_COMPLETE UPDATE_COMPLETE UPDATE_ROLLBACK_COMPLETE ROLLBACK_COMPLETE --query 'StackSummaries[?contains(StackName, `broandbro`)].[StackName,StackStatus]' --output text | tr '\n\t' '; ')"
+            row "GitHub OIDC providers" "$(q aws iam list-open-id-connect-providers --query 'OpenIDConnectProviderList[].Arn' --output text)"
+            row "broandbro IAM roles" "$(q aws iam list-roles --query 'Roles[?starts_with(RoleName, `broandbro-`)].RoleName' --output text)"
+            row "Route 53 zones broandbro.in" "$(q aws route53 list-hosted-zones-by-name --dns-name broandbro.in --query 'HostedZones[?Name==`broandbro.in.`].Id' --output text)"
+            row "ACM us-east-1 certs" "$(q aws acm list-certificates --region us-east-1 --query 'CertificateSummaryList[].[DomainName,Status]' --output text | tr '\n\t' '; ')"
+            row "EC2 instances (non-terminated)" "$(q aws ec2 describe-instances --region $R --filters Name=instance-state-name,Values=pending,running,stopping,stopped --query 'Reservations[].Instances[].[InstanceId,InstanceType,State.Name,Tags[?Key==`Name`]|[0].Value]' --output text | tr '\n\t' '; ')"
+            row "RDS instances" "$(q aws rds describe-db-instances --region $R --query 'DBInstances[].[DBInstanceIdentifier,DBInstanceClass,DBInstanceStatus,MultiAZ,PubliclyAccessible,DeletionProtection]' --output text | tr '\n\t' '; ')"
+            row "CloudFront distributions" "$(q aws cloudfront list-distributions --query 'DistributionList.Items[].[Id,Aliases.Items|join(`,`,@)]' --output text | tr '\n\t' '; ')"
+            row "broandbro S3 buckets" "$(q aws s3api list-buckets --query 'Buckets[?starts_with(Name, `broandbro-`)].Name' --output text)"
+            row "NAT gateways" "$(q aws ec2 describe-nat-gateways --region $R --filter Name=state,Values=available,pending --query 'NatGateways[].NatGatewayId' --output text)"
+            row "SSM managed instances" "$(q aws ssm describe-instance-information --region $R --query 'InstanceInformationList[].[InstanceId,PingStatus]' --output text | tr '\n\t' '; ')"
+            echo
+            echo "Anything named \`*-dev-*\` above conflicts with the production-only decision."
+            echo "Report it; do not delete without a separately approved removal plan."
+          } >> "$GITHUB_STEP_SUMMARY"
+          cat "$GITHUB_STEP_SUMMARY"

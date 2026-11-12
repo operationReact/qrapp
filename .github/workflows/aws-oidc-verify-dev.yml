@@ -1,4 +1,4 @@
-name: Verify New AWS Account OIDC (No CloudShell)
+name: "[DISABLED prod-only] Verify New AWS Account OIDC (No CloudShell)"
 
 on:
   workflow_dispatch:
@@ -13,6 +13,11 @@ jobs:
     runs-on: ubuntu-latest
     environment: dev
     steps:
+      - name: Refuse - production-only AWS decision (Nov 2026)
+        run: |
+          echo "::error::There is no DEV AWS environment. The owner approved ONE deployed environment: prod (098859530205)."
+          echo "See infra/PROD_ONLY_RUNBOOK.md. This workflow is kept for reference only and must not create DEV resources."
+          exit 1
       - name: Validate expected target
         env:
           EXPECTED_ACCOUNT: ${{ vars.AWS_NEW_ACCOUNT_ID }}

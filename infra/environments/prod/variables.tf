@@ -115,3 +115,13 @@ variable "schedule_rds_stop_cron" {
   type    = string
   default = "cron(15 20 ? * MON-FRI *)"
 }
+
+variable "monthly_budget_usd" {
+  type        = number
+  description = "Monthly AWS cost budget (USD) for the single production stack; alerts at 80% actual and 100% forecast."
+  default     = 100
+  validation {
+    condition     = var.monthly_budget_usd >= 20 && var.monthly_budget_usd <= 1000
+    error_message = "monthly_budget_usd must be between 20 and 1000."
+  }
+}

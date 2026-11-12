@@ -19,8 +19,8 @@ rds_instance_class = "db.t4g.small"
 db_name            = "broandbro"
 db_username        = "broandbro"
 
-# CloudWatch – email for alarm notifications
-alarm_email = ""
+# CloudWatch/Budget alert email: supplied by GitHub prod variable ALARM_EMAIL
+# (TF_VAR_alarm_email). Do not set it here: terraform.tfvars overrides TF_VAR_*.
 
 # ── Media bucket ──────────────────────────────────────────────────────────────
 # Production media bucket for AI-generated menu images

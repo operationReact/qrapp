@@ -253,3 +253,29 @@ module "route53" {
   create_www_record         = var.frontend_hostname == var.domain_name
 
 }
+
+# ── Cost guard: one account-level monthly budget with email alerts ───────────
+resource "aws_budgets_budget" "monthly" {
+  count        = var.alarm_email != "" ? 1 : 0
+  name         = "broandbro-prod-monthly"
+  budget_type  = "COST"
+  limit_amount = tostring(var.monthly_budget_usd)
+  limit_unit   = "USD"
+  time_unit    = "MONTHLY"
+
+  notification {
+    comparison_operator        = "GREATER_THAN"
+    threshold                  = 80
+    threshold_type             = "PERCENTAGE"
+    notification_type          = "ACTUAL"
+    subscriber_email_addresses = [var.alarm_email]
+  }
+
+  notification {
+    comparison_operator        = "GREATER_THAN"
+    threshold                  = 100
+    threshold_type             = "PERCENTAGE"
+    notification_type          = "FORECASTED"
+    subscriber_email_addresses = [var.alarm_email]
+  }
+}

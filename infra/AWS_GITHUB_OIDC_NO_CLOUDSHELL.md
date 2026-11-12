@@ -1,3 +1,6 @@
+> **SUPERSEDED (Nov 2026):** the owner approved ONE deployed AWS environment, production only.
+> Do not create DEV resources from this document. Follow [`PROD_ONLY_RUNBOOK.md`](PROD_ONLY_RUNBOOK.md).
+
 > **Next after OIDC verification:** Run the GitHub Action
 > **Prepare CloudFront ACM Certificate (New Account DEV)** on branch `dev`
 > with confirmation `PREPARE_NEW_DEV_ACM`. This creates only new-account ACM

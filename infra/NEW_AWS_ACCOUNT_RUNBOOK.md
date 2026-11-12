@@ -1,3 +1,6 @@
+> **SUPERSEDED (Nov 2026):** the owner approved ONE deployed AWS environment, production only.
+> Do not create DEV resources from this document. Follow [`PROD_ONLY_RUNBOOK.md`](PROD_ONLY_RUNBOOK.md).
+
 > **CURRENT CONSOLE-ONLY BOOTSTRAP (preferred):**
 > [AWS Console + GitHub Actions OIDC](AWS_GITHUB_OIDC_NO_CLOUDSHELL.md).
 > The alternative CloudShell/Terraform bootstrap described below must NOT

@@ -21,7 +21,7 @@ permissions:
 env:
   NODE_VERSION: "22"
   AWS_REGION: "ap-south-1"
-  S3_BUCKET: "broandbro-prod-ui-${{ vars.AWS_NEW_ACCOUNT_ID }}"
+  S3_BUCKET: "broandbro-prod-ui-098859530205"
   # NOTE: CloudFront distribution ID is read from SSM during deploy steps.
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
@@ -49,7 +49,7 @@ jobs:
           ACCOUNT_ID: ${{ vars.AWS_NEW_ACCOUNT_ID }}
         run: |
           set -euo pipefail
-          [[ "$ACCOUNT_ID" =~ ^[0-9]{12}$ ]] || { echo "::error::New AWS account is not configured"; exit 1; }
+          [[ "$ACCOUNT_ID" == "098859530205" ]] || { echo "::error::GitHub environment prod must target the new account 098859530205"; exit 1; }
           if [[ "$API_URL" != "https://migrate-prod-api.broandbro.in" ]]; then
             echo "::error::Expected the new-account prod preview API URL; refusing build"
             exit 1
@@ -88,9 +88,9 @@ jobs:
         env:
           EXPECTED_ACCOUNT: ${{ vars.AWS_NEW_ACCOUNT_ID }}
         run: |
-          test -n "$EXPECTED_ACCOUNT" || { echo "::error::AWS_NEW_ACCOUNT_ID not configured"; exit 1; }
+          test "$EXPECTED_ACCOUNT" = "098859530205" || { echo "::error::AWS_NEW_ACCOUNT_ID must be 098859530205"; exit 1; }
           ACTUAL=$(aws sts get-caller-identity --query Account --output text)
-          test "$ACTUAL" = "$EXPECTED_ACCOUNT" || { echo "::error::Wrong AWS account"; exit 1; }
+          test "$ACTUAL" = "098859530205" || { echo "::error::Wrong AWS account"; exit 1; }
 
       - name: Resolve CloudFront distribution ID
         run: |
@@ -105,11 +105,12 @@ jobs:
           fi
           echo "CF_DIST_ID=$CF_DIST_ID" >> "$GITHUB_ENV"
 
+      # Upload new hashed assets first WITHOUT deleting old ones, so browsers that
+      # still hold the previous index.html can load their lazy chunks.
       - name: Upload hashed assets (long cache)
         run: |
           aws s3 sync frontend/dist/assets/ s3://${{ env.S3_BUCKET }}/assets/ \
-            --cache-control "public, max-age=31536000, immutable" \
-            --delete
+            --cache-control "public, max-age=31536000, immutable"
 
       - name: Upload index.html (no cache)
         run: |
@@ -153,6 +154,12 @@ jobs:
           aws s3 cp frontend/dist/.well-known/assetlinks.json s3://${{ env.S3_BUCKET }}/.well-known/assetlinks.json \
             --content-type "application/json" \
             --cache-control "no-cache, no-store, must-revalidate"
+
+      - name: Remove superseded hashed assets (after new index.html is live)
+        run: |
+          aws s3 sync frontend/dist/assets/ s3://${{ env.S3_BUCKET }}/assets/ \
+            --cache-control "public, max-age=31536000, immutable" \
+            --delete
 
       - name: Invalidate CloudFront cache
         run: |
