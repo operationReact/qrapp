@@ -21,54 +21,33 @@ permissions:
 jobs:
   validate:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        environment: [dev, prod]
     steps:
       - uses: actions/checkout@v4
       - uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: "1.12.2"
       - name: Init without remote state or credentials
-        working-directory: infra/environments/${{ matrix.environment }}
+        working-directory: infra/environments/prod
         run: terraform init -backend=false -input=false
       - name: Validate
-        working-directory: infra/environments/${{ matrix.environment }}
-        run: terraform validate -no-color
-
-  bootstrap:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: "1.12.2"
-      - name: Init bootstrap offline
-        working-directory: infra/bootstrap
-        run: terraform init -backend=false -input=false
-      - name: Validate account bootstrap
-        working-directory: infra/bootstrap
+        working-directory: infra/environments/prod
         run: terraform validate -no-color
 
   migration-scripts:
-    name: Migration scripts / security regression checks
+    name: Scripts, CloudFormation and workflow checks (offline)
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
     steps:
       - uses: actions/checkout@v4
-      - name: Parse Python migration tools and EC2 deployment agent
+      - name: Parse Python tools and EC2 deployment agent
         run: python3 -m py_compile scripts/migrate-s3-media.py scripts/deploy-backend-from-ssm.py scripts/preflight-new-account.py
-      - name: Unit-test AWS migration and preflight protections (offline)
+      - name: Unit-test AWS migration, preflight and plan-guard (offline)
         run: |
           python3 -m pip install --quiet boto3
           python3 -m unittest discover -s scripts -p 'test_*.py' -v
-      - name: Validate console-only CloudFormation OIDC bootstrap
+      - name: Validate production CloudFormation OIDC bootstrap
         run: |
           python3 -m pip install --quiet cfn-lint
-          cfn-lint infra/cloudformation/github-oidc-bootstrap-dev.yaml \
-                   infra/cloudformation/github-oidc-bootstrap-prod.yaml
+          cfn-lint infra/cloudformation/github-oidc-bootstrap-prod.yaml
       - name: Enforce production-only bootstrap trust and account guard
         run: |
           python3 - <<'PY'
@@ -81,7 +60,7 @@ jobs:
           assert "AdministratorAccess" not in t
           assert "ec2:CreateNatGateway" in t
           PY
-      - name: Enforce hard-coded new account in every production workflow
+      - name: Enforce hard-coded new account and ACM gate in production workflows
         run: |
           for wf in terraform-plan terraform-apply-prod acm-prepare-prod aws-inventory-prod \
                     frontend-deploy-prod backend-deploy-prod; do
@@ -91,19 +70,18 @@ jobs:
           grep -Fq 'require-issued-prod-acm-cert.sh' .github/workflows/terraform-plan.yml
           grep -Fq 'require-issued-prod-acm-cert.sh' .github/workflows/terraform-apply-prod.yml
           ! grep -E '^\s*alarm_email\s*=' infra/environments/prod/terraform.tfvars
-      - name: Keep DEV AWS workflows non-operational (production-only decision)
+      - name: Ensure no DEV infrastructure remains in the repository
         run: |
-          for wf in terraform-apply-dev frontend-deploy-dev backend-deploy-dev acm-prepare-dev aws-oidc-verify-dev; do
-            grep -Fq 'Refuse - production-only AWS decision' ".github/workflows/$wf.yml" || {
-              echo "::error::$wf.yml must keep its prod-only refusal step"; exit 1; }
-          done
+          test ! -e infra/environments/dev
+          test ! -e infra/bootstrap
+          if ls .github/workflows/ | grep -i -- '-dev'; then
+            echo "::error::A DEV AWS workflow was reintroduced"; exit 1
+          fi
       - name: Validate GitHub Actions YAML semantics
         run: go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.10 -shellcheck=
       - name: Check Bash script syntax
         run: |
-          for script in scripts/bootstrap-new-account.sh \
-                        scripts/cloudshell-bootstrap.sh \
-                        scripts/configure-github-environments.sh \
+          for script in scripts/configure-github-environments.sh \
                         scripts/set-external-ssm-parameter.sh \
                         scripts/migrate-external-ssm.sh \
                         scripts/mirror-route53-records.sh \
@@ -131,25 +109,9 @@ jobs:
               exit 1
             fi
           done
-      - name: Ensure CI backend role cannot read application secrets
+      - name: Block wildcard OIDC trust or AdministratorAccess
         run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          text = Path("infra/bootstrap/bootstrap.tf").read_text()
-          role = text.split('resource "aws_iam_role_policy" "backend" {', 1)[1].split('output "account_id"', 1)[0]
-          assert "ReadArtifactBucketNameOnly" in role
-          assert "secretsmanager:GetSecretValue" not in role
-          assert "ssm:GetParametersByPath" not in role
-          assert "ec2:RebootInstances" not in role
-          PY
-      - name: Enforce environment-isolated Systems Manager deployments
-        run: |
-          grep -Fq 'RunCommandsOnlyOnOwnEnvironment' infra/bootstrap/bootstrap.tf
-          grep -Fq 'aws:ResourceTag/Environment' infra/bootstrap/bootstrap.tf
-          grep -Fq 'UseApprovedSSMDocument' infra/bootstrap/bootstrap.tf
-      - name: Block dangerous bootstrap role regressions
-        run: |
-          if grep -R --include='*.tf' -E 'policy/AdministratorAccess|repo:\\*/\\*' infra/; then
+          if grep -R --include='*.tf' --include='*.yaml' -E 'policy/AdministratorAccess|repo:\*/\*|AdministratorAccess' infra/; then
             echo "::error::Wild-card GitHub OIDC trust or AdministratorAccess is forbidden."
             exit 1
           fi

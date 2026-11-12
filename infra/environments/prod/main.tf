@@ -182,7 +182,7 @@ module "ec2" {
   location_bucket_arn    = module.location_images.bucket_arn
   create_media_s3_policy = true
   artifact_bucket_arn     = module.artifacts.bucket_arn
-  root_volume_size       = 30
+  root_volume_size       = 20 # cost: app is one JAR + nginx; grow later if needed (EBS can grow, not shrink)
 }
 
 # ── RDS PostgreSQL ────────────────────────────────────────────────────────────
@@ -221,7 +221,7 @@ module "cloudwatch" {
   environment        = "prod"
   aws_region         = var.aws_region
   ec2_instance_id    = module.ec2.instance_id
-  log_retention_days = 90
+  log_retention_days = 30 # cost: 90d -> 30d; export to S3 later if audit needs longer
   alarm_email        = var.alarm_email
 }
 

@@ -12,14 +12,31 @@ and `AWS_CONSOLE_ONLY_SETUP.md` (they are kept for history only).
 | Data | **Fresh install.** No legacy users, wallets, orders, media or balances are imported. Old account is kept untouched for rollback/audit. |
 | Git | The `dev` *branch* stays for development. Production workflows run only from `main`. |
 
-## What makes DEV non-operational
+## No DEV environment (removed)
 
-* `terraform-apply-dev`, `frontend-deploy-dev`, `backend-deploy-dev`, `acm-prepare-dev`, `aws-oidc-verify-dev`
-  start with a refusal step (enforced in CI by `terraform-validate.yml`).
-* `terraform-plan.yml` is prod-only.
-* `scripts/bootstrap-new-account.sh`, `scripts/cloudshell-bootstrap.sh` and `infra/bootstrap/` (Terraform bootstrap,
-  which would create DEV roles **and** a duplicate OIDC provider) refuse to run.
-* `infra/environments/dev/` and `infra/cloudformation/github-oidc-bootstrap-dev.yaml` stay in git as reference; do not apply.
+The DEV AWS environment, its Terraform environment folder, its bootstrap paths and its workflows are deleted from the repository.
+CI fails if any DEV infrastructure or `*-dev` AWS workflow is reintroduced. Git branch `dev` remains for source control only.
+
+## Automatic provisioning (after the one-time bootstrap)
+
+* Push to `main` that changes `infra/**` -> **Terraform Apply - New Account PROD** runs the plan automatically and saves it.
+* The apply job waits for approval on GitHub environment `prod` (required reviewer) and then applies exactly that saved plan.
+  This is the one human gate that remains: an AWS change still needs an explicit approval click.
+* The one unavoidable manual step is the CloudFormation bootstrap (step 1): GitHub cannot assume an AWS role until that role exists.
+* The ACM certificate must be ISSUED first (step 4); its DNS CNAMEs are added by the owner at the authoritative DNS provider.
+  Until `PROD_ACM_CERTIFICATE_ARN` is set, the automatic plan fails closed by design.
+
+## Cost settings in this revision
+
+| Setting | Before | Now | Notes |
+|---|---|---|---|
+| EC2 root EBS (gp3) | 30 GiB | 20 GiB | EBS can be grown later, not shrunk |
+| CloudWatch log retention | 90 days | 30 days | |
+| AWS Budget | none | `MONTHLY_BUDGET_USD` (default 100) | alerts at 80% actual, 100% forecast |
+| Cost schedule (EC2/RDS stop) | off | off | kept off: public production |
+| WAF | on | on | ~US$8-12/mo; disabling it is an owner decision (`enable_waf`) |
+| RDS / EC2 class, Single-AZ | t4g.small / t4g.small, Single-AZ | unchanged | smaller classes are a workload decision |
+| CloudFront price class | PriceClass_200 | unchanged | PriceClass_100 excludes India, so it would not serve the audience |
 
 ## Account-safety guards (all prod workflows)
 

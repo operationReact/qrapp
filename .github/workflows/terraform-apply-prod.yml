@@ -1,11 +1,19 @@
 name: Terraform Apply - New Account PROD
 
-# NEVER auto-apply infrastructure on merge. Two gated stages:
-#   1. plan   -> saved plan + resource summary in the job summary (read-only)
-#   2. apply  -> applies EXACTLY that saved plan, after a second prod approval
-# Configure required reviewers on GitHub environment "prod" so each stage
-# waits for the owner.
+# Infrastructure is created automatically from `main`:
+#   * push to main that changes infra/** -> plan runs automatically
+#   * apply runs only after a reviewer approves the GitHub "prod" environment,
+#     and applies EXACTLY the plan saved by the plan job (no re-plan)
+# Manual runs (workflow_dispatch) require typing APPLY_NEW_PROD.
+# No DEV environment exists; this is the only Terraform deployment path.
 on:
+  push:
+    branches: [main]
+    paths:
+      - "infra/**"
+      - "scripts/summarize-terraform-plan.sh"
+      - "scripts/require-issued-prod-acm-cert.sh"
+      - ".github/workflows/terraform-apply-prod.yml"
   workflow_dispatch:
     inputs:
       confirm:
@@ -28,7 +36,7 @@ env:
 
 jobs:
   plan:
-    if: inputs.confirm == 'APPLY_NEW_PROD' && github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || inputs.confirm == 'APPLY_NEW_PROD')
     runs-on: ubuntu-latest
     environment: prod
     defaults:
@@ -97,6 +105,8 @@ jobs:
           retention-days: 1
           if-no-files-found: error
 
+  # Second approval point: the prod environment's required reviewers must approve
+  # before this job starts. It applies the saved plan only.
   apply:
     needs: plan
     runs-on: ubuntu-latest
