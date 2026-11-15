@@ -16,9 +16,10 @@ spring:
         static: ${AWS_REGION:us-east-1}
 
   datasource:
-    url: ${app.parameter-store.database.url}
-    username: ${app.parameter-store.database.username}
-    password: ${app.parameter-store.database.password}
+    url: ${SPRING_DATASOURCE_URL:${app.parameter-store.database.url:}}
+    username: ${SPRING_DATASOURCE_USERNAME:${app.parameter-store.database.username:}}
+    # Terraform stores only database/secretArn; the deploy agent resolves the password from Secrets Manager.
+    password: ${SPRING_DATASOURCE_PASSWORD}
     driver-class-name: org.postgresql.Driver
     hikari:
       pool-name: ${SPRING_DATASOURCE_HIKARI_POOL_NAME:QrAppHikariPool}
@@ -51,15 +52,15 @@ spring:
     allowed-origins: "${APP_CORS_ALLOWED_ORIGINS:https://broandbro.in,https://www.broandbro.in}"
 
 razorpay:
-  key: ${app.parameter-store.razorpay.key}
-  secret: ${app.parameter-store.razorpay.secret}
-  webhookSecret: ${app.parameter-store.razorpay.webhookSecret:${RAZORPAY_WEBHOOK_SECRET:}}
+  key: ${RAZORPAY_KEY:${app.parameter-store.razorpay.key:}}
+  secret: ${RAZORPAY_SECRET:${app.parameter-store.razorpay.secret:}}
+  webhookSecret: ${RAZORPAY_WEBHOOK_SECRET:${app.parameter-store.razorpay.webhookSecret:}}
 
 aws:
   s3:
-    enabled: ${app.parameter-store.aws.s3.enabled:true}
-    bucket-name: ${app.parameter-store.aws.s3.bucketName:broandbro-prod-root-bucket}
-    location-bucket-name: ${app.parameter-store.aws.s3.locationBucketName:broandbro-location-images-prod}
+    enabled: ${AWS_S3_ENABLED:${app.parameter-store.aws.s3.enabled:true}}
+    bucket-name: ${AWS_S3_BUCKET_NAME:${app.parameter-store.aws.s3.bucketName:broandbro-prod-root-bucket}}
+    location-bucket-name: ${AWS_S3_LOCATION_BUCKET_NAME:${app.parameter-store.aws.s3.locationBucketName:broandbro-location-images-prod}}
     region: ${AWS_S3_REGION:us-east-1}
     access-key: ${app.parameter-store.aws.s3.accessKey:}
     secret-key: ${app.parameter-store.aws.s3.secretKey:}
@@ -71,8 +72,8 @@ openai:
 
 whatsapp:
   enabled: ${WHATSAPP_OTP_ENABLED:true}
-  phone-number-id: ${app.parameter-store.whatsapp.phoneNumberId}
-  access-token: ${app.parameter-store.whatsapp.accessToken}
+  phone-number-id: ${WHATSAPP_PHONE_NUMBER_ID:${app.parameter-store.whatsapp.phoneNumberId:}}
+  access-token: ${WHATSAPP_ACCESS_TOKEN:${app.parameter-store.whatsapp.accessToken:}}
   verification-template-language: ${WHATSAPP_VERIFICATION_TEMPLATE_LANGUAGE:en}
   verification-template-name: ${WHATSAPP_VERIFICATION_TEMPLATE_NAME:bro_bro_verification_code}
   graph-api:

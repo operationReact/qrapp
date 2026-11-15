@@ -12,7 +12,23 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # A separate read-only gate prevents uploading or deploying an unusable JAR
+  # when any mandatory production SSM value is missing or still a placeholder.
+  preflight:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: prod
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_TERRAFORM_ROLE_ARN }}
+          aws-region: ap-south-1
+      - name: Fail closed unless PROD SSM is ready (never print secret values)
+        run: python3 scripts/audit-prod-ssm.py
+
   deploy:
+    needs: preflight
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment: prod
