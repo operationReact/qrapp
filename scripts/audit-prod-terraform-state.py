@@ -125,7 +125,12 @@ def main():
     print("Note: even tracked resources must be checked against live AWS IDs and ownership.")
     for addr in not_tracked:
         print("UNTRACKED_CREATED_ADDRESS: " + addr)
-    print("RECOVERY STATUS: BLOCKED. No Apply, import, push, DNS edit or lock removal performed.")
+    if locked or not_tracked or not lineage_present:
+        print("RECOVERY STATUS: BLOCKED — state lock, untracked resources or invalid lineage.")
+        print("No Apply, import, push, DNS edit or lock removal performed.")
+        return 1
+    print("STATE INVENTORY: no mismatch found in this comparison; still verify live resources,")
+    print("IAM permissions, certificate status and a new Terraform plan before any Apply.")
     return 0
 
 
