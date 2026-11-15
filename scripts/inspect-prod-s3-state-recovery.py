@@ -89,6 +89,12 @@ def is_stale_failed_run_lock(lock):
         return False
     if lock.get("Operation") != "OperationTypeApply":
         return False
+    # The failed operation ran on a GitHub-hosted ubuntu runner using Terraform 1.12.2.
+    # Unknown ownership/version requires manual review, never automatic unlocking.
+    if not str(lock.get("Who", "")).startswith("runner@"):
+        return False
+    if lock.get("Version") != "1.12.2":
+        return False
     # The lock must belong to the exact PROD remote-state location, not any
     # unrelated workspace. Never display this potentially sensitive string.
     location = str(lock.get("Path", ""))
