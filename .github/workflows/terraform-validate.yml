@@ -1,74 +1,22 @@
-# =============================================================================
-# Workflow: terraform-validate.yml
-# Runs on every push to dev or main that touches infra/**
-# Also runs when workflow files themselves are changed.
-# Validates that all Terraform configurations are syntactically correct.
-# =============================================================================
-name: Terraform Validate
+# P0 migration safety freeze (2026-11-15).
+# Old main workflow references a previous AWS account/state and static legacy assumptions.
+# It is disabled until replaced by an explicitly audited, single-PROD workflow.
+# Prior implementation remains in Git history. This workflow uses no AWS credentials.
+name: Terraform Validate (Legacy Disabled)
 
 on:
-  push:
-    branches: [dev, main]
-    paths:
-      - "infra/**"
-      - ".github/workflows/terraform-validate.yml"
-  pull_request:
-    branches: [dev, main]
-    paths:
-      - "infra/**"
-      - ".github/workflows/terraform-validate.yml"
-  # Allow manual trigger from the GitHub Actions UI
   workflow_dispatch:
 
 permissions:
-  id-token: write
   contents: read
 
-env:
-  TF_VERSION: "1.9.5"
-  AWS_REGION: "us-east-1"
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
-
 jobs:
-  validate:
-    name: Validate – ${{ matrix.env }}
+  legacy-disabled:
     runs-on: ubuntu-latest
-
-    strategy:
-      fail-fast: false
-      matrix:
-        env: [dev, prod]
-
-    defaults:
-      run:
-        working-directory: infra/environments/${{ matrix.env }}
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4.2.2
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: ${{ env.TF_VERSION }}
-
-      - name: Configure AWS credentials (OIDC)
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      # fmt -check is intentionally skipped in CI to avoid failing on cosmetic
-      # whitespace differences introduced by different editors. Run locally:
-      #   terraform fmt -recursive infra/
-      - name: Terraform Init
+      - name: Explain safe migration gate
+        shell: bash
         run: |
-          terraform init \
-            -backend-config="bucket=broandbro-tfstate-us-east-1" \
-            -backend-config="key=env/${{ matrix.env }}/terraform.tfstate" \
-            -backend-config="region=us-east-1" \
-            -backend-config="dynamodb_table=broandbro-tf-lock"
-
-      - name: Terraform Validate
-        run: terraform validate
-
+          echo "::warning::Legacy Terraform Validate disabled during Bro & Bro new-account production migration."
+          echo "Run only the approved production read-only verification until safe Terraform planning is reviewed."
+          echo "No AWS changes or credentials are used by this workflow."

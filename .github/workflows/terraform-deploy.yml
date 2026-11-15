@@ -1,48 +1,25 @@
-name: Terraform staged deploy
+# P0 migration safety freeze (2026-11-15).
+# Replaces legacy deployment workflow until new-account production rollout is verified.
+# Previous implementation remains accessible in git history.
+# No AWS identity assumption, Terraform state read/write, upload, deployment, DNS change,
+# or DEV infrastructure can occur via this workflow.
+name: Terraform staged deploy (Legacy Disabled)
 
 on:
   workflow_dispatch:
-    inputs:
-      environment:
-        description: 'Environment to deploy (dev or prod)'
-        required: true
-        default: 'dev'
-        type: choice
-        options:
-          - dev
-          - prod
-      auto_approve:
-        description: 'Auto approve terraform applies (true/false)'
-        required: false
-        default: 'true'
+
+permissions:
+  contents: read
 
 jobs:
-  deploy:
+  legacy-disabled:
+    name: Legacy release freeze (no AWS actions)
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2
-        with:
-          terraform_version: '1.9.0'
-
-      - name: Run staged Terraform deploy script
+      - name: Explain release freeze
         shell: bash
         run: |
-          AUTO=""
-          if [ "${{ inputs.auto_approve }}" = "true" ]; then AUTO="-AutoApprove"; fi
-          pwsh ./scripts/terraform-deploy.ps1 -Environment "${{ inputs.environment }}" $AUTO
-
-
+          echo "::warning::Legacy Bro & Bro deployment intentionally disabled during single-PROD new-account migration."
+          echo "::notice::Legacy staged deploy used static long-lived AWS access keys."
+          echo "This run makes no changes. Do not use legacy deploy workflows."
+          echo "Use the separately reviewed new-account PROD deployment after preview verification and approval."
