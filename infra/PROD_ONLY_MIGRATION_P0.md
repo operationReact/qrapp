@@ -32,6 +32,29 @@ aws cloudfront list-distributions --profile broandbro-new --query "DistributionL
 
 The S3 head-bucket command may return a nonzero exit when absent. **Do not conclude that a conflicting name is safe to create from that result alone**; verify ownership and target region. Compare existing CloudFormation, Terraform state, buckets, DNS zones, RDS, EC2, distributions, SSM parameters and any old-account resources. The results of this phase determine what is already created and prevent duplicate infrastructure. Do not paste secrets or full resource metadata into a public repository.
 
+## Verified S3 evidence — 2026-11-15
+
+The owner supplied an **AWS S3 console screenshot** in account `098859530205`. The bucket **`broandbro-tfstate-098859530205-ap-south-1` already exists**, created 2026-11-10, but the console lists its **actual region as `us-east-1` (N. Virginia)**. The suffix `ap-south-1` is part of the bucket name, not the actual S3 region.
+
+**Do not delete or recreate this bucket, and do not change the application region.** Terraform S3 backend state can be stored in `us-east-1` while AWS provider resources deploy to `ap-south-1`. The GitHub `prod` environment must explicitly set:
+- `TF_STATE_BUCKET=broandbro-tfstate-098859530205-ap-south-1`
+- `TF_STATE_BUCKET_REGION=us-east-1`
+- `AWS_NEW_ACCOUNT_ID=098859530205`
+
+The production Terraform plan/apply workflows verify the caller account, exact bucket name, **actual bucket owner and region** before `terraform init`. AWS S3 `GetBucketLocation` reports null for `us-east-1`; the workflow normalizes it. This is **code preparation only** until the GitHub prod environment and AWS access are configured.
+
+**Mandatory additional read-only validation** before Terraform operations: owner, object ownership, public-access-block, default encryption, versioning, AWS IAM permission to read/write state + `.tflock`, and any existing `env/prod/terraform.tfstate` objects. Do not overwrite an existing state, and do not assume the bucket is safe because it is visible in a screenshot. From an authorized CLI, run:
+
+```bash
+aws s3api get-bucket-location --bucket broandbro-tfstate-098859530205-ap-south-1 --expected-bucket-owner 098859530205 --region us-east-1 --profile broandbro-new
+aws s3api get-bucket-versioning --bucket broandbro-tfstate-098859530205-ap-south-1 --expected-bucket-owner 098859530205 --profile broandbro-new
+aws s3api get-public-access-block --bucket broandbro-tfstate-098859530205-ap-south-1 --expected-bucket-owner 098859530205 --profile broandbro-new
+aws s3api get-bucket-encryption --bucket broandbro-tfstate-098859530205-ap-south-1 --expected-bucket-owner 098859530205 --profile broandbro-new
+aws s3api list-objects-v2 --bucket broandbro-tfstate-098859530205-ap-south-1 --prefix env/prod/ --expected-bucket-owner 098859530205 --profile broandbro-new
+```
+
+In `infra/cloudformation/github-oidc-bootstrap-prod-only.yaml`, **leave `CreateStateBucket=false`**. The state bucket must be independently reviewed, protected and backed up, not adopted through a newly created CloudFormation resource.
+
 ## Phase 1 — production-only GitHub OIDC bootstrap
 
 A new guarded template is supplied at
@@ -54,7 +77,7 @@ After review, create this CloudFormation stack in `ap-south-1` (e.g. `broandbro-
 
 In GitHub `operationReact/qrapp` → Settings → Environments → `prod`:
 - Restrict eligible deployment branch to `main`, require reviewer approval, and protect changes to workflows and infrastructure.
-- Environment variables: `AWS_NEW_ACCOUNT_ID=098859530205`, `TF_STATE_BUCKET=broandbro-tfstate-098859530205-ap-south-1`, `API_DOMAIN=migrate-prod-api.broandbro.in`, `API_URL=https://migrate-prod-api.broandbro.in`.
+- Environment variables: `AWS_NEW_ACCOUNT_ID=098859530205`, `TF_STATE_BUCKET=broandbro-tfstate-098859530205-ap-south-1`, **`TF_STATE_BUCKET_REGION=us-east-1`**, `API_DOMAIN=migrate-prod-api.broandbro.in`, `API_URL=https://migrate-prod-api.broandbro.in`.
 - Environment secrets: `AWS_TERRAFORM_ROLE_ARN`, `AWS_FRONTEND_ROLE_ARN`, `AWS_BACKEND_ROLE_ARN` from reviewed production CloudFormation outputs. These are **IAM role identifiers**, not permanent AWS access keys.
 
 The production workflows are configured to run manually from `main`; changes prepared on `dev` must be reviewed and promoted to `main` before use. Do not inadvertently deploy a migration PR or dev-only changes.
