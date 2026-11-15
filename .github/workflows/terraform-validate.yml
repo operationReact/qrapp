@@ -1,4 +1,4 @@
-name: Terraform Offline Validate (No AWS Credentials)
+name: PROD Terraform Offline Validate (No AWS Credentials)
 
 on:
   push:
@@ -20,34 +20,16 @@ permissions:
 jobs:
   validate:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        environment: [dev, prod]
     steps:
       - uses: actions/checkout@v4
       - uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: "1.12.2"
       - name: Init without remote state or credentials
-        working-directory: infra/environments/${{ matrix.environment }}
+        working-directory: infra/environments/prod
         run: terraform init -backend=false -input=false
       - name: Validate
-        working-directory: infra/environments/${{ matrix.environment }}
-        run: terraform validate -no-color
-
-  bootstrap:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: "1.12.2"
-      - name: Init bootstrap offline
-        working-directory: infra/bootstrap
-        run: terraform init -backend=false -input=false
-      - name: Validate account bootstrap
-        working-directory: infra/bootstrap
+        working-directory: infra/environments/prod
         run: terraform validate -no-color
 
   migration-scripts:
@@ -66,7 +48,6 @@ jobs:
       - name: Validate console-only CloudFormation OIDC bootstrap
         run: |
           python3 -m pip install --quiet cfn-lint
-          cfn-lint infra/cloudformation/github-oidc-bootstrap-dev.yaml
           cfn-lint infra/cloudformation/github-oidc-bootstrap-prod-only.yaml
       - name: Enforce production-only OIDC bootstrap guardrails
         run: |
@@ -129,25 +110,23 @@ jobs:
               exit 1
             fi
           done
-      - name: Ensure CI backend role cannot read application secrets
+      - name: Block DEV deployment workflows and Terraform apply on push
         run: |
           python3 - <<'PY'
           from pathlib import Path
-          text = Path("infra/bootstrap/bootstrap.tf").read_text()
-          role = text.split('resource "aws_iam_role_policy" "backend" {', 1)[1].split('output "account_id"', 1)[0]
-          assert "ReadArtifactBucketNameOnly" in role
-          assert "secretsmanager:GetSecretValue" not in role
-          assert "ssm:GetParametersByPath" not in role
-          assert "ec2:RebootInstances" not in role
+          wf = Path(".github/workflows")
+          bad = [
+              "backend-deploy-dev.yml", "frontend-deploy-dev.yml",
+              "terraform-apply-dev.yml", "acm-prepare-dev.yml",
+              "aws-oidc-verify-dev.yml", "terraform-deploy.yml",
+          ]
+          assert all(not (wf / p).exists() for p in bad), "DEV/legacy workflow still exists"
+          for name in ("terraform-apply-prod.yml", "backend-deploy-prod.yml", "frontend-deploy-prod.yml"):
+              x = (wf / name).read_text()
+              assert "workflow_dispatch:" in x and "\\n  push:" not in x, name
+              assert "refs/heads/main" in x, name
+          plan = (wf / "terraform-plan.yml").read_text()
+          assert "infra/environments/prod" in plan and "environment: prod" in plan
+          assert "refs/heads/main" in plan and "workflow_dispatch:" in plan
+          assert "infra/environments/dev" not in plan
           PY
-      - name: Enforce environment-isolated Systems Manager deployments
-        run: |
-          grep -Fq 'RunCommandsOnlyOnOwnEnvironment' infra/bootstrap/bootstrap.tf
-          grep -Fq 'aws:ResourceTag/Environment' infra/bootstrap/bootstrap.tf
-          grep -Fq 'UseApprovedSSMDocument' infra/bootstrap/bootstrap.tf
-      - name: Block dangerous bootstrap role regressions
-        run: |
-          if grep -R --include='*.tf' -E 'policy/AdministratorAccess|repo:\\*/\\*' infra/; then
-            echo "::error::Wild-card GitHub OIDC trust or AdministratorAccess is forbidden."
-            exit 1
-          fi
