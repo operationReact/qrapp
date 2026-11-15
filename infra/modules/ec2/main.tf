@@ -120,7 +120,7 @@ resource "aws_iam_role_policy" "media_s3" {
 
 # Private, account-scoped JAR download permissions.
 resource "aws_iam_role_policy" "artifacts_s3" {
-  count = var.artifact_bucket_arn == "" ? 0 : 1
+  # PROD always receives the generated artifact bucket ARN. Resource count must be plan-time static.
   name  = "broandbro-${var.environment}-artifacts-s3"
   role  = aws_iam_role.ec2.id
   policy = jsonencode({
@@ -134,7 +134,7 @@ resource "aws_iam_role_policy" "artifacts_s3" {
 }
 
 resource "aws_iam_role_policy" "location_s3" {
-  count = var.location_bucket_arn == "" ? 0 : 1
+  # PROD always receives the generated location bucket ARN. Resource count must be plan-time static.
   name  = "broandbro-${var.environment}-location-s3"
   role  = aws_iam_role.ec2.id
 
