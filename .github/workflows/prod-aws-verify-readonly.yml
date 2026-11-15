@@ -4,6 +4,12 @@ name: Verify Bro and Bro PROD AWS Access (Read Only)
 # create AWS resources, edit Route 53, or alter S3 state.
 on:
   workflow_dispatch:
+  # GitHub's Actions index also sees a push event when this workflow changes;
+  # registration itself is intentionally credential-free and read-only.
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/prod-aws-verify-readonly.yml"
 
 permissions:
   id-token: write
@@ -14,8 +20,18 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  register:
+    # Never assume AWS credentials on an automatic push.
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Confirm workflow discovered (no AWS calls)
+        run: echo "Manual PROD AWS verification workflow registered on main."
+
   verify-prod:
-    if: github.ref == 'refs/heads/main'
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment: prod
     steps:
