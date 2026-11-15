@@ -19,7 +19,12 @@ output "db_instance_id" {
   description = "RDS instance identifier"
 }
 
-output "ssm_db_password_path" {
-  value       = aws_ssm_parameter.db_password.name
-  description = "SSM path where the database password is stored under the environment-scoped backend namespace"
+output "ssm_db_secret_arn_path" {
+  value       = aws_ssm_parameter.db_secret_arn.name
+  description = "SSM path storing the automatically generated RDS master secret ARN"
+}
+
+output "db_secret_arn" {
+  description = "RDS-managed secret ARN (not the credential value)"
+  value       = aws_db_instance.this.master_user_secret[0].secret_arn
 }

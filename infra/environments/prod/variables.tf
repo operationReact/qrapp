@@ -1,6 +1,6 @@
 variable "aws_region" {
   type    = string
-  default = "us-east-1"
+  default = "ap-south-1"
 }
 
 variable "domain_name" {
@@ -10,7 +10,7 @@ variable "domain_name" {
 
 variable "frontend_bucket_name" {
   type    = string
-  default = "broandbro-prod-ui"
+  default = ""
 }
 
 variable "ec2_instance_type" {
@@ -22,7 +22,7 @@ variable "ec2_instance_type" {
 variable "ssh_allowed_cidrs" {
   description = "Lock this down to your office IP in prod!"
   type        = list(string)
-  default     = ["0.0.0.0/0"]
+  default     = [] # SSM only; do not expose SSH
 }
 
 variable "rds_instance_class" {
@@ -50,7 +50,7 @@ variable "alarm_email" {
 variable "media_bucket_name" {
   description = "Name of the production S3 bucket for AI-generated menu item images."
   type        = string
-  default     = "broandbro-prod-root-bucket"
+  default     = ""
 }
 
 variable "existing_certificate_arn" {
@@ -59,8 +59,59 @@ variable "existing_certificate_arn" {
   default     = ""
 }
 
-variable "cloudfront_web_acl_id" {
-  description = "Existing WAF web ACL ARN attached to the production CloudFront distribution"
+variable "enable_waf" {
+  type        = bool
+  description = "Enable account-owned CloudFront WAF (additional monthly AWS WAF charges)."
+  default     = true
+}
+
+# EC2 and RDS are the only scheduled services. S3, CloudFront, EBS and EIPs
+# remain allocated/billable when instances are stopped.
+variable "enable_cost_schedule" {
+  type        = bool
+  description = "Schedule weekday EC2/RDS starts/stops; FALSE by default in production."
+  default     = false
+}
+
+variable "schedule_timezone" {
+  type    = string
+  default = "Asia/Kolkata"
+}
+
+# Migration preview hostnames avoid conflicting with the old CloudFront aliases.
+# Switch these to final names only during the controlled production cutover.
+variable "frontend_hostname" {
+  type    = string
+  default = "migrate-prod.broandbro.in"
+}
+variable "api_hostname" {
+  type    = string
+  default = "migrate-prod-api.broandbro.in"
+}
+
+variable "expected_account_id" {
   type        = string
-  default     = "arn:aws:wafv2:us-east-1:816344830716:global/webacl/CreatedByCloudFront-86c2086a/ee229c0f-bb44-401b-a40a-7ce132c5a96b"
+  description = "12-digit target AWS account ID. Terraform refuses an unmatched caller."
+  validation {
+    condition     = can(regex("^[0-9]{12}$", var.expected_account_id))
+    error_message = "Set expected_account_id to the target 12-digit AWS account ID."
+  }
+}
+
+# All schedule expressions use schedule_timezone, default Asia/Kolkata.
+variable "schedule_rds_start_cron" {
+  type    = string
+  default = "cron(0 9 ? * MON-FRI *)"
+}
+variable "schedule_ec2_start_cron" {
+  type    = string
+  default = "cron(30 9 ? * MON-FRI *)"
+}
+variable "schedule_ec2_stop_cron" {
+  type    = string
+  default = "cron(0 20 ? * MON-FRI *)"
+}
+variable "schedule_rds_stop_cron" {
+  type    = string
+  default = "cron(15 20 ? * MON-FRI *)"
 }

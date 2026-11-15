@@ -13,13 +13,13 @@ output "instance_arn" {
   description = "EC2 instance ARN"
 }
 
-output "ssm_ssh_key_path" {
-  value       = aws_ssm_parameter.ssh_private_key.name
-  description = "SSM path where the SSH private key is stored – used by deploy workflows"
-}
-
 output "ssm_ec2_ip_path" {
   value       = aws_ssm_parameter.ec2_ip.name
   description = "SSM path where the EC2 Elastic IP is stored – used by deploy workflows"
 }
 
+
+output "role_name" {
+  description = "EC2 IAM role name, used to grant RDS secret read access"
+  value       = aws_iam_role.ec2.name
+}

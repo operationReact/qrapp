@@ -2,17 +2,17 @@
 # broandbro PROD environment variables
 # ─────────────────────────────────────────────────────────────────────────────
 
-aws_region  = "us-east-1"
+aws_region  = "ap-south-1"
 domain_name = "broandbro.in"
 
 # Frontend S3 bucket
-frontend_bucket_name = "broandbro-prod-ui"
+frontend_bucket_name = "" # Generated per AWS account
 
 # EC2 Backend
 ec2_instance_type = "t4g.small"
 
 # SSH access (prod: restrict to specific IPs)
-ssh_allowed_cidrs = ["0.0.0.0/0"]  # TIGHTEN THIS in production!
+ssh_allowed_cidrs = [] # Systems Manager only, no inbound SSH
 
 # RDS PostgreSQL
 rds_instance_class = "db.t4g.small"
@@ -24,4 +24,4 @@ alarm_email = ""
 
 # ── Media bucket ──────────────────────────────────────────────────────────────
 # Production media bucket for AI-generated menu images
-media_bucket_name = "broandbro-prod-root-bucket"
+media_bucket_name = "" # Generated per AWS account

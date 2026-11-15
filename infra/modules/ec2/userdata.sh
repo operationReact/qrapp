@@ -34,6 +34,13 @@ systemctl enable amazon-ssm-agent
 systemctl start amazon-ssm-agent
 echo "SSM Agent status: $(systemctl is-active amazon-ssm-agent)"
 
+# Backend deployment agent requires AWS CLI on the instance, not just GitHub.
+# Amazon Linux images usually include it, but validate/install explicitly.
+if ! command -v aws >/dev/null 2>&1; then
+  dnf install -y awscli
+fi
+aws --version
+
 # ── 2. Install Java 21 (Amazon Corretto ARM64) ────────────────────────────────
 dnf install -y java-21-amazon-corretto-headless
 java -version

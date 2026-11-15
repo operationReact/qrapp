@@ -1,0 +1,104 @@
+name: Terraform Apply - New Account PROD
+
+# NEVER auto-apply infrastructure on merge to main during account migration.
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: "Type APPLY_NEW_PROD to provision the NEW AWS account"
+        required: true
+        type: string
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: terraform-new-account-prod
+  cancel-in-progress: false
+
+jobs:
+  apply-prod:
+    if: inputs.confirm == 'APPLY_NEW_PROD' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: prod
+    defaults:
+      run:
+        working-directory: infra/environments/prod
+    env:
+      AWS_REGION: ap-south-1
+      TF_IN_AUTOMATION: "true"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.12.2"
+      - name: Require new-account configuration
+        env:
+          EXPECTED_ACCOUNT: ${{ vars.AWS_NEW_ACCOUNT_ID }}
+          STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
+          DEPLOY_ROLE: ${{ secrets.AWS_TERRAFORM_ROLE_ARN }}
+        run: |
+          test -n "$EXPECTED_ACCOUNT" || { echo "::error::AWS_NEW_ACCOUNT_ID missing"; exit 1; }
+          test -n "$STATE_BUCKET" || { echo "::error::TF_STATE_BUCKET missing"; exit 1; }
+          test -n "$DEPLOY_ROLE" || { echo "::error::AWS_TERRAFORM_ROLE_ARN missing"; exit 1; }
+          case "$EXPECTED_ACCOUNT" in *[!0-9]*|"") exit 1 ;; esac
+          test "${#EXPECTED_ACCOUNT}" -eq 12
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_TERRAFORM_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Assert account identity
+        env:
+          EXPECTED_ACCOUNT: ${{ vars.AWS_NEW_ACCOUNT_ID }}
+        run: |
+          ACTUAL=$(aws sts get-caller-identity --query Account --output text)
+          test "$ACTUAL" = "$EXPECTED_ACCOUNT" || { echo "::error::Refusing AWS account $ACTUAL"; exit 1; }
+      - name: Verify state bucket owner and actual region before Terraform init
+        env:
+          TF_STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
+          EXPECTED_ACCOUNT: ${{ vars.AWS_NEW_ACCOUNT_ID }}
+          TF_STATE_BUCKET_REGION: ${{ vars.TF_STATE_BUCKET_REGION }}
+        run: |
+          set -euo pipefail
+          test "$TF_STATE_BUCKET" = "broandbro-tfstate-$EXPECTED_ACCOUNT-ap-south-1" || {
+            echo "::error::Unexpected Terraform state bucket"; exit 1;
+          }
+          test -n "$TF_STATE_BUCKET_REGION" || {
+            echo "::error::TF_STATE_BUCKET_REGION is missing from prod environment"; exit 1;
+          }
+          # In S3, a us-east-1 bucket reports LocationConstraint=null / CLI 'None'.
+          ACTUAL_REGION="$(aws s3api get-bucket-location \
+            --bucket "$TF_STATE_BUCKET" \
+            --expected-bucket-owner "$EXPECTED_ACCOUNT" \
+            --region "$TF_STATE_BUCKET_REGION" \
+            --query LocationConstraint --output text)"
+          if [ "$ACTUAL_REGION" = "None" ] || [ "$ACTUAL_REGION" = "null" ]; then
+            ACTUAL_REGION=us-east-1
+          fi
+          test "$ACTUAL_REGION" = "$TF_STATE_BUCKET_REGION" || {
+            echo "::error::S3 bucket region mismatch: configured=$TF_STATE_BUCKET_REGION actual=$ACTUAL_REGION"; exit 1;
+          }
+          echo "Verified Terraform state bucket ownership and actual region $ACTUAL_REGION"
+      - name: Init isolated NEW account state
+        env:
+          TF_STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
+          TF_STATE_BUCKET_REGION: ${{ vars.TF_STATE_BUCKET_REGION }}
+        run: |
+          terraform init -input=false -reconfigure \
+            -backend-config="bucket=$TF_STATE_BUCKET" \
+            -backend-config="key=env/prod/terraform.tfstate" \
+            -backend-config="region=$TF_STATE_BUCKET_REGION" \
+            -backend-config="encrypt=true" \
+            -backend-config="use_lockfile=true"
+      - name: Format and validate
+        run: |
+          terraform validate
+      - name: Plan
+        env:
+          TF_VAR_expected_account_id: ${{ vars.AWS_NEW_ACCOUNT_ID }}
+        run: terraform plan -input=false -out=tfplan
+      - name: Apply reviewed plan
+        env:
+          TF_VAR_expected_account_id: ${{ vars.AWS_NEW_ACCOUNT_ID }}
+        run: terraform apply -input=false tfplan

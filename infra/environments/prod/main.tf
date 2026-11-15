@@ -5,11 +5,11 @@
 # =============================================================================
 
 terraform {
-  required_version = ">= 1.9.0"
+  required_version = ">= 1.11.0"
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = "~> 5.50"
+      version = "~> 6.8"
     }
     tls = {
       source  = "hashicorp/tls"
@@ -25,6 +25,7 @@ terraform {
 # ── Providers ─────────────────────────────────────────────────────────────────
 provider "aws" {
   region = var.aws_region
+  allowed_account_ids = [var.expected_account_id]
 
   default_tags {
     tags = {
@@ -39,6 +40,7 @@ provider "aws" {
 provider "aws" {
   alias  = "us_east_1"
   region = "us-east-1"
+  allowed_account_ids = [var.expected_account_id]
 
   default_tags {
     tags = {
@@ -49,69 +51,61 @@ provider "aws" {
   }
 }
 
-# ── Production media bucket (AI-generated menu item images) ──────────────────
-# Prod looks up its existing media bucket via data source so we can reference
-# its ARN without re-creating it in this stack.
-data "aws_s3_bucket" "media" {
-  bucket = var.media_bucket_name
-}
+# ── Account-specific globally unique S3 names ───────────────────────────
+data "aws_caller_identity" "current" {}
 
-# ── Allow public read access for media bucket ──────────────────────────────────
-resource "aws_s3_bucket_public_access_block" "media" {
-  bucket = data.aws_s3_bucket.media.id
-
-  block_public_acls       = false
-  block_public_policy     = false
-  ignore_public_acls      = false
-  restrict_public_buckets = false
-}
-
-# ── Bucket policy: allow public read access for images ────────────────────────
-resource "aws_s3_bucket_policy" "media" {
-  bucket = data.aws_s3_bucket.media.id
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Sid    = "AllowPublicRead"
-        Effect = "Allow"
-        Principal = "*"
-        Action   = "s3:GetObject"
-        Resource = "${data.aws_s3_bucket.media.arn}/*"
-      },
-      {
-        Sid       = "DenyNonSSL"
-        Effect    = "Deny"
-        Principal = "*"
-        Action    = "s3:*"
-        Resource = [
-          data.aws_s3_bucket.media.arn,
-          "${data.aws_s3_bucket.media.arn}/*"
-        ]
-        Condition = {
-          Bool = { "aws:SecureTransport" = "false" }
-        }
-      }
-    ]
-  })
-
-  depends_on = [aws_s3_bucket_public_access_block.media]
-}
-
-# ── CORS configuration for browser access ──────────────────────────────────────
-resource "aws_s3_bucket_cors_configuration" "media" {
-  bucket = data.aws_s3_bucket.media.id
-
-  cors_rule {
-    allowed_headers = ["*"]
-    allowed_methods = ["GET", "HEAD"]
-    allowed_origins = ["*"]
-    expose_headers  = ["ETag", "x-amz-version-id"]
-    max_age_seconds = 3000
+# Guard even direct Terraform CLI applies (not just GitHub workflow runs).
+resource "terraform_data" "account_guard" {
+  input = data.aws_caller_identity.current.account_id
+  lifecycle {
+    precondition {
+      condition     = data.aws_caller_identity.current.account_id == var.expected_account_id
+      error_message = "Unsafe AWS account: caller identity does not match expected_account_id."
+    }
   }
+}
 
-  depends_on = [aws_s3_bucket_public_access_block.media]
+locals {
+  frontend_bucket = var.frontend_bucket_name != "" ? var.frontend_bucket_name : "broandbro-prod-ui-${data.aws_caller_identity.current.account_id}"
+  media_bucket    = var.media_bucket_name != "" ? var.media_bucket_name : "broandbro-prod-media-${data.aws_caller_identity.current.account_id}"
+  location_bucket = "broandbro-prod-locations-${data.aws_caller_identity.current.account_id}"
+  artifact_bucket = "broandbro-prod-artifacts-${data.aws_caller_identity.current.account_id}"
+}
+
+module "media" {
+  source      = "../../modules/media"
+  environment = "prod"
+  bucket_name = local.media_bucket
+}
+module "location_images" {
+  source          = "../../modules/media"
+  environment     = "prod"
+  bucket_name     = local.location_bucket
+  public_prefixes = ["locations"]
+}
+module "artifacts" {
+  source      = "../../modules/artifacts"
+  environment = "prod"
+  bucket_name = local.artifact_bucket
+}
+
+# ── Automatic SSM application configuration ─────────────────────────────
+module "ssm_config" {
+  source                   = "../../modules/ssm-config"
+  environment              = "prod"
+  aws_region               = var.aws_region
+  media_bucket_name        = local.media_bucket
+  location_bucket_name     = local.location_bucket
+  artifact_bucket_name     = local.artifact_bucket
+  api_hostname             = var.api_hostname
+  app_cors_allowed_origins = "https://${var.frontend_hostname}"
+}
+
+# ── Terraform-created VPC and subnets (no default VPC reliance) ─────────────
+module "network" {
+  source      = "../../modules/network"
+  environment = "prod"
+  vpc_cidr    = "10.30.0.0/16"
 }
 
 # ── Security Groups ───────────────────────────────────────────────────────────
@@ -119,6 +113,7 @@ module "security_group" {
   source = "../../modules/security-group"
 
   environment       = "prod"
+  vpc_id            = module.network.vpc_id
   ssh_allowed_cidrs = var.ssh_allowed_cidrs
 }
 
@@ -133,11 +128,22 @@ module "acm" {
   domain_name = var.domain_name
   subject_alternative_names = [
     "www.${var.domain_name}",
-    "api.${var.domain_name}",
+    var.frontend_hostname,
+    var.api_hostname,
   ]
   hosted_zone_name            = var.domain_name
   environment                 = "prod"
   existing_certificate_arn    = var.existing_certificate_arn
+}
+
+# ── Production WAF managed in this AWS account ───────────────────────────────
+module "waf" {
+  count       = var.enable_waf ? 1 : 0
+  source      = "../../modules/waf"
+  environment = "prod"
+  providers = {
+    aws.us_east_1 = aws.us_east_1
+  }
 }
 
 # ── CloudFront distribution ───────────────────────────────────────────────────
@@ -149,16 +155,16 @@ module "cloudfront" {
   s3_bucket_regional_domain_name = module.s3.bucket_regional_domain_name
   s3_oac_id                      = module.s3.oac_id
   acm_certificate_arn            = module.acm.certificate_arn
-  domain_aliases                 = [var.domain_name, "www.${var.domain_name}"]
+  domain_aliases                 = var.frontend_hostname == var.domain_name ? [var.domain_name, "www.${var.domain_name}"] : [var.frontend_hostname]
   price_class                    = "PriceClass_200"
-  web_acl_id                     = var.cloudfront_web_acl_id
+  web_acl_id                     = var.enable_waf ? module.waf[0].web_acl_arn : ""
 }
 
 # ── S3 frontend bucket ────────────────────────────────────────────────────────
 module "s3" {
   source = "../../modules/s3"
 
-  bucket_name                 = var.frontend_bucket_name # broandbro-prod-ui
+  bucket_name                 = local.frontend_bucket # broandbro-prod-ui
   environment                 = "prod"
   cloudfront_distribution_arn = module.cloudfront.distribution_arn
 }
@@ -170,9 +176,12 @@ module "ec2" {
   environment            = "prod"
   instance_type          = var.ec2_instance_type
   security_group_id      = module.security_group.ec2_sg_id
-  media_bucket_arn       = data.aws_s3_bucket.media.arn
-  location_bucket_arn    = "arn:aws:s3:::broandbro-location-images-prod"
+  subnet_id              = module.network.public_subnet_id
+  depends_on             = [module.network]
+  media_bucket_arn       = module.media.bucket_arn
+  location_bucket_arn    = module.location_images.bucket_arn
   create_media_s3_policy = true
+  artifact_bucket_arn     = module.artifacts.bucket_arn
   root_volume_size       = 30
 }
 
@@ -181,7 +190,7 @@ module "rds" {
   source = "../../modules/rds"
 
   environment           = "prod"
-  vpc_id                = module.security_group.vpc_id
+  subnet_ids            = module.network.private_subnet_ids
   security_group_id     = module.security_group.rds_sg_id
   instance_class        = var.rds_instance_class # db.t4g.small
   allocated_storage     = 20
@@ -189,6 +198,20 @@ module "rds" {
   db_username           = var.db_username
   backup_retention_days = 7
   multi_az              = false # set true (~$26/mo) when uptime is critical
+}
+
+# EC2 reads ONLY the RDS-managed master secret of its own environment.
+resource "aws_iam_role_policy" "db_secret_reader" {
+  name = "broandbro-prod-db-secret-reader"
+  role = module.ec2.role_name
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect = "Allow"
+      Action = ["secretsmanager:GetSecretValue"]
+      Resource = module.rds.db_secret_arn
+    }]
+  })
 }
 
 # ── CloudWatch Monitoring ─────────────────────────────────────────────────────
@@ -202,16 +225,31 @@ module "cloudwatch" {
   alarm_email        = var.alarm_email
 }
 
+# ── Optional scheduled dev cost reduction (production opt-in only) ─────────
+module "cost_schedule" {
+  count            = var.enable_cost_schedule ? 1 : 0
+  source           = "../../modules/cost-scheduler"
+  environment      = "prod"
+  aws_region       = var.aws_region
+  timezone         = var.schedule_timezone
+  rds_start_cron   = var.schedule_rds_start_cron
+  ec2_start_cron   = var.schedule_ec2_start_cron
+  ec2_stop_cron    = var.schedule_ec2_stop_cron
+  rds_stop_cron    = var.schedule_rds_stop_cron
+  ec2_instance_id  = module.ec2.instance_id
+  rds_instance_id  = module.rds.db_instance_id
+}
+
 # ── Route53 DNS ───────────────────────────────────────────────────────────────
 module "route53" {
   source = "../../modules/route53"
 
   hosted_zone_name          = var.domain_name
-  apex_domain               = var.domain_name
-  api_subdomain             = "api.${var.domain_name}"
+  apex_domain               = var.frontend_hostname
+  api_subdomain             = var.api_hostname
   cloudfront_domain_name    = module.cloudfront.domain_name
   cloudfront_hosted_zone_id = module.cloudfront.hosted_zone_id
   ec2_elastic_ip            = module.ec2.elastic_ip
-  create_www_record         = true
+  create_www_record         = var.frontend_hostname == var.domain_name
 
 }
