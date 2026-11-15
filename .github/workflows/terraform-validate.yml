@@ -80,6 +80,23 @@ jobs:
           assert "CreateStateBucketCondition" in p and "CreateHostedZoneCondition" in p
           assert p.count("Default: 'false'") == 2
           PY
+      - name: Assert production state bucket region is not confused with Mumbai resource region
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          paths = [
+              Path(".github/workflows/terraform-plan.yml"),
+              Path(".github/workflows/terraform-apply-prod.yml"),
+          ]
+          for path in paths:
+              wf = path.read_text()
+              assert "TF_STATE_BUCKET_REGION" in wf, path
+              assert "--expected-bucket-owner" in wf, path
+              assert "get-bucket-location" in wf, path
+              assert '-backend-config="region=$TF_STATE_BUCKET_REGION"' in wf, path
+              assert 'AWS_NEW_ACCOUNT_ID' in wf, path
+          assert "TF_STATE_BUCKET_REGION=us-east-1" in Path("infra/PROD_ONLY_MIGRATION_P0.md").read_text()
+          PY
       - name: Validate GitHub Actions YAML semantics
         run: go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.10 -shellcheck=
       - name: Check Bash script syntax
