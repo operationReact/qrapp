@@ -49,8 +49,8 @@ jobs:
           assert not list(flows.glob("*-dev.yml"))
           for file in flows.glob("*.yml"):
               text = file.read_text()
-              assert "aws-access-key-id:" not in text, file
-              assert "aws-secret-access-key:" not in text, file
+              for forbidden in ("aws-access" + "-key-id:", "aws-secret" + "-access-key:"):
+                  assert forbidden not in text, file
           for name in ("backend-deploy-prod.yml", "frontend-deploy-prod.yml", "terraform-apply-prod.yml"):
               text = (flows / name).read_text()
               assert "workflow_dispatch:" in text, name
