@@ -33,14 +33,17 @@ class TestProdRecovery(unittest.TestCase):
 
     def test_failed_apply_lock_fingerprint(self):
         good = {"ID": "b18b0a32-f6c1-428c-8b14-f65d97993c6f",
-                "Operation": "OperationTypeApply",
+                "Operation": "OperationTypeApply", "Who": "runner@fv-az123",
+                "Version": "1.12.2",
                 "Path": "broandbro-tfstate-098859530205-ap-south-1/env/prod/terraform.tfstate",
                 "Created": "2026-11-15T12:08:02.000Z"}
         self.assertTrue(is_stale_failed_run_lock(good))
         for field, new in (("Operation", "OperationTypePlan"),
                            ("Path", "other-bucket/terraform.tfstate"),
                            ("Created", "2026-11-15T16:00:00Z"),
-                           ("ID", "invalid")):
+                           ("ID", "invalid"),
+                           ("Who", "unknown@external-server"),
+                           ("Version", "1.11.0")):
             wrong = dict(good, **{field:new})
             self.assertFalse(is_stale_failed_run_lock(wrong))
 
