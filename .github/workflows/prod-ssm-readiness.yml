@@ -1,0 +1,35 @@
+name: Verify Bro and Bro PROD SSM Readiness (Read Only)
+
+# Operator-triggered only. Never changes SSM, infrastructure, or customer data.
+on:
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: broandbro-prod-ssm-readiness
+  cancel-in-progress: false
+
+jobs:
+  audit-prod-ssm:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: prod
+    steps:
+      - uses: actions/checkout@v4
+      - name: Require approved account and region
+        env:
+          ACCOUNT: ${{ vars.AWS_NEW_ACCOUNT_ID }}
+          APP_REGION: ${{ vars.AWS_REGION }}
+        run: |
+          test "$ACCOUNT" = "098859530205" || exit 1
+          test "$APP_REGION" = "ap-south-1" || exit 1
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_TERRAFORM_ROLE_ARN }}
+          aws-region: ap-south-1
+          role-session-name: broandbro-prod-ssm-readonly
+      - name: Check production SSM values without printing secrets
+        run: python3 scripts/audit-prod-ssm.py
