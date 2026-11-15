@@ -77,7 +77,8 @@ def lifecycle_matches(response, rule_id):
         and abort.get("DaysAfterInitiation") == 7
         and not r.get("Transitions") and not r.get("Expiration")
         and not r.get("NoncurrentVersionTransitions")
-        and (flt == {} or flt.get("Prefix") in (None, ""))
+        and flt in ({}, {"Prefix": ""})
+        and r.get("Prefix") in (None, "")
     )
 
 
@@ -126,9 +127,11 @@ def main():
     needs_import = []
     failures = False
     for address, bucket, rule in TARGETS:
-        head = aws("s3api", "head-bucket", "--bucket", bucket,
-                   "--expected-bucket-owner", ACCOUNT)
-        owner_ok = head is not None
+        head = subprocess.run(
+            ["aws", "s3api", "head-bucket", "--bucket", bucket,
+             "--expected-bucket-owner", ACCOUNT, "--region", APP_REGION],
+            capture_output=True, text=True, check=False)
+        owner_ok = head.returncode == 0
         rule_data = aws("s3api", "get-bucket-lifecycle-configuration",
                         "--bucket", bucket, "--expected-bucket-owner", ACCOUNT)
         exact = bool(rule_data) and lifecycle_matches(rule_data, rule)
