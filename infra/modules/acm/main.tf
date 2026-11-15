@@ -70,6 +70,12 @@ resource "aws_acm_certificate_validation" "this" {
   certificate_arn = aws_acm_certificate.this[0].arn
 
   validation_record_fqdns = [for record in aws_route53_record.validation : record.fqdn]
+
+  # Fail before a GitHub OIDC session expires if the authoritative DNS zone
+  # has not yet received these CNAMEs; this does not modify the certificate.
+  timeouts {
+    create = "20m"
+  }
 }
 
 # If an existing certificate ARN is provided, the module will not create
