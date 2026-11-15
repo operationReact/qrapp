@@ -17,10 +17,18 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from audit_prod_helpers import state_addresses
-from inspect_prod_s3_state_recovery import (
-    ACCOUNT, APP_REGION, STATE_REGION, STATE_BUCKET, STATE_KEY, LOCK_KEY,
-    CERTIFICATE, TARGETS, aws, get_object_as_json,
-    is_stale_failed_run_lock, lifecycle_matches,
+import runpy
+recovery_probe = runpy.run_path(
+    str(Path(__file__).resolve().with_name("inspect-prod-s3-state-recovery.py"))
+)
+(ACCOUNT, APP_REGION, STATE_REGION, STATE_BUCKET, STATE_KEY, LOCK_KEY,
+ CERTIFICATE, TARGETS, aws, get_object_as_json,
+ is_stale_failed_run_lock, lifecycle_matches) = (
+    recovery_probe[name] for name in (
+        "ACCOUNT", "APP_REGION", "STATE_REGION", "STATE_BUCKET", "STATE_KEY",
+        "LOCK_KEY", "CERTIFICATE", "TARGETS", "aws", "get_object_as_json",
+        "is_stale_failed_run_lock", "lifecycle_matches"
+    )
 )
 
 EXPECTED_CONFIRM = "RECOVER_FAILED_PROD_STATE_43712225552"
