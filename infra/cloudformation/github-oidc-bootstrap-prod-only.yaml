@@ -82,6 +82,8 @@ Resources:
     Condition: CorrectAccount
     Properties:
       RoleName: broandbro-prod-terraform-github
+      # The previous 1-hour OIDC session expired while ACM DNS validation waited.
+      MaxSessionDuration: 7200
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -127,6 +129,8 @@ Resources:
                   - iam:UntagRole
                   - iam:PutRolePolicy
                   - iam:GetRolePolicy
+                  - iam:ListRolePolicies
+                  - iam:ListInstanceProfilesForRole
                   - iam:DeleteRolePolicy
                   - iam:AttachRolePolicy
                   - iam:DetachRolePolicy
@@ -139,6 +143,15 @@ Resources:
                 Resource:
                   - !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:role/broandbro-prod-*'
                   - !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:instance-profile/broandbro-prod-*'
+              # RDS needs this service-linked role when first provisioned.
+              # Scope creation to the AWS RDS service only (not arbitrary IAM roles).
+              - Sid: AllowRDSServiceLinkedRole
+                Effect: Allow
+                Action: iam:CreateServiceLinkedRole
+                Resource: !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:role/aws-service-role/rds.amazonaws.com/AWSServiceRoleForRDS'
+                Condition:
+                  StringEquals:
+                    'iam:AWSServiceName': rds.amazonaws.com
               - Sid: ReadAWSManagedPolicies
                 Effect: Allow
                 Action:
