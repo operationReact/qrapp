@@ -1,7 +1,25 @@
 # Bro & Bro PROD — recovery procedure after partial Terraform Apply (2026-11-15)
 
-**Status:** BLOCKED. Do not start any new Terraform Apply, destroy, import, state-push or
-force-unlock operation until the specific resources and saved state are reviewed.
+**Current recovery status (2026-11-15 17:37 UTC):** The new-account ACM certificate
+is **ISSUED**, and production OIDC Terraform role maximum session duration is
+**7200 seconds** with the required IAM actions declared. Read-only AWS
+verification still finds **63 tracked state instances, three untracked
+existing bucket-lifecycle addresses, and one stale lock** from failed Apply
+#43712225552. Do not start Terraform Apply or DNS cutover.
+
+**Recovery plan:** Run the updated manual read-only AWS verification, which now
+checks exact S3 lifecycle rule values and the failed-run lock fingerprint. Only
+if the live evidence matches may the separate, explicit operator-approved
+`Recover Bro and Bro PROD Terraform State (3 S3 Lifecycles)` workflow execute.
+It first privately backs up the current remote state, then clears only the
+verified failed-run lock and imports the three existing bucket lifecycle
+configurations into Terraform state. It DOES NOT modify bucket configurations
+or run Terraform Apply. If any live finding has changed, it fails before writes.
+
+The write workflow must be dispatched from `main` with exact confirmation
+`RECOVER_FAILED_PROD_STATE_43712225552`, after reviewing the read-only
+diagnostic and verifying there are no active Terraform writers. **Do not
+manually remove the lock or launch the repair before these checks.**
 
 ## Recorded evidence
 
@@ -14,11 +32,12 @@ force-unlock operation until the specific resources and saved state are reviewed
   `scripts/prod-apply-43712225552-completed.json`. **This is not a Terraform state file**.
 - S3 state object PRESENT, two versions, **stale lock PRESENT** as of the prior
   diagnostic. Remote state contents and resource mappings were not inspected then.
-- CloudFormation-managed Terraform OIDC role currently has one-hour max session and
-  lacks `iam:ListRolePolicies` and `iam:CreateServiceLinkedRole`. Code template in
-  `main` has fixes, but those are **not live** until the original stack is updated.
-- New-account ACM certificate is PENDING_VALIDATION. The publicly authoritative
-  nameservers of `broandbro.in` belong to a *different* Route 53 hosted zone.
+- **Resolved:** CloudFormation-managed Terraform OIDC role now has a
+  7200-second maximum session and the scoped permissions needed for IAM role
+  reads and the RDS service-linked role.
+- **Resolved:** New-account ACM certificate is ISSUED for all four domains.
+  The authoritative DNS remains in the old account until a separately approved
+  application cutover.
 
 ## Step 1 — update the EXISTING CloudFormation bootstrap stack (not a new stack)
 
