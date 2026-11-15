@@ -1,0 +1,70 @@
+name: Recover Bro and Bro PROD Terraform State (3 S3 Lifecycles)
+
+# ONE-TIME, EXPLICITLY APPROVED STATE REPAIR ONLY. NEVER auto-run on pushes.
+# Will neither create/destroy AWS resources nor run Terraform Apply.
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: "Type RECOVER_FAILED_PROD_STATE_43712225552 to authorize state-only repair after reviewing the read-only diagnostic"
+        required: true
+        type: string
+
+permissions:
+  id-token: write
+  contents: read
+  actions: read
+
+# IMPORTANT: serialize with the real production Terraform Apply.
+concurrency:
+  group: terraform-new-account-prod
+  cancel-in-progress: false
+
+jobs:
+  reconcile-state:
+    if: github.ref == 'refs/heads/main' && inputs.confirm == 'RECOVER_FAILED_PROD_STATE_43712225552'
+    runs-on: ubuntu-latest
+    environment: prod
+    env:
+      TF_IN_AUTOMATION: "true"
+      TF_VAR_expected_account_id: ${{ vars.AWS_NEW_ACCOUNT_ID }}
+      PROD_RECOVERY_CONFIRM: ${{ inputs.confirm }}
+      GH_TOKEN: ${{ github.token }}
+      AWS_DEFAULT_REGION: ap-south-1
+      AWS_REGION: ap-south-1
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.12.2"
+      - name: Require approved PROD account, app region and S3 state region
+        env:
+          APP_REGION: ${{ vars.AWS_REGION }}
+          STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
+          STATE_REGION: ${{ vars.TF_STATE_BUCKET_REGION }}
+        run: |
+          set -euo pipefail
+          test "$TF_VAR_expected_account_id" = "098859530205"
+          test "$APP_REGION" = "ap-south-1"
+          test "$STATE_BUCKET" = "broandbro-tfstate-098859530205-ap-south-1"
+          test "$STATE_REGION" = "us-east-1"
+      - name: Assume existing PROD Terraform OIDC role
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_TERRAFORM_ROLE_ARN }}
+          aws-region: ap-south-1
+          role-duration-seconds: 7200
+          role-session-name: broandbro-prod-state-recovery
+      - name: Preflight + backup + exact failed-run unlock + 3 state imports
+        # Python performs strict identity, active-run, S3 config, state-serial,
+        # lock owner/date/path/version and ACM checks BEFORE ANY AWS mutation.
+        # No Terraform apply. Raw state and command stderr are never printed.
+        run: python3 scripts/reconcile-prod-s3-state.py
+      - name: Recovery completion summary
+        run: |
+          echo "## Production Terraform S3 lifecycle state recovery" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Restored three verified existing S3 lifecycle state bindings" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Removed only the proven lock from failed Apply #43712225552" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Remote state backed up inside the private versioned state bucket" >> "$GITHUB_STEP_SUMMARY"
+          echo "- NO Terraform Apply, AWS infrastructure modifications or DNS cutover performed" >> "$GITHUB_STEP_SUMMARY"
+          echo "- NEXT: Run a new Terraform Plan and review it before any Apply" >> "$GITHUB_STEP_SUMMARY"
