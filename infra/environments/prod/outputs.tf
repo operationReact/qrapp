@@ -4,7 +4,7 @@ output "cloudfront_distribution_id" {
 }
 
 output "cloudfront_url" {
-  value       = "https://broandbro.in"
+  value       = "https://${var.frontend_hostname}"
   description = "Production frontend URL"
 }
 
@@ -35,16 +35,28 @@ output "alarm_sns_topic_arn" {
 }
 
 output "media_bucket_name" {
-  value       = data.aws_s3_bucket.media.bucket
+  value       = module.media.bucket_id
   description = "Shared S3 bucket for AI-generated menu item images (set as AWS_S3_BUCKET_NAME env var)"
 }
 
 output "media_bucket_arn" {
-  value       = data.aws_s3_bucket.media.arn
+  value       = module.media.bucket_arn
   description = "ARN of the shared media S3 bucket"
 }
 
 output "media_bucket_regional_domain" {
-  value       = data.aws_s3_bucket.media.bucket_regional_domain_name
+  value       = module.media.regional_domain_name
   description = "Regional domain – base URL for public image access"
+}
+
+output "location_bucket_name" { value = module.location_images.bucket_id }
+output "artifact_bucket_name" { value = module.artifacts.bucket_id }
+
+output "acm_certificate_arn" {
+  value       = module.acm.certificate_arn
+  description = "ACM certificate ARN (after certificate validation)"
+}
+output "acm_certificate_request_arn" {
+  value       = module.acm.requested_certificate_arn
+  description = "ACM request ARN (before validation) for DNS migration script"
 }

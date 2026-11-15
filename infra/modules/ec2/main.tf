@@ -7,55 +7,6 @@
 # manual secret management.
 # ============================================================
 
-terraform {
-  required_providers {
-    tls = {
-      source  = "hashicorp/tls"
-      version = "~> 4.0"
-    }
-    null = {
-      source  = "hashicorp/null"
-      version = "~> 3.0"
-    }
-  }
-}
-
-# ── Auto-generate SSH key pair ────────────────────────────────────────────────
-# No manual key generation needed – Terraform handles this.
-resource "tls_private_key" "this" {
-  algorithm = "ED25519"
-}
-
-# ── Register the public key as an EC2 Key Pair ───────────────────────────────
-resource "aws_key_pair" "this" {
-  key_name   = "broandbro-${var.environment}-key"
-  public_key = tls_private_key.this.public_key_openssh
-
-  tags = {
-    Name        = "broandbro-${var.environment}-key"
-    Environment = var.environment
-  }
-}
-
-# ── Store private key in SSM Parameter Store (SecureString) ──────────────────
-# The backend deploy workflow reads from here – no GitHub secret needed.
-resource "aws_ssm_parameter" "ssh_private_key" {
-  name        = "/broandbro/${var.environment}/ec2-ssh-private-key"
-  description = "EC2 SSH private key for ${var.environment} backend"
-  type        = "SecureString"
-  value       = tls_private_key.this.private_key_openssh
-
-  tags = {
-    Name        = "broandbro-${var.environment}-ssh-key"
-    Environment = var.environment
-  }
-
-  lifecycle {
-    # Never overwrite an existing key – prevents locking yourself out
-    ignore_changes = [value]
-  }
-}
-
 # Latest Amazon Linux 2023 AMI for ARM64 (Graviton) in us-east-1
 data "aws_ami" "al2023_arm" {
   most_recent = true
@@ -115,7 +66,7 @@ resource "aws_iam_role_policy" "ssm_read" {
     Version = "2012-10-17"
     Statement = [{
       Effect   = "Allow"
-      Action   = ["ssm:GetParameter", "ssm:GetParameters"]
+      Action   = ["ssm:GetParameter", "ssm:GetParameters", "ssm:GetParametersByPath"]
       Resource = [
         "arn:aws:ssm:*:*:parameter/broandbro/${var.environment}/*",
         "arn:aws:ssm:*:*:parameter/broandbro/backend/${var.environment}/*"
@@ -153,25 +104,32 @@ resource "aws_iam_role_policy" "media_s3" {
         ]
       },
       {
-        # EC2 pulls its own deploy JAR from S3 instead of receiving it via SCP.
-        # Scoped to this environment's prefix so dev cannot read prod artifacts.
-        Sid    = "AllowDeployArtifactDownload"
-        Effect = "Allow"
-        Action = ["s3:GetObject"]
-        Resource = "${var.media_bucket_arn}/deploy/${var.environment}/*"
-      },
-      {
         Sid    = "AllowBucketList"
         Effect = "Allow"
         Action = ["s3:ListBucket"]
         Resource = var.media_bucket_arn
         Condition = {
           StringLike = {
-            "s3:prefix" = ["locations/*", "hall-of-happiness/*", "menu-items/*", "campaigns/*", "categories/*", "products/*", "deploy/${var.environment}/*"]
+            "s3:prefix" = ["locations/*", "hall-of-happiness/*", "menu-items/*", "campaigns/*", "categories/*", "products/*"]
           }
         }
       }
     ]
+  })
+}
+
+# Private, account-scoped JAR download permissions.
+resource "aws_iam_role_policy" "artifacts_s3" {
+  count = var.artifact_bucket_arn == "" ? 0 : 1
+  name  = "broandbro-${var.environment}-artifacts-s3"
+  role  = aws_iam_role.ec2.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Sid = "ReadOnlyThisEnvironmentArtifacts", Effect = "Allow"
+      Action   = ["s3:GetObject"]
+      Resource = "${var.artifact_bucket_arn}/deploy/${var.environment}/*"
+    }]
   })
 }
 
@@ -213,13 +171,14 @@ resource "aws_iam_instance_profile" "ec2" {
 resource "aws_instance" "this" {
   ami                    = data.aws_ami.al2023_arm.id
   instance_type          = var.instance_type
-  key_name               = aws_key_pair.this.key_name
   vpc_security_group_ids = [var.security_group_id]
+  subnet_id              = var.subnet_id
+  associate_public_ip_address = true
   iam_instance_profile   = aws_iam_instance_profile.ec2.name
 
-  user_data = base64encode(templatefile("${path.module}/userdata.sh", {
+  user_data = templatefile("${path.module}/userdata.sh", {
     environment = var.environment
-  }))
+  })
 
   root_block_device {
     volume_type           = "gp3"
@@ -264,35 +223,5 @@ resource "aws_ssm_parameter" "ec2_ip" {
   }
 }
 
-# ── Ensure SSM Agent is installed and running ─────────────────────────────────
-# This fixes existing instances where the agent may have stopped or not been
-# installed. Runs via SSH on every `terraform apply` (trigger = instance ID).
-resource "null_resource" "ensure_ssm_agent" {
-  triggers = {
-    instance_id = aws_instance.this.id
-  }
-
-  connection {
-    type        = "ssh"
-    user        = "ec2-user"
-    private_key = aws_ssm_parameter.ssh_private_key.value
-    host        = aws_eip.this.public_ip
-    timeout     = "5m"
-  }
-
-  provisioner "remote-exec" {
-    inline = [
-      "echo '=== Ensuring SSM Agent is installed and active ==='",
-      # Try dnf first (works on AL2023 when package repo has it)
-      "sudo dnf install -y amazon-ssm-agent 2>/dev/null || true",
-      # If dnf didn't install it, fall back to direct RPM (AL2023 ARM64 / Graviton)
-      "sudo systemctl is-enabled amazon-ssm-agent >/dev/null 2>&1 || sudo rpm --import https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/linux_arm64/amazon-ssm-agent.rpm 2>/dev/null || sudo dnf install -y 'https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/linux_arm64/amazon-ssm-agent.rpm'",
-      "sudo systemctl enable amazon-ssm-agent",
-      "sudo systemctl restart amazon-ssm-agent",
-      "sleep 5",
-      "sudo systemctl is-active amazon-ssm-agent && echo 'SSM Agent is ACTIVE' || echo 'WARNING: SSM Agent failed to start'",
-    ]
-  }
-
-  depends_on = [aws_eip.this]
-}
+# SSM Agent is installed and started by userdata.sh.
+# SSH private keys and remote-exec are intentionally NOT created.

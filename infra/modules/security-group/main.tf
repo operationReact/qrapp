@@ -1,27 +1,17 @@
 # ============================================================
 # Module: security-group
 # Creates two security groups:
-#   ec2_sg  – web traffic + SSH ingress, all egress
+#   ec2_sg  – web traffic only (administration via SSM), all egress
 #   rds_sg  – port 5432 only from ec2_sg (no internet access)
 # ============================================================
-
-data "aws_vpc" "default" {
-  default = true
-}
 
 # ── EC2 Security Group ────────────────────────────────────────────────────────
 resource "aws_security_group" "ec2" {
   name        = "broandbro-${var.environment}-ec2-sg"
-  description = "Backend EC2: HTTP, HTTPS, SSH"
-  vpc_id      = data.aws_vpc.default.id
+  description = "Backend EC2: HTTP, HTTPS; SSM administration"
+  vpc_id      = var.vpc_id
 
-  ingress {
-    description = "SSH"
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = var.ssh_allowed_cidrs
-  }
+  # No public SSH ingress: deployments and maintenance use Systems Manager.
 
   ingress {
     description = "HTTP (nginx)"
@@ -54,11 +44,11 @@ resource "aws_security_group" "ec2" {
 }
 
 # ── RDS Security Group ────────────────────────────────────────────────────────
-# PostgreSQL accessible from EC2 and optionally from internet (dev only).
+# PostgreSQL accessible only from application EC2 security group.
 resource "aws_security_group" "rds" {
   name        = "broandbro-${var.environment}-rds-sg"
   description = "RDS PostgreSQL: only EC2 sg may connect"
-  vpc_id      = data.aws_vpc.default.id
+  vpc_id      = var.vpc_id
 
   ingress {
     description     = "PostgreSQL from EC2"
@@ -68,18 +58,7 @@ resource "aws_security_group" "rds" {
     security_groups = [aws_security_group.ec2.id]
   }
 
-  # Public access for local development – DEV ONLY
-  # In prod, access is only via EC2 security group.
-  dynamic "ingress" {
-    for_each = var.environment == "dev" ? [1] : []
-    content {
-      description = "PostgreSQL public access (dev only)"
-      from_port   = 5432
-      to_port     = 5432
-      protocol    = "tcp"
-      cidr_blocks = ["0.0.0.0/0"]
-    }
-  }
+  # PostgreSQL is reachable only through the EC2 security group in every environment.
 
   egress {
     from_port   = 0

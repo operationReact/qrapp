@@ -40,23 +40,27 @@ data "aws_route53_zone" "this" {
 # 1. terraform apply -target=module.acm.aws_acm_certificate.this
 # 2. terraform apply -target=module.acm.aws_route53_record.validation
 # This ensures domain_validation_options are available before creating these records.
+# Stable for_each keys, known before apply. Removes the need for unsafe
+# -target= apply stages, even though certificate DNS values are computed.
 resource "aws_route53_record" "validation" {
-  for_each = var.existing_certificate_arn == "" ? {
-    for dvo in aws_acm_certificate.this[0].domain_validation_options : dvo.domain_name => {
-      name   = dvo.resource_record_name
-      record = dvo.resource_record_value
-      type   = dvo.resource_record_type
-    }
-  } : {}
+  for_each = var.existing_certificate_arn == "" ? toset(distinct(concat(
+    [var.domain_name],
+    var.subject_alternative_names
+  ))) : toset([])
 
   allow_overwrite = true
-  name            = each.value.name
-  records         = [each.value.record]
-  ttl             = 60
-  type            = each.value.type
-  zone_id         = data.aws_route53_zone.this[0].zone_id
+  name = one([
+    for dvo in aws_acm_certificate.this[0].domain_validation_options :
+    dvo.resource_record_name if dvo.domain_name == each.key
+  ])
+  records = [one([
+    for dvo in aws_acm_certificate.this[0].domain_validation_options :
+    dvo.resource_record_value if dvo.domain_name == each.key
+  ])]
+  ttl = 60
+  type = "CNAME"
+  zone_id = data.aws_route53_zone.this[0].zone_id
 }
-
 
 # ── Wait for certificate to become ISSUED ────────────────────────────────────
 resource "aws_acm_certificate_validation" "this" {

@@ -1,3 +1,5 @@
+variable "subnet_id" { type = string }
+
 variable "environment" {
   description = "Deployment environment"
   type        = string
@@ -35,4 +37,9 @@ variable "root_volume_size" {
   description = "Root EBS volume size in GB"
   type        = number
   default     = 20
+}
+
+variable "artifact_bucket_arn" {
+  type    = string
+  default = ""
 }

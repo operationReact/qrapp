@@ -1,0 +1,65 @@
+name: PROD Terraform Offline Validate (No AWS Credentials)
+
+# Code validation only. This workflow does not assume an AWS role or provision resources.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "infra/**"
+      - ".github/workflows/**"
+  pull_request:
+    branches: [main]
+    paths:
+      - "infra/**"
+      - ".github/workflows/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-prod:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.12.2"
+      - name: Terraform init offline (no backend state)
+        working-directory: infra/environments/prod
+        run: terraform init -backend=false -input=false
+      - name: Validate production Terraform
+        working-directory: infra/environments/prod
+        run: terraform validate -no-color
+  guardrails:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate production CloudFormation only
+        run: |
+          python3 -m pip install --quiet cfn-lint
+          cfn-lint infra/cloudformation/github-oidc-bootstrap-prod-only.yaml
+      - name: Block DEV deployment definitions and static AWS keys
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          assert not Path("infra/environments/dev").exists()
+          assert not Path("infra/bootstrap/bootstrap.tf").exists()
+          flows = Path(".github/workflows")
+          assert not list(flows.glob("*-dev.yml"))
+          for file in flows.glob("*.yml"):
+              text = file.read_text()
+              for forbidden in ("aws-access" + "-key-id:", "aws-secret" + "-access-key:"):
+                  assert forbidden not in text, file
+          for name in ("backend-deploy-prod.yml", "frontend-deploy-prod.yml", "terraform-apply-prod.yml"):
+              text = (flows / name).read_text()
+              assert "workflow_dispatch:" in text, name
+              assert "\\n  push:" not in text, name
+              assert "refs/heads/main" in text, name
+          plan = (flows / "terraform-plan.yml").read_text()
+          assert "infra/environments/prod" in plan
+          assert "infra/environments/dev" not in plan
+          assert "refs/heads/main" in plan
+          PY
+      - name: Validate workflow syntax
+        run: go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.10 -shellcheck=
