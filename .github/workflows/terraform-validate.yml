@@ -67,6 +67,19 @@ jobs:
         run: |
           python3 -m pip install --quiet cfn-lint
           cfn-lint infra/cloudformation/github-oidc-bootstrap-dev.yaml
+          cfn-lint infra/cloudformation/github-oidc-bootstrap-prod-only.yaml
+      - name: Enforce production-only OIDC bootstrap guardrails
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("infra/cloudformation/github-oidc-bootstrap-prod-only.yaml").read_text()
+          assert "environment:prod" in p and p.count("environment:prod") == 3
+          assert "environment:dev" not in p
+          assert "AWS::IAM::OIDCProvider" not in p
+          assert p.count("Type: AWS::IAM::Role") == 3
+          assert "CreateStateBucketCondition" in p and "CreateHostedZoneCondition" in p
+          assert p.count("Default: 'false'") == 2
+          PY
       - name: Validate GitHub Actions YAML semantics
         run: go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.10 -shellcheck=
       - name: Check Bash script syntax
