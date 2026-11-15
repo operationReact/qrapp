@@ -115,9 +115,28 @@ jobs:
         # Metadata only. Checks remote-state existence, residual lock, visible
         # resource inventory, ACM and OIDC readiness; never prints state contents.
         run: python3 scripts/audit-prod-terraform-recovery.py
+      - name: Verify live S3 lifecycle configurations and failed Apply lock (read only)
+        id: lifecycle_check
+        continue-on-error: true
+        run: python3 scripts/inspect-prod-s3-state-recovery.py
       - name: Compare failed-Apply resource manifest to remote state (no values logged)
+        id: state_check
+        continue-on-error: true
         run: python3 scripts/audit-prod-terraform-state.py
+      - name: Fail closed if either state or live recovery precheck found discrepancies
+        if: always()
+        env:
+          LIFECYCLE_OUTCOME: ${{ steps.lifecycle_check.outcome }}
+          STATE_OUTCOME: ${{ steps.state_check.outcome }}
+        run: |
+          test "$LIFECYCLE_OUTCOME" = "success" || {
+            echo "::error::Live lifecycle or lock recovery check blocked"; exit 1;
+          }
+          test "$STATE_OUTCOME" = "success" || {
+            echo "::error::Terraform state reconciliation blocked"; exit 1;
+          }
       - name: Record read-only verification result
+        if: always()
         shell: bash
         run: |
           echo "## Bro & Bro production AWS read-only preflight" >> "$GITHUB_STEP_SUMMARY"
