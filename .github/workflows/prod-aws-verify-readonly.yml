@@ -1,0 +1,119 @@
+name: Verify Bro and Bro PROD AWS Access (Read Only)
+
+# This workflow reads only. It does NOT apply Terraform, deploy the app,
+# create AWS resources, edit Route 53, or alter S3 state.
+on:
+  workflow_dispatch:
+  # GitHub's Actions index also sees a push event when this workflow changes;
+  # registration itself is intentionally credential-free and read-only.
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/prod-aws-verify-readonly.yml"
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: verify-broandbro-prod-readonly
+  cancel-in-progress: false
+
+jobs:
+  register:
+    # Never assume AWS credentials on an automatic push.
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Confirm workflow discovered (no AWS calls)
+        run: echo "Manual PROD AWS verification workflow registered on main."
+
+  verify-prod:
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: prod
+    steps:
+      - name: Require expected new-account and backend-region settings
+        env:
+          EXPECTED_ACCOUNT: ${{ vars.AWS_NEW_ACCOUNT_ID }}
+          APP_REGION: ${{ vars.AWS_REGION }}
+          STATE_REGION: ${{ vars.TF_STATE_BUCKET_REGION }}
+          STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
+          DEPLOY_ROLE: ${{ secrets.AWS_TERRAFORM_ROLE_ARN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$EXPECTED_ACCOUNT" = "098859530205" || { echo "::error::Incorrect AWS_NEW_ACCOUNT_ID"; exit 1; }
+          test "$APP_REGION" = "ap-south-1" || { echo "::error::App region must be Mumbai"; exit 1; }
+          test "$STATE_REGION" = "us-east-1" || { echo "::error::Actual state bucket is in us-east-1"; exit 1; }
+          test "$STATE_BUCKET" = "broandbro-tfstate-$EXPECTED_ACCOUNT-ap-south-1" || {
+            echo "::error::Incorrect Terraform state bucket"; exit 1;
+          }
+          test -n "$DEPLOY_ROLE" || { echo "::error::AWS_TERRAFORM_ROLE_ARN environment secret missing"; exit 1; }
+      - name: Assume dedicated production Terraform role via GitHub OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_TERRAFORM_ROLE_ARN }}
+          aws-region: ap-south-1
+          role-session-name: broandbro-prod-verify
+      - name: Verify AWS caller identity (no writes)
+        env:
+          EXPECTED_ACCOUNT: ${{ vars.AWS_NEW_ACCOUNT_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          ACTUAL="$(aws sts get-caller-identity --query Account --output text)"
+          test "$ACTUAL" = "$EXPECTED_ACCOUNT" || {
+            echo "::error::OIDC assumed a role in the WRONG AWS account"; exit 1;
+          }
+          echo "Verified AWS OIDC authentication into expected production account."
+      - name: Verify existing S3 Terraform state bucket (read only)
+        env:
+          EXPECTED_ACCOUNT: ${{ vars.AWS_NEW_ACCOUNT_ID }}
+          STATE_REGION: ${{ vars.TF_STATE_BUCKET_REGION }}
+          STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          args=(--bucket "$STATE_BUCKET" --expected-bucket-owner "$EXPECTED_ACCOUNT" --region "$STATE_REGION")
+
+          # AWS get-bucket-location returns None/null for a bucket in us-east-1.
+          LOCATION="$(aws s3api get-bucket-location "${args[@]}" --query LocationConstraint --output text)"
+          if [[ "$LOCATION" == "None" || "$LOCATION" == "null" ]]; then LOCATION=us-east-1; fi
+          test "$LOCATION" = "$STATE_REGION" || {
+            echo "::error::Bucket region mismatch"; exit 1;
+          }
+
+          VERSIONING="$(aws s3api get-bucket-versioning "${args[@]}" --query Status --output text)"
+          test "$VERSIONING" = "Enabled" || {
+            echo "::error::Terraform state bucket needs versioning enabled"; exit 1;
+          }
+
+          ENCRYPTION="$(aws s3api get-bucket-encryption "${args[@]}" \
+            --query 'ServerSideEncryptionConfiguration.Rules[0].ApplyServerSideEncryptionByDefault.SSEAlgorithm' --output text)"
+          case "$ENCRYPTION" in AES256|aws:kms|aws:kms:dsse) ;; *) echo "::error::Unexpected S3 encryption configuration"; exit 1;; esac
+
+          aws s3api get-public-access-block "${args[@]}" --output json |
+            jq -e '.PublicAccessBlockConfiguration |
+              (.BlockPublicAcls == true and .IgnorePublicAcls == true and
+               .BlockPublicPolicy == true and .RestrictPublicBuckets == true)' >/dev/null || {
+              echo "::error::S3 bucket public access block is missing/incomplete"; exit 1;
+            }
+
+          # Only list keys; do not retrieve or print .tfstate contents.
+          KEY_COUNT="$(aws s3api list-objects-v2 "${args[@]}" --prefix env/prod/ \
+            --query 'length(Contents || `[]`)' --output text)"
+          echo "Terraform state bucket ownership, location, encryption, versioning and access-block checks passed."
+          echo "Objects under the env/prod/ prefix: $KEY_COUNT"
+          if [[ "$KEY_COUNT" != "0" ]]; then
+            echo "::warning::Existing prod state keys found. Reconcile Terraform state before planning or applying."
+          fi
+      - name: Record read-only verification result
+        shell: bash
+        run: |
+          echo "## Bro & Bro production AWS read-only preflight" >> "$GITHUB_STEP_SUMMARY"
+          echo "- IAM OIDC role assumption succeeded in the expected new account" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Terraform state bucket verified in us-east-1" >> "$GITHUB_STEP_SUMMARY"
+          echo "- No Terraform apply, application deployment, DNS change or AWS resource mutation performed" >> "$GITHUB_STEP_SUMMARY"
