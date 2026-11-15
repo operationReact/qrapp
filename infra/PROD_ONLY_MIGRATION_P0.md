@@ -11,6 +11,7 @@
 - No automatic Terraform apply or DNS change on merge. Existing `broandbro.in` / `www.broandbro.in` and existing production account remain intact until explicit DNS cutover approval.
 - Fresh database; **no historical customer, order, wallet, or media migration**. Prevent demo customer/order/wallet fixtures and known seed accounts from becoming live.
 - Never copy API keys or customer data into Terraform state, GitHub commits, action logs, or issue comments. Vendor secrets go into new-account SSM SecureString/Secrets Manager as appropriate.
+- **Security P0:** Earlier repository PRs #240/#241 documented exposed AWS and vendor credentials. Verify affected AWS keys (especially root keys) have been revoked, vendor credentials rotated, MFA active, access logs inspected, and old credentials not carried into the destination. Deleting a secret from code is not revocation.
 - Do not delete existing GitHub OIDC identity providers. The `token.actions.githubusercontent.com` provider is account-wide.
 
 ## Phase 0 — mandatory read-only inventory in AWS
