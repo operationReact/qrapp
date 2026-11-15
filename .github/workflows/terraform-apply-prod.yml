@@ -8,6 +8,10 @@ on:
         description: "Type APPLY_NEW_PROD to provision the NEW AWS account"
         required: true
         type: string
+      recovery_confirm:
+        description: "After the failed Nov 15 Apply, type STATE_RECONCILED only once the remote state, lock and resources have been manually reconciled"
+        required: true
+        type: string
 
 permissions:
   id-token: write
@@ -19,7 +23,7 @@ concurrency:
 
 jobs:
   apply-prod:
-    if: inputs.confirm == 'APPLY_NEW_PROD' && github.ref == 'refs/heads/main'
+    if: inputs.confirm == 'APPLY_NEW_PROD' && inputs.recovery_confirm == 'STATE_RECONCILED' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment: prod
     defaults:
@@ -48,6 +52,8 @@ jobs:
         with:
           role-to-assume: ${{ secrets.AWS_TERRAFORM_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
+          # Requires CloudFormation Terraform role MaxSessionDuration >=7200.
+          role-duration-seconds: 7200
       - name: Assert account identity
         env:
           EXPECTED_ACCOUNT: ${{ vars.AWS_NEW_ACCOUNT_ID }}
@@ -91,6 +97,32 @@ jobs:
             -backend-config="region=$TF_STATE_BUCKET_REGION" \
             -backend-config="encrypt=true" \
             -backend-config="use_lockfile=true"
+      - name: Refuse another Apply until damaged state is recovered
+        env:
+          TF_STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
+          EXPECTED_ACCOUNT: ${{ vars.AWS_NEW_ACCOUNT_ID }}
+          TF_STATE_BUCKET_REGION: ${{ vars.TF_STATE_BUCKET_REGION }}
+        run: |
+          set -euo pipefail
+          # Nov 15 Apply created some resources then failed to save state and
+          # release the lock. Never auto-import, delete a lock or overwrite state.
+          aws s3api head-object --bucket "$TF_STATE_BUCKET" \
+            --key env/prod/terraform.tfstate \
+            --expected-bucket-owner "$EXPECTED_ACCOUNT" \
+            --region "$TF_STATE_BUCKET_REGION" >/dev/null || {
+              echo "::error::Remote Terraform state missing/unreadable. Recover and reconcile before applying."
+              exit 1
+            }
+          LOCK_COUNT="$(aws s3api list-objects-v2 --bucket "$TF_STATE_BUCKET" \
+            --prefix env/prod/terraform.tfstate.tflock \
+            --expected-bucket-owner "$EXPECTED_ACCOUNT" \
+            --region "$TF_STATE_BUCKET_REGION" \
+            --query 'length(Contents || `[]`)' --output text)"
+          test "$LOCK_COUNT" = "0" || {
+            echo "::error::Terraform lock exists. Investigate before any unlock or apply."
+            exit 1
+          }
+          echo "State object and no listed lock found. Operator must still have reconciled resources."
       - name: Format and validate
         run: |
           terraform validate

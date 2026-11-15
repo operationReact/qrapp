@@ -110,6 +110,11 @@ jobs:
           if [[ "$KEY_COUNT" != "0" ]]; then
             echo "::warning::Existing prod state keys found. Reconcile Terraform state before planning or applying."
           fi
+      - uses: actions/checkout@v4
+      - name: Diagnose partial Terraform Apply without changing AWS
+        # Metadata only. Checks remote-state existence, residual lock, visible
+        # resource inventory, ACM and OIDC readiness; never prints state contents.
+        run: python3 scripts/audit-prod-terraform-recovery.py
       - name: Record read-only verification result
         shell: bash
         run: |
