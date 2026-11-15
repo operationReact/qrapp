@@ -66,9 +66,10 @@ resource "aws_db_subnet_group" "this" {
 # ── Auto-discover the latest available PostgreSQL 16 minor version ────────────
 # This avoids hard-coding a version that may not be available in us-east-1.
 data "aws_rds_engine_version" "postgres" {
-  engine             = "postgres"
-  version            = "16"
-  preferred_versions = ["16.6", "16.5", "16.4", "16.3", "16.2", "16.1"]
+  engine  = "postgres"
+  version = "16"
+  # Select a currently available 16.x minor rather than old, retired preferred minors.
+  latest  = true
 }
 
 # RDS PostgreSQL instance
