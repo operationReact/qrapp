@@ -115,6 +115,8 @@ jobs:
         # Metadata only. Checks remote-state existence, residual lock, visible
         # resource inventory, ACM and OIDC readiness; never prints state contents.
         run: python3 scripts/audit-prod-terraform-recovery.py
+      - name: Compare failed-Apply resource manifest to remote state (no values logged)
+        run: python3 scripts/audit-prod-terraform-state.py
       - name: Record read-only verification result
         shell: bash
         run: |
