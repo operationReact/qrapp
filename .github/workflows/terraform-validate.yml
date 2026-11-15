@@ -61,5 +61,31 @@ jobs:
           assert "infra/environments/dev" not in plan
           assert "refs/heads/main" in plan
           PY
+      - name: Validate read-only recovery scripts and address matching (no AWS)
+        run: |
+          python3 -m py_compile scripts/audit-prod-terraform-state.py scripts/audit-prod-terraform-recovery.py scripts/audit-prod-ssm.py
+          python3 - <<'PY'
+          import json
+          import runpy
+          funcs = runpy.run_path("scripts/audit-prod-terraform-state.py")
+          fake_state = {"resources": [
+              {"mode": "managed", "type": "terraform_data", "name": "account_guard", "instances": [{}]},
+              {"mode": "managed", "module": "module.test", "type": "aws_ssm_parameter",
+               "name": "external", "instances": [{"index_key": "razorpay/key"}]},
+              {"mode": "managed", "module": "module.network", "type": "aws_subnet",
+               "name": "private", "instances": [{"index_key": 0}, {"index_key": 1}]}
+          ]}
+          actual = funcs["state_addresses"](fake_state)
+          expected = {
+              "terraform_data.account_guard",
+              'module.test.aws_ssm_parameter.external["razorpay/key"]',
+              "module.network.aws_subnet.private[0]",
+              "module.network.aws_subnet.private[1]"
+          }
+          assert actual == expected, (actual, expected)
+          manifest = json.load(open("scripts/prod-apply-43712225552-completed.json", encoding="utf-8"))
+          entries = manifest["completed_resource_addresses"]
+          assert len(entries) == len(set(entries)) == 65
+          PY
       - name: Validate workflow syntax
         run: go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.10 -shellcheck=
