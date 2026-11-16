@@ -1,14 +1,9 @@
 name: Terraform Plan - New Account PROD (Read Only)
 
 # Single environment: PROD only. No plan or apply for DEV.
-# Read-only plan is allowed on main: a change to THIS workflow only triggers
-# one extra preflight. No changes to AWS resources, state, DNS or secrets.
+# Operator-triggered on main only; no automatic infrastructure planning.
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - ".github/workflows/terraform-plan.yml"
 
 permissions:
   id-token: write
@@ -20,7 +15,7 @@ concurrency:
 
 jobs:
   plan-prod:
-    if: (github.event_name == 'workflow_dispatch' || github.event_name == 'push') && github.ref == 'refs/heads/main'
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment: prod
     defaults:
