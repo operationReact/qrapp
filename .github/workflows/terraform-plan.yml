@@ -1,9 +1,14 @@
 name: Terraform Plan - New Account PROD (Read Only)
 
 # Single environment: PROD only. No plan or apply for DEV.
-# Manual workflow discoverable from default dev, executable ONLY on main.
+# Read-only plan is allowed on main: a change to THIS workflow only triggers
+# one extra preflight. No changes to AWS resources, state, DNS or secrets.
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/terraform-plan.yml"
 
 permissions:
   id-token: write
@@ -15,7 +20,7 @@ concurrency:
 
 jobs:
   plan-prod:
-    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    if: (github.event_name == 'workflow_dispatch' || github.event_name == 'push') && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment: prod
     defaults:
@@ -69,6 +74,14 @@ jobs:
             -backend-config="region=$TF_STATE_BUCKET_REGION" \
             -backend-config="encrypt=true" \
             -backend-config="use_lockfile=true"
+      - name: Confirm recovered state matches the failed-Apply manifest and no lock remains
+        run: |
+          python3 ../../../scripts/audit-prod-terraform-state.py
+          python3 ../../../scripts/inspect-prod-s3-state-recovery.py
+      - name: Check SSM readiness without exposing values (informational until provisioned)
+        id: ssm
+        continue-on-error: true
+        run: python3 ../../../scripts/audit-prod-ssm.py
       - name: Validate and compute non-applying plan
         env:
           TF_VAR_expected_account_id: ${{ vars.AWS_NEW_ACCOUNT_ID }}
@@ -80,3 +93,4 @@ jobs:
           echo "## New-account PROD Terraform plan (NO APPLY)" >> "$GITHUB_STEP_SUMMARY"
           echo "Review proposed billable resources, replacement/destruction risks, DNS impact, and certificate readiness." >> "$GITHUB_STEP_SUMMARY"
           echo "The plan is not authorization to provision. Explicit owner approval required." >> "$GITHUB_STEP_SUMMARY"
+          echo "SSM prerequisite check result: ${{ steps.ssm.outcome }} (see earlier log for exact missing parameter names; never values)." >> "$GITHUB_STEP_SUMMARY"
