@@ -130,6 +130,11 @@ jobs:
         env:
           TF_VAR_expected_account_id: ${{ vars.AWS_NEW_ACCOUNT_ID }}
         run: terraform plan -input=false -out=tfplan
+      - name: Refuse any resource update, deletion or replacement before Apply
+        run: |
+          set -euo pipefail
+          # Only JSON action metadata is processed; sensitive values never logged.
+          terraform show -json tfplan | python3 ../../../scripts/enforce-prod-nondestructive-plan.py
       - name: Apply reviewed plan
         env:
           TF_VAR_expected_account_id: ${{ vars.AWS_NEW_ACCOUNT_ID }}
