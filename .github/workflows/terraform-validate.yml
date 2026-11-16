@@ -63,7 +63,7 @@ jobs:
           PY
       - name: Validate read-only recovery scripts and address matching (no AWS)
         run: |
-          python3 -m py_compile scripts/audit-prod-terraform-state.py scripts/audit-prod-terraform-recovery.py scripts/audit-prod-ssm.py scripts/inspect-prod-s3-state-recovery.py scripts/audit_prod_helpers.py scripts/reconcile-prod-s3-state.py
+          python3 -m py_compile scripts/audit-prod-terraform-state.py scripts/audit-prod-terraform-recovery.py scripts/audit-prod-ssm.py scripts/inspect-prod-s3-state-recovery.py scripts/audit_prod_helpers.py scripts/reconcile-prod-s3-state.py scripts/untaint-prod-ec2-role.py
           python3 scripts/test-prod-s3-state-recovery.py
           python3 - <<'PY'
           import json
