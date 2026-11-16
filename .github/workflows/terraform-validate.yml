@@ -63,7 +63,7 @@ jobs:
           PY
       - name: Validate read-only recovery scripts and address matching (no AWS)
         run: |
-          python3 -m py_compile scripts/audit-prod-terraform-state.py scripts/audit-prod-terraform-recovery.py scripts/audit-prod-ssm.py scripts/inspect-prod-s3-state-recovery.py scripts/audit_prod_helpers.py scripts/reconcile-prod-s3-state.py scripts/untaint-prod-ec2-role.py
+          python3 -m py_compile scripts/audit-prod-terraform-state.py scripts/audit-prod-terraform-recovery.py scripts/audit-prod-ssm.py scripts/inspect-prod-s3-state-recovery.py scripts/audit_prod_helpers.py scripts/reconcile-prod-s3-state.py scripts/untaint-prod-ec2-role.py scripts/enforce-prod-nondestructive-plan.py
           python3 scripts/test-prod-s3-state-recovery.py
           python3 - <<'PY'
           import json
@@ -87,6 +87,11 @@ jobs:
           manifest = json.load(open("scripts/prod-apply-43712225552-completed.json", encoding="utf-8"))
           entries = manifest["completed_resource_addresses"]
           assert len(entries) == len(set(entries)) == 65
+          actions = runpy.run_path("scripts/enforce-prod-nondestructive-plan.py")["audit_plan"]
+          assert actions({"resource_changes": [{"address": "module.one.aws_s3_bucket.this",
+               "change": {"actions": ["create"]}}]}) == (1, [])
+          assert len(actions({"resource_changes": [{"address": "module.one.aws_iam_role.this",
+               "change": {"actions": ["delete", "create"]}}]})[1]) == 1
           PY
       - name: Validate workflow syntax
         run: go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.10 -shellcheck=
