@@ -135,8 +135,8 @@ def verify_role_and_state():
             actions = [actions]
         return ("ec2.amazonaws.com" in service and
                 "sts:AssumeRole" in actions and statement.get("Effect") == "Allow")
-    require(any(ec2_trust(s) for s in statements),
-            "live role is not trusted exclusively by expected EC2 service")
+    require(len(statements) == 1 and ec2_trust(statements[0]),
+            "live IAM role trust differs from single expected EC2 statement")
     print("GUARDS PASSED: verified account, isolated state, no lock, exact IAM role identity")
     return state.get("lineage")
 
