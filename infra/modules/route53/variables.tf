@@ -35,3 +35,8 @@ variable "create_www_record" {
   type        = bool
   default     = true
 }
+
+variable "frontend_direct_to_ec2" {
+  type    = bool
+  default = false
+}
