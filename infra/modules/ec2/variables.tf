@@ -43,3 +43,9 @@ variable "artifact_bucket_arn" {
   type    = string
   default = ""
 }
+
+variable "frontend_bucket_arn" {
+  type        = string
+  description = "Private frontend S3 bucket; EC2 can read the React build."
+  default     = ""
+}
