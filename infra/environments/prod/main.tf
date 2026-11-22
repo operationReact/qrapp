@@ -148,6 +148,7 @@ module "waf" {
 
 # ── CloudFront distribution ───────────────────────────────────────────────────
 module "cloudfront" {
+  count  = var.enable_cloudfront ? 1 : 0
   source = "../../modules/cloudfront"
 
   environment                    = "prod"
@@ -166,7 +167,7 @@ module "s3" {
 
   bucket_name                 = local.frontend_bucket # broandbro-prod-ui
   environment                 = "prod"
-  cloudfront_distribution_arn = module.cloudfront.distribution_arn
+  cloudfront_distribution_arn = var.enable_cloudfront ? module.cloudfront[0].distribution_arn : ""
 }
 
 # ── EC2 backend ───────────────────────────────────────────────────────────────
@@ -182,6 +183,7 @@ module "ec2" {
   location_bucket_arn    = module.location_images.bucket_arn
   create_media_s3_policy = true
   artifact_bucket_arn     = module.artifacts.bucket_arn
+  frontend_bucket_arn    = module.s3.bucket_arn
   root_volume_size       = 30
 }
 
@@ -247,8 +249,9 @@ module "route53" {
   hosted_zone_name          = var.domain_name
   apex_domain               = var.frontend_hostname
   api_subdomain             = var.api_hostname
-  cloudfront_domain_name    = module.cloudfront.domain_name
-  cloudfront_hosted_zone_id = module.cloudfront.hosted_zone_id
+  cloudfront_domain_name    = var.enable_cloudfront ? module.cloudfront[0].domain_name : ""
+  cloudfront_hosted_zone_id = var.enable_cloudfront ? module.cloudfront[0].hosted_zone_id : ""
+  frontend_direct_to_ec2   = !var.enable_cloudfront
   ec2_elastic_ip            = module.ec2.elastic_ip
   create_www_record         = var.frontend_hostname == var.domain_name
 
