@@ -167,6 +167,19 @@ resource "aws_iam_instance_profile" "ec2" {
   role = aws_iam_role.ec2.name
 }
 
+# Read only frontend build assets from the private production S3 bucket.
+resource "aws_iam_role_policy" "frontend_s3" {
+  name = "broandbro-${var.environment}-frontend-s3-read"
+  role = aws_iam_role.ec2.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      { Effect = "Allow", Action = ["s3:ListBucket"], Resource = var.frontend_bucket_arn },
+      { Effect = "Allow", Action = ["s3:GetObject"], Resource = "${var.frontend_bucket_arn}/*" }
+    ]
+  })
+}
+
 # ── EC2 Instance ──────────────────────────────────────────────────────────────
 resource "aws_instance" "this" {
   ami                    = data.aws_ami.al2023_arm.id

@@ -1,6 +1,6 @@
 output "cloudfront_distribution_id" {
-  value       = module.cloudfront.distribution_id
-  description = "CloudFront ID – used by frontend-deploy-prod workflow"
+  value       = var.enable_cloudfront ? module.cloudfront[0].distribution_id : null
+  description = "CloudFront ID when enabled; null for direct EC2 frontend"
 }
 
 output "cloudfront_url" {

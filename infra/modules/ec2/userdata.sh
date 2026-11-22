@@ -196,6 +196,45 @@ nginx -t  # Validate config before enabling
 systemctl enable nginx
 systemctl start nginx
 
+# ── 7b. Static React SPA on the same EC2 (CloudFront-free preview) ───────────
+# The frontend deployment workflow syncs private S3 assets into this directory.
+mkdir -p /var/www/broandbro
+chown root:nginx /var/www/broandbro
+chmod 755 /var/www/broandbro
+
+cat > /etc/nginx/conf.d/broandbro-frontend.conf << 'NGINX'
+server {
+    listen 80;
+    server_name migrate-prod.broandbro.in;
+    root /var/www/broandbro;
+    index index.html;
+
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+        try_files $uri =404;
+    }
+    # TWA Digital Asset Links must be served unchanged.
+    location = /.well-known/assetlinks.json {
+        default_type application/json;
+        try_files $uri =404;
+    }
+    location ~ /\\. {
+        deny all;
+    }
+    location /assets/ {
+        try_files $uri =404;
+        add_header Cache-Control "public, max-age=31536000, immutable";
+    }
+    location / {
+        try_files $uri $uri/ /index.html;
+        add_header Cache-Control "no-cache, no-store, must-revalidate";
+    }
+}
+NGINX
+
+nginx -t
+systemctl reload nginx
+
 # ── 8. Certbot auto-renewal timer ────────────────────────────────────────────
 # Renewal is attempted twice daily; certs are only renewed if expiring in < 30d
 cat > /etc/systemd/system/certbot-renew.service << 'EOF'

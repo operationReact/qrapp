@@ -115,3 +115,11 @@ variable "schedule_rds_stop_cron" {
   type    = string
   default = "cron(15 20 ? * MON-FRI *)"
 }
+
+# New account CloudFront creation is blocked by AWS verification.
+# Use existing EC2 + Nginx for HTTPS frontend and API until enabled.
+variable "enable_cloudfront" {
+  type        = bool
+  description = "Provision CloudFront when AWS enables distribution creation."
+  default     = false
+}
