@@ -10,6 +10,7 @@ data "aws_route53_zone" "this" {
 
 # ── Frontend: apex + www → CloudFront ─────────────────────────────────────────
 resource "aws_route53_record" "apex" {
+  count = var.frontend_direct_to_ec2 ? 0 : 1
   zone_id = data.aws_route53_zone.this.zone_id
   name    = var.apex_domain
   type    = "A"
@@ -22,7 +23,7 @@ resource "aws_route53_record" "apex" {
 }
 
 resource "aws_route53_record" "www" {
-  count   = var.create_www_record ? 1 : 0
+  count   = var.create_www_record && !var.frontend_direct_to_ec2 ? 1 : 0
   zone_id = data.aws_route53_zone.this.zone_id
   name    = "www.${var.apex_domain}"
   type    = "A"
@@ -38,6 +39,16 @@ resource "aws_route53_record" "www" {
 resource "aws_route53_record" "api" {
   zone_id = data.aws_route53_zone.this.zone_id
   name    = var.api_subdomain
+  type    = "A"
+  ttl     = 300
+  records = [var.ec2_elastic_ip]
+}
+
+# Preview frontend without CloudFront: EC2 serves the static SPA via Nginx.
+resource "aws_route53_record" "frontend_ec2" {
+  count   = var.frontend_direct_to_ec2 ? 1 : 0
+  zone_id = data.aws_route53_zone.this.zone_id
+  name    = var.apex_domain
   type    = "A"
   ttl     = 300
   records = [var.ec2_elastic_ip]
