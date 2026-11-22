@@ -77,7 +77,7 @@ resource "aws_s3_bucket_policy" "this" {
 
   policy = jsonencode({
     Version = "2012-10-17"
-    Statement = [
+    Statement = concat(var.cloudfront_distribution_arn != "" ? [
       {
         Sid    = "AllowCloudFrontOAC"
         Effect = "Allow"
@@ -91,7 +91,8 @@ resource "aws_s3_bucket_policy" "this" {
             "AWS:SourceArn" = var.cloudfront_distribution_arn
           }
         }
-      },
+      }
+    ] : [], [
       {
         Sid       = "DenyNonSSL"
         Effect    = "Deny"
@@ -105,6 +106,6 @@ resource "aws_s3_bucket_policy" "this" {
           Bool = { "aws:SecureTransport" = "false" }
         }
       }
-    ]
+    ])
   })
 }
