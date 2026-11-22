@@ -135,6 +135,9 @@ Resources:
                   - iam:AttachRolePolicy
                   - iam:DetachRolePolicy
                   - iam:CreateInstanceProfile
+                  - iam:TagInstanceProfile
+                  - iam:UntagInstanceProfile
+                  - iam:ListInstanceProfileTags
                   - iam:DeleteInstanceProfile
                   - iam:GetInstanceProfile
                   - iam:AddRoleToInstanceProfile
@@ -143,6 +146,14 @@ Resources:
                 Resource:
                   - !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:role/broandbro-prod-*'
                   - !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:instance-profile/broandbro-prod-*'
+              # RDS manages database master credentials in Secrets Manager.
+              # Scope secret creation/tagging to RDS-generated secrets in the target region.
+              - Sid: AllowRDSManagedMasterSecretCreation
+                Effect: Allow
+                Action:
+                  - secretsmanager:CreateSecret
+                  - secretsmanager:TagResource
+                Resource: !Sub 'arn:${AWS::Partition}:secretsmanager:ap-south-1:${AWS::AccountId}:secret:rds!*'
               # RDS needs this service-linked role when first provisioned.
               # Scope creation to the AWS RDS service only (not arbitrary IAM roles).
               - Sid: AllowRDSServiceLinkedRole
