@@ -34,7 +34,9 @@ GENERATED = [
     ("app/cors/allowedOrigins", "https://migrate-prod.broandbro.in"),
 ]
 DATABASE = ["database/url", "database/username", "database/secretArn"]
-INFRA = ["/broandbro/prod/cf-distribution-id", "/broandbro/prod/ec2-public-ip"]
+# Direct EC2 frontend requires no CloudFront distribution ID.
+INFRA = ["/broandbro/prod/ec2-public-ip"]
+OPTIONAL_CLOUDFRONT = "/broandbro/prod/cf-distribution-id"
 
 
 def aws_json(*args):
@@ -120,6 +122,8 @@ def main():
         failures += not ok
         print(f"{'READY' if ok else 'MISSING / INVALID / UNREADABLE'}: {name}")
 
+    cf_ready = acceptable(OPTIONAL_CLOUDFRONT, get_value(OPTIONAL_CLOUDFRONT))
+    print(f"{'OPTIONAL READY' if cf_ready else 'OPTIONAL NOT CONFIGURED'}: {OPTIONAL_CLOUDFRONT}")
     print(f"Required checks: {required - failures}/{required} ready; optional OpenAI: {optional_ok}/1.")
     if failures:
         print("BLOCKER: Do not deploy backend until all required parameters are ready.")
