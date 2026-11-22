@@ -153,6 +153,9 @@ Resources:
                 Action:
                   - secretsmanager:CreateSecret
                   - secretsmanager:TagResource
+                  - secretsmanager:RotateSecret
+                  - secretsmanager:CancelRotateSecret
+                  - secretsmanager:UpdateSecretVersionStage
                 Resource: !Sub 'arn:${AWS::Partition}:secretsmanager:ap-south-1:${AWS::AccountId}:secret:rds!*'
               # RDS needs this service-linked role when first provisioned.
               # Scope creation to the AWS RDS service only (not arbitrary IAM roles).
