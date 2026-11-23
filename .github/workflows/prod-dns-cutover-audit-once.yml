@@ -1,0 +1,57 @@
+name: One-time Bro and Bro full DNS cutover inventory (read only)
+on:
+  push:
+    branches: [main]
+    paths: [.github/workflows/prod-dns-cutover-audit-once.yml]
+permissions:
+  id-token: write
+  contents: read
+jobs:
+  inventory:
+    runs-on: ubuntu-latest
+    environment: prod
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_TERRAFORM_ROLE_ARN }}
+          aws-region: ap-south-1
+      - name: Verify account and inspect live vs destination DNS (read only)
+        run: |
+          set -euo pipefail
+          test "$(aws sts get-caller-identity --query Account --output text)" = "098859530205"
+          ZONE="Z01289103E8MGUM73FENK"
+          echo "NEW_ZONE_RECORD_TYPES_AND_NAMES:"
+          aws route53 list-resource-record-sets --hosted-zone-id "$ZONE" --output json | python3 -c 'import json,sys; d=json.load(sys.stdin); [print(x["Type"],x["Name"]) for x in d["ResourceRecordSets"]]'
+          echo "OLD_AUTHORITATIVE_NS:"
+          dig +short NS broandbro.in
+          echo "PUBLIC_RECORD_INVENTORY:"
+          for HOST in broandbro.in www.broandbro.in api.broandbro.in migrate-prod.broandbro.in migrate-prod-api.broandbro.in mail.broandbro.in _dmarc.broandbro.in; do
+            for TYPE in A AAAA CNAME MX CAA; do
+              RESULT="$(dig +time=2 +tries=1 +short "$HOST" "$TYPE" | head -n 4 || true)"
+              if [[ -n "$RESULT" ]]; then printf "%s %s %s\n" "$HOST" "$TYPE" "$RESULT"; fi
+            done
+            for TYPE in TXT; do
+              COUNT="$(dig +time=2 +tries=1 +short "$HOST" "$TYPE" | wc -l)"
+              echo "$HOST $TYPE record-count=$COUNT"
+            done
+          done
+          echo "MX and TXT records can be security and delivery critical; verify migration separately."
+          echo "PUBLIC_REGISTRAR_RDAP (best effort)"
+          python3 - <<'PY'
+          import urllib.request,json
+          for url in ['https://rdap.registry.in/rdap/domain/broandbro.in','https://rdap.nic.in/rdap/domain/broandbro.in','https://rdap.org/domain/broandbro.in']:
+              try:
+                  data=json.load(urllib.request.urlopen(urllib.request.Request(url,headers={'User-Agent':'BroBroMigrationAudit/1.0'}),timeout=8))
+                  print('RDAP_SOURCE:',url)
+                  print('DOMAIN_STATUS:',data.get('status',[]))
+                  for entity in data.get('entities',[]):
+                      if 'registrar' in entity.get('roles',[]):
+                          print('REGISTRAR_HANDLE:',entity.get('handle','unknown'))
+                          v=entity.get('vcardArray',[])
+                          if len(v)>1:
+                              print('REGISTRAR_NAME:',[p[3] for p in v[1] if p[0]=='fn'][:2])
+                  break
+              except Exception as e:
+                  print('RDAP_LOOKUP_UNAVAILABLE:',type(e).__name__)
+          PY
