@@ -1,0 +1,22 @@
+name: One-time Bro and Bro frontend deploy trigger
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/frontend-deploy-once.yml"
+permissions:
+  contents: read
+  actions: write
+jobs:
+  dispatch-frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch established PROD frontend workflow
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh workflow run frontend-deploy-prod.yml \
+            --repo "$GITHUB_REPOSITORY" \
+            --ref main \
+            --field reason="Deploy merged PR 274 npm lockfile fix"
