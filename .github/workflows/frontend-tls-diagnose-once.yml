@@ -23,7 +23,7 @@ jobs:
         run: |
           set -euo pipefail
           test "$(aws sts get-caller-identity --query Account --output text)" = "$ACCOUNT"
-          IP="$(aws ssm get-parameter --name /broandbro/prod/ec2-public-ip --query Parameter.Value --output text)"
+          IP="$(aws ec2 describe-instances --filters 'Name=tag:Name,Values=broandbro-prod-backend' 'Name=instance-state-name,Values=running' --query 'Reservations[].Instances[].PublicIpAddress' --output text)"
           echo "Expected EC2 IP: $IP"
           echo "Public DNS A records:"
           dig +short migrate-prod.broandbro.in A || true
