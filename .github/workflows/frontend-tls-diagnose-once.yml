@@ -73,3 +73,12 @@ jobs:
           dig +short broandbro.in NS
           echo "Preview from public authoritative nameservers:"
           for NS in $(dig +short broandbro.in NS); do echo "$NS"; dig +time=2 +tries=1 +short @"$NS" migrate-prod.broandbro.in A || true; done
+
+      - name: List every new-account hosted zone matching the domain
+        run: |
+          set -euo pipefail
+          IDS="$(aws route53 list-hosted-zones-by-name --dns-name broandbro.in --query 'HostedZones[?Name==`broandbro.in.`].Id' --output text)"
+          for ID in $IDS; do
+            echo "Hosted zone ID: $ID"
+            aws route53 get-hosted-zone --id "$ID" --query '{Zone:HostedZone.Name,IsPrivate:HostedZone.Config.PrivateZone,NS:DelegationSet.NameServers}' --output json
+          done
