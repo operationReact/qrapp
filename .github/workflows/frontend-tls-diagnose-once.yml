@@ -53,3 +53,23 @@ jobs:
             sleep 5
           done
           exit 1
+
+      - name: Inspect Route53 hosted zone and preview A record (read only)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_TERRAFORM_ROLE_ARN }}
+          aws-region: ap-south-1
+      - name: Compare configured Route53 delegation with public nameservers
+        run: |
+          set -euo pipefail
+          ZONE="$(aws route53 list-hosted-zones-by-name --dns-name broandbro.in --query 'HostedZones[?Name==`broandbro.in.`].Id | [0]' --output text)"
+          test -n "$ZONE" && test "$ZONE" != None
+          echo "Configured hosted zone: $ZONE"
+          echo "Route53 assigned NS:"
+          aws route53 get-hosted-zone --id "$ZONE" --query 'DelegationSet.NameServers' --output json
+          echo "Route53 preview A record:"
+          aws route53 list-resource-record-sets --hosted-zone-id "$ZONE" --query 'ResourceRecordSets[?Name==`migrate-prod.broandbro.in.`]' --output json
+          echo "Public nameservers:"
+          dig +short broandbro.in NS
+          echo "Preview from public authoritative nameservers:"
+          for NS in $(dig +short broandbro.in NS); do echo "$NS"; dig +time=2 +tries=1 +short @"$NS" migrate-prod.broandbro.in A || true; done
