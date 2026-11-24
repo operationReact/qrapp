@@ -1,0 +1,20 @@
+name: One-time guarded DNS TXT completion Apply
+on:
+  push:
+    branches: [main]
+    paths: [.github/workflows/dns-final-txt-apply-once.yml]
+permissions:
+  contents: read
+  actions: write
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch guarded Apply following successful 2-add no-change plan
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh workflow run terraform-apply-prod.yml \
+            --repo "$GITHUB_REPOSITORY" --ref main \
+            --field confirm=APPLY_NEW_PROD \
+            --field recovery_confirm=STATE_RECONCILED
