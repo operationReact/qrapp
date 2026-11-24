@@ -66,8 +66,14 @@ if ! nginx -t; then
   exit 1
 fi
 systemctl reload nginx
+sleep 2
 for HOST in broandbro.in www.broandbro.in; do
-  HTTP="$(curl --noproxy '*' -sS --max-time 10 -o /dev/null -w '%{http_code}' -H "Host: $HOST" http://127.0.0.1/)"
+  HTTP=""
+  for RETRY in $(seq 1 6); do
+    HTTP="$(curl --noproxy '*' -sS --max-time 10 -o /dev/null -w '%{http_code}' -H "Host: $HOST" http://127.0.0.1/)"
+    if [ "$HTTP" = 200 ]; then break; fi
+    sleep 2
+  done
   test "$HTTP" = 200 || { echo "Unexpected $HOST HTTP $HTTP"; exit 1; }
   echo "Staged $HOST HTTP 200"
 done
