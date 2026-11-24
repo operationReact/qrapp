@@ -54,7 +54,7 @@ resource "aws_route53_record" "cutover_email_spf" {
   name    = var.domain_name
   type    = "TXT"
   ttl     = 1800
-  records = ["\"v=spf1 include:_spf.mail.hostinger.com ~all\""]
+  records = ["v=spf1 include:_spf.mail.hostinger.com ~all"]
 }
 
 resource "aws_route53_record" "cutover_email_dmarc" {
@@ -62,5 +62,5 @@ resource "aws_route53_record" "cutover_email_dmarc" {
   name    = "_dmarc.${var.domain_name}"
   type    = "TXT"
   ttl     = 1800
-  records = ["\"v=DMARC1; p=none\""]
+  records = ["v=DMARC1; p=none"]
 }
