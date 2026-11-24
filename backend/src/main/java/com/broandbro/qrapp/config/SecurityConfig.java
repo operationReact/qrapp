@@ -125,6 +125,10 @@ public class SecurityConfig {
                                 "/api/hall-of-happiness/config"
                         ).permitAll()
 
+                        // Minimal unauthenticated readiness probe for SSM deploys and Nginx.
+                        // Do not expose other actuator endpoints or privileged APIs.
+                        .requestMatchers(HttpMethod.GET, "/actuator/health", "/actuator/health/**").permitAll()
+
                         // Swagger / OpenAPI
                         .requestMatchers(
                                 "/swagger-ui.html",
