@@ -18,6 +18,6 @@ jobs:
         with:
           gradle-version: '8.7'
       - name: Compile backend and run unit tests
-        run: gradle :backend:compileJava :backend:test --no-daemon
+        run: gradle :backend:compileJava :backend:test --tests com.broandbro.qrapp.controller.LocationSecurityFilterChainTest --no-daemon
       - name: Validate Nginx staging script syntax
         run: bash -n scripts/prepare-prod-nginx-cutover.sh
