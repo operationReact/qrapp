@@ -14,6 +14,8 @@ jobs:
     environment: prod
     steps:
       - uses: actions/checkout@v4
+      - name: Validate Nginx staging shell script syntax
+        run: bash -n scripts/prepare-prod-nginx-cutover.sh
       - uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_BACKEND_ROLE_ARN }}
