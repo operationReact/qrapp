@@ -21,7 +21,7 @@ server {
   index index.html;
   client_max_body_size 25m;
 
-  location /.well-known/acme-challenge/ {
+  location ^~ /.well-known/acme-challenge/ {
     root /var/www/certbot;
     try_files $uri =404;
   }
@@ -29,7 +29,7 @@ server {
     default_type application/json;
     try_files $uri =404;
   }
-  location ~ /\\. { deny all; }
+  location ~ /\. { deny all; }
   location /assets/ {
     try_files $uri =404;
     add_header Cache-Control "public, max-age=31536000, immutable";
@@ -43,7 +43,7 @@ server {
   listen 80;
   server_name api.broandbro.in;
   client_max_body_size 25m;
-  location /.well-known/acme-challenge/ {
+  location ^~ /.well-known/acme-challenge/ {
     root /var/www/certbot;
     try_files $uri =404;
   }
