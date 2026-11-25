@@ -187,8 +187,11 @@ jobs:
         id: preview_dns
         run: |
           set -euo pipefail
-          EXPECTED_IP="$(aws ssm get-parameter --name /broandbro/prod/ec2-public-ip --query Parameter.Value --output text)"
-          [[ "$EXPECTED_IP" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::Missing production EC2 Elastic IP"; exit 1; }
+          # The backend deploy role can DescribeInstances but cannot read the EC2 IP SSM parameter.
+          EXPECTED_IP="$(aws ec2 describe-instances \
+            --filters 'Name=tag:Name,Values=broandbro-prod-backend' 'Name=instance-state-name,Values=running' \
+            --query 'Reservations[].Instances[].PublicIpAddress' --output text)"
+          [[ "$EXPECTED_IP" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::Expected one production EC2 public IP"; exit 1; }
           DNS_CF="$(dig +short A migrate-prod.broandbro.in @1.1.1.1 | sort -u || true)"
           DNS_GOOGLE="$(dig +short A migrate-prod.broandbro.in @8.8.8.8 | sort -u || true)"
           if [[ "$DNS_CF" == "$EXPECTED_IP" && "$DNS_GOOGLE" == "$EXPECTED_IP" ]]; then
