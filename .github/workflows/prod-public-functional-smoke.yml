@@ -90,7 +90,7 @@ jobs:
 
           for icon_path in ("/pwa-192.png", "/pwa-512.png", "/pwa-maskable-512.png"):
               mime, data = public_get(icon_path)
-              assert mime == "image/png" and data.startswith(b"\\x89PNG\\r\\n\\x1a\\n"), (
+              assert mime == "image/png" and data.startswith(b"\x89PNG\r\n\x1a\n"), (
                   f"Missing or invalid PNG icon: {icon_path} ({mime})"
               )
               print(f"PWA icon valid: {icon_path}")
