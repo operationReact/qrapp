@@ -1,11 +1,11 @@
 {
-  "reviewedCommit": "363f3219d0b9884d96bb4caf8508ab53dff9ab32",
-  "reviewedRun": 45686187868,
-  "artifact": 15055654903,
+  "reviewedCommit": "624a539bd7f8cd6519b44292000eb92532d7d54e",
+  "reviewedRun": 45689353392,
+  "artifact": 15058351504,
   "base": "eb09cffd2cf4958d2be34cb42305228c0d56ed2e",
   "frontendTree": "0ab53bd41b613ac56dcb16a306b569b63311f4fa",
   "scriptBlob": "5a759c1bd39384bc8b8e5c63c64df872132329ec",
-  "reason": "Reviewed 54 candidate screenshots across six viewports. New login choices, Google linking dialog, registration step indicator, workplace summary and mandatory workplace setup intentionally change prior baseline. Main added local-dev-only configuration; reviewed production build configuration diff. Google provider is mocked, not production OAuth evidence.",
+  "reason": "Reviewed 54 candidate screenshots across six viewports. New login choices, Google linking dialog, registration step indicator, workplace summary and mandatory workplace setup intentionally change prior baseline. Main added local-dev-only configuration; reviewed production build configuration diff. Google provider is mocked, not production OAuth evidence. Compared all 54 current screenshots from the rerun against the original artifact: 51 pixel-identical, 3 manually compared; 320px login has 60px additional bottom whitespace, no content loss; two workplace screens have minor rendering differences.",
   "dimensions": {
     "1440x900": [
       1424,
@@ -22,7 +22,7 @@
       1265,
       1265,
       1296,
-      1236,
+      1296,
       1263,
       1744,
       1269,
