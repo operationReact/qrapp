@@ -71,7 +71,7 @@ jobs:
           root = Path(os.environ["RUNNER_TEMP"]) / "visual"
           current = {p.name for p in (root / "current").glob("*.png")}
           base = {p.name for p in (root / "base").glob("*.png")}
-          assert base <= current and len(base) >= 30 and len(current) == 48, "Incomplete screenshot matrix"
+          assert base <= current and len(base) >= 30 and len(current) == 54, "Incomplete screenshot matrix"
           for name in sorted(current - base):
               print(f"{name}: new screen, requires visual review")
           diff = root / "diff"
