@@ -90,6 +90,7 @@ export const Route = createFileRoute("/(auth)/register")({
         specialDayCustomLabel,
         phone,
         password,
+        googleLinkTicket: googleLink?.ticket,
         ...(defaultLocationId ? { defaultLocationId } : {}),
         customerCompanyId: Number(customerCompanyId),
         termsAccepted,
@@ -156,7 +157,7 @@ export const Route = createFileRoute("/(auth)/register")({
         return;
       }
       const selectionError = validateLocationCompanySelection({ locationId: defaultLocationId, companyId: customerCompanyId, locations: locationsQuery.data, companies: companiesQuery.data });
-      const detailsError = validateCustomerDetails({ name, phone, password, specialDate, specialDayType, specialDayCustomLabel });
+      const detailsError = validateCustomerDetails({ name, phone, password, specialDate, specialDayType, specialDayCustomLabel, passwordOptional: !!googleLink });
       if (selectionError || detailsError) {
         setError(selectionError || detailsError);
         return;
@@ -449,7 +450,7 @@ export const Route = createFileRoute("/(auth)/register")({
                 </FieldContent>
               </Field>
               <Field>
-                <FieldLabel htmlFor="registration-password">Password (optional)</FieldLabel>
+                <FieldLabel htmlFor="registration-password">Password {googleLink ? "(optional)" : <span className="text-red-600">*</span>}</FieldLabel>
                 <FieldContent>
                   <RegistrationPurposeControl type="password" label="Password">
                     <PasswordInput
@@ -458,9 +459,10 @@ export const Route = createFileRoute("/(auth)/register")({
                       className="h-10 [&>input]:!pl-10"
                       id="registration-password"
                       autoComplete="new-password"
+                      required={!googleLink}
                     />
                   </RegistrationPurposeControl>
-                  <p className="auth-field-hint">Skip this to use WhatsApp sign-in. If you set a password, use at least 8 characters.</p>
+                  <p className="auth-field-hint">{googleLink ? "Optional if signing in with Google. Use at least 8 characters if you set one." : "Use at least 8 characters. No required symbols or numbers."}</p>
                 </FieldContent>
               </Field>
               <div className="flex mt-5 flex-col gap-2">
