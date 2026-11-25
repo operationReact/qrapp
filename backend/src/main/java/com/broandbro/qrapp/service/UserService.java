@@ -148,12 +148,38 @@ public class UserService {
         User u = o.get();
         if (Boolean.FALSE.equals(u.getActive())) return null;
         if (!passwordEncoder.matches(password, u.getPassword())) return null;
+        return issueSession(u);
+    }
+
+    public Optional<User> findCustomerForPasswordless(String normalizedPhone) {
+        var canonical = userRepository.findByPhone(normalizedPhone);
+        var legacy = userRepository.findByPhone(normalizedPhone.substring(3));
+        if (canonical.isPresent() && legacy.isPresent()) return Optional.empty();
+        return canonical.or(() -> legacy).filter(this::isPasswordlessCustomer);
+    }
+
+    public boolean isPasswordlessCustomer(User u) {
+        return Boolean.TRUE.equals(u.getActive()) && u.getRole() == UserRole.CUSTOMER
+                && !Boolean.TRUE.equals(u.getIsAdmin()) && !Boolean.TRUE.equals(u.getIsSuperUser())
+                && !Boolean.TRUE.equals(u.getMustChangePassword());
+    }
+
+    @Transactional
+    public LoginResponse loginVerifiedCustomer(String normalizedPhone) {
+        User u = findCustomerForPasswordless(normalizedPhone)
+                .orElseThrow(() -> new OtpException("invalid_or_expired_otp"));
+        return issueSession(u);
+    }
+
+    private LoginResponse issueSession(User u) {
+        String previousToken = u.getToken();
         // generate simple token
         byte[] b = new byte[24];
         random.nextBytes(b);
         String token = Base64.getUrlEncoder().withoutPadding().encodeToString(b);
         u.setToken(token);
         userRepository.save(u);
+        if (previousToken != null) tokenCache.remove(previousToken);
         cacheUser(u);
         LoginResponse res = new LoginResponse();
         res.setToken(token);
