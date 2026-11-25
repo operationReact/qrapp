@@ -14,6 +14,10 @@ public interface WhatsAppOtpRepository extends JpaRepository<WhatsAppOtp, Long> 
     Optional<WhatsAppOtp> findFirstByPhoneNumberAndPurposeAndStatusOrderByCreatedAtDesc(
             String phoneNumber, OtpPurpose purpose, OtpStatus status);
 
+    @Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    Optional<WhatsAppOtp> findTopByPhoneNumberAndPurposeAndStatusOrderByCreatedAtDesc(
+            String phoneNumber, OtpPurpose purpose, OtpStatus status);
+
     long countByPhoneNumberAndPurposeAndCreatedAtAfter(
             String phoneNumber, OtpPurpose purpose, Instant after);
 
