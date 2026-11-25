@@ -18,7 +18,10 @@ public class RegistrationOtpRequest {
     private String specialDayType;
     @jakarta.validation.constraints.Size(max = 120)
     private String specialDayCustomLabel;
+    @NotNull
     private Long defaultLocationId;
+    @jakarta.validation.constraints.Size(max = 128)
+    private String googleLinkTicket;
     @NotNull
     private Long customerCompanyId;
     @NotNull
