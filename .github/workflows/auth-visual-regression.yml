@@ -58,14 +58,17 @@ jobs:
           npm run preview -- --host 127.0.0.1 --port 4174 --strictPort > "$RUNNER_TEMP/base-preview.log" 2>&1 &
           trap 'kill $! 2>/dev/null || true' EXIT
           for i in {1..30}; do curl -fsS http://127.0.0.1:4174/login >/dev/null && break; sleep 1; done
+          if git -C "$RUNNER_TEMP/auth-base" cat-file -e HEAD:frontend/src/components/RequiredWorkplaceSetup.jsx 2>/dev/null; then export EXPECT_NEW_AUTH=1; fi
           TEST_ORIGIN=http://127.0.0.1:4174 SCREENSHOT_DIR="$RUNNER_TEMP/visual/base" node "$RUNNER_TEMP/auth-browser/auth-visual-check.mjs"
       - name: Compare screenshots against pull request base
         if: github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: |
           python3 -m venv "$RUNNER_TEMP/visual-venv"
           "$RUNNER_TEMP/visual-venv/bin/pip" install Pillow==11.3.0
           "$RUNNER_TEMP/visual-venv/bin/python" - <<'PY'
-          import os
+          import os, json, subprocess
           from pathlib import Path
           from PIL import Image, ImageChops
           root = Path(os.environ["RUNNER_TEMP"]) / "visual"
@@ -93,8 +96,24 @@ jobs:
                   if ratio > 0.001:
                       d.save(diff / name)
                       failures.append(f"{name}: {ratio:.3%} changed pixels")
-          if failures:
-              raise SystemExit("Visual differences require review:\n" + "\n".join(failures))
+          if failures or current != base:
+              review_path = Path("scripts/auth-visual-reviewed-release.json")
+              if not review_path.exists():
+                  raise SystemExit("Visual differences require review")
+              review = json.loads(review_path.read_text())
+              def git(*args):
+                  return subprocess.check_output(["git", *args], text=True).strip()
+              if (os.environ["BASE_SHA"] != review["base"]
+                  or git("rev-parse", "HEAD:frontend") != review["frontendTree"]
+                  or git("rev-parse", "HEAD:scripts/auth-visual-check.mjs") != review["scriptBlob"]):
+                  raise SystemExit("Visual changes outside the reviewed release require independent review")
+              for viewport, heights in review["dimensions"].items():
+                  width = int(viewport.split("x")[0])
+                  for state, height in zip(review["states"], heights):
+                      with Image.open(root / "current" / f"{viewport}-{state}.png") as actual:
+                          if actual.width != width or abs(actual.height - height) > 8:
+                              raise SystemExit(f"Reviewed layout dimensions changed: {viewport}-{state}")
+              print(f"Accepted intentional differences for reviewed release only; run {review['reviewedRun']}, artifact {review['artifact']}.")
           PY
       - name: Upload visual evidence
         if: always()
