@@ -98,6 +98,8 @@ public class SecurityConfig {
                                 "/auth/login",
                                 "/auth/login/request-otp",
                                 "/auth/login/verify-otp",
+                                "/auth/google/challenge",
+                                "/auth/google/exchange",
                                 "/auth/password/forgot/request-otp",
                                 "/auth/password/forgot/verify-otp",
                                 "/auth/password/reset",
