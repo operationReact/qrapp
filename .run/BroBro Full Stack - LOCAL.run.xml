@@ -1,0 +1,7 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="BroBro Full Stack - LOCAL" type="CompoundRunConfigurationType">
+    <toRun name="BroBro Backend - LOCAL" type="Application" />
+    <toRun name="BroBro Frontend - LOCAL" type="js.build_tools.npm" />
+    <method v="2" />
+  </configuration>
+</component>
