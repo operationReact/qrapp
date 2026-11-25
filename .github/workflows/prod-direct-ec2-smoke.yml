@@ -1,0 +1,88 @@
+# Verify the new AWS production EC2 without changing registrar DNS or issuing certificates.
+# Useful while the public broandbro.in zone still points to the old environment.
+name: Check BroBro new-account direct EC2 HTTP readiness (read only)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/prod-direct-ec2-smoke.yml"
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: broandbro-prod-direct-ec2-smoke
+  cancel-in-progress: false
+
+jobs:
+  check-direct-ec2:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: prod
+    steps:
+      - name: Assume scoped production backend role
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_BACKEND_ROLE_ARN }}
+          aws-region: ap-south-1
+
+      - name: Confirm account and probe backend/frontend on new EC2 public IP
+        env:
+          EXPECTED_ACCOUNT: ${{ vars.AWS_NEW_ACCOUNT_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$EXPECTED_ACCOUNT" = "098859530205"
+          test "$(aws sts get-caller-identity --query Account --output text)" = "$EXPECTED_ACCOUNT"
+
+          # Use read-only DescribeInstances, already authorized for backend CI.
+          INSTANCE_IDS="$(aws ec2 describe-instances \
+            --filters 'Name=tag:Name,Values=broandbro-prod-backend' 'Name=instance-state-name,Values=running' \
+            --query 'Reservations[].Instances[].InstanceId' --output text)"
+          [[ "$INSTANCE_IDS" =~ ^i-[0-9a-f]+$ ]] || { echo "::error::Expected one running new-account backend EC2"; exit 1; }
+          IP="$(aws ec2 describe-instances --instance-ids "$INSTANCE_IDS" \
+            --query 'Reservations[0].Instances[0].PublicIpAddress' --output text)"
+          [[ "$IP" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::Invalid EC2 public IP"; exit 1; }
+
+          echo "## Direct NEW-account EC2 HTTP reachability (DNS bypassed)" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Target: $IP (AWS account $EXPECTED_ACCOUNT)" >> "$GITHUB_STEP_SUMMARY"
+          echo "- This tests public EC2 ingress and Nginx via --resolve; it does not validate public DNS or HTTPS." >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Host and endpoint | Direct EC2 HTTP status |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|---|---|" >> "$GITHUB_STEP_SUMMARY"
+
+          failed=0
+          probe() {
+            local host="$1" path="$2" code
+            code="$(curl --noproxy '*' --connect-timeout 5 --max-time 15 \
+              --silent --show-error --output /dev/null --write-out '%{http_code}' \
+              --resolve "$host:80:$IP" "http://$host$path" || true)"
+            echo "$host$path -> HTTP $code (new EC2)"
+            echo "| $host$path | $code |" >> "$GITHUB_STEP_SUMMARY"
+            [[ "$code" == "200" ]] || failed=1
+          }
+
+          probe migrate-prod.broandbro.in /
+          probe migrate-prod-api.broandbro.in /actuator/health
+          probe broandbro.in /
+          probe www.broandbro.in /
+          probe api.broandbro.in /actuator/health
+
+          if (( failed != 0 )); then
+            echo "::error::One or more new-account public HTTP checks failed; do not cut over DNS."
+            exit 1
+          fi
+          echo "New-account HTTP staging passed. Public DNS delegation and HTTPS remain separate gates."
+
+      - name: Snapshot current public DNS (informational)
+        if: always()
+        shell: bash
+        run: |
+          echo "## Public DNS snapshot (not proof of cutover)" >> "$GITHUB_STEP_SUMMARY"
+          for HOST in broandbro.in api.broandbro.in migrate-prod.broandbro.in migrate-prod-api.broandbro.in; do
+            A="$(dig +short A "$HOST" @1.1.1.1 | paste -sd ',' - || true)"
+            echo "- $HOST: ${A:-not resolving}" >> "$GITHUB_STEP_SUMMARY"
+          done
