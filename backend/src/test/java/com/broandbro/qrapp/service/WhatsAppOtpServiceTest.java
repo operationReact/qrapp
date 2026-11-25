@@ -222,6 +222,46 @@ class WhatsAppOtpServiceTest {
         verifyNoInteractions(whatsAppClient);
     }
 
+    @Test
+    void customerLoginOtpIsOnlyDeliveredToEligibleCustomer() {
+        var user = com.broandbro.qrapp.entity.User.builder().id(1L).active(true)
+                .role(com.broandbro.qrapp.entity.UserRole.CUSTOMER).build();
+        when(userService.findCustomerForPasswordless("+919876543210")).thenReturn(Optional.of(user));
+        service.requestCustomerLoginOtp("9876543210");
+        verify(whatsAppClient).sendAuthenticationCode(eq("+919876543210"), anyString());
+        verify(otpRepository).save(argThat(record -> record.getPurpose() == OtpPurpose.CUSTOMER_LOGIN));
+    }
+
+    @Test
+    void unknownOrPrivilegedAccountDoesNotReceiveCustomerLoginOtp() {
+        when(userService.findCustomerForPasswordless("+919876543210")).thenReturn(Optional.empty());
+        service.requestCustomerLoginOtp("9876543210");
+        verifyNoInteractions(whatsAppClient);
+    }
+
+    @Test
+    void customerLoginConsumesPurposeScopedOtpBeforeSessionCreation() {
+        WhatsAppOtp record = activeOtp(OtpPurpose.CUSTOMER_LOGIN, "123456");
+        when(otpRepository.findTopByPhoneNumberAndPurposeAndStatusOrderByCreatedAtDesc(
+                "+919876543210", OtpPurpose.CUSTOMER_LOGIN, OtpStatus.ACTIVE)).thenReturn(Optional.of(record));
+        service.verifyCustomerLoginOtp("9876543210", "123456");
+        assertThat(record.getStatus()).isEqualTo(OtpStatus.VERIFIED);
+        verify(userService).loginVerifiedCustomer("+919876543210");
+        assertThatThrownBy(() -> service.verifyCustomerLoginOtp("9876543210", "123456"))
+                .hasMessage("invalid_or_expired_otp");
+        verify(userService, times(1)).loginVerifiedCustomer("+919876543210");
+    }
+
+    @Test
+    void invalidCustomerLoginOtpDoesNotCreateSession() {
+        WhatsAppOtp record = activeOtp(OtpPurpose.CUSTOMER_LOGIN, "123456");
+        when(otpRepository.findTopByPhoneNumberAndPurposeAndStatusOrderByCreatedAtDesc(
+                "+919876543210", OtpPurpose.CUSTOMER_LOGIN, OtpStatus.ACTIVE)).thenReturn(Optional.of(record));
+        assertThatThrownBy(() -> service.verifyCustomerLoginOtp("9876543210", "000000")).hasMessage("invalid_otp");
+        assertThat(record.getAttemptCount()).isEqualTo(1);
+        verifyNoInteractions(userService);
+    }
+
     private WhatsAppOtp activeOtp(OtpPurpose purpose, String plainOtp) {
         return WhatsAppOtp.builder()
                 .phoneNumber("+919876543210")
