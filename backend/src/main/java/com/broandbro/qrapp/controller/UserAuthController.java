@@ -148,7 +148,7 @@ public class UserAuthController {
         } catch (OtpException | org.springframework.dao.DataIntegrityViolationException ex) {
             // Mobile verification succeeded; never overwrite a different Google identity.
             return ResponseEntity.ok(Map.of("token", response.getToken(), "user", response.getUser(),
-                    "mustChangePassword", Boolean.TRUE.equals(response.getMustChangePassword()),
+                    "mustChangePassword", Boolean.TRUE.equals(response.isMustChangePassword()),
                     "googleLinkFailed", true));
         }
     }
