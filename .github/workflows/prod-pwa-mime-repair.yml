@@ -1,0 +1,77 @@
+# Narrow, guarded repair of the public PWA manifest MIME on the new-account EC2.
+name: Repair BroBro PWA manifest MIME on prod Nginx
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/prod-pwa-mime-repair.yml
+permissions:
+  contents: read
+  id-token: write
+concurrency:
+  group: broandbro-prod-pwa-mime-repair
+  cancel-in-progress: false
+jobs:
+  repair:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: prod
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate safe repair script
+        run: python3 -m py_compile scripts/repair-prod-pwa-manifest-mime.py
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_BACKEND_ROLE_ARN }}
+          aws-region: ap-south-1
+      - name: Repair MIME on exact new-account production EC2 over SSM
+        env:
+          EXPECTED_ACCOUNT: ${{ vars.AWS_NEW_ACCOUNT_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$EXPECTED_ACCOUNT" = "098859530205"
+          test "$(aws sts get-caller-identity --query Account --output text)" = "$EXPECTED_ACCOUNT"
+          INSTANCE="$(aws ec2 describe-instances \
+            --filters 'Name=tag:Name,Values=broandbro-prod-backend' 'Name=instance-state-name,Values=running' \
+            --query 'Reservations[].Instances[].InstanceId' --output text)"
+          [[ "$INSTANCE" =~ ^i-[0-9a-f]+$ ]] || { echo "::error::Require exactly one prod EC2"; exit 1; }
+          PAYLOAD="$(base64 -w0 scripts/repair-prod-pwa-manifest-mime.py)"
+          COMMAND="echo '$PAYLOAD' | base64 -d >/tmp/brobro-pwa-mime-repair.py && python3 /tmp/brobro-pwa-mime-repair.py"
+          python3 -c 'import json,sys;json.dump({"commands":[sys.argv[1]]},open(sys.argv[2],"w"))' \
+            "$COMMAND" "$RUNNER_TEMP/repair.json"
+          COMMAND_ID="$(aws ssm send-command --instance-ids "$INSTANCE" \
+            --document-name AWS-RunShellScript \
+            --parameters "file://$RUNNER_TEMP/repair.json" \
+            --timeout-seconds 180 \
+            --comment "broandbro-prod-pwa-manifest-mime-$GITHUB_RUN_ID" \
+            --query 'Command.CommandId' --output text)"
+          for ATTEMPT in $(seq 1 45); do
+            STATUS="$(aws ssm get-command-invocation --command-id "$COMMAND_ID" \
+              --instance-id "$INSTANCE" --query Status --output text 2>/dev/null || echo Pending)"
+            case "$STATUS" in
+              Success)
+                aws ssm get-command-invocation --command-id "$COMMAND_ID" --instance-id "$INSTANCE" \
+                  --query '{Status:StatusDetails,Output:StandardOutputContent}' --output json
+                break ;;
+              Failed|TimedOut|Cancelled)
+                aws ssm get-command-invocation --command-id "$COMMAND_ID" --instance-id "$INSTANCE" \
+                  --query '{Status:StatusDetails,Output:StandardOutputContent,Error:StandardErrorContent}' --output json
+                exit 1 ;;
+            esac
+            if [[ "$ATTEMPT" == 45 ]]; then echo "::error::SSM repair timeout"; exit 1; fi
+            sleep 5
+          done
+      - name: Confirm public manifest response (not just local Nginx)
+        run: |
+          set -euo pipefail
+          for HOST in broandbro.in www.broandbro.in migrate-prod.broandbro.in; do
+            HEADERS="$(mktemp)"
+            curl --noproxy '*' -fsS --max-time 15 -D "$HEADERS" -o /dev/null \
+              "https://$HOST/manifest.webmanifest"
+            grep -qi '^content-type: application/manifest+json' "$HEADERS" \
+              || { echo "::error::$HOST manifest MIME not corrected publicly"; cat "$HEADERS"; rm -f "$HEADERS"; exit 1; }
+            rm -f "$HEADERS"
+            echo "$HOST manifest MIME: application/manifest+json"
+          done
