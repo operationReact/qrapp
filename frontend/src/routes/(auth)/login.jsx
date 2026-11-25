@@ -3,7 +3,11 @@ import { useState, useEffect, useRef } from "react";
 import { Link } from "@tanstack/react-router";
 import { useMutation } from "@tanstack/react-query";
 import { setUserAuth } from "@/services";
-import { loginUser } from "@/services/auth-service";
+import { loginUser, requestLoginOTP, verifyLoginOTP } from "@/services/auth-service";
+import OTPVerifyDialog from "@/components/OTPVerifyDialog";
+import GoogleCustomerSignIn from "@/components/GoogleCustomerSignIn";
+import { normalizeIndianMobileInput } from "@/lib/authRegistrationFlow";
+import { getPendingGoogleLink, rememberGoogleLink, clearPendingGoogleLink } from "@/lib/pendingGoogleLink";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Field,
@@ -31,6 +35,10 @@ export const Route = createFileRoute("/(auth)/login")({
 
     const [identifier, setIdentifier] = useState("");
     const [password, setPassword] = useState("");
+    const [method, setMethod] = useState("otp");
+    const [otpOpen, setOtpOpen] = useState(false);
+    const [googleLink, setGoogleLink] = useState(() => getPendingGoogleLink());
+    const [linkWarning, setLinkWarning] = useState(null);
 
     const firstFormField = useRef(null);
     useEffect(() => {
@@ -40,12 +48,15 @@ export const Route = createFileRoute("/(auth)/login")({
     const [noToken, setNoToken] = useState(false);
     const [loginError, setLoginError] = useState(null);
 
-    const loginMutation = useMutation({
-      mutationFn: loginUser,
-      onError: (error) => {
-        setLoginError(extractApiError(error, "Unable to sign in. Check your details and try again."));
-      },
-      onSuccess: (data) => {
+    const completeLogin = (data) => {
+        if (data.googleLinkFailed) {
+          clearPendingGoogleLink();
+          setGoogleLink(null);
+          setOtpOpen(false);
+          setLinkWarning({ ...data, googleLinkFailed: false });
+          return;
+        }
+        clearPendingGoogleLink();
         if (!data.token) {
           setNoToken(true);
           setLoginError(null);
@@ -72,14 +83,41 @@ export const Route = createFileRoute("/(auth)/login")({
           else if (canAccessAdmin(data.user)) target = "/admin";
           window.location.assign(target);
         }
-      },
+    };
+    const loginMutation = useMutation({
+      mutationFn: loginUser,
+      onError: (error) => setLoginError(extractApiError(error, "Unable to sign in. Check your details and try again.")),
+      onSuccess: completeLogin,
     });
+    const otpMutation = useMutation({
+      mutationFn: () => requestLoginOTP(identifier),
+      onSuccess: () => setOtpOpen(true),
+      onError: () => setLoginError("Unable to send a verification code. Check your number or try again in a minute."),
+    });
+    const selectMethod = (next) => {
+      setMethod(next); setLoginError(null); setNoToken(false);
+      if (next === "password") { clearPendingGoogleLink(); setGoogleLink(null); }
+    };
+    const handleGoogleResult = (result) => {
+      if (result.status === "signed_in") completeLogin(result.session);
+      else if (result.status === "mobile_verification_required") {
+        const pending = { ticket: result.ticket, name: result.name };
+        rememberGoogleLink(pending);
+        setGoogleLink(pending);
+        setMethod("otp");
+        setLoginError(null);
+        requestAnimationFrame(() => firstFormField.current?.focus());
+      }
+    };
 
     const submit = (e) => {
       e.preventDefault();
       setNoToken(false);
       setLoginError(null);
-      loginMutation.mutate({ phone: identifier, password });
+      if (method === "otp") {
+        if (!/^[6-9]\d{9}$/.test(identifier)) { setLoginError("Enter a valid 10-digit Indian mobile number."); return; }
+        otpMutation.mutate();
+      } else loginMutation.mutate({ phone: identifier, password });
     };
 
     return (
@@ -123,13 +161,20 @@ export const Route = createFileRoute("/(auth)/login")({
               <h1>Welcome back</h1>
               <p>Your favourites are one sign-in away.</p>
             </div>
-            {(loginMutation.isError || noToken) && (
+            {(loginError || noToken) && (
               <div className="auth-login-error" role="alert" aria-live="polite">
                 {noToken
                   ? "Sign in could not be completed because the server did not return a session."
                   : loginError || "Unable to sign in. Check your details and try again."}
               </div>
             )}
+            {linkWarning && <div role="alert" className="auth-login-error">Google could not be linked. Your mobile is verified. <button type="button" onClick={() => completeLogin(linkWarning)} className="auth-inline-retry">Continue with mobile</button></div>}
+            {googleLink && <div className="auth-google-link-notice" role="status">Verify your WhatsApp number to connect your Google account. New customer? Create an account below.</div>}
+            {!googleLink && <GoogleCustomerSignIn onResult={handleGoogleResult} onError={setLoginError} />}
+            <div className="auth-method-switch" aria-label="Sign-in method">
+              <button type="button" aria-pressed={method === "otp"} onClick={() => selectMethod("otp")}>WhatsApp code</button>
+              <button type="button" aria-pressed={method === "password"} onClick={() => selectMethod("password")}>Password</button>
+            </div>
             <form onSubmit={submit} className="auth-login-form">
               <Field className="gap-2">
                 <FieldLabel htmlFor="identifier">Mobile / WhatsApp number</FieldLabel>
@@ -138,12 +183,12 @@ export const Route = createFileRoute("/(auth)/login")({
                     <InputGroupInput
                       ref={firstFormField}
                       value={identifier}
-                      onChange={(e) => setIdentifier(e.target.value)}
+                      onChange={(e) => setIdentifier(normalizeIndianMobileInput(e.target.value))}
                       required
                       placeholder="10-digit mobile number"
                       inputMode="numeric"
                       autoComplete="tel-national"
-                      maxLength={10}
+                      type="tel"
                       name="identifier"
                       id="identifier"
                       className="h-full rounded-none border-0 bg-transparent px-3.5 py-0 text-[15px] font-medium text-[#77716D] shadow-none outline-none placeholder:text-[#77716D] placeholder:font-medium focus-visible:border-0 focus-visible:ring-0"
@@ -155,6 +200,7 @@ export const Route = createFileRoute("/(auth)/login")({
                   </InputGroup>
                 </FieldContent>
               </Field>
+              {method === "password" && <>
               <Field className="gap-2">
                 <FieldLabel htmlFor="password">Password</FieldLabel>
                 <FieldContent>
@@ -186,14 +232,16 @@ export const Route = createFileRoute("/(auth)/login")({
               >
                 Forgot Password?
               </Link>
+              </>}
+              {method === "otp" && <p className="auth-field-hint">We’ll send a 6-digit WhatsApp code to your registered number. No password needed.</p>}
               <div className="auth-login-actions">
                 <Button
                   type="submit"
                   size="lg"
                   className="auth-primary-action"
-                  disabled={loginMutation.isPending}
+                  disabled={loginMutation.isPending || otpMutation.isPending || !!linkWarning}
                 >
-                  {loginMutation.isPending ? "Signing in..." : "Sign In"}
+                  {method === "otp" ? (otpMutation.isPending ? "Sending code..." : "Continue with WhatsApp") : (loginMutation.isPending ? "Signing in..." : "Sign In")}
                 </Button>
 
                 <p className="auth-login-join">
@@ -206,6 +254,7 @@ export const Route = createFileRoute("/(auth)/login")({
             </form>
           </div>
         </main>
+        <OTPVerifyDialog open={otpOpen} onOpenChange={setOtpOpen} phone={identifier} contactLabel="WhatsApp number" onVerified={completeLogin} verifyOtp={(args) => verifyLoginOTP({ ...args, googleLinkTicket: googleLink?.ticket })} onResend={() => requestLoginOTP(identifier)} />
       </div>
     );
   },
