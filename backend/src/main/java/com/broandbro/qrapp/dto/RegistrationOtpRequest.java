@@ -9,7 +9,7 @@ import lombok.Data;
 public class RegistrationOtpRequest {
     @NotBlank
     private String phoneNumber;
-    @NotBlank
+    // Optional for customers registering with verified mobile OTP.
     private String password;
     private String name;
     @PastOrPresent
