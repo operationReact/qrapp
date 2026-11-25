@@ -1,274 +1,82 @@
-# Local Development Setup - AWS Parameter Store Fix
+# Local development — IntelliJ IDEA (Windows)
 
-## ✅ Problem Fixed
+This setup uses the existing production AWS account and does not create a second AWS environment. Java 17, Node.js 22 (22.12+), Git and the Gradle 8.7 wrapper are required. Docker Desktop or a dedicated local PostgreSQL installation is required only for the full local backend.
 
-**Error:** `Unable to load region from any of the providers in the chain`
+## Clone or update
 
-**Cause:** Application was trying to connect to AWS Parameter Store locally without AWS credentials.
+Open the repository root as a Gradle project in IntelliJ IDEA, using JDK 17 for the project and Gradle JVM. Set the Node interpreter to Node 22. In the IntelliJ terminal:
 
-**Solution:** Created `application-local.yml` profile that disables AWS Parameter Store for local development.
-
----
-
-## 🚀 How to Run Locally
-
-### Option 1: Using IDE (IntelliJ IDEA)
-
-**Step 1: Set Active Profile**
-1. Go to **Run** → **Edit Configurations**
-2. Select your run configuration (e.g., `QrappApplication`)
-3. In **VM options**, add:
-   ```
-   -Dspring.profiles.active=local
-   ```
-4. Click **Apply** and **OK**
-
-**Step 2: Start Local Database**
-```bash
-# Make sure PostgreSQL is running on localhost:5432
-# Create database if not exists:
-createdb broandbro_dev
-
-# Verify connection:
-psql -h localhost -U broandbro -d broandbro_dev
+```powershell
+git switch main
+git pull --ff-only origin main
+cd frontend
+npm ci
+cd ..
 ```
 
-**Step 3: Run Application**
-- Click **Run** (or press Shift+F10)
-- Application starts with local profile
+Shared run configurations are under `.run/`. IntelliJ with JavaScript/Node support can select them from the Run dropdown. If your edition does not support the npm configuration type, use the terminal commands below.
 
-### Option 2: Command Line
+## Mode 1: Local frontend + current production APIs
 
-```bash
-# Terminal 1: Start PostgreSQL
-psql -h localhost -U broandbro -d broandbro_dev
+Choose **BroBro Frontend - PROD Read Only** (or **BroBro Frontend - PROD Writes (LIVE DATA)** only if you intend to modify production). Both modes use the existing new-account endpoint:
 
-# Terminal 2: Run application with local profile
-cd backend
-./gradlew bootRun --args='--spring.profiles.active=local'
+`https://migrate-prod-api.broandbro.in`
+
+Open http://localhost:5173. Vite proxies `/__prod_api/*` to the HTTPS production endpoint. This keeps the browser same-origin and does not require weakening production CORS or entering AWS/RDS credentials locally. Read-only mode blocks POST, PUT, PATCH, DELETE and other non-read HTTP methods; login and other POST-based actions require the live-write mode. Read-only here describes HTTP methods, not an absolute guarantee about the server's implementation of GET endpoints. The live-write mode is for deliberate production operations only: orders, accounts, wallets, OTPs and other actions may affect actual customers or incur charges. Use a designated test account.
+
+Terminal alternatives (run only one frontend mode at a time):
+
+```powershell
+cd frontend
+npm run dev:prod-api
+# OR, when live writes are intended:
+npm run dev:prod-api:write
 ```
 
-### Option 3: Run JAR
+Do not expose the development server on the network. Keep the local proxy prefix; do not replace it with an arbitrary URL. Google sign-in on localhost will additionally require the exact origin `http://localhost:5173` to be authorized in Google Cloud after Google authentication is deployed.
 
-```bash
-# Build JAR
-./gradlew :backend:bootJar -x test
+## Mode 2: Local frontend + local Java backend
 
-# Run with local profile
-java -Dspring.profiles.active=local -jar backend/build/libs/qrapp-*.jar
+Start PostgreSQL from the repository root:
+
+```powershell
+docker compose -f compose.local.yml up -d --wait
 ```
 
----
+Select **BroBro Full Stack - LOCAL** to start both processes, or run **BroBro Backend - LOCAL** and **BroBro Frontend - LOCAL** individually. Debug the Java configuration to use breakpoints. The backend starts at http://localhost:8080 and the UI at http://localhost:5173. On first startup Flyway initializes the dedicated local database.
 
-## 📝 What Each Profile Does
+Terminal alternative, from the root:
 
-### `application.yml` (Default)
-- Base configuration for all environments
-- AWS Parameter Store is **optional** (won't fail if unavailable)
-- Defaults: localhost database, no AWS
-
-### `application-local.yml` (Local Development)
-- Disables AWS Parameter Store completely
-- Uses localhost PostgreSQL
-- No AWS credentials needed
-- Debug logging enabled
-
-### `application-dev.yml` (Development/EC2)
-- **Enables** AWS Parameter Store auto-create
-- Connects to dev RDS instance
-- Requires AWS region configured
-
-### `application-ssm-dev.yml` (Dev Parameters)
-- All SSM parameter values for dev environment
-- Automatically synced to AWS when `auto-create=true`
-
----
-
-## ✅ Local Development Configuration
-
-**File:** `backend/src/main/resources/application-local.yml`
-
-```yaml
-app:
-  parameter-store:
-    auto-create: false  # Disabled - no AWS needed
-
-# Uses local defaults:
-# Database: localhost:5432/broandbro_dev
-# User: broandbro
-# Password: set through `SPRING_DATASOURCE_PASSWORD`
-# No AWS, Razorpay, OpenAI, or Twilio credentials needed
+```powershell
+$env:SPRING_PROFILES_ACTIVE = "local"
+$env:SPRING_CLOUD_AWS_PARAMETERSTORE_ENABLED = "false"
+$env:AWS_REGION = "ap-south-1"
+$env:AWS_EC2_METADATA_DISABLED = "true"
+.\gradlew.bat :backend:bootRun
 ```
 
----
+In a second terminal:
 
-## 🔧 Local Database Setup
-
-### Prerequisites
-- PostgreSQL installed locally
-- Port 5432 available
-
-### Create Local Database
-
-```bash
-# Connect to PostgreSQL
-psql -U postgres
-
-# Create database
-CREATE DATABASE broandbro_dev;
-
-# Create user
-CREATE USER broandbro WITH PASSWORD '<local-db-password>';
-
-# Grant privileges
-GRANT ALL PRIVILEGES ON DATABASE broandbro_dev TO broandbro;
-
-# Exit
-\q
+```powershell
+cd frontend
+npm run dev:local
 ```
 
-### Verify Connection
+Local database settings: host localhost, port 5432, database and username `broandbro_local`, password `brobro-local-only` (disposable local credential only). Docker binds the database to loopback. If using a locally installed PostgreSQL server, create that same dedicated database and user. Do not use a port-forward to production RDS. The startup guard refuses a nonlocal datasource, mixed profiles, enabled cloud providers or configured external-provider credentials in local mode. Local WhatsApp, payments, S3 and AI image generation are disabled; do not expect real OTP/payment delivery from the local backend. The local database is separate from production.
 
-```bash
-psql -h localhost -U broandbro -d broandbro_dev -c "SELECT 1"
-# Should return: 1
+To stop PostgreSQL without removing the local data:
+
+```powershell
+docker compose -f compose.local.yml down
 ```
 
----
+## Troubleshooting
 
-## 🎯 Profile Priority
+- Port 5173 already in use: stop the other Vite process and rerun the chosen configuration.
+- Port 5432 already in use: stop the conflicting local PostgreSQL container/service or configure that instance with the dedicated database and user.
+- Node/Gradle import problems: select Node 22 and JDK 17; use the repository Gradle wrapper.
+- Production API GETs work but login returns HTTP 403: the read-only mode intentionally rejects POST; choose the explicitly named live-write mode if authorized.
+- An unavailable production endpoint is a remote service issue, not a local database issue.
+- Never set `spring.profiles.active=prod` for local backend development or copy production database/payment/provider secrets into this setup.
 
-When application starts:
-
-```
-spring.profiles.active=local (or dev, or prod)
-            ↓
-Load application.yml (base)
-            ↓
-Load application-local.yml (if local profile)
-Load application-dev.yml (if dev profile)
-Load application-prod.yml (if prod profile)
-            ↓
-Load application-ssm-local.yml (if local profile)
-Load application-ssm-dev.yml (if dev profile)
-            ↓
-Merge all configurations
-            ↓
-Application Ready!
-```
-
-**Result:** Dev-specific settings override defaults
-
----
-
-## 📊 Profiles Summary
-
-| Profile | Use Case | AWS Needed | Auto-Create | Database |
-|---------|----------|-----------|-------------|----------|
-| `local` | Local machine | ❌ No | No | localhost:5432 |
-| `dev` | EC2 instance | ✅ Yes | Yes | AWS RDS |
-| `prod` | Production | ✅ Yes | Yes | AWS RDS |
-
----
-
-## ✅ Verify Local Setup
-
-```bash
-# 1. Start with local profile
-java -Dspring.profiles.active=local -jar backend/build/libs/qrapp-*.jar
-
-# 2. Check logs (should NOT mention AWS errors)
-# Look for: "Application started"
-
-# 3. Test API
-curl http://localhost:8080/swagger-ui.html
-
-# 4. Should load Swagger UI successfully ✅
-```
-
----
-
-## 🆘 Troubleshooting
-
-### Still getting AWS region error?
-
-**Cause:** Spring profiles not set correctly
-
-**Fix:**
-```bash
-# IDE: Check Run Configuration → VM options has:
--Dspring.profiles.active=local
-
-# Or set environment variable:
-export SPRING_PROFILES_ACTIVE=local
-
-# Then run:
-java -jar backend/build/libs/qrapp-*.jar
-```
-
-### Database connection refused?
-
-**Cause:** PostgreSQL not running or wrong credentials
-
-**Fix:**
-```bash
-# Check if PostgreSQL is running
-pg_isready -h localhost -p 5432
-
-# If not running:
-# macOS: brew services start postgresql
-# Windows: Start PostgreSQL service
-# Linux: sudo systemctl start postgresql
-
-# Verify credentials
-psql -h localhost -U broandbro -d broandbro_dev
-```
-
-### Parameter Store errors?
-
-**Should not happen with local profile!**
-
-**Cause:** Local profile not active
-
-**Fix:**
-1. Verify `application-local.yml` exists
-2. Check VM options for `-Dspring.profiles.active=local`
-3. Restart application
-
----
-
-## 🎯 Files Modified
-
-| File | Change |
-|------|--------|
-| `application-local.yml` | ✅ Created (new) |
-| `application.yml` | ✅ Updated (added optional AWS import) |
-| `application-dev.yml` | ✅ Updated (added app.parameter-store config) |
-
----
-
-## 📚 Quick Reference
-
-**Local development:**
-```bash
-java -Dspring.profiles.active=local -jar app.jar
-```
-
-**Dev deployment (EC2):**
-```bash
-java -Dspring.profiles.active=dev -jar app.jar
-# Parameters automatically synced to AWS on startup
-```
-
-**Production deployment:**
-```bash
-java -Dspring.profiles.active=prod -jar app.jar
-# All parameters from AWS Parameter Store
-```
-
----
-
-**Status:** ✅ Local Setup Complete  
-**Ready to develop:** ✅ Yes
-
-**Next:** Set profile to `local` and run application! 🚀
+CI: `Local development validation` checks proxy protections, IntelliJ XML, frontend build, a read-only production API request, local guard tests and startup against fresh PostgreSQL. No production deployment is triggered by these local-only configuration changes.
