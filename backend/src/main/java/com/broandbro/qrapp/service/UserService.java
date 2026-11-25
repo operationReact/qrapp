@@ -60,6 +60,7 @@ public class UserService {
             throw new IllegalArgumentException("phone_taken");
         }
 
+        if (req.getDefaultLocationId() == null) throw new IllegalArgumentException("location_required");
         if (req.getCustomerCompanyId() == null) {
             throw new IllegalArgumentException("customer_company_required");
         }
@@ -243,6 +244,8 @@ public class UserService {
                                           Boolean termsAccepted, Instant termsAcceptedAt,
                                           String termsVersion, String privacyPolicyVersion) {
         requireTermsAccepted(termsAccepted);
+        if (defaultLocationId == null) throw new IllegalArgumentException("location_required");
+        if (customerCompanyId == null) throw new IllegalArgumentException("customer_company_required");
         if (userRepository.findByPhone(phone).isPresent()) {
             throw new IllegalArgumentException("phone_taken");
         }
