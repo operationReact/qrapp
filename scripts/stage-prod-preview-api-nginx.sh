@@ -25,7 +25,10 @@ if [ -f "$TARGET" ] && grep -Eq 'listen[[:space:]]+443([[:space:]]|;)' "$TARGET"
   echo "Existing preview API TLS vhost retained"
   nginx -t
   systemctl reload nginx
-  test "$(curl --noproxy '*' --silent --show-error --max-time 15 -o /dev/null -w '%{http_code}' -H 'Host: migrate-prod-api.broandbro.in' http://127.0.0.1/actuator/health)" = "200"
+  # Certbot normally redirects HTTP to HTTPS; check the existing valid certificate instead.
+  curl --noproxy '*' --fail --silent --show-error --max-time 15 \
+    --resolve 'migrate-prod-api.broandbro.in:443:127.0.0.1' \
+    https://migrate-prod-api.broandbro.in/actuator/health >/dev/null
   exit 0
 fi
 
