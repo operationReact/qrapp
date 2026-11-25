@@ -1,5 +1,6 @@
 import { setUserAuth } from "@/services";
 import { getCurrentUser } from "@/services/auth-service";
+import RequiredWorkplaceSetup from "@/components/RequiredWorkplaceSetup";
 import { canAccessAdmin } from "@/lib/roles";
 import PropTypes from "prop-types";
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
@@ -101,11 +102,16 @@ export const AuthProvider = ({ children }) => {
     return () => window.removeEventListener("auth:logout", handleLogout);
   }, [setUser]);
 
+  const needsWorkplace = authInitialized && user?.token && user.role === "CUSTOMER" &&
+    (!user.defaultLocation?.id || user.defaultLocation.active === false || !user.customerCompany?.id || user.customerCompany.active === false);
+
   return (
     <AuthContext.Provider
       value={{ user, setUser, isAdmin, isSuperUser, authInitialized }}
     >
-      {children}
+      {needsWorkplace ? <RequiredWorkplaceSetup key={user.id} user={user}
+        onComplete={profile => setUser(current => ({ ...current, ...profile, info: profile }))}
+        onSignOut={() => setUser(null)} /> : children}
     </AuthContext.Provider>
   );
 };
