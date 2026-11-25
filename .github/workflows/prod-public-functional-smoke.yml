@@ -7,6 +7,9 @@ on:
     branches: [main]
     paths:
       - ".github/workflows/prod-public-functional-smoke.yml"
+  workflow_run:
+    workflows: ["Repair BroBro PWA manifest MIME on prod Nginx"]
+    types: [completed]
 
 permissions:
   contents: read

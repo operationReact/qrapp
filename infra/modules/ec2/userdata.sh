@@ -47,6 +47,18 @@ java -version
 
 # ── 3. Install Nginx + Certbot ────────────────────────────────────────────────
 dnf install -y nginx
+
+# Serve the installed PWA manifest with an explicit media type, not octet-stream.
+# Do this on first boot as well as in the one-time guarded repair for existing EC2.
+if grep -Eq '^[[:space:]]*[^#;]+[[:space:]]webmanifest[[:space:]]*;' /etc/nginx/mime.types; then
+  grep -Eq '^[[:space:]]*application/manifest\+json[[:space:]]+webmanifest[[:space:]]*;' /etc/nginx/mime.types \
+    || { echo "Unexpected webmanifest MIME mapping"; exit 1; }
+else
+  grep -Eq '^[[:space:]]*types[[:space:]]*\{' /etc/nginx/mime.types \
+    || { echo "Missing nginx mime.types block"; exit 1; }
+  sed -i '/^[[:space:]]*types[[:space:]]*{/a\    application/manifest+json webmanifest;' /etc/nginx/mime.types
+fi
+
 # Certbot via Python pip (most reliable on AL2023 ARM64)
 dnf install -y python3 python3-pip augeas-libs
 pip3 install certbot certbot-nginx --quiet
