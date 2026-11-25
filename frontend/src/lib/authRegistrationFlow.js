@@ -25,8 +25,8 @@ export function normalizeIndianMobileInput(value) {
 export function validateCustomerDetails({ name, phone, password, specialDate, specialDayType, specialDayCustomLabel }) {
   if (!String(name ?? "").trim()) return "Enter your full name.";
   if (!/^[6-9]\d{9}$/.test(phone ?? "")) return "Enter a valid 10-digit Indian WhatsApp number.";
-  if (typeof password !== "string" || password.length < 8 || !password.trim()) return "Choose a password with at least 8 characters.";
-  if (new TextEncoder().encode(password).length > 72) return "Choose a shorter password (maximum 72 UTF-8 bytes).";
+  if (password && (typeof password !== "string" || password.length < 8 || !password.trim())) return "Choose a password with at least 8 characters.";
+  if (new TextEncoder().encode(password || "").length > 72) return "Choose a shorter password (maximum 72 UTF-8 bytes).";
   if (specialDayType && !specialDate) return "Choose a date for your special occasion.";
   if (specialDate && !specialDayType) return "Choose a special-day occasion.";
   if (specialDayType === "Other" && !String(specialDayCustomLabel ?? "").trim()) return "Enter your special occasion.";
