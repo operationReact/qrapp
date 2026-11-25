@@ -51,6 +51,9 @@ public class UserAuthController {
     @PostMapping("/register/request-otp")
     public ResponseEntity<?> requestRegistrationOtp(@Valid @RequestBody RegistrationOtpRequest req) {
         try {
+            if (req.getGoogleLinkTicket() != null) googleAuth.requireLinkTicket(req.getGoogleLinkTicket());
+            if ((req.getPassword() == null || req.getPassword().isBlank()) && req.getGoogleLinkTicket() == null)
+                throw new OtpException("password_required");
             whatsAppOtpService.requestRegistrationOtp(req.getPhoneNumber(), req.getName(), req.getPassword(),
                     req.getDefaultLocationId(), req.getCustomerCompanyId(), req.getDateOfBirth(),
                     req.getSpecialDate(), req.getSpecialDayType(), req.getSpecialDayCustomLabel(),
@@ -156,6 +159,7 @@ public class UserAuthController {
     @PostMapping("/login/request-otp")
     public ResponseEntity<?> requestLoginOtp(@Valid @RequestBody PhoneNumberRequest req) {
         try {
+            googleAuth.requireLinkTicket(req.getGoogleLinkTicket());
             whatsAppOtpService.requestCustomerLoginOtp(req.getPhoneNumber());
             return ResponseEntity.ok(new OtpResponse(true, GENERIC_RESET_MESSAGE));
         } catch (OtpException ex) {
@@ -170,8 +174,10 @@ public class UserAuthController {
     @PostMapping("/login/verify-otp")
     public ResponseEntity<?> verifyLoginOtp(@Valid @RequestBody WhatsAppOtpVerifyRequest req) {
         try {
+            googleAuth.requireLinkTicket(req.getGoogleLinkTicket());
             var response = whatsAppOtpService.verifyCustomerLoginOtp(req.getPhoneNumber(), req.getOtp());
-            return completeGoogleLink(response, req.getGoogleLinkTicket());
+            googleAuth.linkAfterOtp(response, req.getGoogleLinkTicket());
+            return ResponseEntity.ok(response);
         } catch (OtpException ex) {
             return ResponseEntity.badRequest().body(new OtpResponse(false, "Invalid or expired OTP"));
         }
