@@ -1,0 +1,57 @@
+name: One-time provision BroBro production super admin
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/provision-prod-super-admin.yml"
+      - "scripts/ProvisionSuperAdmin.java"
+      - "scripts/provision-prod-super-admin.py"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/provision-prod-super-admin.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: broandbro-prod-super-admin-provision
+  cancel-in-progress: false
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: corretto
+          java-version: "21"
+      - name: Compile provisioning helper and validate Python
+        run: |
+          set -euo pipefail
+          javac --release 21 -d "$RUNNER_TEMP" scripts/ProvisionSuperAdmin.java
+          python3 -m py_compile scripts/provision-prod-super-admin.py
+  provision:
+    needs: validate
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: prod
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: corretto
+          java-version: "21"
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_BACKEND_ROLE_ARN }}
+          aws-region: ap-south-1
+      - name: Provision and verify production super-admin login
+        env:
+          EXPECTED_ACCOUNT: ${{ vars.AWS_NEW_ACCOUNT_ID }}
+          SUPER_ADMIN_PHONE: ${{ secrets.SUPER_ADMIN_PHONE }}
+          SUPER_ADMIN_PASSWORD: ${{ secrets.SUPER_ADMIN_PASSWORD }}
+        run: python3 scripts/provision-prod-super-admin.py
