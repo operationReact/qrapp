@@ -50,7 +50,8 @@ try {
       await page.getByRole("heading",{name:"Welcome back",exact:true}).waitFor();
       const otpButton = page.getByRole("button",{name:"Continue with WhatsApp",exact:true});
       const passwordButton = page.getByRole("button",{name:"Sign In",exact:true});
-      if (process.env.EXPECT_NEW_AUTH === "1") {
+      await otpButton.or(passwordButton).first().waitFor();
+      if (process.env.EXPECT_NEW_AUTH === "1" || await otpButton.isVisible()) {
         await otpButton.waitFor();
         await page.getByRole("button",{name:"Continue with Google",exact:true}).waitFor();
         await capture("login-passwordless-google");
