@@ -96,6 +96,8 @@ public class SecurityConfig {
                                 "/auth/register/request-otp",
                                 "/auth/register/verify-otp",
                                 "/auth/login",
+                                "/auth/login/request-otp",
+                                "/auth/login/verify-otp",
                                 "/auth/password/forgot/request-otp",
                                 "/auth/password/forgot/verify-otp",
                                 "/auth/password/reset",
