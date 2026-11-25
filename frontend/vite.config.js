@@ -19,7 +19,7 @@ export default defineConfig(({ command, mode }) => {
     babel({ presets: [reactCompilerPreset()] }),
   ],
   ...(prodApi || localApi ? { define: { "import.meta.env.VITE_API_URL": JSON.stringify(prodApi ? PROXY_PREFIX : "http://localhost:8080") } } : {}),
-  server: { host: "localhost", port: 5173, strictPort: true },
+  ...(prodApi || localApi ? { server: { host: "localhost", port: 5173, strictPort: true } } : {}),
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
