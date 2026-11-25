@@ -8,6 +8,7 @@ import os
 import re
 import shutil
 import subprocess
+import time
 import tempfile
 from pathlib import Path
 
@@ -27,15 +28,29 @@ def checked(*args):
 def smoke():
     checked("nginx", "-t")
     for host in HOSTS:
-        result = checked(
-            "curl", "--noproxy", "*", "-fsS", "--max-time", "15",
-            "--resolve", f"{host}:443:127.0.0.1",
-            "-D", "-", "-o", "/dev/null",
-            f"https://{host}/manifest.webmanifest",
-        )
-        if "content-type: application/manifest+json" not in result.stdout.lower():
-            raise RuntimeError(f"{host}: still serving manifest with wrong MIME type")
-        print(f"{host}: manifest MIME verified")
+        # systemctl reload returns before every old Nginx worker has stopped
+        # accepting connections; retry instead of reverting a correct fix.
+        last_headers = "No response received"
+        for attempt in range(12):
+            try:
+                result = checked(
+                    "curl", "--noproxy", "*", "-fsS", "--max-time", "15",
+                    "--resolve", f"{host}:443:127.0.0.1",
+                    "-D", "-", "-o", "/dev/null",
+                    f"https://{host}/manifest.webmanifest",
+                )
+                last_headers = "; ".join(
+                    line.strip() for line in result.stdout.splitlines()
+                    if line.lower().startswith(("http/", "content-type:", "server:"))
+                )
+                if "content-type: application/manifest+json" in result.stdout.lower():
+                    print(f"{host}: manifest MIME verified (attempt {attempt + 1})")
+                    break
+            except subprocess.CalledProcessError as exc:
+                last_headers = f"curl exit {exc.returncode}: {exc.stderr[:300]}"
+            time.sleep(1)
+        else:
+            raise RuntimeError(f"{host}: MIME still incorrect after reload retries; {last_headers}")
 
 
 def main():

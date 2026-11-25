@@ -6,6 +6,7 @@ on:
     branches: [main]
     paths:
       - .github/workflows/prod-pwa-mime-repair.yml
+      - scripts/repair-prod-pwa-vhost-mime.py
 permissions:
   contents: read
   id-token: write
