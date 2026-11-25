@@ -148,7 +148,7 @@ jobs:
           role-to-assume: ${{ secrets.AWS_BACKEND_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Publish private S3 build to Nginx over SSM (no SSH)
+      - name: Publish private S3 build to Nginx over SSM (local HTTP staging)
         env:
           EXPECTED_ACCOUNT: ${{ vars.AWS_NEW_ACCOUNT_ID }}
         run: |
@@ -158,7 +158,7 @@ jobs:
             --filters 'Name=tag:Name,Values=broandbro-prod-backend' 'Name=instance-state-name,Values=running' \
             --query 'Reservations[].Instances[].InstanceId' --output text)"
           [[ "$INSTANCE_ID" =~ ^i-[0-9a-f]+$ ]] || { echo "::error::Expected one running production EC2"; exit 1; }
-          COMMAND="set -euo pipefail; mkdir -p /var/www/broandbro; aws s3 sync s3://$S3_BUCKET/ /var/www/broandbro/ --delete --only-show-errors; chmod -R a+rX /var/www/broandbro; nginx -t; systemctl reload nginx; certbot --nginx --non-interactive --agree-tos --register-unsafely-without-email -d migrate-prod.broandbro.in --redirect; curl -fsS --resolve migrate-prod.broandbro.in:443:127.0.0.1 https://migrate-prod.broandbro.in/ >/dev/null"
+          COMMAND="set -euo pipefail; mkdir -p /var/www/broandbro; aws s3 sync s3://$S3_BUCKET/ /var/www/broandbro/ --delete --only-show-errors; chmod -R a+rX /var/www/broandbro; test -s /var/www/broandbro/index.html; nginx -t; systemctl reload nginx; curl -fsS --max-time 15 -H 'Host: migrate-prod.broandbro.in' http://127.0.0.1/ >/dev/null"
           python3 -c 'import json,sys; json.dump({"commands":[sys.argv[1]]},open(sys.argv[2],"w"))' \
             "$COMMAND" "$RUNNER_TEMP/frontend-ssm.json"
           CMD_ID="$(aws ssm send-command --instance-ids "$INSTANCE_ID" \
@@ -171,7 +171,7 @@ jobs:
             STATUS="$(aws ssm get-command-invocation --command-id "$CMD_ID" \
               --instance-id "$INSTANCE_ID" --query Status --output text 2>/dev/null || echo Pending)"
             case "$STATUS" in
-              Success) echo "Frontend HTTPS smoke check passed"; exit 0 ;;
+              Success) echo "Frontend assets staged and local HTTP smoke check passed"; exit 0 ;;
               Failed|TimedOut|Cancelled)
                 aws ssm get-command-invocation --command-id "$CMD_ID" --instance-id "$INSTANCE_ID" \
                   --query '{Status:StatusDetails,Error:StandardErrorContent}' --output json || true
@@ -181,11 +181,74 @@ jobs:
           done
           echo "::error::Frontend SSM deploy timed out"; exit 1
 
+      # Public preview DNS is still delegated to the older hosted zone in this migration.
+      # Certificate issuance must never prevent staging a verified new-account build.
+      - name: Check public preview DNS before attempting TLS
+        id: preview_dns
+        run: |
+          set -euo pipefail
+          # The backend deploy role can DescribeInstances but cannot read the EC2 IP SSM parameter.
+          EXPECTED_IP="$(aws ec2 describe-instances \
+            --filters 'Name=tag:Name,Values=broandbro-prod-backend' 'Name=instance-state-name,Values=running' \
+            --query 'Reservations[].Instances[].PublicIpAddress' --output text)"
+          [[ "$EXPECTED_IP" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::Expected one production EC2 public IP"; exit 1; }
+          DNS_CF="$(dig +short A migrate-prod.broandbro.in @1.1.1.1 | sort -u || true)"
+          DNS_GOOGLE="$(dig +short A migrate-prod.broandbro.in @8.8.8.8 | sort -u || true)"
+          if [[ "$DNS_CF" == "$EXPECTED_IP" && "$DNS_GOOGLE" == "$EXPECTED_IP" ]]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+            echo "Preview hostname resolves to the new EC2 from two public resolvers."
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Frontend assets are staged. Preview HTTPS deferred until public DNS points to the new EC2."
+          fi
+
+      - name: Issue HTTPS certificate and smoke-test preview (only with correct public DNS)
+        if: steps.preview_dns.outputs.ready == 'true'
+        env:
+          EXPECTED_ACCOUNT: ${{ vars.AWS_NEW_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          test "$(aws sts get-caller-identity --query Account --output text)" = "$EXPECTED_ACCOUNT"
+          INSTANCE_ID="$(aws ec2 describe-instances \
+            --filters 'Name=tag:Name,Values=broandbro-prod-backend' 'Name=instance-state-name,Values=running' \
+            --query 'Reservations[].Instances[].InstanceId' --output text)"
+          [[ "$INSTANCE_ID" =~ ^i-[0-9a-f]+$ ]] || { echo "::error::Expected one running EC2 instance"; exit 1; }
+          COMMAND="set -euo pipefail; certbot --nginx --non-interactive --agree-tos --register-unsafely-without-email -d migrate-prod.broandbro.in --redirect; nginx -t; curl -fsS --max-time 15 --resolve migrate-prod.broandbro.in:443:127.0.0.1 https://migrate-prod.broandbro.in/ >/dev/null"
+          python3 -c 'import json,sys; json.dump({"commands":[sys.argv[1]]},open(sys.argv[2],"w"))' \
+            "$COMMAND" "$RUNNER_TEMP/frontend-tls-ssm.json"
+          CMD_ID="$(aws ssm send-command --instance-ids "$INSTANCE_ID" \
+            --document-name AWS-RunShellScript \
+            --parameters "file://$RUNNER_TEMP/frontend-tls-ssm.json" \
+            --timeout-seconds 900 \
+            --comment "broandbro-prod-frontend-tls-$GITHUB_RUN_ID" \
+            --query 'Command.CommandId' --output text)"
+          for attempt in $(seq 1 90); do
+            STATUS="$(aws ssm get-command-invocation --command-id "$CMD_ID" \
+              --instance-id "$INSTANCE_ID" --query Status --output text 2>/dev/null || echo Pending)"
+            case "$STATUS" in
+              Success)
+                curl -fsS --max-time 15 https://migrate-prod.broandbro.in/ >/dev/null
+                echo "Preview HTTPS smoke check passed"
+                exit 0 ;;
+              Failed|TimedOut|Cancelled)
+                aws ssm get-command-invocation --command-id "$CMD_ID" --instance-id "$INSTANCE_ID" \
+                  --query '{Status:StatusDetails,Error:StandardErrorContent}' --output json || true
+                exit 1 ;;
+            esac
+            sleep 10
+          done
+          echo "::error::Preview TLS SSM deployment timed out"; exit 1
+
       - name: Deployment summary
         run: |
-          echo "## ✅ Frontend Deployed to Production" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- **URL:** https://migrate-prod.broandbro.in" >> "$GITHUB_STEP_SUMMARY"
-          echo "- **Bucket:** ${{ env.S3_BUCKET }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Delivery:** Private S3 to EC2/Nginx over SSM (HTTPS)" >> "$GITHUB_STEP_SUMMARY"
-          echo "- **Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "## Frontend staging status (new AWS account)" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Build:** Uploaded to private S3 and staged on EC2/Nginx; local HTTP smoke check passed" >> "$GITHUB_STEP_SUMMARY"
+          if [[ "${{ steps.preview_dns.outputs.ready }}" == "true" ]]; then
+            echo "- **Preview:** HTTPS verified at https://migrate-prod.broandbro.in" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "- **Preview:** NOT HTTPS-ready; waiting for public preview DNS delegation, certificate not attempted" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          echo "- **Bucket:** ${{ env.S3_BUCKET }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Commit:** ${{ github.sha }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Main-domain cutover:** Not performed" >> "$GITHUB_STEP_SUMMARY"
