@@ -1,0 +1,104 @@
+name: Auth browser visual regression
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "frontend/**"
+      - "scripts/auth-visual-check.mjs"
+      - ".github/workflows/auth-visual-regression.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  visual:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install pinned browser test harness
+        run: |
+          mkdir -p "$RUNNER_TEMP/auth-browser"
+          npm install --prefix "$RUNNER_TEMP/auth-browser" --no-audit --no-fund --save-exact playwright@1.56.1
+          cp scripts/auth-visual-check.mjs "$RUNNER_TEMP/auth-browser/"
+          "$RUNNER_TEMP/auth-browser/node_modules/.bin/playwright" install --with-deps chromium
+      - name: Capture current frontend
+        working-directory: frontend
+        env:
+          VITE_API_URL: https://api.broandbro.in
+          VITE_ENV: prod
+          NODE_ENV: production
+        run: |
+          set -euo pipefail
+          npm ci --no-audit --no-fund --include=dev
+          npm run build
+          npm run preview -- --host 127.0.0.1 --port 4173 --strictPort > "$RUNNER_TEMP/preview.log" 2>&1 &
+          trap 'kill $! 2>/dev/null || true' EXIT
+          for i in {1..30}; do curl -fsS http://127.0.0.1:4173/login >/dev/null && break; sleep 1; done
+          SCREENSHOT_DIR="$RUNNER_TEMP/visual/current" node "$RUNNER_TEMP/auth-browser/auth-visual-check.mjs"
+      - name: Capture pull request base frontend for comparison
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          VITE_API_URL: https://api.broandbro.in
+          VITE_ENV: prod
+          NODE_ENV: production
+        run: |
+          set -euo pipefail
+          git worktree add --detach "$RUNNER_TEMP/auth-base" "$BASE_SHA"
+          cd "$RUNNER_TEMP/auth-base/frontend"
+          npm ci --no-audit --no-fund --include=dev
+          npm run build
+          npm run preview -- --host 127.0.0.1 --port 4174 --strictPort > "$RUNNER_TEMP/base-preview.log" 2>&1 &
+          trap 'kill $! 2>/dev/null || true' EXIT
+          for i in {1..30}; do curl -fsS http://127.0.0.1:4174/login >/dev/null && break; sleep 1; done
+          TEST_ORIGIN=http://127.0.0.1:4174 SCREENSHOT_DIR="$RUNNER_TEMP/visual/base" node "$RUNNER_TEMP/auth-browser/auth-visual-check.mjs"
+      - name: Compare screenshots against pull request base
+        if: github.event_name == 'pull_request'
+        run: |
+          python3 -m venv "$RUNNER_TEMP/visual-venv"
+          "$RUNNER_TEMP/visual-venv/bin/pip" install Pillow==11.3.0
+          "$RUNNER_TEMP/visual-venv/bin/python" - <<'PY'
+          import os
+          from pathlib import Path
+          from PIL import Image, ImageChops
+          root = Path(os.environ["RUNNER_TEMP"]) / "visual"
+          current = {p.name for p in (root / "current").glob("*.png")}
+          base = {p.name for p in (root / "base").glob("*.png")}
+          assert current == base and len(current) == 30, "Incomplete screenshot matrix"
+          diff = root / "diff"
+          diff.mkdir(exist_ok=True)
+          failures = []
+          for name in sorted(current):
+              with Image.open(root / "base" / name) as a, Image.open(root / "current" / name) as b:
+                  a, b = a.convert("RGB"), b.convert("RGB")
+                  if a.size != b.size:
+                      failures.append(f"{name}: dimensions changed")
+                      continue
+                  d = ImageChops.difference(a, b)
+                  mask = d.getchannel("R")
+                  for channel in ("G", "B"):
+                      mask = ImageChops.lighter(mask, d.getchannel(channel))
+                  count = sum(mask.histogram()[17:])
+                  ratio = count / (a.width * a.height)
+                  print(f"{name}: {ratio:.3%} changed pixels")
+                  if ratio > 0.001:
+                      d.save(diff / name)
+                      failures.append(f"{name}: {ratio:.3%} changed pixels")
+          if failures:
+              raise SystemExit("Visual differences require review:\n" + "\n".join(failures))
+          PY
+      - name: Upload visual evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: auth-browser-visual-evidence
+          path: ${{ runner.temp }}/visual/
+          if-no-files-found: warn
+          retention-days: 14
