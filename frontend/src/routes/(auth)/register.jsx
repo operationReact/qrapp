@@ -28,6 +28,7 @@ import { extractApiError } from "@/lib/apiError";
 import { getSafeRedirect } from "@/lib/safeRedirect";
 import { SPECIAL_DAY_TYPES } from "@/content/specialDayOptions";
 import { RegistrationPurposeControl } from "@/components/registration-purpose-control";
+import { getPendingGoogleLink, clearPendingGoogleLink } from "@/lib/pendingGoogleLink";
 import { normalizeIndianMobileInput, validateLocationCompanySelection, validateCustomerDetails } from "@/lib/authRegistrationFlow";
 
 export const Route = createFileRoute("/(auth)/register")({
@@ -43,7 +44,9 @@ export const Route = createFileRoute("/(auth)/register")({
     const [locationSearch, setLocationSearch] = useState("");
     const [showCelebrations, setShowCelebrations] = useState(false);
     const [phone, setPhone] = useState("");
-    const [name, setName] = useState("");
+    const [googleLink] = useState(() => getPendingGoogleLink());
+    const [linkWarning, setLinkWarning] = useState(null);
+    const [name, setName] = useState(() => googleLink?.name || "");
     const [dateOfBirth, setDateOfBirth] = useState("");
     const [specialDate, setSpecialDate] = useState("");
     const [specialDayType, setSpecialDayType] = useState("");
@@ -106,6 +109,13 @@ export const Route = createFileRoute("/(auth)/register")({
     });
 
     const handleOTPVerified = (data) => {
+      if (data?.googleLinkFailed) {
+        clearPendingGoogleLink();
+        setLinkWarning({ ...data, googleLinkFailed: false });
+        navigate({ to: "/register", search: {} });
+        return;
+      }
+      clearPendingGoogleLink();
       const token = data?.token;
       if (!token) {
         setError("Registration succeeded but no token returned");
@@ -193,6 +203,8 @@ export const Route = createFileRoute("/(auth)/register")({
                 {error}
               </div>
             )}
+            {linkWarning && <div role="alert" className="auth-login-error">Your account is verified but Google could not be linked. <button type="button" className="auth-inline-retry" onClick={() => handleOTPVerified(linkWarning)}>Continue with mobile</button></div>}
+            {googleLink && !linkWarning && <p role="status" className="auth-google-link-notice">Your Google account will be connected after WhatsApp verification.</p>}
             {registrationStep === "location" && (
               <div className="auth-register-location-step">
                 <Field>
@@ -437,7 +449,7 @@ export const Route = createFileRoute("/(auth)/register")({
                 </FieldContent>
               </Field>
               <Field>
-                <FieldLabel htmlFor="registration-password">Password <span className="text-red-600">*</span></FieldLabel>
+                <FieldLabel htmlFor="registration-password">Password (optional)</FieldLabel>
                 <FieldContent>
                   <RegistrationPurposeControl type="password" label="Password">
                     <PasswordInput
@@ -446,10 +458,9 @@ export const Route = createFileRoute("/(auth)/register")({
                       className="h-10 [&>input]:!pl-10"
                       id="registration-password"
                       autoComplete="new-password"
-                      required
                     />
                   </RegistrationPurposeControl>
-                  <p className="auth-field-hint">At least 8 characters. No required symbols or numbers.</p>
+                  <p className="auth-field-hint">Skip this to use WhatsApp sign-in. If you set a password, use at least 8 characters.</p>
                 </FieldContent>
               </Field>
               <div className="flex mt-5 flex-col gap-2">
@@ -478,7 +489,7 @@ export const Route = createFileRoute("/(auth)/register")({
                 </div>
                 <Button
                   type="submit"
-                  disabled={otpMutation.isPending}
+                  disabled={otpMutation.isPending || !!linkWarning}
                   className="auth-primary-action h-12 text-sm! font-medium!"
                 >
                   {otpMutation.isPending ? "Sending code..." : "Send verification code"}
@@ -501,7 +512,7 @@ export const Route = createFileRoute("/(auth)/register")({
           phone={phone}
           contactLabel="WhatsApp Number"
           onVerified={handleOTPVerified}
-          verifyOtp={verifyRegistrationOTP}
+          verifyOtp={(args) => verifyRegistrationOTP({ ...args, googleLinkTicket: googleLink?.ticket })}
           onResend={handleResendOTP}
         />
       </div>
