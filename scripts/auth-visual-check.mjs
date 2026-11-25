@@ -23,7 +23,8 @@ try {
         const path = new URL(route.request().url()).pathname;
         const cors = {"access-control-allow-origin":"*","access-control-allow-methods":"GET, POST, OPTIONS","access-control-allow-headers":"*"};
         if (route.request().method() === "OPTIONS") return route.fulfill({status:204,headers:cors});
-        const data = path === "/auth/google/challenge"
+        const data = path === "/auth/me" ? {id:500,role:"CUSTOMER",name:"Visual Customer",phone:"+919876543210",defaultLocation:null,customerCompany:null}
+          : path === "/auth/google/challenge"
           ? {enabled:true,clientId:"visual-fixture.apps.googleusercontent.com",nonce:"fixture"}
           : path === "/auth/google/exchange"
             ? {status:"mobile_verification_required",ticket:"visual-test-ticket",name:"Visual Customer"}
@@ -48,23 +49,22 @@ try {
       }
       await page.goto(origin + "/login");
       await page.getByRole("heading",{name:"Welcome back",exact:true}).waitFor();
-      const otpButton = page.getByRole("button",{name:"Continue with WhatsApp",exact:true});
       const passwordButton = page.getByRole("button",{name:"Sign In",exact:true});
-      await otpButton.or(passwordButton).first().waitFor();
-      if (process.env.EXPECT_NEW_AUTH === "1" || await otpButton.isVisible()) {
-        await otpButton.waitFor();
+      await passwordButton.waitFor();
+      if (process.env.EXPECT_NEW_AUTH === "1") {
         await page.getByRole("button",{name:"Continue with Google",exact:true}).waitFor();
-        await capture("login-passwordless-google");
+        await capture("login-password-google");
+        assert.equal(await page.getByRole("button",{name:"Continue with WhatsApp",exact:true}).count(),0,"Standalone OTP sign-in must be absent");
+        await page.getByRole("button",{name:"Continue with Google",exact:true}).click();
+        await page.getByText(/Verify your WhatsApp number to connect/).waitFor();
+        await capture("login-google-link");
         await page.getByPlaceholder("10-digit mobile number").fill("9876543210");
-        await otpButton.click();
+        await page.getByRole("button",{name:"Verify WhatsApp number",exact:true}).click();
         await page.getByRole("dialog").waitFor();
         await capture("login-otp-dialog");
         await page.getByRole("button",{name:/Edit Account/}).click();
         await page.getByRole("dialog").waitFor({state:"hidden"});
-        await page.getByRole("button",{name:"Continue with Google",exact:true}).click();
-        await page.getByText(/Verify your WhatsApp number to connect/).waitFor();
-        await capture("login-google-link");
-        await page.getByRole("button",{name:"Password",exact:true}).click();
+        await page.getByRole("button",{name:"Back to password sign-in",exact:true}).click();
         await page.getByPlaceholder("10-digit mobile number").fill("");
       }
       await passwordButton.waitFor();
@@ -88,6 +88,17 @@ try {
       await capture("registration-details");
       await page.getByRole("button",{name:/Celebrate with Bro & Bro/}).click();
       await capture("registration-optional-dates");
+      if (process.env.EXPECT_NEW_AUTH === "1") {
+        await page.evaluate(() => localStorage.setItem("user",JSON.stringify({id:500,role:"CUSTOMER",token:"visual-fixture-token",name:"Visual Customer"})));
+        await page.reload();
+        await page.getByRole("heading",{name:"Complete your profile"}).waitFor();
+        await page.locator("#required-location").selectOption("1");
+        await page.locator("#required-company").selectOption("10");
+        await capture("required-workplace-profile");
+        await page.locator("#required-location").selectOption("2");
+        await page.locator("#required-company").locator('option[value="20"]').waitFor({state:"attached"});
+        assert.equal(await page.locator("#required-company").inputValue(),"","Changing location must clear company");
+      }
       console.log("Auth layout checks and screenshots: " + prefix);
     } finally { await context.close(); }
   }
