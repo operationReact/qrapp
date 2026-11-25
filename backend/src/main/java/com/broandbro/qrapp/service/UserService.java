@@ -425,6 +425,10 @@ public class UserService {
             }
         }
 
+        if (effectiveRole(user) == UserRole.CUSTOMER && (user.getDefaultLocation() == null || user.getCustomerCompany() == null
+                || !Boolean.TRUE.equals(user.getDefaultLocation().getActive()) || !Boolean.TRUE.equals(user.getCustomerCompany().getActive()))) {
+            throw new IllegalArgumentException("workplace_setup_required");
+        }
         String newPassword = trimToNull(req.getNewPassword());
         if (newPassword != null) {
             String currentPassword = trimToNull(req.getCurrentPassword());
