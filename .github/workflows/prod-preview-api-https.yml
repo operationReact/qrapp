@@ -1,0 +1,154 @@
+# Idempotent preview API vhost staging; gated HTTPS after public DNS delegation.
+# This does not cut over broandbro.in or modify Route53.
+name: Stage BroBro preview API and enable HTTPS when DNS ready
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/prod-preview-api-https.yml"
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: broandbro-preview-api-https
+  cancel-in-progress: false
+
+jobs:
+  preview-api:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: prod
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check safe staging script syntax
+        run: bash -n scripts/stage-prod-preview-api-nginx.sh
+
+      - name: Assume scoped production backend role
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_BACKEND_ROLE_ARN }}
+          aws-region: ap-south-1
+
+      - name: Confirm new AWS account and target EC2
+        id: target
+        env:
+          EXPECTED_ACCOUNT: ${{ vars.AWS_NEW_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          test "$EXPECTED_ACCOUNT" = "098859530205"
+          test "$(aws sts get-caller-identity --query Account --output text)" = "$EXPECTED_ACCOUNT"
+          INSTANCE="$(aws ec2 describe-instances \
+            --filters 'Name=tag:Name,Values=broandbro-prod-backend' 'Name=instance-state-name,Values=running' \
+            --query 'Reservations[].Instances[].InstanceId' --output text)"
+          [[ "$INSTANCE" =~ ^i-[0-9a-f]+$ ]] || { echo "::error::Expected exactly one running production EC2"; exit 1; }
+          IP="$(aws ec2 describe-instances --instance-ids "$INSTANCE" \
+            --query 'Reservations[0].Instances[0].PublicIpAddress' --output text)"
+          [[ "$IP" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::Expected EC2 public IP"; exit 1; }
+          echo "instance=$INSTANCE" >> "$GITHUB_OUTPUT"
+          echo "ip=$IP" >> "$GITHUB_OUTPUT"
+
+      - name: Stage explicit API preview HTTP vhost on new EC2
+        env:
+          INSTANCE: ${{ steps.target.outputs.instance }}
+        run: |
+          set -euo pipefail
+          PAYLOAD="$(base64 -w0 scripts/stage-prod-preview-api-nginx.sh)"
+          COMMAND="echo '$PAYLOAD' | base64 -d >/tmp/broandbro-stage-preview-api.sh && bash /tmp/broandbro-stage-preview-api.sh"
+          python3 -c 'import json,sys;json.dump({"commands":[sys.argv[1]]},open(sys.argv[2],"w"))' \
+            "$COMMAND" "$RUNNER_TEMP/preview-api-stage.json"
+          COMMAND_ID="$(aws ssm send-command --instance-ids "$INSTANCE" \
+            --document-name AWS-RunShellScript \
+            --parameters "file://$RUNNER_TEMP/preview-api-stage.json" \
+            --timeout-seconds 180 \
+            --comment "broandbro-preview-api-stage-$GITHUB_RUN_ID" \
+            --query 'Command.CommandId' --output text)"
+          for attempt in $(seq 1 45); do
+            STATUS="$(aws ssm get-command-invocation --command-id "$COMMAND_ID" \
+              --instance-id "$INSTANCE" --query Status --output text 2>/dev/null || echo Pending)"
+            case "$STATUS" in
+              Success)
+                echo "Preview API local HTTP stage passed"
+                exit 0 ;;
+              Failed|TimedOut|Cancelled)
+                aws ssm get-command-invocation --command-id "$COMMAND_ID" --instance-id "$INSTANCE" \
+                  --query '{Status:StatusDetails,Error:StandardErrorContent,Output:StandardOutputContent}' --output json || true
+                exit 1 ;;
+            esac
+            sleep 5
+          done
+          echo "::error::Preview API Nginx staging timed out"; exit 1
+
+      - name: Verify new EC2 preview API publicly over direct HTTP (no DNS changes)
+        env:
+          IP: ${{ steps.target.outputs.ip }}
+        run: |
+          curl --noproxy '*' --fail --silent --show-error --max-time 15 \
+            --resolve "migrate-prod-api.broandbro.in:80:$IP" \
+            "http://migrate-prod-api.broandbro.in/actuator/health" >/dev/null
+          echo "New-account preview API direct HTTP health passed"
+
+      - name: Check public preview API DNS before issuing certificate
+        id: dns
+        env:
+          IP: ${{ steps.target.outputs.ip }}
+        run: |
+          set -euo pipefail
+          A1="$(dig +short A migrate-prod-api.broandbro.in @1.1.1.1 | sort -u || true)"
+          A2="$(dig +short A migrate-prod-api.broandbro.in @8.8.8.8 | sort -u || true)"
+          if [[ "$A1" == "$IP" && "$A2" == "$IP" ]]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+            echo "Both public DNS resolvers match the new EC2."
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Preview API staged successfully, but public DNS is not delegated to new EC2. HTTPS deferred."
+          fi
+
+      - name: Issue preview API HTTPS certificate and verify public health
+        if: steps.dns.outputs.ready == 'true'
+        env:
+          INSTANCE: ${{ steps.target.outputs.instance }}
+        run: |
+          set -euo pipefail
+          COMMAND="set -euo pipefail; certbot --nginx --non-interactive --agree-tos --register-unsafely-without-email -d migrate-prod-api.broandbro.in --redirect; nginx -t; curl --fail --silent --show-error --max-time 15 --resolve migrate-prod-api.broandbro.in:443:127.0.0.1 https://migrate-prod-api.broandbro.in/actuator/health >/dev/null"
+          python3 -c 'import json,sys;json.dump({"commands":[sys.argv[1]]},open(sys.argv[2],"w"))' \
+            "$COMMAND" "$RUNNER_TEMP/preview-api-tls.json"
+          COMMAND_ID="$(aws ssm send-command --instance-ids "$INSTANCE" \
+            --document-name AWS-RunShellScript \
+            --parameters "file://$RUNNER_TEMP/preview-api-tls.json" \
+            --timeout-seconds 900 \
+            --comment "broandbro-preview-api-tls-$GITHUB_RUN_ID" \
+            --query 'Command.CommandId' --output text)"
+          for attempt in $(seq 1 90); do
+            STATUS="$(aws ssm get-command-invocation --command-id "$COMMAND_ID" \
+              --instance-id "$INSTANCE" --query Status --output text 2>/dev/null || echo Pending)"
+            case "$STATUS" in
+              Success)
+                curl --fail --silent --show-error --max-time 15 \
+                  https://migrate-prod-api.broandbro.in/actuator/health >/dev/null
+                echo "Public preview API HTTPS health passed"
+                exit 0 ;;
+              Failed|TimedOut|Cancelled)
+                aws ssm get-command-invocation --command-id "$COMMAND_ID" --instance-id "$INSTANCE" \
+                  --query '{Status:StatusDetails,Error:StandardErrorContent}' --output json || true
+                exit 1 ;;
+            esac
+            sleep 10
+          done
+          echo "::error::Preview API HTTPS setup timed out"; exit 1
+
+      - name: Report staging and TLS state
+        run: |
+          echo "## New-account preview API" >> "$GITHUB_STEP_SUMMARY"
+          echo "- HTTP Nginx staging: passed" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Direct EC2 public HTTP health: passed" >> "$GITHUB_STEP_SUMMARY"
+          if [[ "${{ steps.dns.outputs.ready }}" == "true" ]]; then
+            echo "- Public HTTPS health: verified" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "- Public HTTPS: pending public DNS; certificate not attempted" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          echo "- Main-domain DNS: unchanged" >> "$GITHUB_STEP_SUMMARY"
