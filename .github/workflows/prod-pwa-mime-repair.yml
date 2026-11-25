@@ -20,12 +20,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Validate safe repair script
-        run: python3 -m py_compile scripts/repair-prod-pwa-manifest-mime.py
+        run: python3 -m py_compile scripts/repair-prod-pwa-vhost-mime.py
       - uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_BACKEND_ROLE_ARN }}
           aws-region: ap-south-1
-      - name: Repair MIME on exact new-account production EC2 over SSM
+      - name: Repair frontend vhost MIME on exact new-account production EC2 over SSM
         env:
           EXPECTED_ACCOUNT: ${{ vars.AWS_NEW_ACCOUNT_ID }}
         shell: bash
@@ -37,7 +37,7 @@ jobs:
             --filters 'Name=tag:Name,Values=broandbro-prod-backend' 'Name=instance-state-name,Values=running' \
             --query 'Reservations[].Instances[].InstanceId' --output text)"
           [[ "$INSTANCE" =~ ^i-[0-9a-f]+$ ]] || { echo "::error::Require exactly one prod EC2"; exit 1; }
-          PAYLOAD="$(base64 -w0 scripts/repair-prod-pwa-manifest-mime.py)"
+          PAYLOAD="$(base64 -w0 scripts/repair-prod-pwa-vhost-mime.py)"
           COMMAND="echo '$PAYLOAD' | base64 -d >/tmp/brobro-pwa-mime-repair.py && python3 /tmp/brobro-pwa-mime-repair.py"
           python3 -c 'import json,sys;json.dump({"commands":[sys.argv[1]]},open(sys.argv[2],"w"))' \
             "$COMMAND" "$RUNNER_TEMP/repair.json"

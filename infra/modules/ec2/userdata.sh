@@ -233,6 +233,11 @@ server {
     location ~ /\\. {
         deny all;
     }
+    location = /manifest.webmanifest {
+        types { application/manifest+json webmanifest; }
+        default_type application/manifest+json;
+        try_files $uri =404;
+    }
     location /assets/ {
         try_files $uri =404;
         add_header Cache-Control "public, max-age=31536000, immutable";
