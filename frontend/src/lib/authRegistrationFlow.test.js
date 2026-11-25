@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { validateLocationCompanySelection } from "./authRegistrationFlow.js";
+import { validateLocationCompanySelection, normalizeIndianMobileInput, validateCustomerDetails } from "./authRegistrationFlow.js";
 
 const locations = [
   { id: 11, name: "Workplace South", active: true },
@@ -41,4 +41,21 @@ test("a location or company fetch error does not unlock registration", () => {
   assert.match(validateLocationCompanySelection({
     locationId: "11", companyId: "7", locations, companies: undefined,
   }), /company/i);
+});
+
+test("mobile input accepts formatted or pasted national and international numbers", () => {
+  for (const input of ["9876543210", "+91 98765 43210", "919876543210", "09876543210"]) {
+    assert.equal(normalizeIndianMobileInput(input), "9876543210");
+  }
+  assert.equal(normalizeIndianMobileInput("abc123"), "123");
+});
+test("customer signup accepts a simple eight-character password and optional dates", () => {
+  const valid = {name:"Test Customer", phone:"9876543210", password:"longpass"};
+  assert.equal(validateCustomerDetails(valid), null);
+  assert.match(validateCustomerDetails({...valid,name:" "}), /name/i);
+  assert.match(validateCustomerDetails({...valid,phone:"123"}), /number/i);
+  assert.match(validateCustomerDetails({...valid,password:"short"}), /8 characters/i);
+  assert.match(validateCustomerDetails({...valid,password:"a".repeat(73)}), /72/);
+  assert.match(validateCustomerDetails({...valid,specialDayType:"Other"}), /date/i);
+  assert.match(validateCustomerDetails({...valid,specialDate:"2026-01-01"}), /occasion/i);
 });

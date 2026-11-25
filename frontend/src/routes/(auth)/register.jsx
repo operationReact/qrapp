@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useLocation, useNavigate, useSearch } from "@tanstack/react-router";
 import { useMutation, useQuery } from "@tanstack/react-query";
 
@@ -28,7 +28,7 @@ import { extractApiError } from "@/lib/apiError";
 import { getSafeRedirect } from "@/lib/safeRedirect";
 import { SPECIAL_DAY_TYPES } from "@/content/specialDayOptions";
 import { RegistrationPurposeControl } from "@/components/registration-purpose-control";
-import { validateLocationCompanySelection } from "@/lib/authRegistrationFlow";
+import { normalizeIndianMobileInput, validateLocationCompanySelection, validateCustomerDetails } from "@/lib/authRegistrationFlow";
 
 export const Route = createFileRoute("/(auth)/register")({
   component: function Register() {
@@ -39,6 +39,8 @@ export const Route = createFileRoute("/(auth)/register")({
     const from = getSafeRedirect(location.state?.from);
 
     const [registrationStep, setRegistrationStep] = useState("location");
+    const headingRef = useRef(null);
+    const [locationSearch, setLocationSearch] = useState("");
     const [showCelebrations, setShowCelebrations] = useState(false);
     const [phone, setPhone] = useState("");
     const [name, setName] = useState("");
@@ -78,7 +80,7 @@ export const Route = createFileRoute("/(auth)/register")({
 
     const otpMutation = useMutation({
       mutationFn: () => requestRegistrationOTP({
-        name,
+        name: name.trim(),
         dateOfBirth,
         specialDate,
         specialDayType,
@@ -109,7 +111,7 @@ export const Route = createFileRoute("/(auth)/register")({
         setError("Registration succeeded but no token returned");
         return;
       }
-      setUser({ token, info: data.user || { phone, name } });
+      setUser({ ...(data.user || { phone, name }), token });
       setUserAuth(token);
       // Preserve the location selected before registration for the first order.
       const selected = locationsQuery.data?.find((item) => String(item.id) === String(defaultLocationId));
@@ -133,6 +135,7 @@ export const Route = createFileRoute("/(auth)/register")({
         return;
       }
       setRegistrationStep("details");
+      requestAnimationFrame(() => headingRef.current?.focus());
     };
 
     const handleGenerateOTP = (e) => {
@@ -142,12 +145,10 @@ export const Route = createFileRoute("/(auth)/register")({
         setError("Please accept the Terms & Conditions and Privacy Policy to create your account.");
         return;
       }
-      if (!defaultLocationId) {
-        setError("Please select a Location.");
-        return;
-      }
-      if (!customerCompanyId) {
-        setError("Please select a Customer Company.");
+      const selectionError = validateLocationCompanySelection({ locationId: defaultLocationId, companyId: customerCompanyId, locations: locationsQuery.data, companies: companiesQuery.data });
+      const detailsError = validateCustomerDetails({ name, phone, password, specialDate, specialDayType, specialDayCustomLabel });
+      if (selectionError || detailsError) {
+        setError(selectionError || detailsError);
         return;
       }
       otpMutation.mutate();
@@ -177,17 +178,18 @@ export const Route = createFileRoute("/(auth)/register")({
           <div className="auth-register-panel">
             <div className="auth-register-heading">
               <span className="auth-register-eyebrow">JOIN BRO & BRO</span>
-              <h1>{registrationStep === "location" ? "Find your food court" : "Create your account"}</h1>
+              <h1 ref={headingRef} tabIndex={-1}>{registrationStep === "location" ? "Find your food court" : "Create your account"}</h1>
               <p>{registrationStep === "location"
                 ? "Select your location and company for the right menu and offers."
                 : "Almost there! Verify your mobile number to get started."}</p>
-              <div className="auth-register-progress" aria-label={`Step ${registrationStep === "location" ? 1 : 2} of 2`}>
+              <div className="auth-step-label" aria-live="polite"><span>Step {registrationStep === "location" ? 1 : 2} of 2</span><span>{registrationStep === "location" ? "Food court & company" : "Your details"}</span></div>
+              <div className="auth-register-progress" aria-hidden="true">
                 <span className="is-active" />
                 <span className={registrationStep === "details" ? "is-active" : ""} />
               </div>
             </div>
             {error && (
-              <div className="mb-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+              <div role="alert" className="mb-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
                 {error}
               </div>
             )}
@@ -201,7 +203,8 @@ export const Route = createFileRoute("/(auth)/register")({
                 )}
                 {locationsQuery.isError && (
                   <p className="auth-form-error" role="alert" aria-live="polite">
-                    {extractApiError(locationsQuery.error, "Locations are temporarily unavailable. Please try again before continuing.")}
+                    {extractApiError(locationsQuery.error, "Locations are temporarily unavailable.")}{" "}
+                    <button type="button" className="auth-inline-retry" onClick={() => locationsQuery.refetch()}>Try again</button>
                   </p>
                 )}
                 {locationsQuery.isSuccess && !locationsQuery.data.length && (
@@ -212,14 +215,16 @@ export const Route = createFileRoute("/(auth)/register")({
                 {locationsQuery.isSuccess && locationsQuery.data.length > 0 && (
                   <Combobox
                     items={locationsQuery.data.map((location) => location.name || location.title || `Location ${location.id}`)}
-                    value={selectedLocationName}
+                    value={selectedLocationName || locationSearch}
                     onValueChange={(value) => {
+                      setLocationSearch(value || "");
                       const selectedLocation = locationsQuery.data.find(
                         (location) => (location.name || location.title || `Location ${location.id}`) === value,
                       );
                       setDefaultLocationId(selectedLocation ? String(selectedLocation.id) : "");
                       setCustomerCompanyId("");
                       setCustomerCompanySearch("");
+                      setError(null);
                     }}
                   >
                     <div ref={locationComboboxAnchor}>
@@ -252,7 +257,8 @@ export const Route = createFileRoute("/(auth)/register")({
                 {defaultLocationId && companiesQuery.isLoading && <div className="min-h-12 animate-pulse rounded-xl border bg-muted" aria-label="Loading customer companies" />}
                 {defaultLocationId && companiesQuery.isError && (
                   <p className="auth-form-error" role="alert" aria-live="polite">
-                    {extractApiError(companiesQuery.error, "Customer Companies are temporarily unavailable. Please try again.")}
+                    {extractApiError(companiesQuery.error, "Customer Companies are temporarily unavailable.")}{" "}
+                    <button type="button" className="auth-inline-retry" onClick={() => companiesQuery.refetch()}>Try again</button>
                   </p>
                 )}
                 {defaultLocationId && companiesQuery.isSuccess && !companiesQuery.data.length && <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-3 text-sm text-amber-800">No active Customer Companies are available at this Location.</p>}
@@ -264,6 +270,7 @@ export const Route = createFileRoute("/(auth)/register")({
                       const selectedCompany = companiesQuery.data.find((company) => company.name === value);
                       setCustomerCompanySearch(value);
                       setCustomerCompanyId(selectedCompany ? String(selectedCompany.id) : "");
+                      setError(null);
                     }}
                   >
                     <div ref={companyComboboxAnchor}>
@@ -303,22 +310,27 @@ export const Route = createFileRoute("/(auth)/register")({
               <div className="auth-register-details-step">
                 <div className="auth-register-summary">
                   <div>
+                    <small className="auth-summary-label">YOUR FOOD COURT</small>
                     <strong>{selectedLocationName}</strong>
                     <span>{selectedCompanyName}</span>
                   </div>
-                  <button type="button" onClick={() => { setRegistrationStep("location"); setError(null); }}>
+                  <button type="button" onClick={() => { setRegistrationStep("location"); setError(null); requestAnimationFrame(() => headingRef.current?.focus()); }}>
                     Change
                   </button>
                 </div>
                 <form onSubmit={handleGenerateOTP} className="auth-register-form">
               <Field>
-                <FieldLabel>Name</FieldLabel>
+                <FieldLabel htmlFor="registration-name">Full name <span className="text-red-600">*</span></FieldLabel>
                 <FieldContent>
                   <RegistrationPurposeControl type="text" label="Name" placeholder="Your Name">
                     <Input
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       placeholder="Your Name"
+                      id="registration-name"
+                      autoComplete="name"
+                      required
+                      maxLength={120}
                       className="h-10"
                     />
                   </RegistrationPurposeControl>
@@ -406,30 +418,38 @@ export const Route = createFileRoute("/(auth)/register")({
               </Field>
               </div>}
               <Field>
-                <FieldLabel>WhatsApp Number</FieldLabel>
+                <FieldLabel htmlFor="registration-mobile">WhatsApp number <span className="text-red-600">*</span></FieldLabel>
                 <FieldContent>
                   <PhoneInput
                     icon={WhatsappLogoIcon}
                     value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
+                    onChange={(e) => setPhone(normalizeIndianMobileInput(e.target.value))}
+                    id="registration-mobile"
+                    type="tel"
+                    inputMode="numeric"
+                    autoComplete="tel-national"
                     required
                     placeholder="Enter your WhatsApp number"
                     aria-label="WhatsApp Number"
                     className="h-10"
                   />
+                  <p className="auth-field-hint">We will send a 6-digit code to verify your number.</p>
                 </FieldContent>
               </Field>
               <Field>
-                <FieldLabel>Password</FieldLabel>
+                <FieldLabel htmlFor="registration-password">Password <span className="text-red-600">*</span></FieldLabel>
                 <FieldContent>
                   <RegistrationPurposeControl type="password" label="Password">
                     <PasswordInput
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       className="h-10 [&>input]:!pl-10"
+                      id="registration-password"
+                      autoComplete="new-password"
                       required
                     />
                   </RegistrationPurposeControl>
+                  <p className="auth-field-hint">At least 8 characters. No required symbols or numbers.</p>
                 </FieldContent>
               </Field>
               <div className="flex mt-5 flex-col gap-2">
@@ -458,10 +478,10 @@ export const Route = createFileRoute("/(auth)/register")({
                 </div>
                 <Button
                   type="submit"
-                  disabled={otpMutation.isPending || !termsAccepted}
+                  disabled={otpMutation.isPending}
                   className="auth-primary-action h-12 text-sm! font-medium!"
                 >
-                  {otpMutation.isPending ? "Sending OTP..." : "Verify & Create Account"}
+                  {otpMutation.isPending ? "Sending code..." : "Send verification code"}
                 </Button>
                 <p className="auth-register-footnote">
                   Already have an account?{" "}

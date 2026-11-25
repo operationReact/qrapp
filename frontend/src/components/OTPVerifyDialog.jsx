@@ -24,7 +24,7 @@ import { extractApiError } from "@/lib/apiError";
 import { REGEXP_ONLY_DIGITS } from "input-otp";
 
 const OTP_LENGTH = 6;
-const RESEND_COUNTDOWN = 30;
+const RESEND_COUNTDOWN = 60;
 
 export default function OTPVerifyDialog({
   open,
@@ -108,7 +108,7 @@ export default function OTPVerifyDialog({
 
   const isVerifying = verifyMutation.isPending;
   const isResending = resendMutation.isPending;
-  const canVerify = otp.length === OTP_LENGTH && !isVerifying;
+  const canVerify = otp.length === OTP_LENGTH && !isVerifying && !isResending;
   const showResendButton = countdown === 0 && !isResending;
 
   return (
@@ -117,7 +117,7 @@ export default function OTPVerifyDialog({
         <DialogHeader>
           <DialogTitle className="text-base font-medium">Verify Your Account</DialogTitle>
           <DialogDescription>
-            Enter the OTP sent to your {contactLabel} +91 {phone}
+            Enter the 6-digit code sent to your {contactLabel} {phone?.startsWith("+91") ? phone : `+91 ${phone}`}
           </DialogDescription>
         </DialogHeader>
 
@@ -133,9 +133,11 @@ export default function OTPVerifyDialog({
                 onChange={handleOtpChange}
                 maxLength={OTP_LENGTH}
                 aria-invalid={!!displayError}
+                aria-label="Six-digit verification code"
+                autoComplete="one-time-code"
               >
                 <InputOTPGroup
-                  className="mx-auto *:data-[slot=input-otp-slot]:h-12 *:data-[slot=input-otp-slot]:w-11 *:data-[slot=input-otp-slot]:text-xl"
+                  className="mx-auto *:data-[slot=input-otp-slot]:h-12 *:data-[slot=input-otp-slot]:w-8 sm:*:data-[slot=input-otp-slot]:w-11 *:data-[slot=input-otp-slot]:text-xl"
                 >
                   {Array.from({ length: OTP_LENGTH }).map((_, index) => (
                     <InputOTPSlot key={index} index={index} />
