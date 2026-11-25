@@ -20,6 +20,15 @@ restore_on_error() {
 }
 trap restore_on_error EXIT
 
+# Certbot adds a 443 listener to this file. Never overwrite an issued certificate vhost.
+if [ -f "$TARGET" ] && grep -Eq 'listen[[:space:]]+443([[:space:]]|;)' "$TARGET"; then
+  echo "Existing preview API TLS vhost retained"
+  nginx -t
+  systemctl reload nginx
+  test "$(curl --noproxy '*' --silent --show-error --max-time 15 -o /dev/null -w '%{http_code}' -H 'Host: migrate-prod-api.broandbro.in' http://127.0.0.1/actuator/health)" = "200"
+  exit 0
+fi
+
 cat > "$TARGET" <<'NGINX'
 # Preview-only API host, new AWS account. HTTPS added by certbot after public DNS is ready.
 server {
