@@ -37,6 +37,8 @@ export const Route = createFileRoute("/(auth)/register")({
     const location = useLocation();
     const from = getSafeRedirect(location.state?.from);
 
+    const [registrationStep, setRegistrationStep] = useState("location");
+    const [showCelebrations, setShowCelebrations] = useState(false);
     const [phone, setPhone] = useState("");
     const [name, setName] = useState("");
     const [dateOfBirth, setDateOfBirth] = useState("");
@@ -108,8 +110,26 @@ export const Route = createFileRoute("/(auth)/register")({
       }
       setUser({ token, info: data.user || { phone, name } });
       setUserAuth(token);
+      // Preserve the location selected before registration for the first order.
+      const selected = locationsQuery.data?.find((item) => String(item.id) === String(defaultLocationId));
+      if (selected) {
+        localStorage.setItem("active-location", JSON.stringify({ ...selected, selectedByUser: true }));
+      }
       if (from) window.location.assign(from);
       else navigate({ to: "/" });
+    };
+
+    const handleContinue = () => {
+      setError(null);
+      if (!defaultLocationId || !locationsQuery.data?.some((item) => String(item.id) === defaultLocationId)) {
+        setError("Choose your food court location to continue.");
+        return;
+      }
+      if (!customerCompanyId || !companiesQuery.data?.some((item) => String(item.id) === customerCompanyId)) {
+        setError("Choose a company from this location to continue.");
+        return;
+      }
+      setRegistrationStep("details");
     };
 
     const handleGenerateOTP = (e) => {
@@ -137,37 +157,40 @@ export const Route = createFileRoute("/(auth)/register")({
     const selectedLocationName = selectedLocation
       ? selectedLocation.name || selectedLocation.title || `Location ${selectedLocation.id}`
       : "";
+    const selectedCompanyName = companiesQuery.data?.find(
+      (company) => String(company.id) === customerCompanyId,
+    )?.name || "";
 
     return (
       <div className="auth-register-page flex w-full min-w-0 flex-1 items-center justify-center overflow-x-hidden py-6 sm:px-4">
         <div className="w-full min-w-0 max-w-md">
-          <div className="px-4">
-            <Link
-              className={buttonVariants({
-                size: "xs",
-                variant: "ghost",
-                className: "",
-              })}
-              to="/"
-              title="Back To Locations"
-            >
+          <div className="auth-register-topbar">
+            <img src="/bro-logo.png" alt="Bro & Bro" className="auth-register-logo" />
+            <Link className={buttonVariants({ size: "sm", variant: "ghost" })} to="/" title="Back to locations">
               <CaretLeftIcon weight="bold" />
-              <span>Back To Locations</span>
+              <span>Back</span>
             </Link>
           </div>
-          <div className="h-fit min-w-0 rounded-xl p-4 pt-2">
-            <img
-              src="/login-banner.jpg"
-              alt="Your Easy Access To Delicious Meals"
-              className="w-full border border-muted login-banner rounded-[14px] overflow-hidden"
-            />
-            <h1 className="my-4 text-lg font-semibold">Create Account</h1>
+          <div className="auth-register-panel">
+            <div className="auth-register-heading">
+              <span className="auth-register-eyebrow">JOIN BRO & BRO</span>
+              <h1>{registrationStep === "location" ? "Find your food court" : "Create your account"}</h1>
+              <p>{registrationStep === "location"
+                ? "Select your location and company for the right menu and offers."
+                : "Almost there! Verify your mobile number to get started."}</p>
+              <div className="auth-register-progress" aria-label={`Step ${registrationStep === "location" ? 1 : 2} of 2`}>
+                <span className="is-active" />
+                <span className={registrationStep === "details" ? "is-active" : ""} />
+              </div>
+            </div>
             {error && (
               <div className="mb-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
                 {error}
               </div>
             )}
-            <Field>
+            {registrationStep === "location" && (
+              <div className="auth-register-location-step">
+                <Field>
               <FieldLabel>Location <span className="text-red-600">*</span></FieldLabel>
               <FieldContent>
                 {locationsQuery.isLoading && (
@@ -263,7 +286,28 @@ export const Route = createFileRoute("/(auth)/register")({
                 )}
               </FieldContent>
             </Field>
-            <form onSubmit={handleGenerateOTP} className="space-y-4">
+                <Button type="button" className="auth-primary-action auth-register-continue"
+                  onClick={handleContinue}
+                  disabled={locationsQuery.isLoading || companiesQuery.isLoading}>
+                  Continue
+                </Button>
+                <p className="auth-register-footnote">Already have an account?{" "}
+                  <Link to="/login" state={from ? { from } : undefined}>Sign in</Link>
+                </p>
+              </div>
+            )}
+            {registrationStep === "details" && (
+              <div className="auth-register-details-step">
+                <div className="auth-register-summary">
+                  <div>
+                    <strong>{selectedLocationName}</strong>
+                    <span>{selectedCompanyName}</span>
+                  </div>
+                  <button type="button" onClick={() => { setRegistrationStep("location"); setError(null); }}>
+                    Change
+                  </button>
+                </div>
+                <form onSubmit={handleGenerateOTP} className="auth-register-form">
               <Field>
                 <FieldLabel>Name</FieldLabel>
                 <FieldContent>
@@ -277,7 +321,13 @@ export const Route = createFileRoute("/(auth)/register")({
                   </RegistrationPurposeControl>
                 </FieldContent>
               </Field>
-              <Field>
+              <button type="button" className="auth-celebration-toggle"
+                aria-expanded={showCelebrations} onClick={() => setShowCelebrations((open) => !open)}>
+                <span><strong>Celebrate with Bro & Bro</strong><small>Birthday and special-day offers (optional)</small></span>
+                <span aria-hidden="true">{showCelebrations ? "−" : "+"}</span>
+              </button>
+              {showCelebrations && <div className="auth-celebration-fields">
+                <Field>
                 <FieldLabel>Birth Date</FieldLabel>
                 <p className="-mt-1 mb-2 text-xs leading-relaxed text-muted-foreground">
                   Add your birthday to receive exclusive birthday offers on that day.
@@ -351,6 +401,7 @@ export const Route = createFileRoute("/(auth)/register")({
                   )}
                 </FieldContent>
               </Field>
+              </div>}
               <Field>
                 <FieldLabel>WhatsApp Number</FieldLabel>
                 <FieldContent>
@@ -405,19 +456,18 @@ export const Route = createFileRoute("/(auth)/register")({
                 <Button
                   type="submit"
                   disabled={otpMutation.isPending || !termsAccepted}
-                  className="h-10 text-sm! font-medium!"
+                  className="auth-primary-action h-12 text-sm! font-medium!"
                 >
-                  {otpMutation.isPending ? "Creating..." : "Create Account"}
+                  {otpMutation.isPending ? "Sending OTP..." : "Verify & Create Account"}
                 </Button>
-                <Link
-                  className={buttonVariants({ variant: "ghost", size: "lg" })}
-                  to="/login"
-                  state={from ? { from } : undefined}
-                >
-                  Already Have An Account?
-                </Link>
+                <p className="auth-register-footnote">
+                  Already have an account?{" "}
+                  <Link to="/login" state={from ? { from } : undefined}>Sign in</Link>
+                </p>
               </div>
-            </form>
+                </form>
+              </div>
+            )}
           </div>
         </div>
         <OTPVerifyDialog
