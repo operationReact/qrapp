@@ -15,6 +15,7 @@ on:
       - "frontend/src/routes/(auth)/login.jsx"
       - "frontend/src/routes/(auth)/register.jsx"
       - "frontend/src/styles/auth-login.css"
+      - ".github/workflows/frontend-deploy-prod.yml"
   workflow_dispatch:
     inputs:
       reason:
@@ -247,6 +248,68 @@ jobs:
           done
           echo "::error::Preview TLS SSM deployment timed out"; exit 1
 
+      - name: Verify exact release on both public production hostnames
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected="$(sha256sum frontend/dist/index.html | cut -d ' ' -f1)"
+          echo "Expected deployed index SHA256: $expected"
+          for host in broandbro.in www.broandbro.in; do
+            for route in / /login /register; do
+              matched=false
+              for attempt in $(seq 1 5); do
+                body="$(mktemp)"
+                if curl --noproxy '*' --fail --silent --show-error --location --max-time 20 \
+                    -H 'Cache-Control: no-cache' -H 'Pragma: no-cache' \
+                    "https://$host$route" -o "$body"; then
+                  actual="$(sha256sum "$body" | cut -d ' ' -f1)"
+                  if [[ "$actual" == "$expected" ]]; then
+                    matched=true
+                  else
+                    echo "$host$route returned a different index SHA256: $actual"
+                  fi
+                fi
+                rm -f "$body"
+                [[ "$matched" == true ]] && break
+                sleep 3
+              done
+              if [[ "$matched" != true ]]; then
+                echo "::error::Public production $host$route does not serve the deployed release"
+                exit 1
+              fi
+              echo "$host$route serves exact deployed release"
+            done
+          done
+          python3 - <<'PY'
+          from html.parser import HTMLParser
+          from pathlib import Path
+          import hashlib
+          import urllib.request
+
+          class Assets(HTMLParser):
+              def __init__(self):
+                  super().__init__()
+                  self.paths = set()
+              def handle_starttag(self, tag, attrs):
+                  attrs = dict(attrs)
+                  path = attrs.get("src") if tag == "script" else attrs.get("href") if tag == "link" else None
+                  if path and path.startswith("/assets/"):
+                      self.paths.add(path)
+
+          parser = Assets()
+          parser.feed(Path("frontend/dist/index.html").read_text())
+          assert parser.paths, "No frontend entry assets found"
+          for host in ("broandbro.in", "www.broandbro.in"):
+              for path in sorted(parser.paths):
+                  expected = hashlib.sha256((Path("frontend/dist") / path.lstrip("/")).read_bytes()).hexdigest()
+                  req = urllib.request.Request("https://" + host + path, headers={"Cache-Control": "no-cache"})
+                  with urllib.request.urlopen(req, timeout=20) as response:
+                      actual = hashlib.sha256(response.read()).hexdigest()
+                  assert actual == expected, f"{host}{path} differs from deployed release"
+                  print(f"{host}{path}: exact asset verified")
+          PY
+          echo "- Public root, login, registration and entry assets: exact build verified" >> "$GITHUB_STEP_SUMMARY"
+
       - name: Deployment summary
         run: |
           echo "## Frontend staging status (new AWS account)" >> "$GITHUB_STEP_SUMMARY"
@@ -259,4 +322,4 @@ jobs:
           fi
           echo "- **Bucket:** ${{ env.S3_BUCKET }}" >> "$GITHUB_STEP_SUMMARY"
           echo "- **Commit:** ${{ github.sha }}" >> "$GITHUB_STEP_SUMMARY"
-          echo "- **Main-domain cutover:** Not performed" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Public main-domain release:** Exact deployed HTML and entry assets verified; no DNS changes performed" >> "$GITHUB_STEP_SUMMARY"
