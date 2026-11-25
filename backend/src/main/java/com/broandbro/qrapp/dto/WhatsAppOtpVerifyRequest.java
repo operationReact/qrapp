@@ -11,4 +11,6 @@ public class WhatsAppOtpVerifyRequest {
     @NotBlank
     @Pattern(regexp = "\\d{6}", message = "otp must contain 6 digits")
     private String otp;
+    @jakarta.validation.constraints.Size(max = 128)
+    private String googleLinkTicket;
 }
