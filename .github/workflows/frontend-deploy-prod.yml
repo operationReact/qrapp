@@ -7,6 +7,14 @@
 name: Frontend Deploy-Prod
 
 on:
+  # Approved auth UI changes are published to the already verified new-account EC2.
+  # The prod environment gate and AWS account checks remain mandatory.
+  push:
+    branches: [main]
+    paths:
+      - "frontend/src/routes/(auth)/login.jsx"
+      - "frontend/src/routes/(auth)/register.jsx"
+      - "frontend/src/styles/auth-login.css"
   workflow_dispatch:
     inputs:
       reason:

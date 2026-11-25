@@ -1,0 +1,88 @@
+name: BroBro customer auth UI and Android APK
+on:
+  push:
+    branches:
+      - main
+      - feat/brobro-branded-auth-location-first
+    paths:
+      - "frontend/src/routes/(auth)/login.jsx"
+      - "frontend/src/routes/(auth)/register.jsx"
+      - "frontend/src/styles/auth-login.css"
+      - "frontend/src/lib/authRegistrationFlow.js"
+      - "frontend/src/lib/authRegistrationFlow.test.js"
+      - "android/**"
+      - ".github/workflows/customer-auth-android-apk.yml"
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  frontend:
+    name: Build customer auth frontend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install reproducible dependencies
+        working-directory: frontend
+        run: npm ci --no-audit --no-fund
+      - name: Verify registration flow and location safety
+        working-directory: frontend
+        run: |
+          npm run test:location-code
+          npm run test:all-locations
+          npm run test:safe-redirect
+          node --test src/lib/authRegistrationFlow.test.js
+      - name: Build production frontend
+        working-directory: frontend
+        run: npm run build
+        env:
+          VITE_API_URL: https://api.broandbro.in
+          VITE_ENV: prod
+          NODE_ENV: production
+      - name: Verify compiled frontend
+        run: test -s frontend/dist/index.html
+
+  android-debug-apk:
+    name: Build Android debug APK for UI testing
+    needs: frontend
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Use preinstalled Android SDK
+        run: |
+          test -d "$ANDROID_HOME"
+          command -v sdkmanager || test -x "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          echo "$ANDROID_HOME/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Install Android SDK platform
+        run: sdkmanager --install "platforms;android-36" "build-tools;36.0.0"
+      - name: Build Android debug APK (TWA)
+        working-directory: android
+        run: |
+          chmod +x ./gradlew
+          ./gradlew :app:assembleDebug --no-daemon --stacktrace
+      - name: Validate APK exists
+        run: |
+          test -s android/app/build/outputs/apk/debug/app-debug.apk
+          unzip -t android/app/build/outputs/apk/debug/app-debug.apk >/dev/null
+          sha256sum android/app/build/outputs/apk/debug/app-debug.apk
+          ls -lh android/app/build/outputs/apk/debug/app-debug.apk
+      - name: Upload APK for UI testing
+        uses: actions/upload-artifact@v4
+        with:
+          name: brobro-auth-ui-debug-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14
