@@ -31,7 +31,7 @@ GENERATED = [
     ("aws/s3/region", REGION),
     ("aws/s3/enabled", "true"),
     ("app/api/domain", "migrate-prod-api.broandbro.in"),
-    ("app/cors/allowedOrigins", "https://migrate-prod.broandbro.in"),
+    ("app/cors/allowedOrigins", "https://migrate-prod.broandbro.in,https://broandbro.in,https://www.broandbro.in"),
 ]
 DATABASE = ["database/url", "database/username", "database/secretArn"]
 # Direct EC2 frontend requires no CloudFront distribution ID.
