@@ -98,7 +98,8 @@ module "ssm_config" {
   location_bucket_name     = local.location_bucket
   artifact_bucket_name     = local.artifact_bucket
   api_hostname             = var.api_hostname
-  app_cors_allowed_origins = "https://${var.frontend_hostname}"
+  # Both canonical production hosts and the current production-preview host are trusted browser origins.
+  app_cors_allowed_origins = "https://${var.frontend_hostname},https://${var.domain_name},https://www.${var.domain_name}"
 }
 
 # ── Terraform-created VPC and subnets (no default VPC reliance) ─────────────
