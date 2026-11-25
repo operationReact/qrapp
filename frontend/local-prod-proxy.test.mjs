@@ -2,17 +2,17 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { productionProxy, PROD_API, PROXY_PREFIX } from "./local-prod-proxy.mjs";
 
-function check(method, { allowWrites = false, origin, url = PROXY_PREFIX + "/api/locations/public" } = {}) {
+function check(method, { allowWrites = false, origin, host = "localhost:5173", fetchSite, url = PROXY_PREFIX + "/api/locations/public" } = {}) {
   let middleware, passed = false, status;
   productionProxy({ allowWrites }).configureServer({ middlewares: { use(fn) { middleware = fn; } } });
   const res = { writeHead(code) { status = code; }, end() {} };
-  middleware({ method, url, headers: { host: "localhost:5173", origin } }, res, () => { passed = true; });
+  middleware({ method, url, headers: { host, origin, "sec-fetch-site": fetchSite } }, res, () => { passed = true; });
   return { passed, status };
 }
 test("production target is fixed HTTPS and TLS verified", () => {
   const config = productionProxy().config();
   const proxy = Object.values(config.server.proxy)[0];
-  assert.equal(proxy.target, "https://api.broandbro.in");
+  assert.equal(proxy.target, "https://migrate-prod-api.broandbro.in");
   assert.equal(proxy.target, PROD_API);
   assert.equal(proxy.secure, true);
   assert.equal(config.server.host, "localhost");
@@ -30,4 +30,9 @@ test("cross-origin requests are rejected even in write mode", () => {
 });
 test("other paths are not intercepted", () => {
   assert.equal(check("POST", { url: "/ordinary" }).passed, true);
+});
+
+test("refuses DNS rebinding and cross-site GET requests", () => {
+  assert.equal(check("GET", { host: "untrusted.example:5173", origin: "http://untrusted.example:5173" }).status, 403);
+  assert.equal(check("GET", { fetchSite: "cross-site" }).status, 403);
 });
