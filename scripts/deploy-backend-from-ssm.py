@@ -78,7 +78,7 @@ def main():
         "WHATSAPP_APP_SECRET": get("whatsapp/appSecret"),
         "WHATSAPP_PHONE_NUMBER_ID": get("whatsapp/phoneNumberId"),
         "WHATSAPP_ACCESS_TOKEN": get("whatsapp/accessToken"),
-        "APP_GOOGLE_CLIENT_ID": get("google/clientId"),
+        "APP_GOOGLE_CLIENT_ID": get("google/clientId") or ("636702789664-a54ekq0bsq8peq3f42fdd7m18clrgn88.apps.googleusercontent.com" if env == "prod" else ""),
     }
     # Both dev and prod are customer-facing in the new account: refuse to
     # launch payment/OTP paths with Terraform placeholder credentials.
