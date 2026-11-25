@@ -1,5 +1,5 @@
 // Local-only, fixed upstream. Do not reuse as a production reverse proxy.
-export const PROD_API = "https://api.broandbro.in";
+export const PROD_API = "https://migrate-prod-api.broandbro.in";
 export const PROXY_PREFIX = "/__prod_api";
 export function productionProxy({ allowWrites = false } = {}) {
   const safeMethods = new Set(["GET", "HEAD", "OPTIONS"]);
@@ -10,9 +10,10 @@ export function productionProxy({ allowWrites = false } = {}) {
       server.middlewares.use((req, res, next) => {
         const pathname = new URL(req.url, "http://localhost").pathname;
         if (pathname !== PROXY_PREFIX && !pathname.startsWith(PROXY_PREFIX + "/")) return next();
-        const localOrigin = "http://" + req.headers.host;
+        const host = req.headers.host;
+        const localOrigin = "http://" + host;
         const origin = req.headers.origin;
-        if (origin && origin !== localOrigin) {
+        if (!["localhost:5173", "127.0.0.1:5173"].includes(host) || req.headers["sec-fetch-site"] === "cross-site" || (origin && origin !== localOrigin)) {
           res.writeHead(403, { "Content-Type": "application/json" });
           return res.end(JSON.stringify({ error: "Cross-origin proxy request refused" }));
         }
