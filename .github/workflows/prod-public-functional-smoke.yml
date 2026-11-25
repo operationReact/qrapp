@@ -1,0 +1,82 @@
+# Public read-only smoke: tests browser-facing readiness, unlike TCP/actuator-only checks.
+name: Check BroBro public website API CORS and PWA readiness
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/prod-public-functional-smoke.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  public-readiness:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Test public website and Android PWA resources
+        shell: bash
+        run: |
+          set -euo pipefail
+          for URL in \
+            https://broandbro.in/ \
+            https://www.broandbro.in/ \
+            https://broandbro.in/manifest.webmanifest \
+            https://broandbro.in/.well-known/assetlinks.json \
+            https://api.broandbro.in/actuator/health; do
+            CODE="$(curl --noproxy '*' --silent --show-error --max-time 20 -o /dev/null -w '%{http_code}' "$URL" || true)"
+            echo "$URL -> $CODE"
+            echo "- $URL: HTTP $CODE" >> "$GITHUB_STEP_SUMMARY"
+            if [[ "$CODE" != "200" ]]; then
+              echo "::error::Required public endpoint failed ($CODE): $URL"
+              exit 1
+            fi
+          done
+          curl --noproxy '*' --fail --silent --show-error --max-time 20 \
+            https://broandbro.in/.well-known/assetlinks.json \
+            | python3 -c 'import json,sys; v=json.load(sys.stdin); assert isinstance(v,list), "assetlinks.json must be a JSON array"'
+          echo "Android assetlinks JSON parses successfully"
+
+      - name: Verify actual browser CORS preflight for main and preview origins
+        shell: bash
+        run: |
+          set -euo pipefail
+          failed=0
+          echo "## Browser API CORS preflight" >> "$GITHUB_STEP_SUMMARY"
+          for ORIGIN in \
+            https://broandbro.in \
+            https://www.broandbro.in \
+            https://migrate-prod.broandbro.in; do
+            HEADERS="$(mktemp)"
+            CODE="$(curl --noproxy '*' --silent --show-error --max-time 20 \
+              -X OPTIONS -D "$HEADERS" -o /dev/null -w '%{http_code}' \
+              -H "Origin: $ORIGIN" \
+              -H 'Access-Control-Request-Method: GET' \
+              https://api.broandbro.in/menu || true)"
+            ALLOWED="$(grep -i '^access-control-allow-origin:' "$HEADERS" | tail -n 1 | tr -d '\r' | cut -d ':' -f 2- | xargs || true)"
+            rm -f "$HEADERS"
+            if [[ "$CODE" =~ ^2[0-9][0-9]$ && "$ALLOWED" == "$ORIGIN" ]]; then
+              echo "$ORIGIN preflight passed (HTTP $CODE)"
+              echo "- $ORIGIN: passed" >> "$GITHUB_STEP_SUMMARY"
+            else
+              echo "::error::CORS preflight blocked $ORIGIN: status=$CODE allowedOrigin=$ALLOWED"
+              echo "- $ORIGIN: FAILED (HTTP $CODE)" >> "$GITHUB_STEP_SUMMARY"
+              failed=1
+            fi
+          done
+          exit "$failed"
+
+      - name: Snapshot public mail routing and email policy (read-only)
+        if: always()
+        shell: bash
+        run: |
+          echo "## Public email DNS (informational; DKIM requires selector inventory)" >> "$GITHUB_STEP_SUMMARY"
+          MX="$(dig +short MX broandbro.in @1.1.1.1 | paste -sd ';' - || true)"
+          SPF="$(dig +short TXT broandbro.in @1.1.1.1 | grep -F 'v=spf1' | head -n 1 || true)"
+          DMARC="$(dig +short TXT _dmarc.broandbro.in @1.1.1.1 | grep -F 'v=DMARC1' | head -n 1 || true)"
+          echo "- MX: ${MX:-missing}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- SPF: ${SPF:+present}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- DMARC: ${DMARC:+present}" >> "$GITHUB_STEP_SUMMARY"
+          echo "Do not retire old mail/DNS resources until DKIM and real mail send/receive are checked." >> "$GITHUB_STEP_SUMMARY"
