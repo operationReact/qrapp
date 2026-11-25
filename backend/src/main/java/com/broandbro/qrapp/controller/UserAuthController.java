@@ -121,6 +121,29 @@ public class UserAuthController {
         }
     }
 
+    @PostMapping("/login/request-otp")
+    public ResponseEntity<?> requestLoginOtp(@Valid @RequestBody PhoneNumberRequest req) {
+        try {
+            whatsAppOtpService.requestCustomerLoginOtp(req.getPhoneNumber());
+            return ResponseEntity.ok(new OtpResponse(true, GENERIC_RESET_MESSAGE));
+        } catch (OtpException ex) {
+            return ResponseEntity.status("too_many_requests".equals(ex.getMessage())
+                    || "resend_cooldown".equals(ex.getMessage()) ? 429 : 400)
+                    .body(new OtpResponse(false, GENERIC_RESET_MESSAGE));
+        } catch (WhatsAppDeliveryException ex) {
+            return ResponseEntity.status(503).body(new OtpResponse(false, GENERIC_RESET_MESSAGE));
+        }
+    }
+
+    @PostMapping("/login/verify-otp")
+    public ResponseEntity<?> verifyLoginOtp(@Valid @RequestBody WhatsAppOtpVerifyRequest req) {
+        try {
+            return ResponseEntity.ok(whatsAppOtpService.verifyCustomerLoginOtp(req.getPhoneNumber(), req.getOtp()));
+        } catch (OtpException ex) {
+            return ResponseEntity.badRequest().body(new OtpResponse(false, "Invalid or expired OTP"));
+        }
+    }
+
     @PostMapping("/login")
     public ResponseEntity<?> login(@Valid @RequestBody RegisterRequest req) {
         var res = userService.login(req.getPhone(), req.getPassword());
