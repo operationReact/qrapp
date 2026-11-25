@@ -44,3 +44,8 @@ dist/android/
 /dist/
 *.apk
 *.aab
+
+# Local IDE state and overrides (shared .run configs are committed)
+.idea/
+.env.local
+backend/src/main/resources/local-extra.yml

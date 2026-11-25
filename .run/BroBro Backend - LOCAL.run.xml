@@ -1,0 +1,9 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="BroBro Backend - LOCAL" type="Application" factoryName="Application">
+    <option name="MAIN_CLASS_NAME" value="com.broandbro.qrapp.QrappApplication" />
+    <module name="qrapp.backend.main" />
+    <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+    <option name="VM_PARAMETERS" value="-Dspring.profiles.active=local -Dspring.cloud.aws.parameterstore.enabled=false -Daws.region=ap-south-1" />
+    <method v="2"><option name="Make" enabled="true" /></method>
+  </configuration>
+</component>

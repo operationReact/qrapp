@@ -15,7 +15,11 @@ function isPrivateOrLocalHostname(hostname) {
 }
 const resolvedBase = (() => {
   const fromEnv = import.meta.env.VITE_API_URL;
-  if (fromEnv && fromEnv.trim() !== "") return fromEnv.trim();
+  if (fromEnv && fromEnv.trim() !== "") {
+    const value = fromEnv.trim();
+    if (value === "/__prod_api" && import.meta.env.DEV) return window.location.origin + value;
+    return value;
+  }
 
   try {
     const host = typeof window !== "undefined" ? window.location.hostname : "";

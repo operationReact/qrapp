@@ -1,0 +1,45 @@
+# Local-only profile; no production AWS calls or credentials.
+server:
+  address: 127.0.0.1
+  port: 8080
+spring:
+  config:
+    import: "optional:classpath:/local-extra.yml"
+  cloud:
+    aws:
+      parameterstore:
+        enabled: false
+      region:
+        static: ap-south-1
+  datasource:
+    url: jdbc:postgresql://localhost:5432/broandbro_local
+    username: broandbro_local
+    password: brobro-local-only
+  flyway:
+    enabled: true
+  jpa:
+    hibernate:
+      ddl-auto: validate
+app:
+  parameter-store:
+    auto-create: false
+    environment: local
+  cors:
+    allowed-origins: http://localhost:5173,http://127.0.0.1:5173
+aws:
+  s3:
+    enabled: false
+    region: ap-south-1
+whatsapp:
+  enabled: false
+  phone-number-id: ""
+  access-token: ""
+razorpay:
+  key: ""
+  secret: ""
+  webhookSecret: ""
+openai:
+  api-key: ""
+product:
+  ai-image:
+    enabled: false
