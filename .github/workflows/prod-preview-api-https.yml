@@ -87,8 +87,10 @@ jobs:
         env:
           IP: ${{ steps.target.outputs.ip }}
         run: |
-          curl --noproxy '*' --fail --silent --show-error --max-time 15 \
+          # Follow an already-issued HTTPS redirect on safe idempotent reruns.
+          curl --noproxy '*' --fail --location --silent --show-error --max-time 15 \
             --resolve "migrate-prod-api.broandbro.in:80:$IP" \
+            --resolve "migrate-prod-api.broandbro.in:443:$IP" \
             "http://migrate-prod-api.broandbro.in/actuator/health" >/dev/null
           echo "New-account preview API direct HTTP health passed"
 
