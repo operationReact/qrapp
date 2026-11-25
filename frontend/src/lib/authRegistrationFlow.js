@@ -22,9 +22,10 @@ export function normalizeIndianMobileInput(value) {
   return digits.slice(0, 10);
 }
 
-export function validateCustomerDetails({ name, phone, password, specialDate, specialDayType, specialDayCustomLabel }) {
+export function validateCustomerDetails({ name, phone, password, specialDate, specialDayType, specialDayCustomLabel, passwordOptional = false }) {
   if (!String(name ?? "").trim()) return "Enter your full name.";
   if (!/^[6-9]\d{9}$/.test(phone ?? "")) return "Enter a valid 10-digit Indian WhatsApp number.";
+  if (!passwordOptional && !password) return "Choose a password with at least 8 characters.";
   if (password && (typeof password !== "string" || password.length < 8 || !password.trim())) return "Choose a password with at least 8 characters.";
   if (new TextEncoder().encode(password || "").length > 72) return "Choose a shorter password (maximum 72 UTF-8 bytes).";
   if (specialDayType && !specialDate) return "Choose a date for your special occasion.";
