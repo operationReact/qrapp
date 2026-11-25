@@ -15,15 +15,26 @@ try {
       serviceWorkers: "block", reducedMotion: "reduce"
     });
     try {
+      await context.route("https://accounts.google.com/gsi/client", route => route.fulfill({
+        contentType:"application/javascript",
+        body:`window.google={accounts:{id:{initialize(config){window.__googleConfig=config},renderButton(host){const button=document.createElement("button");button.type="button";button.textContent="Continue with Google";button.style.cssText="background:white;color:#333;border:1px solid #dadce0;border-radius:4px;width:100%;height:40px;font:500 14px Arial";button.onclick=()=>window.__googleConfig.callback({credential:"fixture-not-a-real-token"});host.append(button)}}}}`
+      }));
       await context.route("https://api.broandbro.in/**", async route => {
         const path = new URL(route.request().url()).pathname;
-        const data = path === "/api/locations/public"
+        const cors = {"access-control-allow-origin":"*","access-control-allow-methods":"GET, POST, OPTIONS","access-control-allow-headers":"*"};
+        if (route.request().method() === "OPTIONS") return route.fulfill({status:204,headers:cors});
+        const data = path === "/auth/google/challenge"
+          ? {enabled:true,clientId:"visual-fixture.apps.googleusercontent.com",nonce:"fixture"}
+          : path === "/auth/google/exchange"
+            ? {status:"mobile_verification_required",ticket:"visual-test-ticket",name:"Visual Customer"}
+          : path === "/auth/login/request-otp" ? {success:true,message:"Code sent"}
+          : path === "/api/locations/public"
           ? [{id:1,name:"Meenakshi Towers",active:true},{id:2,name:"Mindspace",active:true}]
           : path === "/api/locations/1/customer-companies"
             ? [{id:10,name:"Example Company",active:true}]
             : path === "/api/locations/2/customer-companies"
               ? [{id:20,name:"Other Company",active:true}] : [];
-        await route.fulfill({json:data,headers:{"access-control-allow-origin":"*"}});
+        await route.fulfill({json:data,headers:cors});
       });
       const page = await context.newPage();
       const prefix = width + "x" + height;
@@ -37,7 +48,25 @@ try {
       }
       await page.goto(origin + "/login");
       await page.getByRole("heading",{name:"Welcome back",exact:true}).waitFor();
-      await page.getByRole("button",{name:"Sign In",exact:true}).waitFor();
+      const otpButton = page.getByRole("button",{name:"Continue with WhatsApp",exact:true});
+      const passwordButton = page.getByRole("button",{name:"Sign In",exact:true});
+      if (process.env.EXPECT_NEW_AUTH === "1") {
+        await otpButton.waitFor();
+        await page.getByRole("button",{name:"Continue with Google",exact:true}).waitFor();
+        await capture("login-passwordless-google");
+        await page.getByPlaceholder("10-digit mobile number").fill("9876543210");
+        await otpButton.click();
+        await page.getByRole("dialog").waitFor();
+        await capture("login-otp-dialog");
+        await page.getByRole("button",{name:/Edit Account/}).click();
+        await page.getByRole("dialog").waitFor({state:"hidden"});
+        await page.getByRole("button",{name:"Continue with Google",exact:true}).click();
+        await page.getByText(/Verify your WhatsApp number to connect/).waitFor();
+        await capture("login-google-link");
+        await page.getByRole("button",{name:"Password",exact:true}).click();
+        await page.getByPlaceholder("10-digit mobile number").fill("");
+      }
+      await passwordButton.waitFor();
       await page.getByPlaceholder("10-digit mobile number").waitFor();
       await capture("login");
       await page.goto(origin + "/register");
