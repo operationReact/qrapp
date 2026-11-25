@@ -11,7 +11,7 @@ permissions:
   contents: read
 jobs:
   visual:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
@@ -62,8 +62,9 @@ jobs:
       - name: Compare screenshots against pull request base
         if: github.event_name == 'pull_request'
         run: |
-          python3 -m pip install Pillow==11.3.0
-          python3 - <<'PY'
+          python3 -m venv "$RUNNER_TEMP/visual-venv"
+          "$RUNNER_TEMP/visual-venv/bin/pip" install Pillow==11.3.0
+          "$RUNNER_TEMP/visual-venv/bin/python" - <<'PY'
           import os
           from pathlib import Path
           from PIL import Image, ImageChops
