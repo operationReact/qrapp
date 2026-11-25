@@ -52,6 +52,7 @@ test("mobile input accepts formatted or pasted national and international number
 test("customer signup accepts a simple eight-character password and optional dates", () => {
   const valid = {name:"Test Customer", phone:"9876543210", password:"longpass"};
   assert.equal(validateCustomerDetails(valid), null);
+  assert.equal(validateCustomerDetails({...valid,password:""}), null);
   assert.match(validateCustomerDetails({...valid,name:" "}), /name/i);
   assert.match(validateCustomerDetails({...valid,phone:"123"}), /number/i);
   assert.match(validateCustomerDetails({...valid,password:"short"}), /8 characters/i);
