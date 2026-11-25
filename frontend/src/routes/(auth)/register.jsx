@@ -28,6 +28,7 @@ import { extractApiError } from "@/lib/apiError";
 import { getSafeRedirect } from "@/lib/safeRedirect";
 import { SPECIAL_DAY_TYPES } from "@/content/specialDayOptions";
 import { RegistrationPurposeControl } from "@/components/registration-purpose-control";
+import { validateLocationCompanySelection } from "@/lib/authRegistrationFlow";
 
 export const Route = createFileRoute("/(auth)/register")({
   component: function Register() {
@@ -121,12 +122,14 @@ export const Route = createFileRoute("/(auth)/register")({
 
     const handleContinue = () => {
       setError(null);
-      if (!defaultLocationId || !locationsQuery.data?.some((item) => String(item.id) === defaultLocationId)) {
-        setError("Choose your food court location to continue.");
-        return;
-      }
-      if (!customerCompanyId || !companiesQuery.data?.some((item) => String(item.id) === customerCompanyId)) {
-        setError("Choose a company from this location to continue.");
+      const validationError = validateLocationCompanySelection({
+        locationId: defaultLocationId,
+        companyId: customerCompanyId,
+        locations: locationsQuery.data,
+        companies: companiesQuery.data,
+      });
+      if (validationError) {
+        setError(validationError);
         return;
       }
       setRegistrationStep("details");
