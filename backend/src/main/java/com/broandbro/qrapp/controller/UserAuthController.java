@@ -43,6 +43,7 @@ public class UserAuthController {
     private final com.broandbro.qrapp.service.LocationAccessService locationAccessService;
     private final UserLocationAccessRepository userLocationAccessRepository;
     private final AccountDeletionService accountDeletionService;
+    private final com.broandbro.qrapp.service.GoogleCustomerAuthService googleAuth;
 
     private static final String GENERIC_RESET_MESSAGE =
             "If the account is eligible, a verification code has been sent to your WhatsApp.";
@@ -68,7 +69,8 @@ public class UserAuthController {
     @PostMapping("/register/verify-otp")
     public ResponseEntity<?> verifyRegistrationOtp(@Valid @RequestBody WhatsAppOtpVerifyRequest req) {
         try {
-            return ResponseEntity.ok(whatsAppOtpService.verifyRegistrationOtp(req.getPhoneNumber(), req.getOtp()));
+            var response = whatsAppOtpService.verifyRegistrationOtp(req.getPhoneNumber(), req.getOtp());
+            return completeGoogleLink(response, req.getGoogleLinkTicket());
         } catch (OtpException ex) {
             return ResponseEntity.badRequest().body(new OtpResponse(false, ex.getMessage()));
         }
@@ -121,6 +123,36 @@ public class UserAuthController {
         }
     }
 
+    public record GoogleExchangeRequest(String credential, String nonce) {}
+
+    @PostMapping("/google/challenge")
+    public ResponseEntity<?> googleChallenge() {
+        return ResponseEntity.ok().header("Cache-Control", "no-store").body(googleAuth.challenge());
+    }
+
+    @PostMapping("/google/exchange")
+    public ResponseEntity<?> googleExchange(@RequestBody GoogleExchangeRequest req) {
+        try {
+            return ResponseEntity.ok().header("Cache-Control", "no-store")
+                    .body(googleAuth.exchange(req.credential(), req.nonce()));
+        } catch (OtpException ex) {
+            return ResponseEntity.status(401).body(Map.of("error", ex.getMessage()));
+        }
+    }
+
+    private ResponseEntity<?> completeGoogleLink(com.broandbro.qrapp.dto.LoginResponse response, String ticket) {
+        if (ticket == null || ticket.isBlank()) return ResponseEntity.ok(response);
+        try {
+            googleAuth.linkAfterOtp(response, ticket);
+            return ResponseEntity.ok(response);
+        } catch (OtpException | org.springframework.dao.DataIntegrityViolationException ex) {
+            // Mobile verification succeeded; never overwrite a different Google identity.
+            return ResponseEntity.ok(Map.of("token", response.getToken(), "user", response.getUser(),
+                    "mustChangePassword", Boolean.TRUE.equals(response.getMustChangePassword()),
+                    "googleLinkFailed", true));
+        }
+    }
+
     @PostMapping("/login/request-otp")
     public ResponseEntity<?> requestLoginOtp(@Valid @RequestBody PhoneNumberRequest req) {
         try {
@@ -138,7 +170,8 @@ public class UserAuthController {
     @PostMapping("/login/verify-otp")
     public ResponseEntity<?> verifyLoginOtp(@Valid @RequestBody WhatsAppOtpVerifyRequest req) {
         try {
-            return ResponseEntity.ok(whatsAppOtpService.verifyCustomerLoginOtp(req.getPhoneNumber(), req.getOtp()));
+            var response = whatsAppOtpService.verifyCustomerLoginOtp(req.getPhoneNumber(), req.getOtp());
+            return completeGoogleLink(response, req.getGoogleLinkTicket());
         } catch (OtpException ex) {
             return ResponseEntity.badRequest().body(new OtpResponse(false, "Invalid or expired OTP"));
         }
