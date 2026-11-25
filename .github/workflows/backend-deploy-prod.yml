@@ -6,6 +6,9 @@ on:
     branches: [main]
     paths:
       - 'backend/src/main/resources/db/migration/V167__customer_google_identity.sql'
+      - 'scripts/audit-prod-ssm.py'
+      - 'scripts/deploy-backend-from-ssm.py'
+      - '.github/workflows/backend-deploy-prod.yml'
 
 permissions:
   id-token: write
@@ -45,8 +48,15 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: "8.7"
-      - name: Build JAR
-        run: gradle :backend:test --tests '*WhatsAppOtpServiceTest' --tests '*GoogleCustomerAuthServiceTest' :backend:bootJar --no-daemon
+      - name: Build JAR and run authentication tests
+        run: |
+          set -euo pipefail
+          for attempt in 1 2 3; do
+            if gradle :backend:test --tests '*WhatsAppOtpServiceTest' --tests '*GoogleCustomerAuthServiceTest' :backend:bootJar --no-daemon 2>&1 | tee "$RUNNER_TEMP/backend-build.log"; then exit 0; fi
+            if ! grep -q "Received status code 429" "$RUNNER_TEMP/backend-build.log" || [[ "$attempt" == 3 ]]; then exit 1; fi
+            echo "Maven rate limited; retrying without bypassing tests"
+            sleep $((attempt * 30))
+          done
       - uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_BACKEND_ROLE_ARN }}
