@@ -17,13 +17,27 @@ def aws(*args):
                        capture_output=True, check=True, text=True)
     return json.loads(p.stdout)
 
-def main():
-    raw = os.environ.pop("SUPER_ADMIN_PHONE", "").strip()
-    password = os.environ.pop("SUPER_ADMIN_PASSWORD", "")
+def validate_credentials(raw, password):
+    if not raw.strip():
+        raise RuntimeError("SUPER_ADMIN_PHONE is missing or empty in the prod environment.")
+    if not password:
+        raise RuntimeError("SUPER_ADMIN_PASSWORD is missing or empty in the prod environment.")
     m = re.fullmatch(r"(?:\+91|91|0)?([6-9][0-9]{9})", re.sub(r"[\s()-]", "", raw))
-    if not m or len(password) < 12 or len(password.encode()) > 72 or any(c in password for c in "\r\n\0"):
-        raise RuntimeError("Invalid phone or password policy; use an Indian mobile and 12–72 UTF-8 bytes.")
-    phone = m.group(1)
+    if not m:
+        raise RuntimeError("SUPER_ADMIN_PHONE must be a valid Indian mobile number (10 digits, optional +91 prefix).")
+    if len(password) < 12:
+        raise RuntimeError("SUPER_ADMIN_PASSWORD must have at least 12 characters. No complexity rules apply.")
+    if len(password.encode("utf-8")) > 72:
+        raise RuntimeError("SUPER_ADMIN_PASSWORD exceeds the 72-byte BCrypt limit.")
+    if not password.strip() or any(c in password for c in "\r\n\0"):
+        raise RuntimeError("SUPER_ADMIN_PASSWORD must not be blank or contain a line break or NUL.")
+    return m.group(1)
+
+def main():
+    raw = os.environ.pop("SUPER_ADMIN_PHONE", "")
+    password = os.environ.pop("SUPER_ADMIN_PASSWORD", "")
+    phone = validate_credentials(raw, password)
+    print("Production credential format checks passed; values not logged.")
     if os.environ.get("GITHUB_REF") != "refs/heads/main" or os.environ.get("EXPECTED_ACCOUNT") != ACCOUNT:
         raise RuntimeError("Unexpected deployment target.")
     if aws("sts", "get-caller-identity")["Account"] != ACCOUNT:
