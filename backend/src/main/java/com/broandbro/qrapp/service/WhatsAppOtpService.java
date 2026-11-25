@@ -242,10 +242,26 @@ public class WhatsAppOtpService {
         if (normalizedType != null && specialDate == null) {
             throw new OtpException("special_date_required");
         }
-        requestOtp(phone, OtpPurpose.REGISTRATION, name, passwordEncoder.encode(password),
+        if (userRepository.findByPhone(phone.substring(3)).isPresent()) throw new OtpException("phone_taken");
+        if (password != null && (!password.isBlank()) && (password.length() < 8 || password.getBytes(StandardCharsets.UTF_8).length > 72)) throw new OtpException("invalid_password_length");
+        String registrationHash = passwordEncoder.encode(password == null || password.isBlank() ? randomToken() : password);
+        requestOtp(phone, OtpPurpose.REGISTRATION, name, registrationHash,
                 defaultLocationId, customerCompanyId, dateOfBirth, specialDate,
                 normalizedType, specialDayCustomLabel, true, Instant.now(), legalProperties.getTermsVersion(),
                 legalProperties.getPrivacyPolicyVersion());
+    }
+
+    public void requestCustomerLoginOtp(String rawPhone) {
+        String phone = PhoneNumberNormalizer.normalize(rawPhone);
+        if (userService.findCustomerForPasswordless(phone).isEmpty()) return;
+        requestOtp(phone, OtpPurpose.CUSTOMER_LOGIN, null, null, null);
+    }
+
+    @Transactional(noRollbackFor = OtpException.class)
+    public LoginResponse verifyCustomerLoginOtp(String rawPhone, String submittedOtp) {
+        String phone = PhoneNumberNormalizer.normalize(rawPhone);
+        consume(phone, submittedOtp, OtpPurpose.CUSTOMER_LOGIN);
+        return userService.loginVerifiedCustomer(phone);
     }
 
     public void requestPasswordResetOtp(String rawPhone) {
@@ -394,10 +410,12 @@ public class WhatsAppOtpService {
     }
 
     private WhatsAppOtp consume(String phone, String submittedOtp, OtpPurpose purpose) {
-        WhatsAppOtp record = otpRepository
-                .findFirstByPhoneNumberAndPurposeAndStatusOrderByCreatedAtDesc(phone, purpose, OtpStatus.ACTIVE)
+        WhatsAppOtp record = (purpose == OtpPurpose.CUSTOMER_LOGIN
+                ? otpRepository.findTopByPhoneNumberAndPurposeAndStatusOrderByCreatedAtDesc(phone, purpose, OtpStatus.ACTIVE)
+                : otpRepository.findFirstByPhoneNumberAndPurposeAndStatusOrderByCreatedAtDesc(phone, purpose, OtpStatus.ACTIVE))
                 .orElseThrow(() -> new OtpException("invalid_or_expired_otp"));
         Instant now = Instant.now();
+        if (record.getStatus() != OtpStatus.ACTIVE) throw new OtpException("invalid_or_expired_otp");
         if (!record.getExpiresAt().isAfter(now)) {
             record.setStatus(OtpStatus.EXPIRED);
             otpRepository.save(record);

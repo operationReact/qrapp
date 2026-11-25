@@ -7,4 +7,6 @@ import lombok.Data;
 public class PhoneNumberRequest {
     @NotBlank
     private String phoneNumber;
+    @jakarta.validation.constraints.Size(max = 128)
+    private String googleLinkTicket;
 }

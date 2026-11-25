@@ -25,6 +25,9 @@ public class User {
 
     private String name;
 
+    @Column(name = "google_subject", unique = true, length = 255)
+    private String googleSubject;
+
     private LocalDate dateOfBirth;
 
     private LocalDate specialDate;

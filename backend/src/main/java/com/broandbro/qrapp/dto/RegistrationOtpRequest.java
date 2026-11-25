@@ -9,7 +9,7 @@ import lombok.Data;
 public class RegistrationOtpRequest {
     @NotBlank
     private String phoneNumber;
-    @NotBlank
+    // Optional for customers registering with verified mobile OTP.
     private String password;
     private String name;
     @PastOrPresent
@@ -18,7 +18,10 @@ public class RegistrationOtpRequest {
     private String specialDayType;
     @jakarta.validation.constraints.Size(max = 120)
     private String specialDayCustomLabel;
+    @NotNull
     private Long defaultLocationId;
+    @jakarta.validation.constraints.Size(max = 128)
+    private String googleLinkTicket;
     @NotNull
     private Long customerCompanyId;
     @NotNull

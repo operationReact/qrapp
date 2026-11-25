@@ -567,3 +567,34 @@
     box-shadow: none;
   }
 }
+
+/* Keep the two-step flow explicit, accessible, and within the existing brand. */
+.auth-step-label {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.4rem;
+  margin-top: 1.1rem;
+  color: #756660;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+.auth-step-label span:first-child { color: #b33b3d; }
+.auth-step-label + .auth-register-progress { margin-top: 0.5rem; }
+.auth-register-heading h1:focus { outline: none; }
+.auth-summary-label { color: #ad4b3f; font-size: 0.65rem; font-weight: 750; letter-spacing: 0.08em; }
+.auth-field-hint { color: #756660; font-size: 0.78rem; line-height: 1.45; margin-top: 0.2rem; }
+.auth-inline-retry { color: #88422a; font-weight: 750; text-decoration: underline; text-underline-offset: 3px; }
+.auth-inline-retry:focus-visible, .auth-register-summary button:focus-visible {
+  outline: 2px solid #b33b3d; outline-offset: 3px; border-radius: 0.2rem;
+}
+
+.auth-method-switch { display: grid; grid-template-columns: 1fr 1fr; gap: .25rem; margin: 1rem 0; padding: .25rem; border-radius: .85rem; background: #f5ebe5; }
+.auth-method-switch button { min-height: 44px; padding: .4rem; border-radius: .65rem; color: #695b55; font-weight: 700; font-size: .85rem; }
+.auth-method-switch button[aria-pressed="true"] { background: #fffdfb; color: #b33b3d; box-shadow: 0 1px 4px #30282416; }
+.auth-method-switch button:focus-visible { outline: 2px solid #b33b3d; outline-offset: 2px; }
+.auth-google-sign-in { margin: .7rem 0; }
+.auth-google-sign-in > div { max-width: 100%; min-height: 44px; }
+.auth-google-link-notice { margin: .75rem 0; padding: .75rem; border: 1px solid #f0e4dc; border-radius: .85rem; background: #fff7f3; color: #756660; font-size: .85rem; line-height: 1.5; }
+
+.auth-workplace-select { width:100%; min-height:48px; border:1px solid #e6e0db; border-radius:12px; background:#fff; padding:10px 12px; color:#302824; font-size:15px; }

@@ -15,6 +15,13 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @EntityGraph(attributePaths = {"defaultLocation", "customerCompany"})
     Optional<User> findByPhone(String phone);
 
+    @EntityGraph(attributePaths = {"defaultLocation", "customerCompany"})
+    Optional<User> findByGoogleSubject(String googleSubject);
+
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("select u from User u where u.id = :id")
+    Optional<User> lockById(@Param("id") Long id);
+
     @Override
     @EntityGraph(attributePaths = {"defaultLocation", "customerCompany"})
     List<User> findAll();

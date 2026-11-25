@@ -20,7 +20,7 @@ export const registerUser = (data) =>
 
 export const requestRegistrationOTP = ({
   phone, password, name, dateOfBirth, specialDate, specialDayType, specialDayCustomLabel,
-  defaultLocationId, customerCompanyId, termsAccepted,
+  defaultLocationId, customerCompanyId, termsAccepted, googleLinkTicket,
 }) =>
   apiClient.post("/auth/register/request-otp", {
     phoneNumber: phone,
@@ -35,10 +35,11 @@ export const requestRegistrationOTP = ({
     ...(defaultLocationId != null ? { defaultLocationId } : {}),
     customerCompanyId,
     termsAccepted,
+    googleLinkTicket,
   }).then((r) => r.data);
 
-export const verifyRegistrationOTP = ({ phone, otp }) =>
-  apiClient.post("/auth/register/verify-otp", { phoneNumber: phone, otp }).then((r) => r.data);
+export const verifyRegistrationOTP = ({ phone, otp, googleLinkTicket }) =>
+  apiClient.post("/auth/register/verify-otp", { phoneNumber: phone, otp, googleLinkTicket }).then((r) => r.data);
 
 export const requestPasswordResetOTP = (phone) =>
   apiClient.post("/auth/password/forgot/request-otp", { phoneNumber: phone }).then((r) => r.data);
@@ -49,3 +50,15 @@ export const verifyPasswordResetOTP = ({ phone, otp }) =>
 export const resetPassword = ({ phone, resetAuthorization, newPassword }) =>
   apiClient.post("/auth/password/reset", { phoneNumber: phone, resetAuthorization, newPassword })
     .then((r) => r.data);
+
+export const requestLoginOTP = (phone, googleLinkTicket) =>
+  apiClient.post("/auth/login/request-otp", { phoneNumber: phone, googleLinkTicket }).then((r) => r.data);
+
+export const verifyLoginOTP = ({ phone, otp, googleLinkTicket }) =>
+  apiClient.post("/auth/login/verify-otp", { phoneNumber: phone, otp, googleLinkTicket }).then((r) => r.data);
+
+export const getGoogleChallenge = () =>
+  apiClient.post("/auth/google/challenge").then((r) => r.data);
+
+export const exchangeGoogleCredential = ({ credential, nonce }) =>
+  apiClient.post("/auth/google/exchange", { credential, nonce }).then((r) => r.data);

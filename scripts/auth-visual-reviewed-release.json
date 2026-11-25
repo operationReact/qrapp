@@ -1,0 +1,88 @@
+{
+  "reviewedCommit": "624a539bd7f8cd6519b44292000eb92532d7d54e",
+  "reviewedRun": 45689353392,
+  "artifact": 15058351504,
+  "base": "eb09cffd2cf4958d2be34cb42305228c0d56ed2e",
+  "frontendTree": "0ab53bd41b613ac56dcb16a306b569b63311f4fa",
+  "scriptBlob": "5a759c1bd39384bc8b8e5c63c64df872132329ec",
+  "reason": "Reviewed 54 candidate screenshots across six viewports. New login choices, Google linking dialog, registration step indicator, workplace summary and mandatory workplace setup intentionally change prior baseline. Main added local-dev-only configuration; reviewed production build configuration diff. Google provider is mocked, not production OAuth evidence. Compared all 54 current screenshots from the rerun against the original artifact: 51 pixel-identical, 3 manually compared; 320px login has 60px additional bottom whitespace, no content loss; two workplace screens have minor rendering differences.",
+  "dimensions": {
+    "1440x900": [
+      1424,
+      1424,
+      1424,
+      1424,
+      1424,
+      1588,
+      1424,
+      1878,
+      900
+    ],
+    "320x568": [
+      1265,
+      1265,
+      1296,
+      1296,
+      1263,
+      1744,
+      1269,
+      2101,
+      608
+    ],
+    "360x800": [
+      1438,
+      1438,
+      1438,
+      1438,
+      1438,
+      1708,
+      1438,
+      2065,
+      800
+    ],
+    "390x844": [
+      1482,
+      1482,
+      1482,
+      1482,
+      1482,
+      1708,
+      1482,
+      2065,
+      844
+    ],
+    "412x915": [
+      1553,
+      1553,
+      1553,
+      1553,
+      1553,
+      1708,
+      1553,
+      2065,
+      915
+    ],
+    "768x1024": [
+      1780,
+      1780,
+      1780,
+      1780,
+      1780,
+      1818,
+      1780,
+      2107,
+      1024
+    ]
+  },
+  "states": [
+    "login-google-link",
+    "login-otp-dialog",
+    "login-password-google",
+    "login",
+    "registration-company-dropdown",
+    "registration-details",
+    "registration-location",
+    "registration-optional-dates",
+    "required-workplace-profile"
+  ]
+}

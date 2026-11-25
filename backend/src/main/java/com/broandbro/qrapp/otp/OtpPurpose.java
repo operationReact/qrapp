@@ -2,5 +2,6 @@ package com.broandbro.qrapp.otp;
 
 public enum OtpPurpose {
     REGISTRATION,
-    PASSWORD_RESET
+    PASSWORD_RESET,
+    CUSTOMER_LOGIN
 }
