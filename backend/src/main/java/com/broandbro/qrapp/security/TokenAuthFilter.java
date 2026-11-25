@@ -37,6 +37,20 @@ public class TokenAuthFilter extends OncePerRequestFilter {
 
             User u = userService.findByToken(token).orElse(null);
             if (u != null) {
+                boolean customer = (u.getRole() == UserRole.CUSTOMER || u.getRole() == null)
+                        && !Boolean.TRUE.equals(u.getIsAdmin()) && !Boolean.TRUE.equals(u.getIsSuperUser());
+                boolean missingWorkplace = u.getDefaultLocation() == null || !Boolean.TRUE.equals(u.getDefaultLocation().getActive())
+                        || u.getCustomerCompany() == null || !Boolean.TRUE.equals(u.getCustomerCompany().getActive());
+                String path = request.getServletPath();
+                boolean setupRoute = (path.equals("/auth/me") && ("GET".equals(request.getMethod()) || "PUT".equals(request.getMethod())))
+                        || ("GET".equals(request.getMethod()) && (path.equals("/api/locations/public") || path.equals("/api/locations/public/search")
+                        || path.matches("/api/locations/[0-9]+/customer-companies")));
+                if (customer && missingWorkplace && !setupRoute) {
+                    response.setStatus(403);
+                    response.setContentType("application/json");
+                    response.getWriter().write("{\"error\":\"workplace_setup_required\"}");
+                    return;
+                }
                 List<SimpleGrantedAuthority> authorities = new ArrayList<>();
                 if (u.getIsAdmin()) {
                     authorities.add(new SimpleGrantedAuthority("ROLE_ADMIN"));
