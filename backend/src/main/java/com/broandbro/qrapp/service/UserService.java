@@ -171,6 +171,13 @@ public class UserService {
         return issueSession(u);
     }
 
+    @Transactional
+    public LoginResponse loginVerifiedGoogleCustomer(String subject) {
+        User u = userRepository.findByGoogleSubject(subject).filter(this::isPasswordlessCustomer)
+                .orElseThrow(() -> new OtpException("google_sign_in_unavailable"));
+        return issueSession(u);
+    }
+
     private LoginResponse issueSession(User u) {
         String previousToken = u.getToken();
         // generate simple token
