@@ -30,6 +30,27 @@ jobs:
           set -euo pipefail
           javac --release 21 -d "$RUNNER_TEMP" scripts/ProvisionSuperAdmin.java
           python3 -m py_compile scripts/provision-prod-super-admin.py
+          python3 - <<'PY'
+          import runpy
+          validate = runpy.run_path("scripts/provision-prod-super-admin.py")["validate_credentials"]
+          for value in ("9876543210", "+91 98765 43210", "919876543210", "09876543210"):
+              assert validate(value, "sample passphrase") == "9876543210"
+          for phone, password, message in [
+              ("", "sample passphrase", "PHONE is missing"),
+              ("9876543210", "", "PASSWORD is missing"),
+              ("123", "sample passphrase", "valid Indian mobile"),
+              ("9876543210", "short", "at least 12"),
+              ("9876543210", "a" * 73, "72-byte"),
+              ("9876543210", " " * 12, "must not be blank"),
+          ]:
+              try:
+                  validate(phone, password)
+              except RuntimeError as e:
+                  assert message in str(e), str(e)
+              else:
+                  raise AssertionError("Invalid credential accepted")
+          print("Credential validation tests passed")
+          PY
   provision:
     needs: validate
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
