@@ -9,7 +9,6 @@ import {
   Field,
   FieldContent,
   FieldLabel,
-  FieldSeparator,
 } from "@/components/ui/field";
 import { CaretLeftIcon, WhatsappLogoIcon } from "@phosphor-icons/react";
 import { PasswordInput } from "@/components/ui/password-input";
@@ -104,10 +103,7 @@ export const Route = createFileRoute("/(auth)/login")({
           <div className="auth-login-card">
             <div className="auth-login-mobile-brand">
               <img src="/bro-logo.png" alt="Bro & Bro" className="auth-login-logo" />
-              <div>
-                <p className="auth-login-kicker">Welcome back</p>
-                <p className="auth-login-mobile-copy">Sign in to your account</p>
-              </div>
+              <p className="auth-login-mobile-copy">FOOD COURT EXPERIENCE</p>
             </div>
             <div className="auth-login-back">
             <Link
@@ -124,9 +120,8 @@ export const Route = createFileRoute("/(auth)/login")({
             </Link>
             </div>
             <div className="auth-login-heading">
-              <p className="auth-login-kicker">Secure access</p>
               <h1>Welcome back</h1>
-              <p>Sign in to continue to your Bro & Bro account.</p>
+              <p>Your favourites are one sign-in away.</p>
             </div>
             {(loginMutation.isError || noToken) && (
               <div className="auth-login-error" role="alert" aria-live="polite">
@@ -137,12 +132,7 @@ export const Route = createFileRoute("/(auth)/login")({
             )}
             <form onSubmit={submit} className="auth-login-form">
               <Field className="gap-2">
-                <FieldLabel
-                  htmlFor="identifier"
-                  className="text-[13px] font-semibold text-[#2B2928]"
-                >
-                  WhatsApp Number
-                </FieldLabel>
+                <FieldLabel htmlFor="identifier">Mobile / WhatsApp number</FieldLabel>
                 <FieldContent>
                   <InputGroup className="h-[52px] rounded-[14px] border-[#E6E0DB] bg-[#FFFCF9] shadow-none transition-[border-color,box-shadow] focus-within:!border-[#FF2438] focus-within:!ring-2 focus-within:!ring-[#FF2438]/20">
                     <InputGroupInput
@@ -150,32 +140,23 @@ export const Route = createFileRoute("/(auth)/login")({
                       value={identifier}
                       onChange={(e) => setIdentifier(e.target.value)}
                       required
-                      placeholder="9123456789"
+                      placeholder="10-digit mobile number"
+                      inputMode="numeric"
+                      autoComplete="tel-national"
+                      maxLength={10}
                       name="identifier"
                       id="identifier"
                       className="h-full rounded-none border-0 bg-transparent px-3.5 py-0 text-[15px] font-medium text-[#77716D] shadow-none outline-none placeholder:text-[#77716D] placeholder:font-medium focus-visible:border-0 focus-visible:ring-0"
                     />
-                    <InputGroupAddon
-                      align="inline-start"
-                      className="pl-3.5 pr-0 text-[#6E9A85]"
-                    >
-                      <WhatsappLogoIcon
-                        size={18}
-                        weight="duotone"
-                        aria-hidden
-                        className="text-[#6E9A85]"
-                      />
+                    <InputGroupAddon align="inline-start" className="pl-3.5 pr-0 text-[#6E9A85]">
+                      <WhatsappLogoIcon size={18} weight="duotone" aria-hidden />
+                      <span className="auth-phone-prefix">+91</span>
                     </InputGroupAddon>
                   </InputGroup>
                 </FieldContent>
               </Field>
               <Field className="gap-2">
-                <FieldLabel
-                  htmlFor="password"
-                  className="text-[13px] font-semibold text-[#2B2928]"
-                >
-                  Password
-                </FieldLabel>
+                <FieldLabel htmlFor="password">Password</FieldLabel>
                 <FieldContent>
                   <RegistrationPurposeControl
                     type="password"
@@ -209,20 +190,18 @@ export const Route = createFileRoute("/(auth)/login")({
                 <Button
                   type="submit"
                   size="lg"
+                  className="auth-primary-action"
                   disabled={loginMutation.isPending}
                 >
                   {loginMutation.isPending ? "Signing in..." : "Sign In"}
                 </Button>
 
-                <FieldSeparator className="auth-login-separator">OR</FieldSeparator>
-
-                <Link
-                  to="/register"
-                  state={from ? { from } : undefined}
-                  className={`${buttonVariants({ variant: "outline", size: "lg" })} auth-login-create`}
-                >
-                  Create Account
-                </Link>
+                <p className="auth-login-join">
+                  New to Bro & Bro?{" "}
+                  <Link to="/register" state={from ? { from } : undefined} className="auth-login-join-link">
+                    Create an account
+                  </Link>
+                </p>
               </div>
             </form>
           </div>
