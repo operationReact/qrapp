@@ -41,7 +41,7 @@ jobs:
           npm run preview -- --host 127.0.0.1 --port 4173 --strictPort > "$RUNNER_TEMP/preview.log" 2>&1 &
           trap 'kill $! 2>/dev/null || true' EXIT
           for i in {1..30}; do curl -fsS http://127.0.0.1:4173/login >/dev/null && break; sleep 1; done
-          SCREENSHOT_DIR="$RUNNER_TEMP/visual/current" node "$RUNNER_TEMP/auth-browser/auth-visual-check.mjs"
+          EXPECT_NEW_AUTH=1 SCREENSHOT_DIR="$RUNNER_TEMP/visual/current" node "$RUNNER_TEMP/auth-browser/auth-visual-check.mjs"
       - name: Capture pull request base frontend for comparison
         if: github.event_name == 'pull_request'
         env:
@@ -71,11 +71,13 @@ jobs:
           root = Path(os.environ["RUNNER_TEMP"]) / "visual"
           current = {p.name for p in (root / "current").glob("*.png")}
           base = {p.name for p in (root / "base").glob("*.png")}
-          assert current == base and len(current) == 30, "Incomplete screenshot matrix"
+          assert base <= current and len(base) >= 30 and len(current) == 48, "Incomplete screenshot matrix"
+          for name in sorted(current - base):
+              print(f"{name}: new screen, requires visual review")
           diff = root / "diff"
           diff.mkdir(exist_ok=True)
           failures = []
-          for name in sorted(current):
+          for name in sorted(base):
               with Image.open(root / "base" / name) as a, Image.open(root / "current" / name) as b:
                   a, b = a.convert("RGB"), b.convert("RGB")
                   if a.size != b.size:
