@@ -77,6 +77,11 @@ public class GoogleCustomerAuthService {
         return Map.of("status", "mobile_verification_required", "ticket", ticket, "name", name == null ? "" : name);
     }
 
+    public void requireLinkTicket(String ticket) {
+        if (ticket == null || ticket.isBlank() || tickets.getIfPresent(ticket) == null)
+            throw new OtpException("google_link_expired");
+    }
+
     // Only called from a successful registration or customer-login OTP verification.
     @Transactional
     public void linkAfterOtp(LoginResponse response, String ticket) {
