@@ -16,6 +16,8 @@ jobs:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+
       - name: Test public website and Android PWA resources
         shell: bash
         run: |
@@ -38,6 +40,63 @@ jobs:
             https://broandbro.in/.well-known/assetlinks.json \
             | python3 -c 'import json,sys; v=json.load(sys.stdin); assert isinstance(v,list), "assetlinks.json must be a JSON array"'
           echo "Android assetlinks JSON parses successfully"
+
+      - name: Verify Android App Links and PWA content matches the approved repository release
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          import re
+          import urllib.request
+          from pathlib import Path
+
+          def public_get(path):
+              req = urllib.request.Request(
+                  "https://broandbro.in" + path,
+                  headers={"User-Agent": "BroBro-release-readiness/1.0"},
+              )
+              with urllib.request.urlopen(req, timeout=20) as resp:
+                  return resp.headers.get_content_type(), resp.read()
+
+          approved = json.loads(Path("frontend/public/.well-known/assetlinks.json").read_text())
+          content_type, live_data = public_get("/.well-known/assetlinks.json")
+          live = json.loads(live_data)
+          assert content_type == "application/json", f"Android assetlinks served as {content_type}"
+          assert live == approved, "Public assetlinks differ from approved GitHub release"
+          assert isinstance(live, list) and live, "Android Digital Asset Links cannot be empty"
+          valid_fp = re.compile(r"(?:[0-9A-F]{2}:){31}[0-9A-F]{2}\Z")
+          matches = [
+              record for record in live
+              if "delegate_permission/common.handle_all_urls" in record.get("relation", [])
+              and record.get("target", {}).get("namespace") == "android_app"
+              and record.get("target", {}).get("package_name") == "in.broandbro.app"
+              and record.get("target", {}).get("sha256_cert_fingerprints")
+              and all(valid_fp.fullmatch(fp) for fp in record["target"]["sha256_cert_fingerprints"])
+          ]
+          assert matches, "Missing valid in.broandbro.app Digital Asset Links declaration"
+          print("Android Digital Asset Links package, fingerprints and release integrity: PASS")
+
+          content_type, live_manifest_data = public_get("/manifest.webmanifest")
+          assert content_type in {"application/manifest+json", "application/json"}, f"Unexpected PWA MIME: {content_type}"
+          live_manifest = json.loads(live_manifest_data)
+          approved_manifest = json.loads(Path("frontend/public/manifest.webmanifest").read_text())
+          assert live_manifest == approved_manifest, "Public PWA manifest differs from approved GitHub release"
+          assert live_manifest.get("display") == "standalone"
+          assert live_manifest.get("start_url") == "/" and live_manifest.get("scope") == "/"
+          sizes = {icon.get("sizes") for icon in live_manifest.get("icons", [])}
+          assert {"192x192", "512x512"} <= sizes, "Required PWA icon sizes missing"
+          print("PWA manifest MIME, display mode, icons and release integrity: PASS")
+
+          for icon_path in ("/pwa-192.png", "/pwa-512.png", "/pwa-maskable-512.png"):
+              mime, data = public_get(icon_path)
+              assert mime == "image/png" and data.startswith(b"\\x89PNG\\r\\n\\x1a\\n"), (
+                  f"Missing or invalid PNG icon: {icon_path} ({mime})"
+              )
+              print(f"PWA icon valid: {icon_path}")
+          PY
+          echo "- Android App Links: JSON content, package, fingerprints, release integrity checked" >> "$GITHUB_STEP_SUMMARY"
+          echo "- PWA manifest and real PNG assets: validated" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Verify actual browser CORS preflight for main and preview origins
         shell: bash
