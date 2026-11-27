@@ -62,15 +62,34 @@ Implemented:
   so no frontend field rename was needed.
 - DB: migration `V168__customer_apple_identity.sql` adds `users.apple_subject`.
 
-**Required to enable** (the feature is disabled until the first property is set,
-exactly like Google):
+**Config wiring (done):** `application.yml` maps the service properties to SSM
+(env var takes precedence, then Parameter Store, then empty/off):
 
-| Property / env | Value |
-|---|---|
-| `app.apple.client-ids` | Comma-separated: the **Services ID** (web/JS, e.g. `in.broandbro.signin`) and, for the native flow, the **bundle id** (`in.broandbro.app`) |
-| `app.apple.redirect-uri` | Your Apple return URL (web flow), e.g. `https://www.broandbro.in/login` |
+```
+app.apple.client-ids   = ${APP_APPLE_CLIENT_IDS   : app.parameter-store.apple.clientIds}
+app.apple.redirect-uri = ${APP_APPLE_REDIRECT_URI : app.parameter-store.apple.redirectUri}
+```
 
-Set these in SSM / env the same way `app.google.client-id` is provided.
+SSM paths (imported under the `app.parameter-store.` prefix, region = backend's `AWS_REGION`):
+
+| SSM parameter | Property | Value |
+|---|---|---|
+| `/broandbro/backend/<env>/apple/clientIds` | `app.apple.client-ids` | Comma-separated: **Services ID** (web/JS, e.g. `in.broandbro.signin`) + iOS **bundle id** (`in.broandbro.app`) |
+| `/broandbro/backend/<env>/apple/redirectUri` | `app.apple.redirect-uri` | Apple return URL, e.g. `https://www.broandbro.in/login` |
+
+**Seed the parameters** with the helper (idempotent; seeds a non-activating
+`REPLACE_ME` placeholder, so the feature stays **off** until you set real
+values — run where your real AWS creds are):
+
+```bash
+./scripts/create-apple-ssm-parameters.sh dev      # and: prod
+```
+
+**Placeholder-safe:** the backend only enables Apple sign-in when `clientIds`
+contains a real reverse-DNS id (a dot), mirroring Google's
+`.apps.googleusercontent.com` gate. So a dummy value never shows a broken button
+in production. To go live, overwrite with the real values and restart the
+backend (it re-reads Parameter Store on startup).
 
 Apple Developer portal: create an **App ID** with *Sign In with Apple*
 capability, a **Services ID** for the web/JS flow, a **Key** for Sign in with

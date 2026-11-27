@@ -72,6 +72,15 @@ app:
   cors:
     allowed-origins: "${APP_CORS_ALLOWED_ORIGINS:http://localhost:5173}"
 
+  # ── Sign in with Apple ───────────────────────────────────────────────────────
+  # Comma-separated client ids: the Services ID (web/JS flow) and, for the native
+  # iOS flow, the app bundle id. Disabled until a real reverse-DNS id is set, so a
+  # placeholder SSM value is safe. SSM: /broandbro/backend/{env}/apple/clientIds
+  # and /apple/redirectUri (imported under the app.parameter-store. prefix).
+  apple:
+    client-ids: "${APP_APPLE_CLIENT_IDS:${app.parameter-store.apple.clientIds:}}"
+    redirect-uri: "${APP_APPLE_REDIRECT_URI:${app.parameter-store.apple.redirectUri:}}"
+
 legal:
   terms-version: ${LEGAL_TERMS_VERSION:2026-09}
   privacy-policy-version: ${LEGAL_PRIVACY_POLICY_VERSION:2026-01}

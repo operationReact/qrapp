@@ -33,6 +33,15 @@ class AppleCustomerAuthServiceTest {
         verifyNoInteractions(users, userService);
     }
 
+    @Test void placeholderClientIdDoesNotActivateTheFlow() {
+        // A dummy SSM value (no reverse-DNS dot) must keep Apple disabled, so a
+        // placeholder parameter in production never shows a broken sign-in button.
+        var service = service("REPLACE_ME");
+        assertThat(service.enabled()).isFalse();
+        assertThat(service.challenge()).containsEntry("enabled", false);
+        verifyNoInteractions(users, userService);
+    }
+
     @Test void unknownLinkTicketCannotAttachIdentity() {
         var service = service("");
         assertThat(service.ownsTicket("unknown")).isFalse();

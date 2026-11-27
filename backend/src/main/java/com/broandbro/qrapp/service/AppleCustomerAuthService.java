@@ -52,7 +52,7 @@ public class AppleCustomerAuthService {
                                     @Value("${app.apple.redirect-uri:}") String redirectUri,
                                     UserRepository users, UserService userService) {
         this.clientIds = Arrays.stream(clientIdsCsv.split(","))
-                .map(String::trim).filter(s -> !s.isEmpty()).distinct().toList();
+                .map(String::trim).filter(AppleCustomerAuthService::looksLikeAppleClientId).distinct().toList();
         this.primaryClientId = clientIds.isEmpty() ? "" : clientIds.get(0);
         this.redirectUri = redirectUri.trim();
         this.users = users;
@@ -72,6 +72,18 @@ public class AppleCustomerAuthService {
     }
 
     public boolean enabled() { return !clientIds.isEmpty(); }
+
+    /**
+     * Apple Services IDs and iOS bundle ids are reverse-DNS identifiers (they
+     * contain a dot), e.g. {@code in.broandbro.signin}. Requiring that shape
+     * means a placeholder/dummy SSM value such as {@code REPLACE_ME} does not
+     * accidentally activate the flow in production — the feature stays off until
+     * a real client id is configured, mirroring how the Google service only
+     * enables for a {@code .apps.googleusercontent.com} client id.
+     */
+    private static boolean looksLikeAppleClientId(String id) {
+        return id != null && id.contains(".") && id.matches("[A-Za-z0-9.-]+");
+    }
 
     public Map<String, Object> challenge() {
         if (!enabled()) return Map.of("enabled", false);
