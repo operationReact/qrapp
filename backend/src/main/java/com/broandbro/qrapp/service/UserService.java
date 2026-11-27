@@ -179,6 +179,13 @@ public class UserService {
         return issueSession(u);
     }
 
+    @Transactional
+    public LoginResponse loginVerifiedAppleCustomer(String subject) {
+        User u = userRepository.findByAppleSubject(subject).filter(this::isPasswordlessCustomer)
+                .orElseThrow(() -> new OtpException("apple_sign_in_unavailable"));
+        return issueSession(u);
+    }
+
     private LoginResponse issueSession(User u) {
         String previousToken = u.getToken();
         // generate simple token

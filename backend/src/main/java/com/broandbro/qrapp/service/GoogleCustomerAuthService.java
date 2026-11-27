@@ -82,6 +82,11 @@ public class GoogleCustomerAuthService {
             throw new OtpException("google_link_expired");
     }
 
+    /** Non-consuming check of whether this provider issued the given link ticket. */
+    public boolean ownsTicket(String ticket) {
+        return ticket != null && !ticket.isBlank() && tickets.getIfPresent(ticket) != null;
+    }
+
     // Only called from a successful registration or customer-login OTP verification.
     @Transactional
     public void linkAfterOtp(LoginResponse response, String ticket) {

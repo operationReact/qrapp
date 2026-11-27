@@ -44,27 +44,38 @@ the Team/signing, bundle id `in.broandbro.app`, and a version/build number.
 
 ## 2. Guideline 4.8 — Sign in with Apple (hard blocker)
 
-Because the app offers Google Sign-In, Apple requires an equivalent login. The
-frontend button is in place; the **backend must implement** (mirroring the
-existing Google challenge/exchange contract):
+Because the app offers Google Sign-In, Apple requires an equivalent login.
+**Frontend and backend are both implemented** — only Apple Developer config + a
+runtime property are needed to turn it on.
 
-- `POST /auth/apple/challenge` → `{ enabled, clientId, redirectUri, nonce, state, scope }`
-  - `clientId` = the **Services ID** (e.g. `in.broandbro.signin`), *not* the app bundle id.
+Implemented:
+- Frontend button (`AppleCustomerSignIn.jsx`), wired into login.
+- `POST /auth/apple/challenge` → `{ enabled, clientId, redirectUri?, nonce, state, scope }`.
 - `POST /auth/apple/exchange` with `{ code, idToken, nonce, state, user }` →
-  the **same result shape** as Google exchange:
-  `{ status: "signed_in", session }` or `{ status: "mobile_verification_required", ticket, name }`.
-  - Verify the `id_token` signature against Apple's public keys, check `aud`,
-    `iss` (`https://appleid.apple.com`), `nonce`, and expiry.
-  - `user` (name/email) is sent by Apple **only on first authorization** — persist it then.
+  `{ status: "signed_in", session }` or `{ status: "mobile_verification_required", ticket, name }`
+  (`AppleCustomerAuthService`, mirrors `GoogleCustomerAuthService`).
+  - Verifies the `id_token` against Apple's JWKS (`appleid.apple.com/auth/keys`),
+    checks `iss`, `aud` (against the configured client ids), `nonce` (raw **or**
+    SHA-256, so web-JS and native flows both work), and expiry.
+- The Apple link ticket flows through the existing WhatsApp-OTP linking path —
+  the controller routes a ticket to whichever provider (Google/Apple) issued it,
+  so no frontend field rename was needed.
+- DB: migration `V168__customer_apple_identity.sql` adds `users.apple_subject`.
+
+**Required to enable** (the feature is disabled until the first property is set,
+exactly like Google):
+
+| Property / env | Value |
+|---|---|
+| `app.apple.client-ids` | Comma-separated: the **Services ID** (web/JS, e.g. `in.broandbro.signin`) and, for the native flow, the **bundle id** (`in.broandbro.app`) |
+| `app.apple.redirect-uri` | Your Apple return URL (web flow), e.g. `https://www.broandbro.in/login` |
+
+Set these in SSM / env the same way `app.google.client-id` is provided.
 
 Apple Developer portal: create an **App ID** with *Sign In with Apple*
 capability, a **Services ID** for the web/JS flow, a **Key** for Sign in with
 Apple, and configure return URLs. In Xcode add the *Sign in with Apple*
 capability to the app target.
-
-> The frontend reuses the existing WhatsApp-link ticket flow, so the backend
-> `ticket` returned for Apple should be accepted by `verifyLoginOTP` the same way
-> `googleLinkTicket` is (consider renaming to a generic `socialLinkTicket`).
 
 ## 3. Guideline 4.2 — clear "minimum functionality"
 

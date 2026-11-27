@@ -44,6 +44,7 @@ public class UserAuthController {
     private final UserLocationAccessRepository userLocationAccessRepository;
     private final AccountDeletionService accountDeletionService;
     private final com.broandbro.qrapp.service.GoogleCustomerAuthService googleAuth;
+    private final com.broandbro.qrapp.service.AppleCustomerAuthService appleAuth;
 
     private static final String GENERIC_RESET_MESSAGE =
             "If the account is eligible, a verification code has been sent to your WhatsApp.";
@@ -51,7 +52,7 @@ public class UserAuthController {
     @PostMapping("/register/request-otp")
     public ResponseEntity<?> requestRegistrationOtp(@Valid @RequestBody RegistrationOtpRequest req) {
         try {
-            if (req.getGoogleLinkTicket() != null) googleAuth.requireLinkTicket(req.getGoogleLinkTicket());
+            if (req.getGoogleLinkTicket() != null) requireAnyLinkTicket(req.getGoogleLinkTicket());
             if ((req.getPassword() == null || req.getPassword().isBlank()) && req.getGoogleLinkTicket() == null)
                 throw new OtpException("password_required");
             whatsAppOtpService.requestRegistrationOtp(req.getPhoneNumber(), req.getName(), req.getPassword(),
@@ -73,7 +74,7 @@ public class UserAuthController {
     public ResponseEntity<?> verifyRegistrationOtp(@Valid @RequestBody WhatsAppOtpVerifyRequest req) {
         try {
             var response = whatsAppOtpService.verifyRegistrationOtp(req.getPhoneNumber(), req.getOtp());
-            return completeGoogleLink(response, req.getGoogleLinkTicket());
+            return completeSocialLink(response, req.getGoogleLinkTicket());
         } catch (OtpException ex) {
             return ResponseEntity.badRequest().body(new OtpResponse(false, ex.getMessage()));
         }
@@ -143,13 +144,43 @@ public class UserAuthController {
         }
     }
 
-    private ResponseEntity<?> completeGoogleLink(com.broandbro.qrapp.dto.LoginResponse response, String ticket) {
+    public record AppleExchangeRequest(String code, String idToken, String nonce, String state, Object user) {}
+
+    @PostMapping("/apple/challenge")
+    public ResponseEntity<?> appleChallenge() {
+        return ResponseEntity.ok().header("Cache-Control", "no-store").body(appleAuth.challenge());
+    }
+
+    @PostMapping("/apple/exchange")
+    public ResponseEntity<?> appleExchange(@RequestBody AppleExchangeRequest req) {
+        try {
+            return ResponseEntity.ok().header("Cache-Control", "no-store")
+                    .body(appleAuth.exchange(req.idToken(), req.nonce()));
+        } catch (OtpException ex) {
+            return ResponseEntity.status(401).body(Map.of("error", ex.getMessage()));
+        }
+    }
+
+    // A social link ticket may be issued by Google or Apple; both arrive through
+    // the same request field. Require that one of them owns it.
+    private void requireAnyLinkTicket(String ticket) {
+        if (appleAuth.ownsTicket(ticket)) return;
+        googleAuth.requireLinkTicket(ticket);
+    }
+
+    // Consume the ticket against whichever provider issued it.
+    private void linkByProvider(com.broandbro.qrapp.dto.LoginResponse response, String ticket) {
+        if (appleAuth.ownsTicket(ticket)) appleAuth.linkAfterOtp(response, ticket);
+        else googleAuth.linkAfterOtp(response, ticket);
+    }
+
+    private ResponseEntity<?> completeSocialLink(com.broandbro.qrapp.dto.LoginResponse response, String ticket) {
         if (ticket == null || ticket.isBlank()) return ResponseEntity.ok(response);
         try {
-            googleAuth.linkAfterOtp(response, ticket);
+            linkByProvider(response, ticket);
             return ResponseEntity.ok(response);
         } catch (OtpException | org.springframework.dao.DataIntegrityViolationException ex) {
-            // Mobile verification succeeded; never overwrite a different Google identity.
+            // Mobile verification succeeded; never overwrite a different linked identity.
             return ResponseEntity.ok(Map.of("token", response.getToken(), "user", response.getUser(),
                     "mustChangePassword", Boolean.TRUE.equals(response.isMustChangePassword()),
                     "googleLinkFailed", true));
@@ -159,7 +190,7 @@ public class UserAuthController {
     @PostMapping("/login/request-otp")
     public ResponseEntity<?> requestLoginOtp(@Valid @RequestBody PhoneNumberRequest req) {
         try {
-            googleAuth.requireLinkTicket(req.getGoogleLinkTicket());
+            requireAnyLinkTicket(req.getGoogleLinkTicket());
             whatsAppOtpService.requestCustomerLoginOtp(req.getPhoneNumber());
             return ResponseEntity.ok(new OtpResponse(true, GENERIC_RESET_MESSAGE));
         } catch (OtpException ex) {
@@ -174,9 +205,9 @@ public class UserAuthController {
     @PostMapping("/login/verify-otp")
     public ResponseEntity<?> verifyLoginOtp(@Valid @RequestBody WhatsAppOtpVerifyRequest req) {
         try {
-            googleAuth.requireLinkTicket(req.getGoogleLinkTicket());
+            requireAnyLinkTicket(req.getGoogleLinkTicket());
             var response = whatsAppOtpService.verifyCustomerLoginOtp(req.getPhoneNumber(), req.getOtp());
-            googleAuth.linkAfterOtp(response, req.getGoogleLinkTicket());
+            linkByProvider(response, req.getGoogleLinkTicket());
             return ResponseEntity.ok(response);
         } catch (OtpException ex) {
             return ResponseEntity.badRequest().body(new OtpResponse(false, "Invalid or expired OTP"));
