@@ -4,6 +4,7 @@ import ReactDOM from "react-dom/client";
 import { RouterProvider } from '@tanstack/react-router'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { router } from './router'
+import { initNativeShell } from './native/capacitor'
 import "./index.css";
 import "./styles/auth-login.css";
 import "./styles/partner-header-branding.css";
@@ -43,6 +44,9 @@ function registerServiceWorker() {
 }
 
 registerServiceWorker();
+
+// No-op on web / Android TWA; initializes the iOS (Capacitor) native shell.
+initNativeShell(router);
 
 if (!rootEl) {
     console.error('Root element (#root) not found in document');

@@ -62,3 +62,17 @@ export const getGoogleChallenge = () =>
 
 export const exchangeGoogleCredential = ({ credential, nonce }) =>
   apiClient.post("/auth/google/exchange", { credential, nonce }).then((r) => r.data);
+
+// Sign in with Apple. Mirrors the Google challenge/exchange contract so the
+// frontend linking flow (ticket -> WhatsApp verification) is shared.
+// Backend must implement:
+//   POST /auth/apple/challenge -> { enabled, clientId, redirectUri, nonce, state, scope? }
+//   POST /auth/apple/exchange  -> same result shape as Google exchange
+//       ({ status: "signed_in", session } | { status: "mobile_verification_required", ticket, name })
+export const getAppleChallenge = () =>
+  apiClient.post("/auth/apple/challenge").then((r) => r.data);
+
+export const exchangeAppleCredential = ({ code, idToken, nonce, state, user }) =>
+  apiClient
+    .post("/auth/apple/exchange", { code, idToken, nonce, state, user })
+    .then((r) => r.data);

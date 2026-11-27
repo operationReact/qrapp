@@ -1,5 +1,5 @@
 import { useNavigate, useLocation, Link } from "@tanstack/react-router";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Button, buttonVariants } from "../ui/button";
 import { cn } from "@/lib/utils";
 import {
@@ -31,7 +31,10 @@ import { Avatar, AvatarFallback } from "../ui/avatar";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 
-const items = [
+// Direct-navigation tabs rendered as links. The Cart and Account tabs are
+// rendered separately below because they open drawers rather than navigate, so
+// they are intentionally not part of this list.
+const primaryLinks = [
   {
     key: "home",
     label: "Home",
@@ -57,19 +60,11 @@ const items = [
     icon: CompassIcon,
     path: "/search",
   },
-  {
-    key: "cart",
-    label: "Cart",
-    icon: ShoppingCartSimpleIcon,
-    path: "/cart",
-  },
-  {
-    key: "account",
-    label: "Account",
-    icon: UserCircleIcon,
-    path: "/profile",
-  },
 ];
+
+// Routes that belong to the Account area, so the Account tab reads as active
+// when the user is on any of them (not only "/profile").
+const ACCOUNT_ROUTES = ["/profile", "/orders", "/party-orders", "/wallet"];
 
 
 function UserAccountDrawerContent() {
@@ -185,8 +180,11 @@ export default function MobileMenu() {
   const { user } = useAuth();
   const { cart, openDrawer, closeDrawer } = useCart();
   const visible = useScrollVisibility();
+  const [accountOpen, setAccountOpen] = useState(false);
 
   const shouldOpenCartDrawer = location.pathname !== "/cart";
+  const accountActive =
+    accountOpen || ACCOUNT_ROUTES.includes(location.pathname);
 
   if (!isMobile) return null;
 
@@ -197,7 +195,7 @@ export default function MobileMenu() {
         visible ? "translate-y-0" : "translate-y-full",
       )}
     >
-      {items.slice(0, -2).map((item) => {
+      {primaryLinks.map((item) => {
         const isActive = location.pathname === item.path;
         return (
           <Link
@@ -254,22 +252,23 @@ export default function MobileMenu() {
         </span>
       </button>
 
-      <Drawer>
+      <Drawer open={accountOpen} onOpenChange={setAccountOpen}>
         <DrawerTrigger asChild>
           <button
             className={cn(
               `touch-manipulation grid place-items-center transition-transform flex-1 focus:outline-none after:absolute after:scale-y-0 after:top-0 after:w-12 after:h-0.5 after:rounded-b-xl after:bg-primary`,
-              location.pathname === "/profile" && "after:scale-y-100",
+              accountActive && "after:scale-y-100",
             )}
             aria-label="Account"
+            aria-expanded={accountOpen}
             tabIndex={0}
           >
             <UserCircleIcon
               weight="fill"
-              className={`size-[18px] mb-0.5 transition-all md:size-6 ${location.pathname === "/profile" ? "text-primary scale-105 md:scale-110" : "text-zinc-400"}`}
+              className={`size-[18px] mb-0.5 transition-all md:size-6 ${accountActive ? "text-primary scale-105 md:scale-110" : "text-zinc-400"}`}
             />
             <span
-              className={`text-[10px] font-medium ${location.pathname === "/profile" ? "text-primary" : "text-zinc-400"}`}
+              className={`text-[10px] font-medium ${accountActive ? "text-primary" : "text-zinc-400"}`}
             >
               Account
             </span>
