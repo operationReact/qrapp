@@ -6,6 +6,7 @@ import { setUserAuth } from "@/services";
 import { loginUser, requestLoginOTP, verifyLoginOTP } from "@/services/auth-service";
 import OTPVerifyDialog from "@/components/OTPVerifyDialog";
 import GoogleCustomerSignIn from "@/components/GoogleCustomerSignIn";
+import AppleCustomerSignIn from "@/components/AppleCustomerSignIn";
 import { normalizeIndianMobileInput } from "@/lib/authRegistrationFlow";
 import { getPendingGoogleLink, rememberGoogleLink, clearPendingGoogleLink } from "@/lib/pendingGoogleLink";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -167,7 +168,12 @@ export const Route = createFileRoute("/(auth)/login")({
             )}
             {linkWarning && <div role="alert" className="auth-login-error">Google could not be linked. Please sign in with your password or try Google again. <button type="button" onClick={() => {setLinkWarning(null); cancelGoogleLink();}} className="auth-inline-retry">Return to sign-in</button></div>}
             {googleLink && <div className="auth-google-link-notice" role="status">Verify your WhatsApp number to connect your Google account. New customer? Create an account below.</div>}
-            {!googleLink && <GoogleCustomerSignIn onResult={handleGoogleResult} onError={setLoginError} />}
+            {!googleLink && (
+              <div className="auth-social-buttons">
+                <GoogleCustomerSignIn onResult={handleGoogleResult} onError={setLoginError} />
+                <AppleCustomerSignIn onResult={handleGoogleResult} onError={setLoginError} />
+              </div>
+            )}
             {!googleLink && <p className="auth-login-separator" style={{textAlign:"center",margin:"1rem 0"}}>OR SIGN IN WITH YOUR WHATSAPP NUMBER</p>}
             {googleLink && <button type="button" className="auth-inline-retry" onClick={cancelGoogleLink}>Back to password sign-in</button>}
             <form onSubmit={submit} className="auth-login-form">

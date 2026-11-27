@@ -598,3 +598,20 @@
 .auth-google-link-notice { margin: .75rem 0; padding: .75rem; border: 1px solid #f0e4dc; border-radius: .85rem; background: #fff7f3; color: #756660; font-size: .85rem; line-height: 1.5; }
 
 .auth-workplace-select { width:100%; min-height:48px; border:1px solid #e6e0db; border-radius:12px; background:#fff; padding:10px 12px; color:#302824; font-size:15px; }
+
+/* Social sign-in group (Google + Apple) */
+.auth-social-buttons { display: flex; flex-direction: column; gap: .5rem; margin: .7rem 0; }
+.auth-social-buttons .auth-google-sign-in { margin: 0; }
+.auth-apple-sign-in { width: 100%; }
+.auth-apple-button {
+  display: flex; align-items: center; justify-content: center; gap: .5rem;
+  width: 100%; min-height: 44px; padding: .55rem 1rem;
+  border: 1px solid #000; border-radius: .65rem;
+  background: #000; color: #fff;
+  font-family: inherit; font-size: .95rem; font-weight: 600; line-height: 1;
+  cursor: pointer; transition: opacity .15s ease, background .15s ease;
+}
+.auth-apple-button:hover { background: #111; }
+.auth-apple-button:disabled { opacity: .6; cursor: progress; }
+.auth-apple-button:focus-visible { outline: 2px solid #b33b3d; outline-offset: 2px; }
+.auth-apple-button svg { flex: 0 0 auto; }
