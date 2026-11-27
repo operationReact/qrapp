@@ -51,7 +51,7 @@ try {
       const nav=await openSidebar(page,width);
       await expand(nav,"Workspace");
       await expand(nav,"Menu Management");
-      await nav.getByRole("link",{name:"Menu Items",exact:true}).waitFor();
+      await nav.getByRole("link",{name:baseline ? /^Menu Items/ : "Menu Items",exact:!baseline}).waitFor();
       const shell=page.locator(baseline?".admin-sidebar-shell:visible":".bb-compact-admin-sidebar:visible").first();
       await shell.waitFor();
       await page.evaluate(()=>document.fonts.ready);
