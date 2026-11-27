@@ -1,0 +1,96 @@
+/* Admin-only navigation. Existing palette, no decorative card surfaces. */
+.bb-compact-admin-sidebar {
+  --bb-nav-red: #c4161d;
+  --bb-nav-active: #fff0ef;
+  --bb-nav-ink: #29231e;
+  --bb-nav-muted: #756e66;
+  --bb-nav-line: #eee7df;
+  color: var(--bb-nav-ink);
+  background: #fff;
+  min-width: 0;
+  min-height: 0;
+}
+.bb-compact-admin-sidebar [data-slot="sidebar-inner"] { background: #fff; min-height: 0; }
+.bb-compact-admin-sidebar[data-mobile="true"] {
+  height: 100dvh;
+  gap: 0;
+  z-index: 110;
+  padding-top: env(safe-area-inset-top, 0px);
+  border-right: 1px solid var(--bb-nav-line);
+  box-shadow: 8px 0 28px rgba(41,35,30,.10);
+}
+body:has(.bb-compact-admin-sidebar[data-mobile="true"]) [data-slot="sheet-overlay"] { z-index: 109; background: rgba(33,27,24,.42); }
+.bb-compact-admin-sidebar .bb-admin-header { position: relative; z-index: 2; flex: none; gap: 8px; padding: 10px 12px 12px; border-bottom: 1px solid var(--bb-nav-line); background: #fff; }
+.bb-admin-brand, .bb-admin-profile { display: flex; align-items: center; gap: 9px; min-width: 0; }
+.bb-admin-brand { justify-content: space-between; }
+.bb-admin-brand-link { display: flex; align-items: center; gap: 8px; min-width: 0; font-size: 14px; font-weight: 650; color: var(--bb-nav-ink); }
+.bb-admin-brand-link img { width: 32px; height: 32px; object-fit: contain; flex: none; }
+.bb-admin-brand-link span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bb-admin-icon-button { width: 40px; height: 40px; flex: none; place-items: center; border: 0; border-radius: 8px; background: transparent; color: #5f554d; cursor: pointer; }
+.bb-admin-icon-button:not(.hidden) { display: grid; }
+.bb-admin-icon-button svg { width: 18px; height: 18px; }
+.bb-admin-icon-button:hover { background: #f7f5f2; color: #c4161d; }
+.bb-admin-icon-button:disabled { opacity: .5; cursor: default; }
+.bb-admin-avatar { width: 36px; height: 36px; flex: none; border-radius: 50%; overflow: hidden; background: #f6efe6; }
+.bb-admin-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.bb-admin-identity { min-width: 0; flex: 1; }
+.bb-admin-identity p { font-size: 14px; line-height: 20px; font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bb-admin-identity > span { display: block; font-size: 12px; line-height: 16px; color: #756e66; }
+.bb-location-control { position: relative; min-width: 0; width: 100%; }
+.bb-location-trigger { display: flex; align-items: center; width: 100%; height: 42px; gap: 8px; padding: 0 10px; border: 1px solid #e7ded2; background: #faf8f5; border-radius: 8px; text-align: left; cursor: pointer; color: #29231e; }
+.bb-location-trigger:hover { border-color: #c4161d; background: #fff8f7; }
+.bb-location-trigger > svg { width: 17px; height: 17px; flex: none; color: #c4161d; }
+.bb-location-trigger .bb-location-chevron { width: 15px; height: 15px; color: #756e66; }
+.bb-location-name { min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; font-weight: 600; }
+.bb-location-options { position: absolute; inset-inline: 0; top: calc(100% + 5px); z-index: 40; background: #fff; border: 1px solid #e7ded2; border-radius: 9px; padding: 4px; max-height: min(260px, 40dvh); overflow-y: auto; overscroll-behavior: contain; box-shadow: 0 8px 20px rgba(41,35,30,.12); }
+.bb-location-options button { display: flex; width: 100%; min-height: 40px; align-items: center; gap: 8px; padding: 7px 8px; border-radius: 6px; text-align: left; color: #29231e; font-size: 13px; }
+.bb-location-options button > span { min-width: 0; flex: 1; overflow-wrap: anywhere; }
+.bb-location-options button svg { width: 16px; height: 16px; flex: none; }
+.bb-location-options button:hover, .bb-location-options button[aria-pressed="true"] { background: #fff0ef; color: #c4161d; }
+.bb-location-empty, .bb-location-loading { font-size: 12px; color: #756e66; padding: 10px; }
+.bb-admin-nav { display: flex; flex: 1; min-height: 0; min-width: 0; flex-direction: column; overflow: hidden; }
+.bb-admin-nav .bb-admin-nav-scroll { overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; min-height: 0; gap: 3px; padding: 8px 10px; scrollbar-width: thin; scrollbar-color: #ded2c5 transparent; }
+.bb-nav-group { min-width: 0; flex: none; }
+.bb-nav-section { display: flex; align-items: center; width: 100%; gap: 8px; padding: 0 9px; min-height: 36px; border-radius: 7px; text-align: left; color: #756e66; font-size: 11px; font-weight: 650; letter-spacing: .035em; text-transform: uppercase; }
+.bb-nav-section:hover { background: #f7f5f2; color: #29231e; }
+.bb-nav-section > span:first-of-type { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bb-section-icon { width: 16px; height: 16px; flex: none; }
+.bb-section-chevron { width: 14px; height: 14px; flex: none; transition: transform .15s; }
+.bb-compact-admin-sidebar .bb-nav-list { gap: 2px; padding: 0; margin: 0; }
+.bb-compact-admin-sidebar .bb-nav-list[hidden] { display: none; }
+.bb-compact-admin-sidebar .bb-nav-link { min-height: 42px; height: 42px; display: flex; align-items: center; gap: 10px; padding: 0 10px; border-radius: 7px; color: #29231e; font-size: 13px; font-weight: 500; transition: background .15s, color .15s; }
+.bb-compact-admin-sidebar .bb-nav-link:hover { background: #f7f5f2; color: #29231e; }
+.bb-compact-admin-sidebar .bb-nav-link[aria-current="page"] { background: var(--bb-nav-active); color: var(--bb-nav-red); font-weight: 650; box-shadow: inset 2px 0 var(--bb-nav-red); }
+.bb-compact-admin-sidebar .bb-nav-link .bb-nav-icon { width: 18px; height: 18px; flex: none; }
+.bb-nav-text { min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bb-nav-badge { flex: none; margin-left: auto; min-width: 20px; padding: 2px 5px; border-radius: 5px; background: #c4161d; color: white; font-size: 10px; font-weight: 650; text-align: center; }
+.bb-compact-admin-sidebar .bb-admin-footer { flex: none; gap: 1px; padding: 5px 10px calc(8px + env(safe-area-inset-bottom, 0px)); border-top: 1px solid var(--bb-nav-line); background: #fff; }
+.bb-admin-sync { display: flex; align-items: center; min-width: 0; padding-inline: 10px 0; }
+.bb-sync-label { display: flex; align-items: center; gap: 7px; flex: 1; color: #756e66; font-size: 12px; white-space: nowrap; }
+.bb-sync-dot { width: 7px; height: 7px; border-radius: 50%; background: #a8a29e; flex: none; }
+.bb-sync-dot[data-state="ready"] { background: #16a34a; }
+.bb-sync-dot[data-state="busy"] { background: #b88746; }
+.bb-sync-dot[data-state="error"] { background: #c4161d; }
+.bb-compact-admin-sidebar :is(button,a):focus-visible, .bb-location-control :is(button,a):focus-visible { outline: 2px solid #c4161d; outline-offset: -2px; }
+@media (min-width: 1024px) {
+  .bb-admin-profile, .bb-admin-mobile-location { display: none; }
+  .bb-compact-admin-sidebar .bb-admin-mobile-close { display: none; }
+  .bb-compact-admin-sidebar .bb-nav-link { height: 38px; min-height: 38px; }
+  .bb-compact-admin-sidebar .bb-admin-header { padding: 9px 10px; }
+  .bb-compact-admin-sidebar .bb-admin-footer { padding-bottom: 8px; }
+  [data-collapsible="icon"] .bb-compact-admin-sidebar .bb-admin-brand { justify-content: center; }
+  [data-collapsible="icon"] .bb-compact-admin-sidebar .bb-admin-brand-link,
+  [data-collapsible="icon"] .bb-compact-admin-sidebar .bb-nav-text,
+  [data-collapsible="icon"] .bb-compact-admin-sidebar .bb-nav-badge,
+  [data-collapsible="icon"] .bb-compact-admin-sidebar .bb-sync-label { display: none; }
+  [data-collapsible="icon"] .bb-compact-admin-sidebar .bb-admin-nav-scroll { padding-inline: 6px; overflow-y: auto; }
+  [data-collapsible="icon"] .bb-compact-admin-sidebar .bb-nav-link { width: 40px !important; height: 38px !important; min-height: 38px; justify-content: center; padding: 0 !important; margin-inline: auto; }
+  [data-collapsible="icon"] .bb-compact-admin-sidebar .bb-admin-sync { justify-content: center; padding: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bb-compact-admin-sidebar, .bb-compact-admin-sidebar * { animation: none !important; transition: none !important; }
+}
+
+.bb-compact-admin-sidebar[data-mobile="true"] .bb-admin-desktop-toggle { display: none; }
+.bb-compact-admin-sidebar[data-mobile="true"] .bb-admin-profile { display: flex; }
+.bb-compact-admin-sidebar[data-mobile="true"] .bb-admin-mobile-location { display: block; }
