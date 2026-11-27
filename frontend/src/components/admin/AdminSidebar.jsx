@@ -128,14 +128,14 @@ export function AdminSidebar() {
           <Link to="/admin" className="bb-admin-brand-link" onClick={closeMobile} aria-label="Bro & Bro Admin Console">
             <img src="/bro-logo.png" alt="" /><span>Admin Console</span>
           </Link>
-          <button type="button" className="bb-admin-icon-button md:hidden" onClick={closeMobile} aria-label="Close admin menu"><X aria-hidden="true" /></button>
-          <button type="button" className="bb-admin-icon-button hidden md:grid" onClick={toggleSidebar} aria-label="Collapse or expand navigation" title="Collapse or expand navigation"><SidebarIcon aria-hidden="true" /></button>
+          <button type="button" className="bb-admin-icon-button bb-admin-mobile-close" onClick={closeMobile} aria-label="Close admin menu"><X aria-hidden="true" /></button>
+          <button type="button" className="bb-admin-icon-button bb-admin-desktop-toggle" onClick={toggleSidebar} aria-label="Collapse or expand navigation" title="Collapse or expand navigation"><SidebarIcon aria-hidden="true" /></button>
         </div>
-        <div className="bb-admin-profile md:hidden">
+        <div className="bb-admin-profile">
           <div className="bb-admin-avatar">{avatar ? <img src={avatar} alt="" /> : <GeneratedAvatar seed={avatarSeed} size={40} className="size-full" />}</div>
           <div className="bb-admin-identity"><p title={userName}>{userName}</p><span>{roleLabel}</span></div>
         </div>
-        <div className="md:hidden">{canAccessAdmin(user) && <AdminLocationSelector />}</div>
+        <div className="bb-admin-mobile-location">{canAccessAdmin(user) && <AdminLocationSelector />}</div>
       </SidebarHeader>
 
       <nav aria-label="Admin navigation" className="bb-admin-nav">
